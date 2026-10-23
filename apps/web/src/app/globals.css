@@ -151,3 +151,49 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 @media(max-width:760px){.inbox-queue-button:nth-child(3){display:inline-flex}.inbox-queues{gap:1px}.inbox-queue-button,.inbox-more-queues>summary{padding-right:5px;padding-left:5px}}
 
 .inbox-conversation-list{flex:1;min-height:0;overflow:auto}.inbox-list{min-height:0}
+
+/* Conversation routing: quiet icon-led toggle menus instead of native select stacks. */
+.handoff-toolbar{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--line);background:linear-gradient(110deg,#fff 0%,#fafaff 100%);position:relative;z-index:6}
+.handoff-menu{position:relative;min-width:0}
+.handoff-menu>summary{list-style:none;cursor:pointer}
+.handoff-menu>summary::-webkit-details-marker{display:none}
+.handoff-trigger{display:flex;align-items:center;gap:9px;min-width:174px;max-width:255px;padding:6px 10px 6px 7px;border:1px solid #e7e6f2;border-radius:11px;background:#fff;box-shadow:0 1px 2px #25234c05;transition:border-color .15s,box-shadow .15s}
+.handoff-trigger:hover,.handoff-menu[open]>.handoff-trigger{border-color:#c9c5fb;box-shadow:0 0 0 3px #7267df0d}
+.handoff-trigger-icon{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:9px;background:#f0efff;color:#6559d5}
+.handoff-trigger-copy,.handoff-option-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px;text-align:left}
+.handoff-trigger-copy strong{font-size:11px;font-weight:750;color:#363950}
+.handoff-trigger-copy small{overflow:hidden;color:#777d94;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.handoff-chevron{flex:none;color:#858aa0;transition:transform .15s}
+.handoff-menu[open] .handoff-chevron{transform:rotate(180deg)}
+.handoff-invite-trigger{display:inline-flex;align-items:center;gap:7px;min-height:45px;padding:0 12px;border:1px solid transparent;border-radius:10px;color:#686e86;font-size:11px;font-weight:700;transition:background .15s,color .15s}
+.handoff-invite-trigger:hover,.invite-menu[open]>.handoff-invite-trigger{background:#f1f0ff;color:#5f54cf}
+.handoff-popover{position:absolute;top:calc(100% + 9px);left:0;width:min(330px,calc(100vw - 34px));max-height:min(72vh,560px);overflow:auto;padding:8px;border:1px solid #e9e8f2;border-radius:15px;background:#fff;box-shadow:0 18px 48px #29254a20,0 3px 10px #29254a0a;animation:handoff-pop-in .13s ease-out}
+.invite-popover{width:min(355px,calc(100vw - 34px));left:auto;right:0}
+@keyframes handoff-pop-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.handoff-popover-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 8px 12px}
+.handoff-popover-heading>div{display:flex;flex-direction:column;gap:5px}
+.handoff-popover-heading strong{color:#30344d;font:750 12px Manrope,sans-serif}
+.handoff-popover-heading small{color:#858aa0;font-size:10px;line-height:1.45}
+.handoff-popover-mark{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;background:#f0efff;color:#6559d5}
+.handoff-section-label{padding:9px 9px 5px;color:#a0a4b5;font-size:9px;font-weight:800;letter-spacing:1px}
+.handoff-option{display:flex;align-items:center;gap:10px;width:100%;min-height:47px;padding:6px 9px;border:0;border-radius:9px;background:transparent;color:#777d93;text-align:left;cursor:pointer;transition:background .12s}
+.handoff-option:hover{background:#f8f7ff}
+.handoff-option.selected{background:#f0efff;color:#665bd3}
+.handoff-option-icon,.handoff-avatar{display:grid;place-items:center;flex:none;width:31px;height:31px;border-radius:10px;background:#f1f2f8;color:#787f98}
+.handoff-option.selected .handoff-option-icon{background:#e1dfff;color:#5c50cb}
+.handoff-avatar{border-radius:50%;background:#edf0ff;color:#5f61a4;font-size:10px;font-weight:800}
+.handoff-option-copy strong{overflow:hidden;color:#41465f;font-size:11px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.handoff-option-copy small{overflow:hidden;color:#9297aa;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.handoff-option.selected .handoff-option-copy strong{color:#5d52c9}
+.handoff-option>svg:last-child{flex:none;color:#6358d2}
+.handoff-popover-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding:10px 4px 3px;border-top:1px solid #f0f0f6}
+.handoff-popover-footer>span{min-width:0;color:#898ea2;font-size:9px}
+.handoff-popover-footer b{display:block;max-width:150px;margin-top:3px;overflow:hidden;color:#515671;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.handoff-confirm{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-height:34px;padding:0 12px;border:0;border-radius:9px;background:#675cda;color:white;font-size:10px;font-weight:750;box-shadow:0 3px 8px #675cda24;cursor:pointer;transition:background .15s,transform .15s}
+.handoff-confirm:hover{transform:translateY(-1px);background:#5549c5}
+.invite-option{display:flex;align-items:center;gap:9px;padding:7px 5px;border-radius:9px}
+.invite-option:hover{background:#faf9ff}
+.invite-person-button{display:grid;place-items:center;flex:none;width:32px;height:32px;border:1px solid #e7e5fb;border-radius:9px;background:#fff;color:#6458d4;cursor:pointer;transition:background .12s,color .12s}
+.invite-person-button:hover{background:#675cda;color:#fff}
+.handoff-empty{padding:14px 9px;color:#8b90a3;font-size:11px}
+@media(max-width:600px){.handoff-toolbar{gap:4px;padding:7px 9px}.handoff-trigger{min-width:0;max-width:220px}.handoff-trigger-copy{max-width:122px}.handoff-invite-trigger{padding:0 8px}.handoff-popover{max-height:65vh}.invite-popover{right:-4px}}

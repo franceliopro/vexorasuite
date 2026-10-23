@@ -28,6 +28,7 @@ export class AuthService {
   }
 
   async register(input: RegisterDto) {
+    this.secret();
     const email = input.email.trim().toLowerCase();
     const passwordHash = await hash(input.password, 12);
     const baseSlug = input.tenantName
@@ -76,12 +77,13 @@ export class AuthService {
   }
 
   async login(input: LoginDto) {
+    this.secret();
     const email = input.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
         memberships: {
-          where: { tenant: { slug: input.tenantSlug }, tenant: { status: "ACTIVE" } },
+          where: { tenant: { is: { slug: input.tenantSlug, status: "ACTIVE" } } },
           include: { tenant: true },
           take: 1,
         },

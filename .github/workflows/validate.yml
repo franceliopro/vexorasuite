@@ -52,6 +52,8 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Validate Prisma schema
         run: pnpm --filter @vexorasuite/api exec prisma validate
+      - name: Generate Prisma client
+        run: pnpm --filter @vexorasuite/api exec prisma generate
       - name: Test
         run: pnpm test
       - name: Apply migrations to PostgreSQL

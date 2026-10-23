@@ -210,15 +210,16 @@ export class WahaWebhookController {
         await this.sendBotReply(channel, chatId, conversationId, invalid ? "O CPF/CNPJ não passou na validação. Confira os números e tente novamente, ou digite *cancelar*." : "Não consegui consultar o Asaas neste momento. Confira o documento e tente novamente mais tarde, ou digite *cancelar*.");
         return true;
       }
+      const environmentNote = result.environment === "SANDBOX" ? "🧪 TESTE · ambiente Sandbox; nenhuma cobrança real será feita.\n\n" : "";
       if (!result.debts.length) {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "NO_DEBTS" } } });
-        await this.sendBotReply(channel, chatId, conversationId, "Não encontrei cobranças em aberto para esse documento.\n\n1. Falar com o Financeiro\n2. Consultar outro documento\n\nDigite *cancelar* para sair.");
+        await this.sendBotReply(channel, chatId, conversationId, environmentNote + "Não encontrei cobranças em aberto para esse documento.\n\n1. Falar com o Financeiro\n2. Consultar outro documento\n\nDigite *cancelar* para sair.");
         return true;
       }
       const debts = result.debts.slice(0, 10).map((debt) => ({ id: debt.id, value: Number(debt.value), dueDate: debt.dueDate, status: debt.status, description: debt.description || "Cobrança" }));
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "PICK_DEBT", debts } } });
       const lines = debts.map((debt, index) => `${index + 1}. ${debt.description} — ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${debt.dueDate || "não informado"}${debt.status === "OVERDUE" ? " (vencida)" : ""}`);
-      await this.sendBotReply(channel, chatId, conversationId, `Encontrei estas cobranças em aberto:\n\n${lines.join("\n")}\n\nResponda com o número da cobrança desejada.`);
+      await this.sendBotReply(channel, chatId, conversationId, environmentNote + `Encontrei estas cobranças em aberto:\n\n${lines.join("\n")}\n\nResponda com o número da cobrança desejada.`);
       return true;
     }
     if (step === "NO_DEBTS") {
@@ -267,7 +268,7 @@ export class WahaWebhookController {
             update: { conversationId, amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
           });
         }
-        const heading = `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${detail.dueDate || selected.dueDate || "não informado"}`;
+        const heading = (detail.environment === "SANDBOX" ? "🧪 TESTE · Sandbox, sem pagamento real\n" : "") + `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${detail.dueDate || selected.dueDate || "não informado"}`;
         let response = heading;
         if (choice === 1) response += "\n\nBoleto / PDF: " + (detail.bankSlipUrl || detail.invoiceUrl || "O boleto não está disponível nesta cobrança.");
         else if (choice === 2) response += "\n\nLinha digitável: " + (detail.identificationField || "Não disponibilizada pelo Asaas. Use a fatura: " + (detail.invoiceUrl || "indisponível"));

@@ -26,3 +26,13 @@ Publicar o ambiente inicial em `app.vexorasuite.com.br`, sem tocar na Véxora Ma
 - Nenhum tráfego de produção é redirecionado sem aceite explícito.
 
 > O scaffold inicial não é ainda um CRM operacional. O banco, autenticação, autorização, migrations, realtime e integração WAHA serão implementados e testados em etapas seguintes.
+
+
+## pgAdmin visual
+- Publicar o serviço Compose `pgadmin` no domínio `pga.vexorasuite.com.br`, porta interna `80`, com HTTPS habilitado no Dokploy.
+- Criar o registro DNS `A` para `pga` apontando para o IP do servidor Dokploy.
+- Configurar no Dokploy os secrets `PGADMIN_DEFAULT_EMAIL` (e-mail de administrador) e `PGADMIN_DEFAULT_PASSWORD` (senha forte e exclusiva).
+- O pgAdmin compartilha somente a rede interna do Compose com o PostgreSQL; a porta 5432 não é publicada na internet.
+- Na primeira entrada no pgAdmin, registrar o servidor PostgreSQL com host `postgres`, porta `5432`, manutenção/banco `vexorasuite`, usuário `vexora` (ou o valor configurado em `POSTGRES_USER`) e a senha de `POSTGRES_PASSWORD`.
+- Os dados do pgAdmin são persistidos no volume `pgadmin_data`. Não reutilizar esse volume em outro ambiente.
+- O acesso público ao painel de administração exige credenciais fortes; compartilhe a URL e a senha apenas com administradores autorizados.

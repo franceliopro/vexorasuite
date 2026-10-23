@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const navigation = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", glyph: "⌂" }, { label: "Atendimento", glyph: "◫" }, { label: "CRM", glyph: "◎" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", glyph: "⌂" }, { label: "Atendimento", glyph: "◫" }, { label: "CRM", glyph: "◎" }, { label: "Agenda", glyph: "▦" }] },
   { section: "RESULTADOS", items: [{ label: "Automação", glyph: "⌘" }, { label: "Marketing", glyph: "↗" }, { label: "Financeiro", glyph: "＄" }] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", glyph: "⚙" }] },
 ];
@@ -83,7 +83,7 @@ export default function HomePage() {
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",glyph:"◫",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",glyph:"◎",target:"CRM"},{name:"Automação",desc:"IA, bots e regras",glyph:"⌘",target:"Automação"},{name:"Marketing",desc:"Campanhas e criações",glyph:"↗",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon">{item.glyph}</span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",glyph:"◫",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",glyph:"◎",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",glyph:"▦",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",glyph:"⌘",target:"Automação"},{name:"Marketing",desc:"Campanhas e criações",glyph:"↗",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon">{item.glyph}</span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
                   </div>
                 </article>
               </section>

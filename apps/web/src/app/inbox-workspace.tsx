@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
 type Contact = { id: string; name: string; phone?: string | null };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string };
-type Department = { id: string; key: string; name: string; keywords: string[] };
+type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
 type GroupSettings = { groupsEnabled: boolean; allowedGroupIds: string[] };
 type GroupChoice = { id: string; name: string };
@@ -27,6 +27,7 @@ export function InboxWorkspace() {
   const [availableGroups, setAvailableGroups] = useState<GroupChoice[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [newDepartmentName, setNewDepartmentName] = useState("");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [handoffDepartment, setHandoffDepartment] = useState("");
   const [handoffAssignee, setHandoffAssignee] = useState("");
@@ -148,6 +149,26 @@ export function InboxWorkspace() {
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir a sessão."); }
   }
 
+  async function toggleDepartment(department: Department, isActive: boolean) {
+    setError("");
+    try {
+      await api("/api/backend/departments/" + department.id, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ isActive }) });
+      setDepartments((rows) => rows.map((row) => row.id === department.id ? { ...row, isActive } : row));
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar o departamento."); }
+  }
+
+  async function createDepartment() {
+    const name = newDepartmentName.trim();
+    if (!name) return;
+    const key = name.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 40);
+    setError("");
+    try {
+      await api("/api/backend/departments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, key, keywords: [] }) });
+      setDepartments(await api<Department[]>("/api/backend/departments"));
+      setNewDepartmentName("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o departamento."); }
+  }
+
   async function discoverGroups() {
     if (!activeChannel) return;
     setLoadingGroups(true); setError("");
@@ -217,6 +238,7 @@ export function InboxWorkspace() {
         : <div className="inbox-connect-prompt"><p>Conecte o WhatsApp para receber e responder mensagens aqui.</p><button className="primary-button" onClick={() => void connectWhatsApp()} disabled={connecting}>{connecting ? "Conectando..." : "Conectar WhatsApp"}</button></div>}
       {qr ? <div className="qr-panel"><p>Leia o QR Code com o WhatsApp do atendimento.</p><img src={qr} alt="QR Code para conectar WhatsApp" /><small>O estado da sessão é atualizado automaticamente.</small></div> : null}
       {activeChannel ? <details className="group-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}><summary style={{ cursor: "pointer", fontWeight: 650 }}>Grupos do WhatsApp <span style={{ color: "var(--muted)", fontWeight: 400 }}>· desativados por padrão</span></summary><label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}><input type="checkbox" checked={groupSettings.groupsEnabled} onChange={(event) => setGroupSettings((current) => ({ ...current, groupsEnabled: event.target.checked }))} /> Permitir receber conversas de grupos</label><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}><label style={{ color: "var(--muted)" }}>Escolha os grupos autorizados</label><button type="button" className="text-button" onClick={() => void discoverGroups()} disabled={loadingGroups}>{loadingGroups ? "Buscando..." : "Buscar grupos"}</button></div>{availableGroups.length ? <div style={{ maxHeight: 150, overflowY: "auto", marginBottom: 10, border: "1px solid var(--line)", borderRadius: 7, padding: 7 }}>{availableGroups.map((group) => <label key={group.id} style={{ display: "flex", alignItems: "flex-start", gap: 7, padding: "5px 2px" }}><input type="checkbox" checked={groupIdsDraft.split(/\r?\n|,/).map((value) => value.trim()).includes(group.id)} onChange={(event) => toggleAllowedGroup(group.id, event.target.checked)} /><span><span style={{ display: "block" }}>{group.name}</span><small style={{ color: "var(--muted)", overflowWrap: "anywhere" }}>{group.id}</small></span></label>)}</div> : null}<label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>Ou informe IDs manualmente (um por linha, terminados em @g.us)</label><textarea value={groupIdsDraft} onChange={(event) => setGroupIdsDraft(event.target.value)} rows={3} placeholder="120363000000000000@g.us" style={{ width: "100%", resize: "vertical", fontSize: 11, border: "1px solid var(--line)", borderRadius: 7, padding: 8 }} /><small style={{ display: "block", color: "var(--muted)", margin: "6px 0 9px" }}>Mesmo ativado, nenhum grupo entra sem estar nesta lista. Conversas individuais continuam funcionando normalmente.</small><button className="primary-button" type="button" onClick={() => void saveGroupSettings()} disabled={groupSettingsBusy}>{groupSettingsBusy ? "Salvando..." : "Salvar regras de grupos"}</button></details> : null}
+      <details className="department-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}><summary style={{ cursor: "pointer", fontWeight: 650 }}>Departamentos da empresa</summary><small style={{ display: "block", color: "var(--muted)", margin: "8px 0" }}>Ative somente as áreas que esta empresa utiliza. Desativar todas deixa a empresa sem departamentos; a fila geral continua disponível.</small>{departments.map((department) => <label key={department.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}><input type="checkbox" checked={department.isActive} onChange={(event) => void toggleDepartment(department, event.target.checked)} /><span>{department.name}</span></label>)}<div style={{ display: "flex", gap: 6, marginTop: 8 }}><input value={newDepartmentName} onChange={(event) => setNewDepartmentName(event.target.value)} placeholder="Nova área (ex.: Marketing)" maxLength={80} style={{ minWidth: 0, flex: 1, padding: "7px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} /><button className="text-button" type="button" onClick={() => void createDepartment()} disabled={!newDepartmentName.trim()}>Adicionar</button></div></details>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => setSelectedId(item.id)}>
           <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong><small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>
@@ -227,7 +249,7 @@ export function InboxWorkspace() {
     <div className="inbox-thread content-card">
       {selected ? <>
         <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div style={{ minWidth: 0, flex: 1 }}><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p><small style={{ color: "var(--muted)" }}>{selected.department?.name || (selected.assignee?.name ? "Atendente: " + selected.assignee.name : selected.handlingMode === "HUMAN" ? "Fila humana sem equipe" : "Automação inicial")}</small></div>{selected.handlingMode === "HUMAN" ? <button type="button" className="text-button" onClick={() => void returnToBot()}>Devolver ao bot</button> : null}</header>
-        <div className="handoff-controls" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "8px 12px", borderBottom: "1px solid var(--line)" }}><span style={{ fontSize: 11, color: "var(--muted)" }}>Transferir para:</span><select aria-label="Departamento" value={handoffDepartment} onChange={(event) => { setHandoffDepartment(event.target.value); if (event.target.value) setHandoffAssignee(""); }} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem equipe / departamento</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select><select aria-label="Atendente" value={handoffAssignee} onChange={(event) => { setHandoffAssignee(event.target.value); if (event.target.value) setHandoffDepartment(""); }} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem atendente específico</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select><button type="button" className="primary-button" onClick={() => void handoffToHuman()}>Transferir para humano</button><small style={{ color: "var(--muted)", fontSize: 10 }}>Sem seleção = fila geral, sem equipe.</small></div>
+        <div className="handoff-controls" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "8px 12px", borderBottom: "1px solid var(--line)" }}><span style={{ fontSize: 11, color: "var(--muted)" }}>Transferir para:</span><select aria-label="Departamento" value={handoffDepartment} onChange={(event) => { setHandoffDepartment(event.target.value); if (event.target.value) setHandoffAssignee(""); }} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem equipe / departamento</option>{departments.filter((department) => department.isActive).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select><select aria-label="Atendente" value={handoffAssignee} onChange={(event) => { setHandoffAssignee(event.target.value); if (event.target.value) setHandoffDepartment(""); }} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem atendente específico</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select><button type="button" className="primary-button" onClick={() => void handoffToHuman()}>Transferir para humano</button><small style={{ color: "var(--muted)", fontSize: 10 }}>Sem seleção = fila geral, sem equipe.</small></div>
         <div className="thread-messages">
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}

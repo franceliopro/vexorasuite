@@ -16,6 +16,20 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vexora
+          POSTGRES_PASSWORD: vexora_test_password
+          POSTGRES_DB: vexorasuite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vexora -d vexorasuite"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_URL: postgresql://vexora:vexora_test_password@localhost:5432/vexorasuite
       JWT_ACCESS_SECRET: ci-only-secret-value-with-more-than-thirty-two-bytes
@@ -34,6 +48,8 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Validate Prisma schema
         run: pnpm --filter @vexorasuite/api exec prisma validate
+      - name: Apply migrations to PostgreSQL
+        run: pnpm --filter @vexorasuite/api exec prisma migrate deploy
       - name: API typecheck
         run: pnpm --filter @vexorasuite/api typecheck
       - name: API build

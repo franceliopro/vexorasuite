@@ -5,10 +5,13 @@ import { ContactsController } from "./contacts.controller";
 import { ConversationsController } from "./conversations.controller";
 import { EventsController } from "./events.controller";
 import { EventsService } from "./events.service";
+import { ChannelConnectionsController } from "./channels.controller";
+import { WahaWebhookController } from "./waha-webhook.controller";
+import { WahaService } from "./waha.service";
 
 @Module({
   imports: [AuthModule, PrismaModule],
-  controllers: [ContactsController, ConversationsController, EventsController],
-  providers: [EventsService],
+  controllers: [ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController],
+  providers: [EventsService, WahaService],
 })
 export class OperationsModule {}

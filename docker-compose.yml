@@ -29,6 +29,10 @@ services:
       NODE_ENV: production
       API_PORT: "3001"
       CORS_ORIGINS: ${CORS_ORIGINS:-https://app.vexorasuite.com.br}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://app.vexorasuite.com.br}
+      WAHA_BASE_URL: ${WAHA_BASE_URL:-}
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
     expose:

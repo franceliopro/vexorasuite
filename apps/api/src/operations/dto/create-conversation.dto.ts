@@ -5,6 +5,10 @@ export class CreateConversationDto {
   contactId!: string;
 
   @IsOptional()
+  @IsUUID()
+  channelConnectionId?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(40)
   channel?: string;

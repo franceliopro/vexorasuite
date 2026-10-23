@@ -43,7 +43,10 @@ export class AsaasService {
 
   async publicSettings(tenantId: string) {
     const settings = await this.settings(tenantId);
-    return { enabled: settings.enabled === true, sandbox: settings.sandbox !== false, configured: Boolean(settings.encryptedApiKey), apiKeyMasked: settings.encryptedApiKey ? "••••••••••••" : "", webhookTokenConfigured: Boolean(settings.encryptedWebhookToken) };
+    const configuredOrigin = process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://app.vexorasuite.com.br";
+    let origin = "https://app.vexorasuite.com.br";
+    try { origin = new URL(configuredOrigin).origin; } catch { /* use the known public app origin */ }
+    return { enabled: settings.enabled === true, sandbox: settings.sandbox !== false, configured: Boolean(settings.encryptedApiKey), apiKeyMasked: settings.encryptedApiKey ? "••••••••••••" : "", webhookTokenConfigured: Boolean(settings.encryptedWebhookToken), webhookUrl: origin + "/api/webhooks/asaas/" + tenantId };
   }
 
   async saveSettings(tenantId: string, input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown; webhookToken?: unknown }) {

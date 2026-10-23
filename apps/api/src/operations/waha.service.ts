@@ -71,6 +71,18 @@ export class WahaService {
     await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "CONNECTING", lastError: null } });
   }
 
+  async disconnect(channel: ChannelConnection): Promise<void> {
+    const response = await this.request(`/api/sessions/${encodeURIComponent(channel.sessionName)}/stop`, { method: "POST", body: "{}" });
+    if (!response.ok && response.status !== 404) throw new BadGatewayException(`WAHA não conseguiu desconectar a sessão (${response.status}).`);
+    await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "DISCONNECTED", lastError: null } });
+  }
+
+  async deleteSession(channel: ChannelConnection): Promise<void> {
+    const response = await this.request(`/api/sessions/${encodeURIComponent(channel.sessionName)}`, { method: "DELETE" });
+    if (!response.ok && response.status !== 404) throw new BadGatewayException(`WAHA não conseguiu excluir a sessão (${response.status}).`);
+    await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { isActive: false, status: "DISCONNECTED", lastError: null } });
+  }
+
   async status(channel: ChannelConnection) {
     const response = await this.request(`/api/sessions/${encodeURIComponent(channel.sessionName)}`);
     if (response.status === 404) {

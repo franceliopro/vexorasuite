@@ -22,6 +22,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 
 export function InboxWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [queueView, setQueueView] = useState("new");
   const [channels, setChannels] = useState<Channel[]>([]);
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({ groupsEnabled: false, allowedGroupIds: [] });
   const [groupIdsDraft, setGroupIdsDraft] = useState("");
@@ -48,11 +49,11 @@ export function InboxWorkspace() {
 
   const loadConversations = useCallback(async () => {
     try {
-      const rows = await api<Conversation[]>("/api/backend/conversations");
+      const rows = await api<Conversation[]>("/api/backend/conversations?view=" + queueView);
       setConversations(rows);
       setSelectedId((current) => current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? null);
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar conversas."); }
-  }, []);
+  }, [queueView]);
   const loadChannels = useCallback(async () => {
     try { setChannels(await api<Channel[]>("/api/backend/channels")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar canais."); }

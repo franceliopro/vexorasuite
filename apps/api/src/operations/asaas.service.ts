@@ -146,7 +146,7 @@ export class AsaasService {
     const statusGuard = event === "PAYMENT_REFUNDED"
       ? { not: status }
       : paid
-        ? { not: "PAID" }
+        ? { notIn: ["PAID", "CANCELLED"] }
         : { notIn: ["PAID", status] };
     const changed = await this.prisma.payment.updateMany({
       where: { id: existing.id, tenantId, status: statusGuard },

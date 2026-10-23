@@ -38,13 +38,24 @@ export class WahaWebhookController {
 
     if (envelope.event !== "message" || payload.fromMe === true) return { ok: true, ignored: true };
     const rawFrom = typeof payload.from === "string" ? payload.from.trim() : "";
-    if (!rawFrom || rawFrom.includes("@g.us") || rawFrom === "status@broadcast") return { ok: true, ignored: true };
+    if (!rawFrom || rawFrom === "status@broadcast") return { ok: true, ignored: true };
+    const isGroup = rawFrom.endsWith("@g.us");
+    if (isGroup) {
+      const settings = channel.settings && typeof channel.settings === "object" && !Array.isArray(channel.settings)
+        ? channel.settings as Record<string, unknown> : {};
+      const allowedGroupIds = Array.isArray(settings.allowedGroupIds)
+        ? settings.allowedGroupIds.filter((value): value is string => typeof value === "string") : [];
+      // Group traffic is opt-in and allowlist-only. Enabling groups without selecting IDs still receives none.
+      if (settings.groupsEnabled !== true || !allowedGroupIds.includes(rawFrom)) {
+        return { ok: true, ignored: true, reason: "GROUP_NOT_ALLOWED" };
+      }
+    }
     const chatId = rawFrom.includes("@") ? rawFrom : `${rawFrom}@c.us`;
     const providerMessageId = this.providerMessageId(payload.id);
     if (!providerMessageId) return { ok: true, ignored: true };
 
     const phone = chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
-    const notifyName = String(payload._data?.notifyName || payload.pushName || "").trim().slice(0, 160);
+    const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload.pushName || "").trim().slice(0, 160);
     const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
     const mimeType = String(payload.media?.mimetype || "");
     const contentType = payload.hasMedia ? mimeType.startsWith("image/") ? "image" : mimeType.startsWith("audio/") ? "audio" : mimeType.startsWith("video/") ? "video" : "file" : "text";
@@ -63,7 +74,7 @@ export class WahaWebhookController {
         if (!contact && phone) contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, phone } });
         if (!contact) {
           contact = await tx.contact.create({
-            data: { tenantId: channel.tenantId, name: notifyName || phone || chatId, phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id } },
+            data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup } },
           });
         } else {
           const update: { name?: string; phone?: string; externalId?: string } = {};
@@ -81,7 +92,7 @@ export class WahaWebhookController {
           conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: "WHATSAPP", status: "OPEN" } });
         }
 
-        const metadata = { provider: "WAHA", session: channel.sessionName, chatId, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null };
+        const metadata = { provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });

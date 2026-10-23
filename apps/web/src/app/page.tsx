@@ -41,7 +41,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
   { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Equipe", icon: "users" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const metrics = [
@@ -69,6 +69,9 @@ export default function HomePage() {
   const [active, setActive] = useState("Visão geral");
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; role: string; isActive: boolean; createdAt: string }[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -84,6 +87,17 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
   const isHome = active === "Visão geral";
+  useEffect(() => {
+    if (active !== "Equipe" || authStatus !== "authenticated") return;
+    let mounted = true;
+    setTeamLoading(true); setTeamError("");
+    fetch("/api/backend/team/members", { cache: "no-store" })
+      .then(async (response) => { if (!response.ok) throw new Error("Não foi possível carregar os membros da equipe."); return response.json(); })
+      .then((members) => { if (mounted) setTeamMembers(members); })
+      .catch((error) => { if (mounted) setTeamError(error instanceof Error ? error.message : "Falha ao carregar a equipe."); })
+      .finally(() => { if (mounted) setTeamLoading(false); });
+    return () => { mounted = false; };
+  }, [active, authStatus]);
 
   if (authStatus === "checking") {
     return <div className="auth-screen"><div className="auth-panel"><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;

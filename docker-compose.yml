@@ -63,6 +63,22 @@ services:
       retries: 10
       start_period: 15s
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?Configure PGADMIN_DEFAULT_EMAIL no Dokploy}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Configure PGADMIN_DEFAULT_PASSWORD no Dokploy}
+      PGADMIN_LISTEN_PORT: "80"
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    expose:
+      - "80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -80,3 +96,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:

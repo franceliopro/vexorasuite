@@ -63,7 +63,7 @@ export function InboxWorkspace() {
   }, []);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
-  useEffect(() => { void loadConversations(); void loadChannels(); void loadAssignees(); void loadTags(); }, [loadConversations, loadChannels, loadAssignees]);
+  useEffect(() => { void loadConversations(); void loadChannels(); void loadAssignees(); void loadTags(); }, [loadConversations, loadChannels, loadAssignees, loadTags]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
 
   // Poll as a fallback: inbound messages must appear even if an SSE event is missed.

@@ -11,6 +11,7 @@ type Department = { id: string; key: string; name: string; keywords: string[]; i
 type Agent = { id: string; name: string; email: string };
 type GroupSettings = { groupsEnabled: boolean; allowedGroupIds: string[] };
 type GroupChoice = { id: string; name: string };
+type AsaasSettings = { enabled: boolean; sandbox: boolean; configured: boolean; apiKeyMasked: string };
 type Conversation = { id: string; status: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -23,6 +24,9 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function InboxWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [queueView, setQueueView] = useState("new");
+  const [asaasSettings, setAsaasSettings] = useState<AsaasSettings>({ enabled: false, sandbox: true, configured: false, apiKeyMasked: "" });
+  const [asaasKeyDraft, setAsaasKeyDraft] = useState("");
+  const [asaasBusy, setAsaasBusy] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({ groupsEnabled: false, allowedGroupIds: [] });
   const [groupIdsDraft, setGroupIdsDraft] = useState("");
@@ -68,6 +72,7 @@ export function InboxWorkspace() {
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
   }, []);
 
+  useEffect(() => { void api<AsaasSettings>("/api/backend/integrations/asaas").then(setAsaasSettings).catch(() => {}); }, []);
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => { void loadConversations(); void loadChannels(); void loadAssignees();
     void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
@@ -181,6 +186,15 @@ export function InboxWorkspace() {
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o departamento."); }
   }
 
+  async function saveAsaasSettings() {
+    setAsaasBusy(true); setError("");
+    try {
+      const saved = await api<AsaasSettings>("/api/backend/integrations/asaas", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: asaasSettings.enabled, sandbox: asaasSettings.sandbox, apiKey: asaasKeyDraft }) });
+      setAsaasSettings(saved); setAsaasKeyDraft("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar a integração Asaas."); }
+    finally { setAsaasBusy(false); }
+  }
+
   async function discoverGroups() {
     if (!activeChannel) return;
     setLoadingGroups(true); setError("");
@@ -284,6 +298,15 @@ export function InboxWorkspace() {
       <nav aria-label="Filas de atendimento" style={{ display: "flex", gap: 5, padding: "8px 10px", overflowX: "auto", borderBottom: "1px solid var(--line)" }}>
         {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Minha equipe" }, { id: "others", label: "Convites" }, { id: "all-open", label: "Todos abertos" }, { id: "completed", label: "Concluídos" }, { id: "archived", label: "Arquivados" }, { id: "trash", label: "Lixeira" }] as const).map((item) => <button key={item.id} type="button" className={queueView === item.id ? "primary-button" : "text-button"} onClick={() => setQueueView(item.id)} style={{ whiteSpace: "nowrap", fontSize: 11, padding: "6px 8px" }}>{item.label}</button>)}
       </nav>
+      <details className="asaas-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 650 }}>Financeiro · Asaas <span style={{ color: "var(--muted)", fontWeight: 400 }}>· {asaasSettings.configured ? (asaasSettings.enabled ? "configurado" : "desativado") : "configurar"}</span></summary>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}><input type="checkbox" checked={asaasSettings.enabled} onChange={(event) => setAsaasSettings((current) => ({ ...current, enabled: event.target.checked }))} /> Ativar consulta de cobranças no bot</label>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "8px 0" }}><input type="checkbox" checked={asaasSettings.sandbox} onChange={(event) => setAsaasSettings((current) => ({ ...current, sandbox: event.target.checked }))} /> Usar Sandbox (testes, sem cobrança real)</label>
+        <label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>Chave de API Asaas {asaasSettings.configured ? "· já cadastrada; deixe vazio para manter" : ""}</label>
+        <input type="password" autoComplete="new-password" value={asaasKeyDraft} onChange={(event) => setAsaasKeyDraft(event.target.value)} placeholder={asaasSettings.configured ? asaasSettings.apiKeyMasked : "$aact_..."} style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
+        <small style={{ display: "block", color: "var(--muted)", margin: "7px 0 10px" }}>A chave é armazenada criptografada e nunca é exibida novamente. Comece pelo Sandbox; só use Produção após validar.</small>
+        <button type="button" className="primary-button" onClick={() => void saveAsaasSettings()} disabled={asaasBusy}>{asaasBusy ? "Salvando..." : "Salvar Asaas"}</button>
+      </details>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => setSelectedId(item.id)}>
           <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong><small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>

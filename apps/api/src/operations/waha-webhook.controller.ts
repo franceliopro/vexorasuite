@@ -136,7 +136,7 @@ export class WahaWebhookController {
         await this.sendBotReply(channel, chatId, conversationId, "Obrigado pela mensagem! Vou encaminhar você para a fila geral de atendimento. Um atendente continuará por aqui. 🙌");
         return;
       }
-      const numericChoice = /^\\d+$/.test(normalized) ? Number(normalized) : 0;
+      const numericChoice = /^\d+$/.test(normalized) ? Number(normalized) : 0;
       const chosen = (numericChoice > 0 ? departments[numericChoice - 1] : undefined)
         || departments.find((department) => normalized.length >= 3 && (
           normalized.includes(department.name.toLocaleLowerCase("pt-BR"))

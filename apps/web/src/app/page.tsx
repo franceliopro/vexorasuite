@@ -3,10 +3,9 @@
 import { useState } from "react";
 
 const navigation = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", glyph: "⌂" }, { label: "Atendimento", glyph: "◫" }, { label: "CRM e Leads", glyph: "◎" }] },
-  { section: "INTELIGÊNCIA", items: [{ label: "Agentes de IA", glyph: "✳" }, { label: "Chatbots e fluxos", glyph: "⌘" }] },
-  { section: "CRESCIMENTO", items: [{ label: "Marketing", glyph: "↗" }, { label: "Financeiro", glyph: "＄" }] },
-  { section: "PLATAFORMA", items: [{ label: "Integrações", glyph: "⌁" }, { label: "Configurações", glyph: "⚙" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", glyph: "⌂" }, { label: "Atendimento", glyph: "◫" }, { label: "CRM", glyph: "◎" }] },
+  { section: "RESULTADOS", items: [{ label: "Automação", glyph: "⌘" }, { label: "Marketing", glyph: "↗" }, { label: "Financeiro", glyph: "＄" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", glyph: "⚙" }] },
 ];
 
 const metrics = [
@@ -19,15 +18,17 @@ const metrics = [
 export default function HomePage() {
   const [active, setActive] = useState("Visão geral");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isHome = active === "Visão geral";
 
   return (
     <div className="suite-app">
-      <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
+      <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
           <span className="brand-mark">V</span>
           <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
         </a>
+        <button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}>{sidebarCollapsed ? "»" : "«"}</button>
         <div className="workspace-switcher">
           <span className="workspace-avatar">V</span>
           <span className="workspace-copy"><strong>Minha empresa</strong><small>Ambiente de demonstração</small></span>
@@ -38,9 +39,8 @@ export default function HomePage() {
             <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
               {group.items.map((item) => (
-                <button key={item.label} className={`nav-item ${active === item.label ? "active" : ""}`} onClick={() => { setActive(item.label); setMenuOpen(false); }}>
+                <button key={item.label} title={sidebarCollapsed ? item.label : undefined} className={`nav-item ${active === item.label ? "active" : ""}`} onClick={() => { setActive(item.label); setMenuOpen(false); }}>
                   <span className="nav-glyph">{item.glyph}</span><span>{item.label}</span>
-                  {item.label === "Atendimento" && <span className="nav-soon">UI</span>}
                 </button>
               ))}
             </div>
@@ -83,7 +83,7 @@ export default function HomePage() {
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",glyph:"◫",target:"Atendimento"},{name:"CRM e leads",desc:"Funil e relacionamento",glyph:"◎",target:"CRM e Leads"},{name:"Agentes de IA",desc:"Assistentes e automações",glyph:"✳",target:"Agentes de IA"},{name:"Marketing",desc:"Campanhas e criações",glyph:"↗",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon">{item.glyph}</span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",glyph:"◫",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",glyph:"◎",target:"CRM"},{name:"Automação",desc:"IA, bots e regras",glyph:"⌘",target:"Automação"},{name:"Marketing",desc:"Campanhas e criações",glyph:"↗",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon">{item.glyph}</span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
                   </div>
                 </article>
               </section>

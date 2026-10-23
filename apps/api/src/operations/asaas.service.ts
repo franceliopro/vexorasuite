@@ -11,7 +11,7 @@ export class AsaasService {
 
   private encryptionKey(): Buffer {
     const secret = process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET;
-    if (!secret) throw new ServiceUnavailableException("Configure JWT_SECRET ou INTEGRATION_ENCRYPTION_KEY antes de salvar credenciais.");
+    if (!secret) throw new ServiceUnavailableException("Configure JWT_ACCESS_SECRET ou INTEGRATION_ENCRYPTION_KEY antes de salvar credenciais.");
     return createHash("sha256").update(secret).digest();
   }
 

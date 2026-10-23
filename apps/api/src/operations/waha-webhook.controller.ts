@@ -195,10 +195,17 @@ export class WahaWebhookController {
     const step = String(state.step || "");
     if (step === "DOCUMENT") {
       let result: Awaited<ReturnType<AsaasService["openDebts"]>>;
-      try { result = await this.asaas.openDebts(channel.tenantId, text); }
+      try { result = await this.asaas.openDebts(channel.tenantId, text, chatId.split("@")[0]); }
       catch (error) {
         const message = error instanceof Error ? error.message : "";
         const invalid = message.toLocaleLowerCase("pt-BR").includes("cpf/cnpj inválido");
+        if (message.toLocaleLowerCase("pt-BR").includes("confirmar o telefone")) {
+          const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
+          await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
+          this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
+          await this.sendBotReply(channel, chatId, conversationId, "Por segurança, não consegui confirmar que este WhatsApp corresponde ao cadastro financeiro. Não vou exibir cobranças por aqui. Encaminhei a conversa para o Financeiro verificar sua identidade. 🙌");
+          return true;
+        }
         await this.sendBotReply(channel, chatId, conversationId, invalid ? "O CPF/CNPJ não passou na validação. Confira os números e tente novamente, ou digite *cancelar*." : "Não consegui consultar o Asaas neste momento. Confira o documento e tente novamente mais tarde, ou digite *cancelar*.");
         return true;
       }

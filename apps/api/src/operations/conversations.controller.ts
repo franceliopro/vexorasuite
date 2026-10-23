@@ -48,6 +48,16 @@ export class ConversationsController {
   }
 
 
+  @Get("assignees")
+  async assignees(@Req() request: AuthenticatedRequest) {
+    const memberships = await this.prisma.membership.findMany({
+      where: { tenantId: request.user.tenantId, user: { isActive: true } },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    return memberships.map(({ user }) => user).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }
+
   @Post(":id/handoff")
   async handoff(
     @Req() request: AuthenticatedRequest,

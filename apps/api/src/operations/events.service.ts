@@ -4,7 +4,7 @@ import { filter, map, Observable, Subject } from "rxjs";
 export interface TenantEvent {
   tenantId: string;
   type: string;
-  data: unknown;
+  data: Record<string, unknown>;
   occurredAt: string;
 }
 
@@ -12,14 +12,17 @@ export interface TenantEvent {
 export class EventsService {
   private readonly events = new Subject<TenantEvent>();
 
-  publish(tenantId: string, type: string, data: unknown): void {
+  publish(tenantId: string, type: string, data: Record<string, unknown>): void {
     this.events.next({ tenantId, type, data, occurredAt: new Date().toISOString() });
   }
 
-  stream(tenantId: string): Observable<{ type: string; data: unknown }> {
+  stream(tenantId: string): Observable<{ type: string; data: Record<string, unknown> }> {
     return this.events.pipe(
       filter((event) => event.tenantId === tenantId),
-      map((event) => ({ type: event.type, data: { ...event.data as object, occurredAt: event.occurredAt } })),
+      map((event) => ({
+        type: event.type,
+        data: { ...event.data, occurredAt: event.occurredAt },
+      })),
     );
   }
 }

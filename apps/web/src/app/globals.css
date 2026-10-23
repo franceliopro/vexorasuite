@@ -64,3 +64,16 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .thread-empty .module-placeholder-icon{margin-bottom:12px}
 .thread-empty p{margin:0}
 @media(max-width:760px){.connection-actions{gap:7px}.inbox-connection{padding:10px}.inbox-panel-heading{padding:12px}}
+
+
+/* Compact conversation actions: clear icons, labels, and responsive wrapping. */
+.thread-contact{flex:1;min-width:110px}
+.thread-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.thread-action-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:31px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#626881;font-size:10px;font-weight:600;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.thread-action-button:hover:not(:disabled){border-color:#c9c4ff;background:#f7f6ff;color:var(--primary)}
+.thread-action-button.resolve{border-color:#d9eee6;background:#f4fbf7;color:#168260}
+.thread-action-button.resolve:hover:not(:disabled){border-color:#a8dbc6;background:#eaf8f1}
+.thread-action-button:disabled{cursor:not-allowed;opacity:.55}
+.thread-assignee{display:inline-flex;align-items:center;gap:5px;padding:0 5px;color:#737992;font-size:10px;white-space:nowrap}
+@media(max-width:980px){.thread-heading{align-items:flex-start;flex-wrap:wrap}.thread-actions{width:100%;padding-left:44px;justify-content:flex-start}}
+@media(max-width:480px){.thread-actions{padding-left:0}.thread-action-button{min-height:30px;padding:0 8px}.thread-assignee{padding-left:0}.thread-heading{gap:8px}}

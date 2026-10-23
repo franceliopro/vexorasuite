@@ -114,11 +114,6 @@ export default function HomePage() {
           <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
         </a>
         <button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button>
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">V</span>
-          <span className="workspace-copy"><strong>{session?.tenant.name || "Minha empresa"}</strong><small>{session?.tenant.slug || "Workspace"}</small></span>
-          <span className="switch-chevron">⌄</span>
-        </div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => (
             <div className="nav-group" key={group.section}>
@@ -175,6 +170,13 @@ export default function HomePage() {
             </>
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
+          ) : active === "Equipe" ? (
+            <section className="team-page content-card">
+              <div className="team-page-heading"><div><p className="eyebrow">ADMINISTRAÇÃO</p><h2>Membros da equipe</h2><p>As pessoas que têm acesso a este espaço de trabalho.</p></div><span className="team-count">{teamMembers.length} {teamMembers.length === 1 ? "membro" : "membros"}</span></div>
+              {teamError ? <p className="team-error" role="alert">{teamError}</p> : null}
+              {teamLoading ? <p className="team-state">Carregando membros...</p> : teamMembers.length ? <div className="team-member-list">{teamMembers.map((member) => <div className="team-member-row" key={member.id}><span className="team-member-avatar">{member.name.trim().slice(0, 2).toUpperCase()}</span><span className="team-member-details"><strong>{member.name}</strong><small>{member.email}</small></span><span className="team-role">{({ OWNER: "Proprietário", ADMIN: "Administrador", MANAGER: "Gerente", AGENT: "Atendente" } as Record<string, string>)[member.role] || member.role}</span><span className={`team-member-status ${member.isActive ? "active" : ""}`}><i />{member.isActive ? "Ativo" : "Inativo"}</span></div>)}</div> : !teamError ? <p className="team-state">Nenhum membro encontrado.</p> : null}
+              <div className="team-next-step"><strong>Próxima etapa</strong><p>Convites por e-mail, entrada de novos membros e permissões por função serão conectados aqui, com controle de acesso por empresa.</p></div>
+            </section>
           ) : (
             <section className="module-placeholder content-card">
               <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>

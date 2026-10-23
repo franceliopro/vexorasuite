@@ -178,7 +178,7 @@ export class WahaWebhookController {
     if (!state) {
       const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
       departments.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-      const numericChoice = /^\\d+$/.test(normalized) ? Number(normalized) : 0;
+      const numericChoice = /^\d+$/.test(normalized) ? Number(normalized) : 0;
       const chosenDepartment = numericChoice > 0 ? departments[numericChoice - 1] : undefined;
       const financeChoice = Boolean(chosenDepartment && (chosenDepartment.key.toLocaleLowerCase("pt-BR") === "financeiro" || chosenDepartment.name.toLocaleLowerCase("pt-BR").includes("finance")));
       if (!financeChoice && !/(financeiro|boleto|pix|pagar|pagamento|quitar|fatura|debito|débito|cobranca|cobrança|segunda via)/i.test(normalized)) return false;
@@ -269,7 +269,7 @@ export class WahaWebhookController {
           await this.prisma.payment.upsert({
             where: { tenantId_provider_externalId: { tenantId: channel.tenantId, provider: "ASAAS", externalId: detail.id } },
             create: { tenantId: channel.tenantId, conversationId, contactId: conversationRecord.contactId, provider: "ASAAS", externalId: detail.id, amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
-            update: { conversationId, amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
+            update: { amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
           });
         }
         const heading = (detail.environment === "SANDBOX" ? "🧪 TESTE · Sandbox, sem pagamento real\n" : "") + `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${detail.dueDate || selected.dueDate || "não informado"}`;
@@ -282,8 +282,10 @@ export class WahaWebhookController {
         await this.sendBotReply(channel, chatId, conversationId, response);
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
       } catch {
-        await this.sendBotReply(channel, chatId, conversationId, "Não consegui obter os dados de pagamento agora. Vou deixar sua conversa disponível para o Financeiro verificar. Tente novamente mais tarde.");
-        await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
+        const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
+        this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
+        await this.sendBotReply(channel, chatId, conversationId, "Não consegui obter os dados de pagamento agora. Encaminhei sua conversa para o Financeiro verificar. Um atendente continuará por aqui.");
       }
       return true;
     }

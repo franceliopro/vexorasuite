@@ -9,12 +9,13 @@ import { EventsService } from "./events.service";
 import { ChannelConnectionsController } from "./channels.controller";
 import { WahaWebhookController } from "./waha-webhook.controller";
 import { WahaService } from "./waha.service";
+import { TeamController } from "./team.controller";
 
 @Module({
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule],
-  controllers: [ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController],
+  controllers: [ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, TeamController],
   providers: [EventsService, WahaService],
 })
 export class OperationsModule {}

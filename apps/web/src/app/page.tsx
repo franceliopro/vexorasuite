@@ -41,7 +41,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
   { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Equipe", icon: "users" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const metrics = [
@@ -69,12 +69,21 @@ export default function HomePage() {
   const [active, setActive] = useState("Visão geral");
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; role: string; isActive: boolean; createdAt: string }[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = !!target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         searchInputRef.current?.focus();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b" && !isTyping) {
+        event.preventDefault();
+        setSidebarCollapsed((collapsed) => !collapsed);
       }
       if (event.key === "Escape" && document.activeElement === searchInputRef.current) {
         searchInputRef.current?.blur();
@@ -84,6 +93,17 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
   const isHome = active === "Visão geral";
+  useEffect(() => {
+    if (active !== "Equipe" || authStatus !== "authenticated") return;
+    let mounted = true;
+    setTeamLoading(true); setTeamError("");
+    fetch("/api/backend/team/members", { cache: "no-store" })
+      .then(async (response) => { if (!response.ok) throw new Error("Não foi possível carregar os membros da equipe."); return response.json(); })
+      .then((members) => { if (mounted) setTeamMembers(members); })
+      .catch((error) => { if (mounted) setTeamError(error instanceof Error ? error.message : "Falha ao carregar a equipe."); })
+      .finally(() => { if (mounted) setTeamLoading(false); });
+    return () => { mounted = false; };
+  }, [active, authStatus]);
 
   if (authStatus === "checking") {
     return <div className="auth-screen"><div className="auth-panel"><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
@@ -99,12 +119,7 @@ export default function HomePage() {
           <span className="brand-mark">V</span>
           <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
         </a>
-        <button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button>
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">V</span>
-          <span className="workspace-copy"><strong>{session?.tenant.name || "Minha empresa"}</strong><small>{session?.tenant.slug || "Workspace"}</small></span>
-          <span className="switch-chevron">⌄</span>
-        </div>
+        <button className="sidebar-edge-toggle" onClick={() => setSidebarCollapsed((collapsed) => !collapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral (Ctrl/Cmd+B)" : "Recolher menu lateral (Ctrl/Cmd+B)"} title={sidebarCollapsed ? "Expandir menu · Ctrl/Cmd+B" : "Recolher menu · Ctrl/Cmd+B"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={15} /></button>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => (
             <div className="nav-group" key={group.section}>
@@ -161,6 +176,13 @@ export default function HomePage() {
             </>
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
+          ) : active === "Equipe" ? (
+            <section className="team-page content-card">
+              <div className="team-page-heading"><div><p className="eyebrow">ADMINISTRAÇÃO</p><h2>Membros da equipe</h2><p>As pessoas que têm acesso a este espaço de trabalho.</p></div><span className="team-count">{teamMembers.length} {teamMembers.length === 1 ? "membro" : "membros"}</span></div>
+              {teamError ? <p className="team-error" role="alert">{teamError}</p> : null}
+              {teamLoading ? <p className="team-state">Carregando membros...</p> : teamMembers.length ? <div className="team-member-list">{teamMembers.map((member) => <div className="team-member-row" key={member.id}><span className="team-member-avatar">{member.name.trim().slice(0, 2).toUpperCase()}</span><span className="team-member-details"><strong>{member.name}</strong><small>{member.email}</small></span><span className="team-role">{({ OWNER: "Proprietário", ADMIN: "Administrador", MANAGER: "Gerente", AGENT: "Atendente" } as Record<string, string>)[member.role] || member.role}</span><span className={`team-member-status ${member.isActive ? "active" : ""}`}><i />{member.isActive ? "Ativo" : "Inativo"}</span></div>)}</div> : !teamError ? <p className="team-state">Nenhum membro encontrado.</p> : null}
+              <div className="team-next-step"><strong>Próxima etapa</strong><p>Convites por e-mail, entrada de novos membros e permissões por função serão conectados aqui, com controle de acesso por empresa.</p></div>
+            </section>
           ) : (
             <section className="module-placeholder content-card">
               <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>

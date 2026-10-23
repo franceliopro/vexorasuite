@@ -143,7 +143,7 @@ export class AsaasService {
     if (paid) {
       const amount = Number(updated.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       await this.prisma.message.create({
-        data: { tenantId, conversationId: updated.conversationId, direction: "INTERNAL", status: "RECEIVED", content: "Pagamento confirmado pelo Asaas · " + amount, contentType: "text", senderName: "Sistema financeiro", metadata: { provider: "ASAAS", paymentId: updated.id, event } },
+        data: { tenantId, conversationId: updated.conversationId, direction: "INTERNAL", status: "RECEIVED", content: (updated.environment === "SANDBOX" ? "TESTE · " : "") + "Pagamento confirmado pelo Asaas · " + amount, contentType: "text", senderName: "Sistema financeiro", metadata: { provider: "ASAAS", paymentId: updated.id, event, environment: updated.environment } },
       });
     }
     return { payment: updated, conversation: existing.conversation, paid };

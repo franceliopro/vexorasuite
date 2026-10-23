@@ -222,7 +222,7 @@ export class ConversationsController {
       { assigneeId: request.user.sub },
       { departmentId: { in: departmentIds } },
       { participants: { some: { tenantId: request.user.tenantId, userId: request.user.sub } } },
-      { assigneeId: null, OR: [{ departmentId: null }, { departmentId: { in: departmentIds } }] },
+      { assigneeId: null, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null, OR: [{ departmentId: null }, { departmentId: { in: departmentIds } }] },
     ] };
   }
 

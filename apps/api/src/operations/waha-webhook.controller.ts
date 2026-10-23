@@ -139,6 +139,8 @@ export class WahaWebhookController {
         await this.sendBotReply(channel, chatId, conversationId, "Obrigado pela mensagem! Vou encaminhar você para a fila geral de atendimento. Um atendente continuará por aqui. 🙌");
         return;
       }
+      departments.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      const options = departments.map((department, index) => `${index + 1}️⃣ ${department.name}`).join("\n");
       const numericChoice = /^\d+$/.test(normalized) ? Number(normalized) : 0;
       const chosen = (numericChoice > 0 ? departments[numericChoice - 1] : undefined)
         || departments.find((department) => normalized.length >= 3 && (
@@ -146,7 +148,6 @@ export class WahaWebhookController {
           || department.key.toLocaleLowerCase("pt-BR") === normalized
           || department.keywords.some((keyword) => normalized.includes(keyword.toLocaleLowerCase("pt-BR")))
         ));
-      const options = departments.map((department, index) => `${index + 1}️⃣ ${department.name}`).join("\n");
       const menu = `Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n${options}\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.`;
       if (chosen) {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
@@ -155,7 +156,7 @@ export class WahaWebhookController {
       } else if (isNewConversation || /\b(menu|ajuda|atendente|humano|opções|opcoes)\b/.test(normalized)) {
         await this.sendBotReply(channel, chatId, conversationId, menu);
       } else {
-        await this.sendBotReply(channel, chatId, conversationId, "Ainda não consegui identificar a área. Por favor, escolha 1 (Financeiro), 2 (Comercial), 3 (Suporte) ou 4 (Administrativo).");
+        await this.sendBotReply(channel, chatId, conversationId, `Ainda não consegui identificar a área. Escolha uma opção:\n${options}`);
       }
     } catch (error) {
       this.logger.warn(`Bot inicial não conseguiu processar a conversa ${conversationId}: ${error instanceof Error ? error.message : "falha desconhecida"}`);

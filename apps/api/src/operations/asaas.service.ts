@@ -143,12 +143,25 @@ export class AsaasService {
     return { payment: updated, conversation: existing.conversation, paid };
   }
 
-  async openDebts(tenantId: string, document: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {
+  async openDebts(tenantId: string, document: string, whatsappPhone?: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {
     const doc = this.digits(document);
     if (!this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido. Digite somente números.");
     const credentials = await this.credentials(tenantId);
-    const customers = await this.request<{ data?: Array<{ id: string; name: string; cpfCnpj: string }> }>(tenantId, "/customers?cpfCnpj=" + encodeURIComponent(doc) + "&limit=100");
-    const matched = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 3);
+    const customers = await this.request<{ data?: Array<{ id: string; name: string; cpfCnpj: string; phone?: string; mobilePhone?: string }> }>(tenantId, "/customers?cpfCnpj=" + encodeURIComponent(doc) + "&limit=100");
+    const found = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 10);
+    if (!found.length) return { name: "", environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION", debts: [] };
+    const normalizePhone = (value: string) => {
+      let number = this.digits(value.split("@")[0]);
+      if (number.startsWith("55") && (number.length === 12 || number.length === 13)) number = number.slice(2);
+      const withoutNinth = (number: string) => number.length === 11 && number[2] === "9" ? number.slice(0, 2) + number.slice(3) : number;
+      return withoutNinth(number);
+    };
+    const inbound = normalizePhone(whatsappPhone || "");
+    const matched = found.filter((customer) => {
+      const registered = [customer.mobilePhone || "", customer.phone || ""].map(normalizePhone).filter(Boolean);
+      return inbound.length >= 10 && registered.some((phone) => phone.length >= 10 && phone === inbound);
+    });
+    if (matched.length !== 1) throw new BadRequestException("Não foi possível confirmar o telefone deste WhatsApp com o cadastro financeiro. O atendimento deve ser encaminhado ao Financeiro.");
     const debts: AsaasDebt[] = [];
     for (const customer of matched) {
       for (const status of ["OVERDUE", "PENDING"]) {

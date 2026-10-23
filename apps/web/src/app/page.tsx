@@ -36,11 +36,11 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
   return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} />;
 }
 
-const navigation = [
+const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
   { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
-] as const;
+];
 
 const metrics = [
   { label: "Conversas abertas", value: "—", note: "Aguardando conexão com os dados", icon: "messages" },
@@ -117,7 +117,7 @@ export default function HomePage() {
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Campanhas e criações",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon"><Icon name={item.icon} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Campanhas e criações",icon:"megaphone",target:"Marketing"}].map((item: { name: string; desc: string; icon: keyof typeof iconMap; target: string }) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon"><Icon name={item.icon} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
                   </div>
                 </article>
               </section>

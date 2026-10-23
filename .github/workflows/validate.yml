@@ -1,10 +1,14 @@
 name: Validate
 
 on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
   push:
     branches:
       - main
       - "foundation/**"
+      - feat/inbox-visibility-asaas-flow
 
 concurrency:
   group: validate-${{ github.ref }}

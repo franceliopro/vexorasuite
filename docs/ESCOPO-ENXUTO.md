@@ -46,6 +46,8 @@ Decisão de produto: construir uma plataforma operacional que resolva o trabalho
 - Toda automação deve ter estado explícito, cancelamento, proteção contra duplicação e histórico de execução.
 - Não mostrar contadores, métricas, status de conexão ou resultados simulados como se fossem dados reais.
 - A interface mantém navegação curta, painel lateral recolhível e layouts responsivos. Funções avançadas ficam dentro do módulo relacionado ou em Configurações.
+- **Identidade visual dos ícones:** substituir símbolos tipográficos provisórios por ícones vetoriais consistentes, leves e de traço uniforme (estilo Lucide), com um ícone reconhecível por módulo. Reutilizar o mesmo ícone no menu, atalhos e cabeçalho do módulo; manter tamanho, alinhamento e contraste consistentes com o visual anterior da Véxora.
+- **Recolher/expandir menu:** usar ícone vetorial de chevron simples, com direção clara conforme o estado, nunca caracteres tipográficos como `»` ou `«`. Manter transição discreta e não adicionar dependência pesada apenas para ícones.
 - Nada será migrado do ambiente antigo nem publicado em produção oficial sem validação e autorização explícitas.
 - Não remover dados nem funcionalidades da Véxora Matriz; este documento orienta exclusivamente a nova Véxora Suite.
 

@@ -139,7 +139,7 @@ export default function HomePage() {
         </header>
 
         <div className="page-content">
-          {active !== "Atendimento" ? <section className="page-heading">
+          {active !== "Atendimento" && active !== "Configurações" ? <section className="page-heading">
             <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? "Bom dia! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
           </section> : null}

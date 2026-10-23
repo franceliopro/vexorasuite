@@ -54,7 +54,7 @@ export class WahaWebhookController {
     const providerMessageId = this.providerMessageId(payload.id);
     if (!providerMessageId) return { ok: true, ignored: true };
 
-    const phone = chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
+    const phone = !isGroup && chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
     const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload.pushName || "").trim().slice(0, 160);
     const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
     const mimeType = String(payload.media?.mimetype || "");

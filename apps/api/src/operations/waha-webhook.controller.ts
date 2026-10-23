@@ -241,7 +241,7 @@ export class WahaWebhookController {
         return true;
       }
       const debt = debts[choice - 1];
-      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { ...state, step: "PAYMENT_METHOD", selectedDebt: debt } } });
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { ...state, step: "PAYMENT_METHOD", selectedDebt: debt } as any } });
       await this.sendBotReply(channel, chatId, conversationId, `Cobrança selecionada: ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${debt.dueDate || "não informado"}.\n\nEscolha a forma de pagamento:\n1. Boleto / PDF\n2. Linha digitável\n3. Pix copia e cola\n4. Fatura completa (outras formas disponíveis no Asaas)`);
       return true;
     }

@@ -134,7 +134,8 @@ export class AsaasService {
     if (!status) return null;
     const existing = await this.prisma.payment.findFirst({ where: { tenantId, provider: "ASAAS", externalId }, include: { conversation: { include: { contact: true, channelConnection: true } } } });
     if (!existing) return null;
-    const currentEnvironment = (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION";
+    const currentConfig = await this.settings(tenantId);
+    const currentEnvironment = currentConfig.sandbox !== false ? "SANDBOX" : "PRODUCTION";
     if (existing.environment !== currentEnvironment) return null;
     if (paid && envelope.payment?.value !== undefined && Math.abs(Number(envelope.payment.value) - Number(existing.amount)) > 0.01) return null;
     if (existing.status === "PAID" || (existing.status === status && !paid)) return null;

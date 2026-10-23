@@ -18,8 +18,10 @@ describe("AsaasService webhook reconciliation", () => {
   function setup() {
     const prisma = {
       payment: {
-        findFirst: jest.fn().mockResolvedValue(existingPayment),
-        update: jest.fn().mockResolvedValue({ ...existingPayment, status: "CANCELLED" }),
+        findFirst: jest.fn()
+          .mockResolvedValueOnce(existingPayment)
+          .mockResolvedValue({ ...existingPayment, status: "CANCELLED" }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       message: { create: jest.fn().mockResolvedValue({ id: "message-id" }) },
     } as unknown as PrismaService;
@@ -36,8 +38,8 @@ describe("AsaasService webhook reconciliation", () => {
       payment: { id: "pay_123", value: 125 },
     });
 
-    expect((prisma as any).payment.update).toHaveBeenCalledWith({
-      where: { id: "payment-local-id" },
+    expect((prisma as any).payment.updateMany).toHaveBeenCalledWith({
+      where: { id: "payment-local-id", tenantId: "tenant-id", status: { not: "CANCELLED" } },
       data: { status: "CANCELLED" },
     });
     expect(result).toMatchObject({ paid: false, payment: { status: "CANCELLED" } });
@@ -53,7 +55,7 @@ describe("AsaasService webhook reconciliation", () => {
     });
 
     expect(result).toBeNull();
-    expect((prisma as any).payment.update).not.toHaveBeenCalled();
+    expect((prisma as any).payment.updateMany).not.toHaveBeenCalled();
     expect((prisma as any).message.create).not.toHaveBeenCalled();
   });
 });

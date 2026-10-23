@@ -157,7 +157,7 @@ export class AsaasService {
     const found = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 10);
     if (!found.length) return { name: "", environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION", debts: [] };
     const normalizePhone = (value: string | undefined) => {
-      let number = this.digits((value || "").split("@")[0]);
+      let number = this.digits((value || "").split("@")[0] || "");
       if (number.startsWith("55") && (number.length === 12 || number.length === 13)) number = number.slice(2);
       const withoutNinth = (number: string) => number.length === 11 && number[2] === "9" ? number.slice(0, 2) + number.slice(3) : number;
       return withoutNinth(number);

@@ -84,3 +84,6 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .thread-assign-select:focus-within{outline:2px solid #aaa5ff;outline-offset:2px}
 .thread-assign-select select:disabled{cursor:not-allowed;opacity:.55}
 @media(max-width:480px){.thread-assign-select{min-height:30px;padding:0 6px}.thread-assign-select select{max-width:115px}}
+
+/* Accessible password visibility control on authentication screens. */
+.auth-password-wrap{position:relative;display:flex;align-items:center}.auth-password-wrap input{padding-right:44px}.auth-password-toggle{position:absolute;right:5px;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:6px;background:transparent;color:#747a91;cursor:pointer}.auth-password-toggle:hover{background:#f0efff;color:var(--primary)}.auth-password-toggle:focus-visible{outline:2px solid var(--primary);outline-offset:1px}

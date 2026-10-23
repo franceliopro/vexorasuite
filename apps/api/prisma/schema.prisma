@@ -49,6 +49,7 @@ model Tenant {
   messages    Message[]
   channelConnections ChannelConnection[]
   auditLogs   AuditLog[]
+  tags        Tag[]
 
   @@map("tenants")
 }
@@ -119,6 +120,7 @@ model Conversation {
   channelConnection ChannelConnection? @relation(fields: [channelConnectionId], references: [id], onDelete: SetNull)
   assignee    User?              @relation("ConversationAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   messages    Message[]
+  tags        ConversationTag[]
 
   @@index([tenantId, status, lastMessageAt])
   @@index([tenantId, contactId])
@@ -163,6 +165,33 @@ model Message {
   @@unique([tenantId, providerMessageId])
   @@index([tenantId, conversationId, occurredAt])
   @@map("messages")
+}
+
+model Tag {
+  id        String             @id @default(uuid()) @db.Uuid
+  tenantId  String             @db.Uuid @map("tenant_id")
+  name      String
+  color     String             @default("#7467e8")
+  createdAt DateTime           @default(now()) @map("created_at")
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations ConversationTag[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, createdAt])
+  @@map("tags")
+}
+
+model ConversationTag {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid @map("conversation_id")
+  tagId          String       @db.Uuid @map("tag_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tag            Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, tagId])
+  @@index([tagId])
+  @@map("conversation_tags")
 }
 
 model AuditLog {

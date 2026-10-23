@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   CalendarDays,
-  ChartNoAxesCombined,
+  Activity,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -27,7 +27,7 @@ const iconMap = {
   settings: Settings2,
   "chevron-left": ChevronLeft,
   "chevron-right": ChevronRight,
-  "chart-no-axes-combined": ChartNoAxesCombined,
+  "chart-no-axes-combined": Activity,
   sparkles: Sparkles,
 };
 

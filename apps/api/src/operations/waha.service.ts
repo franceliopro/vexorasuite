@@ -47,7 +47,7 @@ export class WahaService {
       if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid protocol");
       origin = parsed.origin;
     } catch { throw new ServiceUnavailableException("PUBLIC_APP_URL não é uma URL pública válida."); }
-    return `${origin}/api/webhooks/waha/${channelId}/${this.webhookToken(channelId)}`;
+    return `${origin}/api/backend/webhooks/waha/${channelId}/${this.webhookToken(channelId)}`;
   }
 
   verifyWebhookToken(channelId: string, supplied: string): boolean {

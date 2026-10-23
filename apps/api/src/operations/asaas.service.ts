@@ -115,7 +115,7 @@ export class AsaasService {
   async verifyWebhookToken(tenantId: string, provided: string | undefined): Promise<boolean> {
     if (!provided) return false;
     const config = await this.settings(tenantId);
-    if (!config.encryptedWebhookToken) return false;
+    if (config.enabled !== true || !config.encryptedWebhookToken) return false;
     try {
       const expected = Buffer.from(this.decrypt(config.encryptedWebhookToken));
       const actual = Buffer.from(provided);

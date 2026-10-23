@@ -83,9 +83,8 @@ export class AuthService {
       where: { email },
       include: {
         memberships: {
-          where: { tenant: { is: { slug: input.tenantSlug, status: "ACTIVE" } } },
+          where: { tenant: { is: { status: "ACTIVE" } } },
           include: { tenant: true },
-          take: 1,
         },
       },
     });
@@ -94,10 +93,18 @@ export class AuthService {
       throw new UnauthorizedException("E-mail ou senha inválidos.");
     }
 
-    const membership = user.memberships[0];
-    if (!membership || membership.tenant.status !== "ACTIVE") {
-      throw new UnauthorizedException("E-mail ou senha inválidos.");
+    const requestedSlug = input.tenantSlug.trim().toLowerCase();
+    const exactMatches = user.memberships.filter((item) => item.tenant.slug === requestedSlug);
+    const prefixMatches = user.memberships.filter((item) => item.tenant.slug.startsWith(`${requestedSlug}-`));
+    const matches = exactMatches.length ? exactMatches : prefixMatches;
+    if (matches.length !== 1) {
+      throw new UnauthorizedException(
+        matches.length > 1
+          ? "Há mais de uma empresa com esse início de identificador. Informe o identificador completo."
+          : "E-mail, senha ou identificador da empresa inválidos.",
+      );
     }
+    const membership = matches[0];
 
     const accessToken = await this.issueToken({
       sub: user.id,

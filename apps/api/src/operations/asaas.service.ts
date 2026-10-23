@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 
-type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string };
+type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string; encryptedWebhookToken?: string };
 type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };
 
 @Injectable()
@@ -43,10 +43,10 @@ export class AsaasService {
 
   async publicSettings(tenantId: string) {
     const settings = await this.settings(tenantId);
-    return { enabled: settings.enabled === true, sandbox: settings.sandbox !== false, configured: Boolean(settings.encryptedApiKey), apiKeyMasked: settings.encryptedApiKey ? "••••••••••••" : "" };
+    return { enabled: settings.enabled === true, sandbox: settings.sandbox !== false, configured: Boolean(settings.encryptedApiKey), apiKeyMasked: settings.encryptedApiKey ? "••••••••••••" : "", webhookTokenConfigured: Boolean(settings.encryptedWebhookToken) };
   }
 
-  async saveSettings(tenantId: string, input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown }) {
+  async saveSettings(tenantId: string, input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown; webhookToken?: unknown }) {
     if (typeof input.enabled !== "boolean" || typeof input.sandbox !== "boolean") throw new BadRequestException("Informe se o Asaas está ativado e se usa Sandbox.");
     const current = await this.settings(tenantId);
     let encryptedApiKey = current.encryptedApiKey;
@@ -55,6 +55,11 @@ export class AsaasService {
       encryptedApiKey = this.encrypt(input.apiKey.trim());
     }
     if (input.enabled && !encryptedApiKey) throw new BadRequestException("Informe a chave de API do Asaas antes de ativar.");
+    let encryptedWebhookToken = current.encryptedWebhookToken;
+    if (typeof input.webhookToken === "string" && input.webhookToken.trim()) {
+      if (input.webhookToken.trim().length > 500) throw new BadRequestException("O token de webhook Asaas é inválido.");
+      encryptedWebhookToken = this.encrypt(input.webhookToken.trim());
+    }
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
     const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown> : {};
@@ -102,6 +107,40 @@ export class AsaasService {
     const a = calc(doc.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2]);
     const b = calc(doc.slice(0, 12) + a, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
     return doc[12] === String(a) && doc[13] === String(b);
+  }
+
+  async verifyWebhookToken(tenantId: string, provided: string | undefined): Promise<boolean> {
+    if (!provided) return false;
+    const config = await this.settings(tenantId);
+    if (!config.encryptedWebhookToken) return false;
+    try {
+      const expected = Buffer.from(this.decrypt(config.encryptedWebhookToken));
+      const actual = Buffer.from(provided);
+      return expected.length === actual.length && timingSafeEqual(expected, actual);
+    } catch { return false; }
+  }
+
+  async settleWebhook(tenantId: string, body: unknown) {
+    if (!body || typeof body !== "object") return null;
+    const envelope = body as { event?: unknown; payment?: { id?: unknown; value?: unknown; status?: unknown } };
+    const event = String(envelope.event || "");
+    const externalId = typeof envelope.payment?.id === "string" ? envelope.payment.id : "";
+    if (!externalId) return null;
+    const paid = event === "PAYMENT_RECEIVED" || event === "PAYMENT_CONFIRMED";
+    const status = paid ? "PAID" : event === "PAYMENT_OVERDUE" ? "OVERDUE" : ["PAYMENT_DELETED", "PAYMENT_REFUNDED"].includes(event) ? "CANCELLED" : null;
+    if (!status) return null;
+    const existing = await this.prisma.payment.findFirst({ where: { tenantId, provider: "ASAAS", externalId }, include: { conversation: { include: { contact: true, channelConnection: true } } } });
+    if (!existing) return null;
+    if (paid && envelope.payment?.value !== undefined && Math.abs(Number(envelope.payment.value) - Number(existing.amount)) > 0.01) return null;
+    if (existing.status === "PAID" || (existing.status === status && !paid)) return null;
+    const updated = await this.prisma.payment.update({ where: { id: existing.id }, data: { status } });
+    if (paid) {
+      const amount = Number(updated.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      await this.prisma.message.create({
+        data: { tenantId, conversationId: updated.conversationId, direction: "INTERNAL", status: "RECEIVED", content: "Pagamento confirmado pelo Asaas · " + amount, contentType: "text", senderName: "Sistema financeiro", metadata: { provider: "ASAAS", paymentId: updated.id, event } },
+      });
+    }
+    return { payment: updated, conversation: existing.conversation, paid };
   }
 
   async openDebts(tenantId: string, document: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {

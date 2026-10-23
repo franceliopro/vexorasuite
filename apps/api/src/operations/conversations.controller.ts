@@ -125,8 +125,8 @@ export class ConversationsController {
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() input: { departmentId?: unknown; assigneeId?: unknown },
-    await this.assertCanAccess(request, id);
   ) {
+    await this.assertCanAccess(request, id);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");

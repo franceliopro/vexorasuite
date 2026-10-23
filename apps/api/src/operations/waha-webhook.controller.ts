@@ -3,12 +3,13 @@ import type { ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
+import { AsaasService } from "./asaas.service";
 
 @Controller("webhooks/waha")
 export class WahaWebhookController {
   private readonly logger = new Logger(WahaWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly asaas: AsaasService) {}
 
   @Post(":channelId/:token")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Param("token") token: string, @Body() body: unknown) {
@@ -117,6 +118,7 @@ export class WahaWebhookController {
 
 
   private async runMenuBot(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
+    if (await this.runAsaasFlow(channel, chatId, conversationId, inboundText)) return;
     const defaults = [
       { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "nota fiscal", "reembolso", "cobrança", "cobranca", "financeiro"] },
       { key: "COMERCIAL", name: "Comercial (Vendas)", keywords: ["preço", "preco", "orçamento", "orcamento", "comprar", "venda", "vendas", "plano", "comercial"] },
@@ -161,6 +163,107 @@ export class WahaWebhookController {
     } catch (error) {
       this.logger.warn(`Bot inicial não conseguiu processar a conversa ${conversationId}: ${error instanceof Error ? error.message : "falha desconhecida"}`);
     }
+  }
+
+  private async runAsaasFlow(channel: ChannelConnection, chatId: string, conversationId: string, inboundText: string): Promise<boolean> {
+    // Never expose billing information in a WhatsApp group, even if group traffic was explicitly enabled.
+    if (chatId.endsWith("@g.us")) return false;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { botState: true } });
+    const rawState = conversation?.botState && typeof conversation.botState === "object" && !Array.isArray(conversation.botState)
+      ? conversation.botState as Record<string, unknown> : {};
+    const state = rawState.flow === "ASAAS" ? rawState : null;
+    const text = inboundText.trim();
+    const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    const cancel = /^(cancelar|sair|menu)$/i.test(normalized);
+    if (!state) {
+      if (!/(financeiro|boleto|pix|pagamento|fatura|cobranca|cobrança|segunda via)/i.test(normalized)) return false;
+      const settings = await this.asaas.publicSettings(channel.tenantId);
+      if (!settings.enabled || !settings.configured) return false;
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "DOCUMENT" } } });
+      await this.sendBotReply(channel, chatId, conversationId, "Claro! Posso consultar cobranças no Asaas e enviar boleto, linha digitável, Pix copia e cola ou a fatura disponível.\n\nPara proteger seus dados, envie o CPF ou CNPJ do titular (somente números). Digite *cancelar* para sair.");
+      return true;
+    }
+    if (cancel) {
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
+      await this.sendBotReply(channel, chatId, conversationId, "Consulta financeira cancelada. Se precisar, escreva *financeiro* para começar novamente.");
+      return true;
+    }
+    const step = String(state.step || "");
+    if (step === "DOCUMENT") {
+      let result: Awaited<ReturnType<AsaasService["openDebts"]>>;
+      try { result = await this.asaas.openDebts(channel.tenantId, text); }
+      catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        const invalid = message.toLocaleLowerCase("pt-BR").includes("cpf/cnpj inválido");
+        await this.sendBotReply(channel, chatId, conversationId, invalid ? "O CPF/CNPJ não passou na validação. Confira os números e tente novamente, ou digite *cancelar*." : "Não consegui consultar o Asaas neste momento. Confira o documento e tente novamente mais tarde, ou digite *cancelar*.");
+        return true;
+      }
+      if (!result.debts.length) {
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "NO_DEBTS" } } });
+        await this.sendBotReply(channel, chatId, conversationId, "Não encontrei cobranças em aberto para esse documento.\n\n1. Falar com o Financeiro\n2. Consultar outro documento\n\nDigite *cancelar* para sair.");
+        return true;
+      }
+      const debts = result.debts.slice(0, 10).map((debt) => ({ id: debt.id, value: Number(debt.value), dueDate: debt.dueDate, status: debt.status, description: debt.description || "Cobrança" }));
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "PICK_DEBT", debts } } });
+      const lines = debts.map((debt, index) => `${index + 1}. ${debt.description} — ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${debt.dueDate || "não informado"}${debt.status === "OVERDUE" ? " (vencida)" : ""}`);
+      await this.sendBotReply(channel, chatId, conversationId, `Encontrei estas cobranças em aberto:\n\n${lines.join("\n")}\n\nResponda com o número da cobrança desejada.`);
+      return true;
+    }
+    if (step === "NO_DEBTS") {
+      if (/^2$/.test(normalized)) {
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "DOCUMENT" } } });
+        await this.sendBotReply(channel, chatId, conversationId, "Envie o CPF ou CNPJ do titular (somente números).");
+      } else if (/^1$/.test(normalized)) {
+        const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
+        this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
+        await this.sendBotReply(channel, chatId, conversationId, "Certo! Vou encaminhar sua conversa para o Financeiro. Um atendente continuará por aqui. 🙌");
+      } else await this.sendBotReply(channel, chatId, conversationId, "Responda 1 para falar com o Financeiro ou 2 para consultar outro documento.");
+      return true;
+    }
+    if (step === "PICK_DEBT") {
+      const debts = Array.isArray(state.debts) ? state.debts as Array<{ id: string; value: number; dueDate: string; description: string; status: string }> : [];
+      const choice = /^\d+$/.test(normalized) ? Number(normalized) : 0;
+      if (choice < 1 || choice > debts.length) {
+        await this.sendBotReply(channel, chatId, conversationId, "Número inválido. Responda com um dos números da lista, ou digite *cancelar*.");
+        return true;
+      }
+      const debt = debts[choice - 1];
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { ...state, step: "PAYMENT_METHOD", selectedDebt: debt } } });
+      await this.sendBotReply(channel, chatId, conversationId, `Cobrança selecionada: ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${debt.dueDate || "não informado"}.\n\nEscolha a forma de pagamento:\n1. Boleto / PDF\n2. Linha digitável\n3. Pix copia e cola\n4. Fatura completa (outras formas disponíveis no Asaas)`);
+      return true;
+    }
+    if (step === "PAYMENT_METHOD") {
+      const choice = Number(normalized);
+      if (![1, 2, 3, 4].includes(choice)) {
+        await this.sendBotReply(channel, chatId, conversationId, "Escolha 1 para boleto, 2 para linha digitável, 3 para Pix ou 4 para fatura completa.");
+        return true;
+      }
+      const selected = state.selectedDebt && typeof state.selectedDebt === "object" ? state.selectedDebt as { id: string; value: number; dueDate: string } : null;
+      if (!selected) {
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
+        await this.sendBotReply(channel, chatId, conversationId, "A seleção expirou. Escreva *financeiro* para iniciar novamente.");
+        return true;
+      }
+      try {
+        const detail = await this.asaas.paymentDetails(channel.tenantId, selected.id);
+        const heading = `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${detail.dueDate || selected.dueDate || "não informado"}`;
+        let response = heading;
+        if (choice === 1) response += "\n\nBoleto / PDF: " + (detail.bankSlipUrl || detail.invoiceUrl || "O boleto não está disponível nesta cobrança.");
+        else if (choice === 2) response += "\n\nLinha digitável: " + (detail.identificationField || "Não disponibilizada pelo Asaas. Use a fatura: " + (detail.invoiceUrl || "indisponível"));
+        else if (choice === 3) response += "\n\nPix copia e cola:\n" + (detail.pixPayload || "Pix não está disponível para esta cobrança. Fatura: " + (detail.invoiceUrl || "indisponível"));
+        else response += "\n\nFatura completa: " + (detail.invoiceUrl || "Não disponibilizada pelo Asaas.");
+        if (detail.invoiceUrl && choice !== 4) response += "\n\nOutras formas de pagamento: " + detail.invoiceUrl;
+        await this.sendBotReply(channel, chatId, conversationId, response);
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
+      } catch {
+        await this.sendBotReply(channel, chatId, conversationId, "Não consegui obter os dados de pagamento agora. Vou deixar sua conversa disponível para o Financeiro verificar. Tente novamente mais tarde.");
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
+      }
+      return true;
+    }
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
+    return false;
   }
 
   private async sendBotReply(channel: { id: string; tenantId: string; sessionName: string } & Parameters<WahaService["sendText"]>[0], chatId: string, conversationId: string, content: string): Promise<void> {

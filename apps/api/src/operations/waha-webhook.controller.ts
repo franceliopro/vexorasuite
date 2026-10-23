@@ -55,7 +55,7 @@ export class WahaWebhookController {
     try {
       saved = await this.prisma.$transaction(async (tx) => {
         const lockKey = `${channel.tenantId}:inbound:${chatId}`;
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+        await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
         const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
         if (duplicate) return null;
 

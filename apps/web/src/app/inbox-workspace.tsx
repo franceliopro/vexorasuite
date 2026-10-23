@@ -160,7 +160,7 @@ export function InboxWorkspace() {
   async function createDepartment() {
     const name = newDepartmentName.trim();
     if (!name) return;
-    const key = name.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 40);
+    const key = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 40);
     setError("");
     try {
       await api("/api/backend/departments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, key, keywords: [] }) });

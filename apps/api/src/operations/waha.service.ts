@@ -73,6 +73,26 @@ export class WahaService {
     await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "CONNECTING", lastError: null } });
   }
 
+
+  async listGroups(channel: ChannelConnection): Promise<{ id: string; name: string }[]> {
+    const response = await this.request(`/api/${encodeURIComponent(channel.sessionName)}/chats`);
+    if (!response.ok) throw new BadGatewayException(`WAHA não conseguiu listar as conversas (${response.status}).`);
+    const payload = await response.json() as unknown;
+    const rows = Array.isArray(payload) ? payload
+      : payload && typeof payload === "object" && Array.isArray((payload as { chats?: unknown }).chats)
+        ? (payload as { chats: unknown[] }).chats : [];
+    return rows.flatMap((row) => {
+      if (!row || typeof row !== "object") return [];
+      const item = row as Record<string, unknown>;
+      const rawId = typeof item.id === "string" ? item.id
+        : item.id && typeof item.id === "object" && "_serialized" in item.id
+          ? String((item.id as { _serialized: unknown })._serialized) : "";
+      if (!rawId.endsWith("@g.us")) return [];
+      const name = String(item.name || item.formattedTitle || item.pushName || rawId).trim().slice(0, 160);
+      return [{ id: rawId, name }];
+    }).slice(0, 500);
+  }
+
   async disconnect(channel: ChannelConnection): Promise<void> {
     const response = await this.request(`/api/sessions/${encodeURIComponent(channel.sessionName)}/stop`, { method: "POST", body: "{}" });
     if (!response.ok && response.status !== 404) throw new BadGatewayException(`WAHA não conseguiu desconectar a sessão (${response.status}).`);

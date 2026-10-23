@@ -70,6 +70,7 @@ export class ConversationsController {
 
   @Post(":id/assume")
   async assume(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await this.assertCanAccess(request, id);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, assigneeId: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
@@ -90,6 +91,7 @@ export class ConversationsController {
 
   @Post(":id/assign")
   async assign(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string | null | undefined) {
+    await this.assertCanAccess(request, id);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
@@ -106,6 +108,7 @@ export class ConversationsController {
 
   @Post(":id/status")
   async updateStatus(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("status") status: string) {
+    await this.assertCanAccess(request, id);
     const allowed = ["OPEN", "PENDING", "RESOLVED"] as const;
     if (!allowed.includes(status as typeof allowed[number])) throw new BadRequestException("Status de conversa inválido.");
     const tenantId = request.user.tenantId;
@@ -122,6 +125,7 @@ export class ConversationsController {
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() input: { departmentId?: unknown; assigneeId?: unknown },
+    await this.assertCanAccess(request, id);
   ) {
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
@@ -152,6 +156,7 @@ export class ConversationsController {
 
   @Post(":id/return-to-bot")
   async returnToBot(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await this.assertCanAccess(request, id);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");

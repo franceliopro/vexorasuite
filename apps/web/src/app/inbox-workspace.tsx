@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, RotateCcw, UserRound } from "lucide-react";
+import { CheckCircle2, RotateCcw, UserRound, Users, UserCheck, UserPlus, ChevronDown, ArrowRightLeft, Check } from "lucide-react";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
 type Contact = { id: string; name: string; phone?: string | null };
@@ -9,9 +9,6 @@ type Message = { id: string; content: string; contentType: string; direction: st
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
-type GroupSettings = { groupsEnabled: boolean; allowedGroupIds: string[] };
-type GroupChoice = { id: string; name: string };
-type AsaasSettings = { enabled: boolean; sandbox: boolean; configured: boolean; apiKeyMasked: string; webhookTokenConfigured?: boolean; webhookUrl?: string };
 type Conversation = { id: string; status: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -24,19 +21,8 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function InboxWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [queueView, setQueueView] = useState("new");
-  const [asaasSettings, setAsaasSettings] = useState<AsaasSettings>({ enabled: false, sandbox: true, configured: false, apiKeyMasked: "" });
-  const [asaasKeyDraft, setAsaasKeyDraft] = useState("");
-  const [asaasWebhookDraft, setAsaasWebhookDraft] = useState("");
-  const [asaasBusy, setAsaasBusy] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [groupSettings, setGroupSettings] = useState<GroupSettings>({ groupsEnabled: false, allowedGroupIds: [] });
-  const [groupIdsDraft, setGroupIdsDraft] = useState("");
-  const [groupSettingsBusy, setGroupSettingsBusy] = useState(false);
-  const [availableGroups, setAvailableGroups] = useState<GroupChoice[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [departmentMembers, setDepartmentMembers] = useState<Record<string, string[]>>({});
-  const [newDepartmentName, setNewDepartmentName] = useState("");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [handoffDepartment, setHandoffDepartment] = useState("");
   const [handoffAssignee, setHandoffAssignee] = useState("");
@@ -75,10 +61,9 @@ export function InboxWorkspace() {
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
   }, [queueView]);
 
-  useEffect(() => { void api<AsaasSettings>("/api/backend/integrations/asaas").then(setAsaasSettings).catch(() => {}); }, []);
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => { void loadConversations(); void loadChannels(); void loadAssignees();
-    void api<Department[]>("/api/backend/departments").then(async (rows) => { setDepartments(rows); const entries = await Promise.all(rows.map(async (department) => { const members = await api<Agent[]>("/api/backend/departments/" + department.id + "/members").catch(() => []); return [department.id, members.map((member) => member.id)] as const; })); setDepartmentMembers(Object.fromEntries(entries)); }).catch(() => {});
+    void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
     void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => {});
   }, [loadConversations, loadChannels, loadAssignees]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
@@ -99,15 +84,6 @@ export function InboxWorkspace() {
     source.onerror = () => { /* transient realtime interruptions are handled silently */ };
     return () => source.close();
   }, [loadConversations, loadChannels, loadMessages]);
-
-  useEffect(() => {
-    if (!activeChannel?.id) { setGroupSettings({ groupsEnabled: false, allowedGroupIds: [] }); setGroupIdsDraft(""); return; }
-    let cancelled = false;
-    void api<GroupSettings>("/api/backend/channels/" + activeChannel.id + "/group-settings")
-      .then((settings) => { if (!cancelled) { setGroupSettings(settings); setGroupIdsDraft(settings.allowedGroupIds.join("\n")); } })
-      .catch(() => { if (!cancelled) { setGroupSettings({ groupsEnabled: false, allowedGroupIds: [] }); setGroupIdsDraft(""); } });
-    return () => { cancelled = true; };
-  }, [activeChannel?.id]);
 
   const pendingId = channels.find((item) => item.status === "CONNECTING" || item.status === "QR")?.id ?? null;
   useEffect(() => {
@@ -167,73 +143,6 @@ export function InboxWorkspace() {
       setQr(null);
       await loadChannels();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir a sessão."); }
-  }
-
-  async function toggleDepartment(department: Department, isActive: boolean) {
-    setError("");
-    try {
-      await api("/api/backend/departments/" + department.id, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ isActive }) });
-      setDepartments((rows) => rows.map((row) => row.id === department.id ? { ...row, isActive } : row));
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar o departamento."); }
-  }
-
-  async function saveDepartmentMembers(departmentId: string) {
-    setError("");
-    try {
-      const userIds = departmentMembers[departmentId] || [];
-      const members = await api<Agent[]>("/api/backend/departments/" + departmentId + "/members", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ userIds }) });
-      setDepartmentMembers((current) => ({ ...current, [departmentId]: members.map((member) => member.id) }));
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar os membros da equipe."); }
-  }
-
-  async function createDepartment() {
-    const name = newDepartmentName.trim();
-    if (!name) return;
-    const key = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 40);
-    setError("");
-    try {
-      await api("/api/backend/departments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, key, keywords: [] }) });
-      setDepartments(await api<Department[]>("/api/backend/departments"));
-      setNewDepartmentName("");
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o departamento."); }
-  }
-
-  async function saveAsaasSettings() {
-    setAsaasBusy(true); setError("");
-    try {
-      const saved = await api<AsaasSettings>("/api/backend/integrations/asaas", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: asaasSettings.enabled, sandbox: asaasSettings.sandbox, apiKey: asaasKeyDraft, webhookToken: asaasWebhookDraft }) });
-      setAsaasSettings(saved); setAsaasKeyDraft(""); setAsaasWebhookDraft("");
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar a integração Asaas."); }
-    finally { setAsaasBusy(false); }
-  }
-
-  async function discoverGroups() {
-    if (!activeChannel) return;
-    setLoadingGroups(true); setError("");
-    try {
-      const result = await api<{ groups: GroupChoice[] }>("/api/backend/channels/" + activeChannel.id + "/groups");
-      setAvailableGroups(result.groups);
-      if (!result.groups.length) setError("Nenhum grupo retornado pelo WhatsApp. Você ainda pode informar os IDs manualmente.");
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível consultar os grupos do WhatsApp."); }
-    finally { setLoadingGroups(false); }
-  }
-
-  function toggleAllowedGroup(groupId: string, checked: boolean) {
-    const current = groupIdsDraft.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
-    const next = checked ? [...new Set([...current, groupId])] : current.filter((id) => id !== groupId);
-    setGroupIdsDraft(next.join("\n"));
-  }
-
-  async function saveGroupSettings() {
-    if (!activeChannel) return;
-    setGroupSettingsBusy(true); setError("");
-    const allowedGroupIds = [...new Set(groupIdsDraft.split(/\r?\n|,/).map((value) => value.trim()).filter((value) => value.endsWith("@g.us")))];
-    try {
-      const saved = await api<GroupSettings>("/api/backend/channels/" + activeChannel.id + "/group-settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ groupsEnabled: groupSettings.groupsEnabled, allowedGroupIds }) });
-      setGroupSettings(saved); setGroupIdsDraft(saved.allowedGroupIds.join("\n"));
-      setError("");
-    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar as regras de grupos."); }
-    finally { setGroupSettingsBusy(false); }
   }
 
   async function handoffToHuman() {
@@ -315,22 +224,13 @@ export function InboxWorkspace() {
       {activeChannel ? <div className="inbox-connection"><span className={"connection-light " + (activeChannel.status === "CONNECTED" ? "connected" : activeChannel.status === "ERROR" ? "failed" : "")} /><span><strong>{activeChannel.name}</strong><small>{activeChannel.status === "CONNECTED" ? "Conectado" : activeChannel.status === "QR" ? "Aguardando QR Code" : activeChannel.status === "ERROR" ? "Falha na conexão" : activeChannel.status}</small></span><div className="connection-actions">{activeChannel.status === "ERROR" || activeChannel.status === "DISCONNECTED" ? <button className="text-button" onClick={() => void retryConnection(activeChannel)}>Reconectar</button> : activeChannel.status === "CONNECTED" ? <><button className="text-button" onClick={() => void retryConnection(activeChannel)}>Sincronizar</button><button className="text-button" onClick={() => void disconnectChannel(activeChannel)}>Desconectar</button></> : null}<button className="text-button danger-text" title="Excluir sessão" onClick={() => void deleteChannel(activeChannel)}>Excluir</button></div></div>
         : <div className="inbox-connect-prompt"><p>Conecte o WhatsApp para receber e responder mensagens aqui.</p><button className="primary-button" onClick={() => void connectWhatsApp()} disabled={connecting}>{connecting ? "Conectando..." : "Conectar WhatsApp"}</button></div>}
       {qr ? <div className="qr-panel"><p>Leia o QR Code com o WhatsApp do atendimento.</p><img src={qr} alt="QR Code para conectar WhatsApp" /><small>O estado da sessão é atualizado automaticamente.</small></div> : null}
-      {activeChannel ? <details className="group-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}><summary style={{ cursor: "pointer", fontWeight: 650 }}>Grupos do WhatsApp <span style={{ color: "var(--muted)", fontWeight: 400 }}>· desativados por padrão</span></summary><label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}><input type="checkbox" checked={groupSettings.groupsEnabled} onChange={(event) => setGroupSettings((current) => ({ ...current, groupsEnabled: event.target.checked }))} /> Permitir receber conversas de grupos</label><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}><label style={{ color: "var(--muted)" }}>Escolha os grupos autorizados</label><button type="button" className="text-button" onClick={() => void discoverGroups()} disabled={loadingGroups}>{loadingGroups ? "Buscando..." : "Buscar grupos"}</button></div>{availableGroups.length ? <div style={{ maxHeight: 150, overflowY: "auto", marginBottom: 10, border: "1px solid var(--line)", borderRadius: 7, padding: 7 }}>{availableGroups.map((group) => <label key={group.id} style={{ display: "flex", alignItems: "flex-start", gap: 7, padding: "5px 2px" }}><input type="checkbox" checked={groupIdsDraft.split(/\r?\n|,/).map((value) => value.trim()).includes(group.id)} onChange={(event) => toggleAllowedGroup(group.id, event.target.checked)} /><span><span style={{ display: "block" }}>{group.name}</span><small style={{ color: "var(--muted)", overflowWrap: "anywhere" }}>{group.id}</small></span></label>)}</div> : null}<label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>Ou informe IDs manualmente (um por linha, terminados em @g.us)</label><textarea value={groupIdsDraft} onChange={(event) => setGroupIdsDraft(event.target.value)} rows={3} placeholder="120363000000000000@g.us" style={{ width: "100%", resize: "vertical", fontSize: 11, border: "1px solid var(--line)", borderRadius: 7, padding: 8 }} /><small style={{ display: "block", color: "var(--muted)", margin: "6px 0 9px" }}>Mesmo ativado, nenhum grupo entra sem estar nesta lista. Conversas individuais continuam funcionando normalmente.</small><button className="primary-button" type="button" onClick={() => void saveGroupSettings()} disabled={groupSettingsBusy}>{groupSettingsBusy ? "Salvando..." : "Salvar regras de grupos"}</button></details> : null}
-      <details className="department-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}><summary style={{ cursor: "pointer", fontWeight: 650 }}>Departamentos da empresa</summary><small style={{ display: "block", color: "var(--muted)", margin: "8px 0" }}>Ative somente as áreas que esta empresa utiliza. Desativar todas deixa a empresa sem departamentos; a fila geral continua disponível.</small>{departments.map((department) => <label key={department.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}><input type="checkbox" checked={department.isActive} onChange={(event) => void toggleDepartment(department, event.target.checked)} /><span>{department.name}</span></label>)}{departments.filter((department) => department.isActive).map((department) => <details key={department.id} style={{ marginTop: 7, padding: "7px", border: "1px solid var(--line)", borderRadius: 7 }}><summary style={{ cursor: "pointer" }}>{department.name} · atendentes ({(departmentMembers[department.id] || []).length})</summary>{agents.map((agent) => <label key={agent.id} style={{ display: "flex", gap: 7, alignItems: "center", padding: "4px 0" }}><input type="checkbox" checked={(departmentMembers[department.id] || []).includes(agent.id)} onChange={(event) => setDepartmentMembers((current) => ({ ...current, [department.id]: event.target.checked ? [...new Set([...(current[department.id] || []), agent.id])] : (current[department.id] || []).filter((id) => id !== agent.id) }))} /><span>{agent.name}</span></label>)}<button type="button" className="text-button" onClick={() => void saveDepartmentMembers(department.id)}>Salvar membros</button></details>)}<div style={{ display: "flex", gap: 6, marginTop: 8 }}><input value={newDepartmentName} onChange={(event) => setNewDepartmentName(event.target.value)} placeholder="Nova área (ex.: Marketing)" maxLength={80} style={{ minWidth: 0, flex: 1, padding: "7px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} /><button className="text-button" type="button" onClick={() => void createDepartment()} disabled={!newDepartmentName.trim()}>Adicionar</button></div></details>
-      <nav aria-label="Filas de atendimento" style={{ display: "flex", gap: 5, padding: "8px 10px", overflowX: "auto", borderBottom: "1px solid var(--line)" }}>
-        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Minha equipe" }, { id: "others", label: "Outras" }, { id: "all-open", label: "Todos abertos" }, { id: "completed", label: "Concluídos" }, { id: "archived", label: "Arquivados" }, { id: "trash", label: "Lixeira" }] as const).map((item) => <button key={item.id} type="button" className={queueView === item.id ? "primary-button" : "text-button"} onClick={() => setQueueView(item.id)} style={{ whiteSpace: "nowrap", fontSize: 11, padding: "6px 8px" }}>{item.label}</button>)}
+      <nav className="inbox-queues" aria-label="Filas de atendimento">
+        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Minha equipe" }, { id: "others", label: "Outras" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} onClick={() => setQueueView(item.id)}>{item.label}</button>)}
+        <details className={"inbox-more-queues " + (["all-open", "completed", "archived", "trash"].includes(queueView) ? "has-active" : "")}>
+          <summary aria-label="Mais filas" title="Mais filas">Mais <span aria-hidden="true">⌄</span></summary>
+          <div className="inbox-queue-menu">{([{ id: "all-open", label: "Todos abertos" }, { id: "completed", label: "Concluídos" }, { id: "archived", label: "Arquivados" }, { id: "trash", label: "Lixeira" }] as const).map((item) => <button key={item.id} type="button" className={queueView === item.id ? "active" : ""} onClick={(event) => { setQueueView(item.id); event.currentTarget.closest("details")?.removeAttribute("open"); }}>{item.label}</button>)}</div>
+        </details>
       </nav>
-      <details className="asaas-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 650 }}>Financeiro · Asaas <span style={{ color: "var(--muted)", fontWeight: 400 }}>· {asaasSettings.configured ? (asaasSettings.enabled ? "configurado" : "desativado") : "configurar"}</span></summary>
-        <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}><input type="checkbox" checked={asaasSettings.enabled} onChange={(event) => setAsaasSettings((current) => ({ ...current, enabled: event.target.checked }))} /> Ativar consulta de cobranças no bot</label>
-        <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "8px 0" }}><input type="checkbox" checked={asaasSettings.sandbox} onChange={(event) => setAsaasSettings((current) => ({ ...current, sandbox: event.target.checked }))} /> Usar Sandbox (testes, sem cobrança real)</label>
-        <label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>Chave de API Asaas {asaasSettings.configured ? "· já cadastrada; deixe vazio para manter" : ""}</label>
-        <input type="password" autoComplete="new-password" value={asaasKeyDraft} onChange={(event) => setAsaasKeyDraft(event.target.value)} placeholder={asaasSettings.configured ? asaasSettings.apiKeyMasked : "$aact_..."} style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
-        <label style={{ display: "block", color: "var(--muted)", margin: "10px 0 5px" }}>Token de autenticação do webhook {asaasSettings.webhookTokenConfigured ? "· já cadastrado; deixe vazio para manter" : ""}</label>
-        <input type="password" autoComplete="new-password" value={asaasWebhookDraft} onChange={(event) => setAsaasWebhookDraft(event.target.value)} placeholder="Token configurado no painel do Asaas" style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
-        <small style={{ display: "block", color: "var(--muted)", margin: "7px 0 5px" }}>As chaves ficam criptografadas. Para confirmação automática, cadastre este URL no painel do Asaas e use o mesmo token de autenticação:</small><code style={{ display: "block", overflowWrap: "anywhere", padding: "7px", background: "var(--surface-subtle)", borderRadius: 6, fontSize: 10 }}>{asaasSettings.webhookUrl || "URL do webhook disponível após atualizar a tela"}</code><small style={{ display: "block", color: "var(--muted)", margin: "7px 0 10px" }}>Comece pelo Sandbox e valide o fluxo antes de mudar para Produção.</small>
-        <button type="button" className="primary-button" onClick={() => void saveAsaasSettings()} disabled={asaasBusy}>{asaasBusy ? "Salvando..." : "Salvar Asaas"}</button>
-      </details>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => setSelectedId(item.id)}>
           <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong><small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>
@@ -344,7 +244,33 @@ export function InboxWorkspace() {
         <div style={{ display: "flex", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--line)" }}>
           {selected.archivedAt || selected.deletedAt ? <button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}>Restaurar</button> : <><button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}>Arquivar</button><button type="button" className="text-button danger-text" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}>Lixeira</button></>}
         </div>
-        <div className="handoff-controls" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "8px 12px", borderBottom: "1px solid var(--line)" }}><span style={{ fontSize: 11, color: "var(--muted)" }}>Transferir para:</span><select aria-label="Departamento" value={handoffDepartment} onChange={(event) => setHandoffDepartment(event.target.value)} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem equipe / departamento</option>{departments.filter((department) => department.isActive).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select><select aria-label="Atendente" value={handoffAssignee} onChange={(event) => setHandoffAssignee(event.target.value)} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem atendente específico</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select><button type="button" className="primary-button" onClick={() => void handoffToHuman()}>Transferir para humano</button><select aria-label="Convidar atendente" value={inviteAssignee} onChange={(event) => setInviteAssignee(event.target.value)} style={{ maxWidth: 160, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Convidar atendente…</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select><button type="button" className="text-button" onClick={() => void inviteToConversation()} disabled={!inviteAssignee}>Convidar</button><small style={{ color: "var(--muted)", fontSize: 10 }}>Sem seleção = fila geral, sem equipe.</small></div>
+        <div className="handoff-toolbar" aria-label="Direcionamento da conversa">
+          <details className="handoff-menu">
+            <summary className="handoff-trigger" title="Direcionar conversa">
+              <span className="handoff-trigger-icon"><ArrowRightLeft size={16}/></span>
+              <span className="handoff-trigger-copy"><strong>Direcionar</strong><small>{[handoffDepartment ? departments.find(d=>d.id===handoffDepartment)?.name : "Fila geral", handoffAssignee ? agents.find(a=>a.id===handoffAssignee)?.name : "Sem atendente específico"].filter(Boolean).join(" · ")}</small></span>
+              <ChevronDown className="handoff-chevron" size={14}/>
+            </summary>
+            <div className="handoff-popover">
+              <div className="handoff-popover-heading"><div><strong>Para quem vai?</strong><small>Escolha a equipe ou uma pessoa</small></div><span className="handoff-popover-mark"><Users size={17}/></span></div>
+              <div className="handoff-section-label">EQUIPES</div>
+              <button type="button" className={"handoff-option " + (!handoffDepartment && !handoffAssignee ? "selected" : "")} onClick={()=>{setHandoffDepartment("");setHandoffAssignee("");}}><span className="handoff-option-icon"><Users size={15}/></span><span className="handoff-option-copy"><strong>Fila geral</strong><small>Limpar equipe e atendente</small></span>{!handoffDepartment&&!handoffAssignee?<Check size={15}/>:null}</button>
+              {departments.filter(d=>d.isActive).map(d=><button type="button" key={d.id} className={"handoff-option "+(handoffDepartment===d.id?"selected":"")} onClick={()=>setHandoffDepartment(d.id)}><span className="handoff-option-icon"><Users size={15}/></span><span className="handoff-option-copy"><strong>{d.name}</strong><small>Equipe / departamento</small></span>{handoffDepartment===d.id?<Check size={15}/>:null}</button>)}
+              <div className="handoff-section-label">ATENDENTE ESPECÍFICO</div>
+              <button type="button" className={"handoff-option "+(!handoffAssignee?"selected":"")} onClick={()=>setHandoffAssignee("")}><span className="handoff-option-icon"><UserRound size={15}/></span><span className="handoff-option-copy"><strong>Sem atendente específico</strong><small>A equipe ou a fila distribui</small></span>{!handoffAssignee?<Check size={15}/>:null}</button>
+              {agents.map(a=><button type="button" key={a.id} className={"handoff-option "+(handoffAssignee===a.id?"selected":"")} onClick={()=>setHandoffAssignee(a.id)}><span className="handoff-avatar">{a.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><span className="handoff-option-copy"><strong>{a.name}</strong><small>Atendente</small></span>{handoffAssignee===a.id?<Check size={15}/>:null}</button>)}
+              <div className="handoff-popover-footer"><span>Destino: <b>{handoffDepartment?departments.find(d=>d.id===handoffDepartment)?.name:"Fila geral"}{handoffAssignee?" · "+agents.find(a=>a.id===handoffAssignee)?.name:""}</b></span><button type="button" className="handoff-confirm" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void handoffToHuman();}}><ArrowRightLeft size={14}/> Transferir</button></div>
+            </div>
+          </details>
+          <details className="handoff-menu invite-menu">
+            <summary className="handoff-invite-trigger" title="Convidar atendente"><UserPlus size={15}/><span>Convidar</span><ChevronDown size={13}/></summary>
+            <div className="handoff-popover invite-popover">
+              <div className="handoff-popover-heading"><div><strong>Convidar para a conversa</strong><small>A pessoa poderá acompanhar o atendimento</small></div><span className="handoff-popover-mark"><UserPlus size={17}/></span></div>
+              {agents.map(a=><div className="invite-option" key={a.id}><span className="handoff-avatar">{a.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><span className="handoff-option-copy"><strong>{a.name}</strong><small>{a.email}</small></span><button type="button" aria-label={"Convidar "+a.name} title={"Convidar "+a.name} className="invite-person-button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");setInviteAssignee(a.id);void api("/api/backend/conversations/"+selected.id+"/invite?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId:a.id})}).then(()=>{setInviteAssignee("");return loadConversations();}).catch(e=>setError(e instanceof Error?e.message:"Não foi possível convidar o atendente."));}}><UserPlus size={14}/></button></div>)}
+              {!agents.length?<p className="handoff-empty">Nenhum atendente disponível.</p>:null}
+            </div>
+          </details>
+        </div>
         <div className="thread-messages">
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}

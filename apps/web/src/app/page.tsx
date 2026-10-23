@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
+import { OperationsSettings } from "./operations-settings";
 import {
   CalendarDays,
   Activity,
@@ -84,6 +85,7 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
   const isHome = active === "Visão geral";
+  const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
 
   if (authStatus === "checking") {
     return <div className="auth-screen"><div className="auth-panel"><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
@@ -106,16 +108,18 @@ export default function HomePage() {
           <span className="switch-chevron">⌄</span>
         </div>
         <nav className="side-nav" aria-label="Navegação principal">
-          {navigation.map((group) => (
-            <div className="nav-group" key={group.section}>
+          {navigation.map((group) => {
+            const visibleItems = group.items.filter((item) => item.label !== "Configurações" || canConfigure);
+            if (!visibleItems.length) return null;
+            return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
-              {group.items.map((item) => (
-                <button key={item.label} title={sidebarCollapsed ? item.label : undefined} className={`nav-item ${active === item.label ? "active" : ""}`} onClick={() => { setActive(item.label); setMenuOpen(false); }}>
+              {visibleItems.map((item) => (
+                <button key={item.label} title={sidebarCollapsed ? item.label : undefined} className={"nav-item " + (active === item.label ? "active" : "")} onClick={() => { setActive(item.label); setMenuOpen(false); }}>
                   <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                 </button>
               ))}
-            </div>
-          ))}
+            </div>;
+          })}
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon">?</span><div><strong>Precisa de ajuda?</strong><small>Consulte a central de suporte</small></div><span className="help-arrow">↗</span></div>
@@ -135,7 +139,7 @@ export default function HomePage() {
         </header>
 
         <div className="page-content">
-          {active !== "Atendimento" ? <section className="page-heading">
+          {active !== "Atendimento" && active !== "Configurações" ? <section className="page-heading">
             <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? "Bom dia! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
           </section> : null}
@@ -161,6 +165,8 @@ export default function HomePage() {
             </>
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
+          ) : active === "Configurações" ? (
+            canConfigure ? <OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className="module-placeholder content-card">
               <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>

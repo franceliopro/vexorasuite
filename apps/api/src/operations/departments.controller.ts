@@ -26,10 +26,25 @@ export class DepartmentsController {
       });
     }
     return this.prisma.department.findMany({
-      where: { tenantId, isActive: true },
+      where: { tenantId },
       select: { id: true, key: true, name: true, keywords: true, isActive: true },
       orderBy: { name: "asc" },
     });
+  }
+
+  @Patch(":id")
+  async update(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() input: { isActive?: unknown; name?: unknown; keywords?: unknown },
+  ) {
+    const department = await this.prisma.department.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
+    if (!department) throw new BadRequestException("Departamento não encontrado nesta empresa.");
+    const data: { isActive?: boolean; name?: string; keywords?: string[] } = {};
+    if (typeof input.isActive === "boolean") data.isActive = input.isActive;
+    if (typeof input.name === "string" && input.name.trim()) data.name = input.name.trim().slice(0, 80);
+    if (Array.isArray(input.keywords)) data.keywords = input.keywords.filter((value): value is string => typeof value === "string").map((value) => value.trim().slice(0, 60)).filter(Boolean).slice(0, 50);
+    return this.prisma.department.update({ where: { id }, data });
   }
 
   @Post()

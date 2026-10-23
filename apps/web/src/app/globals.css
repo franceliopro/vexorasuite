@@ -87,3 +87,63 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 
 /* Accessible password visibility control on authentication screens. */
 .auth-password-wrap{position:relative;display:flex;align-items:center}.auth-password-wrap input{padding-right:44px}.auth-password-toggle{position:absolute;right:5px;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:6px;background:transparent;color:#747a91;cursor:pointer}.auth-password-toggle:hover{background:#f0efff;color:var(--primary)}.auth-password-toggle:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+
+/* Inbox: compact queue switcher, subtle scrollbars, dedicated administration screen. */
+.inbox-queues{position:relative;display:flex;align-items:center;gap:3px;padding:7px 8px;border-bottom:1px solid var(--line);min-width:0}
+.inbox-queue-button,.inbox-more-queues>summary{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:31px;padding:0 8px;border:1px solid transparent;border-radius:7px;background:transparent;color:#747a91;font:600 10px 'DM Sans',sans-serif;white-space:nowrap;cursor:pointer}
+.inbox-queue-button:hover,.inbox-more-queues>summary:hover{background:#f7f6ff;color:var(--primary)}
+.inbox-queue-button.active,.inbox-more-queues.has-active>summary{border-color:#e4e1ff;background:#f0efff;color:#5d53d0}
+.inbox-more-queues{position:relative;margin-left:auto;flex:none}
+.inbox-more-queues>summary{list-style:none}
+.inbox-more-queues>summary::-webkit-details-marker{display:none}
+.inbox-queue-menu{position:absolute;z-index:20;top:calc(100% + 5px);right:0;display:none;min-width:148px;padding:5px;border:1px solid var(--line);border-radius:9px;background:#fff;box-shadow:0 12px 28px #2224481c}
+.inbox-more-queues[open] .inbox-queue-menu,.inbox-more-queues:not([open]):hover .inbox-queue-menu,.inbox-more-queues:not([open]):focus-within .inbox-queue-menu{display:flex;flex-direction:column}
+.inbox-queue-menu button{width:100%;padding:9px 10px;border:0;border-radius:6px;background:transparent;color:#626881;text-align:left;font:500 11px 'DM Sans',sans-serif;cursor:pointer}
+.inbox-queue-menu button:hover,.inbox-queue-menu button.active{background:#f2f1ff;color:var(--primary)}
+.inbox-conversation-list,.thread-messages,.settings-group-list{scrollbar-width:thin;scrollbar-color:#d5d7e4 transparent}
+.inbox-conversation-list::-webkit-scrollbar,.thread-messages::-webkit-scrollbar,.settings-group-list::-webkit-scrollbar{width:6px;height:6px}
+.inbox-conversation-list::-webkit-scrollbar-track,.thread-messages::-webkit-scrollbar-track,.settings-group-list::-webkit-scrollbar-track{background:transparent}
+.inbox-conversation-list::-webkit-scrollbar-thumb,.thread-messages::-webkit-scrollbar-thumb,.settings-group-list::-webkit-scrollbar-thumb{border:1px solid transparent;border-radius:99px;background:#d5d7e4;background-clip:padding-box}
+.inbox-conversation-list::-webkit-scrollbar-thumb:hover,.thread-messages::-webkit-scrollbar-thumb:hover,.settings-group-list::-webkit-scrollbar-thumb:hover{background:#b8bbcf;background-clip:padding-box}
+.settings-workspace{max-width:1200px;margin:0 auto;overflow:visible}
+.settings-heading{display:flex;align-items:flex-end;justify-content:space-between;margin:0 0 20px}
+.settings-heading h1{margin:0;font:700 clamp(22px,2.3vw,29px) Manrope,sans-serif;letter-spacing:-.8px;color:#24263d}
+.settings-heading p:not(.eyebrow){max-width:650px;margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:14px}
+.settings-card{padding:17px;min-width:0}
+.settings-card-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:16px}
+.settings-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:10px;background:var(--primary-soft);color:var(--primary)}
+.settings-card-heading h2{margin:1px 0 5px;font:700 13px Manrope,sans-serif;color:#30334a}
+.settings-card-heading p{margin:0;color:var(--muted);font-size:10px;line-height:1.6}
+.settings-muted{color:var(--muted);font-size:10px;line-height:1.65;overflow-wrap:anywhere}
+.settings-muted strong{color:#555b73}
+.settings-toggle{display:flex;align-items:flex-start;gap:9px;padding:11px 0;border-top:1px solid #f0f1f6}
+.settings-toggle input,.settings-group-option input,.settings-department input,.settings-members input{margin-top:2px;accent-color:var(--primary)}
+.settings-toggle>span{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.settings-toggle strong{font-size:11px;color:#4b5069}
+.settings-toggle small{font-size:10px;line-height:1.55;color:var(--muted)}
+.settings-inline-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:13px 0 6px;color:#656b82;font-size:10px;font-weight:700}
+.settings-group-list{max-height:155px;overflow:auto;margin-bottom:10px;padding:4px 8px;border:1px solid var(--line);border-radius:8px}
+.settings-group-option{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #f0f1f6}
+.settings-group-option:last-child{border-bottom:0}
+.settings-group-option>span{display:flex;min-width:0;flex-direction:column;gap:3px}
+.settings-group-option strong{font-size:10px;color:#4b5069}
+.settings-group-option small{font-size:9px;color:var(--muted);overflow-wrap:anywhere}
+.settings-field{display:flex;flex-direction:column;gap:6px;margin:11px 0;color:#646a82;font-size:10px;font-weight:650}
+.settings-field input,.settings-field textarea,.settings-create-department input{width:100%;box-sizing:border-box;min-width:0;padding:9px 10px;border:1px solid #e2e4ef;border-radius:7px;background:#fbfcff;color:var(--ink);font:500 11px 'DM Sans',sans-serif}
+.settings-field textarea{resize:vertical;min-height:65px}
+.settings-department{padding:4px 0;border-top:1px solid #f0f1f6}
+.settings-toggle.compact{padding:10px 0;border-top:0}
+.settings-members{margin:0 0 8px 24px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fcfcff}
+.settings-members summary{color:#6a7087;font-size:10px;font-weight:700;cursor:pointer}
+.settings-members>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;padding:10px 0}
+.settings-members label{display:flex;align-items:center;gap:6px;min-width:0;color:#606680;font-size:10px}
+.settings-members label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settings-create-department{display:flex;gap:8px;margin-top:13px;padding-top:13px;border-top:1px solid #f0f1f6}
+.settings-webhook-url{display:block;margin:6px 0 12px;padding:9px;border-radius:7px;background:#f7f8fc;color:#656b82;font-size:10px;overflow-wrap:anywhere;white-space:normal}
+.settings-feedback{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 13px;padding:10px 12px;border-radius:8px;font-size:11px}
+.settings-feedback button{border:0;background:transparent;color:inherit;font-size:16px;cursor:pointer}
+.settings-feedback.error{border:1px solid #f3c7c7;background:#fff1f1;color:#a33737}
+.settings-feedback.success{border:1px solid #d9eee6;background:#f4fbf7;color:#168260}
+@media(max-width:900px){.settings-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.inbox-queues{gap:2px;padding:6px}.inbox-queue-button,.inbox-more-queues>summary{min-height:30px;padding:0 6px;font-size:9px}.inbox-queue-button:nth-child(3){display:none}.settings-heading{margin-bottom:15px}.settings-card{padding:14px}.settings-members>div{grid-template-columns:1fr}}

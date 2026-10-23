@@ -1,4 +1,4 @@
-import { BadGatewayException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Delete, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Delete, Req, UseGuards } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -79,6 +79,12 @@ export class ChannelConnectionsController {
   }
 
 
+  @Get(":id/groups")
+  async groups(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const channel = await this.findOwned(request.user.tenantId, id);
+    return { groups: await this.waha.listGroups(channel) };
+  }
+
   @Get(":id/group-settings")
   async groupSettings(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
     const channel = await this.findOwned(request.user.tenantId, id);
@@ -97,11 +103,11 @@ export class ChannelConnectionsController {
   ) {
     const channel = await this.findOwned(request.user.tenantId, id);
     if (typeof input.groupsEnabled !== "boolean") {
-      throw new BadGatewayException("Informe se o recebimento de grupos deve ficar ativado.");
+      throw new BadRequestException("Informe se o recebimento de grupos deve ficar ativado.");
     }
     if (input.allowedGroupIds !== undefined && (!Array.isArray(input.allowedGroupIds) ||
       input.allowedGroupIds.some((value) => typeof value !== "string" || value.length > 180))) {
-      throw new BadGatewayException("A lista de grupos é inválida.");
+      throw new BadRequestException("A lista de grupos é inválida.");
     }
     const allowedGroupIds = [...new Set((Array.isArray(input.allowedGroupIds) ? input.allowedGroupIds : [])
       .map((value) => String(value).trim()).filter(Boolean))].slice(0, 100);

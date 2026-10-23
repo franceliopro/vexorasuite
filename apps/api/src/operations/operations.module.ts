@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { JwtModule } from "@nestjs/jwt";
 import { AuthModule } from "../auth/auth.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { ContactsController } from "./contacts.controller";
@@ -10,7 +11,9 @@ import { WahaWebhookController } from "./waha-webhook.controller";
 import { WahaService } from "./waha.service";
 
 @Module({
-  imports: [AuthModule, PrismaModule],
+  // AuthGuard is applied directly to controllers in this module. Register JwtModule
+  // here as well so Nest can resolve JwtService in the OperationsModule context.
+  imports: [AuthModule, JwtModule.register({}), PrismaModule],
   controllers: [ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController],
   providers: [EventsService, WahaService],
 })

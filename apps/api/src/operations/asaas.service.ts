@@ -140,7 +140,24 @@ export class AsaasService {
     if (paid && envelope.payment?.value !== undefined && Math.abs(Number(envelope.payment.value) - Number(existing.amount)) > 0.01) return null;
     if (existing.status === "PAID" && event !== "PAYMENT_REFUNDED") return null;
     if (existing.status === status) return null;
-    const updated = await this.prisma.payment.update({ where: { id: existing.id }, data: { status } });
+
+    // Make webhook reconciliation atomic: Asaas can retry or deliver events concurrently.
+    // A stale OVERDUE/DELETED event must never overwrite a payment already marked PAID.
+    const statusGuard = event === "PAYMENT_REFUNDED"
+      ? { not: status }
+      : paid
+        ? { not: "PAID" }
+        : { notIn: ["PAID", status] };
+    const changed = await this.prisma.payment.updateMany({
+      where: { id: existing.id, tenantId, status: statusGuard },
+      data: { status },
+    });
+    if (!changed.count) return null;
+    const updated = await this.prisma.payment.findFirst({
+      where: { id: existing.id, tenantId },
+      include: { conversation: { include: { contact: true, channelConnection: true } } },
+    });
+    if (!updated) return null;
     if (paid) {
       const amount = Number(updated.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       await this.prisma.message.create({

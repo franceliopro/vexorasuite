@@ -23,7 +23,7 @@ CREATE TABLE "conversation_participants" (
 );
 CREATE UNIQUE INDEX "conversation_participants_conversation_id_user_id_key" ON "conversation_participants"("conversation_id", "user_id");
 CREATE INDEX "conversation_participants_tenant_id_user_id_idx" ON "conversation_participants"("tenant_id", "user_id");
-ALTER TABLE "conversation_participants" ADD CONSTRAINT "conversation_participants_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "conversation_participants" ADD CONSTRAINT "conversation_participants_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "conversation_participants" ADD CONSTRAINT "conversation_participants_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "conversations" ADD COLUMN "archived_at" TIMESTAMP(3), ADD COLUMN "deleted_at" TIMESTAMP(3), ADD COLUMN "bot_state" JSONB NOT NULL DEFAULT '{}'::jsonb;
@@ -52,4 +52,4 @@ CREATE INDEX "payments_tenant_id_conversation_id_created_at_idx" ON "payments"("
 CREATE INDEX "payments_tenant_id_status_idx" ON "payments"("tenant_id", "status");
 ALTER TABLE "payments" ADD CONSTRAINT "payments_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "payments" ADD CONSTRAINT "payments_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "payments" ADD CONSTRAINT "payments_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payments" ADD CONSTRAINT "payments_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

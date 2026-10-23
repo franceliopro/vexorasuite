@@ -8,7 +8,6 @@ on:
     branches:
       - main
       - "foundation/**"
-      - feat/inbox-visibility-asaas-flow
 
 concurrency:
   group: validate-${{ github.ref }}

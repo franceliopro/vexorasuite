@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AuthScreen, type AuthSession } from "./auth-screen";
+import { InboxWorkspace } from "./inbox-workspace";
 import {
   CalendarDays,
   Activity,
@@ -50,10 +52,31 @@ const metrics = [
 ] as const;
 
 export default function HomePage() {
+  const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
+  const [session, setSession] = useState<AuthSession | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/backend/auth/me", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("not authenticated");
+        return response.json();
+      })
+      .then((value) => { if (mounted) { setSession(value); setAuthStatus("authenticated"); } })
+      .catch(() => { if (mounted) setAuthStatus("anonymous"); });
+    return () => { mounted = false; };
+  }, []);
+
   const [active, setActive] = useState("Visão geral");
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isHome = active === "Visão geral";
+
+  if (authStatus === "checking") {
+    return <div className="auth-screen"><div className="auth-panel"><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
+  }
+  if (authStatus === "anonymous") {
+    return <AuthScreen onAuthenticated={(value) => { setSession(value); setAuthStatus("authenticated"); }} />;
+  }
 
   return (
     <div className="suite-app">
@@ -65,7 +88,7 @@ export default function HomePage() {
         <button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button>
         <div className="workspace-switcher">
           <span className="workspace-avatar">V</span>
-          <span className="workspace-copy"><strong>Minha empresa</strong><small>Ambiente de demonstração</small></span>
+          <span className="workspace-copy"><strong>{session?.tenant.name || "Minha empresa"}</strong><small>{session?.tenant.slug || "Workspace"}</small></span>
           <span className="switch-chevron">⌄</span>
         </div>
         <nav className="side-nav" aria-label="Navegação principal">
@@ -82,7 +105,7 @@ export default function HomePage() {
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon">?</span><div><strong>Precisa de ajuda?</strong><small>Consulte a central de suporte</small></div><span className="help-arrow">↗</span></div>
-          <div className="profile-row"><span className="profile-avatar">ES</span><span className="profile-copy"><strong>Administrador</strong><small>Conta da plataforma</small></span><button className="profile-more" aria-label="Opções do perfil">···</button></div>
+          <div className="profile-row"><span className="profile-avatar">{(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
         </div>
       </aside>
 
@@ -93,12 +116,12 @@ export default function HomePage() {
           <div className="topbar-actions">
             <label className="search-box"><span>⌕</span><input aria-label="Buscar" placeholder="Buscar..." /><kbd>⌘ K</kbd></label>
             <button className="icon-button" aria-label="Notificações">♧<i /></button>
-            <span className="top-avatar">ES</span>
+            <button className="logout-button" onClick={async () => { await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
           </div>
         </header>
 
         <div className="page-content">
-          <div className="environment-banner"><span className="environment-dot" /><span><strong>Ambiente de implantação</strong><small> Interface inicial · dados reais ainda não conectados</small></span><span className="environment-tag">STAGING</span></div>
+          <div className="environment-banner"><span className="environment-dot" /><span><strong>Ambiente de implantação</strong><small> Atendimento conectado à API · outros módulos em construção</small></span><span className="environment-tag">STAGING</span></div>
           <section className="page-heading">
             <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? "Bom dia! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
@@ -121,13 +144,15 @@ export default function HomePage() {
                   </div>
                 </article>
               </section>
-              <section className="bottom-note"><span className="note-icon">i</span><p><strong>Próxima etapa:</strong> implementar autenticação, isolamento por empresa e conexão segura com a API. Os indicadores acima são intencionalmente exibidos sem números fictícios.</p></section>
+              <section className="bottom-note"><span className="note-icon">i</span><p><strong>Próxima etapa:</strong> concluir a operação de WhatsApp em tempo real e conectar os módulos gradualmente. Os indicadores permanecem sem números fictícios até existirem dados reais.</p></section>
             </>
+          ) : active === "Atendimento" ? (
+            <InboxWorkspace />
           ) : (
             <section className="module-placeholder content-card">
               <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>
               <p className="eyebrow">MÓDULO DA PLATAFORMA</p><h2>{active}</h2>
-              <p>O espaço de trabalho de <strong>{active}</strong> será implementado nesta nova plataforma. Nenhuma ação ou dado de produção é alterado por esta prévia.</p>
+              <p>O espaço de trabalho de <strong>{active}</strong> será conectado aos serviços operacionais na próxima etapa. Nenhuma ação ou dado da Véxora antiga é alterado por esta versão.</p>
               <div className="placeholder-status"><span /> Interface em preparação</div>
               <button className="secondary-button" onClick={() => setActive("Visão geral")}>← Voltar à visão geral</button>
             </section>

@@ -184,6 +184,7 @@ export class ConversationsController {
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request)) } as any, include: { contact: true, channelConnection: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
     if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA" || !conversation.channelConnection.isActive) {
       throw new BadRequestException("Esta conversa não possui um canal WhatsApp conectado.");

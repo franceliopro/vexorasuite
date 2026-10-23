@@ -105,6 +105,9 @@ export class AuthService {
       );
     }
     const membership = matches[0];
+    if (!membership || membership.tenant.status !== "ACTIVE") {
+      throw new UnauthorizedException("E-mail, senha ou identificador da empresa inválidos.");
+    }
 
     const accessToken = await this.issueToken({
       sub: user.id,

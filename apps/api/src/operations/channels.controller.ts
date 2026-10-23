@@ -1,4 +1,4 @@
-import { BadGatewayException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Delete, Req, UseGuards } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -15,7 +15,7 @@ export class ChannelConnectionsController {
   @Get()
   list(@Req() request: AuthenticatedRequest) {
     return this.prisma.channelConnection.findMany({
-      where: { tenantId: request.user.tenantId },
+      where: { tenantId: request.user.tenantId, isActive: true },
       select: { id: true, name: true, provider: true, sessionName: true, status: true, lastError: true, isActive: true, createdAt: true, updatedAt: true },
       orderBy: { createdAt: "desc" },
     });
@@ -46,6 +46,22 @@ export class ChannelConnectionsController {
       await this.prisma.channelConnection.update({ where: { id }, data: { status: "ERROR", lastError: "WAHA_CONNECT_FAILED" } });
       throw new BadGatewayException("Não foi possível iniciar a sessão WhatsApp. Verifique o gateway WAHA.");
     }
+  }
+
+  @Post(":id/disconnect")
+  async disconnect(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const channel = await this.findOwned(request.user.tenantId, id);
+    await this.waha.disconnect(channel);
+    this.events.publish(request.user.tenantId, "channel.status", { id, status: "DISCONNECTED" });
+    return { ok: true, status: "DISCONNECTED" };
+  }
+
+  @Delete(":id")
+  async deleteSession(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const channel = await this.findOwned(request.user.tenantId, id);
+    await this.waha.deleteSession(channel);
+    this.events.publish(request.user.tenantId, "channel.status", { id, status: "DISCONNECTED", deleted: true });
+    return { ok: true, status: "DISCONNECTED", deleted: true };
   }
 
   @Get(":id/status")

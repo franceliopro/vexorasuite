@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MANAGER
+  AGENT
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+  INTERNAL
+}
+
+enum MessageStatus {
+  RECEIVED
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model Tenant {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String       @unique
+  status      String       @default("ACTIVE")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  memberships Membership[]
+  contacts    Contact[]
+  conversations Conversation[]
+  messages    Message[]
+  auditLogs   AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id              String            @id @default(uuid()) @db.Uuid
+  email           String            @unique
+  passwordHash    String            @map("password_hash")
+  name            String
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  memberships     Membership[]
+  auditLogs       AuditLog[]
+  assignedConversations Conversation[] @relation("ConversationAssignee")
+
+  @@map("users")
+}
+
+model Membership {
+  id        String         @id @default(uuid()) @db.Uuid
+  tenantId  String         @db.Uuid @map("tenant_id")
+  userId    String         @db.Uuid @map("user_id")
+  role      MembershipRole @default(AGENT)
+  createdAt DateTime       @default(now()) @map("created_at")
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+model Contact {
+  id           String         @id @default(uuid()) @db.Uuid
+  tenantId     String         @db.Uuid @map("tenant_id")
+  name         String
+  phone        String?
+  email        String?
+  source       String?
+  externalId   String?        @map("external_id")
+  metadata     Json            @default("{}")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@index([tenantId, phone])
+  @@index([tenantId, createdAt])
+  @@map("contacts")
+}
+
+model Conversation {
+  id          String             @id @default(uuid()) @db.Uuid
+  tenantId    String             @db.Uuid @map("tenant_id")
+  contactId   String             @db.Uuid @map("contact_id")
+  assigneeId  String?            @db.Uuid @map("assignee_id")
+  channel     String             @default("WHATSAPP")
+  status      ConversationStatus @default(OPEN)
+  subject     String?
+  lastMessageAt DateTime?        @map("last_message_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact     Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignee    User?              @relation("ConversationAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  messages    Message[]
+
+  @@index([tenantId, status, lastMessageAt])
+  @@index([tenantId, contactId])
+  @@map("conversations")
+}
+
+model Message {
+  id                String           @id @default(uuid()) @db.Uuid
+  tenantId          String           @db.Uuid @map("tenant_id")
+  conversationId    String           @db.Uuid @map("conversation_id")
+  providerMessageId String?          @map("provider_message_id")
+  direction         MessageDirection
+  status            MessageStatus    @default(RECEIVED)
+  content           String           @default("")
+  contentType       String           @default("text") @map("content_type")
+  senderName        String?           @map("sender_name")
+  metadata          Json              @default("{}")
+  occurredAt        DateTime          @default(now()) @map("occurred_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation      Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, providerMessageId])
+  @@index([tenantId, conversationId, occurredAt])
+  @@map("messages")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid @map("tenant_id")
+  userId     String?  @db.Uuid @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  details    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType, entityId])
+  @@map("audit_logs")
+}

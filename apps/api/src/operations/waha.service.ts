@@ -18,6 +18,8 @@ export class WahaService {
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
       throw new ServiceUnavailableException("WAHA_BASE_URL deve usar HTTP/HTTPS sem credenciais embutidas.");
     }
+    // WAHA listens on port 3000 inside Docker. Support the configured internal URL "http://waha".
+    if (url.hostname === "waha" && !url.port) url.port = "3000";
     return { baseUrl: url.toString().replace(/\/$/, ""), apiKey };
   }
 

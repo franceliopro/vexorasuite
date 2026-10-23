@@ -1,0 +1,41 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://vexora:vexora_test_password@localhost:5432/vexorasuite
+      JWT_ACCESS_SECRET: ci-only-secret-value-with-more-than-thirty-two-bytes
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Validate Prisma schema
+        run: pnpm --filter @vexorasuite/api exec prisma validate
+      - name: API typecheck
+        run: pnpm --filter @vexorasuite/api typecheck
+      - name: API build
+        run: pnpm --filter @vexorasuite/api build
+      - name: Web typecheck
+        run: pnpm --filter @vexorasuite/web typecheck
+      - name: Web build
+        run: pnpm --filter @vexorasuite/web build

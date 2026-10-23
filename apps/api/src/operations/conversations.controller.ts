@@ -53,7 +53,7 @@ export class ConversationsController {
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de assumi-la.");
     const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId: request.user.sub }, select: { id: true } });
-    if (!membership) throw new BadRequestException("Você não faz parte de esta empresa.");
+    if (!membership) throw new BadRequestException("Você não faz parte desta empresa.");
     // Conditional update prevents two agents from simultaneously taking the same unassigned conversation.
     const claimed = await this.prisma.conversation.updateMany({
       where: { id, tenantId, status: { in: ["OPEN", "PENDING"] }, OR: [{ assigneeId: null }, { assigneeId: request.user.sub }] },

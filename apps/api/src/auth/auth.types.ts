@@ -1,3 +1,5 @@
+import { Request } from "express";
+
 export interface AuthPayload {
   sub: string;
   tenantId: string;

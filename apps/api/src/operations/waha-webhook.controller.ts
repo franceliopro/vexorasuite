@@ -137,7 +137,7 @@ export class WahaWebhookController {
           normalized.includes(department.name.toLocaleLowerCase("pt-BR"))
           || department.keywords.some((keyword) => normalized.includes(keyword.toLocaleLowerCase("pt-BR")))
         ));
-      const menu = "Olá! Sou o assistente virtual. 😊\\n\\nPara encaminhar você à equipe certa, escolha uma opção:\\n1️⃣ Financeiro\\n2️⃣ Comercial / Vendas\\n3️⃣ Suporte\\n4️⃣ Administrativo\\n\\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.";
+      const menu = "Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n1️⃣ Financeiro\n2️⃣ Comercial / Vendas\n3️⃣ Suporte\n4️⃣ Administrativo\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.";
       if (chosen) {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" });

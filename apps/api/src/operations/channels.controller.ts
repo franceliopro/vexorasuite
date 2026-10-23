@@ -1,4 +1,4 @@
-import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Delete, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Delete, Req, UseGuards } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -101,6 +101,9 @@ export class ChannelConnectionsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() input: { groupsEnabled?: unknown; allowedGroupIds?: unknown },
   ) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+      throw new ForbiddenException("Somente gestores podem alterar as regras de recebimento de grupos.");
+    }
     const channel = await this.findOwned(request.user.tenantId, id);
     if (typeof input.groupsEnabled !== "boolean") {
       throw new BadRequestException("Informe se o recebimento de grupos deve ficar ativado.");

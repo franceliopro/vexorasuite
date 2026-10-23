@@ -20,7 +20,7 @@ export class AsaasWebhookController {
     const payment = result.payment;
     this.events.publish(tenantId, "payment.updated", { id: payment.id, status: payment.status, conversationId: payment.conversationId });
     this.events.publish(tenantId, "conversation.updated", { id: payment.conversationId });
-    if (result.paid) {
+    if (result.paid && payment.environment === "PRODUCTION") {
       const conversation = result.conversation;
       const channel = conversation.channelConnection;
       const contact = conversation.contact;

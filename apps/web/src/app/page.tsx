@@ -121,11 +121,10 @@ export default function HomePage() {
         </header>
 
         <div className="page-content">
-          <div className="environment-banner"><span className="environment-dot" /><span><strong>Ambiente de implantação</strong><small> Atendimento conectado à API · outros módulos em construção</small></span><span className="environment-tag">STAGING</span></div>
-          <section className="page-heading">
+          {active !== "Atendimento" ? <section className="page-heading">
             <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? "Bom dia! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
-          </section>
+          </section> : null}
 
           {isHome ? (
             <>
@@ -157,7 +156,7 @@ export default function HomePage() {
               <button className="secondary-button" onClick={() => setActive("Visão geral")}>← Voltar à visão geral</button>
             </section>
           )}
-          <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer>
+          {active !== "Atendimento" ? <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer> : null}
         </div>
       </main>
     </div>

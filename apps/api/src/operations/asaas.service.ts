@@ -66,7 +66,7 @@ export class AsaasService {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
     const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown> : {};
-    await this.prisma.tenant.update({ where: { id: tenantId }, data: { integrations: { ...all, asaas: { enabled: input.enabled, sandbox: input.sandbox, encryptedApiKey: encryptedApiKey || null } } } });
+    await this.prisma.tenant.update({ where: { id: tenantId }, data: { integrations: { ...all, asaas: { enabled: input.enabled, sandbox: input.sandbox, encryptedApiKey: encryptedApiKey || null, encryptedWebhookToken: encryptedWebhookToken || null } } as any } });
     return this.publicSettings(tenantId);
   }
 

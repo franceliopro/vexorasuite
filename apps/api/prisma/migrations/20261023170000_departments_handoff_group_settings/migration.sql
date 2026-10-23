@@ -7,6 +7,9 @@ ALTER TABLE "conversations"
   ADD COLUMN "department_id" UUID,
   ADD COLUMN "handling_mode" "ConversationHandlingMode" NOT NULL DEFAULT 'BOT';
 
+-- Conversations that existed before the bot workflow belong to the human inbox.
+UPDATE "conversations" SET "handling_mode" = 'HUMAN' WHERE "status" IN ('OPEN', 'PENDING') AND "last_message_at" IS NOT NULL;
+
 CREATE TABLE "departments" (
   "id" UUID NOT NULL,
   "tenant_id" UUID NOT NULL,

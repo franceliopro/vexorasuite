@@ -17,7 +17,7 @@ export class ConversationsController {
   async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string) {
     const tenantId = request.user.tenantId;
     const normalizedView = ["new", "mine", "team", "others", "all-open", "completed", "archived", "trash"].includes(view) ? view : "new";
-    const accessWhere = await this.accessWhere(request);
+    const accessWhere = await this.accessWhere(request, normalizedView);
     const where: Record<string, any> = { tenantId, ...accessWhere };
     if (normalizedView === "new") Object.assign(where, { status: { in: ["OPEN", "PENDING"] }, assigneeId: null, archivedAt: null, deletedAt: null });
     else if (normalizedView === "mine") Object.assign(where, { assigneeId: request.user.sub, archivedAt: null, deletedAt: null, status: { in: ["OPEN", "PENDING"] } });
@@ -69,8 +69,8 @@ export class ConversationsController {
   }
 
   @Post(":id/assume")
-  async assume(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    await this.assertCanAccess(request, id);
+  async assume(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, assigneeId: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
@@ -90,8 +90,8 @@ export class ConversationsController {
   }
 
   @Post(":id/assign")
-  async assign(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string | null | undefined) {
-    await this.assertCanAccess(request, id);
+  async assign(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string | null | undefined, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
@@ -107,8 +107,8 @@ export class ConversationsController {
   }
 
   @Post(":id/status")
-  async updateStatus(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("status") status: string) {
-    await this.assertCanAccess(request, id);
+  async updateStatus(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("status") status: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     const allowed = ["OPEN", "PENDING", "RESOLVED"] as const;
     if (!allowed.includes(status as typeof allowed[number])) throw new BadRequestException("Status de conversa inválido.");
     const tenantId = request.user.tenantId;
@@ -125,8 +125,9 @@ export class ConversationsController {
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() input: { departmentId?: unknown; assigneeId?: unknown },
+    @Query("view") view = "new",
   ) {
-    await this.assertCanAccess(request, id);
+    await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
@@ -155,8 +156,8 @@ export class ConversationsController {
   }
 
   @Post(":id/return-to-bot")
-  async returnToBot(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    await this.assertCanAccess(request, id);
+  async returnToBot(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
@@ -173,16 +174,16 @@ export class ConversationsController {
   }
 
   @Get(":id/messages")
-  async messages(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request)) } as any, select: { id: true } });
+  async messages(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     return this.prisma.message.findMany({ where: { conversationId: conversation.id, tenantId: request.user.tenantId }, orderBy: { occurredAt: "asc" }, take: 500 });
   }
 
   @Post(":id/messages")
-  async sendMessage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: SendMessageDto) {
+  async sendMessage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: SendMessageDto, @Query("view") view = "new") {
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request)) } as any, include: { contact: true, channelConnection: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request, view)) } as any, include: { contact: true, channelConnection: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
@@ -215,8 +216,9 @@ export class ConversationsController {
     return rows.map((row) => row.departmentId);
   }
 
-  private async accessWhere(request: AuthenticatedRequest): Promise<Record<string, any>> {
+  private async accessWhere(request: AuthenticatedRequest, view = "new"): Promise<Record<string, any>> {
     if (["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) return {};
+    if (view === "all-open") return { status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
     return { OR: [
       { assigneeId: request.user.sub },
@@ -225,14 +227,14 @@ export class ConversationsController {
     ] };
   }
 
-  private async assertCanAccess(request: AuthenticatedRequest, conversationId: string): Promise<void> {
-    const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: request.user.tenantId, ...(await this.accessWhere(request)) } as any, select: { id: true } });
+  private async assertCanAccess(request: AuthenticatedRequest, conversationId: string, view = "new"): Promise<void> {
+    const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
   }
 
   @Post(":id/invite")
-  async invite(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string) {
-    await this.assertCanAccess(request, id);
+  async invite(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     if (!isUUID(userId)) throw new BadRequestException("Atendente inválido.");
     const member = await this.prisma.membership.findFirst({ where: { tenantId: request.user.tenantId, userId, user: { isActive: true } }, select: { id: true } });
     if (!member) throw new BadRequestException("O atendente selecionado não pertence a esta empresa.");
@@ -247,24 +249,24 @@ export class ConversationsController {
   }
 
   @Post(":id/archive")
-  async archive(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    await this.assertCanAccess(request, id);
+  async archive(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     const updated = await this.prisma.conversation.update({ where: { id }, data: { archivedAt: new Date() } });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: updated.archivedAt });
     return updated;
   }
 
   @Post(":id/restore")
-  async restore(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) await this.assertCanAccess(request, id);
+  async restore(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) await this.assertCanAccess(request, id, view);
     const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { archivedAt: null, deletedAt: null, status: "OPEN" } });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: null, deletedAt: null, status: updated.status });
     return updated;
   }
 
   @Post(":id/trash")
-  async trash(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    await this.assertCanAccess(request, id);
+  async trash(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
     const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { deletedAt: new Date() } });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, deletedAt: updated.deletedAt });
     return updated;

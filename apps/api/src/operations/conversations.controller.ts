@@ -14,12 +14,23 @@ export class ConversationsController {
   constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService) {}
 
   @Get()
-  list(@Req() request: AuthenticatedRequest, @Query("status") status?: string) {
-    const allowed = ["OPEN", "PENDING", "RESOLVED", "CLOSED"];
-    const normalizedStatus = status?.toUpperCase();
+  async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string) {
+    const tenantId = request.user.tenantId;
+    const normalizedView = ["new", "mine", "team", "others", "all-open", "completed", "archived", "trash"].includes(view) ? view : "new";
+    const accessWhere = await this.accessWhere(request);
+    const where: Record<string, any> = { tenantId, ...accessWhere };
+    if (normalizedView === "new") Object.assign(where, { status: { in: ["OPEN", "PENDING"] }, assigneeId: null, archivedAt: null, deletedAt: null });
+    else if (normalizedView === "mine") Object.assign(where, { assigneeId: request.user.sub, archivedAt: null, deletedAt: null, status: { in: ["OPEN", "PENDING"] } });
+    else if (normalizedView === "team") Object.assign(where, { departmentId: { in: await this.memberDepartmentIds(tenantId, request.user.sub) }, archivedAt: null, deletedAt: null, status: { in: ["OPEN", "PENDING"] } });
+    else if (normalizedView === "others") Object.assign(where, { participants: { some: { tenantId, userId: request.user.sub } }, archivedAt: null, deletedAt: null });
+    else if (normalizedView === "all-open") Object.assign(where, { status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null });
+    else if (normalizedView === "completed") Object.assign(where, { status: { in: ["RESOLVED", "CLOSED"] }, archivedAt: null, deletedAt: null });
+    else if (normalizedView === "archived") Object.assign(where, { archivedAt: { not: null }, deletedAt: null });
+    else if (normalizedView === "trash") Object.assign(where, { deletedAt: { not: null } });
+    if (status && ["OPEN", "PENDING", "RESOLVED", "CLOSED"].includes(status.toUpperCase()) && !["new", "mine", "team", "others", "all-open", "completed", "archived", "trash"].includes(view)) where.status = status.toUpperCase();
     return this.prisma.conversation.findMany({
-      where: { tenantId: request.user.tenantId, ...(normalizedStatus && allowed.includes(normalizedStatus) ? { status: normalizedStatus as "OPEN" | "PENDING" | "RESOLVED" | "CLOSED" } : {}) },
-      include: { contact: { select: { id: true, name: true, phone: true, email: true, externalId: true } }, assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
+      where: where as any,
+      include: { contact: { select: { id: true, name: true, phone: true, email: true, externalId: true } }, assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 }, participants: { include: { user: { select: { id: true, name: true } } } } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });
@@ -158,7 +169,7 @@ export class ConversationsController {
 
   @Get(":id/messages")
   async messages(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     return this.prisma.message.findMany({ where: { conversationId: conversation.id, tenantId: request.user.tenantId }, orderBy: { occurredAt: "asc" }, take: 500 });
   }
@@ -166,7 +177,7 @@ export class ConversationsController {
   @Post(":id/messages")
   async sendMessage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: SendMessageDto) {
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, include: { contact: true, channelConnection: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request)) } as any, include: { contact: true, channelConnection: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
     if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA" || !conversation.channelConnection.isActive) {
@@ -193,4 +204,65 @@ export class ConversationsController {
     this.events.publish(tenantId, "message.sent", { conversationId: conversation.id, message: { id: sent.id, direction: sent.direction, status: sent.status, content: sent.content, occurredAt: sent.occurredAt.toISOString() } });
     return sent;
   }
+  private async memberDepartmentIds(tenantId: string, userId: string): Promise<string[]> {
+    const rows = await this.prisma.departmentMember.findMany({ where: { tenantId, userId }, select: { departmentId: true } });
+    return rows.map((row) => row.departmentId);
+  }
+
+  private async accessWhere(request: AuthenticatedRequest): Promise<Record<string, any>> {
+    if (["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) return {};
+    const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
+    return { OR: [
+      { assigneeId: request.user.sub },
+      { departmentId: { in: departmentIds } },
+      { participants: { some: { tenantId: request.user.tenantId, userId: request.user.sub } } },
+      { assigneeId: null, OR: [{ departmentId: null }, { departmentId: { in: departmentIds } }] },
+    ] };
+  }
+
+  private async assertCanAccess(request: AuthenticatedRequest, conversationId: string): Promise<void> {
+    const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: request.user.tenantId, ...(await this.accessWhere(request)) } as any, select: { id: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
+  }
+
+  @Post(":id/invite")
+  async invite(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string) {
+    await this.assertCanAccess(request, id);
+    if (!isUUID(userId)) throw new BadRequestException("Atendente inválido.");
+    const member = await this.prisma.membership.findFirst({ where: { tenantId: request.user.tenantId, userId, user: { isActive: true } }, select: { id: true } });
+    if (!member) throw new BadRequestException("O atendente selecionado não pertence a esta empresa.");
+    const participant = await this.prisma.conversationParticipant.upsert({
+      where: { conversationId_userId: { conversationId: id, userId } },
+      create: { tenantId: request.user.tenantId, conversationId: id, userId, kind: "INVITED" },
+      update: { kind: "INVITED" },
+      include: { user: { select: { id: true, name: true } } },
+    });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, invitedUserId: userId });
+    return participant;
+  }
+
+  @Post(":id/archive")
+  async archive(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await this.assertCanAccess(request, id);
+    const updated = await this.prisma.conversation.update({ where: { id }, data: { archivedAt: new Date() } });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: updated.archivedAt });
+    return updated;
+  }
+
+  @Post(":id/restore")
+  async restore(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) await this.assertCanAccess(request, id);
+    const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { archivedAt: null, deletedAt: null, status: "OPEN" } });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: null, deletedAt: null, status: updated.status });
+    return updated;
+  }
+
+  @Post(":id/trash")
+  async trash(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await this.assertCanAccess(request, id);
+    const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { deletedAt: new Date() } });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, deletedAt: updated.deletedAt });
+    return updated;
+  }
+
 }

@@ -85,12 +85,14 @@ export class WahaWebhookController {
           if (Object.keys(update).length) contact = await tx.contact.update({ where: { id: contact.id }, data: update });
         }
 
-        let isNewConversation = false;\n        let conversation = await tx.conversation.findFirst({
+        let isNewConversation = false;
+        let conversation = await tx.conversation.findFirst({
           where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } },
           orderBy: { updatedAt: "desc" },
         });
         if (!conversation) {
           conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: "WHATSAPP", status: "OPEN" } });
+          isNewConversation = true;
         }
 
         const metadata = { provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null };
@@ -109,6 +111,7 @@ export class WahaWebhookController {
     this.logger.log(`Mensagem recebida e gravada: canal=${channelId} conversa=${saved.conversationId} tipo=${contentType}`);
     this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
     this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId, lastMessageAt: saved.message.occurredAt.toISOString() });
+    if (saved.handlingMode === "BOT") void this.runMenuBot(channel, chatId, saved.conversationId, saved.isNewConversation, content);
     return { ok: true };
   }
 
@@ -149,7 +152,7 @@ export class WahaWebhookController {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, `Certo! Estou encaminhando sua conversa para **${chosen.name}**. Um atendente continuará o atendimento por aqui. 🙌`);
-      } else if (isNewConversation || /\\b(menu|ajuda|atendente|humano|opções|opcoes)\\b/.test(normalized)) {
+      } else if (isNewConversation || /\b(menu|ajuda|atendente|humano|opções|opcoes)\b/.test(normalized)) {
         await this.sendBotReply(channel, chatId, conversationId, menu);
       } else {
         await this.sendBotReply(channel, chatId, conversationId, "Ainda não consegui identificar a área. Por favor, escolha 1 (Financeiro), 2 (Comercial), 3 (Suporte) ou 4 (Administrativo).");

@@ -40,14 +40,14 @@ const navigation = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
   { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
-];
+] as const;
 
 const metrics = [
   { label: "Conversas abertas", value: "—", note: "Aguardando conexão com os dados", icon: "messages" },
   { label: "Leads em andamento", value: "—", note: "CRM ainda não conectado", icon: "users" },
   { label: "Agentes ativos", value: "—", note: "Configure seus agentes", icon: "sparkles" },
   { label: "Resolução automática", value: "—", note: "Disponível após ativar a operação", icon: "chart-no-axes-combined" },
-];
+] as const;
 
 export default function HomePage() {
   const [active, setActive] = useState("Visão geral");

@@ -1,0 +1,138 @@
+import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { PrismaService } from "../prisma/prisma.service";
+
+type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string };
+type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };
+
+@Injectable()
+export class AsaasService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private encryptionKey(): Buffer {
+    const secret = process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_SECRET;
+    if (!secret) throw new ServiceUnavailableException("Configure JWT_SECRET ou INTEGRATION_ENCRYPTION_KEY antes de salvar credenciais.");
+    return createHash("sha256").update(secret).digest();
+  }
+
+  private encrypt(value: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", this.encryptionKey(), iv);
+    const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+    return ["v1", iv.toString("hex"), cipher.getAuthTag().toString("hex"), encrypted.toString("hex")].join(":");
+  }
+
+  private decrypt(value: string): string {
+    const [version, iv, tag, encrypted] = value.split(":");
+    if (version !== "v1" || !iv || !tag || !encrypted) throw new ServiceUnavailableException("Credencial Asaas armazenada em formato inválido.");
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", this.encryptionKey(), Buffer.from(iv, "hex"));
+      decipher.setAuthTag(Buffer.from(tag, "hex"));
+      return Buffer.concat([decipher.update(Buffer.from(encrypted, "hex")), decipher.final()]).toString("utf8");
+    } catch {
+      throw new ServiceUnavailableException("Não foi possível descriptografar a credencial Asaas. Confira a chave de criptografia.");
+    }
+  }
+
+  private async settings(tenantId: string): Promise<AsaasSettings> {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown> : {};
+    return all.asaas && typeof all.asaas === "object" ? all.asaas as AsaasSettings : {};
+  }
+
+  async publicSettings(tenantId: string) {
+    const settings = await this.settings(tenantId);
+    return { enabled: settings.enabled === true, sandbox: settings.sandbox !== false, configured: Boolean(settings.encryptedApiKey), apiKeyMasked: settings.encryptedApiKey ? "••••••••••••" : "" };
+  }
+
+  async saveSettings(tenantId: string, input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown }) {
+    if (typeof input.enabled !== "boolean" || typeof input.sandbox !== "boolean") throw new BadRequestException("Informe se o Asaas está ativado e se usa Sandbox.");
+    const current = await this.settings(tenantId);
+    let encryptedApiKey = current.encryptedApiKey;
+    if (typeof input.apiKey === "string" && input.apiKey.trim()) {
+      if (input.apiKey.trim().length > 500) throw new BadRequestException("A chave Asaas é inválida.");
+      encryptedApiKey = this.encrypt(input.apiKey.trim());
+    }
+    if (input.enabled && !encryptedApiKey) throw new BadRequestException("Informe a chave de API do Asaas antes de ativar.");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown> : {};
+    await this.prisma.tenant.update({ where: { id: tenantId }, data: { integrations: { ...all, asaas: { enabled: input.enabled, sandbox: input.sandbox, encryptedApiKey: encryptedApiKey || null } } } });
+    return this.publicSettings(tenantId);
+  }
+
+  private async credentials(tenantId: string): Promise<{ key: string; sandbox: boolean }> {
+    const config = await this.settings(tenantId);
+    if (config.enabled !== true || !config.encryptedApiKey) throw new ServiceUnavailableException("Integração Asaas não está configurada para esta empresa.");
+    return { key: this.decrypt(config.encryptedApiKey), sandbox: config.sandbox !== false };
+  }
+
+  private async request<T>(tenantId: string, path: string, init?: RequestInit): Promise<T> {
+    const credentials = await this.credentials(tenantId);
+    const base = credentials.sandbox ? "https://api-sandbox.asaas.com/v3" : "https://api.asaas.com/v3";
+    const response = await fetch(base + path, {
+      ...init,
+      headers: { access_token: credentials.key, "user-agent": "VexoraSuite", "content-type": "application/json", ...(init?.headers || {}) },
+      signal: AbortSignal.timeout(12000),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = response.status === 401 ? "A chave Asaas foi recusada." : response.status === 404 ? "Cobrança ou cadastro não encontrado no Asaas." : "O Asaas não conseguiu concluir a consulta.";
+      throw new ServiceUnavailableException(detail);
+    }
+    return body as T;
+  }
+
+  private digits(value: string): string { return value.replace(/\D/g, ""); }
+
+  private validDocument(value: string): boolean {
+    const doc = this.digits(value);
+    if (!/^\d{11}$|^\d{14}$/.test(doc) || /^(\d)\1+$/.test(doc)) return false;
+    const calc = (base: string, weights: number[]) => {
+      const sum = [...base].reduce((total, digit, index) => total + Number(digit) * weights[index], 0);
+      const remainder = sum % 11;
+      return remainder < 2 ? 0 : 11 - remainder;
+    };
+    if (doc.length === 11) {
+      const a = calc(doc.slice(0, 9), [10,9,8,7,6,5,4,3,2]);
+      const b = calc(doc.slice(0, 9) + a, [11,10,9,8,7,6,5,4,3,2]);
+      return doc[9] === String(a) && doc[10] === String(b);
+    }
+    const a = calc(doc.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2]);
+    const b = calc(doc.slice(0, 12) + a, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
+    return doc[12] === String(a) && doc[13] === String(b);
+  }
+
+  async openDebts(tenantId: string, document: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {
+    const doc = this.digits(document);
+    if (!this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido. Digite somente números.");
+    const credentials = await this.credentials(tenantId);
+    const customers = await this.request<{ data?: Array<{ id: string; name: string; cpfCnpj: string }> }>(tenantId, "/customers?cpfCnpj=" + encodeURIComponent(doc) + "&limit=100");
+    const matched = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 3);
+    const debts: AsaasDebt[] = [];
+    for (const customer of matched) {
+      for (const status of ["OVERDUE", "PENDING"]) {
+        const result = await this.request<{ data?: Array<AsaasDebt>; hasMore?: boolean }>(tenantId, "/payments?customer=" + encodeURIComponent(customer.id) + "&status=" + status + "&limit=100&offset=0");
+        for (const payment of result.data || []) debts.push({ ...payment, id: payment.id, value: Number(payment.value) });
+      }
+    }
+    debts.sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    return { name: matched[0]?.name || "", environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION", debts };
+  }
+
+  async paymentDetails(tenantId: string, paymentId: string) {
+    if (!/^pay_[A-Za-z0-9_-]+$/.test(paymentId)) throw new BadRequestException("Identificador de cobrança inválido.");
+    const payment = await this.request<any>(tenantId, "/payments/" + encodeURIComponent(paymentId));
+    const [line, pix] = await Promise.all([
+      this.request<any>(tenantId, "/payments/" + encodeURIComponent(paymentId) + "/identificationField").catch(() => null),
+      this.request<any>(tenantId, "/payments/" + encodeURIComponent(paymentId) + "/pixQrCode").catch(() => null),
+    ]);
+    return {
+      id: payment.id, value: Number(payment.value), status: payment.status, dueDate: payment.dueDate,
+      invoiceUrl: payment.invoiceUrl || null, bankSlipUrl: payment.bankSlipUrl || null,
+      identificationField: line?.identificationField || null, pixPayload: pix?.payload || null,
+      environment: (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION",
+    };
+  }
+}

@@ -72,7 +72,6 @@ export class ConversationsController {
     }
     const departmentId = typeof input.departmentId === "string" && input.departmentId ? input.departmentId : null;
     const assigneeId = typeof input.assigneeId === "string" && input.assigneeId ? input.assigneeId : null;
-    if (!departmentId && !assigneeId) throw new BadRequestException("Escolha um departamento/equipe ou um atendente.");
     if (departmentId) {
       if (!isUUID(departmentId) || !await this.prisma.department.findFirst({ where: { id: departmentId, tenantId, isActive: true }, select: { id: true } })) {
         throw new BadRequestException("Departamento inválido para esta empresa.");

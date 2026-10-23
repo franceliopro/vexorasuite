@@ -11,7 +11,7 @@ type Department = { id: string; key: string; name: string; keywords: string[]; i
 type Agent = { id: string; name: string; email: string };
 type GroupSettings = { groupsEnabled: boolean; allowedGroupIds: string[] };
 type GroupChoice = { id: string; name: string };
-type AsaasSettings = { enabled: boolean; sandbox: boolean; configured: boolean; apiKeyMasked: string; webhookTokenConfigured?: boolean };
+type AsaasSettings = { enabled: boolean; sandbox: boolean; configured: boolean; apiKeyMasked: string; webhookTokenConfigured?: boolean; webhookUrl?: string };
 type Conversation = { id: string; status: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -328,7 +328,7 @@ export function InboxWorkspace() {
         <input type="password" autoComplete="new-password" value={asaasKeyDraft} onChange={(event) => setAsaasKeyDraft(event.target.value)} placeholder={asaasSettings.configured ? asaasSettings.apiKeyMasked : "$aact_..."} style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
         <label style={{ display: "block", color: "var(--muted)", margin: "10px 0 5px" }}>Token de autenticação do webhook {asaasSettings.webhookTokenConfigured ? "· já cadastrado; deixe vazio para manter" : ""}</label>
         <input type="password" autoComplete="new-password" value={asaasWebhookDraft} onChange={(event) => setAsaasWebhookDraft(event.target.value)} placeholder="Token configurado no painel do Asaas" style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
-        <small style={{ display: "block", color: "var(--muted)", margin: "7px 0 10px" }}>As chaves ficam criptografadas. Para confirmação automática, configure no Asaas o webhook para o endpoint da API <code>/api/webhooks/asaas/ID-DA-EMPRESA</code> com o mesmo token. Comece pelo Sandbox.</small>
+        <small style={{ display: "block", color: "var(--muted)", margin: "7px 0 5px" }}>As chaves ficam criptografadas. Para confirmação automática, cadastre este URL no painel do Asaas e use o mesmo token de autenticação:</small><code style={{ display: "block", overflowWrap: "anywhere", padding: "7px", background: "var(--surface-subtle)", borderRadius: 6, fontSize: 10 }}>{asaasSettings.webhookUrl || "URL do webhook disponível após atualizar a tela"}</code><small style={{ display: "block", color: "var(--muted)", margin: "7px 0 10px" }}>Comece pelo Sandbox e valide o fluxo antes de mudar para Produção.</small>
         <button type="button" className="primary-button" onClick={() => void saveAsaasSettings()} disabled={asaasBusy}>{asaasBusy ? "Salvando..." : "Salvar Asaas"}</button>
       </details>
       <div className="inbox-conversation-list">

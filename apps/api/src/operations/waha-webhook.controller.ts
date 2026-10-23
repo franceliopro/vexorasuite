@@ -1,19 +1,25 @@
-import { Body, Controller, ForbiddenException, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
 
 @Controller("webhooks/waha")
 export class WahaWebhookController {
+  private readonly logger = new Logger(WahaWebhookController.name);
+
   constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService) {}
 
   @Post(":channelId/:token")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Param("token") token: string, @Body() body: unknown) {
-    if (!this.waha.verifyWebhookToken(channelId, token)) throw new ForbiddenException("Assinatura do webhook inválida.");
+    if (!this.waha.verifyWebhookToken(channelId, token)) {
+      this.logger.warn(`Webhook rejeitado: token inválido para canal ${channelId}`);
+      throw new ForbiddenException("Assinatura do webhook inválida.");
+    }
     const channel = await this.prisma.channelConnection.findFirst({ where: { id: channelId, provider: "WAHA", isActive: true } });
     if (!channel) throw new NotFoundException("Canal não encontrado.");
 
     const envelope = body && typeof body === "object" ? body as Record<string, any> : {};
+    this.logger.log(`Webhook recebido: canal=${channelId} evento=${String(envelope.event || "desconhecido")} sessão=${String(envelope.session || "ausente")}`);
     if (envelope.session && envelope.session !== channel.sessionName) return { ok: true, ignored: true };
     const payload = envelope.payload && typeof envelope.payload === "object" ? envelope.payload as Record<string, any> : {};
 
@@ -88,6 +94,7 @@ export class WahaWebhookController {
     }
 
     if (!saved) return { ok: true, duplicate: true };
+    this.logger.log(`Mensagem recebida e gravada: canal=${channelId} conversa=${saved.conversationId} tipo=${contentType}`);
     this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
     this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId, lastMessageAt: saved.message.occurredAt.toISOString() });
     return { ok: true };

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -27,7 +27,7 @@ export class DepartmentsController {
     }
     return this.prisma.department.findMany({
       where: { tenantId, isActive: true },
-      select: { id: true, key: true, name: true, keywords: true },
+      select: { id: true, key: true, name: true, keywords: true, isActive: true },
       orderBy: { name: "asc" },
     });
   }

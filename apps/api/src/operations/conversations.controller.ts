@@ -18,7 +18,7 @@ export class ConversationsController {
     const normalizedStatus = status?.toUpperCase();
     return this.prisma.conversation.findMany({
       where: { tenantId: request.user.tenantId, ...(normalizedStatus && allowed.includes(normalizedStatus) ? { status: normalizedStatus as "OPEN" | "PENDING" | "RESOLVED" | "CLOSED" } : {}) },
-      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
+      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, assignee: { select: { id: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });

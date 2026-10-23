@@ -130,14 +130,21 @@ export class WahaWebhookController {
       }
       const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
       const normalized = inboundText.trim().toLocaleLowerCase("pt-BR");
-      const byNumber: Record<string, string> = { "1": "FINANCEIRO", "2": "COMERCIAL", "3": "SUPORTE", "4": "ADMINISTRATIVO" };
-      const chosenKey = byNumber[normalized];
-      const chosen = departments.find((department) => department.key === chosenKey)
+      if (!departments.length) {
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" } });
+        this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" });
+        await this.sendBotReply(channel, chatId, conversationId, "Obrigado pela mensagem! Vou encaminhar você para a fila geral de atendimento. Um atendente continuará por aqui. 🙌");
+        return;
+      }
+      const numericChoice = /^\\d+$/.test(normalized) ? Number(normalized) : 0;
+      const chosen = (numericChoice > 0 ? departments[numericChoice - 1] : undefined)
         || departments.find((department) => normalized.length >= 3 && (
           normalized.includes(department.name.toLocaleLowerCase("pt-BR"))
+          || department.key.toLocaleLowerCase("pt-BR") === normalized
           || department.keywords.some((keyword) => normalized.includes(keyword.toLocaleLowerCase("pt-BR")))
         ));
-      const menu = "Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n1️⃣ Financeiro\n2️⃣ Comercial / Vendas\n3️⃣ Suporte\n4️⃣ Administrativo\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.";
+      const options = departments.map((department, index) => `${index + 1}️⃣ ${department.name}`).join("\n");
+      const menu = `Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n${options}\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.`;
       if (chosen) {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" });

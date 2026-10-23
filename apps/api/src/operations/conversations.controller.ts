@@ -1,4 +1,4 @@
-import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -19,7 +19,7 @@ export class ConversationsController {
     const normalizedStatus = status?.toUpperCase();
     return this.prisma.conversation.findMany({
       where: { tenantId: request.user.tenantId, ...(normalizedStatus && allowed.includes(normalizedStatus) ? { status: normalizedStatus as "OPEN" | "PENDING" | "RESOLVED" | "CLOSED" } : {}) },
-      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, assignee: { select: { id: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
+      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, assignee: { select: { id: true, name: true } }, tags: { include: { tag: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });
@@ -45,6 +45,48 @@ export class ConversationsController {
     });
     this.events.publish(tenantId, "conversation.created", { id: conversation.id, contactId: conversation.contactId, status: conversation.status });
     return conversation;
+  }
+
+  @Get("tags")
+  async listTags(@Req() request: AuthenticatedRequest) {
+    return this.prisma.tag.findMany({ where: { tenantId: request.user.tenantId }, orderBy: { name: "asc" } });
+  }
+
+  @Post("tags")
+  async createTag(@Req() request: AuthenticatedRequest, @Body() input: { name?: string; color?: string }) {
+    const name = input.name?.trim();
+    if (!name || name.length > 40) throw new BadRequestException("Informe um nome de etiqueta com até 40 caracteres.");
+    const color = input.color?.trim() || "#7467e8";
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("A cor da etiqueta é inválida.");
+    try {
+      return await this.prisma.tag.create({ data: { tenantId: request.user.tenantId, name, color } });
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "P2002") throw new BadRequestException("Já existe uma etiqueta com esse nome.");
+      throw error;
+    }
+  }
+
+  @Post(":id/tags")
+  async addTag(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("tagId") tagId: string) {
+    if (!isUUID(tagId)) throw new BadRequestException("Etiqueta inválida.");
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    const tag = await this.prisma.tag.findFirst({ where: { id: tagId, tenantId }, select: { id: true } });
+    if (!tag) throw new NotFoundException("Etiqueta não encontrada nesta empresa.");
+    await this.prisma.conversationTag.upsert({ where: { conversationId_tagId: { conversationId: id, tagId } }, update: {}, create: { conversationId: id, tagId } });
+    this.events.publish(tenantId, "conversation.updated", { id, tagsChanged: true });
+    return { ok: true };
+  }
+
+  @Delete(":id/tags/:tagId")
+  async removeTag(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Param("tagId", ParseUUIDPipe) tagId: string) {
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    await this.prisma.conversationTag.deleteMany({ where: { conversationId: id, tagId, tag: { tenantId } } });
+    this.events.publish(tenantId, "conversation.updated", { id, tagsChanged: true });
+    return { ok: true };
   }
 
   @Get("assignees")

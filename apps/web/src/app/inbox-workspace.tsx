@@ -44,6 +44,8 @@ export function InboxWorkspace() {
   const [qr, setQr] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
 
+  const activeChannel = channels.find((item) => item.status === "CONNECTED") || channels[0];
+
   const loadConversations = useCallback(async () => {
     try {
       const rows = await api<Conversation[]>("/api/backend/conversations");
@@ -96,7 +98,7 @@ export function InboxWorkspace() {
       .then((settings) => { if (!cancelled) { setGroupSettings(settings); setGroupIdsDraft(settings.allowedGroupIds.join("\n")); } })
       .catch(() => { if (!cancelled) { setGroupSettings({ groupsEnabled: false, allowedGroupIds: [] }); setGroupIdsDraft(""); } });
     return () => { cancelled = true; };
-  }, [channels.map((item) => item.id + ":" + item.status).join("|")]);
+  }, [activeChannel?.id]);
 
   const pendingId = channels.find((item) => item.status === "CONNECTING" || item.status === "QR")?.id ?? null;
   useEffect(() => {
@@ -269,7 +271,6 @@ export function InboxWorkspace() {
     finally { setActionBusy(false); }
   }
 
-  const activeChannel = channels.find((item) => item.status === "CONNECTED") || channels[0];
   const selected = conversations.find((item) => item.id === selectedId);
   return <section className="inbox-workspace">
     <aside className="inbox-list content-card">

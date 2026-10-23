@@ -98,7 +98,7 @@ export class AsaasService {
     const doc = this.digits(value);
     if (!/^\d{11}$|^\d{14}$/.test(doc) || /^(\d)\1+$/.test(doc)) return false;
     const calc = (base: string, weights: number[]) => {
-      const sum = [...base].reduce((total, digit, index) => total + Number(digit) * weights[index], 0);
+      const sum = [...base].reduce((total, digit, index) => total + Number(digit) * (weights[index] ?? 0), 0);
       const remainder = sum % 11;
       return remainder < 2 ? 0 : 11 - remainder;
     };
@@ -156,8 +156,8 @@ export class AsaasService {
     const customers = await this.request<{ data?: Array<{ id: string; name: string; cpfCnpj: string; phone?: string; mobilePhone?: string }> }>(tenantId, "/customers?cpfCnpj=" + encodeURIComponent(doc) + "&limit=100");
     const found = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 10);
     if (!found.length) return { name: "", environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION", debts: [] };
-    const normalizePhone = (value: string) => {
-      let number = this.digits(value.split("@")[0]);
+    const normalizePhone = (value: string | undefined) => {
+      let number = this.digits((value || "").split("@")[0]);
       if (number.startsWith("55") && (number.length === 12 || number.length === 13)) number = number.slice(2);
       const withoutNinth = (number: string) => number.length === 11 && number[2] === "9" ? number.slice(0, 2) + number.slice(3) : number;
       return withoutNinth(number);

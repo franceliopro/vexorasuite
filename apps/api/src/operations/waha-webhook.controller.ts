@@ -251,6 +251,14 @@ export class WahaWebhookController {
       }
       try {
         const detail = await this.asaas.paymentDetails(channel.tenantId, selected.id);
+        const conversationRecord = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { contactId: true } });
+        if (conversationRecord) {
+          await this.prisma.payment.upsert({
+            where: { tenantId_provider_externalId: { tenantId: channel.tenantId, provider: "ASAAS", externalId: detail.id } },
+            create: { tenantId: channel.tenantId, conversationId, contactId: conversationRecord.contactId, provider: "ASAAS", externalId: detail.id, amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
+            update: { conversationId, amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
+          });
+        }
         const heading = `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${detail.dueDate || selected.dueDate || "não informado"}`;
         let response = heading;
         if (choice === 1) response += "\n\nBoleto / PDF: " + (detail.bankSlipUrl || detail.invoiceUrl || "O boleto não está disponível nesta cobrança.");

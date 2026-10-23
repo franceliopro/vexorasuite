@@ -1,3 +1,4 @@
+ALTER TABLE "tenants" ADD COLUMN "integrations" JSONB NOT NULL DEFAULT '{}'::jsonb;
 CREATE TABLE "department_members" (
   "id" UUID NOT NULL,
   "tenant_id" UUID NOT NULL,
@@ -51,3 +52,4 @@ CREATE INDEX "payments_tenant_id_conversation_id_created_at_idx" ON "payments"("
 CREATE INDEX "payments_tenant_id_status_idx" ON "payments"("tenant_id", "status");
 ALTER TABLE "payments" ADD CONSTRAINT "payments_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "payments" ADD CONSTRAINT "payments_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payments" ADD CONSTRAINT "payments_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;

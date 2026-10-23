@@ -1,0 +1,64 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+      - "foundation/**"
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vexora
+          POSTGRES_PASSWORD: vexora_test_password
+          POSTGRES_DB: vexorasuite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vexora -d vexorasuite"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://vexora:vexora_test_password@localhost:5432/vexorasuite
+      JWT_ACCESS_SECRET: ci-only-secret-value-with-more-than-thirty-two-bytes
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Validate Prisma schema
+        run: pnpm --filter @vexorasuite/api exec prisma validate
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm test
+      - name: Apply migrations to PostgreSQL
+        run: pnpm --filter @vexorasuite/api exec prisma migrate deploy
+      - name: API typecheck
+        run: pnpm --filter @vexorasuite/api typecheck
+      - name: API build
+        run: pnpm --filter @vexorasuite/api build
+      - name: Web typecheck
+        run: pnpm --filter @vexorasuite/web typecheck
+      - name: Web build
+        run: pnpm --filter @vexorasuite/web build

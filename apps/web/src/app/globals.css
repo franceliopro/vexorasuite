@@ -31,7 +31,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 
 /* Lean navigation: allow the operator to reclaim workspace without hiding functionality. */
 .sidebar{position:relative;transition:width .18s ease,flex-basis .18s ease}
-.sidebar-collapse{align-self:flex-end;margin:-16px 2px 14px;width:26px;height:26px;border:1px solid #34334d;border-radius:7px;background:#202038;color:#c2c0df;font-size:17px;line-height:1}
+.sidebar-collapse{display:grid;place-items:center;align-self:flex-end;margin:-16px 2px 14px;width:26px;height:26px;border:1px solid #34334d;border-radius:7px;background:#202038;color:#c2c0df;font-size:17px;line-height:1}
 .sidebar-collapse:hover{background:#302e4b;color:#fff}
 .sidebar-collapsed{width:78px;flex-basis:78px;padding-right:10px;padding-left:10px}
 .sidebar-collapsed .brand{justify-content:center;padding:0;margin-bottom:27px}

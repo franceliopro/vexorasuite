@@ -1,4 +1,5 @@
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import { ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
@@ -112,7 +113,7 @@ export class WahaWebhookController {
   }
 
 
-  private async runMenuBot(channel: { id: string; tenantId: string; sessionName: string } & Parameters<WahaService["sendText"]>[0], chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
+  private async runMenuBot(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
     const defaults = [
       { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "nota fiscal", "reembolso", "cobrança", "cobranca", "financeiro"] },
       { key: "COMERCIAL", name: "Comercial (Vendas)", keywords: ["preço", "preco", "orçamento", "orcamento", "comprar", "venda", "vendas", "plano", "comercial"] },

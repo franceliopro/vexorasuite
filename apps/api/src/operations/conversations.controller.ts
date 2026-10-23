@@ -46,6 +46,33 @@ export class ConversationsController {
     return conversation;
   }
 
+  @Post(":id/assume")
+  async assume(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, assigneeId: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de assumi-la.");
+    if (conversation.assigneeId && conversation.assigneeId !== request.user.sub) throw new BadRequestException("Esta conversa já está atribuída a outro atendente.");
+    const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId: request.user.sub }, select: { id: true } });
+    if (!membership) throw new BadRequestException("Você não faz parte desta empresa.");
+    const updated = await this.prisma.conversation.update({ where: { id }, data: { assigneeId: request.user.sub }, include: { assignee: { select: { id: true, name: true } } } });
+    this.events.publish(tenantId, "conversation.updated", { id, status: updated.status, assigneeId: updated.assigneeId });
+    return updated;
+  }
+
+  @Post(":id/status")
+  async updateStatus(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("status") status: string) {
+    const allowed = ["OPEN", "PENDING", "RESOLVED"] as const;
+    if (!allowed.includes(status as typeof allowed[number])) throw new BadRequestException("Status de conversa inválido.");
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa está encerrada permanentemente.");
+    const updated = await this.prisma.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
+    this.events.publish(tenantId, "conversation.updated", { id, status: updated.status });
+    return updated;
+  }
+
   @Get(":id/messages")
   async messages(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });

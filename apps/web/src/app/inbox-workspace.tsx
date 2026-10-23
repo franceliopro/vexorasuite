@@ -71,9 +71,9 @@ export function InboxWorkspace() {
   }, []);
 
   const loadMessages = useCallback(async (id: string) => {
-    try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages")); }
+    try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView)); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
-  }, []);
+  }, [queueView]);
 
   useEffect(() => { void api<AsaasSettings>("/api/backend/integrations/asaas").then(setAsaasSettings).catch(() => {}); }, []);
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
@@ -240,7 +240,7 @@ export function InboxWorkspace() {
     if (!selectedId) return;
     setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/handoff", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...(handoffDepartment ? { departmentId: handoffDepartment } : {}), ...(handoffAssignee ? { assigneeId: handoffAssignee } : {}) }) });
+      await api("/api/backend/conversations/" + selectedId + "/handoff?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...(handoffDepartment ? { departmentId: handoffDepartment } : {}), ...(handoffAssignee ? { assigneeId: handoffAssignee } : {}) }) });
       await loadConversations();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível transferir para o atendimento humano."); }
   }
@@ -249,7 +249,7 @@ export function InboxWorkspace() {
     if (!selectedId || !inviteAssignee) return;
     setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/invite", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: inviteAssignee }) });
+      await api("/api/backend/conversations/" + selectedId + "/invite?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: inviteAssignee }) });
       setInviteAssignee("");
       await loadConversations();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível convidar o atendente."); }
@@ -258,7 +258,7 @@ export function InboxWorkspace() {
   async function returnToBot() {
     if (!selectedId) return;
     setError("");
-    try { await api("/api/backend/conversations/" + selectedId + "/return-to-bot", { method: "POST" }); await loadConversations(); }
+    try { await api("/api/backend/conversations/" + selectedId + "/return-to-bot?view=" + queueView, { method: "POST" }); await loadConversations(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível devolver ao bot."); }
   }
 
@@ -267,7 +267,7 @@ export function InboxWorkspace() {
     if (!selectedId || !draft.trim() || busy) return;
     setBusy(true); setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/messages", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: draft.trim() }) });
+      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: draft.trim() }) });
       setDraft("");
       await loadMessages(selectedId);
       await loadConversations();
@@ -281,7 +281,7 @@ export function InboxWorkspace() {
     if (!selectedId || actionBusy) return;
     setActionBusy(true); setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/assume", { method: "POST" });
+      await api("/api/backend/conversations/" + selectedId + "/assume?view=" + queueView, { method: "POST" });
       await loadConversations();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível assumir a conversa."); }
     finally { setActionBusy(false); }
@@ -291,7 +291,7 @@ export function InboxWorkspace() {
     if (!selectedId || actionBusy) return;
     setActionBusy(true); setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/assign", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId }) });
+      await api("/api/backend/conversations/" + selectedId + "/assign?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId }) });
       await loadConversations();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atribuir a conversa."); }
     finally { setActionBusy(false); }
@@ -301,7 +301,7 @@ export function InboxWorkspace() {
     if (!selectedId || actionBusy) return;
     setActionBusy(true); setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/status", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+      await api("/api/backend/conversations/" + selectedId + "/status?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
       await loadConversations();
       await loadMessages(selectedId);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar a conversa."); }
@@ -342,7 +342,7 @@ export function InboxWorkspace() {
       {selected ? <>
         <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<label className="thread-assign-select" title="Atribuir conversa"><UserRound size={14} aria-hidden="true" /><select aria-label="Atribuir conversa" value={selected.assignee?.id ?? ""} onChange={(event) => void assignConversation(event.target.value || null)} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"}><option value="">Sem responsável</option>{assignees.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>{selected.status === "RESOLVED" ? <button className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={15} aria-hidden="true" /><span>Reabrir</span></button> : <button className="thread-action-button resolve" onClick={() => void setConversationStatus("RESOLVED")} disabled={actionBusy || selected.status === "CLOSED"} title="Resolver conversa"><CheckCircle2 size={15} aria-hidden="true" /><span>Resolver</span></button>}</div></header>
         <div style={{ display: "flex", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--line)" }}>
-          {selected.archivedAt || selected.deletedAt ? <button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore", { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}>Restaurar</button> : <><button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive", { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}>Arquivar</button><button type="button" className="text-button danger-text" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash", { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}>Lixeira</button></>}
+          {selected.archivedAt || selected.deletedAt ? <button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}>Restaurar</button> : <><button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}>Arquivar</button><button type="button" className="text-button danger-text" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}>Lixeira</button></>}
         </div>
         <div className="handoff-controls" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "8px 12px", borderBottom: "1px solid var(--line)" }}><span style={{ fontSize: 11, color: "var(--muted)" }}>Transferir para:</span><select aria-label="Departamento" value={handoffDepartment} onChange={(event) => setHandoffDepartment(event.target.value)} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem equipe / departamento</option>{departments.filter((department) => department.isActive).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select><select aria-label="Atendente" value={handoffAssignee} onChange={(event) => setHandoffAssignee(event.target.value)} style={{ maxWidth: 190, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Sem atendente específico</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select><button type="button" className="primary-button" onClick={() => void handoffToHuman()}>Transferir para humano</button><select aria-label="Convidar atendente" value={inviteAssignee} onChange={(event) => setInviteAssignee(event.target.value)} style={{ maxWidth: 160, padding: "6px 8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }}><option value="">Convidar atendente…</option>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select><button type="button" className="text-button" onClick={() => void inviteToConversation()} disabled={!inviteAssignee}>Convidar</button><small style={{ color: "var(--muted)", fontSize: 10 }}>Sem seleção = fila geral, sem equipe.</small></div>
         <div className="thread-messages">

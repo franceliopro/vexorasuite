@@ -38,6 +38,7 @@ export class DepartmentsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() input: { isActive?: unknown; name?: unknown; keywords?: unknown },
   ) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem alterar departamentos.");
     const department = await this.prisma.department.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
     if (!department) throw new BadRequestException("Departamento não encontrado nesta empresa.");
     const data: { isActive?: boolean; name?: string; keywords?: string[] } = {};
@@ -74,6 +75,7 @@ export class DepartmentsController {
 
   @Post()
   async create(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; key?: unknown; keywords?: unknown }) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem criar departamentos.");
     const name = typeof input.name === "string" ? input.name.trim().slice(0, 80) : "";
     const key = typeof input.key === "string" ? input.key.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 40) : "";
     const keywords = Array.isArray(input.keywords) ? input.keywords.filter((value): value is string => typeof value === "string").map((value) => value.trim().slice(0, 60)).filter(Boolean).slice(0, 50) : [];

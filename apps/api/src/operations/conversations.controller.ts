@@ -1,5 +1,6 @@
 import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
+import { isUUID } from "class-validator";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
@@ -18,7 +19,7 @@ export class ConversationsController {
     const normalizedStatus = status?.toUpperCase();
     return this.prisma.conversation.findMany({
       where: { tenantId: request.user.tenantId, ...(normalizedStatus && allowed.includes(normalizedStatus) ? { status: normalizedStatus as "OPEN" | "PENDING" | "RESOLVED" | "CLOSED" } : {}) },
-      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
+      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, assignee: { select: { id: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });
@@ -44,6 +45,65 @@ export class ConversationsController {
     });
     this.events.publish(tenantId, "conversation.created", { id: conversation.id, contactId: conversation.contactId, status: conversation.status });
     return conversation;
+  }
+
+  @Get("assignees")
+  async assignees(@Req() request: AuthenticatedRequest) {
+    const memberships = await this.prisma.membership.findMany({
+      where: { tenantId: request.user.tenantId, user: { isActive: true } },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    return memberships.map(({ user }) => user).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }
+
+  @Post(":id/assume")
+  async assume(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, assigneeId: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de assumi-la.");
+    const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId: request.user.sub }, select: { id: true } });
+    if (!membership) throw new BadRequestException("Você não faz parte desta empresa.");
+    // Conditional update prevents two agents from simultaneously taking the same unassigned conversation.
+    const claimed = await this.prisma.conversation.updateMany({
+      where: { id, tenantId, status: { in: ["OPEN", "PENDING"] }, OR: [{ assigneeId: null }, { assigneeId: request.user.sub }] },
+      data: { assigneeId: request.user.sub },
+    });
+    if (!claimed.count) throw new BadRequestException("Esta conversa já foi atribuída a outro atendente ou não está mais disponível.");
+    const updated = await this.prisma.conversation.findFirst({ where: { id, tenantId }, include: { assignee: { select: { id: true, name: true } } } });
+    if (!updated) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    this.events.publish(tenantId, "conversation.updated", { id, status: updated.status, assigneeId: updated.assigneeId });
+    return updated;
+  }
+
+  @Post(":id/assign")
+  async assign(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string | null | undefined) {
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de alterar o responsável.");
+    if (userId !== null && userId !== undefined) {
+      if (!isUUID(userId)) throw new BadRequestException("Atendente inválido.");
+      const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId, user: { isActive: true } }, select: { id: true } });
+      if (!membership) throw new BadRequestException("O atendente selecionado não pertence a esta empresa.");
+    }
+    const updated = await this.prisma.conversation.update({ where: { id }, data: { assigneeId: userId ?? null }, include: { assignee: { select: { id: true, name: true } } } });
+    this.events.publish(tenantId, "conversation.updated", { id, status: updated.status, assigneeId: updated.assigneeId });
+    return updated;
+  }
+
+  @Post(":id/status")
+  async updateStatus(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("status") status: string) {
+    const allowed = ["OPEN", "PENDING", "RESOLVED"] as const;
+    if (!allowed.includes(status as typeof allowed[number])) throw new BadRequestException("Status de conversa inválido.");
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa está encerrada permanentemente.");
+    const updated = await this.prisma.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
+    this.events.publish(tenantId, "conversation.updated", { id, status: updated.status });
+    return updated;
   }
 
   @Get(":id/messages")

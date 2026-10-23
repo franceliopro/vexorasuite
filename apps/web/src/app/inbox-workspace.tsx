@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { CheckCircle2, RotateCcw, UserRound } from "lucide-react";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
 type Contact = { id: string; name: string; phone?: string | null };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string };
-type Conversation = { id: string; status: string; contact: Contact; messages: Message[] };
+type Assignee = { id: string; name: string; email: string };
+type Conversation = { id: string; status: string; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
@@ -17,12 +19,14 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function InboxWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
 
@@ -37,13 +41,18 @@ export function InboxWorkspace() {
     try { setChannels(await api<Channel[]>("/api/backend/channels")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar canais."); }
   }, []);
+  const loadAssignees = useCallback(async () => {
+    try { setAssignees(await api<Assignee[]>("/api/backend/conversations/assignees")); }
+    catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar atendentes."); }
+  }, []);
+
   const loadMessages = useCallback(async (id: string) => {
     try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
   }, []);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
-  useEffect(() => { void loadConversations(); void loadChannels(); }, [loadConversations, loadChannels]);
+  useEffect(() => { void loadConversations(); void loadChannels(); void loadAssignees(); }, [loadConversations, loadChannels, loadAssignees]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
 
   // Poll as a fallback: inbound messages must appear even if an SSE event is missed.
@@ -138,6 +147,37 @@ export function InboxWorkspace() {
     } finally { setBusy(false); }
   }
 
+  async function assumeConversation() {
+    if (!selectedId || actionBusy) return;
+    setActionBusy(true); setError("");
+    try {
+      await api("/api/backend/conversations/" + selectedId + "/assume", { method: "POST" });
+      await loadConversations();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível assumir a conversa."); }
+    finally { setActionBusy(false); }
+  }
+
+  async function assignConversation(userId: string | null) {
+    if (!selectedId || actionBusy) return;
+    setActionBusy(true); setError("");
+    try {
+      await api("/api/backend/conversations/" + selectedId + "/assign", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId }) });
+      await loadConversations();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atribuir a conversa."); }
+    finally { setActionBusy(false); }
+  }
+
+  async function setConversationStatus(status: "OPEN" | "PENDING" | "RESOLVED") {
+    if (!selectedId || actionBusy) return;
+    setActionBusy(true); setError("");
+    try {
+      await api("/api/backend/conversations/" + selectedId + "/status", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+      await loadConversations();
+      await loadMessages(selectedId);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar a conversa."); }
+    finally { setActionBusy(false); }
+  }
+
   const activeChannel = channels.find((item) => item.status === "CONNECTED") || channels[0];
   const selected = conversations.find((item) => item.id === selectedId);
   return <section className="inbox-workspace">
@@ -155,7 +195,7 @@ export function InboxWorkspace() {
     </aside>
     <div className="inbox-thread content-card">
       {selected ? <>
-        <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}</p></div></header>
+        <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<label className="thread-assign-select" title="Atribuir conversa"><UserRound size={14} aria-hidden="true" /><select aria-label="Atribuir conversa" value={selected.assignee?.id ?? ""} onChange={(event) => void assignConversation(event.target.value || null)} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"}><option value="">Sem responsável</option>{assignees.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>{selected.status === "RESOLVED" ? <button className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={15} aria-hidden="true" /><span>Reabrir</span></button> : <button className="thread-action-button resolve" onClick={() => void setConversationStatus("RESOLVED")} disabled={actionBusy || selected.status === "CLOSED"} title="Resolver conversa"><CheckCircle2 size={15} aria-hidden="true" /><span>Resolver</span></button>}</div></header>
         <div className="thread-messages">
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}

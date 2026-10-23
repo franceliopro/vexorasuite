@@ -138,7 +138,8 @@ export class AsaasService {
     const currentEnvironment = currentConfig.sandbox !== false ? "SANDBOX" : "PRODUCTION";
     if (existing.environment !== currentEnvironment) return null;
     if (paid && envelope.payment?.value !== undefined && Math.abs(Number(envelope.payment.value) - Number(existing.amount)) > 0.01) return null;
-    if (existing.status === "PAID" || (existing.status === status && !paid)) return null;
+    if (existing.status === "PAID" && event !== "PAYMENT_REFUNDED") return null;
+    if (existing.status === status) return null;
     const updated = await this.prisma.payment.update({ where: { id: existing.id }, data: { status } });
     if (paid) {
       const amount = Number(updated.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

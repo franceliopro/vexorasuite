@@ -1,23 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import {
+  CalendarDays,
+  ChartNoAxesCombined,
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  Megaphone,
+  MessagesSquare,
+  Settings2,
+  Sparkles,
+  Wallet,
+  Workflow,
+  UsersRound,
+} from "lucide-react";
 
-const iconPaths: Record<string, string[]> = {
-  "layout-dashboard": ["M3 3h7v7H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 14h7v7H3z"],
-  messages: ["M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"],
-  users: ["M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2", "M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z", "M20 8v6", "M23 11h-6"],
-  calendar: ["M8 2v4", "M16 2v4", "M3 10h18", "M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2z", "M8 14h.01", "M12 14h.01", "M16 14h.01", "M8 17h.01", "M12 17h.01"],
-  workflow: ["M12 3v6", "M6 15v6", "M18 15v6", "M6 12h12", "M6 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M18 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M12 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"],
-  megaphone: ["M3 11v2a2 2 0 0 0 2 2h2l4 5V4l-4 5H5a2 2 0 0 0-2 2z", "M11 9l9-4v14l-9-4", "M7 15l1 5"],
-  wallet: ["M20 8V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v11H5a3 3 0 0 1-3-3V6", "M20 12h-5a2 2 0 0 0 0 4h5z", "M16 14h.01"],
-  settings: ["M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z", "M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.5 2.6-.2-.1a1.7 1.7 0 0 0-1.8.1 1.7 1.7 0 0 0-.8 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1.2-1.6 1.7 1.7 0 0 0-1.8.1l-.2.1-1.5-2.6.1-.1A1.7 1.7 0 0 0 8.2 15a1.7 1.7 0 0 0-1.5-.8h-.2v-3h.2a1.7 1.7 0 0 0 1.6-1.2 1.7 1.7 0 0 0-.1-1.8l-.1-.2 2.6-1.5.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 .8-1.5v-.2h3v.2a1.7 1.7 0 0 0 1.2 1.6 1.7 1.7 0 0 0 1.8-.1l.2-.1 1.5 2.6-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5.8h.2v3h-.2a1.7 1.7 0 0 0-1.7.8z"],
-  "chevron-left": ["m15 18-6-6 6-6"],
-  "chevron-right": ["m9 18 6-6-6-6"],
-  "chart-no-axes-combined": ["M3 3v18h18", "m19 9-5 5-4-4-5 5", "M17 9h2v2"],
-  sparkles: ["m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z", "m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14z"],
+const iconMap = {
+  "layout-dashboard": LayoutDashboard,
+  messages: MessagesSquare,
+  users: UsersRound,
+  calendar: CalendarDays,
+  workflow: Workflow,
+  megaphone: Megaphone,
+  wallet: Wallet,
+  settings: Settings2,
+  "chevron-left": ChevronLeft,
+  "chevron-right": ChevronRight,
+  "chart-no-axes-combined": ChartNoAxesCombined,
+  sparkles: Sparkles,
 };
-function Icon({ name, size = 18 }: { name: string; size?: number }) {
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{(iconPaths[name] ?? iconPaths.messages).map((d, index) => <path key={index} d={d} />)}</svg>;
+
+function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
+  const IconComponent = iconMap[name] ?? MessagesSquare;
+  return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} />;
 }
 
 const navigation = [

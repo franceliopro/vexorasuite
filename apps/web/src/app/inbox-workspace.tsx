@@ -8,6 +8,7 @@ type Message = { id: string; content: string; contentType: string; direction: st
 type Department = { id: string; key: string; name: string; keywords: string[] };
 type Agent = { id: string; name: string; email: string };
 type GroupSettings = { groupsEnabled: boolean; allowedGroupIds: string[] };
+type GroupChoice = { id: string; name: string };
 type Conversation = { id: string; status: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; assignee?: Agent | null; contact: Contact; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -23,6 +24,8 @@ export function InboxWorkspace() {
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({ groupsEnabled: false, allowedGroupIds: [] });
   const [groupIdsDraft, setGroupIdsDraft] = useState("");
   const [groupSettingsBusy, setGroupSettingsBusy] = useState(false);
+  const [availableGroups, setAvailableGroups] = useState<GroupChoice[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [handoffDepartment, setHandoffDepartment] = useState("");
@@ -145,6 +148,23 @@ export function InboxWorkspace() {
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir a sessão."); }
   }
 
+  async function discoverGroups() {
+    if (!activeChannel) return;
+    setLoadingGroups(true); setError("");
+    try {
+      const result = await api<{ groups: GroupChoice[] }>("/api/backend/channels/" + activeChannel.id + "/groups");
+      setAvailableGroups(result.groups);
+      if (!result.groups.length) setError("Nenhum grupo retornado pelo WhatsApp. Você ainda pode informar os IDs manualmente.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível consultar os grupos do WhatsApp."); }
+    finally { setLoadingGroups(false); }
+  }
+
+  function toggleAllowedGroup(groupId: string, checked: boolean) {
+    const current = groupIdsDraft.split(/\\r?\\n|,/).map((value) => value.trim()).filter(Boolean);
+    const next = checked ? [...new Set([...current, groupId])] : current.filter((id) => id !== groupId);
+    setGroupIdsDraft(next.join("\\n"));
+  }
+
   async function saveGroupSettings() {
     if (!activeChannel) return;
     setGroupSettingsBusy(true); setError("");
@@ -196,7 +216,7 @@ export function InboxWorkspace() {
       {activeChannel ? <div className="inbox-connection"><span className={"connection-light " + (activeChannel.status === "CONNECTED" ? "connected" : activeChannel.status === "ERROR" ? "failed" : "")} /><span><strong>{activeChannel.name}</strong><small>{activeChannel.status === "CONNECTED" ? "Conectado" : activeChannel.status === "QR" ? "Aguardando QR Code" : activeChannel.status === "ERROR" ? "Falha na conexão" : activeChannel.status}</small></span><div className="connection-actions">{activeChannel.status === "ERROR" || activeChannel.status === "DISCONNECTED" ? <button className="text-button" onClick={() => void retryConnection(activeChannel)}>Reconectar</button> : activeChannel.status === "CONNECTED" ? <><button className="text-button" onClick={() => void retryConnection(activeChannel)}>Sincronizar</button><button className="text-button" onClick={() => void disconnectChannel(activeChannel)}>Desconectar</button></> : null}<button className="text-button danger-text" title="Excluir sessão" onClick={() => void deleteChannel(activeChannel)}>Excluir</button></div></div>
         : <div className="inbox-connect-prompt"><p>Conecte o WhatsApp para receber e responder mensagens aqui.</p><button className="primary-button" onClick={() => void connectWhatsApp()} disabled={connecting}>{connecting ? "Conectando..." : "Conectar WhatsApp"}</button></div>}
       {qr ? <div className="qr-panel"><p>Leia o QR Code com o WhatsApp do atendimento.</p><img src={qr} alt="QR Code para conectar WhatsApp" /><small>O estado da sessão é atualizado automaticamente.</small></div> : null}
-      {activeChannel ? <details className="group-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}><summary style={{ cursor: "pointer", fontWeight: 650 }}>Grupos do WhatsApp <span style={{ color: "var(--muted)", fontWeight: 400 }}>· desativados por padrão</span></summary><label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}><input type="checkbox" checked={groupSettings.groupsEnabled} onChange={(event) => setGroupSettings((current) => ({ ...current, groupsEnabled: event.target.checked }))} /> Permitir receber conversas de grupos</label><label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>IDs dos grupos permitidos (um por linha, terminados em @g.us)</label><textarea value={groupIdsDraft} onChange={(event) => setGroupIdsDraft(event.target.value)} rows={3} placeholder="120363000000000000@g.us" style={{ width: "100%", resize: "vertical", fontSize: 11, border: "1px solid var(--line)", borderRadius: 7, padding: 8 }} /><small style={{ display: "block", color: "var(--muted)", margin: "6px 0 9px" }}>Mesmo ativado, nenhum grupo entra sem estar nesta lista. Conversas individuais continuam funcionando normalmente.</small><button className="primary-button" type="button" onClick={() => void saveGroupSettings()} disabled={groupSettingsBusy}>{groupSettingsBusy ? "Salvando..." : "Salvar regras de grupos"}</button></details> : null}
+      {activeChannel ? <details className="group-settings" style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)", fontSize: 12 }}><summary style={{ cursor: "pointer", fontWeight: 650 }}>Grupos do WhatsApp <span style={{ color: "var(--muted)", fontWeight: 400 }}>· desativados por padrão</span></summary><label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}><input type="checkbox" checked={groupSettings.groupsEnabled} onChange={(event) => setGroupSettings((current) => ({ ...current, groupsEnabled: event.target.checked }))} /> Permitir receber conversas de grupos</label><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}><label style={{ color: "var(--muted)" }}>Escolha os grupos autorizados</label><button type="button" className="text-button" onClick={() => void discoverGroups()} disabled={loadingGroups}>{loadingGroups ? "Buscando..." : "Buscar grupos"}</button></div>{availableGroups.length ? <div style={{ maxHeight: 150, overflowY: "auto", marginBottom: 10, border: "1px solid var(--line)", borderRadius: 7, padding: 7 }}>{availableGroups.map((group) => <label key={group.id} style={{ display: "flex", alignItems: "flex-start", gap: 7, padding: "5px 2px" }}><input type="checkbox" checked={groupIdsDraft.split(/\\r?\\n|,/).map((value) => value.trim()).includes(group.id)} onChange={(event) => toggleAllowedGroup(group.id, event.target.checked)} /><span><span style={{ display: "block" }}>{group.name}</span><small style={{ color: "var(--muted)", overflowWrap: "anywhere" }}>{group.id}</small></span></label>)}</div> : null}<label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>Ou informe IDs manualmente (um por linha, terminados em @g.us)</label><textarea value={groupIdsDraft} onChange={(event) => setGroupIdsDraft(event.target.value)} rows={3} placeholder="120363000000000000@g.us" style={{ width: "100%", resize: "vertical", fontSize: 11, border: "1px solid var(--line)", borderRadius: 7, padding: 8 }} /><small style={{ display: "block", color: "var(--muted)", margin: "6px 0 9px" }}>Mesmo ativado, nenhum grupo entra sem estar nesta lista. Conversas individuais continuam funcionando normalmente.</small><button className="primary-button" type="button" onClick={() => void saveGroupSettings()} disabled={groupSettingsBusy}>{groupSettingsBusy ? "Salvando..." : "Salvar regras de grupos"}</button></details> : null}
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => setSelectedId(item.id)}>
           <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong><small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>

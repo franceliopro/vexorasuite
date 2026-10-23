@@ -14,7 +14,7 @@ export class AsaasController {
   }
 
   @Put()
-  saveSettings(@Req() request: AuthenticatedRequest, @Body() input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown }) {
+  saveSettings(@Req() request: AuthenticatedRequest, @Body() input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown; webhookToken?: unknown }) {
     if (!["OWNER", "ADMIN"].includes(request.user.role)) throw new ForbiddenException("Somente o proprietário ou administrador pode configurar a integração financeira.");
     return this.asaas.saveSettings(request.user.tenantId, input);
   }

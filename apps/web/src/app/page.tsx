@@ -119,7 +119,7 @@ export default function HomePage() {
           <span className="brand-mark">V</span>
           <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
         </a>
-        <button className="sidebar-edge-toggle" onClick={() => setSidebarCollapsed((collapsed) => !collapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral (Ctrl+B)" : "Recolher menu lateral (Ctrl+B)"} title={sidebarCollapsed ? "Expandir menu · Ctrl+B" : "Recolher menu · Ctrl+B"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={15} /></button>
+        <button className="sidebar-edge-toggle" onClick={() => setSidebarCollapsed((collapsed) => !collapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral (Ctrl/Cmd+B)" : "Recolher menu lateral (Ctrl/Cmd+B)"} title={sidebarCollapsed ? "Expandir menu · Ctrl/Cmd+B" : "Recolher menu · Ctrl/Cmd+B"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={15} /></button>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => (
             <div className="nav-group" key={group.section}>

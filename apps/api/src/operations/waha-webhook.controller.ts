@@ -176,7 +176,11 @@ export class WahaWebhookController {
     const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
     const cancel = /^(cancelar|sair|menu)$/i.test(normalized);
     if (!state) {
-      if (!/(financeiro|boleto|pix|pagamento|fatura|cobranca|cobrança|segunda via)/i.test(normalized)) return false;
+      const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true }, orderBy: { name: "asc" } });
+      const numericChoice = /^\\d+$/.test(normalized) ? Number(normalized) : 0;
+      const chosenDepartment = numericChoice > 0 ? departments[numericChoice - 1] : undefined;
+      const financeChoice = Boolean(chosenDepartment && (chosenDepartment.key.toLocaleLowerCase("pt-BR") === "financeiro" || chosenDepartment.name.toLocaleLowerCase("pt-BR").includes("finance")));
+      if (!financeChoice && !/(financeiro|boleto|pix|pagamento|fatura|cobranca|cobrança|segunda via)/i.test(normalized)) return false;
       const settings = await this.asaas.publicSettings(channel.tenantId);
       if (!settings.enabled || !settings.configured) return false;
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "DOCUMENT" } } });

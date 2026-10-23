@@ -19,7 +19,7 @@ export class ConversationsController {
     const normalizedStatus = status?.toUpperCase();
     return this.prisma.conversation.findMany({
       where: { tenantId: request.user.tenantId, ...(normalizedStatus && allowed.includes(normalizedStatus) ? { status: normalizedStatus as "OPEN" | "PENDING" | "RESOLVED" | "CLOSED" } : {}) },
-      include: { contact: { select: { id: true, name: true, phone: true, email: true } }, assignee: { select: { id: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
+      include: { contact: { select: { id: true, name: true, phone: true, email: true, externalId: true } }, assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });
@@ -103,6 +103,56 @@ export class ConversationsController {
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa está encerrada permanentemente.");
     const updated = await this.prisma.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status });
+    return updated;
+  }
+
+  @Post(":id/handoff")
+  async handoff(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() input: { departmentId?: unknown; assigneeId?: unknown },
+  ) {
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") {
+      throw new BadRequestException("Reabra a conversa antes de transferi-la para um atendente.");
+    }
+    const departmentId = typeof input.departmentId === "string" && input.departmentId ? input.departmentId : null;
+    const assigneeId = typeof input.assigneeId === "string" && input.assigneeId ? input.assigneeId : null;
+    if (departmentId) {
+      if (!isUUID(departmentId) || !await this.prisma.department.findFirst({ where: { id: departmentId, tenantId, isActive: true }, select: { id: true } })) {
+        throw new BadRequestException("Departamento inválido para esta empresa.");
+      }
+    }
+    if (assigneeId) {
+      if (!isUUID(assigneeId) || !await this.prisma.membership.findFirst({ where: { tenantId, userId: assigneeId, user: { isActive: true } }, select: { id: true } })) {
+        throw new BadRequestException("Atendente inválido para esta empresa.");
+      }
+    }
+    const updated = await this.prisma.conversation.update({
+      where: { id },
+      data: { handlingMode: "HUMAN", departmentId, assigneeId, status: "OPEN" },
+      include: { assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } } },
+    });
+    this.events.publish(tenantId, "conversation.updated", { id, handlingMode: "HUMAN", departmentId, assigneeId, status: updated.status });
+    return updated;
+  }
+
+  @Post(":id/return-to-bot")
+  async returnToBot(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const tenantId = request.user.tenantId;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") {
+      throw new BadRequestException("Reabra a conversa antes de devolvê-la ao bot.");
+    }
+    const updated = await this.prisma.conversation.update({
+      where: { id },
+      data: { handlingMode: "BOT", departmentId: null, assigneeId: null },
+      select: { id: true, handlingMode: true, departmentId: true, assigneeId: true, status: true },
+    });
+    this.events.publish(tenantId, "conversation.updated", { id, handlingMode: "BOT", departmentId: null, assigneeId: null, status: updated.status });
     return updated;
   }
 

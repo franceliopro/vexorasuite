@@ -147,3 +147,5 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .settings-feedback.success{border:1px solid #d9eee6;background:#f4fbf7;color:#168260}
 @media(max-width:900px){.settings-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.inbox-queues{gap:2px;padding:6px}.inbox-queue-button,.inbox-more-queues>summary{min-height:30px;padding:0 6px;font-size:9px}.inbox-queue-button:nth-child(3){display:none}.settings-heading{margin-bottom:15px}.settings-card{padding:14px}.settings-members>div{grid-template-columns:1fr}}
+
+@media(max-width:760px){.inbox-queue-button:nth-child(3){display:inline-flex}.inbox-queues{gap:1px}.inbox-queue-button,.inbox-more-queues>summary{padding-right:5px;padding-left:5px}}

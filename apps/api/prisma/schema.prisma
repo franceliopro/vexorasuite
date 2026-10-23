@@ -49,8 +49,7 @@ model Tenant {
   messages    Message[]
   channelConnections ChannelConnection[]
   auditLogs   AuditLog[]
-  tags        ConversationTag[]
-  conversationTags Tag[]
+  tags        Tag[]
 
   @@map("tenants")
 }

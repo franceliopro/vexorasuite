@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, RotateCcw, UserRound, Users, UserCheck, UserPlus, ChevronDown, ArrowRightLeft, Check } from "lucide-react";
+import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, ArrowRightLeft, Check, Archive, Trash2 } from "lucide-react";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
 type Contact = { id: string; name: string; phone?: string | null };
@@ -20,6 +20,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 
 export function InboxWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [queueView, setQueueView] = useState("new");
   const [channels, setChannels] = useState<Channel[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -47,6 +48,11 @@ export function InboxWorkspace() {
       setSelectedId((current) => current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? null);
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar conversas."); }
   }, [queueView]);
+  const loadQueueCounts = useCallback(async () => {
+    const views = ["new", "mine", "team"];
+    const counts = await Promise.all(views.map(async (view) => { try { return [view, (await api<Conversation[]>("/api/backend/conversations?view=" + view)).length] as const; } catch { return [view, 0] as const; } }));
+    setQueueCounts(Object.fromEntries(counts));
+  }, []);
   const loadChannels = useCallback(async () => {
     try { setChannels(await api<Channel[]>("/api/backend/channels")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar canais."); }
@@ -62,28 +68,28 @@ export function InboxWorkspace() {
   }, [queueView]);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
-  useEffect(() => { void loadConversations(); void loadChannels(); void loadAssignees();
+  useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadAssignees();
     void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
     void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => {});
-  }, [loadConversations, loadChannels, loadAssignees]);
+  }, [loadConversations, loadQueueCounts, loadChannels, loadAssignees]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
 
   // Poll as a fallback: inbound messages must appear even if an SSE event is missed.
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void loadConversations();
+      void loadConversations(); void loadQueueCounts();
       if (selectedRef.current) void loadMessages(selectedRef.current);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [loadConversations, loadMessages]);
+  }, [loadConversations, loadQueueCounts, loadMessages]);
   useEffect(() => {
     const source = new EventSource("/api/backend/events");
-    const refresh = () => { void loadConversations(); void loadChannels(); if (selectedRef.current) void loadMessages(selectedRef.current); };
+    const refresh = () => { void loadConversations(); void loadQueueCounts(); void loadChannels(); if (selectedRef.current) void loadMessages(selectedRef.current); };
     ["message.received", "message.sent", "message.failed", "message.status", "message.queued", "conversation.updated", "conversation.created", "channel.status", "channel.created"].forEach((name) => source.addEventListener(name, refresh));
     // EventSource reconnects automatically. Keep the interface quiet; the 5-second polling fallback keeps conversations fresh while SSE recovers.
     source.onerror = () => { /* transient realtime interruptions are handled silently */ };
     return () => source.close();
-  }, [loadConversations, loadChannels, loadMessages]);
+  }, [loadConversations, loadQueueCounts, loadChannels, loadMessages]);
 
   const pendingId = channels.find((item) => item.status === "CONNECTING" || item.status === "QR")?.id ?? null;
   useEffect(() => {
@@ -225,7 +231,7 @@ export function InboxWorkspace() {
         : <div className="inbox-connect-prompt"><p>Conecte o WhatsApp para receber e responder mensagens aqui.</p><button className="primary-button" onClick={() => void connectWhatsApp()} disabled={connecting}>{connecting ? "Conectando..." : "Conectar WhatsApp"}</button></div>}
       {qr ? <div className="qr-panel"><p>Leia o QR Code com o WhatsApp do atendimento.</p><img src={qr} alt="QR Code para conectar WhatsApp" /><small>O estado da sessão é atualizado automaticamente.</small></div> : null}
       <nav className="inbox-queues" aria-label="Filas de atendimento">
-        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Minha equipe" }, { id: "others", label: "Outras" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} onClick={() => setQueueView(item.id)}>{item.label}</button>)}
+        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Equipe" }, { id: "others", label: "Outras" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} onClick={() => setQueueView(item.id)}><span>{item.label}</span>{item.id !== "others" ? <span className="inbox-queue-count">{queueCounts[item.id] ?? 0}</span> : null}</button>)}
         <details className={"inbox-more-queues " + (["all-open", "completed", "archived", "trash"].includes(queueView) ? "has-active" : "")}>
           <summary aria-label="Mais filas" title="Mais filas">Mais <span aria-hidden="true">⌄</span></summary>
           <div className="inbox-queue-menu">{([{ id: "all-open", label: "Todos abertos" }, { id: "completed", label: "Concluídos" }, { id: "archived", label: "Arquivados" }, { id: "trash", label: "Lixeira" }] as const).map((item) => <button key={item.id} type="button" className={queueView === item.id ? "active" : ""} onClick={(event) => { setQueueView(item.id); event.currentTarget.closest("details")?.removeAttribute("open"); }}>{item.label}</button>)}</div>
@@ -240,11 +246,7 @@ export function InboxWorkspace() {
     </aside>
     <div className="inbox-thread content-card">
       {selected ? <>
-        <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<label className="thread-assign-select" title="Atribuir conversa"><UserRound size={14} aria-hidden="true" /><select aria-label="Atribuir conversa" value={selected.assignee?.id ?? ""} onChange={(event) => void assignConversation(event.target.value || null)} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"}><option value="">Sem responsável</option>{assignees.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>{selected.status === "RESOLVED" ? <button className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={15} aria-hidden="true" /><span>Reabrir</span></button> : <button className="thread-action-button resolve" onClick={() => void setConversationStatus("RESOLVED")} disabled={actionBusy || selected.status === "CLOSED"} title="Resolver conversa"><CheckCircle2 size={15} aria-hidden="true" /><span>Resolver</span></button>}</div></header>
-        <div style={{ display: "flex", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--line)" }}>
-          {selected.archivedAt || selected.deletedAt ? <button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}>Restaurar</button> : <><button type="button" className="text-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}>Arquivar</button><button type="button" className="text-button danger-text" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}>Lixeira</button></>}
-        </div>
-        <div className="handoff-toolbar" aria-label="Direcionamento da conversa">
+        <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
           <details className="handoff-menu">
             <summary className="handoff-trigger" title="Direcionar conversa">
               <span className="handoff-trigger-icon"><ArrowRightLeft size={16}/></span>
@@ -270,7 +272,7 @@ export function InboxWorkspace() {
               {!agents.length?<p className="handoff-empty">Nenhum atendente disponível.</p>:null}
             </div>
           </details>
-        </div>
+        </div>{selected.status === "RESOLVED" ? <button className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={15} aria-hidden="true" /><span>Reabrir</span></button> : <button className="thread-action-button resolve" onClick={() => void setConversationStatus("RESOLVED")} disabled={actionBusy || selected.status === "CLOSED"} title="Resolver conversa"><CheckCircle2 size={15} aria-hidden="true" /><span>Resolver</span></button>}<div className="thread-rare-actions">{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action" aria-label="Restaurar" title="Restaurar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={16}/></button> : <><button type="button" className="thread-icon-action" aria-label="Arquivar" title="Arquivar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={16}/></button><button type="button" className="thread-icon-action danger-text" aria-label="Mover para lixeira" title="Mover para lixeira" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={16}/></button></>}</div></div></header>
         <div className="thread-messages">
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}

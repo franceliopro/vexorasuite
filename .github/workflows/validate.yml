@@ -48,6 +48,10 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Validate Prisma schema
         run: pnpm --filter @vexorasuite/api exec prisma validate
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm test
       - name: Apply migrations to PostgreSQL
         run: pnpm --filter @vexorasuite/api exec prisma migrate deploy
       - name: API typecheck

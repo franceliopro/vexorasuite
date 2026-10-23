@@ -11,7 +11,7 @@ type Department = { id: string; key: string; name: string; keywords: string[]; i
 type Agent = { id: string; name: string; email: string };
 type GroupSettings = { groupsEnabled: boolean; allowedGroupIds: string[] };
 type GroupChoice = { id: string; name: string };
-type AsaasSettings = { enabled: boolean; sandbox: boolean; configured: boolean; apiKeyMasked: string };
+type AsaasSettings = { enabled: boolean; sandbox: boolean; configured: boolean; apiKeyMasked: string; webhookTokenConfigured?: boolean };
 type Conversation = { id: string; status: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -26,6 +26,7 @@ export function InboxWorkspace() {
   const [queueView, setQueueView] = useState("new");
   const [asaasSettings, setAsaasSettings] = useState<AsaasSettings>({ enabled: false, sandbox: true, configured: false, apiKeyMasked: "" });
   const [asaasKeyDraft, setAsaasKeyDraft] = useState("");
+  const [asaasWebhookDraft, setAsaasWebhookDraft] = useState("");
   const [asaasBusy, setAsaasBusy] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [groupSettings, setGroupSettings] = useState<GroupSettings>({ groupsEnabled: false, allowedGroupIds: [] });
@@ -190,8 +191,8 @@ export function InboxWorkspace() {
   async function saveAsaasSettings() {
     setAsaasBusy(true); setError("");
     try {
-      const saved = await api<AsaasSettings>("/api/backend/integrations/asaas", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: asaasSettings.enabled, sandbox: asaasSettings.sandbox, apiKey: asaasKeyDraft }) });
-      setAsaasSettings(saved); setAsaasKeyDraft("");
+      const saved = await api<AsaasSettings>("/api/backend/integrations/asaas", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: asaasSettings.enabled, sandbox: asaasSettings.sandbox, apiKey: asaasKeyDraft, webhookToken: asaasWebhookDraft }) });
+      setAsaasSettings(saved); setAsaasKeyDraft(""); setAsaasWebhookDraft("");
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar a integração Asaas."); }
     finally { setAsaasBusy(false); }
   }
@@ -315,7 +316,9 @@ export function InboxWorkspace() {
         <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "8px 0" }}><input type="checkbox" checked={asaasSettings.sandbox} onChange={(event) => setAsaasSettings((current) => ({ ...current, sandbox: event.target.checked }))} /> Usar Sandbox (testes, sem cobrança real)</label>
         <label style={{ display: "block", color: "var(--muted)", marginBottom: 5 }}>Chave de API Asaas {asaasSettings.configured ? "· já cadastrada; deixe vazio para manter" : ""}</label>
         <input type="password" autoComplete="new-password" value={asaasKeyDraft} onChange={(event) => setAsaasKeyDraft(event.target.value)} placeholder={asaasSettings.configured ? asaasSettings.apiKeyMasked : "$aact_..."} style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
-        <small style={{ display: "block", color: "var(--muted)", margin: "7px 0 10px" }}>A chave é armazenada criptografada e nunca é exibida novamente. Comece pelo Sandbox; só use Produção após validar.</small>
+        <label style={{ display: "block", color: "var(--muted)", margin: "10px 0 5px" }}>Token de autenticação do webhook {asaasSettings.webhookTokenConfigured ? "· já cadastrado; deixe vazio para manter" : ""}</label>
+        <input type="password" autoComplete="new-password" value={asaasWebhookDraft} onChange={(event) => setAsaasWebhookDraft(event.target.value)} placeholder="Token configurado no painel do Asaas" style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid var(--line)", borderRadius: 7, fontSize: 11 }} />
+        <small style={{ display: "block", color: "var(--muted)", margin: "7px 0 10px" }}>As chaves ficam criptografadas. Para confirmação automática, configure no Asaas o webhook para o endpoint da API <code>/webhooks/asaas/ID-DA-EMPRESA</code> com o mesmo token. Comece pelo Sandbox.</small>
         <button type="button" className="primary-button" onClick={() => void saveAsaasSettings()} disabled={asaasBusy}>{asaasBusy ? "Salvando..." : "Salvar Asaas"}</button>
       </details>
       <div className="inbox-conversation-list">

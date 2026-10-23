@@ -45,6 +45,15 @@ export function InboxWorkspace() {
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => { void loadConversations(); void loadChannels(); }, [loadConversations, loadChannels]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
+
+  // Poll as a fallback: inbound messages must appear even if an SSE event is missed.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void loadConversations();
+      if (selectedRef.current) void loadMessages(selectedRef.current);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [loadConversations, loadMessages]);
   useEffect(() => {
     const source = new EventSource("/api/backend/events");
     const refresh = () => { void loadConversations(); void loadChannels(); if (selectedRef.current) void loadMessages(selectedRef.current); };
@@ -94,6 +103,25 @@ export function InboxWorkspace() {
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível reconectar."); }
   }
 
+  async function disconnectChannel(channel: Channel) {
+    setError("");
+    try {
+      await api("/api/backend/channels/" + channel.id + "/disconnect", { method: "POST" });
+      setQr(null);
+      await loadChannels();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível desconectar o WhatsApp."); }
+  }
+
+  async function deleteChannel(channel: Channel) {
+    if (!window.confirm("Excluir esta sessão do WhatsApp? Será necessário ler um novo QR Code para conectá-la novamente.")) return;
+    setError("");
+    try {
+      await api("/api/backend/channels/" + channel.id, { method: "DELETE" });
+      setQr(null);
+      await loadChannels();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível excluir a sessão."); }
+  }
+
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
     if (!selectedId || !draft.trim() || busy) return;
@@ -113,26 +141,26 @@ export function InboxWorkspace() {
   const selected = conversations.find((item) => item.id === selectedId);
   return <section className="inbox-workspace">
     <aside className="inbox-list content-card">
-      <div className="inbox-panel-heading"><div><h2>Conversas</h2><p>{conversations.length} atendimento(s)</p></div><button className="text-button" onClick={() => { void loadConversations(); void loadChannels(); }}>Atualizar</button></div>
-      {activeChannel ? <div className="inbox-connection"><span className={"connection-light " + (activeChannel.status === "CONNECTED" ? "connected" : activeChannel.status === "ERROR" ? "failed" : "")} /><span><strong>{activeChannel.name}</strong><small>{activeChannel.status === "CONNECTED" ? "Conectado" : activeChannel.status === "QR" ? "Aguardando QR Code" : activeChannel.status === "ERROR" ? "Falha na conexão" : activeChannel.status}</small></span>{activeChannel.status === "ERROR" ? <button className="text-button" onClick={() => void retryConnection(activeChannel)}>Tentar novamente</button> : activeChannel.status === "CONNECTED" ? <button className="text-button" onClick={() => void retryConnection(activeChannel)}>Sincronizar conexão</button> : null}</div>
+      <div className="inbox-panel-heading"><h2>Conversas</h2><button className="text-button" title="Atualizar" aria-label="Atualizar conversas" onClick={() => { void loadConversations(); void loadChannels(); }}>↻</button></div>
+      {activeChannel ? <div className="inbox-connection"><span className={"connection-light " + (activeChannel.status === "CONNECTED" ? "connected" : activeChannel.status === "ERROR" ? "failed" : "")} /><span><strong>{activeChannel.name}</strong><small>{activeChannel.status === "CONNECTED" ? "Conectado" : activeChannel.status === "QR" ? "Aguardando QR Code" : activeChannel.status === "ERROR" ? "Falha na conexão" : activeChannel.status}</small></span><div className="connection-actions">{activeChannel.status === "ERROR" || activeChannel.status === "DISCONNECTED" ? <button className="text-button" onClick={() => void retryConnection(activeChannel)}>Reconectar</button> : activeChannel.status === "CONNECTED" ? <><button className="text-button" onClick={() => void retryConnection(activeChannel)}>Sincronizar</button><button className="text-button" onClick={() => void disconnectChannel(activeChannel)}>Desconectar</button></> : null}<button className="text-button danger-text" title="Excluir sessão" onClick={() => void deleteChannel(activeChannel)}>Excluir</button></div></div>
         : <div className="inbox-connect-prompt"><p>Conecte o WhatsApp para receber e responder mensagens aqui.</p><button className="primary-button" onClick={() => void connectWhatsApp()} disabled={connecting}>{connecting ? "Conectando..." : "Conectar WhatsApp"}</button></div>}
       {qr ? <div className="qr-panel"><p>Leia o QR Code com o WhatsApp do atendimento.</p><img src={qr} alt="QR Code para conectar WhatsApp" /><small>O estado da sessão é atualizado automaticamente.</small></div> : null}
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => setSelectedId(item.id)}>
           <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong><small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>
         </button>)}
-        {!conversations.length ? <p className="inbox-empty">Nenhuma conversa recebida. Uma nova mensagem aparecerá aqui sem atualizar a página.</p> : null}
+        {!conversations.length ? <div className="inbox-empty"><strong>Nenhuma conversa ainda</strong><p>Envie “oi” de outro celular para o WhatsApp conectado. Esta lista se atualiza sozinha a cada poucos segundos.</p></div> : null}
       </div>
     </aside>
     <div className="inbox-thread content-card">
       {selected ? <>
-        <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "Contato WhatsApp"}</p></div><span className="thread-status">{selected.status}</span></header>
+        <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}</p></div></header>
         <div className="thread-messages">
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
-          {!messages.length ? <p className="inbox-empty">Esta conversa ainda não tem mensagens.</p> : null}
+          {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}
         </div>
         <form className="inbox-composer" onSubmit={sendMessage}><textarea value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Digite sua mensagem..." maxLength={4000} rows={2} /><button className="primary-button" type="submit" disabled={busy || !draft.trim()}>{busy ? "Enviando..." : "Enviar"}</button></form>
-      </> : <div className="thread-empty"><span className="module-placeholder-icon">☏</span><h2>Atendimento em tempo real</h2><p>Selecione uma conversa ou conecte o WhatsApp para receber a primeira mensagem.</p></div>}
+      </> : <div className="thread-empty"><span className="module-placeholder-icon">☏</span><p>As mensagens recebidas aparecerão aqui.</p></div>}
     </div>
     {error ? <div className="inbox-error" role="status"><span>{error}</span><button onClick={() => setError("")} aria-label="Fechar aviso">×</button></div> : null}
   </section>;

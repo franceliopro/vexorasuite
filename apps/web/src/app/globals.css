@@ -542,3 +542,12 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .module-tab-content h2{margin:8px 0;color:var(--ink,#20243a)}
 .module-tab-content>p:not(.eyebrow){max-width:620px;color:var(--muted,#7c8299);font-size:12px;line-height:1.8}
 @media(max-width:720px){.nav-submenu{margin-left:30px}.module-tabs{border-radius:10px}.module-tab-content{padding:20px}}
+
+
+.settings-tabs{display:flex;align-items:center;gap:5px;overflow-x:auto;margin:0 0 16px;padding:5px;border:1px solid var(--line,#e9ebf3);border-radius:12px;background:var(--card,#fff)}
+.settings-tabs button{flex:none;min-height:34px;padding:0 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted,#7c8299);font:650 11px 'DM Sans',sans-serif;white-space:nowrap;cursor:pointer}
+.settings-tabs button:hover{background:var(--page,#f7f8fc);color:var(--ink,#20243a)}
+.settings-tabs button.active{border-color:var(--primary-soft,#f0efff);background:var(--primary-soft,#f0efff);color:var(--primary,#6258df)}
+.settings-planned ul{margin:12px 0 0;padding-left:20px;color:var(--muted,#7c8299);font-size:12px;line-height:2}
+.settings-grid [hidden]{display:none!important}
+@media(max-width:720px){.settings-tabs{border-radius:10px}.settings-tabs button{padding:0 10px}}

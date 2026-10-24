@@ -92,12 +92,12 @@ describe("AsaasService CRM customer synchronization", () => {
 
   it("links an existing Asaas customer by exact document instead of creating a duplicate", async () => {
     const { service, prisma, request } = setupContact();
-    request.mockResolvedValueOnce({ data: [{ id: "cus_existing", cpfCnpj: "52998224725" }], hasMore: false });
+    request.mockResolvedValueOnce({ data: [], hasMore: false }).mockResolvedValueOnce({ data: [{ id: "cus_existing", cpfCnpj: "52998224725" }], hasMore: false });
 
     const result = await service.syncCustomerByContact("tenant-id", "contact-won");
 
     expect(result).toEqual({ status: "SYNCED", customerId: "cus_existing" });
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(2);
     expect((prisma as any).contact.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "contact-won" },
       data: { metadata: expect.objectContaining({
@@ -110,12 +110,12 @@ describe("AsaasService CRM customer synchronization", () => {
 
   it("creates the Asaas customer when no exact document match exists", async () => {
     const { service, request } = setupContact();
-    request.mockResolvedValueOnce({ data: [], hasMore: false }).mockResolvedValueOnce({ id: "cus_created", name: "Cliente de teste" });
+    request.mockResolvedValueOnce({ data: [], hasMore: false }).mockResolvedValueOnce({ data: [], hasMore: false }).mockResolvedValueOnce({ id: "cus_created", name: "Cliente de teste" });
 
     const result = await service.syncCustomerByContact("tenant-id", "contact-won");
 
     expect(result).toEqual({ status: "SYNCED", customerId: "cus_created" });
-    expect(request).toHaveBeenNthCalledWith(2, "tenant-id", "/customers", expect.objectContaining({
+    expect(request).toHaveBeenNthCalledWith(3, "tenant-id", "/customers", expect.objectContaining({
       method: "POST",
       body: JSON.stringify({ name: "Cliente de teste", externalReference: "vexora:contact-won", cpfCnpj: "52998224725", email: "cliente@example.com", mobilePhone: "11987654321" }),
     }));

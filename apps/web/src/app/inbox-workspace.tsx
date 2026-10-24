@@ -11,6 +11,27 @@ type Message = { id: string; content: string; contentType: string; direction: st
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
+type QuickReply = { id:string; title:string; content:string; category?:string; shortcut?:string };
+type QuickReplySettings = { companyName:string; greetings:{dawn:string;morning:string;afternoon:string;evening:string}; farewells:{dawn:string;morning:string;afternoon:string;evening:string} };
+const DEFAULT_QUICK_REPLY_SETTINGS: QuickReplySettings = {
+  companyName: "",
+  greetings: { dawn:"Olá, boa madrugada!", morning:"Bom dia!", afternoon:"Boa tarde!", evening:"Boa noite!" },
+  farewells: { dawn:"Tenha uma ótima madrugada!", morning:"Tenha um ótimo dia!", afternoon:"Tenha uma ótima tarde!", evening:"Tenha uma ótima noite!" },
+};
+const QUICK_REPLY_VARIABLES = [
+  { token:"{{novo_nome}}", label:"Nome preferido", hint:"Nome informado na triagem" },
+  { token:"{{nome}}", label:"Nome do contato", hint:"Nome identificado no canal" },
+  { token:"{{empresa}}", label:"Empresa", hint:"Nome configurado da empresa" },
+  { token:"{{saudacao}}", label:"Saudação", hint:"Varia conforme o horário" },
+  { token:"{{despedida}}", label:"Despedida", hint:"Varia conforme o horário" },
+] as const;
+function greetingPeriod(date = new Date()): "dawn"|"morning"|"afternoon"|"evening" {
+  const hour = date.getHours();
+  if (hour < 5) return "dawn";
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
+}
 
 const EMOJI_CATEGORY_LABELS: Record<string, string> = {
   "Smileys & Emotion": "Rostos",
@@ -58,6 +79,16 @@ function ContactAvatar({ contact, className = "conversation-avatar" }: { contact
   return <span className={className}>{src ? <img src={src} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; const fallback = event.currentTarget.nextElementSibling as HTMLElement | null; if (fallback) fallback.style.display = "flex"; }}/> : null}<span className={src ? "avatar-fallback hidden" : "avatar-fallback"}>{contact.name.slice(0, 1).toUpperCase()}</span></span>;
 }
 
+function tagForeground(color: string): string {
+  const value = color.trim();
+  let r=238,g=236,b=255;
+  const hex=value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if(hex){const h=hex[1].length===3?hex[1].split("").map(x=>x+x).join(""):hex[1];r=parseInt(h.slice(0,2),16);g=parseInt(h.slice(2,4),16);b=parseInt(h.slice(4,6),16);}
+  else {const rgb=value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);if(rgb){r=Number(rgb[1]);g=Number(rgb[2]);b=Number(rgb[3]);}}
+  const linear=(n:number)=>{const c=n/255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)};
+  return 0.2126*linear(r)+0.7152*linear(g)+0.0722*linear(b)>0.42 ? "#171923" : "#ffffff";
+}
+
 function contactLabels(contact: Contact): Array<{name:string;color:string}> {
   const value = contact.metadata?.tags;
   if (!Array.isArray(value)) return [];
@@ -98,9 +129,14 @@ export function InboxWorkspace() {
   const [emojiTarget, setEmojiTarget] = useState<"composer" | "quick-reply">("composer");
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickSearch, setQuickSearch] = useState("");
-  const [quickReplies, setQuickReplies] = useState<Array<{id:string;title:string;content:string}>>([]);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [quickTitle, setQuickTitle] = useState("");
   const [quickContent, setQuickContent] = useState("");
+  const [quickCategory, setQuickCategory] = useState("Geral");
+  const [quickShortcut, setQuickShortcut] = useState("");
+  const [quickSettingsOpen, setQuickSettingsOpen] = useState(false);
+  const [quickReplySettings, setQuickReplySettings] = useState<QuickReplySettings>(DEFAULT_QUICK_REPLY_SETTINGS);
+  const [quickSettingsSaving, setQuickSettingsSaving] = useState(false);
   const [listening, setListening] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const quickContentRef = useRef<HTMLTextAreaElement | null>(null);
@@ -147,8 +183,8 @@ export function InboxWorkspace() {
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => {
     let active = true;
-    void api<Array<{id:string;title:string;content:string;category?:string;shortcut?:string}>>("/api/backend/conversations/quick-replies")
-      .then((items) => { if (active) setQuickReplies(items); })
+    void Promise.all([api<QuickReply[]>("/api/backend/conversations/quick-replies"), api<Partial<QuickReplySettings>>("/api/backend/conversations/quick-reply-settings")])
+      .then(([items, settings]) => { if (active) { setQuickReplies(items); setQuickReplySettings({ ...DEFAULT_QUICK_REPLY_SETTINGS, ...settings, greetings: { ...DEFAULT_QUICK_REPLY_SETTINGS.greetings, ...(settings.greetings || {}) }, farewells: { ...DEFAULT_QUICK_REPLY_SETTINGS.farewells, ...(settings.farewells || {}) } }); } })
       .catch(() => {
         // Keep the last local catalog available if the API is temporarily offline.
         try { const saved = localStorage.getItem("vexora:quick-replies"); if (active && saved) setQuickReplies(JSON.parse(saved)); } catch {}
@@ -286,13 +322,54 @@ export function InboxWorkspace() {
   }
 
 
-  function saveQuickReplies(next: Array<{id:string;title:string;content:string}>) {
+  function saveQuickReplies(next: QuickReply[]) {
     setQuickReplies(next);
     try { localStorage.setItem("vexora:quick-replies", JSON.stringify(next)); } catch {}
     void api("/api/backend/conversations/quick-replies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: next }) })
       .catch((e) => setError(e instanceof Error ? "As respostas foram alteradas nesta tela, mas não puderam ser compartilhadas: " + e.message : "Não foi possível compartilhar as respostas rápidas."));
   }
-  function createQuickReply() { if (!quickTitle.trim() || !quickContent.trim()) return; saveQuickReplies([...quickReplies, {id:crypto.randomUUID(),title:quickTitle.trim(),content:quickContent.trim()}]); setQuickTitle(""); setQuickContent(""); }
+  function createQuickReply() {
+    if (!quickTitle.trim() || !quickContent.trim()) return;
+    const shortcut = quickShortcut.trim().replace(/^\\/+/, "");
+    if (shortcut && quickReplies.some(item => (item.shortcut || "").toLocaleLowerCase("pt-BR") === shortcut.toLocaleLowerCase("pt-BR"))) {
+      setError("Esse atalho já está sendo usado por outra resposta rápida.");
+      return;
+    }
+    saveQuickReplies([...quickReplies, { id:crypto.randomUUID(), title:quickTitle.trim(), content:quickContent.trim(), category:quickCategory.trim() || "Geral", ...(shortcut ? { shortcut } : {}) }]);
+    setQuickTitle(""); setQuickContent(""); setQuickCategory("Geral"); setQuickShortcut("");
+  }
+  function insertQuickToken(token: string) {
+    const el = quickContentRef.current;
+    const start = el?.selectionStart ?? quickContent.length;
+    const end = el?.selectionEnd ?? quickContent.length;
+    const next = quickContent.slice(0, start) + token + quickContent.slice(end);
+    setQuickContent(next);
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + token.length, start + token.length); });
+  }
+  async function saveQuickReplySettings() {
+    setQuickSettingsSaving(true);
+    try {
+      const saved = await api<QuickReplySettings>("/api/backend/conversations/quick-reply-settings", {
+        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({settings:quickReplySettings})
+      });
+      setQuickReplySettings({ ...DEFAULT_QUICK_REPLY_SETTINGS, ...saved, greetings:{...DEFAULT_QUICK_REPLY_SETTINGS.greetings,...saved.greetings}, farewells:{...DEFAULT_QUICK_REPLY_SETTINGS.farewells,...saved.farewells} });
+      setQuickSettingsOpen(false);
+    } catch (e) { setError(e instanceof Error ? "Não foi possível salvar as frases da empresa: " + e.message : "Não foi possível salvar as frases da empresa."); }
+    finally { setQuickSettingsSaving(false); }
+  }
+  function resolveQuickReply(content: string) {
+    const period = greetingPeriod();
+    const metadata = selected?.contact.metadata || {};
+    const preferred = [metadata.preferredName, metadata.newName, metadata.triageName, metadata.nomePreferido, metadata.novo_nome].find(value => typeof value === "string" && value.trim());
+    const name = selected?.contact.name?.trim() || "";
+    const company = quickReplySettings.companyName.trim() || "nossa equipe";
+    return content
+      .replace(/{{novo_nome}}/g, typeof preferred === "string" ? preferred.trim() : name)
+      .replace(/{{nome}}/g, name)
+      .replace(/{{empresa}}/g, company)
+      .replace(/{{saudacao}}/g, quickReplySettings.greetings[period] || DEFAULT_QUICK_REPLY_SETTINGS.greetings[period])
+      .replace(/{{despedida}}/g, quickReplySettings.farewells[period] || DEFAULT_QUICK_REPLY_SETTINGS.farewells[period]);
+  }
   function insertEmoji(value:string) {
     const isQuickReply = emojiTarget === "quick-reply";
     const el = isQuickReply ? quickContentRef.current : composerRef.current;
@@ -396,7 +473,7 @@ export function InboxWorkspace() {
       </nav>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { setSelectedId(item.id); setMobileThreadOpen(true); }}>
-          <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{item.contact.name}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || "")}/></span></span>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:"#fff",borderColor:"color-mix(in srgb, "+tag.color+" 78%, #111827)",boxShadow:"inset 0 0 0 1px color-mix(in srgb, "+tag.color+" 78%, #111827)"}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>
+          <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{item.contact.name}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || "")}/></span></span>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:tagForeground(tag.color),borderColor:tag.color}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>
         </button>)}
         {!conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
       </div>
@@ -432,7 +509,7 @@ export function InboxWorkspace() {
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}
         </div>
-        <div className="composer-shell"><form className="inbox-composer" onSubmit={sendMessage}><textarea ref={composerRef} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}}} placeholder="Digite sua mensagem..." maxLength={4000} rows={3} aria-label="Mensagem"/><div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Emojis · Ctrl+Shift+E" onClick={()=>{setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><div className="composer-popover-heading"><strong>Emojis</strong><button type="button" className="composer-popover-close" onClick={()=>setEmojiOpen(false)} aria-label="Fechar emojis"><X size={15}/></button></div><input className="composer-search" value={emojiSearch} onChange={e=>setEmojiSearch(e.target.value)} placeholder="Buscar emoji ou categoria…" aria-label="Buscar emoji"/><div className="emoji-category-tabs"><button type="button" className={emojiCategory==="Todos"?"active":""} onClick={()=>setEmojiCategory("Todos")}>Todos</button>{Object.keys(emojiGroups).map(group=><button type="button" key={group} className={emojiCategory===group?"active":""} onClick={()=>setEmojiCategory(group)}>{group}</button>)}</div><div className="emoji-grid">{visibleEmojis.flatMap(([group,values])=>values.map(x=><button type="button" key={group+x} title={EMOJI_NAME_BY_VALUE[x] || group} aria-label={"Inserir emoji "+(EMOJI_NAME_BY_VALUE[x] || x)} onClick={()=>insertEmoji(x)}>{x}</button>))}</div>{!visibleEmojis.length?<small className="composer-empty-hint">Nenhum emoji encontrado. Tente outra busca.</small>:null}</div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Respostas rápidas · Ctrl+Shift+R" onClick={()=>{setQuickOpen(v=>!v);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><div className="composer-popover-heading"><strong>Respostas rápidas</strong><button type="button" className="composer-popover-close" onClick={()=>setQuickOpen(false)} aria-label="Fechar respostas rápidas"><X size={15}/></button></div><input className="composer-search" value={quickSearch} onChange={e=>setQuickSearch(e.target.value)} placeholder="Buscar por nome ou conteúdo…" aria-label="Buscar respostas rápidas"/>{quickReplies.filter(q=>(q.title+" "+q.content).toLocaleLowerCase("pt-BR").includes(quickSearch.toLocaleLowerCase("pt-BR"))).map(q=><div className="quick-reply-row" key={q.id}><button type="button" className="quick-reply-use" onClick={()=>{setDraft(v=>v?v+"\n"+q.content:q.content);setQuickOpen(false);setQuickSearch("");composerRef.current?.focus()}}><b>{q.title}</b><small>{q.content}</small></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}<div className="quick-reply-create"><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><textarea ref={quickContentRef} rows={2} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta"/><button type="button" className="quick-reply-emoji-trigger" title="Inserir emoji no texto da resposta" onClick={()=>{setEmojiTarget("quick-reply");setEmojiOpen(true);}}><Smile size={14}/> Inserir emoji</button><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> Criar resposta</button></div></div>:null}</div><button type="button" className={"composer-icon-button "+(listening?"recording":"")} title="Ditado por voz" aria-label="Ditado por voz" onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button><span className="composer-shortcut-hint"><Keyboard size={13}/> Ctrl + Enter envia</span></div><span className="composer-char-count" aria-live="polite">{draft.length}/4000 · Shift+Enter quebra linha</span><button className="composer-send-button" type="submit" disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button></div></form></div>
+        <div className="composer-shell"><form className="inbox-composer" onSubmit={sendMessage}><textarea ref={composerRef} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}}} placeholder="Digite sua mensagem..." maxLength={4000} rows={3} aria-label="Mensagem"/><div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Emojis · Ctrl+Shift+E" onClick={()=>{setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><div className="composer-popover-heading"><strong>Emojis</strong><button type="button" className="composer-popover-close" onClick={()=>setEmojiOpen(false)} aria-label="Fechar emojis"><X size={15}/></button></div><input className="composer-search" value={emojiSearch} onChange={e=>setEmojiSearch(e.target.value)} placeholder="Buscar emoji ou categoria…" aria-label="Buscar emoji"/><div className="emoji-category-tabs"><button type="button" className={emojiCategory==="Todos"?"active":""} onClick={()=>setEmojiCategory("Todos")}>Todos</button>{Object.keys(emojiGroups).map(group=><button type="button" key={group} className={emojiCategory===group?"active":""} onClick={()=>setEmojiCategory(group)}>{group}</button>)}</div><div className="emoji-grid">{visibleEmojis.flatMap(([group,values])=>values.map(x=><button type="button" key={group+x} title={EMOJI_NAME_BY_VALUE[x] || group} aria-label={"Inserir emoji "+(EMOJI_NAME_BY_VALUE[x] || x)} onClick={()=>insertEmoji(x)}>{x}</button>))}</div>{!visibleEmojis.length?<small className="composer-empty-hint">Nenhum emoji encontrado. Tente outra busca.</small>:null}</div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Respostas rápidas · Ctrl+Shift+R" onClick={()=>{setQuickOpen(v=>!v);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><div className="composer-popover-heading"><strong>Respostas rápidas</strong><div className="quick-reply-heading-actions"><button type="button" className="quick-reply-settings-toggle" onClick={()=>setQuickSettingsOpen(v=>!v)}>{quickSettingsOpen?"Voltar":"Configurar frases"}</button><button type="button" className="composer-popover-close" onClick={()=>setQuickOpen(false)} aria-label="Fechar respostas rápidas"><X size={15}/></button></div></div>{quickSettingsOpen ? <div className="quick-reply-settings"><label>Nome da empresa<input value={quickReplySettings.companyName} onChange={e=>setQuickReplySettings(v=>({...v,companyName:e.target.value}))} placeholder="Nome usado em {{empresa}}"/></label><strong>Saudações por horário</strong>{([{key:"dawn",label:"Madrugada"},{key:"morning",label:"Manhã"},{key:"afternoon",label:"Tarde"},{key:"evening",label:"Noite"}] as const).map(period=><label key={"g-"+period.key}>{period.label}<input value={quickReplySettings.greetings[period.key]} onChange={e=>setQuickReplySettings(v=>({...v,greetings:{...v.greetings,[period.key]:e.target.value}}))}/></label>)}<strong>Despedidas por horário</strong>{([{key:"dawn",label:"Madrugada"},{key:"morning",label:"Manhã"},{key:"afternoon",label:"Tarde"},{key:"evening",label:"Noite"}] as const).map(period=><label key={"f-"+period.key}>{period.label}<input value={quickReplySettings.farewells[period.key]} onChange={e=>setQuickReplySettings(v=>({...v,farewells:{...v.farewells,[period.key]:e.target.value}}))}/></label>)}<button type="button" onClick={()=>void saveQuickReplySettings()} disabled={quickSettingsSaving}>{quickSettingsSaving?"Salvando…":"Salvar frases da empresa"}</button></div> : <><input className="composer-search" value={quickSearch} onChange={e=>setQuickSearch(e.target.value)} placeholder="Buscar por nome, categoria, atalho ou conteúdo…" aria-label="Buscar respostas rápidas"/>{quickReplies.filter(q=>(q.title+" "+q.content+" "+(q.category||"")+" "+(q.shortcut||"")).toLocaleLowerCase("pt-BR").includes(quickSearch.toLocaleLowerCase("pt-BR"))).map(q=><div className="quick-reply-row" key={q.id}><button type="button" className="quick-reply-use" onClick={()=>{const content=resolveQuickReply(q.content);setDraft(v=>v?v+"\n"+content:content);setQuickOpen(false);setQuickSearch("");composerRef.current?.focus()}}><b>{q.title}</b><small>{q.category || "Geral"}{q.shortcut ? " · /"+q.shortcut : ""}</small><small>{resolveQuickReply(q.content)}</small></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}<div className="quick-reply-create"><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><div className="quick-reply-meta-fields"><input value={quickCategory} onChange={e=>setQuickCategory(e.target.value)} placeholder="Categoria (ex.: Cobrança)"/><input value={quickShortcut} onChange={e=>setQuickShortcut(e.target.value.replace(/\s/g,""))} placeholder="Atalho opcional (ex.: oi)"/></div><textarea ref={quickContentRef} rows={3} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta. Use as variáveis abaixo…"/><div className="quick-reply-variables"><strong>Inserir variável no cursor</strong><div>{QUICK_REPLY_VARIABLES.map(variable=><button type="button" key={variable.token} title={variable.hint} onClick={()=>insertQuickToken(variable.token)}>{variable.token}</button>)}</div></div><div className="quick-reply-preview"><strong>Prévia</strong><p>{resolveQuickReply(quickContent || "Olá, {{novo_nome}}! {{saudacao}} {{despedida}}")}</p></div><button type="button" className="quick-reply-emoji-trigger" title="Inserir emoji no texto da resposta" onClick={()=>{setEmojiTarget("quick-reply");setEmojiOpen(true);}}><Smile size={14}/> Inserir emoji</button><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> Criar resposta</button></div></> }</div>:null}</div><button type="button" className={"composer-icon-button "+(listening?"recording":"")} title="Ditado por voz" aria-label="Ditado por voz" onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button><span className="composer-shortcut-hint"><Keyboard size={13}/> Ctrl + Enter envia</span></div><span className="composer-char-count" aria-live="polite">{draft.length}/4000 · Shift+Enter quebra linha</span><button className="composer-send-button" type="submit" disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button></div></form></div>
       </> : <div className="thread-empty"><span className="module-placeholder-icon">☏</span><p>As mensagens recebidas aparecerão aqui.</p></div>}
     </div>
     {selected ? <ContactProfilePanel contact={selected.contact} conversationId={selected.id} status={selected.status} createdAt={selected.createdAt} channel={selected.channel} expanded={contactProfileExpanded} onExpandedChange={setContactProfileExpanded} /> : null}

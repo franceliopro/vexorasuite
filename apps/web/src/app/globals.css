@@ -2266,3 +2266,27 @@ input[type="color"].profile-tag-inline-color {
     max-width: none;
   }
 }
+
+/* WhatsApp Web-inspired compact spacing for individual conversation bubbles. */
+.thread-messages .message-bubble {
+  padding: 5px 7px !important;
+  margin: 2px 0 !important;
+}
+.thread-messages .message-bubble p {
+  margin: 0 !important;
+  line-height: 1.45;
+}
+.thread-messages .message-bubble small {
+  display: inline-block;
+  margin: 2px 0 0 7px;
+  line-height: 1.1;
+}
+@media (max-width: 760px) {
+  .thread-messages .message-bubble {
+    padding: 5px 7px !important;
+    margin: 2px 0 !important;
+  }
+  .thread-messages .message-bubble p {
+    line-height: 1.45;
+  }
+}

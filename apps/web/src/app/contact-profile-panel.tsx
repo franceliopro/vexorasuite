@@ -29,7 +29,7 @@ export function ContactProfilePanel({contact,conversationId,status,createdAt,cha
     setFields(meta.customFields&&typeof meta.customFields==="object"?JSON.stringify(meta.customFields,null,2):"{}");
     const lead=meta.leadOrigin&&typeof meta.leadOrigin==="object"?meta.leadOrigin as {source?:unknown}:null;
     const savedOrigin=typeof lead?.source==="string"?lead.source:"";
-    setLeadOrigin(savedOrigin || (contact.source && !["CRM","ASAAS"].includes(contact.source.toUpperCase())?contact.source:""));
+    setLeadOrigin(savedOrigin || (contact.source && !["CRM","ASAAS","WHATSAPP","WAHA"].includes(contact.source.toUpperCase())?contact.source:""));
     setTab("dados");setError("");
   },[contact.id]);
   useEffect(()=>{let live=true;void request<Protocol[]>("/api/backend/contacts/"+contact.id+"/history").then(v=>{if(live)setHistory(v)}).catch(()=>{});return()=>{live=false}},[contact.id]);

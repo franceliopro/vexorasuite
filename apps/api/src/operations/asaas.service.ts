@@ -230,6 +230,7 @@ export class AsaasService {
         state: customer.state || null,
         customerId: customer.id,
         environment: counters.environment,
+        status: typeof customer.deleted === "boolean" ? (customer.deleted ? "DELETED" : "ACTIVE") : "UNKNOWN",
         dateCreated: customer.dateCreated || null,
         syncedAt: new Date().toISOString(),
       };

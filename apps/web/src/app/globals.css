@@ -292,3 +292,58 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 @media(max-width:1250px){.crm-pipeline{grid-template-columns:repeat(5,minmax(225px,1fr))}}
 @media(max-width:720px){.crm-toolbar{align-items:stretch;flex-direction:column}.crm-toolbar-search{width:100%}.crm-view-switch{align-self:flex-start}.crm-pipeline{grid-template-columns:repeat(5,minmax(245px,78vw));gap:10px;margin-right:-2px}.crm-pipeline-column{min-height:320px}.crm-stage-cards{min-height:220px}.crm-heading{align-items:flex-start}.crm-heading .primary-button{width:auto}.crm-contacts-card{padding:13px}.crm-stage-pill{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.crm-loading-orbit{animation:none}.crm-pipeline-column,.crm-pipeline-card,.crm-stage-empty{transition:none}}
+
+
+/* Conversation actions: one compact aligned family, each action with its own soft accent. */
+.thread-actions{gap:7px;align-items:center}
+.handoff-toolbar{display:contents;gap:0;padding:0;border:0;background:transparent;box-shadow:none}
+.handoff-menu{display:inline-flex;flex:0 0 auto;align-items:center}
+.thread-actions>.handoff-toolbar>.handoff-menu{display:inline-flex}
+.thread-actions .handoff-invite-trigger,
+.thread-actions .thread-action-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:32px;height:32px;padding:0 10px;
+  border:1px solid transparent;border-radius:8px;
+  font-size:10px;font-weight:750;line-height:1;letter-spacing:.01em;
+  box-shadow:0 1px 2px rgba(35,38,75,.035);
+  transition:background .16s,border-color .16s,color .16s,box-shadow .16s,transform .16s;
+}
+.thread-actions .handoff-direct-trigger{
+  border-color:#e1dcff;background:#f5f3ff;color:#6655cf;
+}
+.thread-actions .handoff-direct-trigger:hover,
+.thread-actions .handoff-menu:not(.invite-menu)[open]>.handoff-direct-trigger{
+  border-color:#c9bfff;background:#ebe6ff;color:#5542bf;box-shadow:0 3px 10px #7564df20;
+}
+.thread-actions .invite-menu>.handoff-invite-trigger{
+  border-color:#d9e8ff;background:#f0f6ff;color:#3479c9;
+}
+.thread-actions .invite-menu>.handoff-invite-trigger:hover,
+.thread-actions .invite-menu[open]>.handoff-invite-trigger{
+  border-color:#b9d5ff;background:#e4efff;color:#2466b8;box-shadow:0 3px 10px #4b91e81c;
+}
+.thread-actions .thread-action-button.resolve{
+  border-color:#cfeade;background:#effaf4;color:#168260;
+  font-weight:800;box-shadow:0 2px 5px rgba(22,130,96,.07);
+}
+.thread-actions .thread-action-button.resolve:hover:not(:disabled){
+  border-color:#a8dbc6;background:#e2f6eb;color:#107451;box-shadow:0 3px 10px #1682601c;
+}
+.thread-actions .thread-action-button:not(.resolve){
+  border-color:#e1e4ed;background:#f7f8fc;color:#5f6680;
+}
+.thread-actions .thread-action-button:not(.resolve):hover:not(:disabled){
+  border-color:#cfd3e2;background:#eef0f8;color:#424a68;
+}
+.thread-actions .handoff-direct-trigger:active,
+.thread-actions .handoff-invite-trigger:active,
+.thread-actions .thread-action-button:active:not(:disabled){transform:translateY(1px)}
+.thread-actions .thread-rare-actions{margin-left:0}
+@media(max-width:1120px){
+ .thread-actions{gap:6px}
+ .thread-actions .handoff-toolbar{display:contents}
+}
+@media(max-width:480px){
+ .thread-actions{gap:5px}
+ .thread-actions .handoff-invite-trigger,.thread-actions .thread-action-button{min-height:30px;height:30px;padding:0 8px;gap:4px;font-size:9px}
+}

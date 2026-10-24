@@ -1,9 +1,20 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
+
+const CRM_STAGES = ["new", "qualification", "proposal", "won", "lost"] as const;
+type CrmStage = (typeof CRM_STAGES)[number];
+function readCrmStage(metadata: Prisma.JsonValue): CrmStage {
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata) && "crmStage" in metadata) {
+    const stage = metadata.crmStage;
+    if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage;
+  }
+  return "new";
+}
 
 @Controller("contacts")
 @UseGuards(AuthGuard)
@@ -14,9 +25,9 @@ export class ContactsController {
   ) {}
 
   @Get()
-  list(@Req() request: AuthenticatedRequest, @Query("q") query?: string) {
+  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string) {
     const q = query?.trim();
-    return this.prisma.contact.findMany({
+    const contacts = await this.prisma.contact.findMany({
       where: {
         tenantId: request.user.tenantId,
         ...(q ? {
@@ -30,6 +41,18 @@ export class ContactsController {
       orderBy: { updatedAt: "desc" },
       take: 100,
     });
+    return contacts.map((contact) => ({ ...contact, crmStage: readCrmStage(contact.metadata) }));
+  }
+
+  @Patch(":id/stage")
+  async updateStage(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { stage?: string }) {
+    if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida.");
+    const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId } });
+    if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
+    const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
+    const updated = await this.prisma.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, crmStage: input.stage } } });
+    this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, stage: input.stage });
+    return { ...updated, crmStage: input.stage };
   }
 
   @Post()

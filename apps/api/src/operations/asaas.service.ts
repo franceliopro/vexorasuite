@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEq
 import { PrismaService } from "../prisma/prisma.service";
 
 type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string; encryptedWebhookToken?: string };
-type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };
+type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };\n\nfunction mergedCustomerMetadata(customer: Record<string, unknown>): Record<string, unknown> { return { ...customer }; }
 
 @Injectable()
 export class AsaasService {
@@ -165,6 +165,138 @@ export class AsaasService {
       });
     }
     return { payment: updated, conversation: existing.conversation, paid };
+  }
+
+  async syncCustomers(tenantId: string): Promise<{ created: number; updated: number; unchanged: number; pages: number; total: number; environment: string }> {
+    const credentials = await this.credentials(tenantId);
+    type AsaasCustomer = {
+      id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null;
+      cpfCnpj?: string | null; postalCode?: string | null; address?: string | null; addressNumber?: string | null;
+      complement?: string | null; province?: string | null; city?: number | null; cityName?: string | null;
+      state?: string | null; country?: string | null; personType?: string | null; dateCreated?: string | null;
+    };
+    const customers: AsaasCustomer[] = [];
+    const limit = 100;
+    let offset = 0;
+    let pages = 0;
+    // Follow Asaas pagination until hasMore is false; cap total pages to avoid an accidental endless loop.
+    for (let page = 0; page < 1000; page++) {
+      const result = await this.request<{ data?: AsaasCustomer[]; hasMore?: boolean }>(
+        tenantId, "/customers?limit=" + limit + "&offset=" + offset,
+      );
+      const batch = Array.isArray(result.data) ? result.data : [];
+      pages++;
+      customers.push(...batch.filter((customer) => typeof customer.id === "string" && customer.id.length > 0));
+      if (!result.hasMore || batch.length === 0) break;
+      offset += batch.length;
+      if (page === 999) throw new ServiceUnavailableException("A sincronização excedeu o limite seguro de páginas do Asaas.");
+    }
+
+    const digits = (value: unknown) => String(value ?? "").replace(/\\D/g, "");
+    const normalizeEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
+    const normalizePhone = (value: unknown) => {
+      let phone = digits(value);
+      if (phone.startsWith("55") && (phone.length === 12 || phone.length === 13)) phone = phone.slice(2);
+      return phone.length === 11 && phone[2] === "9" ? phone.slice(0, 2) + phone.slice(3) : phone;
+    };
+    const counters = { created: 0, updated: 0, unchanged: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
+
+    // Reconcile only unambiguous matches. Never merge two contacts because of a shared name.
+    for (const customer of customers) {
+      const document = digits(customer.cpfCnpj);
+      const phone = customer.mobilePhone || customer.phone || null;
+      const email = customer.email?.trim() || null;
+      const address = [
+        customer.address, customer.addressNumber, customer.complement, customer.province,
+        customer.cityName, customer.state, customer.postalCode, customer.country,
+      ].filter((part) => typeof part === "string" && part.trim()).join(", ");
+      const incoming = {
+        name: customer.name?.trim() || "",
+        phone,
+        email,
+        source: "ASAAS",
+        document: document || null,
+        personType: document.length === 14 ? "PJ" : document.length === 11 ? "PF" : customer.personType || null,
+        address: address || null,
+        customerId: customer.id,
+        environment: counters.environment,
+        status: "ACTIVE",
+        dateCreated: customer.dateCreated || null,
+        syncedAt: new Date().toISOString(),
+      };
+
+      await this.prisma.$transaction(async (tx) => {
+        const tenantContacts = await tx.contact.findMany({
+          where: { tenantId },
+          select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
+        });
+        const metadataOf = (value: unknown): Record<string, unknown> =>
+          value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+        const asaasOf = (value: unknown): Record<string, unknown> => metadataOf(metadataOf(value).asaas);
+        let matches = tenantContacts.filter((contact) => asaasOf(contact.metadata).customerId === customer.id);
+        if (matches.length !== 1 && document) {
+          const byDocument = tenantContacts.filter((contact) => digits(metadataOf(contact.metadata).document) === document);
+          if (byDocument.length === 1) matches = byDocument;
+        }
+        if (matches.length !== 1 && phone) {
+          const normalized = normalizePhone(phone);
+          const byPhone = tenantContacts.filter((contact) => normalizePhone(contact.phone) === normalized && normalized.length >= 10);
+          if (byPhone.length === 1) matches = byPhone;
+        }
+        if (matches.length !== 1 && email) {
+          const byEmail = tenantContacts.filter((contact) => normalizeEmail(contact.email) === normalizeEmail(email));
+          if (byEmail.length === 1) matches = byEmail;
+        }
+
+        if (matches.length === 1) {
+          const existing = matches[0];
+          const previous = metadataOf(existing.metadata);
+          const previousAsaas = asaasOf(existing.metadata);
+          const mergedAsaas = { ...previousAsaas, ...incoming };
+          const nextMetadata = {
+            ...previous,
+            document: document || previous.document || null,
+            personType: incoming.personType || previous.personType || null,
+            address: address || previous.address || null,
+            asaas: mergedAsaas,
+          };
+          const nextName = incoming.name || existing.name;
+          const nextPhone = incoming.phone || existing.phone;
+          const nextEmail = incoming.email || existing.email;
+          const changed = nextName !== existing.name || nextPhone !== existing.phone || nextEmail !== existing.email
+            || existing.source !== "ASAAS" || JSON.stringify(previous) !== JSON.stringify(nextMetadata);
+          if (!changed) { counters.unchanged++; return; }
+          await tx.contact.update({
+            where: { id: existing.id },
+            data: {
+              name: nextName, phone: nextPhone, email: nextEmail,
+              source: existing.source || "ASAAS", metadata: nextMetadata,
+            },
+          });
+          counters.updated++;
+          return;
+        }
+
+        const metadata = {
+          document: document || null,
+          personType: incoming.personType,
+          address: address || null,
+          asaas: mergedCustomerMetadata(incoming),
+        };
+        await tx.contact.create({
+          data: {
+            tenantId,
+            name: incoming.name || "Cliente Asaas",
+            phone: incoming.phone,
+            email: incoming.email,
+            source: "ASAAS",
+            metadata,
+          },
+        });
+        counters.created++;
+      });
+    }
+    return counters;
   }
 
   async openDebts(tenantId: string, document: string, whatsappPhone?: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {

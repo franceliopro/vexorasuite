@@ -2290,3 +2290,81 @@ input[type="color"].profile-tag-inline-color {
     line-height: 1.45;
   }
 }
+
+/* Match WhatsApp Web's compact message typography without sacrificing readability. */
+.thread-messages .message-bubble p {
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+.thread-messages .message-bubble small {
+  font-size: 10px;
+}
+@media (max-width: 760px) {
+  .thread-messages .message-bubble p {
+    font-size: 14px !important;
+    line-height: 1.45;
+  }
+  .thread-messages .message-bubble small {
+    font-size: 10px;
+  }
+}
+
+
+/* Make inbox conversation rows denser so more contacts fit without sacrificing scanability. */
+.inbox-conversation {
+  gap: 8px;
+  padding: 8px 10px;
+  min-height: 0;
+}
+.inbox-conversation .conversation-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+}
+.inbox-conversation .conversation-summary {
+  gap: 3px;
+}
+.inbox-conversation .conversation-title-row {
+  gap: 6px;
+  line-height: 1.25;
+}
+.inbox-conversation .conversation-summary > strong,
+.inbox-conversation .conversation-title-row > strong {
+  line-height: 1.3;
+}
+.inbox-conversation .conversation-summary > small {
+  line-height: 1.3;
+}
+.inbox-conversation .conversation-tags {
+  gap: 3px;
+  margin-top: 1px;
+}
+.inbox-conversation .conversation-tag {
+  min-height: 19px;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.inbox-conversation.selected {
+  padding-left: 10px;
+}
+@media (max-width: 760px) {
+  .inbox-conversation {
+    gap: 8px;
+    padding: 8px 9px;
+  }
+  .inbox-conversation .conversation-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .inbox-conversation .conversation-tag {
+    min-height: 19px;
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+}
+@media (max-width: 380px) {
+  .inbox-conversation {
+    padding: 7px 8px;
+  }
+}

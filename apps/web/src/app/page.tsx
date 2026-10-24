@@ -5,6 +5,7 @@ import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
 import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
+import { ChannelsIntegrations } from "./channels-integrations";
 import {
   CalendarDays,
   Activity,
@@ -22,6 +23,7 @@ import {
   Wallet,
   Workflow,
   UsersRound,
+  Share2,
 } from "lucide-react";
 
 const iconMap = {
@@ -37,6 +39,7 @@ const iconMap = {
   "chevron-right": ChevronRight,
   "chart-no-axes-combined": Activity,
   sparkles: Sparkles,
+  share: Share2,
 };
 
 function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
@@ -53,7 +56,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
     { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Anúncios" }, { label: "Resultados" }] },
     { label: "Financeiro", icon: "wallet", children: [{ label: "Gestão" }, { label: "Integrações (API)" }] },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Canais e integrações", icon: "share" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const metrics = [
@@ -147,7 +150,7 @@ export default function HomePage() {
         </a><button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => item.label !== "Configurações" || canConfigure);
+            const visibleItems = group.items.filter((item) => (item.label !== "Configurações" && item.label !== "Canais e integrações") || canConfigure);
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
@@ -192,7 +195,7 @@ export default function HomePage() {
         </header>
 
         <div className="page-content">
-          {active !== "Atendimento" && active !== "Configurações" && active !== "CRM" ? <section className="page-heading">
+          {active !== "Atendimento" && active !== "Configurações" && active !== "Canais e integrações" && active !== "CRM" ? <section className="page-heading">
             <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? greeting+"! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
           </section> : null}
@@ -228,6 +231,8 @@ export default function HomePage() {
             </section>
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
+          ) : active === "Canais e integrações" ? (
+            canConfigure ? <ChannelsIntegrations /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (
             canConfigure ? <OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (

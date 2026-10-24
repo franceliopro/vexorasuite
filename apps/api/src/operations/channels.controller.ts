@@ -14,12 +14,53 @@ export class ChannelConnectionsController {
   constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly zernio: ZernioService) {}
 
   @Get()
-  list(@Req() request: AuthenticatedRequest) {
-    return this.prisma.channelConnection.findMany({
+  async list(@Req() request: AuthenticatedRequest) {
+    const rows = await this.prisma.channelConnection.findMany({
       where: { tenantId: request.user.tenantId, isActive: true },
-      select: { id: true, name: true, provider: true, sessionName: true, status: true, lastError: true, isActive: true, createdAt: true, updatedAt: true },
+      select: { id: true, name: true, provider: true, sessionName: true, status: true, lastError: true, isActive: true, createdAt: true, updatedAt: true, settings: true },
       orderBy: { createdAt: "desc" },
     });
+    return rows.map(({ settings, ...channel }) => {
+      const safeSettings = settings && typeof settings === "object" && !Array.isArray(settings) ? settings as Record<string, unknown> : {};
+      return { ...channel, ...(channel.provider === "ZERNIO" ? {
+        platform: typeof safeSettings.platform === "string" ? safeSettings.platform : undefined,
+        accountId: typeof safeSettings.accountId === "string" ? safeSettings.accountId : undefined,
+      } : {}) };
+    });
+  }
+
+  @Get("zernio/diagnostics")
+  async zernioDiagnostics(@Req() request: AuthenticatedRequest) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+      throw new ForbiddenException("Somente gestores podem validar a integração Zernio.");
+    }
+    const configured = Boolean(process.env.ZERNIO_API_KEY?.trim());
+    const publicUrlConfigured = Boolean(process.env.API_PUBLIC_URL?.trim());
+    if (!configured) {
+      return { configured: false, publicUrlConfigured, authenticated: false, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "ZERNIO_API_KEY não está configurada no servidor." };
+    }
+    try {
+      await this.zernio.request("/user");
+      const response = await this.zernio.request<unknown>("/accounts");
+      const raw = Array.isArray(response) ? response : response && typeof response === "object"
+        ? (Array.isArray((response as Record<string, unknown>).data) ? (response as Record<string, unknown>).data :
+          Array.isArray((response as Record<string, unknown>).accounts) ? (response as Record<string, unknown>).accounts : [])
+        : [];
+      const accounts = raw.map((item) => {
+        const account = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        return {
+          accountId: String(account.accountId ?? account.id ?? ""),
+          platform: String(account.platform ?? ""),
+          username: typeof account.username === "string" ? account.username : undefined,
+          name: typeof account.name === "string" ? account.name : typeof account.displayName === "string" ? account.displayName : undefined,
+          status: typeof account.status === "string" ? account.status : undefined,
+          profileName: typeof account.profileName === "string" ? account.profileName : undefined,
+        };
+      }).filter((account) => account.accountId && account.platform);
+      return { configured, publicUrlConfigured, authenticated: true, accountCount: accounts.length, accounts, checkedAt: new Date().toISOString() };
+    } catch {
+      return { configured, publicUrlConfigured, authenticated: false, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "A Zernio não confirmou a autenticação. Verifique a chave e as permissões no servidor." };
+    }
   }
 
   @Post("waha")

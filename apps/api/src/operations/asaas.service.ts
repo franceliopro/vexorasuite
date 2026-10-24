@@ -232,7 +232,7 @@ export class AsaasService {
         return await markPending("Informe CPF/CNPJ, e-mail ou telefone para evitar cadastro duplicado no Asaas.");
       }
 
-      type AsaasCustomerRecord = { id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null; cpfCnpj?: string | null; deleted?: boolean };
+      type AsaasCustomerRecord = { id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null; cpfCnpj?: string | null; externalReference?: string | null; deleted?: boolean };
       const remoteCustomers: AsaasCustomerRecord[] = [];
       let offset = 0;
       for (let page = 0; page < 100; page++) {
@@ -245,15 +245,10 @@ export class AsaasService {
         offset += batch.length;
         if (page === 99) throw new ServiceUnavailableException("A consulta de clientes do Asaas excedeu o limite seguro.");
       }
-      let matches: AsaasCustomerRecord[] = [];
-      if (document) {
-        matches = remoteCustomers.filter((item) => digits(item.cpfCnpj) === document);
-      } else if (email) {
-        matches = remoteCustomers.filter((item) => emailKey(item.email) === emailKey(email));
-      } else {
-        const normalizedPhone = phoneKey(phone);
-        matches = remoteCustomers.filter((item) => [item.phone, item.mobilePhone].some((value) => phoneKey(value) === normalizedPhone && normalizedPhone.length >= 10));
-      }
+      // Prefer the explicit Véxora external reference, then a unique exact document match.
+      // Email/phone alone must not silently attach a financial customer to the wrong person.
+      let matches = remoteCustomers.filter((item) => item.externalReference === "vexora:" + contactId);
+      if (matches.length === 0 && document) matches = remoteCustomers.filter((item) => digits(item.cpfCnpj) === document);
       if (matches.length > 1) {
         return await markPending("Há mais de um cadastro compatível no Asaas. Revise os dados antes de sincronizar para evitar duplicidade.");
       }
@@ -262,7 +257,7 @@ export class AsaasService {
       if (matches.length === 1) {
         remote = matches[0]!;
       } else {
-        const payload: Record<string, string> = { name };
+        const payload: Record<string, string> = { name, externalReference: "vexora:" + contactId };
         if (document) payload.cpfCnpj = document;
         if (email) payload.email = email;
         if (phone) payload.mobilePhone = phone;

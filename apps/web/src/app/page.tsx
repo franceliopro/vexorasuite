@@ -75,7 +75,9 @@ export default function HomePage() {
     const validModules = new Set(navigation.flatMap((group) => group.items.map((item) => item.label)));
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
-    if (requested && validModules.has(requested)) setActive(requested);
+    if (requested === "Origem dos Leads") setActive("CRM");
+    else if (requested === "Relatórios") setActive("Inteligência Operacional");
+    else if (requested && validModules.has(requested)) setActive(requested);
     setNavigationReady(true);
   }, []);
   useEffect(() => {

@@ -44,6 +44,27 @@ export class ContactsController {
     return contacts.map((contact) => ({ ...contact, crmStage: readCrmStage(contact.metadata) }));
   }
 
+  @Get(":id/history")
+  async history(@Req() request: AuthenticatedRequest, @Param("id") id: string) {
+    const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
+    if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
+    return this.prisma.conversation.findMany({ where: { contactId: contact.id, tenantId: request.user.tenantId }, select: { id: true, status: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 50 });
+  }
+
+  @Patch(":id/profile")
+  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown }) {
+    const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId } });
+    if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
+    if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.some((tag) => typeof tag !== "string" || tag.length > 40))) throw new BadRequestException("Etiquetas inválidas.");
+    if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
+    if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
+    const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
+    const metadata: Prisma.InputJsonObject = { ...existing, ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}), ...(input.notes !== undefined ? { notes: input.notes } : {}), ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}) };
+    const updated = await this.prisma.contact.update({ where: { id: contact.id }, data: { metadata } });
+    this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
+    return { id: updated.id, metadata: updated.metadata };
+  }
+
   @Patch(":id/stage")
   async updateStage(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { stage?: string }) {
     if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida.");

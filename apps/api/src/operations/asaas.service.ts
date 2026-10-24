@@ -337,9 +337,11 @@ export class AsaasService {
       if (settings.enabled !== true || !settings.encryptedApiKey) continue;
       try {
         const result = await this.syncCustomers(tenant.id);
+        const pending = await this.syncPendingCustomers(tenant.id);
         this.logger.log("Asaas customer sync tenant=" + tenant.id + " environment=" + result.environment
           + " total=" + result.total + " created=" + result.created + " updated=" + result.updated
-          + " notListed=" + result.notListed);
+          + " notListed=" + result.notListed + " CRM-pending-attempted=" + pending.attempted
+          + " CRM-synced=" + pending.synced + " CRM-pending=" + pending.pending);
       } catch (error) {
         this.logger.warn("Asaas customer sync failed tenant=" + tenant.id + ": "
           + (error instanceof Error ? error.message : "erro desconhecido"));

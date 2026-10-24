@@ -5,6 +5,8 @@ import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
 import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
+import { ReportsWorkspace } from "./reports-workspace";
+import { LeadOriginsWorkspace } from "./lead-origins-workspace";
 import {
   CalendarDays,
   Activity,
@@ -42,7 +44,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 
 const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
-  { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
+  { section: "RESULTADOS", items: [{ label: "Origem dos Leads", icon: "users" }, { label: "Relatórios", icon: "chart-no-axes-combined" }, { label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
 ];
 
@@ -181,6 +183,10 @@ export default function HomePage() {
             </>
           ) : active === "CRM" ? (
             <CrmWorkspace />
+          ) : active === "Origem dos Leads" ? (
+            <LeadOriginsWorkspace />
+          ) : active === "Relatórios" ? (
+            <ReportsWorkspace />
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
           ) : active === "Configurações" ? (

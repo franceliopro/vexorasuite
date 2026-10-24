@@ -11,6 +11,8 @@ type CrmStage = (typeof CRM_STAGES)[number];
 function readCrmStage(metadata: Prisma.JsonValue): CrmStage | null {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
     if ("crmFinalization" in metadata && metadata.crmFinalization) return null;
+    if (metadata.contactType === "CUSTOMER") return null;
+    if ("asaas" in metadata && metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas) && "customerId" in metadata.asaas) return null;
     if ("crmStage" in metadata) { const stage = metadata.crmStage; if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage; }
   }
   return "new";
@@ -52,14 +54,15 @@ export class ContactsController {
   }
 
   @Patch(":id/profile")
-  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown }) {
+  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown }) {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.some((tag) => typeof tag !== "string" || tag.length > 40))) throw new BadRequestException("Etiquetas inválidas.");
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
+    if (input.leadOrigin !== undefined && (typeof input.leadOrigin !== "string" || input.leadOrigin.length > 120)) throw new BadRequestException("Origem do lead inválida.");
     const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
-    const metadata: Prisma.InputJsonObject = { ...existing, ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}), ...(input.notes !== undefined ? { notes: input.notes } : {}), ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}) };
+    const metadata: Prisma.InputJsonObject = { ...existing, ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}), ...(input.notes !== undefined ? { notes: input.notes } : {}), ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}), ...(input.leadOrigin !== undefined ? { leadOrigin: { source: input.leadOrigin.trim() } } : {}) };
     const updated = await this.prisma.contact.update({ where: { id: contact.id }, data: { metadata } });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
     return { id: updated.id, metadata: updated.metadata };

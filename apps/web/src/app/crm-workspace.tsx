@@ -47,6 +47,7 @@ export function CrmWorkspace() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [leadOrigin, setLeadOrigin] = useState("");
   const [finalizingContact, setFinalizingContact] = useState<Contact | null>(null);
   const [finalOutcome, setFinalOutcome] = useState<"WON" | "LOST" | "">("");
   const [lossReason, setLossReason] = useState("");
@@ -75,9 +76,9 @@ export function CrmWorkspace() {
     try {
       await api<Contact>("/api/backend/contacts", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined, email: email.trim() || undefined, source: "CRM" }),
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined, email: email.trim() || undefined, source: leadOrigin || undefined }),
       });
-      setName(""); setPhone(""); setEmail(""); setFormOpen(false);
+      setName(""); setPhone(""); setEmail(""); setLeadOrigin(""); setFormOpen(false);
       setNotice("Contato cadastrado e adicionado à etapa Novos.");
       await loadContacts(query);
     } catch (cause) {
@@ -160,6 +161,7 @@ export function CrmWorkspace() {
           <label className="settings-field">Nome *<input required autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome do contato" /></label>
           <label className="settings-field">Telefone<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+55 (00) 00000-0000" /></label>
           <label className="settings-field">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nome@empresa.com" /></label>
+          <label className="settings-field">Origem do lead<select value={leadOrigin} onChange={(event) => setLeadOrigin(event.target.value)}><option value="">Não identificada</option><option value="Site/Formulário">Site/Formulário</option><option value="Indicação">Indicação</option><option value="Redes sociais">Redes sociais</option><option value="Anúncio">Anúncio</option><option value="Evento">Evento</option><option value="Importação">Importação</option><option value="Outra">Outra</option></select><small>O canal de atendimento não será considerado origem de aquisição automaticamente.</small></label>
         </div>
         <div className="crm-form-actions"><button className="secondary-button" type="button" onClick={() => setFormOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Salvando..." : "Cadastrar contato"}</button></div>
       </form> : null}

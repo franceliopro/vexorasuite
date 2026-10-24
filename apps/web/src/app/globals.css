@@ -359,3 +359,76 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 
 /* Shared CRM / inbox finalization dialog */
 .finalization-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(16,24,40,.48);backdrop-filter:blur(4px)}.finalization-dialog{position:relative;width:min(100%,480px);max-height:min(90vh,760px);overflow:auto;padding:28px;border:1px solid #eaecf0;border-radius:20px;background:#fff;box-shadow:0 24px 80px rgba(16,24,40,.24);color:#101828}.finalization-close{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:9px;background:#f8f9fc;color:#667085;cursor:pointer}.finalization-icon{display:grid;place-items:center;width:46px;height:46px;margin-bottom:16px;border-radius:14px;background:#eef2ff;color:#5145cd}.finalization-dialog h2{margin:0 36px 7px 0;font-size:21px;letter-spacing:-.035em}.finalization-dialog>p{margin:0 0 18px;color:#667085;font-size:13px;line-height:1.55}.finalization-dialog>p strong{color:#344054}.finalization-outcomes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}.finalization-outcomes button{display:flex;align-items:flex-start;gap:10px;min-height:82px;padding:14px;border:1px solid #e4e7ec;border-radius:12px;background:#fff;text-align:left;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}.finalization-outcomes button>span{display:grid;gap:5px}.finalization-outcomes button strong{font-size:13px}.finalization-outcomes button small{color:#667085;font-size:11px;line-height:1.4}.finalization-outcomes button.won>svg{color:#039855}.finalization-outcomes button.lost>svg{color:#d92d20}.finalization-outcomes button.won.selected{border-color:#75d6a6;background:#f0fdf4;box-shadow:0 0 0 3px rgba(18,183,106,.08)}.finalization-outcomes button.lost.selected{border-color:#fda29b;background:#fff5f4;box-shadow:0 0 0 3px rgba(217,45,32,.07)}.finalization-reason{display:grid;gap:7px;margin:12px 0 16px;color:#344054;font-size:12px;font-weight:650}.finalization-reason select{width:100%;padding:11px 12px;border:1px solid #d0d5dd;border-radius:9px;background:#fff;color:#101828;font:inherit;font-weight:400}.finalization-dialog .finalization-note{margin:14px 0;padding:11px 12px;border-radius:9px;background:#f8f9fc;color:#667085;font-size:11px}.finalization-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:4px}.finalization-actions button{min-height:39px}.finalization-actions button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:520px){.finalization-backdrop{align-items:end;padding:10px}.finalization-dialog{padding:22px 18px;border-radius:18px 18px 14px 14px;max-height:88vh}.finalization-outcomes{gap:7px}.finalization-outcomes button{padding:11px;min-height:90px}.finalization-actions{display:grid;grid-template-columns:1fr 1fr}.finalization-actions button{width:100%;justify-content:center}}
+
+
+/* CRM intelligence: reporting and lead attribution */
+.reports-workspace,.lead-origins-workspace{display:flex;flex-direction:column;gap:18px;min-width:0}
+.report-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.report-heading h1{margin:5px 0 8px;font:800 clamp(25px,3vw,34px) Manrope,sans-serif;letter-spacing:-1.1px}
+.report-heading>div>p:not(.eyebrow){max-width:700px;margin:5px 0;color:var(--muted);font-size:13px;line-height:1.65}
+.report-heading>div>p.eyebrow{margin:0;color:var(--primary);font-size:10px;font-weight:800;letter-spacing:1.5px}
+.report-heading .report-subtitle{max-width:720px}
+.report-heading-icon{display:grid;place-items:center;flex:none;width:54px;height:54px;border-radius:17px;background:var(--primary-soft);color:var(--primary)}
+.report-filters{display:flex;align-items:end;flex-wrap:wrap;gap:12px;padding:16px 18px}
+.report-filter-title{display:flex;align-items:center;gap:8px;align-self:center;color:var(--ink);font-size:12px;margin-right:4px}
+.report-filters label{display:flex;flex-direction:column;gap:6px;min-width:150px;color:var(--muted);font-size:11px;font-weight:600}
+.report-filters input,.origin-search input{min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:#fff;color:var(--ink);font-size:12px}
+.report-presets{display:flex;align-items:center;gap:5px;margin-left:auto}
+.report-presets button{border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--muted);padding:9px 10px;font-size:11px}
+.report-presets button:hover{border-color:#c8c4ff;color:var(--primary)}
+.report-section-intro,.report-section-intro>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.report-section-intro h2,.report-comparison h2,.report-table-card h2,.origin-breakdown h2,.origin-stage-card h2,.origin-recent h2{margin:0;font:750 16px Manrope,sans-serif;letter-spacing:-.3px}
+.report-section-intro p,.report-comparison header p,.origin-breakdown header p,.origin-recent header p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.report-updated{font-size:10px;color:var(--muted)}
+.report-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.report-kpi{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;padding:17px}
+.report-kpi>span{font-size:11px;color:var(--muted);font-weight:600}
+.report-kpi>strong{font:800 clamp(23px,2.5vw,30px) Manrope,sans-serif;letter-spacing:-.7px;overflow-wrap:anywhere}
+.report-kpi>small{font-size:10px;line-height:1.5;color:var(--muted)}
+.report-comparison{padding:18px}
+.report-comparison header{margin-bottom:15px}
+.report-comparison header p{color:var(--muted);font-size:11px}
+.report-comparison-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 16px}
+.report-comparison-item{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.report-comparison-item>span{font-size:11px;color:var(--muted)}
+.report-comparison-item>div{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.report-comparison-item strong{font-size:13px}
+.report-comparison-item small{font-size:9px;color:var(--muted)}
+.report-comparison-item em{min-width:45px;text-align:right;font-size:10px;font-style:normal;font-weight:700}
+.report-comparison-item em.up{color:#13815f}.report-comparison-item em.down{color:#a05d21}.report-comparison-item em.neutral{color:var(--muted)}
+.report-tables-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.report-table-card,.origin-breakdown,.origin-stage-card,.origin-recent{min-width:0;padding:18px}
+.report-table-card header,.origin-breakdown header,.origin-stage-card header,.origin-recent header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.report-table-card header>span{color:var(--muted);font-size:10px}
+.report-table-scroll{max-width:100%;overflow:auto}
+.report-table-scroll table{width:100%;border-collapse:collapse;text-align:left;font-size:11px}
+.report-table-scroll th{padding:10px 9px;background:#fafaff;color:var(--muted);font-size:10px;font-weight:700;white-space:nowrap}
+.report-table-scroll td{padding:11px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+.report-table-scroll tbody tr:last-child td{border-bottom:0}
+.report-empty{padding:18px 8px;color:var(--muted);font-size:12px;text-align:center}
+.report-methodology{margin:0;padding:0 2px;color:var(--muted);font-size:10px;line-height:1.7}
+.report-loading{display:flex;align-items:center;gap:10px;padding:22px;color:var(--muted);font-size:12px}
+.origin-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.origin-main-grid{grid-template-columns:minmax(0,1.4fr) minmax(260px,.8fr)}
+.origin-breakdown header p{max-width:440px}
+.origin-bar-row{padding:13px 0;border-top:1px solid var(--line)}
+.origin-bar-label{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px}
+.origin-bar-label strong{font-size:12px}
+.origin-bar-track{height:7px;overflow:hidden;border-radius:99px;background:#f0eff8}
+.origin-bar-track span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8179ed,#6258df)}
+.origin-bar-meta{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:8px;color:var(--muted);font-size:9px}
+.origin-stage-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line);font-size:12px}
+.origin-stage-row span{color:var(--muted)}
+.origin-tip{margin-top:15px;padding:13px;border-radius:10px;background:#f7f6ff}
+.origin-tip strong{font-size:11px;color:var(--primary)}
+.origin-tip p{margin:6px 0 0;font-size:10px;line-height:1.6;color:var(--muted)}
+.origin-recent header{align-items:center}
+.origin-search{display:flex;align-items:center;gap:7px;min-width:190px;padding:0 9px;border:1px solid var(--line);border-radius:9px;color:var(--muted)}
+.origin-search input{width:100%;border:0;padding:9px 0;outline:none!important}
+.origin-unknown{color:#a05d21}
+.origin-open-link{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--primary)}
+@media(max-width:1100px){.report-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-comparison-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-tables-grid,.origin-main-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.report-heading-icon{display:none}.report-filters{align-items:stretch}.report-filters label{flex:1;min-width:125px}.report-presets{width:100%;margin-left:0}.report-presets button{flex:1}.report-kpi-grid,.origin-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-comparison-grid{grid-template-columns:minmax(0,1fr)}.report-section-intro{align-items:flex-start}.origin-recent header{align-items:stretch;flex-direction:column}.origin-search{min-width:0}.report-kpi{padding:13px}.report-kpi>strong{font-size:24px}}
+
+.profile-origin-select{width:100%;min-height:39px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
+.profile-section>small{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.5}

@@ -10,6 +10,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Sun,
   Moon,
   LayoutDashboard,
@@ -42,9 +43,15 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
   return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} />;
 }
 
-const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
+type NavigationChild = { label: string };
+type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
+const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
-  { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
+  { section: "RESULTADOS", items: [
+    { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Anúncios" }, { label: "Resultados" }] },
+    { label: "Financeiro", icon: "wallet", children: [{ label: "Gestão" }, { label: "Integrações (API)" }] },
+  ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
 ];
 
@@ -71,14 +78,20 @@ export default function HomePage() {
   }, []);
 
   const [active, setActive] = useState("Visão geral");
+  const [expandedModules, setExpandedModules] = useState<string[]>([]);
+  const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
-    const validModules = new Set(navigation.flatMap((group) => group.items.map((item) => item.label)));
+    const validModules = new Set(navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)])));
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
-    else if (requested && validModules.has(requested)) setActive(requested);
+    else if (requested && validModules.has(requested)) {
+      setActive(requested);
+      const parent = navigation.flatMap((group) => group.items).find((item) => item.children?.some((child) => child.label === requested));
+      if (parent) setExpandedModules([parent.label]);
+    }
     setNavigationReady(true);
   }, []);
   useEffect(() => {
@@ -132,11 +145,24 @@ export default function HomePage() {
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
-              {visibleItems.map((item) => (
-                <button key={item.label} title={sidebarCollapsed ? item.label : undefined} className={"nav-item " + (active === item.label ? "active" : "")} onClick={() => { setActive(item.label); setMenuOpen(false); }}>
-                  <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
-                </button>
-              ))}
+              {visibleItems.map((item) => {
+                const expanded = expandedModules.includes(item.label);
+                const childActive = item.children?.some((child) => child.label === active) || false;
+                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label}>
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
+                    onClick={() => {
+                      if (item.children) {
+                        setExpandedModules((current) => current.includes(item.label) ? current.filter((name) => name !== item.label) : [...current, item.label]);
+                      } else {
+                        setActive(item.label); setMenuOpen(false);
+                      }
+                    }}>
+                    <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
+                    {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
+                  </button>
+                  {item.children && expanded ? <div className="nav-submenu">{item.children.map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onClick={() => { setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
+                </div>;
+              })}
             </div>;
           })}
         </nav>
@@ -186,6 +212,14 @@ export default function HomePage() {
             </>
           ) : active === "CRM" ? (
             <CrmWorkspace />
+          ) : active === "Workflows" ? (
+            <section className="module-workspace">
+              <header className="page-heading"><div><p className="eyebrow">AUTOMAÇÃO</p><h1>Workflows</h1><p className="page-subtitle">Organize campanhas e jornadas automatizadas em um espaço único.</p></div></header>
+              <div className="module-tabs" role="tablist" aria-label="Áreas de Workflows">
+                {["Campanhas de mensagens", "Sequências", "Ligações e SMS", "Regras e gatilhos"].map((tab) => <button key={tab} type="button" role="tab" aria-selected={workflowTab === tab} className={workflowTab === tab ? "active" : ""} onClick={() => setWorkflowTab(tab)}>{tab}</button>)}
+              </div>
+              <section className="content-card module-tab-content"><span className="module-placeholder-icon"><Icon name="workflow" size={24}/></span><p className="eyebrow">WORKFLOWS</p><h2>{workflowTab}</h2><p>Esta área está organizada para receber os recursos de {workflowTab.toLowerCase()}. As ações serão habilitadas conforme cada fluxo for conectado e validado.</p><div className="placeholder-status"><span/> Estrutura de navegação pronta · integração funcional em preparação</div></section>
+            </section>
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
           ) : active === "Configurações" ? (

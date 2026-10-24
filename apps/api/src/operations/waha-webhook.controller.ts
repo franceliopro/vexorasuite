@@ -123,9 +123,15 @@ export class WahaWebhookController {
     const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { botState: true } });
     const raw = conversation?.botState && typeof conversation.botState === "object" && !Array.isArray(conversation.botState) ? conversation.botState as Record<string, unknown> : {};
     const active = raw.flow === "TRIAGE";
-    const normalized = inboundText.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    const normalized = inboundText.trim().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLocaleLowerCase("pt-BR");
     const starts = /^(menu|inicio|iniciar|ajuda|atendente|opcoes|opcao)$/i.test(normalized);
     if (!active && !isNewConversation && !starts) return false;
+    // A palavra-chave menu reinicia a triagem, mesmo quando já existe uma etapa em andamento.
+    if (active && starts) {
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "TRIAGE", step: "SECTOR" } } });
+      await this.sendBotReply(channel, chatId, conversationId, "Vamos recomeçar. 😊\\n\\nEscolha o setor:\\n1. Suporte\\n2. Financeiro\\n3. Comercial\\n4. Administrativo");
+      return true;
+    }
     const send = async (step: string, values: Record<string, unknown>, content: string) => {
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "TRIAGE", step, ...values } } });
       await this.sendBotReply(channel, chatId, conversationId, content);
@@ -165,9 +171,23 @@ export class WahaWebhookController {
   }
 
   private async handoffGuided(channel: ChannelConnection, conversationId: string, chatId: string, key: string, platform: string | null, label: string): Promise<void> {
+    const defaults = [
+      { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "cobrança", "cobranca"] },
+      { key: "COMERCIAL", name: "Comercial", keywords: ["preço", "preco", "vendas", "comercial"] },
+      { key: "SUPORTE", name: "Suporte", keywords: ["problema", "erro", "ajuda", "suporte"] },
+      { key: "ADMINISTRATIVO", name: "Administrativo", keywords: ["documento", "contrato", "cadastro"] },
+    ];
+    for (const department of defaults) {
+      await this.prisma.department.upsert({
+        where: { tenantId_key: { tenantId: channel.tenantId, key: department.key } },
+        create: { tenantId: channel.tenantId, ...department },
+        update: {},
+      });
+    }
     const specific = platform ? [platform + "_SUPORTE", "SUPORTE_" + platform] : [];
+    const fallback = key.startsWith("COMERCIAL_") ? ["COMERCIAL"] : [];
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
-    const destination = [...specific, key].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
+    const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
     this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: destination?.id ?? null, status: "OPEN" });
     const missing = !destination ? " Não encontrei uma fila ativa configurada; a conversa ficou na fila geral." : "";

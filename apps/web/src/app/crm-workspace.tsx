@@ -14,7 +14,14 @@ type Contact = {
   updatedAt: string;
   crmStage?: CrmStage | null;
   crmFinalization?: CrmFinalization | null;
+  metadata?: Record<string, unknown> | null;
 };
+function isAsaasCustomer(contact: Contact) {
+  const asaas = contact.metadata?.asaas;
+  return !!asaas && typeof asaas === "object" && !Array.isArray(asaas) && typeof (asaas as Record<string, unknown>).customerId === "string";
+}
+function isCustomer(contact: Contact) { return contact.metadata?.contactType === "CUSTOMER" || isAsaasCustomer(contact); }
+
 const stages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
   { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
   { id: "qualification", label: "Qualificação", hint: "Entenda a oportunidade", tone: "blue" },
@@ -40,7 +47,7 @@ export function CrmWorkspace() {
   const [movingId, setMovingId] = useState("");
   const [draggingId, setDraggingId] = useState("");
   const [dropTarget, setDropTarget] = useState<CrmStage | "">("");
-  const [view, setView] = useState<"pipeline" | "contacts">("pipeline");
+  const [view, setView] = useState<"pipeline" | "customers" | "contacts">("pipeline");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -147,7 +154,8 @@ export function CrmWorkspace() {
       <div className="crm-toolbar">
         <div className="crm-view-switch" role="tablist" aria-label="Visualização do CRM">
           <button role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><LayoutGrid size={15}/> Pipeline</button>
-          <button role="tab" aria-selected={view === "contacts"} className={view === "contacts" ? "active" : ""} onClick={() => setView("contacts")}><List size={15}/> Contatos</button>
+          <button role="tab" aria-selected={view === "customers"} className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><UsersRound size={15}/> Clientes <span className="crm-tab-count">{contacts.filter(isCustomer).length}</span></button>
+          <button role="tab" aria-selected={view === "contacts"} className={view === "contacts" ? "active" : ""} onClick={() => setView("contacts")}><List size={15}/> Contatos <span className="crm-tab-count">{contacts.filter((contact) => !isCustomer(contact)).length}</span></button>
         </div>
         <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label>
       </div>
@@ -189,15 +197,19 @@ export function CrmWorkspace() {
             </div>;
           })}
         </section>
-      ) : (
-        <section className="content-card settings-card crm-contacts-card">
-          <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>Contatos</h2><p>{visibleContacts.length} {visibleContacts.length === 1 ? "contato" : "contatos"} encontrados</p></div></div>
-          {visibleContacts.length ? <div className="crm-contact-list">{visibleContacts.map((contact) => <article className="crm-contact-row" key={contact.id}>
+      ) : (() => {
+        const customerView = view === "customers";
+        const rows = visibleContacts.filter((contact) => customerView ? isCustomer(contact) : !isCustomer(contact));
+        const heading = customerView ? "Clientes" : "Contatos";
+        return <section className="content-card settings-card crm-contacts-card">
+          <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>{heading}</h2><p>{rows.length} {rows.length === 1 ? (customerView ? "cliente" : "contato") : (customerView ? "clientes" : "contatos")} encontrados</p></div></div>
+          {customerView ? <div className="crm-customer-note"><strong>Cadastro de clientes</strong><span>Clientes vinculados ao Asaas são sincronizados e protegidos contra exclusão pela Véxora. Atualizações financeiras devem respeitar o cadastro de origem.</span></div> : null}
+          {rows.length ? <div className="crm-contact-list">{rows.map((contact) => { const asaasCustomer = isAsaasCustomer(contact); return <article className="crm-contact-row" key={contact.id}>
             <span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span></div>
-            {contact.crmFinalization ? <span className={"crm-stage-pill tone-" + (contact.crmFinalization.outcome === "WON" ? "green" : "rose")}><span>{contact.crmFinalization.outcome === "WON" ? "Ganho · Cliente" : "Perda · " + (contact.crmFinalization.reason || "Motivo registrado")}</span></span> : <label className={"crm-stage-pill tone-" + stages.find((stage) => stage.id === (contact.crmStage || "new"))?.tone}><span>{stages.find((stage) => stage.id === (contact.crmStage || "new"))?.label}</span><select aria-label={"Etapa de " + contact.name} value={contact.crmStage || "new"} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label>}
-          </article>)}</div> : <div className="empty-state crm-empty"><span className="empty-illustration"><UsersRound size={24} /></span><h3>{query.trim() ? "Nenhum contato encontrado" : "Seu CRM começa aqui"}</h3><p>{query.trim() ? "Tente outro nome, telefone ou e-mail." : "Cadastre o primeiro contato para começar a organizar seu pipeline comercial."}</p><button className="secondary-button" onClick={() => setFormOpen(true)}><Plus size={15} /> Cadastrar contato</button></div>}
-        </section>
-      )}
+            {customerView ? <span className={"crm-customer-origin" + (asaasCustomer ? " is-asaas" : "")}>{asaasCustomer ? "Asaas sincronizado" : "Cliente Véxora"}</span> : contact.crmFinalization ? <span className={"crm-stage-pill tone-rose"}><span>{"Perda · " + (contact.crmFinalization.reason || "Motivo registrado")}</span></span> : <label className={"crm-stage-pill tone-" + stages.find((stage) => stage.id === (contact.crmStage || "new"))?.tone}><span>{stages.find((stage) => stage.id === (contact.crmStage || "new"))?.label}</span><select aria-label={"Etapa de " + contact.name} value={contact.crmStage || "new"} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.filter((stage) => stage.id !== "finalization").map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label>}
+          </article>; })}</div> : <div className="empty-state crm-empty"><span className="empty-illustration"><UsersRound size={24} /></span><h3>{query.trim() ? "Nenhum registro encontrado" : customerView ? "Nenhum cliente cadastrado" : "Nenhum contato cadastrado"}</h3><p>{query.trim() ? "Tente outro nome, telefone ou e-mail." : customerView ? "Clientes convertidos pelo CRM ou sincronizados do Asaas aparecerão aqui." : "Cadastre um contato para começar a organizar seu relacionamento comercial."}</p>{!customerView ? <button className="secondary-button" onClick={() => setFormOpen(true)}><Plus size={15} /> Cadastrar contato</button> : null}</div>}
+        </section>;
+      })()}
 
       {finalizingContact ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !movingId) setFinalizingContact(null); }}><section className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="crm-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={!!movingId} onClick={() => setFinalizingContact(null)}><X size={18}/></button><span className="finalization-icon"><Check size={22}/></span><h2 id="crm-finalization-title">Finalizar oportunidade</h2><p>Qual foi o resultado comercial de <strong>{finalizingContact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalOutcome("WON"); setLossReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Converter lead em cliente</small></span></button><button type="button" className={finalOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={lossReason} onChange={(event) => setLossReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A finalização remove o contato do Kanban e encerra as conversas abertas. O histórico permanece em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={!!movingId} onClick={() => setFinalizingContact(null)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalOutcome || (finalOutcome === "LOST" && !lossReason) || !!movingId} onClick={() => void confirmFinalization()}>{movingId ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
     </section>

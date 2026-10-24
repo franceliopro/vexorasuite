@@ -432,3 +432,6 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 
 .profile-origin-select{width:100%;min-height:39px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
 .profile-section>small{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.5}
+
+/* CRM: explicit Clientes and Contatos tabs */
+.crm-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ffffff28;font-size:10px;font-weight:800}.crm-customer-note{display:flex;flex-direction:column;gap:4px;margin:0 0 10px;padding:12px 14px;border:1px solid #dfe8ff;border-radius:12px;background:#f7f9ff;color:#5f6881;font-size:12px;line-height:1.5}.crm-customer-note strong{color:#34416c;font-size:12px}.crm-customer-origin{display:inline-flex;align-items:center;white-space:nowrap;border:1px solid #e6e8ef;border-radius:999px;padding:5px 9px;color:#747b8e;font-size:10px;font-weight:750}.crm-customer-origin.is-asaas{border-color:#c8e7dc;background:#f0fbf6;color:#167451}@media(max-width:720px){.crm-view-switch{max-width:100%;flex-wrap:wrap}.crm-view-switch button{padding:0 9px}.crm-contact-row{flex-wrap:wrap}.crm-customer-origin{margin-left:52px}}

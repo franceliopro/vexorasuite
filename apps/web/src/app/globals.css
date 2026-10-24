@@ -2290,3 +2290,21 @@ input[type="color"].profile-tag-inline-color {
     line-height: 1.45;
   }
 }
+
+/* Match WhatsApp Web's compact message typography without sacrificing readability. */
+.thread-messages .message-bubble p {
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+.thread-messages .message-bubble small {
+  font-size: 10px;
+}
+@media (max-width: 760px) {
+  .thread-messages .message-bubble p {
+    font-size: 14px !important;
+    line-height: 1.45;
+  }
+  .thread-messages .message-bubble small {
+    font-size: 10px;
+  }
+}

@@ -176,7 +176,7 @@ export class AsaasService {
       id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null;
       cpfCnpj?: string | null; postalCode?: string | null; address?: string | null; addressNumber?: string | null;
       complement?: string | null; province?: string | null; city?: number | null; cityName?: string | null;
-      state?: string | null; country?: string | null; personType?: string | null; dateCreated?: string | null;
+      state?: string | null; country?: string | null; personType?: string | null; dateCreated?: string | null; deleted?: boolean;
     };
     const customers: AsaasCustomer[] = [];
     const limit = 100;
@@ -307,6 +307,28 @@ export class AsaasService {
         tenantContacts.push(created);
         counters.created++;
       });
+    }
+    // If a previously linked record no longer appears in a successful, non-empty full listing,
+    // preserve the local contact but flag the Asaas link for review instead of deleting it.
+    if (customers.length > 0) {
+      const linkedContacts = await this.prisma.contact.findMany({
+        where: { tenantId },
+        select: { id: true, metadata: true },
+      });
+      const seen = new Set(customers.map((customer) => customer.id));
+      for (const contact of linkedContacts) {
+        const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata)
+          ? contact.metadata as Record<string, unknown> : {};
+        const asaas = metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas)
+          ? metadata.asaas as Record<string, unknown> : {};
+        const customerId = typeof asaas.customerId === "string" ? asaas.customerId : "";
+        if (!customerId || seen.has(customerId) || asaas.status === "NOT_LISTED") continue;
+        await this.prisma.contact.update({
+          where: { id: contact.id },
+          data: { metadata: { ...metadata, asaas: { ...asaas, status: "NOT_LISTED", syncedAt: new Date().toISOString() } } as Prisma.InputJsonObject },
+        });
+        counters.updated++;
+      }
     }
     return counters;
   }

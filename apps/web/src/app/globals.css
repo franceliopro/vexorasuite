@@ -756,3 +756,30 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="hybrid"] .inbox-conversation.selected {
   background: color-mix(in srgb, var(--primary) 8%, white);
 }
+
+
+/* Inbox refinement: compact typography, high-contrast labels and clear channel provenance. */
+.inbox-conversation { gap: 10px; align-items: flex-start; }
+.inbox-conversation .conversation-summary { min-width: 0; gap: 4px; }
+.inbox-conversation .conversation-summary > strong,
+.inbox-conversation .conversation-title-row > strong { font-size: 12.5px; line-height: 1.35; font-weight: 650; letter-spacing: -.01em; }
+.inbox-conversation .conversation-summary > small { font-size: 11.5px; line-height: 1.35; }
+.conversation-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+.conversation-title-row > strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.conversation-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; }
+.conversation-tag { display:inline-flex; align-items:center; min-height:19px; padding:2px 7px; border:1px solid; border-radius:5px; color:#fff !important; font-size:10px; line-height:1.2; font-weight:750; letter-spacing:.01em; text-shadow:0 1px 1px rgba(0,0,0,.18); }
+.conversation-avatar { position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 38px; width:38px; height:38px; overflow:hidden; border-radius:50%; }
+.conversation-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+.conversation-avatar .avatar-fallback { display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+.conversation-avatar .avatar-fallback.hidden { display:none; }
+.conversation-channel-marks { display:inline-flex; align-items:center; gap:3px; flex:0 0 auto; }
+.channel-mark { display:inline-flex; align-items:center; justify-content:center; width:21px; height:21px; border-radius:6px; flex:0 0 21px; border:1px solid transparent; }
+.channel-instagram { color:#fff; background:linear-gradient(135deg,#833ab4 0%,#fd1d1d 58%,#fcb045 100%); }
+.channel-facebook { color:#fff; background:#1877f2; }
+.channel-tiktok { color:#fff; background:#111827; border-color:#111827; }
+.channel-whatsapp { color:#fff; background:#16a34a; }
+.channel-bot { color:#fff; background:#0f766e; }
+.channel-ai { color:#fff; background:#6d28d9; }
+.conversation-overdue { display:inline-flex; align-items:center; gap:4px; width:max-content; max-width:100%; padding:3px 6px; border-radius:5px; background:#b91c1c; color:#fff; font-size:10px; line-height:1.2; font-weight:800; letter-spacing:.015em; }
+:root[data-theme="dark"] .conversation-tag { filter:saturate(1.12) brightness(.96); }
+:root[data-theme="dark"] .conversation-overdue { background:#fca5a5; color:#450a0a; }

@@ -164,6 +164,11 @@ export class WahaWebhookController {
           await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, "Financeiro · pagamento · " + platform.replace("_", " "));
           return true;
         }
+        await this.prisma.department.upsert({
+          where: { tenantId_key: { tenantId: channel.tenantId, key: "FINANCEIRO" } },
+          create: { tenantId: channel.tenantId, key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "cobrança", "cobranca"] },
+          update: {},
+        });
         await this.prisma.conversation.update({
           where: { id: conversationId },
           data: { handlingMode: "BOT", botState: { flow: "ASAAS", step: "DOCUMENT", platform, sector: "FINANCEIRO" } },

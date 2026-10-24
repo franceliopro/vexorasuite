@@ -227,6 +227,7 @@ export class AsaasService {
         document: document || null,
         personType: document.length === 14 ? "PJ" : document.length === 11 ? "PF" : customer.personType || null,
         address: address || null,
+        state: customer.state || null,
         customerId: customer.id,
         environment: counters.environment,
         dateCreated: customer.dateCreated || null,

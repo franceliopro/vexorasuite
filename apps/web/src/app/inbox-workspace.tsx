@@ -21,7 +21,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function InboxWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
-  const [queueView, setQueueView] = useState("new");
+  const [queueView, setQueueView] = useState("mine");
   const [channels, setChannels] = useState<Channel[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);

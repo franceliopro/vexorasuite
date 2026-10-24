@@ -2663,3 +2663,23 @@ input[type="color"].profile-tag-inline-color {
   background: color-mix(in srgb, var(--primary) 38%, #191D28) !important;
   color: #fff7ef !important;
 }
+
+/* Match the breathing room of the Operations Center: compact title/copy, deliberate gap to content. */
+.page-content > .page-heading,
+.page-content > .settings-heading {
+  margin-bottom: 20px;
+}
+.page-content > .page-heading h1,
+.page-content > .settings-heading h1 {
+  line-height: 1.2;
+}
+.page-content > .page-heading .page-subtitle,
+.page-content > .settings-heading p:not(.eyebrow) {
+  margin-top: 3px;
+}
+.page-content > .crm-heading {
+  margin-bottom: 14px;
+}
+.page-content > .crm-heading + .crm-toolbar {
+  margin-bottom: 12px;
+}

@@ -6,11 +6,12 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { CreateWahaChannelDto } from "./dto/create-waha-channel.dto";
 import { WahaService } from "./waha.service";
+import { ZernioService } from "./zernio.service";
 
 @Controller("channels")
 @UseGuards(AuthGuard)
 export class ChannelConnectionsController {
-  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly zernio: ZernioService) {}
 
   @Get()
   list(@Req() request: AuthenticatedRequest) {
@@ -33,6 +34,50 @@ export class ChannelConnectionsController {
     }
     this.events.publish(tenantId, "channel.created", { id: channel.id, provider: channel.provider, status: channel.status });
     return { id: channel.id, name: channel.name, provider: channel.provider, sessionName: channel.sessionName, status: channel.status, lastError: channel.lastError, qrEndpoint: `/api/channels/${channel.id}/qr`, statusEndpoint: `/api/channels/${channel.id}/status` };
+  }
+
+  @Post("zernio")
+  async createZernio(
+    @Req() request: AuthenticatedRequest,
+    @Body() input: { name?: unknown; platform?: unknown; accountId?: unknown },
+  ) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+      throw new ForbiddenException("Somente gestores podem conectar contas sociais.");
+    }
+    this.zernio.assertConfigured();
+    const name = typeof input.name === "string" ? input.name.trim().slice(0, 100) : "";
+    const platform = typeof input.platform === "string" ? input.platform.trim().toLowerCase() : "";
+    const accountId = typeof input.accountId === "string" ? input.accountId.trim() : "";
+    if (!name || !accountId || accountId.length > 200 || !["instagram", "facebook", "messenger", "tiktok", "linkedin", "youtube", "threads", "pinterest", "x"].includes(platform)) {
+      throw new BadRequestException("Informe um nome, uma conta Zernio e uma rede social compatível.");
+    }
+    const existing = await this.prisma.channelConnection.findMany({
+      where: { provider: "ZERNIO", isActive: true },
+      select: { tenantId: true, settings: true },
+    });
+    const claimed = existing.find((row) => row.settings && typeof row.settings === "object" && !Array.isArray(row.settings) &&
+      (row.settings as Record<string, unknown>).accountId === accountId);
+    if (claimed && claimed.tenantId !== request.user.tenantId) {
+      throw new ForbiddenException("Esta conta social já está vinculada a outra empresa.");
+    }
+    if (claimed) throw new BadRequestException("Esta conta já está conectada nesta empresa.");
+    const webhookSecret = randomBytes(32).toString("hex");
+    const channel = await this.prisma.channelConnection.create({
+      data: {
+        tenantId: request.user.tenantId, provider: "ZERNIO", name,
+        sessionName: `zn-${request.user.tenantId.replace(/-/g, "").slice(0, 10)}-${randomBytes(5).toString("hex")}`,
+        status: "CONNECTED",
+        settings: { platform, accountId, webhookSecret },
+      },
+    });
+    this.events.publish(request.user.tenantId, "channel.created", { id: channel.id, provider: channel.provider, status: channel.status });
+    const publicUrl = (process.env.API_PUBLIC_URL || "").replace(/\/$/, "");
+    return {
+      id: channel.id, name: channel.name, provider: channel.provider, platform, accountId, status: channel.status,
+      webhookUrl: publicUrl ? publicUrl + "/api/webhooks/zernio/" + channel.id : null,
+      webhookSecret,
+      webhookSetup: "Configure a URL e o segredo no painel Zernio e selecione os eventos necessários. O segredo só é exibido nesta resposta.",
+    };
   }
 
   @Post(":id/connect")

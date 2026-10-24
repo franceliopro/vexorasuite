@@ -123,7 +123,16 @@ export function InboxWorkspace() {
   }, [queueView]);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
-  useEffect(() => { try { const saved = localStorage.getItem("vexora:quick-replies"); if (saved) setQuickReplies(JSON.parse(saved)); } catch {} }, []);
+  useEffect(() => {
+    let active = true;
+    void api<Array<{id:string;title:string;content:string;category?:string;shortcut?:string}>>("/api/backend/conversations/quick-replies")
+      .then((items) => { if (active) setQuickReplies(items); })
+      .catch(() => {
+        // Keep the last local catalog available if the API is temporarily offline.
+        try { const saved = localStorage.getItem("vexora:quick-replies"); if (active && saved) setQuickReplies(JSON.parse(saved)); } catch {}
+      });
+    return () => { active = false; };
+  }, []);
 
   // Close every inbox dropdown on outside click or Escape for consistent menu behavior.
   useEffect(() => {
@@ -255,7 +264,12 @@ export function InboxWorkspace() {
   }
 
 
-  function saveQuickReplies(next: Array<{id:string;title:string;content:string}>) { setQuickReplies(next); try { localStorage.setItem("vexora:quick-replies", JSON.stringify(next)); } catch { setError("Não foi possível salvar respostas rápidas neste navegador."); } }
+  function saveQuickReplies(next: Array<{id:string;title:string;content:string}>) {
+    setQuickReplies(next);
+    try { localStorage.setItem("vexora:quick-replies", JSON.stringify(next)); } catch {}
+    void api("/api/backend/conversations/quick-replies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: next }) })
+      .catch((e) => setError(e instanceof Error ? "As respostas foram alteradas nesta tela, mas não puderam ser compartilhadas: " + e.message : "Não foi possível compartilhar as respostas rápidas."));
+  }
   function createQuickReply() { if (!quickTitle.trim() || !quickContent.trim()) return; saveQuickReplies([...quickReplies, {id:crypto.randomUUID(),title:quickTitle.trim(),content:quickContent.trim()}]); setQuickTitle(""); setQuickContent(""); }
   function insertEmoji(value:string) {
     const el=composerRef.current;

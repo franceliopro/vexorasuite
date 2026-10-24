@@ -42,10 +42,14 @@ export class ChannelConnectionsController {
     try {
       await this.zernio.request("/user");
       const response = await this.zernio.request<unknown>("/accounts");
-      const raw = Array.isArray(response) ? response : response && typeof response === "object"
-        ? (Array.isArray((response as Record<string, unknown>).data) ? (response as Record<string, unknown>).data :
-          Array.isArray((response as Record<string, unknown>).accounts) ? (response as Record<string, unknown>).accounts : [])
-        : [];
+      const raw: unknown[] = (() => {
+        if (Array.isArray(response)) return response;
+        if (!response || typeof response !== "object") return [];
+        const payload = response as Record<string, unknown>;
+        if (Array.isArray(payload.data)) return payload.data;
+        if (Array.isArray(payload.accounts)) return payload.accounts;
+        return [];
+      })();
       const accounts = raw.map((item) => {
         const account = item && typeof item === "object" ? item as Record<string, unknown> : {};
         return {

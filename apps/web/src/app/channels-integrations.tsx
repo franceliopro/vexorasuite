@@ -51,8 +51,7 @@ export function ChannelsIntegrations(){
  }
  const linkedIds=new Set(channels.filter(c=>c.provider==="ZERNIO").map(c=>c.accountId).filter(Boolean));
  const linkedCount=channels.filter(c=>c.provider==="ZERNIO").length;
- async function copyWebhook(){if(!setup)return;try{await navigator.clipboard.writeText("URL: "+(setup.webhookUrl||"")+"
-Segredo de assinatura: "+setup.webhookSecret);setCopied(true);}catch{setError("O navegador bloqueou a cópia. Selecione e copie os dados manualmente.");}}
+ async function copyWebhook(){if(!setup)return;try{await navigator.clipboard.writeText("URL: "+(setup.webhookUrl||"")+"\nSegredo de assinatura: "+setup.webhookSecret);setCopied(true);}catch{setError("O navegador bloqueou a cópia. Selecione e copie os dados manualmente.");}}
  return <section className="channels-page">
    <header className="channels-page-heading"><div><p className="eyebrow">OPERAÇÃO · CANAIS</p><h1>Canais e integrações</h1><p className="page-subtitle">Conecte suas redes sociais, acompanhe cada vínculo e prepare as mensagens para a caixa de atendimento.</p></div><button type="button" className="secondary-button channels-refresh" onClick={()=>void refresh(true)} disabled={loading}><RefreshCw size={15} className={loading?"channels-spin":""}/> Atualizar status</button></header>
    {error?<div className="channels-alert error" role="alert"><AlertCircle size={17}/><span>{error}</span><button type="button" onClick={()=>setError("")} aria-label="Fechar aviso">×</button></div>:null}

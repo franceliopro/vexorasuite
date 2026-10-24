@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Controller, ForbiddenException, Get, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -20,7 +20,7 @@ function range(fromInput?: string, toInput?: string) {
   const today = new Date().toISOString().slice(0, 10);
   const from = dateOnly(fromInput, new Date(Date.now() - 29 * DAY).toISOString().slice(0, 10));
   const to = dateOnly(toInput, today);
-  if (from > to) throw new Error("A data inicial não pode ser posterior à data final.");
+  if (from > to) throw new BadRequestException("A data inicial não pode ser posterior à data final.");
   const start = new Date(from + "T00:00:00.000Z");
   const end = new Date(new Date(to + "T00:00:00.000Z").getTime() + DAY);
   const duration = Math.round((end.getTime() - start.getTime()) / DAY);
@@ -130,8 +130,7 @@ export class ReportsController {
       const leadOrigin = record(metadata.leadOrigin);
       const legacyOrigin = record(metadata.lead_origin);
       const value = String(leadOrigin.source || legacyOrigin.source || contact.source || "").trim();
-      if (!value || value.toUpperCase() === "CRM") return "Não identificada";
-      if (value.toUpperCase() === "ASAAS") return "Asaas";
+      if (!value || ["CRM", "ASAAS"].includes(value.toUpperCase())) return "Não identificada";
       return value;
     };
     const byOrigin = new Map<string, { name: string; total: number; won: number; lost: number; open: number; withCampaign: number }>();

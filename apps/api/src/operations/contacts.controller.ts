@@ -96,8 +96,9 @@ export class ContactsController {
     const rest = Object.fromEntries(Object.entries(existing).filter(([key]) => key !== "crmStage" && key !== "crmFinalization")) as Prisma.JsonObject;
     const finalizedAt = new Date().toISOString();
     const result = await this.prisma.$transaction(async (tx) => {
+      const existingConversations = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id }, select: { id: true } });
       const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true } });
-      const finalizedConversationIds = [...new Set([...priorFinalizedIds, ...active.map((item) => item.id)])];
+      const finalizedConversationIds = [...new Set([...priorFinalizedIds, ...existingConversations.map((item) => item.id)])];
       const metadata: Prisma.InputJsonObject = {
         ...rest,
         tags,

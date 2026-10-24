@@ -221,9 +221,14 @@ export class ConversationsController {
     const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: "text", senderName: user?.name || null, metadata: { provider: isZernio ? "ZERNIO" : "WAHA" } } });
     this.events.publish(tenantId, "message.queued", { conversationId: conversation.id, message: { id: queued.id, direction: queued.direction, status: queued.status, content: queued.content } });
     let providerMessageId: string | null;
-    try { providerMessageId = isZernio
-      ? String((await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: String((conversation.channelConnection.settings as Record<string, unknown>)?.accountId || ""), message: content }, idempotencyKey: randomUUID() })).data?.messageId || "") || null
-      : await this.waha.sendText(conversation.channelConnection, chatId, content); }
+    try {
+      if (isZernio) {
+        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: String((conversation.channelConnection.settings as Record<string, unknown>)?.accountId || ""), message: content }, idempotencyKey: randomUUID() });
+        providerMessageId = result?.data?.messageId || result?.id || null;
+      } else {
+        providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, content);
+      }
+    }
     catch {
       const failed = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "FAILED", metadata: { provider: isZernio ? "ZERNIO" : "WAHA", errorCode: "SEND_FAILED" } } });
       this.events.publish(tenantId, "message.failed", { conversationId: conversation.id, message: { id: failed.id, status: failed.status, content: failed.content } });

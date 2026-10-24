@@ -74,7 +74,7 @@ export class ReportsController {
   constructor(private readonly prisma: PrismaService) {}
 
   private assertCanView(request: AuthenticatedRequest) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+    if (!["OWNER", "ADMIN"].includes(request.user.role)) {
       throw new ForbiddenException("Você não tem permissão para consultar relatórios gerenciais.");
     }
   }

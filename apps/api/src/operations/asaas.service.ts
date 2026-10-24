@@ -302,6 +302,7 @@ export class AsaasService {
             name: incoming.name || "Cliente Asaas",
             phone: incoming.phone,
             email: incoming.email,
+            externalId: "asaas:" + customer.id,
             source: "ASAAS",
             metadata: metadata as Prisma.InputJsonObject,
           },

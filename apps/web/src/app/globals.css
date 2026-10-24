@@ -470,3 +470,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
  .conversation-tags{gap:3px}
  .conversation-tag{font-size:9px;padding:2px 5px}
 }
+
+.profile-tag-palette{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.profile-tag-palette button{width:23px;height:23px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #d8dbe7;cursor:pointer}
+.profile-tag-palette button.selected{box-shadow:0 0 0 2px #6258df}
+.profile-add-tag{display:flex;gap:6px}
+.profile-add-tag input{flex:1;min-width:0}
+.profile-tag{border:1px solid #00000008;color:#4b4b66}

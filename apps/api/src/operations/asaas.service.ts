@@ -71,6 +71,7 @@ export class AsaasService {
     const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown> : {};
     await this.prisma.tenant.update({ where: { id: tenantId }, data: { integrations: { ...all, asaas: { enabled: input.enabled, sandbox: input.sandbox, encryptedApiKey: encryptedApiKey || null, encryptedWebhookToken: encryptedWebhookToken || null } } as any } });
+    if (input.enabled) void this.syncPendingCustomers(tenantId).catch((error) => this.logger.warn("Falha ao retomar sincronização de clientes pendentes do Asaas: " + (error instanceof Error ? error.message : "erro desconhecido")));
     return this.publicSettings(tenantId);
   }
 
@@ -169,6 +170,161 @@ export class AsaasService {
       });
     }
     return { payment: updated, conversation: existing.conversation, paid };
+  }
+
+
+  /**
+   * Ensures a CRM-converted customer exists in the currently configured Asaas environment.
+   * Matching is based only on exact document, email or phone values, never on name alone.
+   * Failures remain visible as PENDING and are retried by the scheduler.
+   */
+  async syncCustomerByContact(tenantId: string, contactId: string): Promise<{ status: "SYNCED" | "PENDING"; customerId?: string; message?: string }> {
+    const contact = await this.prisma.contact.findFirst({ where: { id: contactId, tenantId } });
+    if (!contact) throw new BadRequestException("Cliente não encontrado nesta empresa.");
+    const metadataOf = (value: unknown): Record<string, unknown> =>
+      value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+    const existingMetadata = metadataOf(contact.metadata);
+    const existingAsaas = metadataOf(existingMetadata.asaas);
+    const existingSync = metadataOf(existingMetadata.asaasSync);
+    const markPending = async (message: string) => {
+      const latest = await this.prisma.contact.findFirst({ where: { id: contactId, tenantId }, select: { metadata: true } });
+      const latestMetadata = metadataOf(latest?.metadata);
+      await this.prisma.contact.update({
+        where: { id: contactId },
+        data: { metadata: {
+          ...latestMetadata,
+          asaasSync: { ...metadataOf(latestMetadata.asaasSync), status: "PENDING", lastAttemptAt: new Date().toISOString(), lastError: message },
+        } as Prisma.InputJsonObject },
+      });
+      return { status: "PENDING" as const, message };
+    };
+
+    try {
+      const credentials = await this.credentials(tenantId);
+      const environment = credentials.sandbox ? "SANDBOX" : "PRODUCTION";
+      if (typeof existingAsaas.customerId === "string" && existingAsaas.customerId
+          && existingAsaas.environment === environment) {
+        await this.prisma.contact.update({
+          where: { id: contactId },
+          data: { metadata: {
+            ...existingMetadata,
+            asaas: { ...existingAsaas, status: "ACTIVE", syncedAt: new Date().toISOString() },
+            asaasSync: { ...existingSync, status: "SYNCED", environment, lastError: null, syncedAt: new Date().toISOString() },
+          } as Prisma.InputJsonObject },
+        });
+        return { status: "SYNCED", customerId: existingAsaas.customerId };
+      }
+
+      const digits = (value: unknown) => String(value ?? "").replace(/\\D/g, "");
+      const emailKey = (value: unknown) => String(value ?? "").trim().toLowerCase();
+      const phoneKey = (value: unknown) => {
+        let phone = digits(value);
+        if (phone.startsWith("55") && (phone.length === 12 || phone.length === 13)) phone = phone.slice(2);
+        if (phone.length === 11 && phone[2] === "9") phone = phone.slice(0, 2) + phone.slice(3);
+        return phone;
+      };
+      const document = digits(existingMetadata.document);
+      const name = String(contact.name || "").trim();
+      const email = String(contact.email || "").trim();
+      const phone = String(contact.phone || "").trim();
+      if (!name) return await markPending("O cliente precisa ter um nome antes de ser enviado ao Asaas.");
+      if (!document && !email && !phone) {
+        return await markPending("Informe CPF/CNPJ, e-mail ou telefone para evitar cadastro duplicado no Asaas.");
+      }
+
+      type AsaasCustomerRecord = { id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null; cpfCnpj?: string | null; deleted?: boolean };
+      const remoteCustomers: AsaasCustomerRecord[] = [];
+      let offset = 0;
+      for (let page = 0; page < 100; page++) {
+        const result = await this.request<{ data?: AsaasCustomerRecord[]; hasMore?: boolean }>(
+          tenantId, "/customers?limit=100&offset=" + offset,
+        );
+        const batch = Array.isArray(result.data) ? result.data : [];
+        remoteCustomers.push(...batch.filter((item) => typeof item.id === "string" && !item.deleted));
+        if (!result.hasMore || batch.length === 0) break;
+        offset += batch.length;
+        if (page === 99) throw new ServiceUnavailableException("A consulta de clientes do Asaas excedeu o limite seguro.");
+      }
+      let matches: AsaasCustomerRecord[] = [];
+      if (document) {
+        matches = remoteCustomers.filter((item) => digits(item.cpfCnpj) === document);
+      } else if (email) {
+        matches = remoteCustomers.filter((item) => emailKey(item.email) === emailKey(email));
+      } else {
+        const normalizedPhone = phoneKey(phone);
+        matches = remoteCustomers.filter((item) => [item.phone, item.mobilePhone].some((value) => phoneKey(value) === normalizedPhone && normalizedPhone.length >= 10));
+      }
+      if (matches.length > 1) {
+        return await markPending("Há mais de um cadastro compatível no Asaas. Revise os dados antes de sincronizar para evitar duplicidade.");
+      }
+
+      let remote: AsaasCustomerRecord;
+      if (matches.length === 1) {
+        remote = matches[0]!;
+      } else {
+        const payload: Record<string, string> = { name };
+        if (document) payload.cpfCnpj = document;
+        if (email) payload.email = email;
+        if (phone) payload.mobilePhone = phone;
+        remote = await this.request<AsaasCustomerRecord>(tenantId, "/customers", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        if (!remote?.id) throw new ServiceUnavailableException("O Asaas não retornou o identificador do novo cliente.");
+      }
+
+      const latest = await this.prisma.contact.findFirst({ where: { id: contactId, tenantId }, select: { metadata: true } });
+      const latestMetadata = metadataOf(latest?.metadata);
+      const syncedAt = new Date().toISOString();
+      await this.prisma.contact.update({
+        where: { id: contactId },
+        data: { metadata: {
+          ...latestMetadata,
+          contactType: "CUSTOMER",
+          asaas: {
+            ...metadataOf(latestMetadata.asaas),
+            customerId: remote.id,
+            environment,
+            source: matches.length === 1 ? "ASAAS_MATCH" : "VEXORA",
+            status: remote.deleted ? "DELETED" : "ACTIVE",
+            syncedAt,
+          },
+          asaasSync: { ...metadataOf(latestMetadata.asaasSync), status: "SYNCED", environment, lastError: null, syncedAt },
+        } as Prisma.InputJsonObject },
+      });
+      return { status: "SYNCED", customerId: remote.id };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao sincronizar cliente com o Asaas.";
+      this.logger.warn("Asaas customer push pending tenant=" + tenantId + " contact=" + contactId + ": " + message);
+      return await markPending(message);
+    }
+  }
+
+  async syncPendingCustomers(tenantId: string): Promise<{ attempted: number; synced: number; pending: number }> {
+    const contacts = await this.prisma.contact.findMany({
+      where: { tenantId },
+      select: { id: true, metadata: true },
+      take: 5000,
+    });
+    const eligible = contacts.filter((contact) => {
+      const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata)
+        ? contact.metadata as Record<string, unknown> : {};
+      const finalization = metadata.crmFinalization && typeof metadata.crmFinalization === "object" && !Array.isArray(metadata.crmFinalization)
+        ? metadata.crmFinalization as Record<string, unknown> : {};
+      const asaas = metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas)
+        ? metadata.asaas as Record<string, unknown> : {};
+      const sync = metadata.asaasSync && typeof metadata.asaasSync === "object" && !Array.isArray(metadata.asaasSync)
+        ? metadata.asaasSync as Record<string, unknown> : {};
+      return metadata.contactType === "CUSTOMER" && finalization.outcome === "WON"
+        && !(typeof asaas.customerId === "string" && asaas.customerId)
+        && sync.status !== "SYNCED";
+    });
+    let synced = 0;
+    for (const contact of eligible) {
+      const result = await this.syncCustomerByContact(tenantId, contact.id);
+      if (result.status === "SYNCED") synced++;
+    }
+    return { attempted: eligible.length, synced, pending: eligible.length - synced };
   }
 
   async syncEnabledTenants(): Promise<void> {

@@ -5,7 +5,7 @@ import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, Arrow
 import { ContactProfilePanel } from "./contact-profile-panel";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
-type Contact = { id: string; name: string; phone?: string | null };
+type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; metadata?: Record<string, unknown> };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string };
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };

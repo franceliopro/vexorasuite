@@ -267,7 +267,7 @@ export class AsaasService {
           const stablePrevious = { ...previous, asaas: { ...previousAsaas, syncedAt: undefined } };
           const stableNext = { ...nextMetadata, asaas: { ...mergedAsaas, syncedAt: undefined } };
           const changed = nextName !== existing.name || nextPhone !== existing.phone || nextEmail !== existing.email
-            || existing.source !== "ASAAS" || JSON.stringify(stablePrevious) !== JSON.stringify(stableNext);
+            || !existing.source || JSON.stringify(stablePrevious) !== JSON.stringify(stableNext);
           if (!changed) { counters.unchanged++; return; }
           const updated = await tx.contact.update({
             where: { id: existing.id },

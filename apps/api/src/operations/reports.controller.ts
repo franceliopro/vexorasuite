@@ -11,8 +11,9 @@ function record(value: unknown): JsonRecord {
 }
 function dateOnly(value: string | undefined, fallback: string): string {
   const candidate = value || fallback;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate) || new Date(candidate + "T00:00:00.000Z").toISOString().slice(0, 10) !== candidate) {
-    throw new Error("Informe um período válido no formato AAAA-MM-DD.");
+  const parsed = new Date(candidate + "T00:00:00.000Z");
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(candidate) || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== candidate) {
+    throw new BadRequestException("Informe um período válido no formato AAAA-MM-DD.");
   }
   return candidate;
 }

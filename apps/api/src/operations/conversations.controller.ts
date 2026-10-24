@@ -72,6 +72,57 @@ export class ConversationsController {
     return items;
   }
 
+  // Greeting and sign-off templates are tenant-scoped and shared by that company's agents.
+  @Get("quick-reply-settings")
+  async getQuickReplySettings(@Req() request: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: request.user.tenantId },
+      select: { integrations: true },
+    });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown>
+      : {};
+    const settings = integrations.quickReplySettings;
+    return settings && typeof settings === "object" && !Array.isArray(settings) ? settings : {};
+  }
+
+  @Post("quick-reply-settings")
+  async saveQuickReplySettings(@Req() request: AuthenticatedRequest, @Body() input: { settings?: unknown }) {
+    if (!input.settings || typeof input.settings !== "object" || Array.isArray(input.settings)) {
+      throw new BadRequestException("Envie configurações válidas para as respostas rápidas.");
+    }
+    const raw = input.settings as Record<string, unknown>;
+    const cleanText = (value: unknown, fallback: string) => typeof value === "string" ? value.trim().slice(0, 240) : fallback;
+    const defaults = {
+      companyName: "",
+      greetings: { dawn: "Olá, boa madrugada!", morning: "Bom dia!", afternoon: "Boa tarde!", evening: "Boa noite!" },
+      farewells: { dawn: "Tenha uma ótima madrugada!", morning: "Tenha um ótimo dia!", afternoon: "Tenha uma ótima tarde!", evening: "Tenha uma ótima noite!" },
+    };
+    const readPeriod = (key: "dawn" | "morning" | "afternoon" | "evening", group: "greetings" | "farewells") => {
+      const source = raw[group];
+      const values = source && typeof source === "object" && !Array.isArray(source) ? source as Record<string, unknown> : {};
+      return cleanText(values[key], defaults[group][key]);
+    };
+    const settings = {
+      companyName: cleanText(raw.companyName, ""),
+      greetings: { dawn: readPeriod("dawn", "greetings"), morning: readPeriod("morning", "greetings"), afternoon: readPeriod("afternoon", "greetings"), evening: readPeriod("evening", "greetings") },
+      farewells: { dawn: readPeriod("dawn", "farewells"), morning: readPeriod("morning", "farewells"), afternoon: readPeriod("afternoon", "farewells"), evening: readPeriod("evening", "farewells") },
+    };
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: request.user.tenantId },
+      select: { integrations: true },
+    });
+    if (!tenant) throw new NotFoundException("Empresa não encontrada.");
+    const integrations = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown>
+      : {};
+    await this.prisma.tenant.update({
+      where: { id: request.user.tenantId },
+      data: { integrations: { ...integrations, quickReplySettings: settings } },
+    });
+    return settings;
+  }
+
   @Get()
   async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string) {
     const tenantId = request.user.tenantId;

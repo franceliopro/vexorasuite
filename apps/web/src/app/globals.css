@@ -1384,3 +1384,38 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .contact-profile .icon-button svg {
   color: var(--primary) !important;
 }
+
+
+/* Inbox conversation heading: icon-first controls and a single compact contact line. */
+.thread-heading{gap:8px;min-width:0}
+.thread-contact{flex:1 1 auto;min-width:0}
+.thread-contact h2{font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+.thread-actions{gap:4px}
+.thread-action-button,.handoff-invite-trigger,.handoff-direct-trigger,.thread-rare-actions .thread-icon-action,.profile-restore-action{width:36px;height:36px;min-width:36px;min-height:36px;padding:0;display:grid;place-items:center;border-radius:11px}
+.thread-actions .thread-action-button span,.thread-actions .handoff-invite-trigger span{display:none}
+.thread-actions .handoff-invite-trigger{gap:0}
+.thread-actions .handoff-invite-trigger svg:last-child{display:none}
+.thread-actions .thread-action-button svg,.thread-actions .handoff-invite-trigger svg{width:19px;height:19px}
+.thread-actions .handoff-toolbar{gap:3px}
+.thread-actions .handoff-menu{position:relative}
+.thread-actions .handoff-invite-trigger{list-style:none}
+.thread-actions .handoff-invite-trigger::-webkit-details-marker{display:none}
+.thread-actions .handoff-invite-trigger::marker{content:""}
+.thread-actions .handoff-invite-trigger{font-size:0}
+.thread-actions .thread-action-button{font-size:0}
+.profile-restore-action{color:var(--primary);background:var(--primary-soft);border:1px solid color-mix(in srgb,var(--primary) 20%,transparent)}
+@media(max-width:760px){
+  .thread-heading{padding:8px 9px;gap:6px;min-height:56px;flex-wrap:nowrap}
+  .thread-heading .mobile-inbox-back{flex:0 0 auto;min-width:34px;width:34px;height:36px;padding:0;justify-content:center;font-size:0}
+  .thread-heading .mobile-inbox-back svg{width:20px;height:20px}
+  .thread-heading .conversation-avatar{width:34px;height:34px;flex:0 0 34px}
+  .thread-contact{flex:1 1 0;width:0}
+  .thread-contact h2{font-size:12px;max-width:100%}
+  .thread-actions{gap:2px;flex:0 0 auto}
+  .thread-actions .thread-action-button,.thread-actions .handoff-invite-trigger,.thread-actions .thread-rare-actions .thread-icon-action,.thread-actions .profile-restore-action{width:32px;height:34px;min-width:32px;min-height:34px;border-radius:9px}
+  .thread-actions .handoff-toolbar{gap:2px}
+  .thread-actions .thread-rare-actions{gap:0}
+  .thread-actions svg{width:17px;height:17px}
+  .thread-actions .thread-action-button svg,.thread-actions .handoff-invite-trigger svg{width:17px;height:17px}
+  .thread-heading .contact-profile-avatar{display:none}
+}

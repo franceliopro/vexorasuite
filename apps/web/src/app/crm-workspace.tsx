@@ -24,6 +24,21 @@ function isAsaasCustomer(contact: Contact) {
   return !!asaas && typeof asaas === "object" && !Array.isArray(asaas) && typeof (asaas as Record<string, unknown>).customerId === "string";
 }
 function isCustomer(contact: Contact) { return contact.metadata?.contactType === "CUSTOMER" || isAsaasCustomer(contact); }
+function contactTags(contact: Contact): CrmTag[] {
+  const value = contact.metadata?.tags;
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    if (typeof raw === "string") return [{ name: raw, color: "#eeecff" }];
+    if (raw && typeof raw === "object" && "name" in raw && typeof (raw as {name?:unknown}).name === "string") return [{ name: (raw as {name:string}).name, color: typeof (raw as {color?:unknown}).color === "string" ? (raw as {color:string}).color : "#eeecff" }];
+    return [];
+  });
+}
+function contactFieldSummary(contact: Contact, definitions: CrmFieldDefinition[]) {
+  const value = contact.metadata?.customFields;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const values = value as Record<string, unknown>;
+  return definitions.map(field => ({ field, value: values[field.key] })).filter(item => item.value !== undefined && item.value !== null && item.value !== "").slice(0, 3);
+}
 
 const stages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
   { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
@@ -193,8 +208,8 @@ export function CrmWorkspace() {
                 {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"crm-pipeline-card" + (draggingId === contact.id ? " is-dragging" : "")}>
                   <div className="crm-card-top"><span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><span className="crm-card-source">{contact.source || "Contato"}</span></div>
                   <strong className="crm-card-name">{contact.name}</strong>
-                  {Array.isArray(contact.metadata?.tags)&&contact.metadata!.tags.length?<span className="crm-contact-tags">{(contact.metadata!.tags as unknown[]).map((raw,index)=>{const tag=typeof raw==="string"?{name:raw,color:"#eeecff"}:raw&&typeof raw==="object"?raw as CrmTag:null;return tag?.name?<span key={tag.name+index} style={{backgroundColor:tag.color||"#eeecff"}}>{tag.name}</span>:null})}</span>:null}
-                  {fieldDefinitions.length&&contact.metadata?.customFields&&typeof contact.metadata.customFields==="object"?<span className="crm-custom-field-summary">{fieldDefinitions.map(field=>({field,value:(contact.metadata!.customFields as Record<string,unknown>)[field.key]})).filter(item=>item.value!==undefined&&item.value!==null&&item.value!=="").slice(0,3).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
+                  {contactTags(contact).length?<span className="crm-contact-tags">{contactTags(contact).map((tag,index)=><span key={tag.name+index} style={{backgroundColor:tag.color||"#eeecff"}}>{tag.name}</span>)}</span>:null}
+                  {contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
                   <span className="crm-card-detail">{contact.phone || contact.email || "Sem telefone ou e-mail"}</span>
                   {contact.phone && contact.email ? <span className="crm-card-detail">{contact.email}</span> : null}
                   <div className="crm-card-footer"><label className="crm-move-label">Mover para<select aria-label={"Mover " + contact.name + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><ArrowRight size={14} aria-hidden="true"/></div>
@@ -212,7 +227,7 @@ export function CrmWorkspace() {
           <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>{heading}</h2><p>{rows.length} {rows.length === 1 ? (customerView ? "cliente" : "contato") : (customerView ? "clientes" : "contatos")} encontrados</p></div></div>
           {customerView ? <div className="crm-customer-note"><strong>Cadastro de clientes</strong><span>Clientes vinculados ao Asaas são sincronizados e protegidos contra exclusão pela Véxora. Atualizações financeiras devem respeitar o cadastro de origem.</span></div> : null}
           {rows.length ? <div className="crm-contact-list">{rows.map((contact) => { const asaasCustomer = isAsaasCustomer(contact); return <article className="crm-contact-row" key={contact.id}>
-            <span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span>{Array.isArray(contact.metadata?.tags)&&contact.metadata!.tags.length?<span className="crm-contact-tags">{(contact.metadata!.tags as unknown[]).map((raw,index)=>{const tag=typeof raw==="string"?{name:raw,color:"#eeecff"}:raw&&typeof raw==="object"?raw as CrmTag:null;return tag?.name?<span key={tag.name+index} style={{backgroundColor:tag.color||"#eeecff"}}>{tag.name}</span>:null})}</span>:null}{fieldDefinitions.length&&contact.metadata?.customFields&&typeof contact.metadata.customFields==="object"?<span className="crm-custom-field-summary">{fieldDefinitions.map(field=>({field,value:(contact.metadata!.customFields as Record<string,unknown>)[field.key]})).filter(item=>item.value!==undefined&&item.value!==null&&item.value!=="").slice(0,3).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}</div>
+            <span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span>{contactTags(contact).length?<span className="crm-contact-tags">{contactTags(contact).map((tag,index)=><span key={tag.name+index} style={{backgroundColor:tag.color||"#eeecff"}}>{tag.name}</span>)}</span>:null}{contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}</div>
             {customerView ? <span className={"crm-customer-origin" + (asaasCustomer ? " is-asaas" : "")}>{asaasCustomer ? "Asaas sincronizado" : "Cliente Véxora"}</span> : contact.crmFinalization ? <span className={"crm-stage-pill tone-rose"}><span>{"Perda · " + (contact.crmFinalization.reason || "Motivo registrado")}</span></span> : <label className={"crm-stage-pill tone-" + stages.find((stage) => stage.id === (contact.crmStage || "new"))?.tone}><span>{stages.find((stage) => stage.id === (contact.crmStage || "new"))?.label}</span><select aria-label={"Etapa de " + contact.name} value={contact.crmStage || "new"} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.filter((stage) => stage.id !== "finalization").map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label>}
           </article>; })}</div> : <div className="empty-state crm-empty"><span className="empty-illustration"><UsersRound size={24} /></span><h3>{query.trim() ? "Nenhum registro encontrado" : customerView ? "Nenhum cliente cadastrado" : "Nenhum contato cadastrado"}</h3><p>{query.trim() ? "Tente outro nome, telefone ou e-mail." : customerView ? "Clientes convertidos pelo CRM ou sincronizados do Asaas aparecerão aqui." : "Cadastre um contato para começar a organizar seu relacionamento comercial."}</p>{!customerView ? <button className="secondary-button" onClick={() => setFormOpen(true)}><Plus size={15} /> Cadastrar contato</button> : null}</div>}
         </section>;

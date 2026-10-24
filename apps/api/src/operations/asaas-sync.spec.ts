@@ -11,6 +11,7 @@ describe("AsaasService customer synchronization", () => {
       },
     };
     const prisma = {
+      contact: { findMany: jest.fn().mockResolvedValue(existing) },
       $transaction: jest.fn((callback: (client: typeof tx) => Promise<unknown>) => callback(tx)),
     } as unknown as PrismaService;
     const service = new AsaasService(prisma);

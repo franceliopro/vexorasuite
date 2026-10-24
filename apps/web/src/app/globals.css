@@ -1807,3 +1807,108 @@ input[type="color"].profile-tag-inline-color {
     font-size: 11px;
   }
 }
+
+
+/* Conversation header actions are grouped behind one recognizable menu trigger. */
+.thread-heading { position: relative; }
+.thread-actions-menu { position: relative; flex: 0 0 auto; }
+.thread-actions-trigger { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line, #e5e7ef); border-radius: 11px; background: var(--card, #fff); color: var(--ink, #20243a); cursor: pointer; list-style: none; transition: background .15s ease, border-color .15s ease, color .15s ease; }
+.thread-actions-trigger::-webkit-details-marker { display: none; }
+.thread-actions-trigger:hover, .thread-actions-menu[open] > .thread-actions-trigger { background: var(--primary-soft, #f0efff); border-color: color-mix(in srgb, var(--primary, #6258df) 35%, var(--line, #e5e7ef)); color: var(--primary, #6258df); }
+.thread-actions-menu > .thread-actions { position: absolute; z-index: 170; top: calc(100% + 8px); right: 0; display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: min(310px, calc(100vw - 28px)); max-height: min(72dvh, 560px); overflow-y: auto; padding: 9px; border: 1px solid var(--line, #e5e7ef); border-radius: 14px; background: var(--card, #fff); color: var(--ink, #20243a); box-shadow: 0 16px 44px rgba(18, 22, 42, .18); }
+.thread-actions-menu .thread-action-button, .thread-actions-menu .thread-icon-action, .thread-actions-menu .handoff-invite-trigger { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; min-height: 42px; padding: 9px 11px; border: 0; border-radius: 9px; background: transparent; color: var(--ink, #20243a); font-size: 13px; font-weight: 600; text-align: left; text-decoration: none; }
+.thread-actions-menu .thread-action-button:hover, .thread-actions-menu .thread-icon-action:hover, .thread-actions-menu .handoff-invite-trigger:hover { background: var(--primary-soft, #f0efff); color: var(--primary, #6258df); }
+.thread-actions-menu .thread-action-button:disabled { opacity: .45; cursor: not-allowed; }
+.thread-actions-menu .thread-action-button svg, .thread-actions-menu .thread-icon-action svg, .thread-actions-menu .handoff-invite-trigger svg { flex: 0 0 18px; }
+.thread-actions-menu .handoff-toolbar, .thread-actions-menu .handoff-menu, .thread-actions-menu .thread-rare-actions { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; }
+.thread-actions-menu .handoff-menu { position: relative; }
+.thread-actions-menu .handoff-menu > summary { list-style: none; cursor: pointer; }
+.thread-actions-menu .handoff-menu > summary::-webkit-details-marker { display: none; }
+.thread-actions-menu .handoff-menu[open] > .handoff-popover { position: fixed; z-index: 190; top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 28px)); max-height: min(76dvh, 620px); overflow: auto; }
+.thread-actions-menu .thread-rare-actions { border-top: 1px solid var(--line, #e5e7ef); padding-top: 5px; }
+.thread-actions-menu .thread-icon-action.danger-text { color: #b42332; }
+.thread-actions-menu .thread-action-button.resolve { color: #087c5a; }
+.thread-actions-menu .thread-action-button::after, .thread-actions-menu .thread-icon-action::after { font: inherit; }
+.thread-actions-menu .thread-action-button[title="Assumir esta conversa"]::after { content: "Assumir conversa"; }
+.thread-actions-menu .thread-action-button[title="Reabrir conversa"]::after { content: "Reabrir conversa"; }
+.thread-actions-menu .thread-action-button[title="Finalizar atendimento"]::after { content: "Finalizar atendimento"; }
+.thread-actions-menu .thread-icon-action[aria-label="Arquivar"]::after { content: "Arquivar conversa"; }
+.thread-actions-menu .thread-icon-action[aria-label="Mover para lixeira"]::after { content: "Mover para lixeira"; }
+.thread-actions-menu .thread-icon-action[aria-label="Restaurar"]::after { content: "Restaurar conversa"; }
+.thread-actions-menu .handoff-direct-trigger::after { content: "Direcionar conversa"; }
+.thread-actions-menu .invite-menu > summary::after { content: "Convidar atendente"; }
+.thread-actions-menu .profile-restore-action::after { content: "Reabrir ficha do contato"; }
+.thread-actions-menu .thread-action-button, .thread-actions-menu .thread-icon-action { font-size: 0; }
+.thread-actions-menu .thread-action-button::after, .thread-actions-menu .thread-icon-action::after { font-size: 13px; }
+.thread-actions-menu .handoff-invite-trigger { font-size: 13px; }
+.thread-actions-menu .handoff-invite-trigger svg { display: block; }
+.thread-actions-menu .handoff-menu .handoff-popover { color: var(--ink, #20243a); }
+/* The message log is the official conversation record: strengthen contrast and preserve comfortable reading. */
+.thread-messages { color: #171923; }
+.thread-messages .message-bubble p { color: #171923 !important; font-size: 15.5px; line-height: 1.6; font-weight: 450; }
+.thread-messages .message-bubble small { color: #4b5565; font-size: 11px; }
+.thread-messages .message-bubble { color: #171923; }
+.inbox-composer textarea { min-height: 42px; height: 44px; max-height: 32dvh; resize: vertical; overflow-y: auto; font-size: 15px; line-height: 1.45; }
+@media (max-width: 760px) {
+  .thread-actions-trigger { width: 42px; height: 42px; }
+  .thread-actions-menu > .thread-actions { right: 0; width: min(320px, calc(100vw - 24px)); }
+  .thread-messages .message-bubble p { font-size: 15.5px; line-height: 1.6; }
+  .inbox-composer textarea { height: 42px; min-height: 40px; max-height: 26dvh; font-size: 16px; }
+}
+
+
+/* Keep the reply composer inside the visible conversation panel; scroll history and profile independently. */
+.inbox-workspace {
+  align-items: stretch;
+}
+.inbox-workspace .inbox-thread {
+  height: min(760px, calc(100dvh - 220px));
+  max-height: calc(100dvh - 220px);
+  min-height: 0;
+}
+.inbox-workspace .thread-messages {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overscroll-behavior: contain;
+}
+.inbox-workspace .composer-shell,
+.inbox-workspace .inbox-composer {
+  flex: 0 0 auto;
+}
+.inbox-workspace .contact-profile {
+  height: min(760px, calc(100dvh - 220px));
+  max-height: calc(100dvh - 220px);
+  min-height: 0;
+}
+.inbox-workspace .contact-profile-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 980px) {
+  .inbox-workspace .contact-profile {
+    height: min(420px, 42dvh);
+    max-height: min(420px, 42dvh);
+  }
+}
+@media (max-width: 760px) {
+  .inbox-workspace.mobile-thread-open .inbox-thread {
+    height: calc(100dvh - 155px);
+    max-height: calc(100dvh - 155px);
+    min-height: 0;
+  }
+  .inbox-workspace.mobile-thread-open .thread-messages {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+  }
+  .inbox-workspace.mobile-thread-open .contact-profile {
+    height: min(300px, 38dvh);
+    max-height: min(300px, 38dvh);
+  }
+  .inbox-workspace.mobile-thread-open .contact-profile-body {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}

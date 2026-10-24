@@ -1,16 +1,43 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, ArrowRightLeft, Check, Archive, Trash2, Smile, Mic, MicOff, BookmarkPlus, Plus, X, Send, Keyboard, ArrowLeft } from "lucide-react";
+import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, ArrowRightLeft, Check, Archive, Trash2, Smile, Mic, MicOff, BookmarkPlus, Plus, X, Send, Keyboard, ArrowLeft, Instagram, Facebook, MessageCircle, Bot, BrainCircuit, Music2, AlarmClock } from "lucide-react";
 import { ContactProfilePanel } from "./contact-profile-panel";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
-type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; metadata?: Record<string, unknown> };
+type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; metadata?: Record<string, unknown> };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string };
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
-type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
+type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; botState?: Record<string, unknown>; isOverdue?: boolean; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
+function avatarUrl(contact: Contact): string | null {
+  const meta = contact.metadata || {};
+  for (const key of ["avatarUrl", "profilePictureUrl", "photoUrl", "pictureUrl", "profileImage"]) {
+    const value = meta[key];
+    if (typeof value === "string" && /^https:\/\//i.test(value)) return value;
+  }
+  return null;
+}
+function ChannelMark({ channel, kind = "source", mode }: { channel?: string; kind?: "source" | "agent"; mode?: "BOT" | "HUMAN" }) {
+  const value = (channel || "WHATSAPP").toUpperCase();
+  if (kind === "agent") {
+    if (mode === "HUMAN") return null;
+    const isAi = ["AI", "LLM", "OPENAI", "GPT"].includes(String(mode || "").toUpperCase()) || ["AI", "LLM", "OPENAI", "GPT", "IA"].some(token => value.includes(token));
+    return <span className={"channel-mark " + (isAi ? "channel-ai" : "channel-bot")} title={isAi ? "Atendimento por IA" : "Atendimento por chatbot"} aria-label={isAi ? "IA" : "Chatbot"}>{isAi ? <BrainCircuit size={12}/> : <Bot size={12}/>}</span>;
+  }
+  if (value.includes("INSTAGRAM")) return <span className="channel-mark channel-instagram" title="Instagram" aria-label="Instagram"><Instagram size={13}/></span>;
+  if (value.includes("FACEBOOK") || value === "MESSENGER") return <span className="channel-mark channel-facebook" title="Facebook" aria-label="Facebook"><Facebook size={13}/></span>;
+  if (value.includes("TIKTOK")) return <span className="channel-mark channel-tiktok" title="TikTok" aria-label="TikTok"><Music2 size={13}/></span>;
+  if (value.includes("CHATBOT") || value.includes("WIDGET") || value.includes("WEBCHAT")) return <span className="channel-mark channel-bot" title="Chatbot do site" aria-label="Chatbot"><Bot size={13}/></span>;
+  if (value.includes("AI") || value.includes("IA")) return <span className="channel-mark channel-ai" title="Inteligência artificial" aria-label="IA"><BrainCircuit size={13}/></span>;
+  return <span className="channel-mark channel-whatsapp" title="WhatsApp" aria-label="WhatsApp"><MessageCircle size={13}/></span>;
+}
+function ContactAvatar({ contact, className = "conversation-avatar" }: { contact: Contact; className?: string }) {
+  const src = avatarUrl(contact);
+  return <span className={className}>{src ? <img src={src} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; const fallback = event.currentTarget.nextElementSibling as HTMLElement | null; if (fallback) fallback.style.display = "flex"; }}/> : null}<span className={src ? "avatar-fallback hidden" : "avatar-fallback"}>{contact.name.slice(0, 1).toUpperCase()}</span></span>;
+}
+
 function contactLabels(contact: Contact): Array<{name:string;color:string}> {
   const value = contact.metadata?.tags;
   if (!Array.isArray(value)) return [];
@@ -313,14 +340,14 @@ export function InboxWorkspace() {
       </nav>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { setSelectedId(item.id); setMobileThreadOpen(true); }}>
-          <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:`color-mix(in srgb, ${tag.color} 20%, white)`,borderColor:`color-mix(in srgb, ${tag.color} 68%, #334155)`}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>
+          <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{item.contact.name}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || "")}/></span></span>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:"#fff",borderColor:"color-mix(in srgb, "+tag.color+" 78%, #111827)",boxShadow:"inset 0 0 0 1px color-mix(in srgb, "+tag.color+" 78%, #111827)"}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>
         </button>)}
         {!conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
       </div>
     </aside>
     <div className="inbox-thread content-card">
       {selected ? <>
-        <header className="thread-heading"><button type="button" className="mobile-inbox-back" aria-label="Voltar às conversas" onClick={() => setMobileThreadOpen(false)}><ArrowLeft size={18}/><span>Conversas</span></button><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
+        <header className="thread-heading"><button type="button" className="mobile-inbox-back" aria-label="Voltar às conversas" onClick={() => setMobileThreadOpen(false)}><ArrowLeft size={18}/><span>Conversas</span></button><ContactAvatar contact={selected.contact}/><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
           <details className="handoff-menu">
             <summary className="handoff-invite-trigger handoff-direct-trigger" title="Direcionar conversa">
               <ArrowRightLeft size={15}/><span>Direcionar</span><ChevronDown size={13}/>

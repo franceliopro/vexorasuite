@@ -499,7 +499,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 
 
 /* User-selectable dark appearance. The saved preference is local to this browser profile. */
-:root[data-theme="dark"]{color-scheme:dark;--page:#11131b;--card:#191c27;--ink:#edf0fa;--muted:#a1a7bc;--line:#303546;--primary:#a29aff;--primary-soft:#292643;--sidebar:#10111d;--sidebar-muted:#a3a5c0;--green:#40c99b;--shadow:0 3px 16px rgba(0,0,0,.18)}
+:root[data-theme="dark"]{color-scheme:dark;--page:#11131b;--card:#191c27;--ink:#edf0fa;--muted:#a1a7bc;--line:#303546;--sidebar:#10111d;--sidebar-muted:#a3a5c0;--green:#40c99b;--shadow:0 3px 16px rgba(0,0,0,.18)}
 :root[data-theme="dark"] body,:root[data-theme="dark"] .suite-app,:root[data-theme="dark"] .main-area{background:var(--page);color:var(--ink)}
 :root[data-theme="dark"] .content-card,:root[data-theme="dark"] .metric-card,:root[data-theme="dark"] .activity-card,:root[data-theme="dark"] .shortcuts-card,:root[data-theme="dark"] .crm-pipeline-card,:root[data-theme="dark"] .crm-contacts-card,:root[data-theme="dark"] .settings-card,:root[data-theme="dark"] .report-kpi,:root[data-theme="dark"] .report-table-card,:root[data-theme="dark"] .origin-breakdown,:root[data-theme="dark"] .origin-stage-card,:root[data-theme="dark"] .origin-recent,:root[data-theme="dark"] .module-placeholder{background:var(--card);border-color:var(--line);color:var(--ink);box-shadow:var(--shadow)}
 :root[data-theme="dark"] .topbar,:root[data-theme="dark"] .crm-toolbar,:root[data-theme="dark"] .crm-view-switch,:root[data-theme="dark"] .contact-profile-heading,:root[data-theme="dark"] .contact-profile-tabs,:root[data-theme="dark"] .profile-section,:root[data-theme="dark"] .crm-card-footer{border-color:var(--line)}

@@ -1623,3 +1623,5 @@ button.primary-button:hover:not(:disabled) {
   .thread-heading { gap: 7px; }
   .thread-actions { flex-basis: 100%; }
 }
+
+@media (min-width: 761px) { .mobile-sidebar-backdrop { display: none !important; } }

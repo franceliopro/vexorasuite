@@ -10,6 +10,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
   LayoutDashboard,
   Megaphone,
   MessagesSquare,
@@ -88,6 +90,9 @@ export default function HomePage() {
   }, [active, navigationReady]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if (saved === "dark" || saved === "light") setTheme(saved); } catch {} }, []);
+  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -145,6 +150,7 @@ export default function HomePage() {
           <div className="breadcrumbs"><span>Véxora Suite</span><span className="crumb-slash">/</span><strong>{active}</strong></div>
           <div className="topbar-actions">
             <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar" placeholder="Buscar..." /><kbd>⌘ K</kbd></label>
+            <button className="icon-button theme-toggle" onClick={() => setTheme(value => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"} title={theme === "light" ? "Modo escuro" : "Modo claro"}>{theme === "light" ? <Moon size={17}/> : <Sun size={17}/>}</button>
             <button className="icon-button" aria-label="Notificações">♧<i /></button>
             <button className="logout-button" onClick={async () => { await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
           </div>

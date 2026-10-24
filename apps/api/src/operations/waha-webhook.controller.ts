@@ -157,9 +157,21 @@ export class WahaWebhookController {
     if (step === "FINANCE_ACTION") {
       const platform = String(raw.platform || "");
       if (choice !== 1 && choice !== 2) { await this.sendBotReply(channel, chatId, conversationId, "Responda 1 para atendente financeira ou 2 para pagar."); return true; }
-      const label = choice === 2 ? "Financeiro · pagamento solicitado · " : "Financeiro · ";
-      await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, label + platform.replace("_", " "));
-      if (choice === 2) await this.sendBotReply(channel, chatId, conversationId, "Encaminhei sua solicitação de pagamento ao Financeiro. A consulta automática será liberada após validarmos o vínculo de cobrança da plataforma escolhida.");
+      if (choice === 2) {
+        const settings = await this.asaas.publicSettings(channel.tenantId);
+        if (!settings.enabled || !settings.configured) {
+          await this.sendBotReply(channel, chatId, conversationId, "A consulta financeira está temporariamente indisponível. Vou encaminhar você ao Financeiro.");
+          await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, "Financeiro · pagamento · " + platform.replace("_", " "));
+          return true;
+        }
+        await this.prisma.conversation.update({
+          where: { id: conversationId },
+          data: { handlingMode: "BOT", botState: { flow: "ASAAS", step: "DOCUMENT", platform, sector: "FINANCEIRO" } },
+        });
+        await this.sendBotReply(channel, chatId, conversationId, "Claro! Todas as cobranças são da Rastreabem. Vou consultar as cobranças em aberto no Asaas. 😊\\n\\nPara proteger seus dados, envie o CPF ou CNPJ do titular (somente números). O WhatsApp precisa corresponder ao telefone cadastrado. Digite *cancelar* para sair.");
+        return true;
+      }
+      await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, "Financeiro · " + platform.replace("_", " "));
       return true;
     }
     if (step === "COMMERCIAL_TYPE") {

@@ -2683,3 +2683,52 @@ input[type="color"].profile-tag-inline-color {
 .page-content > .crm-heading + .crm-toolbar {
   margin-bottom: 12px;
 }
+
+
+/* Shared visual audit: consistent header rhythm, toolbar wrapping and branded controls. */
+.main-area .page-content > :is(.page-heading,.settings-heading) {
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.main-area .page-content > :is(.page-heading,.settings-heading) :is(h1,.page-subtitle) {
+  max-width: 100%;
+}
+.main-area .page-content > :is(.page-heading,.settings-heading) p:not(.eyebrow) {
+  margin-top: 3px;
+}
+:root[data-theme] :is(.crm-toolbar,.settings-toolbar,.report-toolbar) {
+  min-width: 0;
+  gap: 10px;
+}
+:root[data-theme] :is(.crm-toolbar,.settings-toolbar,.report-toolbar) > * {
+  max-width: 100%;
+}
+:root[data-theme] :is(.crm-toolbar,.settings-toolbar,.report-toolbar) :is(input,select) {
+  min-width: 0;
+}
+:root[data-theme] :is(.settings-card,.crm-pipeline-column,.report-table-card,.origin-stage-card) {
+  min-width: 0;
+}
+:root[data-theme] :is(.settings-card,.crm-pipeline-column,.report-table-card,.origin-stage-card) :is(h2,h3) {
+  overflow-wrap: anywhere;
+}
+:root[data-theme="hybrid"] .sidebar .nav-item.active,
+:root[data-theme="dark"] .sidebar .nav-item.active,
+:root[data-theme="hybrid"] .sidebar .nav-subitem.active,
+:root[data-theme="dark"] .sidebar .nav-subitem.active {
+  color: #fff !important;
+}
+:root[data-theme="light"] .sidebar :is(.help-card,.workspace-switcher,.sidebar-collapse) {
+  background: #fff !important;
+  border-color: var(--border-subtle) !important;
+}
+:root[data-theme="light"] .sidebar :is(.help-icon,.profile-avatar) {
+  background: color-mix(in srgb,var(--primary) 12%,#fff) !important;
+  color: var(--primary) !important;
+}
+@media (max-width: 760px) {
+  .main-area .page-content > :is(.page-heading,.settings-heading) {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+}

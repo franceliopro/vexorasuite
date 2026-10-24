@@ -5,12 +5,13 @@ import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
 import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
-import { ReportsWorkspace } from "./reports-workspace";
 import {
   CalendarDays,
   Activity,
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
   LayoutDashboard,
   Megaphone,
   MessagesSquare,
@@ -43,7 +44,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 
 const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
-  { section: "RESULTADOS", items: [{ label: "Inteligência Operacional", icon: "chart-no-axes-combined" }, { label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
+  { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
 ];
 
@@ -76,7 +77,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Origem dos Leads") setActive("CRM");
-    else if (requested === "Relatórios") setActive("Inteligência Operacional");
+    else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
     else if (requested && validModules.has(requested)) setActive(requested);
     setNavigationReady(true);
   }, []);
@@ -89,6 +90,11 @@ export default function HomePage() {
   }, [active, navigationReady]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if (saved === "dark" || saved === "light") setTheme(saved); } catch {} }, []);
+  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme]);
+  useEffect(() => { if (!session) return; let live=true; void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then((v)=>{if(live&&v&&/^#[0-9a-fA-F]{6}$/.test(v.primaryColor)){document.documentElement.style.setProperty("--primary",v.primaryColor);document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${v.primaryColor} 12%, white)`);}}).catch(()=>{}); return ()=>{live=false}; }, [session?.tenant.slug]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -116,16 +122,10 @@ export default function HomePage() {
   return (
     <div className="suite-app">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-        <a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
+        <div className="sidebar-brand-row"><a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
           <span className="brand-mark">V</span>
           <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
-        </a>
-        <button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button>
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">V</span>
-          <span className="workspace-copy"><strong>{session?.tenant.name || "Minha empresa"}</strong><small>{session?.tenant.slug || "Workspace"}</small></span>
-          <span className="switch-chevron">⌄</span>
-        </div>
+        </a><button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
             const visibleItems = group.items.filter((item) => item.label !== "Configurações" || canConfigure);
@@ -151,7 +151,9 @@ export default function HomePage() {
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">☰</button>
           <div className="breadcrumbs"><span>Véxora Suite</span><span className="crumb-slash">/</span><strong>{active}</strong></div>
           <div className="topbar-actions">
+            {session?.role === "OWNER" ? <div className="workspace-info-wrap"><button type="button" className="workspace-info-button" onClick={() => setWorkspaceInfoOpen(v=>!v)} aria-expanded={workspaceInfoOpen} title="Informações do ambiente"><span className="workspace-avatar">V</span><span>Ambiente</span><Icon name="chevron-right" size={13}/></button>{workspaceInfoOpen?<div className="workspace-info-popover"><strong>{session?.tenant.name||"Minha empresa"}</strong><small>{session?.tenant.slug||"Workspace"}</small><p>Ambiente atual da empresa. A alternância entre empreendimentos será exibida quando houver mais de um vínculo disponível para sua conta.</p></div>:null}</div>:null}
             <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar" placeholder="Buscar..." /><kbd>⌘ K</kbd></label>
+            <button className="icon-button theme-toggle" onClick={() => setTheme(value => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"} title={theme === "light" ? "Modo escuro" : "Modo claro"}>{theme === "light" ? <Moon size={17}/> : <Sun size={17}/>}</button>
             <button className="icon-button" aria-label="Notificações">♧<i /></button>
             <button className="logout-button" onClick={async () => { await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
           </div>
@@ -184,8 +186,6 @@ export default function HomePage() {
             </>
           ) : active === "CRM" ? (
             <CrmWorkspace />
-          ) : active === "Inteligência Operacional" ? (
-            <ReportsWorkspace />
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
           ) : active === "Configurações" ? (

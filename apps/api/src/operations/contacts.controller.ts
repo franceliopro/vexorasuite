@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
@@ -47,6 +47,26 @@ export class ContactsController {
       take: 100,
     });
     return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
+  }
+
+  @Get("brand-settings")
+  async brandSettings(@Req() request: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const brand = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
+    return { primaryColor: typeof brand.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.primaryColor) ? brand.primaryColor : "#6258df" };
+  }
+
+  @Patch("brand-settings")
+  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown }) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes((request.user.role || "").toUpperCase())) throw new ForbiddenException("Somente administradores podem alterar a identidade visual.");
+    const primaryColor = typeof input.primaryColor === "string" ? input.primaryColor : "";
+    if (!/^#[0-9a-fA-F]{6}$/.test(primaryColor)) throw new BadRequestException("Escolha uma cor hexadecimal válida.");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const brand = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
+    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, brandSettings: { ...brand, primaryColor } } as any } });
+    return { primaryColor };
   }
 
   @Get("profile-config")
@@ -108,9 +128,32 @@ export class ContactsController {
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
-    if (input.leadOrigin !== undefined && (typeof input.leadOrigin !== "string" || input.leadOrigin.length > 120)) throw new BadRequestException("Origem do lead inválida.");
+    const leadOriginRecord = typeof input.leadOrigin === "string"
+      ? { source: input.leadOrigin }
+      : input.leadOrigin && typeof input.leadOrigin === "object" && !Array.isArray(input.leadOrigin)
+        ? input.leadOrigin as Record<string, unknown>
+        : null;
+    if (input.leadOrigin !== undefined && (!leadOriginRecord
+      || typeof leadOriginRecord.source !== "string"
+      || leadOriginRecord.source.length > 120
+      || (leadOriginRecord.identifier !== undefined && (typeof leadOriginRecord.identifier !== "string" || leadOriginRecord.identifier.length > 120)))) {
+      throw new BadRequestException("Origem do lead inválida.");
+    }
     const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
-    const metadata: Prisma.InputJsonObject = { ...existing, ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}), ...(input.notes !== undefined ? { notes: input.notes } : {}), ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}), ...(input.leadOrigin !== undefined ? { leadOrigin: { source: input.leadOrigin.trim() } } : {}) };
+    const metadata: Prisma.InputJsonObject = {
+      ...existing,
+      ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}),
+      ...(leadOriginRecord ? {
+        leadOrigin: {
+          source: (leadOriginRecord.source as string).trim(),
+          ...(typeof leadOriginRecord.identifier === "string" && leadOriginRecord.identifier.trim()
+            ? { identifier: leadOriginRecord.identifier.trim() }
+            : {}),
+        },
+      } : {}),
+    };
     const updated = await this.prisma.contact.update({ where: { id: contact.id }, data: { metadata } });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
     return { id: updated.id, metadata: updated.metadata };

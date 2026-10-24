@@ -282,3 +282,5 @@ html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact
 .quick-reply-preview { border:1px solid var(--border-subtle); background:var(--surface-2); border-radius:8px; padding:8px; }
 .quick-reply-preview p { margin:4px 0 0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:11px; color:var(--text-primary); }
 .quick-reply-row .quick-reply-use small { display:block; }
+
+.quick-reply-use.active { background:var(--surface-active); color:var(--text-primary); outline:2px solid color-mix(in srgb,var(--primary) 55%,transparent); outline-offset:-2px; }

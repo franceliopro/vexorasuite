@@ -1419,3 +1419,54 @@ button.primary-button:hover:not(:disabled) {
   .thread-actions .thread-action-button svg,.thread-actions .handoff-invite-trigger svg{width:17px;height:17px}
   .thread-heading .contact-profile-avatar{display:none}
 }
+
+
+/* Tenant branding: navigation hover, help/support and signed-in agent identity. */
+.sidebar .nav-item:hover,
+.sidebar .nav-subitem:hover {
+  background: color-mix(in srgb, var(--primary) 9%, var(--sidebar)) !important;
+  color: var(--primary) !important;
+}
+.sidebar .nav-item:hover .nav-glyph,
+.sidebar .nav-subitem:hover .nav-glyph { color: var(--primary) !important; }
+.sidebar .nav-item.active,
+.sidebar .nav-subitem.active {
+  background: color-mix(in srgb, var(--primary) 13%, var(--sidebar)) !important;
+  color: var(--primary) !important;
+}
+.sidebar .nav-item.active .nav-glyph { color: var(--primary) !important; }
+.sidebar .help-icon {
+  background: color-mix(in srgb, var(--primary) 12%, var(--sidebar)) !important;
+  color: var(--primary) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.sidebar .profile-avatar {
+  background: color-mix(in srgb, var(--primary) 13%, var(--sidebar)) !important;
+  color: var(--primary) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+:root[data-theme="light"] .sidebar .nav-item:hover,
+:root[data-theme="light"] .sidebar .nav-subitem:hover {
+  background: color-mix(in srgb, var(--primary) 7%, white) !important;
+}
+:root[data-theme="light"] .sidebar .nav-item.active,
+:root[data-theme="light"] .sidebar .nav-subitem.active {
+  background: color-mix(in srgb, var(--primary) 11%, white) !important;
+}
+:root[data-theme="light"] .sidebar .help-icon,
+:root[data-theme="light"] .sidebar .profile-avatar {
+  background: color-mix(in srgb, var(--primary) 9%, white) !important;
+}
+/* Cleaner, lighter contact tags in the CRM board and contact profile. */
+.crm-contact-tags { gap: 4px !important; }
+.crm-contact-tags > span,
+.contact-profile .profile-tag,
+.contact-profile .profile-tag-editable {
+  border-width: 1px !important;
+  border-style: solid !important;
+  padding: 2px 6px !important;
+  border-radius: 5px !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+}

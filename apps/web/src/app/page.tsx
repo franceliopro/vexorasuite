@@ -93,6 +93,7 @@ export default function HomePage() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if (saved === "dark" || saved === "light") setTheme(saved); } catch {} }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme]);
+  useEffect(() => { if (!session) return; let live=true; void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then((v)=>{if(live&&v&&/^#[0-9a-fA-F]{6}$/.test(v.primaryColor)){document.documentElement.style.setProperty("--primary",v.primaryColor);document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${v.primaryColor} 12%, white)`);}}).catch(()=>{}); return ()=>{live=false}; }, [session?.tenant.slug]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {

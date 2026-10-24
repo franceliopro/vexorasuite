@@ -2161,3 +2161,108 @@ input[type="color"].profile-tag-inline-color {
     font-size: 16px;
   }
 }
+
+
+/* Inbox: equal, minimal viewport gutters and a fixed-height three-panel workspace. */
+.main-area:has(.inbox-workspace) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.main-area:has(.inbox-workspace) > .page-content {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden;
+}
+.main-area:has(.inbox-workspace) .inbox-workspace {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 8px;
+  overflow: hidden;
+}
+.main-area:has(.inbox-workspace) .inbox-list.content-card,
+.main-area:has(.inbox-workspace) .inbox-thread.content-card,
+.main-area:has(.inbox-workspace) .contact-profile.content-card {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  margin: 0;
+  align-self: stretch;
+}
+.main-area:has(.inbox-workspace) .inbox-list.content-card {
+  width: 100%;
+  min-width: 0;
+}
+.main-area:has(.inbox-workspace) .inbox-thread.content-card {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.main-area:has(.inbox-workspace) .inbox-thread > .thread-heading {
+  flex: 0 0 auto;
+}
+.main-area:has(.inbox-workspace) .inbox-thread > .thread-messages {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.main-area:has(.inbox-workspace) .inbox-thread > .composer-shell {
+  position: relative;
+  inset: auto;
+  z-index: 2;
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  margin-top: auto;
+  overflow: visible;
+}
+.main-area:has(.inbox-workspace) .inbox-thread .inbox-composer {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+.main-area:has(.inbox-workspace) .contact-profile.content-card {
+  width: 280px;
+  min-width: 250px;
+  max-width: 310px;
+}
+.main-area:has(.inbox-workspace) .contact-profile.content-card.profile-collapsed {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+}
+@media (max-width: 760px) {
+  .main-area:has(.inbox-workspace) > .page-content {
+    padding: 5px;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+  .main-area:has(.inbox-workspace) .inbox-list.content-card,
+  .main-area:has(.inbox-workspace) .inbox-thread.content-card {
+    width: 100%;
+    min-width: 0;
+  }
+  .main-area:has(.inbox-workspace) .contact-profile.content-card {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+}

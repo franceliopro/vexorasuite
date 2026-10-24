@@ -323,7 +323,7 @@ export class AsaasService {
         const asaas = metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas)
           ? metadata.asaas as Record<string, unknown> : {};
         const customerId = typeof asaas.customerId === "string" ? asaas.customerId : "";
-        if (!customerId || seen.has(customerId) || asaas.status === "NOT_LISTED") continue;
+        if (!customerId || seen.has(customerId) || ["NOT_LISTED", "DELETED"].includes(String(asaas.status))) continue;
         await this.prisma.contact.update({
           where: { id: contact.id },
           data: { metadata: { ...metadata, asaas: { ...asaas, status: "NOT_LISTED", syncedAt: new Date().toISOString() } } as Prisma.InputJsonObject },

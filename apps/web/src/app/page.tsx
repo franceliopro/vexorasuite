@@ -69,6 +69,21 @@ export default function HomePage() {
   }, []);
 
   const [active, setActive] = useState("Visão geral");
+  const [navigationReady, setNavigationReady] = useState(false);
+  useEffect(() => {
+    const validModules = new Set(navigation.flatMap((group) => group.items.map((item) => item.label)));
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("module");
+    if (requested && validModules.has(requested)) setActive(requested);
+    setNavigationReady(true);
+  }, []);
+  useEffect(() => {
+    if (!navigationReady) return;
+    const url = new URL(window.location.href);
+    if (active === "Visão geral") url.searchParams.delete("module");
+    else url.searchParams.set("module", active);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [active, navigationReady]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);

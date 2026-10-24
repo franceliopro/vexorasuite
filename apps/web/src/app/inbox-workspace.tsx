@@ -23,7 +23,7 @@ function ChannelMark({ channel, kind = "source", mode }: { channel?: string; kin
   const value = (channel || "WHATSAPP").toUpperCase();
   if (kind === "agent") {
     if (mode === "HUMAN") return null;
-    const isAi = ["AI", "LLM", "OPENAI", "GPT"].includes(String(mode || "").toUpperCase());
+    const isAi = ["AI", "LLM", "OPENAI", "GPT"].includes(String(mode || "").toUpperCase()) || ["AI", "LLM", "OPENAI", "GPT", "IA"].some(token => value.includes(token));
     return <span className={"channel-mark " + (isAi ? "channel-ai" : "channel-bot")} title={isAi ? "Atendimento por IA" : "Atendimento por chatbot"} aria-label={isAi ? "IA" : "Chatbot"}>{isAi ? <BrainCircuit size={12}/> : <Bot size={12}/>}</span>;
   }
   if (value.includes("INSTAGRAM")) return <span className="channel-mark channel-instagram" title="Instagram" aria-label="Instagram"><Instagram size={13}/></span>;
@@ -35,7 +35,7 @@ function ChannelMark({ channel, kind = "source", mode }: { channel?: string; kin
 }
 function ContactAvatar({ contact, className = "conversation-avatar" }: { contact: Contact; className?: string }) {
   const src = avatarUrl(contact);
-  return <span className={className}>{src ? <img src={src} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }}/> : null}<span className={src ? "avatar-fallback hidden" : "avatar-fallback"}>{contact.name.slice(0, 1).toUpperCase()}</span></span>;
+  return <span className={className}>{src ? <img src={src} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; const fallback = event.currentTarget.nextElementSibling as HTMLElement | null; if (fallback) fallback.style.display = "flex"; }}/> : null}<span className={src ? "avatar-fallback hidden" : "avatar-fallback"}>{contact.name.slice(0, 1).toUpperCase()}</span></span>;
 }
 
 function contactLabels(contact: Contact): Array<{name:string;color:string}> {

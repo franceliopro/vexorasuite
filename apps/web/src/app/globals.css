@@ -2528,3 +2528,138 @@ input[type="color"].profile-tag-inline-color {
 :root[data-theme="dark"] .thread-messages .message-line.outgoing .message-bubble p {
   color: #fbfaff !important;
 }
+
+/* Refined page headings: keep the page title, remove the overline and tighten the supporting copy. */
+.page-heading > div > .eyebrow,
+.settings-heading > div > .eyebrow {
+  display: none !important;
+}
+.page-heading,
+.settings-heading {
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.page-heading h1,
+.settings-heading h1 {
+  margin: 0;
+}
+.page-heading p:not(.eyebrow),
+.settings-heading p:not(.eyebrow) {
+  margin-top: 2px;
+  line-height: 1.5;
+}
+/* Shared modules should use the canvas width instead of an arbitrary 1200px cap. */
+.main-area > .page-content {
+  width: 100%;
+  max-width: none;
+}
+.settings-workspace {
+  width: 100%;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 1685px) {
+  .settings-workspace {
+    max-width: 95%;
+  }
+}
+/* CRM: align the create action with the tools, not on its own far edge in the title row. */
+.crm-heading {
+  margin-bottom: 8px;
+}
+.crm-heading > div {
+  min-width: 0;
+}
+.crm-heading h1 {
+  font-size: clamp(28px, 2.7vw, 36px);
+  letter-spacing: -1px;
+}
+.crm-heading p:not(.eyebrow) {
+  max-width: none;
+  font-size: 13px;
+}
+.crm-toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+.crm-toolbar .crm-view-switch {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.crm-toolbar .crm-toolbar-search {
+  flex: 0 1 290px;
+  margin-left: auto;
+}
+.crm-toolbar .crm-new-contact {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.crm-pipeline {
+  grid-template-columns: repeat(4, minmax(265px, 1fr));
+  gap: 12px;
+  height: min(86dvh, calc(100dvh - 220px));
+  min-height: 430px;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.crm-pipeline-column {
+  min-width: 265px;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.crm-stage-cards {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+@media (min-width: 1450px) {
+  .crm-pipeline {
+    grid-template-columns: repeat(4, minmax(265px, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .crm-toolbar .crm-view-switch {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .crm-toolbar .crm-toolbar-search {
+    flex: 1 1 220px;
+    margin-left: 0;
+  }
+  .crm-pipeline {
+    height: min(82dvh, calc(100dvh - 245px));
+    min-height: 390px;
+    grid-template-columns: repeat(4, minmax(270px, 82vw));
+  }
+  .crm-pipeline-column {
+    min-width: 270px;
+  }
+}
+@media (max-width: 540px) {
+  .crm-toolbar .crm-new-contact {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
+}
+/* Preserve the selected orange brand hue in dark navigation: prevent muddy low-light blending. */
+:root[data-theme="hybrid"] .sidebar .nav-item.active,
+:root[data-theme="hybrid"] .sidebar .nav-subitem.active,
+:root[data-theme="dark"] .sidebar .nav-item.active,
+:root[data-theme="dark"] .sidebar .nav-subitem.active {
+  background: color-mix(in srgb, var(--primary) 52%, #191D28) !important;
+  border-color: color-mix(in srgb, var(--primary) 68%, #303847) !important;
+}
+:root[data-theme="hybrid"] .sidebar .help-icon,
+:root[data-theme="dark"] .sidebar .help-icon,
+:root[data-theme="hybrid"] .sidebar .profile-avatar,
+:root[data-theme="dark"] .sidebar .profile-avatar {
+  background: color-mix(in srgb, var(--primary) 38%, #191D28) !important;
+  color: #fff7ef !important;
+}

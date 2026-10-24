@@ -30,7 +30,8 @@ export function InboxWorkspace() {
   const [handoffAssignee, setHandoffAssignee] = useState("");
   const [inviteAssignee, setInviteAssignee] = useState("");
   const [assignees, setAssignees] = useState<Assignee[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);\n  const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);

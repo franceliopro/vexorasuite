@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, Search, UsersRound, X } from "lucide-react";
+import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from "react";
+import { ArrowRight, Check, LayoutGrid, List, Plus, Search, UsersRound, X } from "lucide-react";
 
+type CrmStage = "new" | "qualification" | "proposal" | "won" | "lost";
 type Contact = {
   id: string;
   name: string;
@@ -10,7 +11,15 @@ type Contact = {
   email: string | null;
   source: string | null;
   updatedAt: string;
+  crmStage?: CrmStage;
 };
+const stages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
+  { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
+  { id: "qualification", label: "Qualificação", hint: "Entenda a oportunidade", tone: "blue" },
+  { id: "proposal", label: "Proposta", hint: "Em negociação", tone: "amber" },
+  { id: "won", label: "Ganhos", hint: "Relacionamento iniciado", tone: "green" },
+  { id: "lost", label: "Perdidos", hint: "Não avançaram", tone: "rose" },
+];
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
@@ -27,6 +36,10 @@ export function CrmWorkspace() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [movingId, setMovingId] = useState("");
+  const [draggingId, setDraggingId] = useState("");
+  const [dropTarget, setDropTarget] = useState<CrmStage | "">("");
+  const [view, setView] = useState<"pipeline" | "contacts">("pipeline");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -53,34 +66,65 @@ export function CrmWorkspace() {
   async function createContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
-    setSaving(true);
-    setError("");
-    setNotice("");
+    setSaving(true); setError(""); setNotice("");
     try {
       await api<Contact>("/api/backend/contacts", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
+        method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined, email: email.trim() || undefined, source: "CRM" }),
       });
-      setName("");
-      setPhone("");
-      setEmail("");
-      setFormOpen(false);
-      setNotice("Contato cadastrado.");
+      setName(""); setPhone(""); setEmail(""); setFormOpen(false);
+      setNotice("Contato cadastrado e adicionado à etapa Novos.");
       await loadContacts(query);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha ao cadastrar contato.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
+  async function moveContact(contact: Contact, stage: CrmStage) {
+    if ((contact.crmStage || "new") === stage || movingId) return;
+    const previousStage = contact.crmStage || "new";
+    setMovingId(contact.id); setError(""); setNotice("");
+    setContacts((items) => items.map((item) => item.id === contact.id ? { ...item, crmStage: stage } : item));
+    try {
+      await api<Contact>("/api/backend/contacts/" + contact.id + "/stage", {
+        method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ stage }),
+      });
+      setNotice(contact.name + " movido para " + stages.find((item) => item.id === stage)?.label + ".");
+    } catch (cause) {
+      setContacts((items) => items.map((item) => item.id === contact.id ? { ...item, crmStage: previousStage } : item));
+      setError(cause instanceof Error ? cause.message : "Não foi possível mover o contato.");
+    } finally { setMovingId(""); setDraggingId(""); setDropTarget(""); }
+  }
+
+  function startDrag(event: DragEvent<HTMLElement>, contact: Contact) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", contact.id);
+    setDraggingId(contact.id);
+  }
+
+  function dropOnStage(event: DragEvent<HTMLDivElement>, stage: CrmStage) {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain");
+    const contact = contacts.find((item) => item.id === id);
+    setDropTarget("");
+    if (contact) void moveContact(contact, stage);
+  }
+
+  const visibleContacts = contacts.filter((contact) => !query.trim() || [contact.name, contact.phone || "", contact.email || ""].some((value) => value.toLowerCase().includes(query.trim().toLowerCase())));
   return (
     <section className="settings-workspace crm-workspace">
-      <header className="settings-heading">
-        <div><p className="eyebrow">RELACIONAMENTO</p><h1>CRM</h1><p>Centralize seus contatos e construa o histórico de relacionamento da empresa.</p></div>
+      <header className="settings-heading crm-heading">
+        <div><p className="eyebrow">RELACIONAMENTO</p><h1>CRM</h1><p>Acompanhe cada oportunidade e mova os contatos pelo funil comercial.</p></div>
         <button className="primary-button" onClick={() => setFormOpen((value) => !value)}><Plus size={16} /> Novo contato</button>
       </header>
+
+      <div className="crm-toolbar">
+        <div className="crm-view-switch" role="tablist" aria-label="Visualização do CRM">
+          <button role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><LayoutGrid size={15}/> Pipeline</button>
+          <button role="tab" aria-selected={view === "contacts"} className={view === "contacts" ? "active" : ""} onClick={() => setView("contacts")}><List size={15}/> Contatos</button>
+        </div>
+        <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label>
+      </div>
 
       {error ? <div className="settings-feedback error" role="alert">{error}<button onClick={() => setError("")} aria-label="Fechar erro"><X size={15} /></button></div> : null}
       {notice ? <div className="settings-feedback success" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Fechar aviso"><X size={15} /></button></div> : null}
@@ -95,19 +139,38 @@ export function CrmWorkspace() {
         <div className="crm-form-actions"><button className="secondary-button" type="button" onClick={() => setFormOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Salvando..." : "Cadastrar contato"}</button></div>
       </form> : null}
 
-      <section className="content-card settings-card">
-        <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>Contatos</h2><p>{contacts.length} {contacts.length === 1 ? "contato carregado" : "contatos carregados"} · até 100 resultados por busca</p></div></div>
-        <form className="crm-search" onSubmit={(event) => { event.preventDefault(); void loadContacts(query); }}>
-          <Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nome, telefone ou e-mail" /><button className="secondary-button" type="submit">Buscar</button>
-        </form>
-        {loading ? <p className="settings-muted">Carregando contatos...</p> : contacts.length ? <div className="crm-contact-list">
-          {contacts.map((contact) => <article className="crm-contact-row" key={contact.id}>
-            <span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span>
-            <div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span></div>
-            <span className="crm-contact-source">{contact.source || "Contato"}</span>
-          </article>)}
-        </div> : <div className="empty-state crm-empty"><span className="empty-illustration"><UsersRound size={24} /></span><h3>{query.trim() ? "Nenhum contato encontrado" : "Seu CRM começa aqui"}</h3><p>{query.trim() ? "Tente outro nome, telefone ou e-mail." : "Cadastre o primeiro contato. A base será o ponto de partida para oportunidades, histórico e automações."}</p>{!query.trim() ? <button className="secondary-button" onClick={() => setFormOpen(true)}><Plus size={15} /> Cadastrar primeiro contato</button> : null}</div>}
-      </section>
+      {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
+        <section className="crm-pipeline" aria-label="Pipeline comercial">
+          {stages.map((stage) => {
+            const columnContacts = visibleContacts.filter((contact) => (contact.crmStage || "new") === stage.id);
+            const activeDrop = dropTarget === stage.id;
+            return <div key={stage.id} className={"crm-pipeline-column tone-" + stage.tone + (activeDrop ? " drop-active" : "")}
+              onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}
+              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(""); }}
+              onDrop={(event) => dropOnStage(event, stage.id)}>
+              <header className="crm-stage-heading"><span className="crm-stage-indicator"/><div><h2>{stage.label}</h2><p>{stage.hint}</p></div><span className="crm-stage-count">{columnContacts.length}</span></header>
+              <div className="crm-stage-cards">
+                {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"crm-pipeline-card" + (draggingId === contact.id ? " is-dragging" : "")}>
+                  <div className="crm-card-top"><span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><span className="crm-card-source">{contact.source || "Contato"}</span></div>
+                  <strong className="crm-card-name">{contact.name}</strong>
+                  <span className="crm-card-detail">{contact.phone || contact.email || "Sem telefone ou e-mail"}</span>
+                  {contact.phone && contact.email ? <span className="crm-card-detail">{contact.email}</span> : null}
+                  <div className="crm-card-footer"><label className="crm-move-label">Mover para<select aria-label={"Mover " + contact.name + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><ArrowRight size={14} aria-hidden="true"/></div>
+                </article>)}
+                {!columnContacts.length ? <div className={"crm-stage-empty" + (activeDrop ? " is-lit" : "")}><span>{activeDrop ? <Check size={17}/> : <Plus size={17}/>}</span><strong>{activeDrop ? "Solte para mover" : "Sem contatos nesta etapa"}</strong><small>{activeDrop ? "O pipeline será atualizado" : "Arraste um cartão para cá"}</small></div> : null}
+              </div>
+            </div>;
+          })}
+        </section>
+      ) : (
+        <section className="content-card settings-card crm-contacts-card">
+          <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>Contatos</h2><p>{visibleContacts.length} {visibleContacts.length === 1 ? "contato" : "contatos"} encontrados</p></div></div>
+          {visibleContacts.length ? <div className="crm-contact-list">{visibleContacts.map((contact) => <article className="crm-contact-row" key={contact.id}>
+            <span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span></div>
+            <label className={"crm-stage-pill tone-" + stages.find((stage) => stage.id === (contact.crmStage || "new"))?.tone}><span>{stages.find((stage) => stage.id === (contact.crmStage || "new"))?.label}</span><select aria-label={"Etapa de " + contact.name} value={contact.crmStage || "new"} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label>
+          </article>)}</div> : <div className="empty-state crm-empty"><span className="empty-illustration"><UsersRound size={24} /></span><h3>{query.trim() ? "Nenhum contato encontrado" : "Seu CRM começa aqui"}</h3><p>{query.trim() ? "Tente outro nome, telefone ou e-mail." : "Cadastre o primeiro contato para começar a organizar seu pipeline comercial."}</p><button className="secondary-button" onClick={() => setFormOpen(true)}><Plus size={15} /> Cadastrar contato</button></div>}
+        </section>
+      )}
     </section>
   );
 }

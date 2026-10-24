@@ -1227,3 +1227,12 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="light"] .sidebar .help-arrow { color: #8a91a3; }
 :root[data-theme="light"] .sidebar .profile-row { border-top-color: #edf0f5; }
 :root[data-theme="light"] .sidebar .profile-more { color: #667085; }
+
+
+/* Dark theme: CRM Kanban contact labels must use a dark surface with light text. */
+:root[data-theme="dark"] .crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 18%, #171b26) !important;
+  color: #f8faff !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 62%, #454c5b) !important;
+  text-shadow: none !important;
+}

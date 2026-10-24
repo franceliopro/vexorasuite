@@ -5,7 +5,6 @@ import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
 import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
-import { ReportsWorkspace } from "./reports-workspace";
 import {
   CalendarDays,
   Activity,
@@ -43,7 +42,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 
 const navigation: { section: string; items: { label: string; icon: keyof typeof iconMap }[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
-  { section: "RESULTADOS", items: [{ label: "Inteligência Operacional", icon: "chart-no-axes-combined" }, { label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
+  { section: "RESULTADOS", items: [{ label: "Automação", icon: "workflow" }, { label: "Marketing", icon: "megaphone" }, { label: "Financeiro", icon: "wallet" }] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Configurações", icon: "settings" }] },
 ];
 
@@ -76,7 +75,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Origem dos Leads") setActive("CRM");
-    else if (requested === "Relatórios") setActive("Inteligência Operacional");
+    else if (requested === "Relatórios" || requested === "Inteligência Operacional") setActive("CRM");
     else if (requested && validModules.has(requested)) setActive(requested);
     setNavigationReady(true);
   }, []);
@@ -116,16 +115,10 @@ export default function HomePage() {
   return (
     <div className="suite-app">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-        <a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
+        <div className="sidebar-brand-row"><a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
           <span className="brand-mark">V</span>
           <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
-        </a>
-        <button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button>
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">V</span>
-          <span className="workspace-copy"><strong>{session?.tenant.name || "Minha empresa"}</strong><small>{session?.tenant.slug || "Workspace"}</small></span>
-          <span className="switch-chevron">⌄</span>
-        </div>
+        </a><button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
             const visibleItems = group.items.filter((item) => item.label !== "Configurações" || canConfigure);
@@ -184,8 +177,6 @@ export default function HomePage() {
             </>
           ) : active === "CRM" ? (
             <CrmWorkspace />
-          ) : active === "Inteligência Operacional" ? (
-            <ReportsWorkspace />
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
           ) : active === "Configurações" ? (

@@ -80,7 +80,7 @@ export class ReportsController {
   }
 
   private async conversations(tenantId: string, start: Date, end: Date) {
-    return this.prisma.conversation.findMany({
+    const rows = await this.prisma.conversation.findMany({
       where: { tenantId, createdAt: { gte: start, lt: end }, deletedAt: null },
       select: {
         id: true, status: true, handlingMode: true, channel: true, createdAt: true, updatedAt: true,
@@ -88,12 +88,20 @@ export class ReportsController {
         contact: { select: { name: true, source: true } },
         assignee: { select: { name: true } },
         department: { select: { name: true } },
-        messages: { where: { direction: "OUTBOUND" }, orderBy: { occurredAt: "asc" }, take: 1, select: { occurredAt: true } },
+        messages: { where: { direction: "OUTBOUND", occurredAt: { gte: start, lt: end } }, orderBy: { occurredAt: "asc" }, take: 1, select: { occurredAt: true } },
         _count: { select: { messages: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 10000,
     });
+    if (!rows.length) return rows;
+    const counts = await this.prisma.message.groupBy({
+      by: ["conversationId"],
+      where: { tenantId, conversationId: { in: rows.map((row) => row.id) }, occurredAt: { gte: start, lt: end } },
+      _count: { _all: true },
+    });
+    const messageCounts = new Map(counts.map((row) => [row.conversationId, row._count._all]));
+    return rows.map((row) => ({ ...row, _count: { messages: messageCounts.get(row.id) || 0 } }));
   }
 
   @Get("service")

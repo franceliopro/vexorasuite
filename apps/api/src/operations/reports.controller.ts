@@ -145,7 +145,7 @@ export class ReportsController {
       const leadOrigin = record(metadata.leadOrigin);
       const legacyOrigin = record(metadata.lead_origin);
       const value = String(leadOrigin.source || legacyOrigin.source || contact.source || "").trim();
-      if (!value || ["CRM", "ASAAS"].includes(value.toUpperCase())) return "Não identificada";
+      if (!value || ["CRM", "ASAAS", "WHATSAPP", "WAHA"].includes(value.toUpperCase())) return "Não identificada";
       return value;
     };
     const byOrigin = new Map<string, { name: string; total: number; won: number; lost: number; open: number; withCampaign: number }>();

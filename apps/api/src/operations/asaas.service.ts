@@ -170,7 +170,7 @@ export class AsaasService {
     return { payment: updated, conversation: existing.conversation, paid };
   }
 
-  async syncCustomers(tenantId: string): Promise<{ created: number; updated: number; unchanged: number; pages: number; total: number; environment: string }> {
+  async syncCustomers(tenantId: string): Promise<{ created: number; updated: number; unchanged: number; notListed: number; pages: number; total: number; environment: string }> {
     const credentials = await this.credentials(tenantId);
     type AsaasCustomer = {
       id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null;
@@ -202,7 +202,7 @@ export class AsaasService {
       if (phone.startsWith("55") && (phone.length === 12 || phone.length === 13)) phone = phone.slice(2);
       return phone.length === 11 && phone[2] === "9" ? phone.slice(0, 2) + phone.slice(3) : phone;
     };
-    const counters = { created: 0, updated: 0, unchanged: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
+    const counters = { created: 0, updated: 0, unchanged: 0, notListed: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
 
     // Load the tenant's contacts once; a query per imported customer would become quadratic.
     const tenantContacts = await this.prisma.contact.findMany({
@@ -327,7 +327,7 @@ export class AsaasService {
           where: { id: contact.id },
           data: { metadata: { ...metadata, asaas: { ...asaas, status: "NOT_LISTED", syncedAt: new Date().toISOString() } } as Prisma.InputJsonObject },
         });
-        counters.updated++;
+        counters.notListed++;
       }
     }
     return counters;

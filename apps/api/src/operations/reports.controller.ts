@@ -29,8 +29,8 @@ function range(fromInput?: string, toInput?: string, offsetInput?: string) {
   const duration = Math.round((end.getTime() - start.getTime()) / DAY);
   return {
     from, to, start, end,
-    previousFrom: new Date(start.getTime() - duration * DAY).toISOString().slice(0, 10),
-    previousTo: new Date(start.getTime() - DAY).toISOString().slice(0, 10),
+    previousFrom: new Date(new Date(from + "T00:00:00.000Z").getTime() - duration * DAY).toISOString().slice(0, 10),
+    previousTo: new Date(new Date(from + "T00:00:00.000Z").getTime() - DAY).toISOString().slice(0, 10),
   };
 }
 function summarize(rows: any[]) {

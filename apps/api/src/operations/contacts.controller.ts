@@ -6,6 +6,7 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
+import { AsaasService } from "./asaas.service";
 
 const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];
@@ -25,6 +26,7 @@ export class ContactsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
+    private readonly asaas: AsaasService,
   ) {}
 
   @Get()
@@ -164,9 +166,11 @@ export class ContactsController {
       if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: finalizedConversationIds }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
       return { contact: updatedContact, conversations: active.map((item) => item.id) };
     });
-    this.events.publish(tenantId, "contact.finalized", { id: result.contact.id, outcome, ...(outcome === "LOST" ? { reason } : {}) });
+    const asaasSync = outcome === "WON" ? await this.asaas.syncCustomerByContact(tenantId, result.contact.id) : null;
+    this.events.publish(tenantId, "contact.finalized", { id: result.contact.id, outcome, ...(outcome === "LOST" ? { reason } : {}), ...(asaasSync ? { asaasSyncStatus: asaasSync.status } : {}) });
+    if (asaasSync) this.events.publish(tenantId, "contact.updated", { id: result.contact.id, asaasSyncStatus: asaasSync.status });
     for (const conversationId of result.conversations) this.events.publish(tenantId, "conversation.updated", { id: conversationId, status: "RESOLVED", finalizationOutcome: outcome });
-    return { contact: { ...result.contact, crmStage: null, crmFinalization: (result.contact.metadata as Prisma.JsonObject).crmFinalization }, finalizedConversations: result.conversations.length };
+    return { contact: { ...result.contact, crmStage: null, crmFinalization: (result.contact.metadata as Prisma.JsonObject).crmFinalization }, finalizedConversations: result.conversations.length, ...(asaasSync ? { asaasSync } : {}) };
   }
 
   @Post()

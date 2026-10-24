@@ -11,6 +11,8 @@ type CrmStage = (typeof CRM_STAGES)[number];
 function readCrmStage(metadata: Prisma.JsonValue): CrmStage | null {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
     if ("crmFinalization" in metadata && metadata.crmFinalization) return null;
+    if (metadata.contactType === "CUSTOMER") return null;
+    if ("asaas" in metadata && metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas) && "customerId" in metadata.asaas) return null;
     if ("crmStage" in metadata) { const stage = metadata.crmStage; if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage; }
   }
   return "new";

@@ -1912,3 +1912,69 @@ input[type="color"].profile-tag-inline-color {
     overflow-y: auto;
   }
 }
+
+
+/* Final hybrid theme fix: the inbox selection and dashboard surfaces intentionally
+   follow the light workspace palette, independent of the dark navigation rail. */
+:root[data-theme="hybrid"] .inbox-conversation {
+  background: #ffffff;
+  color: #252941;
+  border-bottom-color: #e9edf4;
+}
+:root[data-theme="hybrid"] .inbox-conversation:hover {
+  background: #f8f8ff;
+}
+:root[data-theme="hybrid"] .inbox-conversation.selected,
+:root[data-theme="hybrid"] .inbox-conversation.selected:hover {
+  background: #f5f4ff;
+  color: #252941;
+  box-shadow: inset 3px 0 #6258df;
+}
+:root[data-theme="hybrid"] .inbox-conversation .conversation-summary > strong,
+:root[data-theme="hybrid"] .inbox-conversation .conversation-title-row > strong {
+  color: #252941;
+}
+:root[data-theme="hybrid"] .inbox-conversation .conversation-summary small,
+:root[data-theme="hybrid"] .inbox-conversation .conversation-title-row small {
+  color: #697087;
+}
+:root[data-theme="hybrid"] .dashboard-grid .content-card,
+:root[data-theme="hybrid"] .dashboard-grid .activity-card,
+:root[data-theme="hybrid"] .dashboard-grid .shortcuts-card {
+  background: #ffffff;
+  color: #252941;
+  border-color: #e9edf4;
+  box-shadow: 0 2px 10px rgba(25, 27, 64, .025);
+}
+:root[data-theme="hybrid"] .dashboard-grid .card-heading h2,
+:root[data-theme="hybrid"] .dashboard-grid .shortcut-copy strong,
+:root[data-theme="hybrid"] .dashboard-grid .empty-state h3 {
+  color: #252941;
+}
+:root[data-theme="hybrid"] .dashboard-grid .card-heading p,
+:root[data-theme="hybrid"] .dashboard-grid .shortcut-copy small,
+:root[data-theme="hybrid"] .dashboard-grid .empty-state p,
+:root[data-theme="hybrid"] .dashboard-grid .metric-card p {
+  color: #697087;
+}
+:root[data-theme="hybrid"] .dashboard-grid .shortcut-item {
+  background: #ffffff;
+  border-bottom-color: #f0f2f7;
+}
+:root[data-theme="hybrid"] .dashboard-grid .shortcut-icon,
+:root[data-theme="hybrid"] .dashboard-grid .metric-icon {
+  background: #f4f3ff;
+  color: #6258df;
+}
+:root[data-theme="hybrid"] .bottom-note {
+  background: #ffffff;
+  color: #5f667d;
+  border-color: #e9edf4;
+}
+:root[data-theme="hybrid"] .bottom-note strong {
+  color: #252941;
+}
+:root[data-theme="hybrid"] .bottom-note .note-icon {
+  border-color: #bcb7f6;
+  color: #6258df;
+}

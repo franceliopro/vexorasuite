@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { Prisma } from "@prisma/client";\nimport { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";

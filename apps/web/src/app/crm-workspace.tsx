@@ -173,8 +173,7 @@ export function CrmWorkspace() {
   return (
     <section className="settings-workspace crm-workspace">
       <header className="settings-heading crm-heading">
-        <div><p className="eyebrow">RELACIONAMENTO</p><h1>CRM</h1><p>Acompanhe cada oportunidade e mova os contatos pelo funil comercial.</p></div>
-        <button className="primary-button" onClick={() => setFormOpen((value) => !value)}><Plus size={16} /> Novo contato</button>
+        <div><h1>CRM</h1><p>Acompanhe cada oportunidade e mova os contatos pelo funil comercial.</p></div>
       </header>
 
       <div className="crm-toolbar">
@@ -186,6 +185,7 @@ export function CrmWorkspace() {
           <button role="tab" aria-selected={view === "reports"} className={view === "reports" ? "active" : ""} onClick={() => setView("reports")}><ChartNoAxesCombined size={15}/> Inteligência Operacional</button>
         </div>
         {view !== "origins" && view !== "reports" ? <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label> : null}
+        <button className="primary-button crm-new-contact" onClick={() => setFormOpen((value) => !value)}><Plus size={16} /> Novo contato</button>
       </div>
 
       {error ? <div className="settings-feedback error" role="alert">{error}<button onClick={() => setError("")} aria-label="Fechar erro"><X size={15} /></button></div> : null}

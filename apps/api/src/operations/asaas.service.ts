@@ -255,6 +255,7 @@ export class AsaasService {
 
         if (matches.length === 1) {
           const existing = matches[0];
+          if (!existing) throw new ServiceUnavailableException("Não foi possível reconciliar o cadastro Asaas com segurança.");
           const previous = metadataOf(existing.metadata);
           const previousAsaas = asaasOf(existing.metadata);
           const mergedAsaas = { ...previousAsaas, ...incoming };

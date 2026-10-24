@@ -89,14 +89,15 @@ export class ContactsController {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
     const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
-    if (existing.crmFinalization) throw new BadRequestException("Este contato já foi finalizado.");
+    const previousFinalization = existing.crmFinalization && typeof existing.crmFinalization === "object" && !Array.isArray(existing.crmFinalization) ? existing.crmFinalization as Prisma.JsonObject : {};
+    const priorFinalizedIds = Array.isArray(previousFinalization.finalizedConversationIds) ? previousFinalization.finalizedConversationIds.filter((value): value is string => typeof value === "string") : [];
     const priorTags = Array.isArray(existing.tags) ? existing.tags.filter((tag): tag is string => typeof tag === "string") : [];
     const tags = outcome === "WON" ? priorTags.filter((tag) => tag.trim().toLocaleLowerCase("pt-BR") !== "novo lead") : priorTags;
     const rest = Object.fromEntries(Object.entries(existing).filter(([key]) => key !== "crmStage" && key !== "crmFinalization")) as Prisma.JsonObject;
     const finalizedAt = new Date().toISOString();
     const result = await this.prisma.$transaction(async (tx) => {
       const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true } });
-      const finalizedConversationIds = active.map((item) => item.id);
+      const finalizedConversationIds = [...new Set([...priorFinalizedIds, ...active.map((item) => item.id)])];
       const metadata: Prisma.InputJsonObject = {
         ...rest,
         tags,

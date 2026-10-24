@@ -226,22 +226,18 @@ export class AsaasService {
       }
 
       type AsaasCustomerRecord = { id: string; name?: string; email?: string | null; phone?: string | null; mobilePhone?: string | null; cpfCnpj?: string | null; externalReference?: string | null; deleted?: boolean };
-      const remoteCustomers: AsaasCustomerRecord[] = [];
-      let offset = 0;
-      for (let page = 0; page < 100; page++) {
-        const result = await this.request<{ data?: AsaasCustomerRecord[]; hasMore?: boolean }>(
-          tenantId, "/customers?limit=100&offset=" + offset,
-        );
-        const batch = Array.isArray(result.data) ? result.data : [];
-        remoteCustomers.push(...batch.filter((item) => typeof item.id === "string" && !item.deleted));
-        if (!result.hasMore || batch.length === 0) break;
-        offset += batch.length;
-        if (page === 99) throw new ServiceUnavailableException("A consulta de clientes do Asaas excedeu o limite seguro.");
+      const lookupCustomers = async (filter: Record<string, string>) => {
+        const query = new URLSearchParams({ ...filter, limit: "100", offset: "0" }).toString();
+        const result = await this.request<{ data?: AsaasCustomerRecord[] }>(tenantId, "/customers?" + query);
+        return (Array.isArray(result.data) ? result.data : []).filter((item) => typeof item.id === "string" && !item.deleted);
+      };
+      // Search narrowly instead of downloading the whole Asaas customer base for each CRM conversion.
+      let matches = await lookupCustomers({ externalReference: "vexora:" + contactId });
+      matches = matches.filter((item) => item.externalReference === "vexora:" + contactId);
+      if (matches.length === 0 && document) {
+        matches = await lookupCustomers({ cpfCnpj: document });
+        matches = matches.filter((item) => digits(item.cpfCnpj) === document);
       }
-      // Prefer the explicit Véxora external reference, then a unique exact document match.
-      // Email/phone alone must not silently attach a financial customer to the wrong person.
-      let matches = remoteCustomers.filter((item) => item.externalReference === "vexora:" + contactId);
-      if (matches.length === 0 && document) matches = remoteCustomers.filter((item) => digits(item.cpfCnpj) === document);
       if (matches.length > 1) {
         return await markPending("Há mais de um cadastro compatível no Asaas. Revise os dados antes de sincronizar para evitar duplicidade.");
       }

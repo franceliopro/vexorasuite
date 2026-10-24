@@ -195,7 +195,7 @@ export class AsaasService {
       if (page === 999) throw new ServiceUnavailableException("A sincronização excedeu o limite seguro de páginas do Asaas.");
     }
 
-    const digits = (value: unknown) => String(value ?? "").replace(/\\D/g, "");
+    const digits = (value: unknown) => String(value ?? "").replace(/\D/g, "");
     const normalizeEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
     const normalizePhone = (value: unknown) => {
       let phone = digits(value);

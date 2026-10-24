@@ -330,7 +330,7 @@ export function InboxWorkspace() {
   }
   function createQuickReply() {
     if (!quickTitle.trim() || !quickContent.trim()) return;
-    const shortcut = quickShortcut.trim().replace(/^\\/+/, "");
+    const shortcut = quickShortcut.trim().replace(/^\/+/, "");
     if (shortcut && quickReplies.some(item => (item.shortcut || "").toLocaleLowerCase("pt-BR") === shortcut.toLocaleLowerCase("pt-BR"))) {
       setError("Esse atalho já está sendo usado por outra resposta rápida.");
       return;

@@ -117,7 +117,65 @@ export class WahaWebhookController {
   }
 
 
+  /** Guided triage: explicit choices precede automatic routing. */
+  private async runGuidedTriage(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<boolean> {
+    if (chatId.endsWith("@g.us")) return false;
+    const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { botState: true } });
+    const raw = conversation?.botState && typeof conversation.botState === "object" && !Array.isArray(conversation.botState) ? conversation.botState as Record<string, unknown> : {};
+    const active = raw.flow === "TRIAGE";
+    const normalized = inboundText.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    const starts = /^(menu|inicio|iniciar|ajuda|atendente|opcoes|opcao)$/i.test(normalized);
+    if (!active && !isNewConversation && !starts) return false;
+    const send = async (step: string, values: Record<string, unknown>, content: string) => {
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "TRIAGE", step, ...values } } });
+      await this.sendBotReply(channel, chatId, conversationId, content);
+    };
+    if (!active) { await send("SECTOR", {}, "Olá! Sou o assistente virtual. 😊\n\nEscolha o setor:\n1. Suporte\n2. Financeiro\n3. Comercial\n4. Administrativo\n\nDigite *menu* para recomeçar."); return true; }
+    const choice = /^\d+$/.test(normalized) ? Number(normalized) : 0;
+    const step = String(raw.step || "");
+    if (step === "SECTOR") {
+      const sectors: Record<number, string> = { 1: "SUPORTE", 2: "FINANCEIRO", 3: "COMERCIAL", 4: "ADMINISTRATIVO" };
+      const sector = sectors[choice];
+      if (!sector) { await this.sendBotReply(channel, chatId, conversationId, "Escolha 1 Suporte, 2 Financeiro, 3 Comercial ou 4 Administrativo."); return true; }
+      if (sector === "COMERCIAL") { await send("COMMERCIAL_TYPE", { sector }, "O atendimento Comercial é para:\n1. Pessoa Física\n2. Pessoa Jurídica"); return true; }
+      if (sector === "ADMINISTRATIVO") { await this.handoffGuided(channel, conversationId, chatId, "ADMINISTRATIVO", null, "Administrativo"); return true; }
+      await send("PLATFORM", { sector }, "Qual plataforma?\n1. Ceeb Vision\n2. Link\n3. Rastreabem"); return true;
+    }
+    if (step === "PLATFORM") {
+      const platforms: Record<number, string> = { 1: "CEEB_VISION", 2: "LINK", 3: "RASTREABEM" }; const platform = platforms[choice];
+      if (!platform) { await this.sendBotReply(channel, chatId, conversationId, "Escolha 1 Ceeb Vision, 2 Link ou 3 Rastreabem."); return true; }
+      const sector = String(raw.sector || "");
+      if (sector === "FINANCEIRO") { await send("FINANCE_ACTION", { sector, platform }, "Como deseja continuar?\n1. Falar com atendente financeira\n2. Pagar"); return true; }
+      await this.handoffGuided(channel, conversationId, chatId, "SUPORTE", platform, "Suporte · " + platform.replace("_", " ")); return true;
+    }
+    if (step === "FINANCE_ACTION") {
+      const platform = String(raw.platform || "");
+      if (choice !== 1 && choice !== 2) { await this.sendBotReply(channel, chatId, conversationId, "Responda 1 para atendente financeira ou 2 para pagar."); return true; }
+      const label = choice === 2 ? "Financeiro · pagamento solicitado · " : "Financeiro · ";
+      await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, label + platform.replace("_", " "));
+      if (choice === 2) await this.sendBotReply(channel, chatId, conversationId, "Encaminhei sua solicitação de pagamento ao Financeiro. A consulta automática será liberada após validarmos o vínculo de cobrança da plataforma escolhida.");
+      return true;
+    }
+    if (step === "COMMERCIAL_TYPE") {
+      if (choice !== 1 && choice !== 2) { await this.sendBotReply(channel, chatId, conversationId, "Responda 1 para Pessoa Física ou 2 para Pessoa Jurídica."); return true; }
+      const key = choice === 1 ? "COMERCIAL_PF" : "COMERCIAL_PJ";
+      await this.handoffGuided(channel, conversationId, chatId, key, null, choice === 1 ? "Comercial · Pessoa Física" : "Comercial · Pessoa Jurídica"); return true;
+    }
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } }); return false;
+  }
+
+  private async handoffGuided(channel: ChannelConnection, conversationId: string, chatId: string, key: string, platform: string | null, label: string): Promise<void> {
+    const specific = platform ? [platform + "_SUPORTE", "SUPORTE_" + platform] : [];
+    const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
+    const destination = [...specific, key].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+    this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: destination?.id ?? null, status: "OPEN" });
+    const missing = !destination ? " Não encontrei uma fila ativa configurada; a conversa ficou na fila geral." : "";
+    await this.sendBotReply(channel, chatId, conversationId, "Certo! Encaminhei sua conversa: " + label + "." + missing + " Um atendente continuará por aqui. 🙌");
+  }
+
   private async runMenuBot(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
+    if (await this.runGuidedTriage(channel, chatId, conversationId, isNewConversation, inboundText)) return;
     if (await this.runAsaasFlow(channel, chatId, conversationId, inboundText)) return;
     const defaults = [
       { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "nota fiscal", "reembolso", "cobrança", "cobranca", "financeiro"] },

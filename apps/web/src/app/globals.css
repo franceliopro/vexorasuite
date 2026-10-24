@@ -1176,3 +1176,85 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="light"] .module-placeholder-icon { background: #f4f3ff; }
 :root[data-theme="light"] .inbox-queue-button:hover,
 :root[data-theme="light"] .inbox-more-queues>summary:hover { background: #f7f6ff; }
+
+
+/* Light theme: keep the navigation and bottom help card genuinely bright. */
+:root[data-theme="light"] .sidebar {
+  --sidebar: #ffffff;
+  --sidebar-muted: #667085;
+  background: #ffffff !important;
+  color: #20243a;
+  border-right: 1px solid #edf0f5;
+  box-shadow: 1px 0 0 rgba(16,24,40,.015);
+}
+:root[data-theme="light"] .sidebar .nav-section { color: #98a1b3; }
+:root[data-theme="light"] .sidebar .nav-item { color: #586174; }
+:root[data-theme="light"] .sidebar .nav-item:hover,
+:root[data-theme="light"] .sidebar .nav-subitem:hover {
+  background: #f5f6fb;
+  color: var(--primary);
+}
+:root[data-theme="light"] .sidebar .nav-item.active,
+:root[data-theme="light"] .sidebar .nav-subitem.active {
+  background: #f0efff;
+  color: #5146d8;
+}
+:root[data-theme="light"] .sidebar .nav-glyph { color: #6558e8; }
+:root[data-theme="light"] .sidebar .nav-submenu { border-left-color: #e8eaf2; }
+:root[data-theme="light"] .sidebar .workspace-switcher,
+:root[data-theme="light"] .sidebar .sidebar-collapse,
+:root[data-theme="light"] .sidebar .workspace-info-button {
+  background: #ffffff;
+  border-color: #e8ebf2;
+  color: #586174;
+}
+:root[data-theme="light"] .sidebar .workspace-switcher:hover,
+:root[data-theme="light"] .sidebar .sidebar-collapse:hover {
+  background: #f7f8fc;
+}
+:root[data-theme="light"] .sidebar .help-card {
+  background: #ffffff !important;
+  border: 1px solid #e8ebf2 !important;
+  color: #30364a !important;
+  box-shadow: 0 2px 8px rgba(16,24,40,.035);
+}
+:root[data-theme="light"] .sidebar .help-icon {
+  background: #f0efff;
+  color: #5146d8;
+}
+:root[data-theme="light"] .sidebar .help-card strong { color: #30364a; }
+:root[data-theme="light"] .sidebar .help-card small { color: #778096; }
+:root[data-theme="light"] .sidebar .help-arrow { color: #8a91a3; }
+:root[data-theme="light"] .sidebar .profile-row { border-top-color: #edf0f5; }
+:root[data-theme="light"] .sidebar .profile-more { color: #667085; }
+
+
+/* Dark theme: CRM Kanban contact labels must use a dark surface with light text. */
+:root[data-theme="dark"] .crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 18%, #171b26) !important;
+  color: #f8faff !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 62%, #454c5b) !important;
+  text-shadow: none !important;
+}
+
+
+/* Consistent dark contact labels in CRM Kanban and contact profile. */
+:root[data-theme="dark"] .crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, #171b26) !important;
+  color: #f8faff !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, #454c5b) !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] .contact-profile .profile-tag,
+:root[data-theme="dark"] .contact-profile .profile-tag-editable {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, #171b26) !important;
+  color: #f8faff !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, #454c5b) !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] .contact-profile .profile-tag-editable input:not([type="color"]),
+:root[data-theme="dark"] .contact-profile .profile-tag-editable button {
+  color: #f8faff !important;
+}

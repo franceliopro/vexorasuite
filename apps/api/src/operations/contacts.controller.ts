@@ -72,7 +72,7 @@ export class ContactsController {
     if (!/^#[0-9A-F]{6}$/.test(primaryColor)) throw new BadRequestException("Escolha uma cor hexadecimal válida.");
     const validImage = (value: unknown) => value === "" || (typeof value === "string" && value.length <= 26000 && /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(value));
     for (const key of ["logoLight", "logoDark", "favicon"] as const) {
-      if (input[key] !== undefined && !validImage(input[key])) throw new BadRequestException(`A imagem ${key} é inválida ou muito grande. Use PNG, JPEG, WebP ou SVG de até 38 KB após otimização.`);
+      if (input[key] !== undefined && !validImage(input[key])) throw new BadRequestException(`A imagem ${key} é inválida ou muito grande. Use PNG, JPEG, WebP ou SVG de até 19 KB após otimização.`);
     }
     if (input.logoShape !== undefined && !["square", "round", "rectangular"].includes(String(input.logoShape))) throw new BadRequestException("Formato do logo inválido.");
     if (input.showCompanyName !== undefined && typeof input.showCompanyName !== "boolean") throw new BadRequestException("A opção de nome da empresa é inválida.");

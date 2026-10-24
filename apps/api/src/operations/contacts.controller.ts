@@ -92,23 +92,26 @@ export class ContactsController {
     if (existing.crmFinalization) throw new BadRequestException("Este contato já foi finalizado.");
     const priorTags = Array.isArray(existing.tags) ? existing.tags.filter((tag): tag is string => typeof tag === "string") : [];
     const tags = outcome === "WON" ? priorTags.filter((tag) => tag.trim().toLocaleLowerCase("pt-BR") !== "novo lead") : priorTags;
-    const { crmStage: _oldStage, crmFinalization: _oldFinalization, ...rest } = existing;
-    const metadata: Prisma.InputJsonObject = {
-      ...rest,
-      tags,
-      contactType: outcome === "WON" ? "CUSTOMER" : (typeof existing.contactType === "string" ? existing.contactType : "LEAD"),
-      crmFinalization: {
-        outcome,
-        ...(outcome === "LOST" ? { reason } : {}),
-        finalizedAt: new Date().toISOString(),
-        finalizedBy: request.user.sub,
-      },
-    };
+    const rest = Object.fromEntries(Object.entries(existing).filter(([key]) => key !== "crmStage" && key !== "crmFinalization")) as Prisma.JsonObject;
+    const finalizedAt = new Date().toISOString();
     const result = await this.prisma.$transaction(async (tx) => {
-      const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
       const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true } });
-      if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: active.map((item) => item.id) }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
-      return { contact: updatedContact, conversations: active.map((item) => item.id) };
+      const finalizedConversationIds = active.map((item) => item.id);
+      const metadata: Prisma.InputJsonObject = {
+        ...rest,
+        tags,
+        contactType: outcome === "WON" ? "CUSTOMER" : (typeof existing.contactType === "string" ? existing.contactType : "LEAD"),
+        crmFinalization: {
+          outcome,
+          ...(outcome === "LOST" ? { reason } : {}),
+          finalizedAt,
+          finalizedBy: request.user.sub,
+          finalizedConversationIds,
+        },
+      };
+      const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
+      if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: finalizedConversationIds }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+      return { contact: updatedContact, conversations: finalizedConversationIds };
     });
     this.events.publish(tenantId, "contact.finalized", { id: result.contact.id, outcome, ...(outcome === "LOST" ? { reason } : {}) });
     for (const conversationId of result.conversations) this.events.publish(tenantId, "conversation.updated", { id: conversationId, status: "RESOLVED", finalizationOutcome: outcome });

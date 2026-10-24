@@ -3,7 +3,9 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEq
 import { PrismaService } from "../prisma/prisma.service";
 
 type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string; encryptedWebhookToken?: string };
-type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };\n\nfunction mergedCustomerMetadata(customer: Record<string, string | null>): Record<string, string | null> { return { ...customer }; }
+type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };
+
+function mergedCustomerMetadata(customer: Record<string, string | null>): Record<string, string | null> { return { ...customer }; }
 
 @Injectable()
 export class AsaasService {

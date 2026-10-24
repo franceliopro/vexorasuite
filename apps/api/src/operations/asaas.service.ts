@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";\nimport { Prisma } from "@prisma/client";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 
 type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string; encryptedWebhookToken?: string };
-type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };\n\nfunction mergedCustomerMetadata(customer: Record<string, unknown>): Record<string, unknown> { return { ...customer }; }
+type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };\n\nfunction mergedCustomerMetadata(customer: Record<string, string | null>): Record<string, string | null> { return { ...customer }; }
 
 @Injectable()
 export class AsaasService {
@@ -270,7 +270,7 @@ export class AsaasService {
             where: { id: existing.id },
             data: {
               name: nextName, phone: nextPhone, email: nextEmail,
-              source: existing.source || "ASAAS", metadata: nextMetadata,
+              source: existing.source || "ASAAS", metadata: nextMetadata as Prisma.InputJsonObject,
             },
           });
           counters.updated++;

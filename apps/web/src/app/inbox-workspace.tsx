@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, ArrowRightLeft, Check, Archive, Trash2 } from "lucide-react";
+import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, ArrowRightLeft, Check, Archive, Trash2, Smile, Mic, MicOff, BookmarkPlus, Plus, X, Send, Keyboard } from "lucide-react";
+import { ContactProfilePanel } from "./contact-profile-panel";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
-type Contact = { id: string; name: string; phone?: string | null };
+type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; metadata?: Record<string, unknown> };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string };
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
-type Conversation = { id: string; status: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
+type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
@@ -32,6 +33,14 @@ export function InboxWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<Array<{id:string;title:string;content:string}>>([]);
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickContent, setQuickContent] = useState("");
+  const [listening, setListening] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const recognitionRef = useRef<{stop:()=>void}|null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -68,6 +77,7 @@ export function InboxWorkspace() {
   }, [queueView]);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { try { const saved = localStorage.getItem("vexora:quick-replies"); if (saved) setQuickReplies(JSON.parse(saved)); } catch {} }, []);
 
   // Close every inbox dropdown on outside click or Escape for consistent menu behavior.
   useEffect(() => {
@@ -198,6 +208,18 @@ export function InboxWorkspace() {
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível devolver ao bot."); }
   }
 
+
+  function saveQuickReplies(next: Array<{id:string;title:string;content:string}>) { setQuickReplies(next); try { localStorage.setItem("vexora:quick-replies", JSON.stringify(next)); } catch { setError("Não foi possível salvar respostas rápidas neste navegador."); } }
+  function createQuickReply() { if (!quickTitle.trim() || !quickContent.trim()) return; saveQuickReplies([...quickReplies, {id:crypto.randomUUID(),title:quickTitle.trim(),content:quickContent.trim()}]); setQuickTitle(""); setQuickContent(""); }
+  function insertEmoji(value:string) { const el=composerRef.current; const a=el?.selectionStart ?? draft.length; const b=el?.selectionEnd ?? draft.length; setDraft(draft.slice(0,a)+value+draft.slice(b)); setEmojiOpen(false); requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(a+value.length,a+value.length)}); }
+  function toggleVoice() {
+    if(listening){recognitionRef.current?.stop();setListening(false);return}
+    const w=window as Window & {SpeechRecognition?:new()=>any;webkitSpeechRecognition?:new()=>any};
+    const C=w.SpeechRecognition||w.webkitSpeechRecognition;
+    if(!C){setError("Ditado por voz indisponível neste navegador. Você pode usar o microfone do teclado do celular.");return}
+    try { const r=new C(); r.lang="pt-BR"; r.continuous=true; r.interimResults=true; r.onresult=(e:any)=>{const text=Array.from(e.results as ArrayLike<any>).slice(e.resultIndex).filter((x:any)=>x.isFinal).map((x:any)=>x[0].transcript).join(" ").trim();if(text)setDraft(v=>v?v.trimEnd()+" "+text:text)}; r.onerror=()=>{setListening(false);setError("Verifique a permissão de acesso ao microfone.")}; r.onend=()=>setListening(false); recognitionRef.current=r; r.start(); setListening(true); } catch { setError("Não foi possível iniciar o microfone. Confira as permissões do navegador."); }
+  }
+
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
     if (!selectedId || !draft.trim() || busy) return;
@@ -296,9 +318,10 @@ export function InboxWorkspace() {
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}
         </div>
-        <form className="inbox-composer" onSubmit={sendMessage}><textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Digite sua mensagem..." maxLength={4000} rows={2} /><button className="primary-button" type="submit" disabled={busy || !draft.trim()}>{busy ? "Enviando..." : "Enviar"}</button></form>
+        <div className="composer-shell"><form className="inbox-composer" onSubmit={sendMessage}><textarea ref={composerRef} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}}} placeholder="Digite sua mensagem..." maxLength={4000} rows={3} aria-label="Mensagem"/><div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Emojis · Ctrl+Shift+E" onClick={()=>{setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><strong>Emojis</strong><div className="emoji-grid">{["😀","😊","😂","❤️","👍","🙏","👏","🎉","😍","🤝","✅","📌","🔥","💡","👋","😅","🤔","🚀","📞","⭐","😉","💬","✨","🥳"].map(x=><button type="button" key={x} onClick={()=>insertEmoji(x)}>{x}</button>)}</div></div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Respostas rápidas · Ctrl+Shift+R" onClick={()=>{setQuickOpen(v=>!v);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><strong>Respostas rápidas</strong>{quickReplies.map(q=><div className="quick-reply-row" key={q.id}><button type="button" className="quick-reply-use" onClick={()=>{setDraft(v=>v?v+"\n"+q.content:q.content);setQuickOpen(false);composerRef.current?.focus()}}><b>{q.title}</b><small>{q.content}</small></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}<div className="quick-reply-create"><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><textarea rows={2} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta"/><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> Criar resposta</button></div></div>:null}</div><button type="button" className={"composer-icon-button "+(listening?"recording":"")} title="Ditado por voz" aria-label="Ditado por voz" onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button><span className="composer-shortcut-hint"><Keyboard size={13}/> Ctrl + Enter envia</span></div><span className="composer-char-count">{draft.length}/4000</span><button className="composer-send-button" type="submit" disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button></div></form></div>
       </> : <div className="thread-empty"><span className="module-placeholder-icon">☏</span><p>As mensagens recebidas aparecerão aqui.</p></div>}
     </div>
+    {selected ? <ContactProfilePanel contact={selected.contact} conversationId={selected.id} status={selected.status} createdAt={selected.createdAt} channel={selected.channel} /> : null}
     {error ? <div className="inbox-error" role="status"><span>{error}</span><button onClick={() => setError("")} aria-label="Fechar aviso">×</button></div> : null}
   </section>;
 }

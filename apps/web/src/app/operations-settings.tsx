@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { MessageSquare, Users, Wallet, Palette } from "lucide-react";
+import { MessageSquare, Users, Wallet, Palette, Settings2 } from "lucide-react";
 type Channel={id:string;name:string;status:string};
 type Department={id:string;key:string;name:string;keywords:string[];isActive:boolean};
 type Agent={id:string;name:string;email:string};

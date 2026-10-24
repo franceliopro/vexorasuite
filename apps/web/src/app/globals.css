@@ -517,3 +517,5 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="dark"] .report-table-scroll th{background:#202433}
 :root[data-theme="dark"] .theme-toggle{color:#e6c96c}
 @media(prefers-reduced-motion:reduce){.theme-toggle{transition:none}}
+
+.settings-brand-color{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--page);color:var(--ink);font-size:12px;font-weight:700}.settings-brand-color input{width:42px;height:32px;padding:2px;border:1px solid var(--line);border-radius:7px;background:var(--card);cursor:pointer}.settings-brand-color code{margin-left:auto;color:var(--muted);font-size:11px}

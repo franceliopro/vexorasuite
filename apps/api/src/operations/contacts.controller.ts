@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";\nimport { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -44,6 +44,51 @@ export class ContactsController {
       take: 100,
     });
     return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
+  }
+
+  @Get("profile-config")
+  async profileConfig(@Req() request: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+    return { tags: Array.isArray(config.tags) ? config.tags : [], fields: Array.isArray(config.fields) ? config.fields : [] };
+  }
+
+  @Post("profile-config/tags")
+  async createProfileTag(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; color?: unknown }) {
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const color = typeof input.color === "string" ? input.color : "";
+    if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a etiqueta.");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+    const tags = Array.isArray(config.tags) ? config.tags as Array<Record<string, unknown>> : [];
+    const existing = tags.find(tag => typeof tag.name === "string" && tag.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
+    if (existing) return existing;
+    if (tags.length >= 100) throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
+    const tag = { id: randomUUID(), name, color, createdBy: request.user.sub, createdAt: new Date().toISOString() };
+    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, crmProfileConfig: { ...config, tags: [...tags, tag] } } as any } });
+    return tag;
+  }
+
+  @Post("profile-config/fields")
+  async createProfileField(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; type?: unknown; options?: unknown }) {
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const type = typeof input.type === "string" ? input.type.toUpperCase() : "TEXT";
+    const allowed = ["TEXT", "NUMBER", "DATE", "SELECT", "CHECKBOX"];
+    const options = Array.isArray(input.options) ? input.options.filter((value): value is string => typeof value === "string").map(value => value.trim()).filter(Boolean).slice(0, 30) : [];
+    if (!name || name.length > 80 || !allowed.includes(type) || (type === "SELECT" && options.length < 1)) throw new BadRequestException("Informe nome, tipo e opções válidas para o campo.");
+    const key = name.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+    if (!key) throw new BadRequestException("O nome do campo precisa conter letras ou números.");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+    const fields = Array.isArray(config.fields) ? config.fields as Array<Record<string, unknown>> : [];
+    if (fields.some(field => field.key === key)) throw new BadRequestException("Já existe um campo com esse nome. Escolha outro nome.");
+    if (fields.length >= 100) throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
+    const field = { id: randomUUID(), name, key, type, options: type === "SELECT" ? options : [], createdBy: request.user.sub, createdAt: new Date().toISOString() };
+    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, crmProfileConfig: { ...config, fields: [...fields, field] } } as any } });
+    return field;
   }
 
   @Get(":id/history")

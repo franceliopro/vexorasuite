@@ -7,7 +7,7 @@ type OriginGroup={name:string;total:number;won:number;lost:number;open:number;wi
 type Lead={id:string;name:string;source:string;campaign:string|null;stage:string;createdAt:string};
 type Origins={period:{from:string;to:string};total:number;identified:number;unidentified:number;byOrigin:OriginGroup[];stages:{name:string;count:number}[];recent:Lead[];basis:string};
 const day=86400000;
-function dateValue(value:Date){return value.toISOString().slice(0,10)}
+function dateValue(value:Date){return value.getFullYear()+"-"+String(value.getMonth()+1).padStart(2,"0")+"-"+String(value.getDate()).padStart(2,"0")}
 async function request<T>(url:string):Promise<T>{const response=await fetch(url,{cache:"no-store"});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||"Não foi possível carregar as origens.");return data as T}
 export function LeadOriginsWorkspace(){
  const today=dateValue(new Date()),initialFrom=dateValue(new Date(Date.now()-29*day));

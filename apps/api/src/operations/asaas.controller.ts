@@ -8,6 +8,12 @@ import { AsaasService } from "./asaas.service";
 export class AsaasController {
   constructor(private readonly asaas: AsaasService) {}
 
+  @Post("customers/sync")
+  async syncCustomers(@Req() request: AuthenticatedRequest) {
+    if (!["OWNER", "ADMIN"].includes(request.user.role)) throw new ForbiddenException("Somente o proprietário ou administrador pode sincronizar clientes do Asaas.");
+    return this.asaas.syncCustomers(request.user.tenantId);
+  }
+
   @Get()
   getSettings(@Req() request: AuthenticatedRequest) {
     return this.asaas.publicSettings(request.user.tenantId);

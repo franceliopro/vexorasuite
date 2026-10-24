@@ -197,3 +197,23 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .invite-person-button:hover{background:#675cda;color:#fff}
 .handoff-empty{padding:14px 9px;color:#8b90a3;font-size:11px}
 @media(max-width:600px){.handoff-toolbar{gap:4px;padding:7px 9px}.handoff-trigger{min-width:0;max-width:220px}.handoff-trigger-copy{max-width:122px}.handoff-invite-trigger{padding:0 8px}.handoff-popover{max-height:65vh}.invite-popover{right:-4px}}
+
+
+/* CRM workspace */
+.crm-workspace { gap: 18px; }
+.crm-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.crm-form-grid .settings-field { display: flex; flex-direction: column; gap: 7px; }
+.crm-form-grid input, .crm-search input { min-width: 0; width: 100%; border: 1px solid var(--border, #e3e7ed); border-radius: 9px; padding: 10px 12px; background: var(--surface, #fff); color: inherit; font: inherit; }
+.crm-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.crm-search { display: flex; align-items: center; gap: 10px; margin: 16px 0; padding: 8px 10px; border: 1px solid var(--border, #e3e7ed); border-radius: 10px; color: var(--muted, #697386); }
+.crm-search input { border: 0; outline: 0; padding: 4px; background: transparent; }
+.crm-search .secondary-button { white-space: nowrap; }
+.crm-contact-list { display: flex; flex-direction: column; }
+.crm-contact-row { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 13px 2px; border-top: 1px solid var(--border, #edf0f4); }
+.crm-contact-avatar { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; border-radius: 50%; background: var(--surface-secondary, #f0f3f7); color: var(--foreground, #394150); font-weight: 650; }
+.crm-contact-main { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.crm-contact-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.crm-contact-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted, #697386); font-size: 12px; }
+.crm-contact-source { border-radius: 999px; padding: 4px 8px; background: var(--surface-secondary, #f4f6f8); color: var(--muted, #697386); font-size: 11px; white-space: nowrap; }
+.crm-empty { padding: 30px 12px; }
+@media (max-width: 720px) { .crm-form-grid { grid-template-columns: 1fr; } .crm-contact-source { display: none; } .crm-search { gap: 6px; } .crm-search .secondary-button { padding-inline: 10px; } }

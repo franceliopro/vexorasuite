@@ -136,6 +136,10 @@ export class ReportsController {
       orderBy: { createdAt: "desc" },
       take: 10000,
     });
+    const leads = contacts.filter((contact) => {
+      const metadata = record(contact.metadata);
+      return metadata.contactType !== "CUSTOMER" && !record(metadata.asaas).customerId;
+    });
     const normalizeOrigin = (contact: typeof contacts[number]) => {
       const metadata = record(contact.metadata);
       const leadOrigin = record(metadata.leadOrigin);
@@ -146,7 +150,7 @@ export class ReportsController {
     };
     const byOrigin = new Map<string, { name: string; total: number; won: number; lost: number; open: number; withCampaign: number }>();
     const stages = new Map<string, number>();
-    for (const contact of contacts) {
+    for (const contact of leads) {
       const metadata = record(contact.metadata);
       const finalization = record(metadata.crmFinalization);
       const originMeta = { ...record(metadata.lead_origin), ...record(metadata.leadOrigin) };
@@ -165,12 +169,12 @@ export class ReportsController {
     }
     return {
       period: { from: period.from, to: period.to },
-      total: contacts.length,
-      identified: contacts.filter((contact) => normalizeOrigin(contact) !== "Não identificada").length,
-      unidentified: contacts.filter((contact) => normalizeOrigin(contact) === "Não identificada").length,
+      total: leads.length,
+      identified: leads.filter((contact) => normalizeOrigin(contact) !== "Não identificada").length,
+      unidentified: leads.filter((contact) => normalizeOrigin(contact) === "Não identificada").length,
       byOrigin: [...byOrigin.values()].sort((a, b) => b.total - a.total),
       stages: [...stages.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-      recent: contacts.slice(0, 50).map((contact) => {
+      recent: leads.slice(0, 50).map((contact) => {
         const metadata = record(contact.metadata);
         const finalization = record(metadata.crmFinalization);
         const leadOrigin = { ...record(metadata.lead_origin), ...record(metadata.leadOrigin) };

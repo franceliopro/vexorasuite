@@ -15,7 +15,9 @@ export function ContactProfilePanel({contact,conversationId,status,createdAt,cha
   const [expanded,setExpanded]=useState(true);
   const [tab,setTab]=useState<"dados"|"notas"|"protocolos">("dados");
   const [tags,setTags]=useState<Array<{name:string;color:string}>>([]);
-  const [tagDraft,setTagDraft]=useState("");\n  const [tagColor,setTagColor]=useState("#eeecff");\n  const tagPalette=["#eeecff","#e4f4ff","#e1f7ed","#fff0d9","#ffe8ed","#f2e8ff","#e8f3d8","#f0f1f5"];
+  const [tagDraft,setTagDraft]=useState("");
+  const [tagColor,setTagColor]=useState("#eeecff");
+  const tagPalette=["#eeecff","#e4f4ff","#e1f7ed","#fff0d9","#ffe8ed","#f2e8ff","#e8f3d8","#f0f1f5"];
   const [notes,setNotes]=useState("");
   const [fields,setFields]=useState("{}");
   const [leadOrigin,setLeadOrigin]=useState("");

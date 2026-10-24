@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Plus, Search, UsersRound, X } from "lucide-react";
 
 type Contact = {
@@ -34,7 +34,7 @@ export function CrmWorkspace() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
 
-  const loadContacts = useCallback(async (search = query) => {
+  const loadContacts = useCallback(async (search: string) => {
     setLoading(true);
     setError("");
     try {
@@ -46,11 +46,11 @@ export function CrmWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, []);
 
   useEffect(() => { void loadContacts(""); }, [loadContacts]);
 
-  async function createContact(event: React.FormEvent<HTMLFormElement>) {
+  async function createContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);

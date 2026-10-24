@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from "react";
 import { ArrowRight, Check, ChartNoAxesCombined, LayoutGrid, List, Plus, Search, UsersRound, X } from "lucide-react";
 import { LeadOriginsWorkspace } from "./lead-origins-workspace";
+import { ReportsWorkspace } from "./reports-workspace";
 
 type CrmStage = "new" | "qualification" | "proposal" | "finalization";
 type CrmFinalization = { outcome: "WON" | "LOST"; reason?: string; finalizedAt?: string };
@@ -66,7 +67,7 @@ export function CrmWorkspace() {
   const [movingId, setMovingId] = useState("");
   const [draggingId, setDraggingId] = useState("");
   const [dropTarget, setDropTarget] = useState<CrmStage | "">("");
-  const [view, setView] = useState<"pipeline" | "customers" | "contacts" | "origins">("pipeline");
+  const [view, setView] = useState<"pipeline" | "customers" | "contacts" | "origins" | "reports">("pipeline");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -74,6 +75,7 @@ export function CrmWorkspace() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [leadOrigin, setLeadOrigin] = useState("");
+  const [leadOriginId, setLeadOriginId] = useState("");
   const [finalizingContact, setFinalizingContact] = useState<Contact | null>(null);
   const [finalOutcome, setFinalOutcome] = useState<"WON" | "LOST" | "">("");
   const [lossReason, setLossReason] = useState("");
@@ -93,18 +95,19 @@ export function CrmWorkspace() {
     }
   }, []);
 
-  useEffect(() => { void loadContacts(""); void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); }, [loadContacts]);
+  useEffect(() => { void loadContacts(""); void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts]);
 
   async function createContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      await api<Contact>("/api/backend/contacts", {
+      const created = await api<Contact>("/api/backend/contacts", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined, email: email.trim() || undefined, source: leadOrigin || undefined }),
       });
-      setName(""); setPhone(""); setEmail(""); setLeadOrigin(""); setFormOpen(false);
+      if (leadOrigin) await api("/api/backend/contacts/" + created.id + "/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ leadOrigin: { source: leadOrigin, identifier: leadOriginId.trim() || undefined } }) });
+      setName(""); setPhone(""); setEmail(""); setLeadOrigin(""); setLeadOriginId(""); setFormOpen(false);
       setNotice("Contato cadastrado e adicionado à etapa Novos.");
       await loadContacts(query);
     } catch (cause) {
@@ -180,8 +183,9 @@ export function CrmWorkspace() {
           <button role="tab" aria-selected={view === "customers"} className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><UsersRound size={15}/> Clientes <span className="crm-tab-count">{contacts.filter(isCustomer).length}</span></button>
           <button role="tab" aria-selected={view === "contacts"} className={view === "contacts" ? "active" : ""} onClick={() => setView("contacts")}><List size={15}/> Contatos <span className="crm-tab-count">{contacts.filter((contact) => !isCustomer(contact)).length}</span></button>
           <button role="tab" aria-selected={view === "origins"} className={view === "origins" ? "active" : ""} onClick={() => setView("origins")}><ChartNoAxesCombined size={15}/> Inteligência Comercial</button>
+          <button role="tab" aria-selected={view === "reports"} className={view === "reports" ? "active" : ""} onClick={() => setView("reports")}><ChartNoAxesCombined size={15}/> Inteligência Operacional</button>
         </div>
-        {view !== "origins" ? <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label> : null}
+        {view !== "origins" && view !== "reports" ? <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label> : null}
       </div>
 
       {error ? <div className="settings-feedback error" role="alert">{error}<button onClick={() => setError("")} aria-label="Fechar erro"><X size={15} /></button></div> : null}
@@ -193,7 +197,7 @@ export function CrmWorkspace() {
           <label className="settings-field">Nome *<input required autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome do contato" /></label>
           <label className="settings-field">Telefone<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+55 (00) 00000-0000" /></label>
           <label className="settings-field">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nome@empresa.com" /></label>
-          <label className="settings-field">Origem do lead<select value={leadOrigin} onChange={(event) => setLeadOrigin(event.target.value)}><option value="">Não identificada</option><option value="Site/Formulário">Site/Formulário</option><option value="Indicação">Indicação</option><option value="Redes sociais">Redes sociais</option><option value="Anúncio">Anúncio</option><option value="Evento">Evento</option><option value="Importação">Importação</option><option value="Outra">Outra</option></select><small>O canal de atendimento não será considerado origem de aquisição automaticamente.</small></label>
+          <label className="settings-field">Origem do lead<select value={leadOrigin} onChange={(event) => { setLeadOrigin(event.target.value); setLeadOriginId(""); }}><option value="">Não identificada</option><option value="Site/Formulário">Site/Formulário</option><option value="Landing Page">Landing Page</option><option value="Facebook">Facebook</option><option value="Instagram">Instagram</option><option value="Google">Google</option><option value="Campanha de WhatsApp">Campanha de WhatsApp</option><option value="Campanha de SMS">Campanha de SMS</option><option value="Campanha de Áudio">Campanha de Áudio</option><option value="Indicação">Indicação</option><option value="Evento">Evento</option><option value="Importação">Importação</option><option value="Outra">Outra</option></select>{["Landing Page","Facebook","Instagram","Google","Campanha de WhatsApp","Campanha de SMS","Campanha de Áudio"].includes(leadOrigin) ? <input value={leadOriginId} onChange={(event) => setLeadOriginId(event.target.value)} placeholder="Identificador da landing page/campanha" maxLength={120}/> : null}<small>Landing pages e campanhas usam um identificador próprio para atribuição. O canal de atendimento não define a origem automaticamente.</small></label>
         </div>
         <div className="crm-form-actions"><button className="secondary-button" type="button" onClick={() => setFormOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Salvando..." : "Cadastrar contato"}</button></div>
       </form> : null}
@@ -223,7 +227,7 @@ export function CrmWorkspace() {
             </div>;
           })}
         </section>
-      ) : view === "origins" ? <LeadOriginsWorkspace /> : (() => {
+      ) : view === "origins" ? <LeadOriginsWorkspace /> : view === "reports" ? <ReportsWorkspace /> : (() => {
         const customerView = view === "customers";
         const rows = visibleContacts.filter((contact) => customerView ? isCustomer(contact) : !isCustomer(contact));
         const heading = customerView ? "Clientes" : "Contatos";

@@ -201,6 +201,12 @@ export class AsaasService {
     };
     const counters = { created: 0, updated: 0, unchanged: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
 
+    // Load the tenant's contacts once; a query per imported customer would become quadratic.
+    const tenantContacts = await this.prisma.contact.findMany({
+      where: { tenantId },
+      select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
+    });
+
     // Reconcile only unambiguous matches. Never merge two contacts because of a shared name.
     for (const customer of customers) {
       const document = digits(customer.cpfCnpj);
@@ -225,10 +231,6 @@ export class AsaasService {
       };
 
       await this.prisma.$transaction(async (tx) => {
-        const tenantContacts = await tx.contact.findMany({
-          where: { tenantId },
-          select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
-        });
         const metadataOf = (value: unknown): Record<string, unknown> =>
           value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
         const asaasOf = (value: unknown): Record<string, unknown> => metadataOf(metadataOf(value).asaas);
@@ -267,13 +269,15 @@ export class AsaasService {
           const changed = nextName !== existing.name || nextPhone !== existing.phone || nextEmail !== existing.email
             || existing.source !== "ASAAS" || JSON.stringify(stablePrevious) !== JSON.stringify(stableNext);
           if (!changed) { counters.unchanged++; return; }
-          await tx.contact.update({
+          const updated = await tx.contact.update({
             where: { id: existing.id },
             data: {
               name: nextName, phone: nextPhone, email: nextEmail,
               source: existing.source || "ASAAS", metadata: nextMetadata as Prisma.InputJsonObject,
             },
+            select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
           });
+          Object.assign(existing, updated);
           counters.updated++;
           return;
         }
@@ -284,7 +288,7 @@ export class AsaasService {
           address: address || null,
           asaas: mergedCustomerMetadata(incoming),
         };
-        await tx.contact.create({
+        const created = await tx.contact.create({
           data: {
             tenantId,
             name: incoming.name || "Cliente Asaas",
@@ -293,7 +297,9 @@ export class AsaasService {
             source: "ASAAS",
             metadata: metadata as Prisma.InputJsonObject,
           },
+          select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
         });
+        tenantContacts.push(created);
         counters.created++;
       });
     }

@@ -115,6 +115,11 @@ export class ConversationsController {
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa está encerrada permanentemente.");
+    if (status === "OPEN" && conversation.status === "RESOLVED") {
+      const contact = await this.prisma.contact.findFirst({ where: { id: (await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { contactId: true } }))?.contactId, tenantId }, select: { metadata: true } });
+      const metadata = contact?.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
+      if (metadata.crmFinalization) throw new BadRequestException("Este contato foi finalizado comercialmente e permanece fora da fila. Consulte Contatos.");
+    }
     const updated = await this.prisma.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status });
     return updated;

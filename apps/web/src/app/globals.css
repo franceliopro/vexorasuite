@@ -1079,3 +1079,100 @@ button.primary-button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--tag-color, #7665e8) 20%, white);
   color: #252941;
 }
+
+ 
+/* Light theme refinement: genuinely white canvas with only very subtle cool-gray separators and surfaces. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #ffffff;
+  --card: #ffffff;
+  --ink: #20243a;
+  --muted: #70778d;
+  --line: #e9edf4;
+  --primary-soft: #f4f3ff;
+  --shadow: 0 2px 10px rgba(25,27,64,.025);
+}
+:root[data-theme="light"] html,
+:root[data-theme="light"] body,
+:root[data-theme="light"] .main-area,
+:root[data-theme="light"] .page-content,
+:root[data-theme="light"] .suite-app {
+  background: #ffffff;
+}
+:root[data-theme="light"] .topbar,
+:root[data-theme="light"] .content-card,
+:root[data-theme="light"] .metric-card,
+:root[data-theme="light"] .inbox-list,
+:root[data-theme="light"] .inbox-thread,
+:root[data-theme="light"] .inbox-panel-heading,
+:root[data-theme="light"] .thread-heading,
+:root[data-theme="light"] .contact-profile,
+:root[data-theme="light"] .contact-profile-heading,
+:root[data-theme="light"] .contact-profile-tabs,
+:root[data-theme="light"] .contact-profile-body,
+:root[data-theme="light"] .profile-section,
+:root[data-theme="light"] .settings-card,
+:root[data-theme="light"] .auth-panel {
+  background: #ffffff;
+  border-color: #e9edf4;
+}
+:root[data-theme="light"] .search-box,
+:root[data-theme="light"] .auth-field input,
+:root[data-theme="light"] .settings-field input,
+:root[data-theme="light"] .settings-field textarea,
+:root[data-theme="light"] .settings-create-department input,
+:root[data-theme="light"] .inbox-composer textarea,
+:root[data-theme="light"] .profile-field-row input:not([type="checkbox"]),
+:root[data-theme="light"] .profile-field-row select,
+:root[data-theme="light"] .profile-field-create input,
+:root[data-theme="light"] .profile-field-create select,
+:root[data-theme="light"] .profile-add-tag input,
+:root[data-theme="light"] .profile-origin-select,
+:root[data-theme="light"] .profile-origin-identifier,
+:root[data-theme="light"] .profile-notes,
+:root[data-theme="light"] .profile-custom-fields {
+  background: #ffffff;
+  color: #252941;
+  border-color: #e0e5ef;
+}
+:root[data-theme="light"] .thread-messages,
+:root[data-theme="light"] .profile-field-create,
+:root[data-theme="light"] .settings-group-list,
+:root[data-theme="light"] .settings-members {
+  background: #fafbfe;
+  border-color: #e9edf4;
+}
+:root[data-theme="light"] .inbox-conversation-list,
+:root[data-theme="light"] .inbox-conversation {
+  background: #ffffff;
+}
+:root[data-theme="light"] .inbox-conversation.selected {
+  background: #f5f4ff;
+}
+:root[data-theme="light"] .message-bubble {
+  background: #ffffff;
+  border-color: #e6eaf2;
+}
+:root[data-theme="light"] .message-line.outgoing .message-bubble {
+  background: #f4f3ff;
+  border-color: #e3e0ff;
+}
+:root[data-theme="light"] .handoff-toolbar,
+:root[data-theme="light"] .handoff-trigger,
+:root[data-theme="light"] .thread-action-button,
+:root[data-theme="light"] .thread-assign-select,
+:root[data-theme="light"] .icon-button,
+:root[data-theme="light"] .secondary-button,
+:root[data-theme="light"] .logout-button,
+:root[data-theme="light"] .mobile-menu {
+  background: #ffffff;
+}
+:root[data-theme="light"] .handoff-toolbar { border-color: #edf0f6; }
+:root[data-theme="light"] .environment-banner { background: #f8f7ff; }
+:root[data-theme="light"] .bottom-note { background: #fcfcff; border-color: #eff0f7; }
+:root[data-theme="light"] .shortcut-item { background: #ffffff; border-bottom-color: #f0f2f7; }
+:root[data-theme="light"] .shortcut-icon,
+:root[data-theme="light"] .metric-icon,
+:root[data-theme="light"] .module-placeholder-icon { background: #f4f3ff; }
+:root[data-theme="light"] .inbox-queue-button:hover,
+:root[data-theme="light"] .inbox-more-queues>summary:hover { background: #f7f6ff; }

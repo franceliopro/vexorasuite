@@ -2133,3 +2133,31 @@ input[type="color"].profile-tag-inline-color {
   .composer-shell .inbox-composer .composer-tools > .composer-tool-wrap > .composer-icon-button { width: 30px; }
   .composer-shell .inbox-composer .composer-send-button { width: 34px; min-width: 34px; height: 34px; min-height: 34px; }
 }
+
+/* The one-line text field sits between the left tools and microphone inside the toolbar. */
+.composer-shell .inbox-composer > .composer-toolbar > .composer-tools {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.composer-shell .inbox-composer > .composer-toolbar > .composer-tools > textarea {
+  order: 1;
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 40px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  padding: 7px 4px;
+  resize: none;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 20px;
+}
+@media (max-width: 760px) {
+  .composer-shell .inbox-composer > .composer-toolbar > .composer-tools > textarea {
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+    font-size: 16px;
+  }
+}

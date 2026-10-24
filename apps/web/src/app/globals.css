@@ -1855,3 +1855,60 @@ input[type="color"].profile-tag-inline-color {
   .thread-messages .message-bubble p { font-size: 15.5px; line-height: 1.6; }
   .inbox-composer textarea { height: 42px; min-height: 40px; max-height: 26dvh; font-size: 16px; }
 }
+
+
+/* Keep the reply composer inside the visible conversation panel; scroll history and profile independently. */
+.inbox-workspace {
+  align-items: stretch;
+}
+.inbox-workspace .inbox-thread {
+  height: min(760px, calc(100dvh - 220px));
+  max-height: calc(100dvh - 220px);
+  min-height: 0;
+}
+.inbox-workspace .thread-messages {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overscroll-behavior: contain;
+}
+.inbox-workspace .composer-shell,
+.inbox-workspace .inbox-composer {
+  flex: 0 0 auto;
+}
+.inbox-workspace .contact-profile {
+  height: min(760px, calc(100dvh - 220px));
+  max-height: calc(100dvh - 220px);
+  min-height: 0;
+}
+.inbox-workspace .contact-profile-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 980px) {
+  .inbox-workspace .contact-profile {
+    height: min(420px, 42dvh);
+    max-height: min(420px, 42dvh);
+  }
+}
+@media (max-width: 760px) {
+  .inbox-workspace.mobile-thread-open .inbox-thread {
+    height: calc(100dvh - 155px);
+    max-height: calc(100dvh - 155px);
+    min-height: 0;
+  }
+  .inbox-workspace.mobile-thread-open .thread-messages {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+  }
+  .inbox-workspace.mobile-thread-open .contact-profile {
+    height: min(300px, 38dvh);
+    max-height: min(300px, 38dvh);
+  }
+  .inbox-workspace.mobile-thread-open .contact-profile-body {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}

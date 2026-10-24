@@ -125,7 +125,7 @@ export class ConversationsController {
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, contactId: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa está encerrada permanentemente.");
-    if (status === "OPEN" && conversation.status === "RESOLVED") {
+    if (status !== "RESOLVED") {
       const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId }, select: { metadata: true } });
       if (contact && isFinalizedConversation(contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado comercialmente e permanece fora da fila. Consulte Contatos.");
     }

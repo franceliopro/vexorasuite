@@ -260,7 +260,7 @@ html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact
 :root[data-theme="hybrid"] .sidebar .help-card small,
 :root[data-theme="hybrid"] .sidebar .workspace-copy small,
 :root[data-theme="hybrid"] .sidebar .profile-copy small { color:#b7b8d0; }
-:root[data-theme] .conversation-tag { border-width:1px !important; border-style:solid !important; box-shadow:none !important; text-shadow:none !important; background-image:none !important; }
+:root[data-theme] .conversation-tag { border-width:1px !important; border-style:solid !important; box-shadow:none !important; text-shadow:none !important; background-image:none !important; filter:none !important; }
 :root[data-theme] button[role="tab"] { background:var(--surface-2); color:var(--text-secondary); border:1px solid var(--border-strong); border-radius:8px; transition:background-color .15s ease,color .15s ease,border-color .15s ease; }
 :root[data-theme] button[role="tab"]:hover { background:var(--surface-hover); color:var(--text-primary); border-color:color-mix(in srgb,var(--primary) 50%,var(--border-strong)); }
 :root[data-theme] button[role="tab"].active,

@@ -215,7 +215,7 @@ export class AsaasService {
         return { status: "SYNCED", customerId: existingAsaas.customerId };
       }
 
-      const digits = (value: unknown) => String(value ?? "").replace(/\\D/g, "");
+      const digits = (value: unknown) => String(value ?? "").replace(/\D/g, "");
       const emailKey = (value: unknown) => String(value ?? "").trim().toLowerCase();
       const phoneKey = (value: unknown) => {
         let phone = digits(value);

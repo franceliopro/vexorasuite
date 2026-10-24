@@ -925,3 +925,157 @@ button.primary-button:hover:not(:disabled) {
   .sidebar-collapsed .nav-item { width: auto; min-height: 0; margin-inline: 0; padding: 0 12px; justify-content: flex-start; gap: 10px; }
   .sidebar-collapsed .nav-glyph { width: auto; }
 }
+
+
+/* Final theme contrast pass: hybrid reuses the dark sidebar, while the workspace remains distinct. */
+:root[data-theme="hybrid"] .sidebar,
+:root[data-theme="dark"] .sidebar {
+  background: #202431;
+  color: #e7eaf2;
+}
+:root[data-theme="hybrid"] .sidebar .nav-item,
+:root[data-theme="dark"] .sidebar .nav-item,
+:root[data-theme="hybrid"] .sidebar .nav-subitem,
+:root[data-theme="dark"] .sidebar .nav-subitem { color: #d9deea; }
+:root[data-theme="hybrid"] .sidebar .nav-item.active,
+:root[data-theme="dark"] .sidebar .nav-item.active,
+:root[data-theme="hybrid"] .sidebar .nav-subitem.active,
+:root[data-theme="dark"] .sidebar .nav-subitem.active {
+  background: #343b4d;
+  color: #fff;
+  border-color: #4a5369;
+}
+:root[data-theme="dark"] .breadcrumbs,
+:root[data-theme="dark"] .breadcrumbs > span,
+:root[data-theme="dark"] .breadcrumbs > strong { color: #eef1f7; }
+:root[data-theme="dark"] .topbar { background: #292e3a; }
+:root[data-theme="dark"] .topbar .search-box { background: #3a4150; border-color: #535c6e; }
+:root[data-theme="dark"] .topbar .search-box input,
+:root[data-theme="dark"] .topbar .search-box > span { color: #f4f6fb; }
+
+/* Messages and conversation previews must never inherit dark text on dark surfaces. */
+:root[data-theme="dark"] .inbox-conversation,
+:root[data-theme="dark"] .inbox-conversation.selected {
+  background: #242a38;
+  border-bottom-color: #3a4150;
+  color: #edf0f7;
+}
+:root[data-theme="dark"] .inbox-conversation .conversation-summary > strong,
+:root[data-theme="dark"] .inbox-conversation .conversation-title-row > strong { color: #f4f6fb; }
+:root[data-theme="dark"] .inbox-conversation .conversation-summary small { color: #c0c7d5; }
+:root[data-theme="dark"] .inbox-conversation.selected {
+  background: #30374a;
+  box-shadow: inset 3px 0 var(--primary);
+}
+:root[data-theme="dark"] .thread-messages { background: #1c202b; }
+:root[data-theme="dark"] .message-bubble,
+:root[data-theme="dark"] .message-bubble p { color: #edf0f7; }
+:root[data-theme="dark"] .message-bubble { background: #2b3140; border-color: #454d5e; }
+:root[data-theme="dark"] .message-line.outgoing .message-bubble {
+  background: color-mix(in srgb, var(--primary) 28%, #272d3b);
+  border-color: color-mix(in srgb, var(--primary) 58%, #454d5e);
+}
+:root[data-theme="dark"] .message-bubble small { color: #c0c7d5; }
+
+/* Contact profile, label picker and custom fields: dark surfaces + readable text. */
+:root[data-theme="dark"] .contact-profile,
+:root[data-theme="dark"] .contact-profile-heading,
+:root[data-theme="dark"] .contact-profile-identity,
+:root[data-theme="dark"] .contact-profile-tabs,
+:root[data-theme="dark"] .contact-profile-body,
+:root[data-theme="dark"] .profile-section,
+:root[data-theme="dark"] .profile-field-create,
+:root[data-theme="dark"] .protocol-current {
+  background: #242a38;
+  color: #edf0f7;
+  border-color: #424a5a;
+}
+:root[data-theme="dark"] .contact-profile-identity p,
+:root[data-theme="dark"] .contact-profile-title small,
+:root[data-theme="dark"] .profile-section small,
+:root[data-theme="dark"] .profile-section p,
+:root[data-theme="dark"] .profile-field-row,
+:root[data-theme="dark"] .profile-toggle,
+:root[data-theme="dark"] .contact-profile-tabs button { color: #c1c8d6; }
+:root[data-theme="dark"] .profile-add-tag input,
+:root[data-theme="dark"] .profile-field-row input:not([type="checkbox"]),
+:root[data-theme="dark"] .profile-field-row select,
+:root[data-theme="dark"] .profile-field-create input,
+:root[data-theme="dark"] .profile-field-create select,
+:root[data-theme="dark"] .profile-origin-select,
+:root[data-theme="dark"] .profile-origin-identifier,
+:root[data-theme="dark"] .profile-notes,
+:root[data-theme="dark"] .profile-custom-fields {
+  background: #303746;
+  color: #f1f3f8;
+  border-color: #535c6e;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .profile-field-row input::placeholder,
+:root[data-theme="dark"] .profile-field-create input::placeholder,
+:root[data-theme="dark"] .profile-add-tag input::placeholder { color: #bac2d0; }
+:root[data-theme="dark"] .profile-field-create button,
+:root[data-theme="dark"] .profile-add-tag button,
+:root[data-theme="dark"] .contact-profile-tabs button.active {
+  background: #3a4153;
+  color: #f1f3f8;
+  border-color: #59647a;
+}
+:root[data-theme="dark"] .profile-tag-palette button { border-color: #242a38; box-shadow: 0 0 0 1px #697286; }
+:root[data-theme="dark"] .profile-custom-tag-color { border-color: #697286; }
+:root[data-theme="dark"] .profile-tag-editable { color: #fff !important; text-shadow: none; }
+:root[data-theme="dark"] .profile-tag-editable input:not([type="color"]) { color: #fff !important; }
+
+/* CRM labels use saturated surfaces and strong text contrast in both dark and light themes. */
+.crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 22%, white);
+  color: #20243a;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 65%, #8b91a5);
+}
+:root[data-theme="dark"] .crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 48%, #202431);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 78%, #596174);
+}
+:root[data-theme="dark"] .conversation-tag {
+  background: color-mix(in srgb, var(--primary) 46%, #252b39) !important;
+  border-color: color-mix(in srgb, var(--primary) 78%, #596174) !important;
+  color: #fff !important;
+  text-shadow: none !important;
+}
+:root[data-theme="light"] .conversation-tag {
+  background: color-mix(in srgb, var(--primary) 13%, white) !important;
+  border-color: color-mix(in srgb, var(--primary) 44%, #d5d8e5) !important;
+  color: #20243a !important;
+}
+:root[data-theme="light"] .inbox-conversation {
+  background: #fff;
+  border-bottom-color: #e9ebf2;
+}
+:root[data-theme="light"] .inbox-conversation.selected {
+  background: #f0efff;
+  box-shadow: inset 3px 0 var(--primary);
+}
+:root[data-theme="light"] .inbox-conversation .conversation-summary > strong,
+:root[data-theme="light"] .inbox-conversation .conversation-title-row > strong { color: #252941; }
+:root[data-theme="light"] .inbox-conversation .conversation-summary small { color: #697087; }
+:root[data-theme="light"] .thread-messages { background: #f3f5fa; }
+:root[data-theme="light"] .message-bubble p { color: #252941; }
+:root[data-theme="light"] .profile-field-row input:not([type="checkbox"]),
+:root[data-theme="light"] .profile-field-row select,
+:root[data-theme="light"] .profile-field-create input,
+:root[data-theme="light"] .profile-field-create select,
+:root[data-theme="light"] .profile-add-tag input {
+  background: #fff;
+  color: #252941;
+  border-color: #d7dbe7;
+}
+:root[data-theme="light"] .profile-field-create {
+  background: #f7f8fc;
+  border-color: #e2e5ef;
+}
+:root[data-theme="light"] .profile-tag-palette button { border-color: #fff; box-shadow: 0 0 0 1px #c9cedd; }
+:root[data-theme="light"] .crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 20%, white);
+  color: #252941;
+}

@@ -8,6 +8,15 @@ import { CreateConversationDto } from "./dto/create-conversation.dto";
 import { SendMessageDto } from "./dto/send-message.dto";
 import { WahaService } from "./waha.service";
 
+
+function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return false;
+  const finalization = (metadata as Record<string, unknown>).crmFinalization;
+  if (!finalization || typeof finalization !== "object" || Array.isArray(finalization)) return false;
+  const ids = (finalization as Record<string, unknown>).finalizedConversationIds;
+  return Array.isArray(ids) && ids.includes(conversationId);
+}
+
 @Controller("conversations")
 @UseGuards(AuthGuard)
 export class ConversationsController {
@@ -28,12 +37,13 @@ export class ConversationsController {
     else if (normalizedView === "archived") Object.assign(where, { archivedAt: { not: null }, deletedAt: null });
     else if (normalizedView === "trash") Object.assign(where, { deletedAt: { not: null } });
     if (status && ["OPEN", "PENDING", "RESOLVED", "CLOSED"].includes(status.toUpperCase()) && !["new", "mine", "team", "others", "all-open", "completed", "archived", "trash"].includes(view)) where.status = status.toUpperCase();
-    return this.prisma.conversation.findMany({
+    const rows = await this.prisma.conversation.findMany({
       where: where as any,
       include: { contact: { select: { id: true, name: true, phone: true, email: true, externalId: true, metadata: true } }, assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 }, participants: { include: { user: { select: { id: true, name: true } } } } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });
+    return rows.filter((conversation) => !isFinalizedConversation(conversation.contact.metadata, conversation.id));
   }
 
   @Post()
@@ -112,13 +122,12 @@ export class ConversationsController {
     const allowed = ["OPEN", "PENDING", "RESOLVED"] as const;
     if (!allowed.includes(status as typeof allowed[number])) throw new BadRequestException("Status de conversa inválido.");
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, contactId: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa está encerrada permanentemente.");
     if (status === "OPEN" && conversation.status === "RESOLVED") {
-      const contact = await this.prisma.contact.findFirst({ where: { id: (await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { contactId: true } }))?.contactId, tenantId }, select: { metadata: true } });
-      const metadata = contact?.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
-      if (metadata.crmFinalization) throw new BadRequestException("Este contato foi finalizado comercialmente e permanece fora da fila. Consulte Contatos.");
+      const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId }, select: { metadata: true } });
+      if (contact && isFinalizedConversation(contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado comercialmente e permanece fora da fila. Consulte Contatos.");
     }
     const updated = await this.prisma.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status });
@@ -190,6 +199,7 @@ export class ConversationsController {
     const tenantId = request.user.tenantId;
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request, view)) } as any, include: { contact: true, channelConnection: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (isFinalizedConversation(conversation.contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado. Consulte o histórico em Contatos.");
     if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
     if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA" || !conversation.channelConnection.isActive) {

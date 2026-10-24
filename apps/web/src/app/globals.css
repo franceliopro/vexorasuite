@@ -2368,3 +2368,80 @@ input[type="color"].profile-tag-inline-color {
     padding: 7px 8px;
   }
 }
+
+
+/* Module pages: remove repeated editorial intros so the actual workspace starts sooner. */
+.page-content > .module-intro,
+.page-content > .page-intro,
+.page-content > .module-page-intro,
+.page-content > .page-heading,
+.page-content > .module-heading-block,
+.page-content > .page-title-block,
+.page-content > .section-intro,
+.page-content > .page-content-heading {
+  display: none !important;
+}
+/* Keep the breadcrumb separator subtle while making its adjacent title much easier to scan. */
+.topbar .breadcrumbs .crumb-slash strong,
+.topbar .breadcrumbs > strong,
+.topbar .breadcrumbs strong {
+  font-size: 200% !important;
+  line-height: 1.15;
+  font-weight: 700;
+}
+/* General module content uses more of the available viewport, without the extra-wide inbox feel. */
+.main-area .page-content:not(:has(.inbox-workspace)) {
+  width: 100%;
+  max-width: none;
+  padding-left: clamp(20px, 2.2vw, 36px);
+  padding-right: clamp(20px, 2.2vw, 36px);
+}
+@media (min-width: 1500px) {
+  .main-area .page-content:not(:has(.inbox-workspace)) {
+    width: 95%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+/* CRM pipeline: wider columns and a tall, viewport-filling board with independently scrollable cards. */
+.crm-pipeline {
+  grid-template-columns: repeat(5, minmax(250px, 1fr));
+  align-items: stretch;
+  min-height: min(90vh, 1000px);
+  height: min(90vh, 1000px);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.crm-pipeline-column {
+  min-width: 250px;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.crm-stage-cards {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+@media (min-width: 1450px) {
+  .crm-pipeline {
+    grid-template-columns: repeat(5, minmax(250px, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .main-area .page-content:not(:has(.inbox-workspace)) {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .crm-pipeline {
+    height: 82dvh;
+    min-height: 500px;
+    grid-template-columns: repeat(5, minmax(265px, 82vw));
+  }
+  .crm-pipeline-column {
+    min-width: 265px;
+  }
+}

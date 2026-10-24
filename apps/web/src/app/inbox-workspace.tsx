@@ -269,10 +269,8 @@ export function InboxWorkspace() {
       {selected ? <>
         <header className="thread-heading"><span className="conversation-avatar">{selected.contact.name.slice(0, 1).toUpperCase()}</span><div className="thread-contact"><h2>{selected.contact.name}</h2><p>{selected.contact.phone || "WhatsApp"}{selected.assignee ? " · " + selected.assignee.name : " · Sem responsável"} · {selected.handlingMode === "HUMAN" ? "Atendimento humano" : "Bot"}</p></div><div className="thread-actions">{!selected.assignee ? <button className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /><span>Assumir</span></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
           <details className="handoff-menu">
-            <summary className="handoff-trigger" title="Direcionar conversa">
-              <span className="handoff-trigger-icon"><ArrowRightLeft size={16}/></span>
-              <span className="handoff-trigger-copy"><strong>Direcionar</strong><small>{[handoffDepartment ? departments.find(d=>d.id===handoffDepartment)?.name : "Fila geral", handoffAssignee ? agents.find(a=>a.id===handoffAssignee)?.name : ""].filter(Boolean).join(" · ")}</small></span>
-              <ChevronDown className="handoff-chevron" size={14}/>
+            <summary className="handoff-invite-trigger handoff-route-trigger" title="Direcionar conversa">
+              <ArrowRightLeft size={15}/><span>Direcionar</span><ChevronDown size={13}/>
             </summary>
             <div className="handoff-popover">
               <div className="handoff-popover-heading"><div><strong>Para quem vai?</strong><small>Escolha a equipe ou uma pessoa</small></div><span className="handoff-popover-mark"><Users size={17}/></span></div>

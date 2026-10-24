@@ -1640,3 +1640,102 @@ button.primary-button:hover:not(:disabled) {
   .main-area .page-content { padding-bottom: 18px; }
   .inbox-workspace.mobile-thread-open .inbox-thread { height: calc(100dvh - 155px); min-height: calc(100dvh - 155px); }
 }
+
+
+/* Hybrid workspace and inbox readability refinements requested after visual review. */
+:root[data-theme="hybrid"] .inbox-conversation {
+  background: var(--surface-1, #fff);
+  color: var(--text-primary, #20243a);
+  border-bottom-color: var(--border-subtle, #e8eaf1);
+}
+:root[data-theme="hybrid"] .inbox-conversation:hover {
+  background: var(--surface-hover, #f4f5fb);
+}
+:root[data-theme="hybrid"] .inbox-conversation.selected {
+  background: var(--surface-active, #eeedff);
+  color: var(--text-primary, #20243a);
+  box-shadow: inset 3px 0 var(--primary, #6258df);
+}
+:root[data-theme="hybrid"] .dashboard-grid .content-card,
+:root[data-theme="hybrid"] .dashboard-grid .activity-card,
+:root[data-theme="hybrid"] .dashboard-grid .shortcuts-card {
+  background: var(--surface-1, #fff);
+  color: var(--text-primary, #20243a);
+  border-color: var(--border-subtle, #e5e7ef);
+  box-shadow: 0 3px 14px rgba(25, 31, 58, .045);
+}
+:root[data-theme="hybrid"] .dashboard-grid :is(h2, h3, p, strong, span, small) {
+  color: inherit;
+}
+:root[data-theme="hybrid"] .dashboard-grid :is(p, small) {
+  color: var(--text-secondary, #5f667d);
+}
+:root[data-theme="hybrid"] .bottom-note {
+  background: #fff;
+  color: var(--text-secondary, #5f667d);
+  border-color: var(--border-subtle, #e5e7ef);
+}
+:root[data-theme="hybrid"] .bottom-note strong {
+  color: var(--text-primary, #20243a);
+}
+.thread-messages {
+  background: #f7f8fb;
+}
+.thread-messages .message-bubble p {
+  color: #252938;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+.thread-messages .message-bubble {
+  padding: 10px 13px;
+}
+.thread-messages .message-bubble small {
+  color: #62697a;
+  font-size: 11px;
+}
+.inbox-composer textarea {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #252938;
+}
+.inbox-composer textarea::placeholder {
+  color: #697184;
+  opacity: 1;
+}
+.conversation-avatar {
+  border: 1px solid rgba(66, 72, 102, .18);
+}
+input[aria-label="Nome da etiqueta"] {
+  background: transparent !important;
+}
+input.profile-tag-inline-color,
+input[type="color"].profile-tag-inline-color {
+  border: 0 !important;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.contact-profile-footer button {
+  background: var(--primary, #6258df);
+  color: var(--primary-foreground, #fff);
+}
+.contact-profile-footer button:hover:not(:disabled) {
+  background: var(--primary-hover, #5046ca);
+}
+:root[data-theme="hybrid"] .contact-profile-footer button {
+  background: var(--primary, #6258df);
+  color: #fff;
+}
+@media (max-width: 760px) {
+  .thread-messages .message-bubble p {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .thread-messages .message-bubble small {
+    font-size: 11px;
+  }
+  .inbox-composer textarea {
+    font-size: 16px;
+  }
+}

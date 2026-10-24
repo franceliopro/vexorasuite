@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Sun,
   Moon,
+  SunMoon,
   LayoutDashboard,
   Megaphone,
   MessagesSquare,
@@ -104,10 +105,16 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if (saved === "dark" || saved === "light") setTheme(saved); } catch {} }, []);
+    type ThemeMode = "hybrid" | "light" | "dark";
+  type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean};
+  const defaultBrandAssets:BrandAssets={primaryColor:"#6258DF",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true};
+  const [theme, setTheme] = useState<ThemeMode>("hybrid");
+  const [brandAssets,setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);
+  const [greeting,setGreeting] = useState("Bom dia");
+  useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if(saved==="dark"||saved==="hybrid")setTheme(saved);else if(saved==="light")setTheme("hybrid"); } catch {} }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme]);
-  useEffect(() => { if (!session) return; let live=true; void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then((v)=>{if(live&&v&&/^#[0-9a-fA-F]{6}$/.test(v.primaryColor)){document.documentElement.style.setProperty("--primary",v.primaryColor);document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${v.primaryColor} 12%, white)`);}}).catch(()=>{}); return ()=>{live=false}; }, [session?.tenant.slug]);
+  useEffect(() => { const updateGreeting=()=>{const hour=new Date().getHours();setGreeting(hour>=5&&hour<12?"Bom dia":hour>=12&&hour<18?"Boa tarde":hour>=18?"Boa noite":"Boa madrugada");};updateGreeting();const timer=window.setInterval(updateGreeting,60000);return()=>window.clearInterval(timer); }, []);
+  useEffect(() => { if (!session) return; let live=true; const apply=(v:any)=>{if(!live||!v)return;const next={...defaultBrandAssets,...v};if(!/^#[0-9a-fA-F]{6}$/.test(next.primaryColor))next.primaryColor=defaultBrandAssets.primaryColor;setBrandAssets(next);document.documentElement.style.setProperty("--primary",next.primaryColor);document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${next.primaryColor} 13%, var(--card))`);if(next.favicon){let link=document.querySelector<HTMLLinkElement>('link[rel~="icon"]');if(!link){link=document.createElement("link");link.rel="icon";document.head.appendChild(link);}link.href=next.favicon;}};void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(apply).catch(()=>{});const onBrandUpdate=(event:Event)=>apply((event as CustomEvent).detail);window.addEventListener("vexora:brand-updated",onBrandUpdate);return()=>{live=false;window.removeEventListener("vexora:brand-updated",onBrandUpdate);}; }, [session?.tenant.slug]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -136,8 +143,7 @@ export default function HomePage() {
     <div className="suite-app">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="sidebar-brand-row"><a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
-          <span className="brand-mark">V</span>
-          <span className="brand-copy"><strong>véxora</strong><small>SUITE</small></span>
+          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a><button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
@@ -179,7 +185,7 @@ export default function HomePage() {
           <div className="topbar-actions">
             {session?.role === "OWNER" ? <div className="workspace-info-wrap"><button type="button" className="workspace-info-button" onClick={() => setWorkspaceInfoOpen(v=>!v)} aria-expanded={workspaceInfoOpen} title="Informações do ambiente"><span className="workspace-avatar">V</span><span>Ambiente</span><Icon name="chevron-right" size={13}/></button>{workspaceInfoOpen?<div className="workspace-info-popover"><strong>{session?.tenant.name||"Minha empresa"}</strong><small>{session?.tenant.slug||"Workspace"}</small><p>Ambiente atual da empresa. A alternância entre empreendimentos será exibida quando houver mais de um vínculo disponível para sua conta.</p></div>:null}</div>:null}
             <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar" placeholder="Buscar..." /><kbd>⌘ K</kbd></label>
-            <button className="icon-button theme-toggle" onClick={() => setTheme(value => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"} title={theme === "light" ? "Modo escuro" : "Modo claro"}>{theme === "light" ? <Moon size={17}/> : <Sun size={17}/>}</button>
+            <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             <button className="icon-button" aria-label="Notificações">♧<i /></button>
             <button className="logout-button" onClick={async () => { await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
           </div>
@@ -187,7 +193,7 @@ export default function HomePage() {
 
         <div className="page-content">
           {active !== "Atendimento" && active !== "Configurações" && active !== "CRM" ? <section className="page-heading">
-            <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? "Bom dia! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
+            <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? greeting+"! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
           </section> : null}
 
@@ -223,7 +229,7 @@ export default function HomePage() {
           ) : active === "Atendimento" ? (
             <InboxWorkspace />
           ) : active === "Configurações" ? (
-            canConfigure ? <OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
+            canConfigure ? <OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className="module-placeholder content-card">
               <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>

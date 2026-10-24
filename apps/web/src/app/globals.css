@@ -790,3 +790,138 @@ button.primary-button:hover:not(:disabled) {
 .profile-tag-editable input[type="color"].profile-tag-inline-color { width:18px; height:18px; min-width:18px; padding:0; border:1px solid rgba(255,255,255,.65); border-radius:4px; background:transparent; cursor:pointer; }
 .profile-tag-editable button { display:inline-flex; align-items:center; justify-content:center; padding:2px; color:inherit; border-radius:4px; background:rgba(0,0,0,.16); }
 .profile-tag-editable button:hover { background:rgba(0,0,0,.3); }
+
+
+/* Theme polish: consistent controls, accessible contrast and compact collapsed navigation. */
+:root[data-theme="dark"] .topbar {
+  background: #343946;
+  border-bottom-color: #454b5a;
+}
+:root[data-theme="dark"] .topbar .search-box,
+:root[data-theme="dark"] .topbar .search-box kbd {
+  background: #3c4250;
+  color: #e0e4ed;
+  border-color: #505767;
+}
+:root[data-theme="dark"] .topbar .search-box input { color: #f1f3f8; }
+:root[data-theme="dark"] .topbar .search-box input::placeholder { color: #c0c6d3; }
+:root[data-theme="dark"] .thread-action-button,
+:root[data-theme="dark"] .thread-assign-select,
+:root[data-theme="dark"] .handoff-trigger,
+:root[data-theme="dark"] .handoff-popover,
+:root[data-theme="dark"] .inbox-queue-menu,
+:root[data-theme="dark"] .profile-field-row input,
+:root[data-theme="dark"] .profile-field-row select,
+:root[data-theme="dark"] .profile-field-create input,
+:root[data-theme="dark"] .profile-field-create select,
+:root[data-theme="dark"] .profile-add-tag input,
+:root[data-theme="dark"] .profile-origin-identifier,
+:root[data-theme="dark"] .profile-notes,
+:root[data-theme="dark"] .inbox-composer textarea,
+:root[data-theme="dark"] .inbox-composer input,
+:root[data-theme="dark"] [contenteditable="true"] {
+  background-color: #303644;
+  color: #e5e8ef;
+  border-color: #51596a;
+}
+:root[data-theme="dark"] .inbox-composer textarea::placeholder,
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder,
+:root[data-theme="dark"] [contenteditable="true"]:empty::before {
+  color: #b8bfcd;
+}
+:root[data-theme="dark"] .thread-messages hr,
+:root[data-theme="dark"] hr,
+:root[data-theme="dark"] .inbox-thread hr,
+:root[data-theme="dark"] .contact-profile-body hr {
+  border-color: #4b5261;
+  background-color: #4b5261;
+}
+:root[data-theme="dark"] .thread-action-button,
+:root[data-theme="dark"] .thread-assign-select,
+:root[data-theme="dark"] .handoff-trigger,
+:root[data-theme="dark"] .profile-field-create button,
+:root[data-theme="dark"] .profile-add-tag button {
+  color: #e0e4ed;
+}
+:root[data-theme="dark"] .thread-heading,
+:root[data-theme="dark"] .inbox-panel-heading,
+:root[data-theme="dark"] .contact-profile-heading,
+:root[data-theme="dark"] .contact-profile-tabs,
+:root[data-theme="dark"] .profile-section {
+  border-color: #454c5b;
+}
+:root[data-theme="hybrid"] .sidebar,
+:root[data-theme="dark"] .sidebar {
+  background: #202431;
+  color: #e7eaf2;
+}
+:root[data-theme="hybrid"] .sidebar .sidebar-collapse,
+:root[data-theme="dark"] .sidebar .sidebar-collapse {
+  color: #d9deea;
+  background: #303644;
+  border-color: #444b5b;
+}
+:root[data-theme="hybrid"] .sidebar .help-card,
+:root[data-theme="dark"] .sidebar .help-card {
+  color: #d9deea;
+  background: #292f3d;
+  border-color: #414858;
+}
+:root[data-theme="light"] .sidebar .sidebar-collapse {
+  color: #4f566b;
+  background: #f1f3f9;
+  border-color: #d8ddeb;
+}
+:root[data-theme="light"] .sidebar .help-card {
+  color: #4f566b;
+}
+.conversation-tag {
+  background: color-mix(in srgb, var(--primary) 17%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--primary) 48%, var(--line)) !important;
+  color: var(--ink) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+.profile-tag-editable {
+  color: #172033 !important;
+  text-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1);
+}
+.profile-tag-editable input:not([type="color"]) { color: #172033 !important; }
+.sidebar-collapsed {
+  width: 64px;
+  flex-basis: 64px;
+  padding-left: 7px;
+  padding-right: 7px;
+}
+.sidebar-collapsed .nav-accordion-chevron { display: none !important; }
+.sidebar-collapsed .nav-accordion { width: 100%; }
+.sidebar-collapsed .nav-item {
+  width: 48px;
+  min-height: 42px;
+  margin-inline: auto;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+.sidebar-collapsed .nav-glyph {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+.sidebar-collapsed .sidebar-collapse {
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  justify-content: center;
+}
+.sidebar-collapsed .help-card { min-height: 40px; }
+@media (max-width: 760px) {
+  .sidebar-collapsed { width: 270px; flex-basis: 270px; padding: 24px 14px 14px; }
+  .sidebar-collapsed .nav-accordion-chevron { display: initial !important; }
+  .sidebar-collapsed .nav-item { width: auto; min-height: 0; margin-inline: 0; padding: 0 12px; justify-content: flex-start; gap: 10px; }
+  .sidebar-collapsed .nav-glyph { width: auto; }
+}

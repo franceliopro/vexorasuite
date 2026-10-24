@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -30,6 +30,37 @@ export class ContactsController {
       orderBy: { updatedAt: "desc" },
       take: 100,
     });
+  }
+
+  @Patch(":id/pipeline-stage")
+  async updatePipelineStage(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @Body() input: { stage?: string },
+  ) {
+    const allowedStages = new Set(["lead", "contacted", "qualified", "proposal", "won", "lost"]);
+    if (!input.stage || !allowedStages.has(input.stage)) {
+      throw new BadRequestException("Etapa do pipeline inválida.");
+    }
+    const contact = await this.prisma.contact.findFirst({
+      where: { id, tenantId: request.user.tenantId },
+    });
+    if (!contact) {
+      throw new BadRequestException("Contato não encontrado nesta empresa.");
+    }
+    const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata)
+      ? contact.metadata as Record<string, unknown>
+      : {};
+    const updated = await this.prisma.contact.update({
+      where: { id: contact.id },
+      data: { metadata: { ...metadata, pipelineStage: input.stage } },
+    });
+    this.events.publish(request.user.tenantId, "contact.updated", {
+      id: updated.id,
+      name: updated.name,
+      pipelineStage: input.stage,
+    });
+    return updated;
   }
 
   @Post()

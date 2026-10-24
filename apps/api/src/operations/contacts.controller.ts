@@ -54,19 +54,35 @@ export class ContactsController {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
     const brand = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
-    return { primaryColor: typeof brand.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.primaryColor) ? brand.primaryColor : "#6258df" };
+    const image = (key: string) => typeof brand[key] === "string" && /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(brand[key] as string) ? brand[key] as string : "";
+    return {
+      primaryColor: typeof brand.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.primaryColor) ? brand.primaryColor : "#6258df",
+      logoLight: image("logoLight"),
+      logoDark: image("logoDark"),
+      favicon: image("favicon"),
+      logoShape: brand.logoShape === "square" || brand.logoShape === "round" ? brand.logoShape : "rectangular",
+      showCompanyName: typeof brand.showCompanyName === "boolean" ? brand.showCompanyName : true,
+    };
   }
 
   @Patch("brand-settings")
-  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown }) {
+  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown; logoLight?: unknown; logoDark?: unknown; favicon?: unknown; logoShape?: unknown; showCompanyName?: unknown }) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes((request.user.role || "").toUpperCase())) throw new ForbiddenException("Somente administradores podem alterar a identidade visual.");
-    const primaryColor = typeof input.primaryColor === "string" ? input.primaryColor : "";
-    if (!/^#[0-9a-fA-F]{6}$/.test(primaryColor)) throw new BadRequestException("Escolha uma cor hexadecimal válida.");
+    const primaryColor = typeof input.primaryColor === "string" ? input.primaryColor.toUpperCase() : "";
+    if (!/^#[0-9A-F]{6}$/.test(primaryColor)) throw new BadRequestException("Escolha uma cor hexadecimal válida.");
+    const validImage = (value: unknown) => value === "" || (typeof value === "string" && value.length <= 52000 && /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(value));
+    for (const key of ["logoLight", "logoDark", "favicon"] as const) {
+      if (input[key] !== undefined && !validImage(input[key])) throw new BadRequestException(`A imagem ${key} é inválida ou muito grande. Use PNG, JPEG, WebP ou SVG de até 38 KB após otimização.`);
+    }
+    if (input.logoShape !== undefined && !["square", "round", "rectangular"].includes(String(input.logoShape))) throw new BadRequestException("Formato do logo inválido.");
+    if (input.showCompanyName !== undefined && typeof input.showCompanyName !== "boolean") throw new BadRequestException("A opção de nome da empresa é inválida.");
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
-    const brand = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
-    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, brandSettings: { ...brand, primaryColor } } as any } });
-    return { primaryColor };
+    const existing = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
+    const brandSettings = { ...existing, primaryColor };
+    for (const key of ["logoLight", "logoDark", "favicon", "logoShape", "showCompanyName"] as const) if (input[key] !== undefined) (brandSettings as Record<string, unknown>)[key] = input[key];
+    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, brandSettings } as any } });
+    return { primaryColor, logoLight: brandSettings.logoLight || "", logoDark: brandSettings.logoDark || "", favicon: brandSettings.favicon || "", logoShape: brandSettings.logoShape || "rectangular", showCompanyName: brandSettings.showCompanyName !== false };
   }
 
   @Get("profile-config")

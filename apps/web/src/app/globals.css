@@ -767,7 +767,7 @@ button.primary-button:hover:not(:disabled) {
 .conversation-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
 .conversation-title-row > strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .conversation-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; }
-.conversation-tag { display:inline-flex; align-items:center; min-height:19px; padding:2px 7px; border:1px solid; border-radius:5px; color:#fff !important; font-size:10px; line-height:1.2; font-weight:750; letter-spacing:.01em; text-shadow:0 1px 1px rgba(0,0,0,.18); }
+.conversation-tag { display:inline-flex; align-items:center; min-height:19px; padding:2px 7px; border:1px solid; border-radius:5px; color:inherit; font-size:10px; line-height:1.2; font-weight:750; letter-spacing:.01em; text-shadow:none; }
 .conversation-avatar { position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 38px; width:38px; height:38px; overflow:hidden; border-radius:50%; }
 .conversation-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
 .conversation-avatar .avatar-fallback { display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
@@ -876,13 +876,7 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="light"] .sidebar .help-card {
   color: #4f566b;
 }
-.conversation-tag {
-  background: color-mix(in srgb, var(--primary) 17%, var(--card)) !important;
-  border-color: color-mix(in srgb, var(--primary) 48%, var(--line)) !important;
-  color: var(--ink) !important;
-  text-shadow: none !important;
-  filter: none !important;
-}
+.conversation-tag { text-shadow:none; filter:none; box-shadow:none; }
 .profile-tag-editable {
   color: #172033 !important;
   text-shadow: none;
@@ -1037,17 +1031,7 @@ button.primary-button:hover:not(:disabled) {
   color: #fff;
   border-color: color-mix(in srgb, var(--tag-color, #7665e8) 78%, #596174);
 }
-:root[data-theme="dark"] .conversation-tag {
-  background: color-mix(in srgb, var(--primary) 46%, #252b39) !important;
-  border-color: color-mix(in srgb, var(--primary) 78%, #596174) !important;
-  color: #fff !important;
-  text-shadow: none !important;
-}
-:root[data-theme="light"] .conversation-tag {
-  background: color-mix(in srgb, var(--primary) 13%, white) !important;
-  border-color: color-mix(in srgb, var(--primary) 44%, #d5d8e5) !important;
-  color: #20243a !important;
-}
+
 :root[data-theme="light"] .inbox-conversation {
   background: #fff;
   border-bottom-color: #e9ebf2;

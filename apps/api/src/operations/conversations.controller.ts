@@ -24,6 +24,54 @@ function isFinalizedConversation(metadata: unknown, conversationId: string): boo
 export class ConversationsController {
   constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService) {}
 
+  // Quick replies are stored per tenant so all agents in the same company share
+  // the same catalog without browser-local storage or cross-tenant leakage.
+  @Get("quick-replies")
+  async listQuickReplies(@Req() request: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: request.user.tenantId },
+      select: { integrations: true },
+    });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown>
+      : {};
+    const raw = integrations.quickReplies;
+    return Array.isArray(raw) ? raw.filter((item) => item && typeof item === "object" && !Array.isArray(item)) : [];
+  }
+
+  @Post("quick-replies")
+  async saveQuickReplies(@Req() request: AuthenticatedRequest, @Body() input: { items?: unknown }) {
+    if (!Array.isArray(input.items) || input.items.length > 200) {
+      throw new BadRequestException("Envie uma lista válida de até 200 respostas rápidas.");
+    }
+    const items = input.items.map((raw) => {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("Cada resposta rápida deve ser um objeto válido.");
+      }
+      const item = raw as Record<string, unknown>;
+      const id = typeof item.id === "string" ? item.id.trim().slice(0, 80) : "";
+      const title = typeof item.title === "string" ? item.title.trim().slice(0, 120) : "";
+      const content = typeof item.content === "string" ? item.content.trim().slice(0, 4000) : "";
+      const category = typeof item.category === "string" ? item.category.trim().slice(0, 80) : "";
+      const shortcut = typeof item.shortcut === "string" ? item.shortcut.trim().replace(/^\/+/, "").slice(0, 40) : "";
+      if (!id || !title || !content) throw new BadRequestException("Título e conteúdo são obrigatórios em cada resposta rápida.");
+      return { id, title, content, category, shortcut };
+    });
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: request.user.tenantId },
+      select: { integrations: true },
+    });
+    if (!tenant) throw new NotFoundException("Empresa não encontrada.");
+    const integrations = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown>
+      : {};
+    await this.prisma.tenant.update({
+      where: { id: request.user.tenantId },
+      data: { integrations: { ...integrations, quickReplies: items } },
+    });
+    return items;
+  }
+
   @Get()
   async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string) {
     const tenantId = request.user.tenantId;

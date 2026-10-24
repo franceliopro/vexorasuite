@@ -108,6 +108,26 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen && !workspaceInfoOpen) return;
+    const closeOutside = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (menuOpen && !event.target.closest(".sidebar") && !event.target.closest(".mobile-menu")) setMenuOpen(false);
+      if (workspaceInfoOpen && !event.target.closest(".workspace-info-wrap")) setWorkspaceInfoOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setWorkspaceInfoOpen(false);
+      }
+    };
+    document.addEventListener("click", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
   type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean};
   const defaultBrandAssets:BrandAssets={primaryColor:"#6258DF",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true};
@@ -180,6 +200,7 @@ export default function HomePage() {
           <div className="profile-row"><span className="profile-avatar">{(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
         </div>
       </aside>
+      {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="main-area">
         <header className="topbar">

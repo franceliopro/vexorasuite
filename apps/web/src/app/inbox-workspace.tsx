@@ -463,7 +463,7 @@ export function InboxWorkspace() {
   const filteredQuickReplies = quickReplies.filter(q => (q.title + " " + q.content + " " + (q.category || "") + " " + (q.shortcut || "")).toLocaleLowerCase("pt-BR").includes(quickSearch.toLocaleLowerCase("pt-BR")));
   function useQuickReply(item: QuickReply) {
     const content = resolveQuickReply(item.content);
-    setDraft(value => value ? value + "\\n" + content : content);
+    setDraft(value => value ? value + "\n" + content : content);
     setQuickOpen(false); setQuickSearch(""); setQuickActiveIndex(0);
     requestAnimationFrame(() => composerRef.current?.focus());
   }

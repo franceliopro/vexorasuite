@@ -220,7 +220,6 @@ export class AsaasService {
         address: address || null,
         customerId: customer.id,
         environment: counters.environment,
-        status: "ACTIVE",
         dateCreated: customer.dateCreated || null,
         syncedAt: new Date().toISOString(),
       };
@@ -263,8 +262,10 @@ export class AsaasService {
           const nextName = incoming.name || existing.name;
           const nextPhone = incoming.phone || existing.phone;
           const nextEmail = incoming.email || existing.email;
+          const stablePrevious = { ...previous, asaas: { ...previousAsaas, syncedAt: undefined } };
+          const stableNext = { ...nextMetadata, asaas: { ...mergedAsaas, syncedAt: undefined } };
           const changed = nextName !== existing.name || nextPhone !== existing.phone || nextEmail !== existing.email
-            || existing.source !== "ASAAS" || JSON.stringify(previous) !== JSON.stringify(nextMetadata);
+            || existing.source !== "ASAAS" || JSON.stringify(stablePrevious) !== JSON.stringify(stableNext);
           if (!changed) { counters.unchanged++; return; }
           await tx.contact.update({
             where: { id: existing.id },
@@ -290,7 +291,7 @@ export class AsaasService {
             phone: incoming.phone,
             email: incoming.email,
             source: "ASAAS",
-            metadata,
+            metadata: metadata as Prisma.InputJsonObject,
           },
         });
         counters.created++;

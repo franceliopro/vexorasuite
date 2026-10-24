@@ -127,9 +127,9 @@ export class ReportsController {
   }
 
   @Get("lead-origins")
-  async leadOrigins(@Req() request: AuthenticatedRequest, @Query("from") from?: string, @Query("to") to?: string) {
+  async leadOrigins(@Req() request: AuthenticatedRequest, @Query("from") from?: string, @Query("to") to?: string, @Query("tzOffset") tzOffset?: string) {
     this.assertCanView(request);
-    const period = range(from, to);
+    const period = range(from, to, tzOffset);
     const contacts = await this.prisma.contact.findMany({
       where: { tenantId: request.user.tenantId, createdAt: { gte: period.start, lt: period.end } },
       select: { id: true, name: true, phone: true, email: true, source: true, metadata: true, createdAt: true, updatedAt: true },

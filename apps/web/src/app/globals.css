@@ -669,3 +669,90 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="light"] .message-line.outgoing .message-bubble{background:color-mix(in srgb,var(--primary) 10%,white);border-color:color-mix(in srgb,var(--primary) 25%,white)}
 :root[data-theme="light"] .handoff-trigger,:root[data-theme="light"] .handoff-popover,:root[data-theme="light"] .inbox-queue-menu,:root[data-theme="light"] .composer-popover,:root[data-theme="light"] .thread-action-button,:root[data-theme="light"] .thread-assign-select,:root[data-theme="light"] .crm-view-switch,:root[data-theme="light"] .crm-toolbar-search,:root[data-theme="light"] .profile-origin-select{background:var(--card);color:var(--ink);border-color:var(--line)}
 :root[data-theme="light"] .shortcut-icon,:root[data-theme="light"] .empty-illustration,:root[data-theme="light"] .handoff-trigger-icon,:root[data-theme="light"] .handoff-popover-mark,:root[data-theme="light"] .handoff-option-icon,:root[data-theme="light"] .handoff-avatar{background:color-mix(in srgb,var(--primary) 10%,white);color:var(--primary);border-color:var(--line)}
+
+
+/* Contrast system: brand color is an accent, not a universal surface color. */
+:root {
+  --primary-hover: color-mix(in srgb, var(--primary) 84%, black);
+  --primary-selected-bg: color-mix(in srgb, var(--primary) 10%, white);
+  --primary-selected-border: color-mix(in srgb, var(--primary) 35%, white);
+  --control-bg: var(--card);
+  --control-text: var(--ink);
+}
+:root[data-theme="dark"] {
+  --primary-hover: color-mix(in srgb, var(--primary) 78%, white);
+  --primary-selected-bg: color-mix(in srgb, var(--primary) 24%, var(--card));
+  --primary-selected-border: color-mix(in srgb, var(--primary) 52%, var(--line));
+  --control-bg: color-mix(in srgb, var(--card) 82%, black);
+  --control-text: var(--ink);
+}
+.primary-button:hover:not(:disabled),
+button.primary-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+  filter: none;
+}
+.nav-item.active,
+.nav-subitem.active,
+.settings-tabs button.active,
+.module-tabs button.active,
+.crm-view-switch button.active,
+.inbox-queue-button.active,
+.inbox-conversation.selected,
+[role="option"][aria-selected="true"],
+[role="menuitem"][aria-current="true"] {
+  background: var(--primary-selected-bg);
+  border-color: var(--primary-selected-border);
+}
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-subitem.active,
+:root[data-theme="dark"] .settings-tabs button.active,
+:root[data-theme="dark"] .module-tabs button.active,
+:root[data-theme="dark"] .crm-view-switch button.active,
+:root[data-theme="dark"] .inbox-queue-button.active,
+:root[data-theme="dark"] .inbox-conversation.selected,
+:root[data-theme="dark"] [role="option"][aria-selected="true"],
+:root[data-theme="dark"] [role="menuitem"][aria-current="true"] {
+  color: var(--ink);
+}
+:root[data-theme="light"] .nav-item.active,
+:root[data-theme="light"] .nav-subitem.active,
+:root[data-theme="light"] .settings-tabs button.active,
+:root[data-theme="light"] .module-tabs button.active,
+:root[data-theme="light"] .crm-view-switch button.active,
+:root[data-theme="light"] .inbox-queue-button.active,
+:root[data-theme="light"] .inbox-conversation.selected,
+:root[data-theme="light"] [role="option"][aria-selected="true"],
+:root[data-theme="light"] [role="menuitem"][aria-current="true"] {
+  color: var(--ink);
+}
+:root:not([data-theme="dark"]) .secondary-button:hover,
+:root:not([data-theme="dark"]) .icon-button:hover,
+:root:not([data-theme="dark"]) .thread-action-button:hover:not(:disabled),
+:root:not([data-theme="dark"]) .handoff-option:hover,
+:root:not([data-theme="dark"]) .inbox-queue-menu button:hover {
+  background: color-mix(in srgb, var(--primary) 7%, white);
+  border-color: var(--primary-selected-border);
+}
+:root[data-theme="dark"] .secondary-button:hover,
+:root[data-theme="dark"] .icon-button:hover,
+:root[data-theme="dark"] .thread-action-button:hover:not(:disabled),
+:root[data-theme="dark"] .handoff-option:hover,
+:root[data-theme="dark"] .inbox-queue-menu button:hover {
+  background: color-mix(in srgb, var(--primary) 17%, var(--card));
+  border-color: var(--primary-selected-border);
+}
+:root[data-theme="dark"] .content-card,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .crm-pipeline-card,
+:root[data-theme="dark"] .crm-contacts-card,
+:root[data-theme="dark"] .inbox-conversation {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .inbox-conversation.selected {
+  background: color-mix(in srgb, var(--primary) 18%, var(--card));
+}
+:root[data-theme="light"] .inbox-conversation.selected,
+:root[data-theme="hybrid"] .inbox-conversation.selected {
+  background: color-mix(in srgb, var(--primary) 8%, white);
+}

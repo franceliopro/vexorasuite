@@ -361,7 +361,8 @@ export function InboxWorkspace() {
   function resolveQuickReply(content: string) {
     const period = greetingPeriod();
     const metadata = selected?.contact.metadata || {};
-    const preferred = [metadata.preferredName, metadata.newName, metadata.triageName, metadata.nomePreferido, metadata.novo_nome].find(value => typeof value === "string" && value.trim());
+    const customFields = metadata.customFields && typeof metadata.customFields === "object" && !Array.isArray(metadata.customFields) ? metadata.customFields as Record<string, unknown> : {};
+    const preferred = [metadata.preferredName, metadata.newName, metadata.triageName, metadata.nomePreferido, metadata.novo_nome, ...Object.entries(customFields).filter(([key]) => ["novonome","nomepreferido","nomedepreferencia","preferredname","preferred_name","triagename"].includes(key.toLocaleLowerCase("pt-BR").replace(/[\\s-]/g, ""))).map(([,value]) => value)].find(value => typeof value === "string" && value.trim());
     const name = selected?.contact.name?.trim() || "";
     const company = quickReplySettings.companyName.trim() || "nossa equipe";
     return content

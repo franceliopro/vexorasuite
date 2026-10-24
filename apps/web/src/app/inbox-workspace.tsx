@@ -68,6 +68,27 @@ export function InboxWorkspace() {
   }, [queueView]);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
+
+  // Close every inbox dropdown on outside click or Escape for consistent menu behavior.
+  useEffect(() => {
+    const closeOutside = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      document.querySelectorAll<HTMLElement>(".inbox-workspace details[open]").forEach((menu) => {
+        if (!menu.contains(event.target as Node)) menu.removeAttribute("open");
+      });
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        document.querySelectorAll<HTMLElement>(".inbox-workspace details[open]").forEach((menu) => menu.removeAttribute("open"));
+      }
+    };
+    document.addEventListener("click", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
   useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadAssignees();
     void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
     void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => {});
@@ -250,17 +271,17 @@ export function InboxWorkspace() {
           <details className="handoff-menu">
             <summary className="handoff-trigger" title="Direcionar conversa">
               <span className="handoff-trigger-icon"><ArrowRightLeft size={16}/></span>
-              <span className="handoff-trigger-copy"><strong>Direcionar</strong><small>{[handoffDepartment ? departments.find(d=>d.id===handoffDepartment)?.name : "Fila geral", handoffAssignee ? agents.find(a=>a.id===handoffAssignee)?.name : "Sem atendente específico"].filter(Boolean).join(" · ")}</small></span>
+              <span className="handoff-trigger-copy"><strong>Direcionar</strong><small>{[handoffDepartment ? departments.find(d=>d.id===handoffDepartment)?.name : "Fila geral", handoffAssignee ? agents.find(a=>a.id===handoffAssignee)?.name : ""].filter(Boolean).join(" · ")}</small></span>
               <ChevronDown className="handoff-chevron" size={14}/>
             </summary>
             <div className="handoff-popover">
               <div className="handoff-popover-heading"><div><strong>Para quem vai?</strong><small>Escolha a equipe ou uma pessoa</small></div><span className="handoff-popover-mark"><Users size={17}/></span></div>
               <div className="handoff-section-label">EQUIPES</div>
-              <button type="button" className={"handoff-option " + (!handoffDepartment && !handoffAssignee ? "selected" : "")} onClick={()=>{setHandoffDepartment("");setHandoffAssignee("");}}><span className="handoff-option-icon"><Users size={15}/></span><span className="handoff-option-copy"><strong>Fila geral</strong><small>Limpar equipe e atendente</small></span>{!handoffDepartment&&!handoffAssignee?<Check size={15}/>:null}</button>
-              {departments.filter(d=>d.isActive).map(d=><button type="button" key={d.id} className={"handoff-option "+(handoffDepartment===d.id?"selected":"")} onClick={()=>setHandoffDepartment(d.id)}><span className="handoff-option-icon"><Users size={15}/></span><span className="handoff-option-copy"><strong>{d.name}</strong><small>Equipe / departamento</small></span>{handoffDepartment===d.id?<Check size={15}/>:null}</button>)}
+              <button type="button" className={"handoff-option " + (!handoffDepartment && !handoffAssignee ? "selected" : "")} onClick={()=>{setHandoffDepartment("");setHandoffAssignee("");}}><span className="handoff-option-icon"><Users size={15}/></span><span className="handoff-option-copy"><strong>Fila geral</strong></span>{!handoffDepartment&&!handoffAssignee?<Check size={15}/>:null}</button>
+              {departments.filter(d=>d.isActive).map(d=><button type="button" key={d.id} className={"handoff-option "+(handoffDepartment===d.id?"selected":"")} onClick={()=>setHandoffDepartment(d.id)}><span className="handoff-option-icon"><Users size={15}/></span><span className="handoff-option-copy"><strong>{d.name}</strong></span>{handoffDepartment===d.id?<Check size={15}/>:null}</button>)}
               <div className="handoff-section-label">ATENDENTE ESPECÍFICO</div>
-              <button type="button" className={"handoff-option "+(!handoffAssignee?"selected":"")} onClick={()=>setHandoffAssignee("")}><span className="handoff-option-icon"><UserRound size={15}/></span><span className="handoff-option-copy"><strong>Sem atendente específico</strong><small>A equipe ou a fila distribui</small></span>{!handoffAssignee?<Check size={15}/>:null}</button>
-              {agents.map(a=><button type="button" key={a.id} className={"handoff-option "+(handoffAssignee===a.id?"selected":"")} onClick={()=>setHandoffAssignee(a.id)}><span className="handoff-avatar">{a.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><span className="handoff-option-copy"><strong>{a.name}</strong><small>Atendente</small></span>{handoffAssignee===a.id?<Check size={15}/>:null}</button>)}
+              <button type="button" className={"handoff-option "+(!handoffAssignee?"selected":"")} onClick={()=>setHandoffAssignee("")}><span className="handoff-option-icon"><UserRound size={15}/></span><span className="handoff-option-copy"><strong>Sem atendente específico</strong></span>{!handoffAssignee?<Check size={15}/>:null}</button>
+              {agents.map(a=><button type="button" key={a.id} className={"handoff-option "+(handoffAssignee===a.id?"selected":"")} onClick={()=>setHandoffAssignee(a.id)}><span className="handoff-avatar">{a.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><span className="handoff-option-copy"><strong>{a.name}</strong></span>{handoffAssignee===a.id?<Check size={15}/>:null}</button>)}
               <div className="handoff-popover-footer"><span>Destino: <b>{handoffDepartment?departments.find(d=>d.id===handoffDepartment)?.name:"Fila geral"}{handoffAssignee?" · "+agents.find(a=>a.id===handoffAssignee)?.name:""}</b></span><button type="button" className="handoff-confirm" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void handoffToHuman();}}><ArrowRightLeft size={14}/> Transferir</button></div>
             </div>
           </details>

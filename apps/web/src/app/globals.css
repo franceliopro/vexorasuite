@@ -68,15 +68,15 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 
 /* Compact conversation actions: clear icons, labels, and responsive wrapping. */
 .thread-contact{flex:1;min-width:110px}
-.thread-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.thread-actions{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:nowrap;min-width:0}.thread-rare-actions{display:inline-flex;align-items:center;gap:2px;flex:none}.thread-icon-action{display:grid;place-items:center;flex:none;width:31px;height:31px;border:1px solid transparent;border-radius:8px;background:transparent;color:#7b8197;transition:background .15s,border-color .15s,color .15s}.thread-icon-action:hover{border-color:var(--line);background:#f7f6ff;color:var(--primary)}.thread-icon-action.danger-text:hover{border-color:#f1d9dc;background:#fff5f5;color:#c34f5b}.handoff-toolbar{display:flex;flex:0 0 auto;align-items:center;gap:5px;padding:0;border:0;background:transparent;position:relative;z-index:6}.handoff-trigger{min-width:0;max-width:190px;min-height:31px;padding:3px 7px;border-radius:8px}.handoff-trigger-icon{width:24px;height:24px;border-radius:7px}.handoff-trigger-copy{gap:0}.handoff-trigger-copy small{font-size:9px;max-width:100px}.handoff-invite-trigger{min-height:31px;padding:0 7px;border:1px solid var(--line);border-radius:8px;font-size:10px}
 .thread-action-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:31px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#626881;font-size:10px;font-weight:600;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
 .thread-action-button:hover:not(:disabled){border-color:#c9c4ff;background:#f7f6ff;color:var(--primary)}
 .thread-action-button.resolve{border-color:#d9eee6;background:#f4fbf7;color:#168260}
 .thread-action-button.resolve:hover:not(:disabled){border-color:#a8dbc6;background:#eaf8f1}
 .thread-action-button:disabled{cursor:not-allowed;opacity:.55}
 .thread-assignee{display:inline-flex;align-items:center;gap:5px;padding:0 5px;color:#737992;font-size:10px;white-space:nowrap}
-@media(max-width:980px){.thread-heading{align-items:flex-start;flex-wrap:wrap}.thread-actions{width:100%;padding-left:44px;justify-content:flex-start}}
-@media(max-width:480px){.thread-actions{padding-left:0}.thread-action-button{min-height:30px;padding:0 8px}.thread-assignee{padding-left:0}.thread-heading{gap:8px}}
+@media(max-width:1120px){.thread-heading{align-items:flex-start;flex-wrap:wrap}.thread-actions{width:100%;flex:1 1 100%;padding-left:44px;justify-content:flex-start;flex-wrap:wrap}}
+@media(max-width:480px){.thread-actions{padding-left:0;gap:4px}.thread-action-button{min-height:30px;padding:0 8px}.thread-assignee{padding-left:0}.thread-heading{gap:8px}.handoff-trigger{max-width:160px}.handoff-trigger-copy small{max-width:75px}}
 
 
 .thread-assign-select{display:inline-flex;align-items:center;gap:5px;min-height:31px;padding:0 7px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#626881}

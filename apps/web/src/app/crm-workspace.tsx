@@ -162,7 +162,7 @@ export function CrmWorkspace() {
     if (contact) void moveContact(contact, stage);
   }
 
-  const visibleContacts = contacts.filter((contact) => !query.trim() || [contact.name, contact.phone || "", contact.email || ""].some((value) => value.toLowerCase().includes(query.trim().toLowerCase())));
+  const visibleContacts = contacts.filter((contact) => !query.trim() || [contact.name, contact.phone || "", contact.email || "", ...contactTags(contact).map(tag => tag.name), ...contactFieldSummary(contact, fieldDefinitions).map(item => item.field.name + " " + String(item.value))].some((value) => value.toLowerCase().includes(query.trim().toLowerCase())));
   return (
     <section className="settings-workspace crm-workspace">
       <header className="settings-heading crm-heading">

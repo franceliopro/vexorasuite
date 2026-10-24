@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Put, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Post, Put, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { AsaasService } from "./asaas.service";

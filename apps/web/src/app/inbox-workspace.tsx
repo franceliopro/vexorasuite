@@ -86,7 +86,7 @@ function tagForeground(color: string): string {
   if(hex){const h=hex[1].length===3?hex[1].split("").map(x=>x+x).join(""):hex[1];r=parseInt(h.slice(0,2),16);g=parseInt(h.slice(2,4),16);b=parseInt(h.slice(4,6),16);}
   else {const rgb=value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);if(rgb){r=Number(rgb[1]);g=Number(rgb[2]);b=Number(rgb[3]);}}
   const linear=(n:number)=>{const c=n/255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)};
-  return 0.2126*linear(r)+0.7152*linear(g)+0.0722*linear(b)>0.42 ? "#171923" : "#ffffff";
+  return 0.2126*linear(r)+0.7152*linear(g)+0.0722*linear(b)>0.179 ? "#171923" : "#ffffff";
 }
 
 function contactLabels(contact: Contact): Array<{name:string;color:string}> {

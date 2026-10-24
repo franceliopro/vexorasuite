@@ -12,7 +12,7 @@ async function request<T>(url:string):Promise<T>{const response=await fetch(url,
 export function LeadOriginsWorkspace(){
  const today=dateValue(new Date()),initialFrom=dateValue(new Date(Date.now()-29*day));
  const [from,setFrom]=useState(initialFrom),[to,setTo]=useState(today),[applied,setApplied]=useState({from:initialFrom,to:today}),[data,setData]=useState<Origins|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState(""),[query,setQuery]=useState("");
- useEffect(()=>{let live=true;setLoading(true);setError("");void request<Origins>("/api/backend/reports/lead-origins?"+new URLSearchParams(applied)).then(v=>{if(live)setData(v)}).catch(e=>{if(live)setError(e instanceof Error?e.message:"Falha ao carregar as origens.")}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[applied]);
+ useEffect(()=>{let live=true;setLoading(true);setError("");void request<Origins>("/api/backend/reports/lead-origins?"+new URLSearchParams({...applied,tzOffset:String(new Date().getTimezoneOffset())})).then(v=>{if(live)setData(v)}).catch(e=>{if(live)setError(e instanceof Error?e.message:"Falha ao carregar as origens.")}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[applied]);
  const max=Math.max(1,...(data?.byOrigin||[]).map(item=>item.total));
  const visible=(data?.recent||[]).filter(item=>!query.trim()||[item.name,item.source,item.campaign||""].some(v=>v.toLowerCase().includes(query.trim().toLowerCase())));
  function apply(){if(from&&to&&from<=to)setApplied({from,to});else setError("Confira as datas do período.")}

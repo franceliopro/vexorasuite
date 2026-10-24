@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Clock3, Compass, PanelRightClose, PanelRightOpen, Plus, Save, StickyNote, Tag, UserRound, X } from "lucide-react";
 
 type ContactProfileData = { id:string; name:string; phone?:string|null; email?:string|null; source?:string|null; metadata?:Record<string,unknown> };
@@ -43,7 +43,7 @@ export function ContactProfilePanel({contact,conversationId,status,createdAt,cha
   },[contact.id]);
   useEffect(()=>{let live=true;void request<Protocol[]>("/api/backend/contacts/"+contact.id+"/history").then(v=>{if(live)setHistory(v)}).catch(()=>{});return()=>{live=false}},[contact.id]);
   useEffect(()=>{let live=true;void request<{tags:ProfileTagDef[];fields:ProfileFieldDef[]}>("/api/backend/contacts/profile-config").then(v=>{if(live){setTagCatalog(v.tags||[]);setFieldDefinitions(v.fields||[])}}).catch(()=>{});return()=>{live=false}},[]);
-  async function addTag(event:React.FormEvent<HTMLFormElement>){event.preventDefault();const name=tagDraft.trim();if(!name||tags.some(v=>v.name.toLowerCase()===name.toLowerCase())){setTagDraft("");return}setError("");try{let definition=tagCatalog.find(v=>v.name.toLowerCase()===name.toLowerCase());if(!definition){definition=await request<ProfileTagDef>("/api/backend/contacts/profile-config/tags",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name,color:tagColor})});setTagCatalog(current=>[...current,definition!])}setTags(current=>[...current,{name:definition!.name,color:definition!.color}]);setTagDraft("")}catch(e){setError(e instanceof Error?e.message:"Não foi possível criar a etiqueta.")}}
+  async function addTag(event:FormEvent<HTMLFormElement>){event.preventDefault();const name=tagDraft.trim();if(!name||tags.some(v=>v.name.toLowerCase()===name.toLowerCase())){setTagDraft("");return}setError("");try{let definition=tagCatalog.find(v=>v.name.toLowerCase()===name.toLowerCase());if(!definition){definition=await request<ProfileTagDef>("/api/backend/contacts/profile-config/tags",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name,color:tagColor})});setTagCatalog(current=>[...current,definition!])}setTags(current=>[...current,{name:definition!.name,color:definition!.color}]);setTagDraft("")}catch(e){setError(e instanceof Error?e.message:"Não foi possível criar a etiqueta.")}}
   async function createField(event:React.FormEvent<HTMLFormElement>){event.preventDefault();const name=fieldDraftName.trim();if(!name)return;const options=fieldDraftOptions.split(",").map(v=>v.trim()).filter(Boolean);setError("");try{const field=await request<ProfileFieldDef>("/api/backend/contacts/profile-config/fields",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name,type:fieldDraftType,options})});setFieldDefinitions(current=>[...current,field]);setFields(current=>({...current,[field.key]:field.type==="CHECKBOX"?false:""}));setFieldDraftName("");setFieldDraftOptions("");setFieldDraftType("TEXT")}catch(e){setError(e instanceof Error?e.message:"Não foi possível criar o campo.")}}
   async function save(){
     setSaving(true);setError("");

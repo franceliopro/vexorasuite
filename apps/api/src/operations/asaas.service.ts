@@ -216,13 +216,6 @@ export class AsaasService {
       }
 
       const digits = (value: unknown) => String(value ?? "").replace(/\D/g, "");
-      const emailKey = (value: unknown) => String(value ?? "").trim().toLowerCase();
-      const phoneKey = (value: unknown) => {
-        let phone = digits(value);
-        if (phone.startsWith("55") && (phone.length === 12 || phone.length === 13)) phone = phone.slice(2);
-        if (phone.length === 11 && phone[2] === "9") phone = phone.slice(0, 2) + phone.slice(3);
-        return phone;
-      };
       const document = digits(existingMetadata.document);
       const name = String(contact.name || "").trim();
       const email = String(contact.email || "").trim();

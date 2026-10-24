@@ -123,13 +123,13 @@ export class WahaWebhookController {
     const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { botState: true } });
     const raw = conversation?.botState && typeof conversation.botState === "object" && !Array.isArray(conversation.botState) ? conversation.botState as Record<string, unknown> : {};
     const active = raw.flow === "TRIAGE";
-    const normalized = inboundText.trim().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    const normalized = inboundText.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
     const starts = /^(menu|inicio|iniciar|ajuda|atendente|opcoes|opcao)$/i.test(normalized);
     if (!active && !isNewConversation && !starts) return false;
     // A palavra-chave menu reinicia a triagem, mesmo quando já existe uma etapa em andamento.
     if (active && starts) {
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "TRIAGE", step: "SECTOR" } } });
-      await this.sendBotReply(channel, chatId, conversationId, "Vamos recomeçar. 😊\\n\\nEscolha o setor:\\n1. Suporte\\n2. Financeiro\\n3. Comercial\\n4. Administrativo");
+      await this.sendBotReply(channel, chatId, conversationId, "Vamos recomeçar. 😊\n\nEscolha o setor:\n1. Suporte\n2. Financeiro\n3. Comercial\n4. Administrativo");
       return true;
     }
     const send = async (step: string, values: Record<string, unknown>, content: string) => {

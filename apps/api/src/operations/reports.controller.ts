@@ -17,13 +17,15 @@ function dateOnly(value: string | undefined, fallback: string): string {
   }
   return candidate;
 }
-function range(fromInput?: string, toInput?: string) {
+function range(fromInput?: string, toInput?: string, offsetInput?: string) {
   const today = new Date().toISOString().slice(0, 10);
   const from = dateOnly(fromInput, new Date(Date.now() - 29 * DAY).toISOString().slice(0, 10));
   const to = dateOnly(toInput, today);
+  const offset = offsetInput === undefined ? 0 : Number(offsetInput);
+  if (!Number.isInteger(offset) || Math.abs(offset) > 840) throw new BadRequestException("Fuso horário inválido.");
   if (from > to) throw new BadRequestException("A data inicial não pode ser posterior à data final.");
-  const start = new Date(from + "T00:00:00.000Z");
-  const end = new Date(new Date(to + "T00:00:00.000Z").getTime() + DAY);
+  const start = new Date(new Date(from + "T00:00:00.000Z").getTime() + offset * 60 * 1000);
+  const end = new Date(new Date(to + "T00:00:00.000Z").getTime() + DAY + offset * 60 * 1000);
   const duration = Math.round((end.getTime() - start.getTime()) / DAY);
   return {
     from, to, start, end,
@@ -105,9 +107,9 @@ export class ReportsController {
   }
 
   @Get("service")
-  async service(@Req() request: AuthenticatedRequest, @Query("from") from?: string, @Query("to") to?: string) {
+  async service(@Req() request: AuthenticatedRequest, @Query("from") from?: string, @Query("to") to?: string, @Query("tzOffset") tzOffset?: string) {
     this.assertCanView(request);
-    const period = range(from, to);
+    const period = range(from, to, tzOffset);
     const [rows, previous] = await Promise.all([
       this.conversations(request.user.tenantId, period.start, period.end),
       this.conversations(request.user.tenantId, new Date(period.start.getTime() - (period.end.getTime() - period.start.getTime())), period.start),

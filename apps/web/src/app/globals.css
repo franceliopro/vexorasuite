@@ -1573,6 +1573,8 @@ button.primary-button:hover:not(:disabled) {
   .suite-app > .sidebar.sidebar-open { transform: translateX(0); }
   .suite-app > .main-area { width: 100%; min-width: 0; min-height: 100dvh; flex: 1 1 auto; padding-bottom: env(safe-area-inset-bottom); }
   .main-area .topbar { min-height: 58px; height: auto; padding: 8px 14px; gap: 10px; }
+  .mobile-menu { display: grid; place-items: center; width: 42px; height: 42px; min-height: 42px; border-radius: 12px; font-size: 21px; }
+  .workspace-info-popover { position: fixed; z-index: 160; top: max(66px, env(safe-area-inset-top)); left: 10px; right: 10px; width: auto; max-width: none; max-height: 70dvh; overflow: auto; border-radius: 15px; padding: 16px; }
   .main-area .breadcrumbs { font-size: 12px; line-height: 1.4; }
   .main-area .page-content { width: 100%; min-width: 0; padding: 16px 14px calc(22px + env(safe-area-inset-bottom)); }
   .page-content :is(h1) { font-size: clamp(22px, 6vw, 28px); line-height: 1.2; }

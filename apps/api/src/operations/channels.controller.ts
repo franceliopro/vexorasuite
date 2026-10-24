@@ -48,7 +48,7 @@ export class ChannelConnectionsController {
     const name = typeof input.name === "string" ? input.name.trim().slice(0, 100) : "";
     const platform = typeof input.platform === "string" ? input.platform.trim().toLowerCase() : "";
     const accountId = typeof input.accountId === "string" ? input.accountId.trim() : "";
-    if (!name || !accountId || accountId.length > 200 || !["instagram", "facebook", "messenger", "tiktok", "linkedin", "youtube", "threads", "pinterest", "x"].includes(platform)) {
+    if (!name || !accountId || accountId.length > 200 || !["instagram", "facebook", "messenger", "whatsapp", "tiktok", "linkedin", "youtube", "threads", "pinterest", "x"].includes(platform)) {
       throw new BadRequestException("Informe um nome, uma conta Zernio e uma rede social compatível.");
     }
     const existing = await this.prisma.channelConnection.findMany({

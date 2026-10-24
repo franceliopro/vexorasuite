@@ -2368,3 +2368,163 @@ input[type="color"].profile-tag-inline-color {
     padding: 7px 8px;
   }
 }
+
+
+/* Theme alignment: hybrid keeps a dark navigation rail and a light workspace. */
+:root[data-theme="hybrid"] .sidebar,
+:root[data-theme="dark"] .sidebar {
+  --sidebar: #191D28;
+  --sidebar-deep: #10131B;
+  --sidebar-muted: #b4bdce;
+  background: #191D28 !important;
+  color: #eef2f8 !important;
+  border-right: 1px solid #303847;
+}
+:root[data-theme="hybrid"] .sidebar .brand,
+:root[data-theme="dark"] .sidebar .brand,
+:root[data-theme="hybrid"] .sidebar .workspace-copy strong,
+:root[data-theme="dark"] .sidebar .workspace-copy strong,
+:root[data-theme="hybrid"] .sidebar .profile-copy strong,
+:root[data-theme="dark"] .sidebar .profile-copy strong,
+:root[data-theme="hybrid"] .sidebar .help-card strong,
+:root[data-theme="dark"] .sidebar .help-card strong {
+  color: #eef2f8;
+}
+:root[data-theme="hybrid"] .sidebar .nav-section,
+:root[data-theme="dark"] .sidebar .nav-section {
+  color: #a4aec2 !important;
+}
+:root[data-theme="hybrid"] .sidebar .nav-item,
+:root[data-theme="dark"] .sidebar .nav-item,
+:root[data-theme="hybrid"] .sidebar .nav-subitem,
+:root[data-theme="dark"] .sidebar .nav-subitem {
+  color: #c5cede !important;
+}
+:root[data-theme="hybrid"] .sidebar .nav-item:hover,
+:root[data-theme="dark"] .sidebar .nav-item:hover,
+:root[data-theme="hybrid"] .sidebar .nav-subitem:hover,
+:root[data-theme="dark"] .sidebar .nav-subitem:hover {
+  background: #252c39 !important;
+  color: #ffffff !important;
+}
+:root[data-theme="hybrid"] .sidebar .nav-item.active,
+:root[data-theme="dark"] .sidebar .nav-item.active,
+:root[data-theme="hybrid"] .sidebar .nav-subitem.active,
+:root[data-theme="dark"] .sidebar .nav-subitem.active {
+  background: color-mix(in srgb, var(--primary) 24%, #191D28) !important;
+  color: #ffffff !important;
+  border-color: color-mix(in srgb, var(--primary) 42%, #303847) !important;
+}
+:root[data-theme="hybrid"] .sidebar .nav-glyph,
+:root[data-theme="dark"] .sidebar .nav-glyph,
+:root[data-theme="hybrid"] .sidebar .nav-accordion-chevron,
+:root[data-theme="dark"] .sidebar .nav-accordion-chevron,
+:root[data-theme="hybrid"] .sidebar .switch-chevron,
+:root[data-theme="dark"] .sidebar .switch-chevron {
+  color: #aeb9ce !important;
+}
+:root[data-theme="hybrid"] .sidebar .workspace-switcher,
+:root[data-theme="dark"] .sidebar .workspace-switcher,
+:root[data-theme="hybrid"] .sidebar .workspace-info-button,
+:root[data-theme="dark"] .sidebar .workspace-info-button,
+:root[data-theme="hybrid"] .sidebar .sidebar-collapse,
+:root[data-theme="dark"] .sidebar .sidebar-collapse,
+:root[data-theme="hybrid"] .sidebar .help-card,
+:root[data-theme="dark"] .sidebar .help-card {
+  background: #10131B !important;
+  color: #e7ecf5 !important;
+  border-color: #303847 !important;
+}
+:root[data-theme="hybrid"] .sidebar .workspace-switcher:hover,
+:root[data-theme="dark"] .sidebar .workspace-switcher:hover,
+:root[data-theme="hybrid"] .sidebar .sidebar-collapse:hover,
+:root[data-theme="dark"] .sidebar .sidebar-collapse:hover {
+  background: #252c39 !important;
+}
+:root[data-theme="hybrid"] .sidebar .help-icon,
+:root[data-theme="dark"] .sidebar .help-icon,
+:root[data-theme="hybrid"] .sidebar .profile-avatar,
+:root[data-theme="dark"] .sidebar .profile-avatar {
+  background: color-mix(in srgb, var(--primary) 20%, #191D28) !important;
+  color: #e0dcff !important;
+}
+:root[data-theme="hybrid"] .sidebar .help-card small,
+:root[data-theme="dark"] .sidebar .help-card small,
+:root[data-theme="hybrid"] .sidebar .workspace-copy small,
+:root[data-theme="dark"] .sidebar .workspace-copy small,
+:root[data-theme="hybrid"] .sidebar .profile-copy small,
+:root[data-theme="dark"] .sidebar .profile-copy small {
+  color: #b4bdce !important;
+}
+:root[data-theme="hybrid"] .sidebar .profile-row,
+:root[data-theme="dark"] .sidebar .profile-row {
+  border-top-color: #303847 !important;
+}
+:root[data-theme="hybrid"] .sidebar .nav-submenu,
+:root[data-theme="dark"] .sidebar .nav-submenu {
+  border-left-color: #394254 !important;
+}
+/* Workspace identity uses the requested deep slate in every appearance mode. */
+.sidebar .workspace-avatar {
+  background: #191D28 !important;
+  color: #dcd8ff !important;
+  border: 1px solid #41495b !important;
+}
+.sidebar .workspace-avatar svg,
+.sidebar .workspace-avatar strong,
+.sidebar .workspace-avatar span {
+  color: #dcd8ff !important;
+}
+/* Hybrid's content area deliberately follows light mode, including conversation surfaces. */
+:root[data-theme="hybrid"] .main-area,
+:root[data-theme="hybrid"] .page-content {
+  background: #f4f6fb;
+  color: #20263a;
+}
+:root[data-theme="hybrid"] .topbar,
+:root[data-theme="hybrid"] .content-card,
+:root[data-theme="hybrid"] .metric-card,
+:root[data-theme="hybrid"] .settings-card,
+:root[data-theme="hybrid"] .inbox-list,
+:root[data-theme="hybrid"] .inbox-thread,
+:root[data-theme="hybrid"] .inbox-composer,
+:root[data-theme="hybrid"] .composer-shell,
+:root[data-theme="hybrid"] .contact-profile,
+:root[data-theme="hybrid"] .contact-profile-body {
+  background: #ffffff;
+  color: #20263a;
+  border-color: #e0e5f0;
+}
+:root[data-theme="hybrid"] .thread-messages {
+  background: #f3f5fa !important;
+}
+:root[data-theme="hybrid"] .message-bubble {
+  background: #ffffff;
+  color: #20263a;
+  border: 1px solid #d7deea;
+}
+:root[data-theme="hybrid"] .message-line.outgoing .message-bubble {
+  background: #eeecff;
+  border-color: #c9c4ff;
+}
+:root[data-theme="hybrid"] .message-bubble p { color: #20263a !important; }
+:root[data-theme="hybrid"] .message-bubble small { color: #59647a !important; }
+/* Dark mode: separate bubbles clearly from the thread and keep message text crisp. */
+:root[data-theme="dark"] .thread-messages .message-bubble {
+  background: #303747 !important;
+  border: 1px solid #586276 !important;
+  color: #f4f6fb !important;
+}
+:root[data-theme="dark"] .thread-messages .message-bubble p {
+  color: #f4f6fb !important;
+}
+:root[data-theme="dark"] .thread-messages .message-bubble small {
+  color: #cbd3e1 !important;
+}
+:root[data-theme="dark"] .thread-messages .message-line.outgoing .message-bubble {
+  background: #3b365d !important;
+  border-color: #7770b5 !important;
+}
+:root[data-theme="dark"] .thread-messages .message-line.outgoing .message-bubble p {
+  color: #fbfaff !important;
+}

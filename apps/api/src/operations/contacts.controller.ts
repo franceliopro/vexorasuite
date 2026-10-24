@@ -6,12 +6,12 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
 
-const CRM_STAGES = ["new", "qualification", "proposal", "won", "lost"] as const;
+const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];
-function readCrmStage(metadata: Prisma.JsonValue): CrmStage {
-  if (metadata && typeof metadata === "object" && !Array.isArray(metadata) && "crmStage" in metadata) {
-    const stage = metadata.crmStage;
-    if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage;
+function readCrmStage(metadata: Prisma.JsonValue): CrmStage | null {
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    if ("crmFinalization" in metadata && metadata.crmFinalization) return null;
+    if ("crmStage" in metadata) { const stage = metadata.crmStage; if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage; }
   }
   return "new";
 }
@@ -41,7 +41,7 @@ export class ContactsController {
       orderBy: { updatedAt: "desc" },
       take: 100,
     });
-    return contacts.map((contact) => ({ ...contact, crmStage: readCrmStage(contact.metadata) }));
+    return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
   }
 
   @Get(":id/history")
@@ -67,13 +67,52 @@ export class ContactsController {
 
   @Patch(":id/stage")
   async updateStage(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { stage?: string }) {
-    if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida.");
+    if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida. Para finalizar, registre o resultado comercial.");
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
     const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
+    if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
     const updated = await this.prisma.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, crmStage: input.stage } } });
     this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, stage: input.stage });
     return { ...updated, crmStage: input.stage };
+  }
+
+
+  @Post(":id/finalize")
+  async finalize(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { outcome?: string; reason?: string }) {
+    const tenantId = request.user.tenantId;
+    const outcome = input.outcome?.toUpperCase();
+    if (outcome !== "WON" && outcome !== "LOST") throw new BadRequestException("Escolha se o resultado foi ganho ou perda.");
+    const allowedReasons = ["Preço/Condição", "Sem interesse", "Sem retorno", "Concorrência", "Inatividade"];
+    const reason = typeof input.reason === "string" ? input.reason.trim() : "";
+    if (outcome === "LOST" && !allowedReasons.includes(reason)) throw new BadRequestException("Selecione um motivo válido para a perda.");
+    const contact = await this.prisma.contact.findFirst({ where: { id, tenantId } });
+    if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
+    const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
+    if (existing.crmFinalization) throw new BadRequestException("Este contato já foi finalizado.");
+    const priorTags = Array.isArray(existing.tags) ? existing.tags.filter((tag): tag is string => typeof tag === "string") : [];
+    const tags = outcome === "WON" ? priorTags.filter((tag) => tag.trim().toLocaleLowerCase("pt-BR") !== "novo lead") : priorTags;
+    const { crmStage: _oldStage, crmFinalization: _oldFinalization, ...rest } = existing;
+    const metadata: Prisma.InputJsonObject = {
+      ...rest,
+      tags,
+      contactType: outcome === "WON" ? "CUSTOMER" : (typeof existing.contactType === "string" ? existing.contactType : "LEAD"),
+      crmFinalization: {
+        outcome,
+        ...(outcome === "LOST" ? { reason } : {}),
+        finalizedAt: new Date().toISOString(),
+        finalizedBy: request.user.sub,
+      },
+    };
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
+      const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true } });
+      if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: active.map((item) => item.id) }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+      return { contact: updatedContact, conversations: active.map((item) => item.id) };
+    });
+    this.events.publish(tenantId, "contact.finalized", { id: result.contact.id, outcome, ...(outcome === "LOST" ? { reason } : {}) });
+    for (const conversationId of result.conversations) this.events.publish(tenantId, "conversation.updated", { id: conversationId, status: "RESOLVED", finalizationOutcome: outcome });
+    return { contact: { ...result.contact, crmStage: null, crmFinalization: (result.contact.metadata as Prisma.JsonObject).crmFinalization }, finalizedConversations: result.conversations.length };
   }
 
   @Post()

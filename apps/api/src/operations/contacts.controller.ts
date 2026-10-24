@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -49,11 +50,11 @@ export class ContactsController {
       throw new BadRequestException("Contato não encontrado nesta empresa.");
     }
     const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata)
-      ? contact.metadata as Record<string, unknown>
+      ? contact.metadata as Prisma.InputJsonObject
       : {};
     const updated = await this.prisma.contact.update({
       where: { id: contact.id },
-      data: { metadata: { ...metadata, pipelineStage: input.stage } },
+      data: { metadata: { ...metadata, pipelineStage: input.stage } as Prisma.InputJsonObject },
     });
     this.events.publish(request.user.tenantId, "contact.updated", {
       id: updated.id,

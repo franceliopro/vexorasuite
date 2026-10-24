@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";\nimport { Prisma } from "@prisma/client";
+import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 

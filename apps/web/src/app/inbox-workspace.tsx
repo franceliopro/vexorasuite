@@ -11,6 +11,16 @@ type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
 type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
+function contactLabels(contact: Contact): Array<{name:string;color:string}> {
+  const value = contact.metadata?.tags;
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    if (typeof raw === "string") return [{name:raw,color:"#eeecff"}];
+    if (raw && typeof raw === "object" && "name" in raw && typeof (raw as {name?:unknown}).name === "string") return [{name:(raw as {name:string}).name,color:typeof (raw as {color?:unknown}).color === "string" ? (raw as {color:string}).color : "#eeecff"}];
+    return [];
+  });
+}
+
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
@@ -303,7 +313,7 @@ export function InboxWorkspace() {
       </nav>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { setSelectedId(item.id); setMobileThreadOpen(true); }}>
-          <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong>{Array.isArray(item.contact.metadata?.tags) && item.contact.metadata!.tags.length ? <span className="conversation-tags">{(item.contact.metadata!.tags as unknown[]).map((raw, index) => { const tag = typeof raw === "string" ? { name: raw, color: "#eeecff" } : raw && typeof raw === "object" ? raw as {name?:string;color?:string} : null; return tag?.name ? <span key={tag.name + index} className="conversation-tag" style={{backgroundColor:tag.color || "#eeecff"}}>{tag.name}</span> : null; })}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>
+          <span className="conversation-avatar">{item.contact.name.slice(0, 1).toUpperCase()}</span><span className="conversation-summary"><strong>{item.contact.name}</strong>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small></span>
         </button>)}
         {!conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
       </div>

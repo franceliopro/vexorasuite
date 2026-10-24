@@ -75,7 +75,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Origem dos Leads") setActive("CRM");
-    else if (requested === "Relatórios" || requested === "Inteligência Operacional") setActive("CRM");
+    else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
     else if (requested && validModules.has(requested)) setActive(requested);
     setNavigationReady(true);
   }, []);

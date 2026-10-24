@@ -1317,3 +1317,70 @@ button.primary-button:hover:not(:disabled) {
  .composer-send-button { min-height: 35px; padding: 0 10px; }
  .composer-popover { position: fixed; left: 12px; right: 12px; bottom: 84px; width: auto; max-height: min(60vh, 430px); }
 }
+
+
+/* Branding consistency across light navigation, handoff actions and workspace identity. */
+/* In light mode every navigation glyph follows the active tenant's selected brand color. */
+:root[data-theme="light"] .sidebar .nav-glyph,
+:root[data-theme="light"] .sidebar .nav-item.active .nav-glyph,
+:root[data-theme="light"] .sidebar .nav-subitem .nav-glyph {
+  color: var(--primary) !important;
+}
+:root[data-theme="light"] .sidebar .nav-item.active,
+:root[data-theme="light"] .sidebar .nav-subitem.active {
+  color: var(--primary) !important;
+}
+:root[data-theme="light"] .sidebar .nav-item:hover .nav-glyph,
+:root[data-theme="light"] .sidebar .nav-subitem:hover .nav-glyph {
+  color: var(--primary) !important;
+}
+/* The workspace V/avatar and environment marker share one brand token in every theme. */
+.sidebar .workspace-avatar {
+  background: color-mix(in srgb, var(--primary) 16%, var(--card, #fff)) !important;
+  color: var(--primary) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+}
+.sidebar .workspace-avatar svg,
+.sidebar .workspace-avatar strong,
+.sidebar .workspace-avatar span { color: var(--primary) !important; }
+.environment-banner {
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--line)) !important;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card, #fff)) !important;
+  color: var(--primary) !important;
+}
+.environment-dot { background: var(--primary) !important; }
+.environment-banner small { color: color-mix(in srgb, var(--primary) 78%, var(--ink)) !important; }
+.environment-tag {
+  background: color-mix(in srgb, var(--primary) 16%, var(--card, #fff)) !important;
+  color: var(--primary) !important;
+}
+/* Dark-mode routing controls need readable labels/icons, not washed-out light buttons. */
+:root[data-theme="dark"] .handoff-direct-trigger,
+:root[data-theme="dark"] .handoff-invite-trigger {
+  color: #f0f3fb !important;
+  background: #303746 !important;
+  border-color: #4b5365 !important;
+}
+:root[data-theme="dark"] .handoff-direct-trigger svg,
+:root[data-theme="dark"] .handoff-invite-trigger svg {
+  color: var(--primary) !important;
+}
+:root[data-theme="dark"] .handoff-direct-trigger:hover,
+:root[data-theme="dark"] .handoff-menu[open] > .handoff-direct-trigger,
+:root[data-theme="dark"] .invite-menu[open] > .handoff-invite-trigger {
+  background: color-mix(in srgb, var(--primary) 20%, #303746) !important;
+  color: #fff !important;
+  border-color: color-mix(in srgb, var(--primary) 55%, #4b5365) !important;
+}
+:root[data-theme="dark"] .contact-profile-heading > button,
+:root[data-theme="dark"] .contact-profile-heading button,
+:root[data-theme="dark"] .profile-toggle,
+:root[data-theme="dark"] .contact-profile .icon-button {
+  color: #f1f4fb !important;
+}
+:root[data-theme="dark"] .contact-profile-heading > button svg,
+:root[data-theme="dark"] .contact-profile-heading button svg,
+:root[data-theme="dark"] .profile-toggle svg,
+:root[data-theme="dark"] .contact-profile .icon-button svg {
+  color: var(--primary) !important;
+}

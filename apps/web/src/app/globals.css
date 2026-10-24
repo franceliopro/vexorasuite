@@ -484,3 +484,11 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .profile-field-create{display:grid;gap:7px;padding:10px;border:1px solid #eeedf8;border-radius:10px;background:#fafaff}
 .profile-field-create button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:7px;border:1px solid #dedbff;border-radius:8px;background:#f1f0ff;color:#5145cd;font-size:11px;font-weight:750}
 .profile-field-create button:disabled{opacity:.5;cursor:not-allowed}
+
+.crm-contact-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.crm-contact-tags>span{display:inline-flex;align-items:center;max-width:100%;padding:2px 6px;border:1px solid #00000008;border-radius:5px;color:#4b4b66;font-size:9px;font-weight:650;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crm-custom-field-summary{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.crm-custom-field-summary>span{max-width:100%;padding:3px 6px;border:1px solid #eef0f5;border-radius:5px;background:#fafbfe;color:#777d90;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crm-custom-field-summary b{color:#565d72;font-weight:700}
+.crm-card .crm-contact-tags{margin:2px 0}
+.crm-contact-main{min-width:0}

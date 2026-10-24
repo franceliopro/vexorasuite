@@ -262,6 +262,7 @@ export class AsaasService {
           const mergedAsaas = { ...previousAsaas, ...incoming };
           const nextMetadata = {
             ...previous,
+            contactType: "CUSTOMER",
             document: document || previous.document || null,
             personType: incoming.personType || previous.personType || null,
             address: address || previous.address || null,
@@ -289,6 +290,7 @@ export class AsaasService {
         }
 
         const metadata = {
+          contactType: "CUSTOMER",
           document: document || null,
           personType: incoming.personType,
           address: address || null,

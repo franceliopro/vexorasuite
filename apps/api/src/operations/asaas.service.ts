@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -10,6 +10,7 @@ function mergedCustomerMetadata(customer: Record<string, string | null>): Record
 
 @Injectable()
 export class AsaasService {
+  private readonly logger = new Logger(AsaasService.name);
   constructor(private readonly prisma: PrismaService) {}
 
   private encryptionKey(): Buffer {
@@ -168,6 +169,26 @@ export class AsaasService {
       });
     }
     return { payment: updated, conversation: existing.conversation, paid };
+  }
+
+  async syncEnabledTenants(): Promise<void> {
+    const tenants = await this.prisma.tenant.findMany({ select: { id: true, integrations: true } });
+    for (const tenant of tenants) {
+      const integrations = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+        ? tenant.integrations as Record<string, unknown> : {};
+      const settings = integrations.asaas && typeof integrations.asaas === "object"
+        ? integrations.asaas as AsaasSettings : {};
+      if (settings.enabled !== true || !settings.encryptedApiKey) continue;
+      try {
+        const result = await this.syncCustomers(tenant.id);
+        this.logger.log("Asaas customer sync tenant=" + tenant.id + " environment=" + result.environment
+          + " total=" + result.total + " created=" + result.created + " updated=" + result.updated
+          + " notListed=" + result.notListed);
+      } catch (error) {
+        this.logger.warn("Asaas customer sync failed tenant=" + tenant.id + ": "
+          + (error instanceof Error ? error.message : "erro desconhecido"));
+      }
+    }
   }
 
   async syncCustomers(tenantId: string): Promise<{ created: number; updated: number; unchanged: number; notListed: number; pages: number; total: number; environment: string }> {

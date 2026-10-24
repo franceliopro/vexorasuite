@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, ArrowRightLeft, Check, Archive, Trash2, Smile, Mic, MicOff, BookmarkPlus, Plus, X, Send, Keyboard, ArrowLeft, Instagram, Facebook, MessageCircle, Bot, BrainCircuit, Music2, AlarmClock } from "lucide-react";
 import { ContactProfilePanel } from "./contact-profile-panel";
+import { emojiCatalog } from "./emoji-catalog";
 
 type Channel = { id: string; name: string; status: string; lastError?: string | null };
 type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; metadata?: Record<string, unknown> };
@@ -10,6 +11,25 @@ type Message = { id: string; content: string; contentType: string; direction: st
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
+
+const EMOJI_CATEGORY_LABELS: Record<string, string> = {
+  "Smileys & Emotion": "Rostos",
+  "People & Body": "Pessoas e gestos",
+  "Animals & Nature": "Animais e natureza",
+  "Food & Drink": "Comidas e bebidas",
+  "Travel & Places": "Viagens e lugares",
+  "Activities": "Atividades",
+  "Objects": "Objetos",
+  "Symbols": "Símbolos",
+  "Flags": "Bandeiras",
+  "Component": "Componentes",
+};
+const EMOJI_NAME_BY_VALUE: Record<string, string> = Object.fromEntries(emojiCatalog.map(([emoji, name]) => [emoji, name.toLocaleLowerCase("pt-BR")]));
+const EMOJI_GROUPS: Record<string, string[]> = emojiCatalog.reduce((groups, [emoji, _name, category]) => {
+  const label = EMOJI_CATEGORY_LABELS[category] || category;
+  (groups[label] ||= []).push(emoji);
+  return groups;
+}, {} as Record<string, string[]>);
 type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; botState?: Record<string, unknown>; isOverdue?: boolean; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 function avatarUrl(contact: Contact): string | null {
   const meta = contact.metadata || {};
@@ -75,6 +95,7 @@ export function InboxWorkspace() {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [emojiSearch, setEmojiSearch] = useState("");
   const [emojiCategory, setEmojiCategory] = useState("Todos");
+  const [emojiTarget, setEmojiTarget] = useState<"composer" | "quick-reply">("composer");
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickSearch, setQuickSearch] = useState("");
   const [quickReplies, setQuickReplies] = useState<Array<{id:string;title:string;content:string}>>([]);
@@ -82,6 +103,7 @@ export function InboxWorkspace() {
   const [quickContent, setQuickContent] = useState("");
   const [listening, setListening] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const quickContentRef = useRef<HTMLTextAreaElement | null>(null);
   const recognitionRef = useRef<{stop:()=>void}|null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -272,24 +294,22 @@ export function InboxWorkspace() {
   }
   function createQuickReply() { if (!quickTitle.trim() || !quickContent.trim()) return; saveQuickReplies([...quickReplies, {id:crypto.randomUUID(),title:quickTitle.trim(),content:quickContent.trim()}]); setQuickTitle(""); setQuickContent(""); }
   function insertEmoji(value:string) {
-    const el=composerRef.current;
-    const start=el?.selectionStart ?? draft.length;
-    const end=el?.selectionEnd ?? draft.length;
-    setDraft(draft.slice(0,start)+value+draft.slice(end));
+    const isQuickReply = emojiTarget === "quick-reply";
+    const el = isQuickReply ? quickContentRef.current : composerRef.current;
+    const currentText = isQuickReply ? quickContent : draft;
+    const start = el?.selectionStart ?? currentText.length;
+    const end = el?.selectionEnd ?? currentText.length;
+    const nextText = currentText.slice(0, start) + value + currentText.slice(end);
+    if (isQuickReply) setQuickContent(nextText); else setDraft(nextText);
     setEmojiOpen(false); setEmojiSearch("");
-    requestAnimationFrame(()=>{el?.focus();el?.setSelectionRange(start+value.length,start+value.length)});
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + value.length, start + value.length); });
   }
-  const emojiGroups:Record<string,string[]> = {
-    "Rostos":["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😋","😎","🤔","🫡","😢","😭","😡","🥳"],
-    "Gestos":["👋","🤚","✋","🖐️","👌","🤌","🤏","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","👇","👍","👎","👏","🙌","🙏","🤝","💪","🫶"],
-    "Corações":["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖","💘","💝"],
-    "Natureza":["🐶","🐱","🐭","🐰","🦊","🐻","🐼","🐸","🐵","🌷","🌹","🌻","🌞","🌈","⭐","🌟","🔥","🌊","🍀","🌿"],
-    "Comida":["🍎","🍓","🍕","🍔","🍟","🌮","🍣","🍰","🎂","☕","🧉","🥤","🍻","🍽️"],
-    "Objetos":["📱","💻","📞","📧","📎","📌","📍","📝","📄","📦","🔑","💡","🔔","🎁","💰","💳","🛒","🚗"],
-    "Símbolos":["✅","☑️","❌","⚠️","❗","❓","💯","♻️","🔒","🔓","✨","💬","➡️","⬅️","✔️","➕","➖"],
-    "Festa":["🎉","🎊","🎈","🎂","🏆","🥇","🎯","🚀","🎵","🎶","⚽","🏖️","✈️","🎄"]
-  };
-  const visibleEmojis = Object.entries(emojiGroups).filter(([group,values])=>(emojiCategory==="Todos"||emojiCategory===group)&&(!emojiSearch.trim()||group.toLowerCase().includes(emojiSearch.toLowerCase())||values.some(v=>v.includes(emojiSearch.trim()))));
+  const emojiGroups = EMOJI_GROUPS;
+  const visibleEmojis = Object.entries(emojiGroups).filter(([group,values]) =>
+    (emojiCategory === "Todos" || emojiCategory === group) &&
+    (!emojiSearch.trim() || group.toLocaleLowerCase("pt-BR").includes(emojiSearch.toLocaleLowerCase("pt-BR")) ||
+      values.some(v => v.includes(emojiSearch.trim()) || (EMOJI_NAME_BY_VALUE[v] || "").includes(emojiSearch.trim().toLocaleLowerCase("pt-BR"))))
+  );
   function toggleVoice() {
     if(listening){recognitionRef.current?.stop();setListening(false);return}
     const w=window as Window & {SpeechRecognition?:new()=>any;webkitSpeechRecognition?:new()=>any};
@@ -412,7 +432,7 @@ export function InboxWorkspace() {
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble"><p>{message.content || "Anexo recebido (" + message.contentType + ")"}</p><small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small></div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}
         </div>
-        <div className="composer-shell"><form className="inbox-composer" onSubmit={sendMessage}><textarea ref={composerRef} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}}} placeholder="Digite sua mensagem..." maxLength={4000} rows={3} aria-label="Mensagem"/><div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Emojis · Ctrl+Shift+E" onClick={()=>{setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><div className="composer-popover-heading"><strong>Emojis</strong><button type="button" className="composer-popover-close" onClick={()=>setEmojiOpen(false)} aria-label="Fechar emojis"><X size={15}/></button></div><input className="composer-search" value={emojiSearch} onChange={e=>setEmojiSearch(e.target.value)} placeholder="Buscar emoji ou categoria…" aria-label="Buscar emoji"/><div className="emoji-category-tabs"><button type="button" className={emojiCategory==="Todos"?"active":""} onClick={()=>setEmojiCategory("Todos")}>Todos</button>{Object.keys(emojiGroups).map(group=><button type="button" key={group} className={emojiCategory===group?"active":""} onClick={()=>setEmojiCategory(group)}>{group}</button>)}</div><div className="emoji-grid">{visibleEmojis.flatMap(([group,values])=>values.map(x=><button type="button" key={group+x} title={group} aria-label={"Inserir emoji "+x} onClick={()=>insertEmoji(x)}>{x}</button>))}</div>{!visibleEmojis.length?<small className="composer-empty-hint">Nenhum emoji encontrado. Tente outra busca.</small>:null}</div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Respostas rápidas · Ctrl+Shift+R" onClick={()=>{setQuickOpen(v=>!v);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><div className="composer-popover-heading"><strong>Respostas rápidas</strong><button type="button" className="composer-popover-close" onClick={()=>setQuickOpen(false)} aria-label="Fechar respostas rápidas"><X size={15}/></button></div><input className="composer-search" value={quickSearch} onChange={e=>setQuickSearch(e.target.value)} placeholder="Buscar por nome ou conteúdo…" aria-label="Buscar respostas rápidas"/>{quickReplies.filter(q=>(q.title+" "+q.content).toLocaleLowerCase("pt-BR").includes(quickSearch.toLocaleLowerCase("pt-BR"))).map(q=><div className="quick-reply-row" key={q.id}><button type="button" className="quick-reply-use" onClick={()=>{setDraft(v=>v?v+"\n"+q.content:q.content);setQuickOpen(false);setQuickSearch("");composerRef.current?.focus()}}><b>{q.title}</b><small>{q.content}</small></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}<div className="quick-reply-create"><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><textarea rows={2} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta"/><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> Criar resposta</button></div></div>:null}</div><button type="button" className={"composer-icon-button "+(listening?"recording":"")} title="Ditado por voz" aria-label="Ditado por voz" onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button><span className="composer-shortcut-hint"><Keyboard size={13}/> Ctrl + Enter envia</span></div><span className="composer-char-count" aria-live="polite">{draft.length}/4000 · Shift+Enter quebra linha</span><button className="composer-send-button" type="submit" disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button></div></form></div>
+        <div className="composer-shell"><form className="inbox-composer" onSubmit={sendMessage}><textarea ref={composerRef} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}}} placeholder="Digite sua mensagem..." maxLength={4000} rows={3} aria-label="Mensagem"/><div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Emojis · Ctrl+Shift+E" onClick={()=>{setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><div className="composer-popover-heading"><strong>Emojis</strong><button type="button" className="composer-popover-close" onClick={()=>setEmojiOpen(false)} aria-label="Fechar emojis"><X size={15}/></button></div><input className="composer-search" value={emojiSearch} onChange={e=>setEmojiSearch(e.target.value)} placeholder="Buscar emoji ou categoria…" aria-label="Buscar emoji"/><div className="emoji-category-tabs"><button type="button" className={emojiCategory==="Todos"?"active":""} onClick={()=>setEmojiCategory("Todos")}>Todos</button>{Object.keys(emojiGroups).map(group=><button type="button" key={group} className={emojiCategory===group?"active":""} onClick={()=>setEmojiCategory(group)}>{group}</button>)}</div><div className="emoji-grid">{visibleEmojis.flatMap(([group,values])=>values.map(x=><button type="button" key={group+x} title={EMOJI_NAME_BY_VALUE[x] || group} aria-label={"Inserir emoji "+(EMOJI_NAME_BY_VALUE[x] || x)} onClick={()=>insertEmoji(x)}>{x}</button>))}</div>{!visibleEmojis.length?<small className="composer-empty-hint">Nenhum emoji encontrado. Tente outra busca.</small>:null}</div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Respostas rápidas · Ctrl+Shift+R" onClick={()=>{setQuickOpen(v=>!v);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><div className="composer-popover-heading"><strong>Respostas rápidas</strong><button type="button" className="composer-popover-close" onClick={()=>setQuickOpen(false)} aria-label="Fechar respostas rápidas"><X size={15}/></button></div><input className="composer-search" value={quickSearch} onChange={e=>setQuickSearch(e.target.value)} placeholder="Buscar por nome ou conteúdo…" aria-label="Buscar respostas rápidas"/>{quickReplies.filter(q=>(q.title+" "+q.content).toLocaleLowerCase("pt-BR").includes(quickSearch.toLocaleLowerCase("pt-BR"))).map(q=><div className="quick-reply-row" key={q.id}><button type="button" className="quick-reply-use" onClick={()=>{setDraft(v=>v?v+"\n"+q.content:q.content);setQuickOpen(false);setQuickSearch("");composerRef.current?.focus()}}><b>{q.title}</b><small>{q.content}</small></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}<div className="quick-reply-create"><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><textarea ref={quickContentRef} rows={2} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta"/><button type="button" className="quick-reply-emoji-trigger" title="Inserir emoji no texto da resposta" onClick={()=>{setEmojiTarget("quick-reply");setEmojiOpen(true);}}><Smile size={14}/> Inserir emoji</button><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> Criar resposta</button></div></div>:null}</div><button type="button" className={"composer-icon-button "+(listening?"recording":"")} title="Ditado por voz" aria-label="Ditado por voz" onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button><span className="composer-shortcut-hint"><Keyboard size={13}/> Ctrl + Enter envia</span></div><span className="composer-char-count" aria-live="polite">{draft.length}/4000 · Shift+Enter quebra linha</span><button className="composer-send-button" type="submit" disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button></div></form></div>
       </> : <div className="thread-empty"><span className="module-placeholder-icon">☏</span><p>As mensagens recebidas aparecerão aqui.</p></div>}
     </div>
     {selected ? <ContactProfilePanel contact={selected.contact} conversationId={selected.id} status={selected.status} createdAt={selected.createdAt} channel={selected.channel} expanded={contactProfileExpanded} onExpandedChange={setContactProfileExpanded} /> : null}

@@ -1,0 +1,229 @@
+/* Véxora Suite design tokens: theme changes are centralized here. */
+:root {
+  --font-ui: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: Manrope, "DM Sans", ui-sans-serif, sans-serif;
+  --surface-page: #f7f8fc;
+  --surface-1: #ffffff;
+  --surface-2: #fbfcff;
+  --surface-3: #f3f4fa;
+  --surface-hover: #f0efff;
+  --surface-active: #e7e5ff;
+  --text-primary: #20243a;
+  --text-secondary: #626982;
+  --text-muted: #858ba0;
+  --border-subtle: #e5e8f1;
+  --border-strong: #cbd0df;
+  --focus-ring: color-mix(in srgb, var(--primary) 48%, white);
+  --control-height: 40px;
+  --control-radius: 10px;
+  --radius-card: 14px;
+  --shadow-panel: 0 8px 30px rgba(28, 33, 66, .06);
+  --shadow-popover: 0 18px 55px rgba(14, 19, 40, .18);
+  --sidebar-bg: #17172b;
+  --sidebar-text: #f7f7ff;
+  --sidebar-muted-text: #a6a6c2;
+  --sidebar-border: #34334d;
+  --sidebar-hover: rgba(255,255,255,.07);
+  --sidebar-active: color-mix(in srgb, var(--primary) 25%, #202038);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #f6f7fb;
+  --card: #ffffff;
+  --ink: #20243a;
+  --muted: #777f96;
+  --line: #e4e7f0;
+  --surface-page: #f6f7fb;
+  --surface-1: #ffffff;
+  --surface-2: #fbfcff;
+  --surface-3: #f1f3f9;
+  --surface-hover: color-mix(in srgb, var(--primary) 7%, white);
+  --surface-active: color-mix(in srgb, var(--primary) 13%, white);
+  --text-primary: #20243a;
+  --text-secondary: #5f667d;
+  --text-muted: #7c849a;
+  --border-subtle: #e3e6ef;
+  --border-strong: #c8cede;
+  --sidebar: #ffffff;
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #252941;
+  --sidebar-muted: #777f96;
+  --sidebar-muted-text: #737b92;
+  --sidebar-border: #e5e8f1;
+  --sidebar-hover: color-mix(in srgb, var(--primary) 7%, white);
+  --sidebar-active: color-mix(in srgb, var(--primary) 12%, white);
+  --shadow: 0 3px 14px rgba(25,27,64,.045);
+  --shadow-panel: 0 8px 30px rgba(28,33,66,.055);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #10131b;
+  --card: #191d28;
+  --ink: #eef1fa;
+  --muted: #a0a8bd;
+  --line: #303747;
+  --surface-page: #10131b;
+  --surface-1: #191d28;
+  --surface-2: #202534;
+  --surface-3: #252b3b;
+  --surface-hover: #2a3043;
+  --surface-active: color-mix(in srgb, var(--primary) 27%, #202534);
+  --text-primary: #eef1fa;
+  --text-secondary: #c0c6d7;
+  --text-muted: #9ca5bb;
+  --border-subtle: #303747;
+  --border-strong: #485168;
+  --sidebar: #10111d;
+  --sidebar-bg: #10111d;
+  --sidebar-text: #f7f7ff;
+  --sidebar-muted: #a3a5c0;
+  --sidebar-muted-text: #a3a5c0;
+  --sidebar-border: #303044;
+  --sidebar-hover: rgba(255,255,255,.07);
+  --sidebar-active: color-mix(in srgb, var(--primary) 26%, #202038);
+  --shadow: 0 5px 20px rgba(0,0,0,.18);
+  --shadow-panel: 0 8px 28px rgba(0,0,0,.18);
+  --shadow-popover: 0 18px 55px rgba(0,0,0,.4);
+}
+/* Hybrid keeps its existing light workspace; its navigation stays dark like dark mode. */
+:root[data-theme="hybrid"] {
+  color-scheme: light;
+  --sidebar: #17172b;
+  --sidebar-bg: #17172b;
+  --sidebar-text: #f7f7ff;
+  --sidebar-muted: #a6a6c2;
+  --sidebar-muted-text: #a6a6c2;
+  --sidebar-border: #34334d;
+  --sidebar-hover: rgba(255,255,255,.07);
+  --sidebar-active: color-mix(in srgb, var(--primary) 25%, #202038);
+}
+html { background: var(--surface-page); color: var(--text-primary); color-scheme: light; }
+:root[data-theme="dark"] html,
+:root[data-theme="dark"] { color-scheme: dark; }
+html, body { background-color: var(--surface-page); color: var(--text-primary); font-family: var(--font-ui); }
+body { min-height: 100vh; }
+::selection { background: color-mix(in srgb, var(--primary) 24%, transparent); color: var(--text-primary); }
+html:root[data-theme] :is(h1,h2,h3,h4,h5,h6) { color: var(--text-primary); font-family: var(--font-display); letter-spacing: -.025em; }
+html:root[data-theme] :is(p,small,figcaption,.page-subtitle,.settings-muted,.settings-field > span) { color: var(--text-secondary); }
+html:root[data-theme] :is(.topbar,.content-card,.metric-card,.activity-card,.shortcuts-card,.settings-card,.crm-pipeline-card,.crm-contacts-card,.report-kpi,.report-table-card,.origin-breakdown,.origin-stage-card,.origin-recent,.inbox-list,.inbox-thread,.contact-profile-panel,.auth-panel,.finalization-dialog,.composer-popover,.handoff-popover) {
+  background-color: var(--surface-1);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-panel);
+}
+html:root[data-theme] :is(.topbar,.inbox-panel-heading,.inbox-connection,.inbox-connect-prompt,.qr-panel,.inbox-panel-heading,.thread-heading,.composer-shell,.settings-card-heading) {
+  border-color: var(--border-subtle);
+}
+html:root[data-theme] :is(.topbar,.content-card,.metric-card,.activity-card,.shortcuts-card,.settings-card,.crm-pipeline-card,.crm-contacts-card,.report-kpi,.report-table-card,.origin-breakdown,.origin-stage-card,.origin-recent,.inbox-list,.inbox-thread,.contact-profile-panel,.auth-panel,.finalization-dialog) {
+  color: var(--text-primary);
+}
+html:root[data-theme] :is(.metric-top,.card-heading p,.shortcut-copy small,.metric-card p,.breadcrumbs,.settings-muted,.thread-heading p,.inbox-panel-heading p,.conversation-summary small,.auth-description,.auth-switch,.auth-footnote,.page-footer) {
+  color: var(--text-muted);
+}
+html:root[data-theme] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),select,textarea) {
+  color: var(--text-primary);
+  background-color: var(--surface-2);
+  border-color: var(--border-strong);
+  border-radius: var(--control-radius);
+  accent-color: var(--primary);
+}
+html:root[data-theme] :is(input,select,textarea)::placeholder { color: var(--text-muted); opacity: 1; }
+html:root[data-theme] :is(input,select,textarea):hover { border-color: color-mix(in srgb, var(--primary) 42%, var(--border-strong)); }
+html:root[data-theme] :is(input,select,textarea):focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+html:root[data-theme] :is(button,a,[role="button"],summary):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+html:root[data-theme] :is(button,select,input,textarea) { font-family: var(--font-ui); }
+html:root[data-theme] :is(.primary-button,.auth-submit,.composer-send-button,.handoff-confirm,.finalization-actions .primary-button) {
+  background: var(--primary);
+  color: var(--primary-contrast, #fff);
+  border-color: transparent;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent);
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+html:root[data-theme] :is(.primary-button,.auth-submit,.composer-send-button,.handoff-confirm,.finalization-actions .primary-button):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 86%, #111827);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+html:root[data-theme] :is(.primary-button,.auth-submit,.composer-send-button,.handoff-confirm,.finalization-actions .primary-button):active:not(:disabled) { transform: translateY(1px); }
+html:root[data-theme] :is(button):disabled { cursor: not-allowed; opacity: .56; }
+html:root[data-theme] :is(.secondary-button,.icon-button,.thread-icon-action,.thread-action-button,.composer-icon-button,.mobile-menu,.logout-button,.profile-more,.sidebar-collapse) {
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+html:root[data-theme] :is(.secondary-button,.icon-button,.thread-icon-action,.thread-action-button,.composer-icon-button,.mobile-menu,.logout-button):hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border-subtle));
+  color: var(--text-primary);
+}
+html:root[data-theme] :is(.text-button,.breadcrumbs a,.auth-switch button) { color: var(--primary); }
+html:root[data-theme] :is(.nav-item,.workspace-switcher,.help-card,.sidebar-collapse,.profile-row) { border-color: var(--sidebar-border); }
+.sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-right: 1px solid var(--sidebar-border);
+}
+.sidebar .brand,.sidebar .brand-copy strong,.sidebar .workspace-copy strong,.sidebar .profile-copy strong,.sidebar .help-card strong { color: var(--sidebar-text); }
+.sidebar .brand-copy small,.sidebar .workspace-copy small,.sidebar .profile-copy small,.sidebar .help-card small { color: var(--sidebar-muted-text); }
+.sidebar .workspace-switcher,.sidebar .help-card,.sidebar .sidebar-collapse { background: color-mix(in srgb, var(--sidebar-bg) 88%, white 12%); }
+:root[data-theme="light"] .sidebar .workspace-switcher,
+:root[data-theme="light"] .sidebar .help-card,
+:root[data-theme="light"] .sidebar .sidebar-collapse { background: #f8f9fd; }
+.sidebar .nav-item { color: var(--sidebar-muted-text); }
+.sidebar .nav-item .nav-glyph { color: inherit; }
+.sidebar .nav-item:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
+.sidebar .nav-item.active { background: var(--sidebar-active); color: var(--primary); }
+:root[data-theme="light"] .sidebar .nav-item.active { color: var(--primary); }
+.sidebar .nav-item.active .nav-glyph { color: var(--primary); }
+.sidebar .nav-section { color: var(--sidebar-muted-text); }
+:root[data-theme="light"] .sidebar .nav-section { color: #747c92; }
+.sidebar .profile-row { border-top-color: var(--sidebar-border); }
+html:root[data-theme] :is(.topbar,.search-box,.icon-button,.search-box kbd,.mobile-menu) { border-color: var(--border-subtle); }
+html:root[data-theme] :is(.search-box,.search-box kbd) { background: var(--surface-2); color: var(--text-muted); }
+html:root[data-theme] :is(.search-box input) { background: transparent; color: var(--text-primary); }
+html:root[data-theme] :is(.inbox-conversation,.shortcut-item,.quick-reply-use,.handoff-option,.invite-option,.inbox-queue-button,.inbox-queue-menu button,.settings-members label,.settings-group-option) {
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+html:root[data-theme] :is(.inbox-conversation,.shortcut-item,.quick-reply-use,.handoff-option,.invite-option,.inbox-queue-button,.inbox-queue-menu button) { background: transparent; }
+html:root[data-theme] :is(.inbox-conversation:hover,.shortcut-item:hover,.quick-reply-use:hover,.handoff-option:hover,.invite-option:hover,.inbox-queue-button:hover,.inbox-queue-menu button:hover) { background: var(--surface-hover); }
+html:root[data-theme] :is(.inbox-conversation.selected,.inbox-queue-button.active,.inbox-queue-menu button.active,.handoff-option.selected) {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+html:root[data-theme] :is(.composer-popover,.handoff-popover,.inbox-more-queues .inbox-queue-menu) { background: var(--surface-1); color: var(--text-primary); border-color: var(--border-subtle); box-shadow: var(--shadow-popover); }
+html:root[data-theme] :is(.emoji-grid button) { background: transparent; color: var(--text-primary); border: 1px solid transparent; border-radius: 8px; }
+html:root[data-theme] :is(.emoji-grid button:hover,.emoji-category-tabs button:hover) { background: var(--surface-hover); border-color: var(--border-subtle); }
+html:root[data-theme] :is(.emoji-category-tabs button.active) { background: var(--surface-active); color: var(--primary); }
+html:root[data-theme] :is(.quick-reply-row,.quick-reply-create,.composer-toolbar,.composer-popover-heading) { border-color: var(--border-subtle); }
+html:root[data-theme] :is(.quick-reply-row small,.quick-reply-create small,.composer-shortcut-hint,.composer-char-count,.composer-empty-hint) { color: var(--text-muted); }
+html:root[data-theme] :is(.crm-board,.crm-kanban,.crm-stage-column,.crm-contact-row,.crm-contact-card,.crm-detail-panel,.settings-tabs,.report-chart-card) { border-color: var(--border-subtle); }
+html:root[data-theme] :is(.crm-stage-column,.crm-contact-card,.crm-detail-panel,.report-chart-card) { background: var(--surface-1); color: var(--text-primary); }
+html:root[data-theme] :is(.crm-stage-column h2,.crm-contact-card h3,.crm-detail-panel h2) { color: var(--text-primary); }
+/* Intentional exception: labels, Kanban stage colors, and channel/source badges retain their semantic colors. */
+html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact-list,.settings-group-list) { scrollbar-color: var(--border-strong) transparent; scrollbar-width: thin; }
+:where(*::-webkit-scrollbar) { width: 10px; height: 10px; }
+:where(*::-webkit-scrollbar-track) { background: transparent; }
+:where(*::-webkit-scrollbar-thumb) { background: var(--border-strong); border: 3px solid transparent; background-clip: padding-box; border-radius: 999px; }
+:where(*::-webkit-scrollbar-thumb:hover) { background: var(--text-muted); border: 3px solid transparent; background-clip: padding-box; }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+.quick-reply-emoji-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  justify-self: start;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+.quick-reply-emoji-trigger:hover { background: var(--surface-hover); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 38%, var(--border-subtle)); }
+
+/* Keep the emoji chooser above the quick-reply editor when both are open. */
+.emoji-popover { z-index: 80; }
+.quick-replies-popover { z-index: 70; }

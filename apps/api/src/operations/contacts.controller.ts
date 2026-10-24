@@ -128,9 +128,32 @@ export class ContactsController {
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
-    if (input.leadOrigin !== undefined && !(typeof input.leadOrigin === "string" && input.leadOrigin.length <= 120) && !(input.leadOrigin && typeof input.leadOrigin === "object" && !Array.isArray(input.leadOrigin) && typeof (input.leadOrigin as Record<string, unknown>).source === "string" && ((input.leadOrigin as Record<string, unknown>).source as string).length <= 120 && ((input.leadOrigin as Record<string, unknown>).identifier === undefined || (typeof (input.leadOrigin as Record<string, unknown>).identifier === "string" && ((input.leadOrigin as Record<string, unknown>).identifier as string).length <= 120))) throw new BadRequestException("Origem do lead inválida.");
+    const leadOriginRecord = typeof input.leadOrigin === "string"
+      ? { source: input.leadOrigin }
+      : input.leadOrigin && typeof input.leadOrigin === "object" && !Array.isArray(input.leadOrigin)
+        ? input.leadOrigin as Record<string, unknown>
+        : null;
+    if (input.leadOrigin !== undefined && (!leadOriginRecord
+      || typeof leadOriginRecord.source !== "string"
+      || leadOriginRecord.source.length > 120
+      || (leadOriginRecord.identifier !== undefined && (typeof leadOriginRecord.identifier !== "string" || leadOriginRecord.identifier.length > 120)))) {
+      throw new BadRequestException("Origem do lead inválida.");
+    }
     const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
-    const metadata: Prisma.InputJsonObject = { ...existing, ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}), ...(input.notes !== undefined ? { notes: input.notes } : {}), ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}), ...(input.leadOrigin !== undefined ? { leadOrigin: typeof input.leadOrigin === "string" ? { source: input.leadOrigin.trim() } : { source: ((input.leadOrigin as Record<string, unknown>).source as string).trim(), ...((typeof (input.leadOrigin as Record<string, unknown>).identifier === "string" && ((input.leadOrigin as Record<string, unknown>).identifier as string).trim()) ? { identifier: ((input.leadOrigin as Record<string, unknown>).identifier as string).trim() } : {}) } } : {}) };
+    const metadata: Prisma.InputJsonObject = {
+      ...existing,
+      ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}),
+      ...(leadOriginRecord ? {
+        leadOrigin: {
+          source: (leadOriginRecord.source as string).trim(),
+          ...(typeof leadOriginRecord.identifier === "string" && leadOriginRecord.identifier.trim()
+            ? { identifier: leadOriginRecord.identifier.trim() }
+            : {}),
+        },
+      } : {}),
+    };
     const updated = await this.prisma.contact.update({ where: { id: contact.id }, data: { metadata } });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
     return { id: updated.id, metadata: updated.metadata };

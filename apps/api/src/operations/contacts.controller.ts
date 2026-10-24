@@ -112,7 +112,7 @@ export class ContactsController {
       };
       const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
       if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: finalizedConversationIds }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
-      return { contact: updatedContact, conversations: finalizedConversationIds };
+      return { contact: updatedContact, conversations: active.map((item) => item.id) };
     });
     this.events.publish(tenantId, "contact.finalized", { id: result.contact.id, outcome, ...(outcome === "LOST" ? { reason } : {}) });
     for (const conversationId of result.conversations) this.events.publish(tenantId, "conversation.updated", { id: conversationId, status: "RESOLVED", finalizationOutcome: outcome });

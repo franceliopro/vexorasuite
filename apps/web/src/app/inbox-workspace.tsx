@@ -394,7 +394,7 @@ export function InboxWorkspace() {
       for (const key of keys) {
         const direct = metadata[key];
         if (typeof direct === "string" && direct.trim()) return direct.trim();
-        const match = Object.entries(metadata).find(([candidate]) => candidate.toLocaleLowerCase("pt-BR").replace(/[\\s_-]/g, "") === key.toLocaleLowerCase("pt-BR").replace(/[\\s_-]/g, ""));
+        const match = Object.entries(metadata).find(([candidate]) => candidate.toLocaleLowerCase("pt-BR").replace(/[\s_-]/g, "") === key.toLocaleLowerCase("pt-BR").replace(/[\s_-]/g, ""));
         if (typeof match?.[1] === "string" && match[1].trim()) return (match[1] as string).trim();
       }
       return "";

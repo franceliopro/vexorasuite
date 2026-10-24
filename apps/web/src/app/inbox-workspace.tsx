@@ -24,6 +24,8 @@ const QUICK_REPLY_VARIABLES = [
   { token:"{{empresa}}", label:"Empresa", hint:"Nome configurado da empresa" },
   { token:"{{saudacao}}", label:"Saudação", hint:"Varia conforme o horário" },
   { token:"{{despedida}}", label:"Despedida", hint:"Varia conforme o horário" },
+  { token:"{{atendente}}", label:"Atendente", hint:"Atendente responsável pela conversa (conhecido_por)" },
+  { token:"{{time}}", label:"Time", hint:"Equipe responsável pela conversa" },
 ] as const;
 function greetingPeriod(date = new Date()): "dawn"|"morning"|"afternoon"|"evening" {
   const hour = date.getHours();
@@ -213,6 +215,30 @@ export function InboxWorkspace() {
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, []);
+  // Popovers opened from toolbar icons behave like native app sheets: tap outside or Escape closes them.
+  useEffect(() => {
+    if (!quickOpen && !emojiOpen) return;
+    const closeOutside = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest(".composer-tool-wrap")) return;
+      setQuickOpen(false);
+      setEmojiOpen(false);
+      setQuickSettingsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setQuickOpen(false);
+        setEmojiOpen(false);
+        setQuickSettingsOpen(false);
+      }
+    };
+    document.addEventListener("click", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [quickOpen, emojiOpen]);
   useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadAssignees();
     void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
     void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => {});
@@ -364,13 +390,26 @@ export function InboxWorkspace() {
     const customFields = metadata.customFields && typeof metadata.customFields === "object" && !Array.isArray(metadata.customFields) ? metadata.customFields as Record<string, unknown> : {};
     const preferred = [metadata.preferredName, metadata.newName, metadata.triageName, metadata.nomePreferido, metadata.novo_nome, ...Object.entries(customFields).filter(([key]) => ["novonome","nomepreferido","nomedepreferencia","preferredname","triagename"].includes(key.toLocaleLowerCase("pt-BR").replace(/[\s_-]/g, ""))).map(([,value]) => value)].find(value => typeof value === "string" && value.trim());
     const name = selected?.contact.name?.trim() || "";
+    const metadataText = (...keys: string[]) => {
+      for (const key of keys) {
+        const direct = metadata[key];
+        if (typeof direct === "string" && direct.trim()) return direct.trim();
+        const match = Object.entries(metadata).find(([candidate]) => candidate.toLocaleLowerCase("pt-BR").replace(/[\s_-]/g, "") === key.toLocaleLowerCase("pt-BR").replace(/[\s_-]/g, ""));
+        if (typeof match?.[1] === "string" && match[1].trim()) return (match[1] as string).trim();
+      }
+      return "";
+    };
+    const attendant = metadataText("known_by", "knownBy", "conhecido_por", "conhecidoPor", "attendant", "atendente") || selected?.assignee?.name || "";
+    const team = selected?.department?.name?.trim() || metadataText("team", "teamName", "equipe", "nome_equipe", "departmentName") || "";
     const company = quickReplySettings.companyName.trim() || "nossa equipe";
     return content
       .replace(/{{novo_nome}}/g, typeof preferred === "string" ? preferred.trim() : name)
       .replace(/{{nome}}/g, name)
       .replace(/{{empresa}}/g, company)
       .replace(/{{saudacao}}/g, quickReplySettings.greetings[period] || DEFAULT_QUICK_REPLY_SETTINGS.greetings[period])
-      .replace(/{{despedida}}/g, quickReplySettings.farewells[period] || DEFAULT_QUICK_REPLY_SETTINGS.farewells[period]);
+      .replace(/{{despedida}}/g, quickReplySettings.farewells[period] || DEFAULT_QUICK_REPLY_SETTINGS.farewells[period])
+      .replace(/{{atendente}}/g, attendant)
+      .replace(/{{time}}/g, team);
   }
   function insertEmoji(value:string) {
     const isQuickReply = emojiTarget === "quick-reply";

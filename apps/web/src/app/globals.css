@@ -1561,3 +1561,181 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .channels-webhook-warning{color:#f0c779}
 @media(max-width:1050px){.channels-summary-grid{grid-template-columns:1fr}.channels-checklist{grid-template-columns:1fr}.channels-work-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.channels-page{gap:13px}.channels-page-heading{flex-direction:column}.channels-refresh{align-self:stretch}.channels-provider-card,.channels-account-form-card,.channels-flow-card,.channels-connected-card,.channels-webhook-card{padding:14px}.channels-section-heading{gap:9px}.channels-section-heading h2{font-size:13px}.channels-external-link{font-size:9px}.channels-validation-footer{align-items:stretch;flex-direction:column}.channels-validation-footer .primary-button{width:100%}.channels-form-two{grid-template-columns:1fr}.channels-connected-row{gap:8px;flex-wrap:wrap}.channels-connected-main{flex-basis:calc(100% - 60px)}.channels-connection-pill{margin-left:46px}.channels-row-chevron{margin-left:auto}.channels-webhook-card .channels-section-heading{flex-wrap:wrap}.channels-updated-at{text-align:left}}
+
+
+/* Mobile app experience: keep the shell inside the viewport and make every control comfortably tappable. */
+@media (max-width: 760px) {
+  html, body { width: 100%; min-width: 0; min-height: 100%; overflow-x: hidden; }
+  body { font-size: 15px; -webkit-text-size-adjust: 100%; }
+  .suite-app { display: flex !important; flex-direction: column; width: 100%; min-height: 100dvh; overflow-x: clip; }
+  .mobile-sidebar-backdrop { position: fixed; inset: 0; z-index: 110; display: block; width: 100%; height: 100dvh; border: 0; background: rgba(12, 14, 28, .42); backdrop-filter: blur(1px); }
+  .suite-app > .sidebar { position: fixed !important; z-index: 120; inset: 0 auto 0 0; width: min(84vw, 300px); min-height: 100dvh; height: 100dvh; flex: none; transform: translateX(-105%); transition: transform .22s ease; overflow-y: auto; overscroll-behavior: contain; padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom)); }
+  .suite-app > .sidebar.sidebar-open { transform: translateX(0); }
+  .suite-app > .main-area { width: 100%; min-width: 0; min-height: 100dvh; flex: 1 1 auto; padding-bottom: env(safe-area-inset-bottom); }
+  .main-area .topbar { min-height: 58px; height: auto; padding: 8px 14px; gap: 10px; }
+  .mobile-menu { display: grid; place-items: center; width: 42px; height: 42px; min-height: 42px; border-radius: 12px; font-size: 21px; }
+  .workspace-info-popover { position: fixed; z-index: 160; top: max(66px, env(safe-area-inset-top)); left: 10px; right: 10px; width: auto; max-width: none; max-height: 70dvh; overflow: auto; border-radius: 15px; padding: 16px; }
+  .main-area .breadcrumbs { font-size: 12px; line-height: 1.4; }
+  .main-area .page-content { width: 100%; min-width: 0; padding: 16px 14px calc(22px + env(safe-area-inset-bottom)); }
+  .page-content :is(h1) { font-size: clamp(22px, 6vw, 28px); line-height: 1.2; }
+  .page-content :is(h2) { font-size: clamp(18px, 4.8vw, 22px); line-height: 1.3; }
+  .page-content :is(p, label, input, select, textarea, .settings-muted, .breadcrumbs) { font-size: 14px; }
+  .page-content :is(input:not([type=checkbox]):not([type=radio]):not([type=color]), select, textarea) { min-height: 44px; padding: 10px 12px; font-size: 16px; }
+  .page-content :is(button, a[role=button], .icon-button, .thread-icon-action, .composer-icon-button) { min-height: 42px; }
+  .page-content :is(.metric-card, .content-card, .settings-card, .crm-contacts-card, .crm-pipeline-card, .inbox-list, .inbox-thread) { border-radius: 14px; }
+  .inbox-workspace { display: block; width: 100%; min-width: 0; padding: 0; gap: 0; }
+  .inbox-list, .inbox-thread { width: 100%; max-width: 100%; min-width: 0; border-radius: 14px; }
+  .inbox-panel-heading { padding: 14px; }
+  .inbox-panel-heading h2 { font-size: 17px; }
+  .inbox-conversation { min-height: 76px; padding: 12px; gap: 10px; }
+  .conversation-summary { gap: 7px; }
+  .conversation-summary strong, .conversation-summary .contact-name { font-size: 14px; line-height: 1.35; }
+  .conversation-summary small { font-size: 12px; line-height: 1.45; }
+  .conversation-tags { gap: 5px; margin-top: 4px; }
+  .conversation-tag, .profile-tag { max-width: 100%; min-height: 24px; padding: 3px 9px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; font-weight: 750; line-height: 1.25; letter-spacing: .01em; }
+  .thread-heading { padding: 12px; gap: 9px; }
+  .thread-contact h2 { font-size: 16px; }
+  .thread-contact p { font-size: 12px; }
+  .thread-actions { gap: 7px; }
+  .thread-action-button, .handoff-invite-trigger, .mobile-inbox-back { min-height: 42px; font-size: 13px; }
+  .thread-messages { padding: 12px; }
+  .message-bubble { max-width: 88%; font-size: 14px; line-height: 1.5; }
+  .inbox-composer textarea { min-height: 48px; max-height: 28dvh; font-size: 16px; }
+  .composer-shell { padding: 9px; }
+  .composer-toolbar { gap: 7px; }
+  .composer-icon-button { width: 42px; height: 42px; }
+  .composer-send-button { min-height: 42px; font-size: 14px; }
+  .composer-popover { position: fixed; z-index: 160; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); top: auto; width: auto; max-width: none; max-height: min(72dvh, 620px); overflow: auto; border-radius: 16px; padding: 14px; box-shadow: 0 16px 48px #10112435; }
+  .composer-popover-heading { position: sticky; top: -14px; z-index: 2; padding: 8px 0 10px; background: var(--surface-1, #fff); }
+  .composer-popover-heading strong { font-size: 16px; }
+  .composer-popover :is(button, input, select, textarea) { font-size: 14px; }
+  .composer-popover :is(input, select, textarea) { min-height: 44px; }
+  .emoji-grid button { min-width: 42px; min-height: 42px; font-size: 24px; }
+  .finalization-backdrop { z-index: 180; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); align-items: center; }
+  .finalization-dialog { width: 100%; max-width: 460px; max-height: 90dvh; overflow-y: auto; padding: 22px 18px; border-radius: 18px; }
+  .finalization-dialog h2 { font-size: 21px; }
+  .finalization-dialog p, .finalization-dialog small { font-size: 14px; line-height: 1.5; }
+  .finalization-actions { gap: 9px; }
+  .finalization-actions button { min-height: 46px; font-size: 14px; }
+}
+@media (max-width: 380px) {
+  .main-area .page-content { padding-right: 11px; padding-left: 11px; }
+  .inbox-conversation { padding: 10px; }
+  .conversation-tag, .profile-tag { font-size: 11px; padding: 3px 7px; }
+  .thread-heading { gap: 7px; }
+  .thread-actions { flex-basis: 100%; }
+}
+
+@media (min-width: 761px) { .mobile-sidebar-backdrop { display: none !important; } }
+
+
+/* Persistent bottom navigation gives the mobile workspace a real app-like navigation model. */
+.mobile-bottom-nav { display: none; }
+@media (max-width: 760px) {
+  .mobile-bottom-nav { position: fixed; z-index: 100; inset: auto 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; padding: 7px 8px max(7px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border-subtle, #e5e7ef); background: color-mix(in srgb, var(--surface-1, #fff) 94%, transparent); backdrop-filter: blur(18px); box-shadow: 0 -8px 24px rgba(20, 24, 48, .07); }
+  .mobile-bottom-nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 48px; padding: 4px 2px; border: 0; border-radius: 12px; background: transparent; color: var(--text-muted, #747b90); font: 600 11px/1.2 var(--font-ui, sans-serif); }
+  .mobile-bottom-nav button svg { flex: none; }
+  .mobile-bottom-nav button.active { background: var(--surface-hover, #f0efff); color: var(--primary, #6258df); }
+  .main-area { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .main-area .page-content { padding-bottom: 18px; }
+  .inbox-workspace.mobile-thread-open .inbox-thread { height: calc(100dvh - 155px); min-height: calc(100dvh - 155px); }
+}
+
+
+/* Hybrid workspace and inbox readability refinements requested after visual review. */
+:root[data-theme="hybrid"] .inbox-conversation {
+  background: var(--surface-1, #fff);
+  color: var(--text-primary, #20243a);
+  border-bottom-color: var(--border-subtle, #e8eaf1);
+}
+:root[data-theme="hybrid"] .inbox-conversation:hover {
+  background: var(--surface-hover, #f4f5fb);
+}
+:root[data-theme="hybrid"] .inbox-conversation.selected {
+  background: var(--surface-active, #eeedff);
+  color: var(--text-primary, #20243a);
+  box-shadow: inset 3px 0 var(--primary, #6258df);
+}
+:root[data-theme="hybrid"] .dashboard-grid .content-card,
+:root[data-theme="hybrid"] .dashboard-grid .activity-card,
+:root[data-theme="hybrid"] .dashboard-grid .shortcuts-card {
+  background: var(--surface-1, #fff);
+  color: var(--text-primary, #20243a);
+  border-color: var(--border-subtle, #e5e7ef);
+  box-shadow: 0 3px 14px rgba(25, 31, 58, .045);
+}
+:root[data-theme="hybrid"] .dashboard-grid :is(h2, h3, p, strong, span, small) {
+  color: inherit;
+}
+:root[data-theme="hybrid"] .dashboard-grid :is(p, small) {
+  color: var(--text-secondary, #5f667d);
+}
+:root[data-theme="hybrid"] .bottom-note {
+  background: #fff;
+  color: var(--text-secondary, #5f667d);
+  border-color: var(--border-subtle, #e5e7ef);
+}
+:root[data-theme="hybrid"] .bottom-note strong {
+  color: var(--text-primary, #20243a);
+}
+.thread-messages {
+  background: #f7f8fb;
+}
+.thread-messages .message-bubble p {
+  color: #252938;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+.thread-messages .message-bubble {
+  padding: 10px 13px;
+}
+.thread-messages .message-bubble small {
+  color: #62697a;
+  font-size: 11px;
+}
+.inbox-composer textarea {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #252938;
+}
+.inbox-composer textarea::placeholder {
+  color: #697184;
+  opacity: 1;
+}
+.conversation-avatar {
+  border: 1px solid rgba(66, 72, 102, .18);
+}
+input[aria-label="Nome da etiqueta"] {
+  background: transparent !important;
+}
+input.profile-tag-inline-color,
+input[type="color"].profile-tag-inline-color {
+  border: 0 !important;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.contact-profile-footer button {
+  background: var(--primary, #6258df);
+  color: var(--primary-foreground, #fff);
+}
+.contact-profile-footer button:hover:not(:disabled) {
+  background: var(--primary-hover, #5046ca);
+}
+:root[data-theme="hybrid"] .contact-profile-footer button {
+  background: var(--primary, #6258df);
+  color: #fff;
+}
+@media (max-width: 760px) {
+  .thread-messages .message-bubble p {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .thread-messages .message-bubble small {
+    font-size: 11px;
+  }
+  .inbox-composer textarea {
+    font-size: 16px;
+  }
+}

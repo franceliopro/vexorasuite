@@ -24,6 +24,7 @@ import {
   Workflow,
   UsersRound,
   Share2,
+  MoreHorizontal,
 } from "lucide-react";
 
 const iconMap = {
@@ -40,6 +41,7 @@ const iconMap = {
   "chart-no-axes-combined": Activity,
   sparkles: Sparkles,
   share: Share2,
+  more: MoreHorizontal,
 };
 
 function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
@@ -108,6 +110,26 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen && !workspaceInfoOpen) return;
+    const closeOutside = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (menuOpen && !event.target.closest(".sidebar") && !event.target.closest(".mobile-menu")) setMenuOpen(false);
+      if (workspaceInfoOpen && !event.target.closest(".workspace-info-wrap")) setWorkspaceInfoOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        setWorkspaceInfoOpen(false);
+      }
+    };
+    document.addEventListener("click", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
   type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean};
   const defaultBrandAssets:BrandAssets={primaryColor:"#6258DF",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true};
@@ -180,6 +202,7 @@ export default function HomePage() {
           <div className="profile-row"><span className="profile-avatar">{(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
         </div>
       </aside>
+      {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="main-area">
         <header className="topbar">
@@ -247,6 +270,12 @@ export default function HomePage() {
           {active !== "Atendimento" ? <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer> : null}
         </div>
       </main>
+      <nav className="mobile-bottom-nav" aria-label="Navegação principal no celular">
+        <button type="button" className={active === "Visão geral" ? "active" : ""} onClick={() => { setActive("Visão geral"); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Início</span></button>
+        <button type="button" className={active === "Atendimento" ? "active" : ""} onClick={() => { setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>
+        <button type="button" className={active === "CRM" ? "active" : ""} onClick={() => { setActive("CRM"); setMenuOpen(false); }}><Icon name="users" size={20}/><span>CRM</span></button>
+        <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen}><Icon name="more" size={20}/><span>Mais</span></button>
+      </nav>
     </div>
   );
 }

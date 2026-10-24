@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -46,6 +47,51 @@ export class ContactsController {
     return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
   }
 
+  @Get("profile-config")
+  async profileConfig(@Req() request: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+    return { tags: Array.isArray(config.tags) ? config.tags : [], fields: Array.isArray(config.fields) ? config.fields : [] };
+  }
+
+  @Post("profile-config/tags")
+  async createProfileTag(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; color?: unknown }) {
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const color = typeof input.color === "string" ? input.color : "";
+    if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a etiqueta.");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+    const tags = Array.isArray(config.tags) ? config.tags as Array<Record<string, unknown>> : [];
+    const existing = tags.find(tag => typeof tag.name === "string" && tag.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
+    if (existing) return existing;
+    if (tags.length >= 100) throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
+    const tag = { id: randomUUID(), name, color, createdBy: request.user.sub, createdAt: new Date().toISOString() };
+    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, crmProfileConfig: { ...config, tags: [...tags, tag] } } as any } });
+    return tag;
+  }
+
+  @Post("profile-config/fields")
+  async createProfileField(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; type?: unknown; options?: unknown }) {
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    const type = typeof input.type === "string" ? input.type.toUpperCase() : "TEXT";
+    const allowed = ["TEXT", "NUMBER", "DATE", "SELECT", "CHECKBOX"];
+    const options = Array.isArray(input.options) ? input.options.filter((value): value is string => typeof value === "string").map(value => value.trim()).filter(Boolean).slice(0, 30) : [];
+    if (!name || name.length > 80 || !allowed.includes(type) || (type === "SELECT" && options.length < 1)) throw new BadRequestException("Informe nome, tipo e opções válidas para o campo.");
+    const key = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+    if (!key) throw new BadRequestException("O nome do campo precisa conter letras ou números.");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+    const fields = Array.isArray(config.fields) ? config.fields as Array<Record<string, unknown>> : [];
+    if (fields.some(field => field.key === key)) throw new BadRequestException("Já existe um campo com esse nome. Escolha outro nome.");
+    if (fields.length >= 100) throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
+    const field = { id: randomUUID(), name, key, type, options: type === "SELECT" ? options : [], createdBy: request.user.sub, createdAt: new Date().toISOString() };
+    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, crmProfileConfig: { ...config, fields: [...fields, field] } } as any } });
+    return field;
+  }
+
   @Get(":id/history")
   async history(@Req() request: AuthenticatedRequest, @Param("id") id: string) {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
@@ -57,7 +103,7 @@ export class ContactsController {
   async updateProfile(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown }) {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
-    if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.some((tag) => typeof tag !== "string" || tag.length > 40))) throw new BadRequestException("Etiquetas inválidas.");
+    if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
     if (input.leadOrigin !== undefined && (typeof input.leadOrigin !== "string" || input.leadOrigin.length > 120)) throw new BadRequestException("Origem do lead inválida.");
@@ -94,8 +140,8 @@ export class ContactsController {
     const existing = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {};
     const previousFinalization = existing.crmFinalization && typeof existing.crmFinalization === "object" && !Array.isArray(existing.crmFinalization) ? existing.crmFinalization as Prisma.JsonObject : {};
     const priorFinalizedIds = Array.isArray(previousFinalization.finalizedConversationIds) ? previousFinalization.finalizedConversationIds.filter((value): value is string => typeof value === "string") : [];
-    const priorTags = Array.isArray(existing.tags) ? existing.tags.filter((tag): tag is string => typeof tag === "string") : [];
-    const tags = outcome === "WON" ? priorTags.filter((tag) => tag.trim().toLocaleLowerCase("pt-BR") !== "novo lead") : priorTags;
+    const priorTags = Array.isArray(existing.tags) ? existing.tags.filter((tag) => typeof tag === "string" || (tag && typeof tag === "object" && !Array.isArray(tag) && typeof (tag as Record<string, unknown>).name === "string")) as Prisma.InputJsonValue[] : [];
+    const tags = outcome === "WON" ? priorTags.filter((tag) => (typeof tag === "string" ? tag : String((tag as Record<string, unknown>).name || "")).trim().toLocaleLowerCase("pt-BR") !== "novo lead") : priorTags;
     const rest = Object.fromEntries(Object.entries(existing).filter(([key]) => key !== "crmStage" && key !== "crmFinalization")) as Prisma.JsonObject;
     const finalizedAt = new Date().toISOString();
     const result = await this.prisma.$transaction(async (tx) => {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from "react";
-import { ArrowRight, Check, LayoutGrid, List, Plus, Search, UsersRound, X } from "lucide-react";
+import { ArrowRight, Check, ChartNoAxesCombined, LayoutGrid, List, Plus, Search, UsersRound, X } from "lucide-react";
+import { LeadOriginsWorkspace } from "./lead-origins-workspace";
 
 type CrmStage = "new" | "qualification" | "proposal" | "finalization";
 type CrmFinalization = { outcome: "WON" | "LOST"; reason?: string; finalizedAt?: string };
@@ -47,7 +48,7 @@ export function CrmWorkspace() {
   const [movingId, setMovingId] = useState("");
   const [draggingId, setDraggingId] = useState("");
   const [dropTarget, setDropTarget] = useState<CrmStage | "">("");
-  const [view, setView] = useState<"pipeline" | "customers" | "contacts">("pipeline");
+  const [view, setView] = useState<"pipeline" | "customers" | "contacts" | "origins">("pipeline");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -156,8 +157,9 @@ export function CrmWorkspace() {
           <button role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><LayoutGrid size={15}/> Pipeline</button>
           <button role="tab" aria-selected={view === "customers"} className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><UsersRound size={15}/> Clientes <span className="crm-tab-count">{contacts.filter(isCustomer).length}</span></button>
           <button role="tab" aria-selected={view === "contacts"} className={view === "contacts" ? "active" : ""} onClick={() => setView("contacts")}><List size={15}/> Contatos <span className="crm-tab-count">{contacts.filter((contact) => !isCustomer(contact)).length}</span></button>
+          <button role="tab" aria-selected={view === "origins"} className={view === "origins" ? "active" : ""} onClick={() => setView("origins")}><ChartNoAxesCombined size={15}/> Inteligência Comercial</button>
         </div>
-        <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label>
+        {view !== "origins" ? <label className="crm-search crm-toolbar-search"><Search size={17} aria-hidden="true" /><input aria-label="Buscar contatos" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar contato..." />{query ? <button type="button" className="crm-clear-search" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14}/></button> : null}</label> : null}
       </div>
 
       {error ? <div className="settings-feedback error" role="alert">{error}<button onClick={() => setError("")} aria-label="Fechar erro"><X size={15} /></button></div> : null}
@@ -197,7 +199,7 @@ export function CrmWorkspace() {
             </div>;
           })}
         </section>
-      ) : (() => {
+      ) : view === "origins" ? <LeadOriginsWorkspace /> : (() => {
         const customerView = view === "customers";
         const rows = visibleContacts.filter((contact) => customerView ? isCustomer(contact) : !isCustomer(contact));
         const heading = customerView ? "Clientes" : "Contatos";

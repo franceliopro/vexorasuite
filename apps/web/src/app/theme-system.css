@@ -19,12 +19,12 @@
   --radius-card: 14px;
   --shadow-panel: 0 8px 30px rgba(28, 33, 66, .06);
   --shadow-popover: 0 18px 55px rgba(14, 19, 40, .18);
-  --sidebar-bg: #17172b;
+  --sidebar-bg: #191D28;
   --sidebar-text: #f7f7ff;
   --sidebar-muted-text: #a6a6c2;
-  --sidebar-border: #34334d;
+  --sidebar-border: #303847;
   --sidebar-hover: rgba(255,255,255,.07);
-  --sidebar-active: color-mix(in srgb, var(--primary) 25%, #202038);
+  --sidebar-active: color-mix(in srgb, var(--primary) 25%, #252C39);
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -73,14 +73,14 @@
   --text-muted: #9ca5bb;
   --border-subtle: #303747;
   --border-strong: #485168;
-  --sidebar: #10111d;
-  --sidebar-bg: #10111d;
+  --sidebar: #191D28;
+  --sidebar-bg: #191D28;
   --sidebar-text: #f7f7ff;
   --sidebar-muted: #a3a5c0;
   --sidebar-muted-text: #a3a5c0;
   --sidebar-border: #303044;
   --sidebar-hover: rgba(255,255,255,.07);
-  --sidebar-active: color-mix(in srgb, var(--primary) 26%, #202038);
+  --sidebar-active: color-mix(in srgb, var(--primary) 26%, #252C39);
   --shadow: 0 5px 20px rgba(0,0,0,.18);
   --shadow-panel: 0 8px 28px rgba(0,0,0,.18);
   --shadow-popover: 0 18px 55px rgba(0,0,0,.4);
@@ -88,14 +88,14 @@
 /* Hybrid keeps its existing light workspace; its navigation stays dark like dark mode. */
 :root[data-theme="hybrid"] {
   color-scheme: light;
-  --sidebar: #17172b;
-  --sidebar-bg: #17172b;
+  --sidebar: #191D28;
+  --sidebar-bg: #191D28;
   --sidebar-text: #f7f7ff;
   --sidebar-muted: #a6a6c2;
   --sidebar-muted-text: #a6a6c2;
-  --sidebar-border: #34334d;
+  --sidebar-border: #303847;
   --sidebar-hover: rgba(255,255,255,.07);
-  --sidebar-active: color-mix(in srgb, var(--primary) 25%, #202038);
+  --sidebar-active: color-mix(in srgb, var(--primary) 25%, #252C39);
 }
 html { background: var(--surface-page); color: var(--text-primary); color-scheme: light; }
 :root[data-theme="dark"] html,
@@ -238,16 +238,16 @@ html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact
   --text-primary: #20243a;
   --text-secondary: #5f667d;
   --text-muted: #737b92;
-  --sidebar-bg: #17172b;
-  --sidebar: #17172b;
+  --sidebar-bg: #191D28;
+  --sidebar: #191D28;
   --sidebar-text: #f7f7ff;
   --sidebar-muted-text: #b7b8d0;
-  --sidebar-border: #34334d;
+  --sidebar-border: #303847;
   --sidebar-hover: rgba(255,255,255,.08);
-  --sidebar-active: color-mix(in srgb, var(--primary) 28%, #202038);
+  --sidebar-active: color-mix(in srgb, var(--primary) 28%, #252C39);
 }
 :root[data-theme="hybrid"] .sidebar,
-:root[data-theme="dark"] .sidebar { background:#17172b; color:#f7f7ff; border-right-color:#34334d; }
+:root[data-theme="dark"] .sidebar { background:#191D28; color:#f7f7ff; border-right-color:#303847; }
 :root[data-theme="hybrid"] .sidebar .nav-item,
 :root[data-theme="dark"] .sidebar .nav-item { color:#b7b8d0; }
 :root[data-theme="hybrid"] .sidebar .nav-item:hover,
@@ -256,7 +256,7 @@ html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact
 :root[data-theme="dark"] .sidebar .nav-item.active { background:var(--sidebar-active); color:#fff; }
 :root[data-theme="hybrid"] .sidebar .workspace-switcher,
 :root[data-theme="hybrid"] .sidebar .help-card,
-:root[data-theme="hybrid"] .sidebar .sidebar-collapse { background:rgba(255,255,255,.06); color:#f7f7ff; border-color:#34334d; }
+:root[data-theme="hybrid"] .sidebar .sidebar-collapse { background:rgba(255,255,255,.06); color:#f7f7ff; border-color:#303847; }
 :root[data-theme="hybrid"] .sidebar .help-card small,
 :root[data-theme="hybrid"] .sidebar .workspace-copy small,
 :root[data-theme="hybrid"] .sidebar .profile-copy small { color:#b7b8d0; }
@@ -284,3 +284,43 @@ html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact
 .quick-reply-row .quick-reply-use small { display:block; }
 
 .quick-reply-use.active { background:var(--surface-active); color:var(--text-primary); outline:2px solid color-mix(in srgb,var(--primary) 55%,transparent); outline-offset:-2px; }
+
+/* Shared component consistency: no stale accent colors or uneven control alignment. */
+html:root[data-theme] :is(.primary-button,.secondary-button,.auth-submit,.composer-send-button,.logout-button) {
+  align-items: center;
+  justify-content: center;
+}
+html:root[data-theme] :is(.settings-card,.crm-pipeline-card,.crm-contacts-card,.report-table-card,.origin-breakdown,.origin-stage-card,.origin-recent) {
+  min-width: 0;
+}
+html:root[data-theme] :is(.settings-heading,.page-heading) {
+  min-width: 0;
+  column-gap: 16px;
+}
+html:root[data-theme] :is(.settings-heading,.page-heading) > div {
+  min-width: 0;
+}
+html:root[data-theme] :is(.settings-heading,.page-heading) h1 {
+  overflow-wrap: anywhere;
+}
+html:root[data-theme] :is(.settings-heading,.page-heading) p:not(.eyebrow) {
+  max-width: 75ch;
+}
+html:root[data-theme] :is(.quick-reply-create > button:not(.quick-reply-emoji-trigger),.quick-reply-settings > button) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-contrast,#fff);
+}
+html:root[data-theme] :is(.quick-reply-create > button:not(.quick-reply-emoji-trigger),.quick-reply-settings > button):hover:not(:disabled) {
+  background: color-mix(in srgb,var(--primary) 86%,#111827);
+}
+:root[data-theme="hybrid"] .sidebar,
+:root[data-theme="dark"] .sidebar {
+  --sidebar-bg: #191D28;
+  --sidebar: #191D28;
+  --sidebar-border: #303847;
+}
+@media (max-width: 760px) {
+  html:root[data-theme] :is(.settings-heading,.page-heading) { row-gap: 8px; }
+  html:root[data-theme] :is(.settings-heading,.page-heading) h1 { line-height: 1.2; }
+}

@@ -1236,3 +1236,25 @@ button.primary-button:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--tag-color, #7665e8) 62%, #454c5b) !important;
   text-shadow: none !important;
 }
+
+
+/* Consistent dark contact labels in CRM Kanban and contact profile. */
+:root[data-theme="dark"] .crm-contact-tags > span {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, #171b26) !important;
+  color: #f8faff !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, #454c5b) !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] .contact-profile .profile-tag,
+:root[data-theme="dark"] .contact-profile .profile-tag-editable {
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, #171b26) !important;
+  color: #f8faff !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, #454c5b) !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] .contact-profile .profile-tag-editable input:not([type="color"]),
+:root[data-theme="dark"] .contact-profile .profile-tag-editable button {
+  color: #f8faff !important;
+}

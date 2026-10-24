@@ -117,7 +117,7 @@ describe("AsaasService CRM customer synchronization", () => {
     expect(result).toEqual({ status: "SYNCED", customerId: "cus_created" });
     expect(request).toHaveBeenNthCalledWith(2, "tenant-id", "/customers", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ name: "Cliente de teste", cpfCnpj: "52998224725", email: "cliente@example.com", mobilePhone: "11987654321" }),
+      body: JSON.stringify({ name: "Cliente de teste", externalReference: "vexora:contact-won", cpfCnpj: "52998224725", email: "cliente@example.com", mobilePhone: "11987654321" }),
     }));
   });
 });

@@ -108,6 +108,39 @@ export class AsaasService {
     return body as T;
   }
 
+
+  /**
+   * Read-only live portfolio. Never mix sandbox with production or infer
+   * delinquency from locally created payments.
+   */
+  async listPortfolio(tenantId: string, filters: { status?: string; dueFrom?: string; dueTo?: string; offset: number; limit: number }) {
+    const allowed = new Set(["PENDING", "OVERDUE", "RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "REFUNDED", "REFUND_REQUESTED", "CHARGEBACK_REQUESTED", "CHARGEBACK_DISPUTE", "AWAITING_CHARGEBACK_REVERSAL", "DUNNING_REQUESTED", "DUNNING_RECEIVED", "CANCELLED"]);
+    if (filters.status && !allowed.has(filters.status)) throw new BadRequestException("Situação de cobrança inválida.");
+    const dateValid = (date: string | undefined) => !date || (/^\\d{4}-\\d{2}-\\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date);
+    if (!dateValid(filters.dueFrom) || !dateValid(filters.dueTo) || (filters.dueFrom && filters.dueTo && filters.dueFrom > filters.dueTo)) throw new BadRequestException("Período de vencimento inválido.");
+    const query = new URLSearchParams({ offset: String(filters.offset), limit: String(filters.limit) });
+    if (filters.status) query.set("status", filters.status);
+    if (filters.dueFrom) query.set("dueDate[ge]", filters.dueFrom);
+    if (filters.dueTo) query.set("dueDate[le]", filters.dueTo);
+    const result = await this.request<{ data?: Array<{ id: string; customer: string; description?: string | null; value: number; netValue?: number; dueDate: string; paymentDate?: string | null; status: string; billingType?: string; invoiceUrl?: string | null; subscription?: string | null }>; hasMore?: boolean; totalCount?: number }>(tenantId, "/payments?" + query.toString());
+    const credentials = await this.credentials(tenantId);
+    return {
+      source: "ASAAS_LIVE",
+      environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION",
+      offset: filters.offset,
+      limit: filters.limit,
+      hasMore: !!result.hasMore,
+      totalCount: result.totalCount ?? null,
+      items: (result.data || []).map(item => ({
+        id: item.id, customerId: item.customer, description: item.description || null,
+        value: Number(item.value), netValue: item.netValue == null ? null : Number(item.netValue),
+        dueDate: item.dueDate, paymentDate: item.paymentDate || null, status: item.status,
+        billingType: item.billingType || null, invoiceUrl: item.invoiceUrl || null,
+        subscriptionId: item.subscription || null,
+      })),
+    };
+  }
+
   private digits(value: string): string { return value.replace(/\D/g, ""); }
 
   private validDocument(value: string): boolean {

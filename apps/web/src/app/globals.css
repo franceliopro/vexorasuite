@@ -2966,3 +2966,5 @@ input[type="color"].profile-tag-inline-color {
 .finance-portfolio td:last-child{white-space:nowrap}
 .finance-portfolio td:last-child .finance-collection-action{display:inline-flex;align-items:center;margin:2px 4px 2px 0;text-decoration:none}
 .finance-portfolio th:nth-child(6),.finance-portfolio td:nth-child(6){text-align:left}
+
+.channels-google-setup{display:grid;gap:12px;margin-top:14px}.channels-google-setup>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px solid var(--border,#e3e6ee);border-radius:12px}.channels-google-setup>div strong{font-size:12px}.channels-google-setup code{overflow-wrap:anywhere;font-size:12px}.channels-google-setup>p{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.6;color:var(--muted-foreground,#667085)}.channels-google-setup button{margin-left:auto}

@@ -56,6 +56,7 @@ model Tenant {
   auditLogs   AuditLog[]
   departments Department[]
   payments Payment[]
+  serviceProtocols ServiceProtocol[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -138,6 +139,7 @@ model Conversation {
   messages    Message[]
   participants ConversationParticipant[]
   payments Payment[]
+  serviceProtocol ServiceProtocol?
 
   @@index([tenantId, status, lastMessageAt])
   @@index([tenantId, contactId])
@@ -275,4 +277,20 @@ model AuditLog {
   @@index([tenantId, createdAt])
   @@index([tenantId, entityType, entityId])
   @@map("audit_logs")
+}
+
+/** Stable automation reference for a conversation, scoped to a tenant. */
+model ServiceProtocol {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  conversationId String @unique @db.Uuid @map("conversation_id")
+  code String
+  metadata Json @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, createdAt])
+  @@map("service_protocols")
 }

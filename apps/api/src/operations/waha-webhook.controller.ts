@@ -1,5 +1,5 @@
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import type { ChannelConnection } from "@prisma/client";
+import { Prisma, type ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
@@ -81,10 +81,10 @@ export class WahaWebhookController {
             data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) } },
           });
         } else {
-          const update: { name?: string; phone?: string; externalId?: string; metadata?: Record<string, unknown> } = {};
+          const update: { name?: string; phone?: string; externalId?: string; metadata?: Prisma.InputJsonValue } = {};
           if (avatarUrl) {
             const existingMetadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
-            if (existingMetadata.avatarUrl !== avatarUrl) update.metadata = { ...existingMetadata, avatarUrl };
+            if (existingMetadata.avatarUrl !== avatarUrl) update.metadata = { ...existingMetadata, avatarUrl } as Prisma.InputJsonObject;
           }
           if (notifyName && (!contact.name || contact.name === contact.phone || contact.name === contact.externalId)) update.name = notifyName;
           if (phone && !contact.phone) update.phone = phone;

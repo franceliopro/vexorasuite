@@ -2852,3 +2852,24 @@ input[type="color"].profile-tag-inline-color {
 .contact-profile.profile-collapsed .profile-toggle{display:grid;flex:0 0 36px;width:36px;height:36px;margin:0;position:relative;z-index:3}
 .contact-profile.profile-collapsed .profile-toggle svg{display:block}
 .workspace-avatar{background:#191D28!important;color:#f1f4fb}
+
+/* Keep accents faithful to the tenant-selected brand color in dark/hybrid themes. */
+:root[data-theme="dark"] .empty-illustration,
+:root[data-theme="hybrid"] .empty-illustration,
+:root[data-theme="dark"] .shortcut-icon,
+:root[data-theme="hybrid"] .shortcut-icon,
+:root[data-theme="dark"] .sidebar .help-icon,
+:root[data-theme="hybrid"] .sidebar .help-icon,
+:root[data-theme="dark"] .sidebar .profile-avatar,
+:root[data-theme="hybrid"] .sidebar .profile-avatar {
+  background: var(--primary) !important;
+  color: #191D28 !important;
+  border-color: var(--primary) !important;
+}
+:root[data-theme="dark"] .sidebar button.nav-item.active,
+:root[data-theme="hybrid"] .sidebar button.nav-item.active {
+  background: var(--primary) !important;
+  color: #191D28 !important;
+}
+:root[data-theme="dark"] .sidebar button.nav-item.active .nav-glyph,
+:root[data-theme="hybrid"] .sidebar button.nav-item.active .nav-glyph { color: #191D28 !important; }

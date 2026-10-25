@@ -2685,6 +2685,64 @@ input[type="color"].profile-tag-inline-color {
 }
 
 
+/* Draggable top edge for resizing the reply composer without moving the conversation layout. */
+.main-area:has(.inbox-workspace) .inbox-thread > .composer-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 58px;
+  max-height: min(280px, 42dvh);
+  padding-top: 3px;
+}
+.composer-resize-handle {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex: 0 0 8px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 0 0 2px;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+.composer-resize-handle span {
+  display: block;
+  width: 42px;
+  height: 3px;
+  border-radius: 999px;
+  background: #c4cad6;
+  transition: width .15s ease, background .15s ease;
+}
+.composer-resize-handle:hover span,
+.composer-resize-handle:focus-visible span {
+  width: 64px;
+  background: var(--primary, #6258df);
+}
+.composer-shell .inbox-composer {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 0;
+  align-items: stretch;
+}
+.composer-shell .inbox-composer > .composer-toolbar {
+  min-height: 0;
+}
+.composer-shell .inbox-composer > .composer-toolbar > .composer-tools {
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .main-area:has(.inbox-workspace) .inbox-thread > .composer-shell {
+    max-height: min(260px, 38dvh);
+    padding-top: 3px;
+  }
+  .composer-resize-handle {
+    flex-basis: 9px;
+  }
+}
+
+
 /* Shared visual audit: consistent header rhythm, toolbar wrapping and branded controls. */
 .main-area .page-content > :is(.page-heading,.settings-heading) {
   gap: 12px;

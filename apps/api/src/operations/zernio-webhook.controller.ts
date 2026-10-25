@@ -46,6 +46,9 @@ export class ZernioWebhookController {
       const providerMessageId = String(message.platformMessageId || message.id || body.id || "");
       if (!providerMessageId) return { ok: true, ignored: true };
       const name = String(sender.name || sender.displayName || sender.fullName || sender.profileName || sender.username || externalId).trim().slice(0, 160);
+      // Never use the business account handle as the customer identity.
+      const accountHandles = [settings.username, settings.profileName, channel.name].filter(Boolean).map(v => String(v).replace(/^@/, "").toLowerCase());
+      const customerName = accountHandles.includes(name.replace(/^@/, "").toLowerCase()) ? externalId : name;
       const text = String(message.text || message.metadata?.postbackPayload || message.metadata?.interactiveId || "").slice(0, 20000);
       const platform = String(settings.platform || "SOCIAL").toUpperCase();
       try {
@@ -56,14 +59,14 @@ export class ZernioWebhookController {
           const avatar = sender.picture || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
           if (!contact) {
-            contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
+            contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
           } else {
             const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as JsonObject : {};
-            contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...((name !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name } : {}) } });
+            contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...((customerName !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name: customerName } : {}) } });
           }
           let conversation = await tx.conversation.findFirst({ where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } }, orderBy: { updatedAt: "desc" } });
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });
-          const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: name, metadata: { provider: "ZERNIO", externalConversationId, platform, attachments: Array.isArray(message.attachments) ? message.attachments : [] } } });
+          const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: customerName, metadata: { provider: "ZERNIO", externalConversationId, platform, attachments: Array.isArray(message.attachments) ? message.attachments : [] } } });
           await tx.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: created.occurredAt } });
           return { contactId: contact.id, conversationId: conversation.id, message: created };
         });

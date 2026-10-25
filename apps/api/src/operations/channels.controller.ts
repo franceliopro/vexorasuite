@@ -39,8 +39,17 @@ export class ChannelConnectionsController {
     if (!configured) {
       return { configured: false, publicUrlConfigured, authenticated: false, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "ZERNIO_API_KEY não está configurada no servidor." };
     }
+    let verification: { valid?: boolean };
     try {
-      await this.zernio.request("/user");
+      verification = await this.zernio.request<{ valid?: boolean }>("/auth/verify");
+      if (verification.valid !== true) {
+        return { configured, publicUrlConfigured, authenticated: false, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "A Zernio não confirmou a validade da chave API.", diagnosticStage: "authentication" };
+      }
+    } catch (error) {
+      const status = error instanceof BadGatewayException ? (error.getResponse() as { providerStatus?: number })?.providerStatus : undefined;
+      return { configured, publicUrlConfigured, authenticated: false, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: status === 401 ? "Chave Zernio recusada (401). Verifique a chave ativa no serviço da API." : "Não foi possível verificar a chave na Zernio. Consulte a conectividade da API e o endpoint de autenticação.", diagnosticStage: "authentication", ...(status ? { providerStatus: status } : {}) };
+    }
+    try {
       const response = await this.zernio.request<unknown>("/accounts");
       const raw: unknown[] = (() => {
         if (Array.isArray(response)) return response;
@@ -48,22 +57,24 @@ export class ChannelConnectionsController {
         const payload = response as Record<string, unknown>;
         if (Array.isArray(payload.data)) return payload.data;
         if (Array.isArray(payload.accounts)) return payload.accounts;
+        if (payload.data && typeof payload.data === "object" && Array.isArray((payload.data as Record<string, unknown>).accounts)) return (payload.data as { accounts: unknown[] }).accounts;
         return [];
       })();
       const accounts = raw.map((item) => {
         const account = item && typeof item === "object" ? item as Record<string, unknown> : {};
         return {
-          accountId: String(account.accountId ?? account.id ?? ""),
+          accountId: String(account.accountId ?? account.id ?? account._id ?? ""),
           platform: String(account.platform ?? ""),
           username: typeof account.username === "string" ? account.username : undefined,
           name: typeof account.name === "string" ? account.name : typeof account.displayName === "string" ? account.displayName : undefined,
-          status: typeof account.status === "string" ? account.status : undefined,
+          status: typeof account.status === "string" ? account.status : typeof account.isActive === "boolean" ? account.isActive ? "ACTIVE" : "DISCONNECTED" : undefined,
           profileName: typeof account.profileName === "string" ? account.profileName : undefined,
         };
       }).filter((account) => account.accountId && account.platform);
       return { configured, publicUrlConfigured, authenticated: true, accountCount: accounts.length, accounts, checkedAt: new Date().toISOString() };
-    } catch {
-      return { configured, publicUrlConfigured, authenticated: false, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "A Zernio não confirmou a autenticação. Verifique a chave e as permissões no servidor." };
+    } catch (error) {
+      const status = error instanceof BadGatewayException ? (error.getResponse() as { providerStatus?: number })?.providerStatus : undefined;
+      return { configured, publicUrlConfigured, authenticated: true, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "Chave Zernio válida, mas a listagem de contas falhou. Confira as permissões de leitura das contas.", diagnosticStage: "accounts", ...(status ? { providerStatus: status } : {}) };
     }
   }
 

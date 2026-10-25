@@ -324,3 +324,17 @@ html:root[data-theme] :is(.quick-reply-create > button:not(.quick-reply-emoji-tr
   html:root[data-theme] :is(.settings-heading,.page-heading) { row-gap: 8px; }
   html:root[data-theme] :is(.settings-heading,.page-heading) h1 { line-height: 1.2; }
 }
+
+/* Compact quick-reply library with explicit edit/create state. */
+.quick-reply-heading-actions { flex-wrap:wrap; justify-content:flex-end; }
+.quick-reply-heading-actions .quick-reply-settings-toggle { display:inline-flex; align-items:center; justify-content:center; gap:5px; }
+.quick-reply-editor-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.quick-reply-editor-heading strong { color:var(--text-primary); font-size:13px; }
+.quick-reply-editor-heading button { display:grid; place-items:center; width:28px; height:28px; border:1px solid var(--border-subtle); border-radius:7px; color:var(--text-secondary); background:var(--surface-2); cursor:pointer; }
+.quick-reply-editor-heading button:hover { color:var(--primary); background:var(--surface-hover); }
+.quick-reply-edit { display:grid; place-items:center; flex:0 0 28px; height:28px; padding:0; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--text-secondary); cursor:pointer; }
+.quick-reply-edit:hover { background:var(--surface-hover); color:var(--primary); border-color:var(--border-subtle); }
+.quick-reply-create { margin-top:8px; padding-top:12px; border-top:1px solid var(--border-subtle); }
+.quick-reply-use { min-width:0; }
+.quick-reply-use small { overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:760px) { .quick-reply-meta-fields { grid-template-columns:1fr; } }

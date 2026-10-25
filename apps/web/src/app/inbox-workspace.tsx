@@ -5,7 +5,7 @@ import { CheckCircle2, RotateCcw, UserRound, Users, UserPlus, ChevronDown, Arrow
 import { ContactProfilePanel } from "./contact-profile-panel";
 import { emojiCatalog } from "./emoji-catalog";
 
-type Channel = { id: string; name: string; status: string; lastError?: string | null };
+type Channel = { id: string; name: string; provider: string; status: string; lastError?: string | null };
 type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; metadata?: Record<string, unknown> };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string };
 type Assignee = { id: string; name: string; email: string };
@@ -170,7 +170,8 @@ export function InboxWorkspace() {
   const [qr, setQr] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
 
-  const activeChannel = channels.find((item) => item.status === "CONNECTED") || channels[0];
+  const whatsappChannels = channels.filter((item) => item.provider === "WAHA");
+  const activeChannel = whatsappChannels.find((item) => item.status === "CONNECTED") || whatsappChannels[0];
 
   const loadConversations = useCallback(async () => {
     try {

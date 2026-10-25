@@ -57,7 +57,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
     { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Anúncios" }, { label: "Resultados" }] },
-    { label: "Financeiro", icon: "wallet", children: [{ label: "Gestão" }, { label: "Integrações (API)" }] },
+    { label: "Financeiro", icon: "wallet", children: [{ label: "Gestão" }] },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Canais e integrações", icon: "share" }, { label: "Configurações", icon: "settings" }] },
 ];
@@ -92,7 +92,8 @@ export default function HomePage() {
     const validModules = new Set(navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)])));
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
-    if (requested === "Origem dos Leads") setActive("CRM");
+    if (requested === "Integrações (API)") setActive("Configurações");
+    else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
     else if (requested && validModules.has(requested)) {
       setActive(requested);

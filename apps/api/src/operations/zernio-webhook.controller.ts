@@ -23,12 +23,17 @@ export class ZernioWebhookController {
     }
 
     const body = request.body && typeof request.body === "object" ? request.body as JsonObject : {};
-    if (body.test) return { ok: true, test: true };
+    if (body.test) {
+      const updatedSettings = { ...settings, webhookVerifiedAt: new Date().toISOString() };
+      await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { settings: updatedSettings } });
+      this.events.publish(channel.tenantId, "channel.webhook_verified", { id: channel.id });
+      return { ok: true, test: true };
+    }
     const event = typeof body.event === "string" ? body.event : "";
     const accountId = String(body.account?.accountId || body.accountId || "");
     if (accountId !== String(settings.accountId || "")) return { ok: true, ignored: true };
-    if (channel.status !== "CONNECTED") {
-      await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "CONNECTED", lastError: null } });
+    if (channel.status !== "CONNECTED" || !settings.webhookVerifiedAt) {
+      await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "CONNECTED", lastError: null, settings: { ...settings, webhookVerifiedAt: settings.webhookVerifiedAt || new Date().toISOString() } } });
       this.events.publish(channel.tenantId, "channel.status", { id: channel.id, status: "CONNECTED" });
     }
 

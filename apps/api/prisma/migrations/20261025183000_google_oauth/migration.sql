@@ -1,0 +1,6 @@
+CREATE TABLE "google_oauth_attempts" ("state_hash" TEXT NOT NULL, "tenant_id" UUID NOT NULL, "user_id" UUID NOT NULL, "verifier_encrypted" TEXT NOT NULL, "service" TEXT NOT NULL, "expires_at" TIMESTAMP(3) NOT NULL, CONSTRAINT "google_oauth_attempts_pkey" PRIMARY KEY ("state_hash"));
+CREATE INDEX "google_oauth_attempts_expires_at_idx" ON "google_oauth_attempts"("expires_at");
+ALTER TABLE "google_oauth_attempts" ADD CONSTRAINT "google_oauth_attempts_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE TABLE "google_connections" ("id" UUID NOT NULL, "tenant_id" UUID NOT NULL, "google_account_id" TEXT NOT NULL, "email" TEXT NOT NULL, "scopes" TEXT NOT NULL, "refresh_token_encrypted" TEXT, "access_token_encrypted" TEXT NOT NULL, "expires_at" TIMESTAMP(3) NOT NULL, "updated_at" TIMESTAMP(3) NOT NULL, CONSTRAINT "google_connections_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "google_connections_tenant_id_google_account_id_key" ON "google_connections"("tenant_id", "google_account_id");
+ALTER TABLE "google_connections" ADD CONSTRAINT "google_connections_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;

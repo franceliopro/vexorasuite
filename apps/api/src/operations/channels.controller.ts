@@ -25,6 +25,8 @@ export class ChannelConnectionsController {
       return { ...channel, ...(channel.provider === "ZERNIO" ? {
         platform: typeof safeSettings.platform === "string" ? safeSettings.platform : undefined,
         accountId: typeof safeSettings.accountId === "string" ? safeSettings.accountId : undefined,
+        username: typeof safeSettings.username === "string" ? safeSettings.username : undefined,
+        profileName: typeof safeSettings.profileName === "string" ? safeSettings.profileName : undefined,
         webhookVerifiedAt: typeof safeSettings.webhookVerifiedAt === "string" ? safeSettings.webhookVerifiedAt : undefined,
       } : {}) };
     });
@@ -96,7 +98,7 @@ export class ChannelConnectionsController {
   @Post("zernio")
   async createZernio(
     @Req() request: AuthenticatedRequest,
-    @Body() input: { name?: unknown; platform?: unknown; accountId?: unknown },
+    @Body() input: { name?: unknown; platform?: unknown; accountId?: unknown; username?: unknown; profileName?: unknown },
   ) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
       throw new ForbiddenException("Somente gestores podem conectar contas sociais.");
@@ -124,7 +126,7 @@ export class ChannelConnectionsController {
         tenantId: request.user.tenantId, provider: "ZERNIO", name,
         sessionName: `zn-${request.user.tenantId.replace(/-/g, "").slice(0, 10)}-${randomBytes(5).toString("hex")}`,
         status: "CONNECTING",
-        settings: { platform, accountId, webhookSecret },
+        settings: { platform, accountId, webhookSecret, username: typeof input.username === "string" ? input.username.trim().slice(0, 100) : "", profileName: typeof input.profileName === "string" ? input.profileName.trim().slice(0, 120) : "" },
       },
     });
     this.events.publish(request.user.tenantId, "channel.created", { id: channel.id, provider: channel.provider, status: channel.status });

@@ -40,7 +40,7 @@ export class ZernioService {
       throw new BadGatewayException("Não foi possível alcançar o serviço Zernio.");
     }
     const payload = await response.json().catch(() => null);
-    if (!response.ok) {
+    if (!response.ok || (payload && typeof payload === "object" && "success" in payload && payload.success === false) || (payload && typeof payload === "object" && "data" in payload && payload.data && typeof payload.data === "object" && "partialFailure" in payload.data && payload.data.partialFailure)) {
       throw new BadGatewayException({
         message: "A Zernio não confirmou a operação. Confira a conta, as permissões e os requisitos da rede social.",
         providerStatus: response.status,

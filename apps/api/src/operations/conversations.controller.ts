@@ -310,6 +310,10 @@ export class ConversationsController {
     const contactMetadata = conversation.contact.metadata && typeof conversation.contact.metadata === "object" && !Array.isArray(conversation.contact.metadata)
       ? conversation.contact.metadata as Record<string, unknown> : {};
     const externalConversationId = typeof contactMetadata.externalConversationId === "string" ? contactMetadata.externalConversationId : "";
+    const linkedAccountId = isZernio ? String((conversation.channelConnection.settings as Record<string, unknown> | null)?.accountId || "") : "";
+    if (isZernio && (!linkedAccountId || contactMetadata.accountId !== linkedAccountId || contactMetadata.provider !== "ZERNIO")) {
+      throw new BadRequestException("A conversa não corresponde à conta Zernio vinculada a este canal.");
+    }
     const chatId = isZernio ? externalConversationId : (conversation.contact.externalId?.includes("@") ? conversation.contact.externalId
       : conversation.contact.phone ? `${conversation.contact.phone.replace(/\D/g, "")}@c.us` : conversation.contact.externalId);
     if (!chatId) throw new BadRequestException(isZernio ? "A conversa não possui um identificador externo para resposta." : "O contato não possui um identificador WhatsApp válido.");
@@ -322,7 +326,7 @@ export class ConversationsController {
     let providerMessageId: string | null;
     try {
       if (isZernio) {
-        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: String((conversation.channelConnection.settings as Record<string, unknown>)?.accountId || ""), message: content }, idempotencyKey: randomUUID() });
+        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: linkedAccountId, message: content }, idempotencyKey: randomUUID() });
         providerMessageId = result?.data?.messageId || result?.id || null;
       } else {
         providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, content);

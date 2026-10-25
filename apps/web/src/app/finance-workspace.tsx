@@ -3,6 +3,40 @@ import { useEffect, useState } from "react";
 import { Activity, AlertCircle, RefreshCcw, Wallet } from "lucide-react";
 type Dashboard = { source:string;partial:boolean;caveat:string;environment:string[];months:number;totals:{billed:number;paid:number;open:number;count:number};series:{month:string;billed:number;paid:number;open:number}[];outstandingContacts:number;collectionRate:number|null };
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+
+type PortfolioItem = { id:string;customerId:string;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null };
+type Portfolio = {source:string;environment:string;items:PortfolioItem[];hasMore:boolean;offset:number;totalCount:number|null};
+function PortfolioView(){
+ const [status,setStatus]=useState("");
+ const [dueFrom,setDueFrom]=useState("");
+ const [dueTo,setDueTo]=useState("");
+ const [offset,setOffset]=useState(0);
+ const [data,setData]=useState<Portfolio|null>(null);
+ const [loading,setLoading]=useState(false);
+ const [error,setError]=useState("");
+ const [refresh,setRefresh]=useState(0);
+ useEffect(()=>{let active=true;setLoading(true);setError("");
+  const q=new URLSearchParams({offset:String(offset),limit:"50"});
+  if(status)q.set("status",status);if(dueFrom)q.set("dueFrom",dueFrom);if(dueTo)q.set("dueTo",dueTo);
+  fetch("/api/backend/finance/portfolio?"+q.toString(),{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Falha ao consultar Asaas");return body as Portfolio}).then(v=>{if(active)setData(v)}).catch(e=>{if(active){setError(String(e.message||e));setData(null)}}).finally(()=>{if(active)setLoading(false)});
+  return()=>{active=false};
+ },[status,dueFrom,dueTo,offset,refresh]);
+ return <section className="content-card finance-portfolio">
+  <header><h2>Carteira Asaas</h2><p>Cobranças consultadas diretamente no Asaas. Os resultados não são uma conciliação histórica.</p></header>
+  <div className="finance-portfolio-filters">
+   <label>Situação <select value={status} onChange={e=>{setStatus(e.target.value);setOffset(0)}}><option value="">Todas</option>{["PENDING","OVERDUE","RECEIVED","CONFIRMED","RECEIVED_IN_CASH","REFUNDED","CANCELLED","CHARGEBACK_REQUESTED","CHARGEBACK_DISPUTE"].map(s=><option key={s} value={s}>{({PENDING:"A vencer / pendente",OVERDUE:"Vencido",RECEIVED:"Recebido",CONFIRMED:"Confirmado",RECEIVED_IN_CASH:"Recebido em dinheiro",REFUNDED:"Estornado",CANCELLED:"Cancelado",CHARGEBACK_REQUESTED:"Contestação solicitada",CHARGEBACK_DISPUTE:"Em contestação"} as Record<string,string>)[s]}</option>)}</select></label>
+   <label>Vencimento de <input type="date" value={dueFrom} onChange={e=>{setDueFrom(e.target.value);setOffset(0)}}/></label>
+   <label>Até <input type="date" value={dueTo} min={dueFrom||undefined} onChange={e=>{setDueTo(e.target.value);setOffset(0)}}/></label>
+   <button type="button" className="secondary-button" onClick={()=>setRefresh(n=>n+1)}>Atualizar</button>
+  </div>
+  {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando cobranças…</p>:data&&<>
+   <p className="finance-portfolio-meta">Fonte: Asaas · Ambiente: {data.environment} · Página {Math.floor(data.offset/50)+1}{data.totalCount!==null?" · Total informado: "+data.totalCount:""}</p>
+   <div className="finance-portfolio-scroll"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Valor</th><th>Situação</th><th>Identificador</th></tr></thead><tbody>{data.items.map(p=><tr key={p.id}><td>{p.dueDate}</td><td>{p.description||"Cobrança sem descrição"}</td><td>{currency(p.value)}</td><td>{p.status}</td><td>{p.id}</td></tr>)}</tbody></table>{!data.items.length?<p>Nenhuma cobrança encontrada.</p>:null}</div>
+   <div className="finance-portfolio-pagination"><button type="button" disabled={!offset} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Anterior</button><button type="button" disabled={!data.hasMore} onClick={()=>setOffset(n=>n+50)}>Próxima</button></div>
+  </>}
+ </section>;
+}
+
 export function FinanceWorkspace(){
  const [months,setMonths]=useState(1);
  const [custom,setCustom]=useState(false);
@@ -27,5 +61,6 @@ export function FinanceWorkspace(){
      <section className="content-card finance-health-summary"><h2>Raio-X inicial</h2><p>Resumo dos registros disponíveis neste período.</p><dl><div><dt>Pagamentos registrados</dt><dd>{data.totals.count}</dd></div><div><dt>Contatos com valores em aberto</dt><dd>{data.outstandingContacts}</dd></div><div><dt>Ambientes registrados</dt><dd>{data.environment.join(", ")||"Sem registros"}</dd></div></dl><p>Para calcular inadimplência real, dias em atraso e régua de cobrança, o próximo passo é importar e conciliar a carteira de cobranças do Asaas com datas de vencimento.</p></section>
    </div>
    </>}
+   <PortfolioView/>
  </section>;
 }

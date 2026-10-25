@@ -81,9 +81,9 @@ export class WahaWebhookController {
             data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) } },
           });
         } else {
-          const update: { name?: string; phone?: string; externalId?: string; metadata?: JsonObject } = {};
+          const update: { name?: string; phone?: string; externalId?: string; metadata?: Record<string, unknown> } = {};
           if (avatarUrl) {
-            const existingMetadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as JsonObject : {};
+            const existingMetadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
             if (existingMetadata.avatarUrl !== avatarUrl) update.metadata = { ...existingMetadata, avatarUrl };
           }
           if (notifyName && (!contact.name || contact.name === contact.phone || contact.name === contact.externalId)) update.name = notifyName;

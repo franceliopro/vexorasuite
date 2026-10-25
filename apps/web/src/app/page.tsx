@@ -5,6 +5,7 @@ import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
 import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
+import { ChatbotWorkspace } from "./chatbot-workspace";
 import { ChannelsIntegrations } from "./channels-integrations";
 import {
   CalendarDays,
@@ -244,6 +245,8 @@ export default function HomePage() {
             </>
           ) : active === "CRM" ? (
             <CrmWorkspace />
+          ) : active === "Chatbots" ? (
+            <ChatbotWorkspace />
           ) : active === "Workflows" ? (
             <section className="module-workspace">
               <header className="page-heading"><div><p className="eyebrow">AUTOMAÇÃO</p><h1>Workflows</h1><p className="page-subtitle">Organize campanhas e jornadas automatizadas em um espaço único.</p></div></header>

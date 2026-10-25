@@ -57,6 +57,8 @@ model Tenant {
   departments Department[]
   payments Payment[]
   serviceProtocols ServiceProtocol[]
+  googleConnections GoogleConnection[]
+  googleOAuthAttempts GoogleOAuthAttempt[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -293,4 +295,31 @@ model ServiceProtocol {
   @@unique([tenantId, code])
   @@index([tenantId, createdAt])
   @@map("service_protocols")
+}
+
+model GoogleOAuthAttempt {
+  stateHash String @id @map("state_hash")
+  tenantId String @db.Uuid @map("tenant_id")
+  userId String @db.Uuid @map("user_id")
+  verifierEncrypted String @map("verifier_encrypted")
+  service String
+  expiresAt DateTime @map("expires_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
+  @@map("google_oauth_attempts")
+}
+
+model GoogleConnection {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  googleAccountId String @map("google_account_id")
+  email String
+  scopes String
+  refreshTokenEncrypted String? @map("refresh_token_encrypted")
+  accessTokenEncrypted String @map("access_token_encrypted")
+  expiresAt DateTime @map("expires_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, googleAccountId])
+  @@map("google_connections")
 }

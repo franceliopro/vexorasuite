@@ -122,7 +122,7 @@ export class ChannelConnectionsController {
       data: {
         tenantId: request.user.tenantId, provider: "ZERNIO", name,
         sessionName: `zn-${request.user.tenantId.replace(/-/g, "").slice(0, 10)}-${randomBytes(5).toString("hex")}`,
-        status: "CONNECTED",
+        status: "CONNECTING",
         settings: { platform, accountId, webhookSecret },
       },
     });

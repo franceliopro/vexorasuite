@@ -12,7 +12,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .brand-mark{width:34px;height:34px;display:grid;place-items:center;border-radius:11px 11px 11px 4px;background:linear-gradient(140deg,#a59eff,#6258df);color:white;font-family:Manrope,sans-serif;font-size:22px;font-weight:800}
 .brand-copy{display:flex;align-items:baseline;gap:7px}.brand-copy strong{font:800 22px Manrope,sans-serif;letter-spacing:-1.2px}.brand-copy small{font-size:9px;font-weight:700;letter-spacing:2px;color:#a7a5d4}
 .workspace-switcher{display:flex;align-items:center;gap:10px;padding:11px 10px;margin-bottom:25px;border:1px solid #34334d;background:var(--sidebar-deep, #10131B);border-radius:12px;min-width:0}
-.workspace-avatar{display:grid;place-items:center;flex:none;width:33px;height:33px;border-radius:9px;background:#38345f;color:#c8c4ff;font-weight:700}
+.workspace-avatar{display:grid;place-items:center;flex:none;width:33px;height:33px;border-radius:9px;background:#191D28;color:#f1f4fb;font-weight:700}
 .workspace-copy,.profile-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.workspace-copy strong,.profile-copy strong{font-size:12px;font-weight:600}.workspace-copy small,.profile-copy small{font-size:10px;color:var(--sidebar-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.switch-chevron{color:#a5a5c0}
 .side-nav{display:flex;flex-direction:column;gap:23px}.nav-section{padding:0 12px;margin:0 0 8px;font-size:9px;letter-spacing:1.5px;color:#777795;font-weight:700}.nav-group{display:flex;flex-direction:column;gap:4px}.nav-item{display:flex;align-items:center;gap:12px;width:100%;min-height:41px;padding:0 12px;border:0;border-radius:9px;text-align:left;color:#b7b7d0;background:transparent;font-size:12px;font-weight:500;transition:background .15s,color .15s}.nav-item:hover{background:#ffffff0b;color:#fff}.nav-item.active{background:#6258df2d;color:#d5d1ff;font-weight:600}.nav-glyph{display:grid;place-items:center;width:19px;font-size:18px;color:#9695ba}.nav-item.active .nav-glyph{color:#a8a1ff}.nav-soon{margin-left:auto;border:1px solid #45435f;border-radius:5px;padding:2px 5px;color:#9c9ab8;font-size:8px;letter-spacing:.6px}
 .sidebar-bottom{margin-top:auto}.help-card{display:flex;align-items:center;gap:9px;padding:12px 9px;margin-bottom:16px;border:1px solid #34334d;border-radius:10px;background:var(--sidebar-deep, #10131B)}.help-icon{width:25px;height:25px;display:grid;place-items:center;border-radius:8px;background:#38345f;color:#c6c2ff;font-weight:700}.help-card div{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}.help-card strong{font-size:10px}.help-card small{font-size:9px;color:var(--sidebar-muted)}.help-arrow{font-size:12px;color:#a7a5c5}.profile-row{display:flex;align-items:center;gap:10px;padding:16px 7px 3px;border-top:1px solid #34334d}.profile-avatar,.top-avatar{width:33px;height:33px;display:grid;place-items:center;border-radius:50%;background:#dcd9ff;color:#4c43bc;font-size:10px;font-weight:700}.profile-more{border:0;background:transparent;color:#aaa9c1;font-size:20px}
@@ -2846,3 +2846,9 @@ input[type="color"].profile-tag-inline-color {
     max-height: 74px;
   }
 }
+
+/* Collapsed contact card: keep the restore action accessible at every viewport. */
+.contact-profile.profile-collapsed .contact-profile-heading{padding:8px 5px;justify-content:center;gap:0}
+.contact-profile.profile-collapsed .profile-toggle{display:grid;flex:0 0 36px;width:36px;height:36px;margin:0;position:relative;z-index:3}
+.contact-profile.profile-collapsed .profile-toggle svg{display:block}
+.workspace-avatar{background:#191D28!important;color:#f1f4fb}

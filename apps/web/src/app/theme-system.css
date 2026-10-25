@@ -338,3 +338,9 @@ html:root[data-theme] :is(.quick-reply-create > button:not(.quick-reply-emoji-tr
 .quick-reply-use { min-width:0; }
 .quick-reply-use small { overflow:hidden; text-overflow:ellipsis; }
 @media(max-width:760px) { .quick-reply-meta-fields { grid-template-columns:1fr; } }
+
+/* Brand-consistent navigation and dashboard cards across all appearance modes. */
+:root[data-theme="hybrid"],:root[data-theme="dark"]{--sidebar-active:color-mix(in srgb,var(--primary) 68%,#191D28)}
+:root[data-theme="hybrid"] :is(.activity-card,.shortcuts-card){background-color:#fff!important;border-color:var(--border-subtle)!important;color:var(--text-primary)}
+:root[data-theme="dark"] :is(.activity-card,.shortcuts-card){background-color:var(--surface-1)!important;border-color:var(--border-subtle)!important;color:var(--text-primary)}
+:root[data-theme="hybrid"] .sidebar .nav-item.active,:root[data-theme="dark"] .sidebar .nav-item.active{background:var(--sidebar-active);border-color:color-mix(in srgb,var(--primary) 55%,transparent)}

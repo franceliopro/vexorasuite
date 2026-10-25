@@ -2903,3 +2903,5 @@ input[type="color"].profile-tag-inline-color {
 .finance-health-summary dd{margin:0;font-weight:700}
 @media(max-width:1100px){.finance-health-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-health-panels{grid-template-columns:1fr}}
 @media(max-width:550px){.finance-health-metrics{grid-template-columns:1fr 1fr}.finance-health-metric{padding:12px}.finance-health-metric>strong{font-size:18px}}
+
+.finance-health-date-range{display:flex;gap:10px;flex-wrap:wrap}.finance-health-date-range label{display:flex;align-items:center;gap:6px;font-size:12px}.finance-health-date-range input{min-height:34px;padding:6px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:var(--card,#fff);color:inherit}

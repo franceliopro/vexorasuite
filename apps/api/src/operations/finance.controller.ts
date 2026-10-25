@@ -12,21 +12,26 @@ export class FinanceController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get("dashboard")
-  async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string) {
+  async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string, @Query("from") start?: string, @Query("to") end?: string) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
-    const months = [2, 3, 6, 12].includes(Number(period)) ? Number(period) : 6;
+    const months = [1, 2, 3, 6, 12].includes(Number(period)) ? Number(period) : 1;
     const now = new Date();
-    const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
+    const validDate = (s: string | undefined) => !!s && /^\\d{4}-\\d{2}-\\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
+    if ((start || end) && (!validDate(start) || !validDate(end) || start! > end!)) throw new ForbiddenException("Informe datas inicial e final válidas.");
+    const from = start ? new Date(start + "T00:00:00.000Z") : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
+    const until = end ? new Date(end + "T23:59:59.999Z") : now;
+    if (until.getTime() - from.getTime() > 366 * 86400000) throw new ForbiddenException("Selecione um intervalo de até 366 dias.");
+    const bucketCount = start ? Math.min(13, (until.getUTCFullYear() - from.getUTCFullYear()) * 12 + until.getUTCMonth() - from.getUTCMonth() + 1) : months;
     const payments = await this.prisma.payment.findMany({
-      where: { tenantId: req.user.tenantId, createdAt: { gte: from }, provider: "ASAAS" },
+      where: { tenantId: req.user.tenantId, createdAt: { gte: from, lte: until }, provider: "ASAAS" },
       select: { id: true, amount: true, status: true, environment: true, createdAt: true, contactId: true },
       orderBy: { createdAt: "desc" },
       take: 10000,
     });
     const eligible = payments.filter(p => !EXCLUDED.has(p.status.toUpperCase()));
     const totals = { billed: 0, paid: 0, open: 0, count: eligible.length, overdueCount: 0 };
-    const buckets = Array.from({ length: months }, (_, i) => {
-      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1 + i, 1));
+    const buckets = Array.from({ length: bucketCount }, (_, i) => {
+      const date = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + i, 1));
       return { month: date.toISOString().slice(0, 7), billed: 0, paid: 0, open: 0 };
     });
     for (const p of eligible) {
@@ -47,7 +52,7 @@ export class FinanceController {
       source: "LOCAL_PAYMENT_RECORDS", partial: payments.length === 10000,
       caveat: "Indicadores calculados somente sobre pagamentos registrados em atendimentos na Véxora. Não representam a carteira completa do Asaas; vencimento e inadimplência real exigem conciliação de cobranças.",
       environment: [...new Set(payments.map(p => p.environment))],
-      months, totals, series: buckets, outstandingContacts: outstandingByContact.size,
+      months: bucketCount, from: from.toISOString().slice(0,10), to: until.toISOString().slice(0,10), totals, series: buckets, outstandingContacts: outstandingByContact.size,
       collectionRate: totals.billed > 0 ? Math.round(totals.paid / totals.billed * 1000) / 10 : null,
     };
   }

@@ -22,16 +22,16 @@ export class FinanceController {
   }
 
   @Get("dashboard")
-  async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string, @Query("from") start?: string, @Query("to") end?: string) {
+  async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string, @Query("from") start?: string, @Query("to") end?: string, @Query("all") all?: string) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
     const months = [1, 2, 3, 6, 12].includes(Number(period)) ? Number(period) : 1;
     const now = new Date();
     const validDate = (s: string | undefined) => !!s && /^\\d{4}-\\d{2}-\\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
     if ((start || end) && (!validDate(start) || !validDate(end) || start! > end!)) throw new ForbiddenException("Informe datas inicial e final válidas.");
-    const from = start ? new Date(start + "T00:00:00.000Z") : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
+    const from = all === "true" ? new Date("2000-01-01T00:00:00.000Z") : start ? new Date(start + "T00:00:00.000Z") : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
     const until = end ? new Date(end + "T23:59:59.999Z") : now;
-    if (until.getTime() - from.getTime() > 366 * 86400000) throw new ForbiddenException("Selecione um intervalo de até 366 dias.");
-    const bucketCount = start ? Math.min(13, (until.getUTCFullYear() - from.getUTCFullYear()) * 12 + until.getUTCMonth() - from.getUTCMonth() + 1) : months;
+    if (all !== "true" && until.getTime() - from.getTime() > 366 * 86400000) throw new ForbiddenException("Selecione um intervalo de até 366 dias.");
+    const bucketCount = all === "true" ? 12 : start ? Math.min(13, (until.getUTCFullYear() - from.getUTCFullYear()) * 12 + until.getUTCMonth() - from.getUTCMonth() + 1) : months;
     const payments = await this.prisma.payment.findMany({
       where: { tenantId: req.user.tenantId, createdAt: { gte: from, lte: until }, provider: "ASAAS" },
       select: { id: true, amount: true, status: true, environment: true, createdAt: true, contactId: true },

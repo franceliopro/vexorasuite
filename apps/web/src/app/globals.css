@@ -2790,3 +2790,59 @@ input[type="color"].profile-tag-inline-color {
     margin-bottom: 14px;
   }
 }
+
+
+/* The input grows for three lines without displacing the conversation offscreen. */
+.composer-shell .inbox-composer > .composer-toolbar > .composer-tools > textarea {
+  display: block;
+  flex: 1 1 auto;
+  height: 34px;
+  min-height: 34px;
+  max-height: 74px;
+  line-height: 20px;
+  padding: 7px 6px;
+  resize: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.composer-shell .inbox-composer > .composer-toolbar > .composer-tools {
+  align-items: flex-end;
+}
+.composer-shell .inbox-composer > .composer-toolbar {
+  height: auto;
+  min-height: 34px;
+}
+.main-area:has(.inbox-workspace) .inbox-thread > .composer-shell:not([style*="height:"]) {
+  height: auto;
+}
+.composer-shell:not([style*="height:"]) .inbox-composer {
+  height: auto;
+  flex: 0 0 auto;
+}
+@media (max-width: 760px) {
+  .inbox-workspace.mobile-thread-open .inbox-thread > .composer-shell {
+    display: flex !important;
+    position: relative;
+    visibility: visible;
+    flex-shrink: 0;
+    z-index: 5;
+    padding-bottom: max(7px,env(safe-area-inset-bottom));
+  }
+  .inbox-workspace.mobile-thread-open .inbox-thread .inbox-composer,
+  .inbox-workspace.mobile-thread-open .inbox-thread .composer-toolbar,
+  .inbox-workspace.mobile-thread-open .inbox-thread .composer-tools {
+    min-width: 0;
+    overflow: visible;
+  }
+  .inbox-workspace.mobile-thread-open .inbox-thread .composer-tools > textarea {
+    display: block !important;
+    visibility: visible;
+    min-width: 48px;
+    width: 0;
+    font-size: 16px;
+    max-height: 74px;
+  }
+}

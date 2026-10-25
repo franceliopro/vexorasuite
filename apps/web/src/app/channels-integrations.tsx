@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, ExternalLink, Instagram, LoaderCircle, MessageCircle, Plus, RefreshCw, ShieldCheck, Unplug } from "lucide-react";
 
 type SocialAccount = { accountId: string; platform: string; username?: string; name?: string; status?: string; profileName?: string };
-type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; authenticated: boolean; accountCount: number; accounts: SocialAccount[]; checkedAt: string };
+type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; authenticated: boolean; accountCount: number; accounts: SocialAccount[]; checkedAt: string; message?: string; diagnosticStage?: string; providerStatus?: number };
 type Channel = { id: string; name: string; provider: string; status: string; platform?: string; accountId?: string; lastError?: string | null; createdAt?: string };
 type Setup = { id: string; name: string; platform: string; accountId: string; webhookUrl: string | null; webhookSecret: string; webhookSetup: string };
 const platformNames: Record<string,string> = { instagram:"Instagram", facebook:"Facebook", messenger:"Messenger", whatsapp:"WhatsApp", tiktok:"TikTok", linkedin:"LinkedIn", youtube:"YouTube", threads:"Threads", pinterest:"Pinterest", x:"X", twitter:"X", reddit:"Reddit", bluesky:"Bluesky", telegram:"Telegram", discord:"Discord", snapchat:"Snapchat", googlebusiness:"Google Business" };
@@ -36,7 +36,7 @@ export function ChannelsIntegrations(){
        api<Channel[]>("/api/backend/channels")
      ]);
      setDiagnostic(diag);setChannels(existing);
-     if(showFeedback)setNotice(diag.authenticated?"Conexão com a Zernio validada com sucesso.":"A configuração da Zernio precisa de atenção.");
+     if(showFeedback)setNotice(diag.message || (diag.authenticated?"Conexão com a Zernio validada com sucesso.":"A configuração da Zernio precisa de atenção."));
    }catch(e){setDiagnostic(null);setChannels([]);setError(e instanceof Error?e.message:"Não foi possível verificar a integração.");}
    finally{setLoading(false);}
  },[]);
@@ -44,7 +44,7 @@ export function ChannelsIntegrations(){
  const socialAccounts=useMemo(()=>diagnostic?.accounts||[],[diagnostic]);
  const chosen=socialAccounts.find(a=>a.accountId===selectedAccount);
  useEffect(()=>{if(chosen){setPlatform(chosen.platform.toLowerCase());setName(chosen.name||chosen.username||platformName(chosen.platform));setManualAccountId(chosen.accountId);}},[selectedAccount]);
- async function validate(){setChecking(true);setError("");setNotice("");try{const diag=await api<Diagnostic>("/api/backend/channels/zernio/diagnostics");setDiagnostic(diag);setNotice(diag.authenticated?"Integração validada: a Véxora autenticou na Zernio e consultou as contas.":"A Zernio não confirmou a autenticação. Confira os secrets do servidor.");}catch(e){setError(e instanceof Error?e.message:"Falha na validação da Zernio.");}finally{setChecking(false);}}
+ async function validate(){setChecking(true);setError("");setNotice("");try{const diag=await api<Diagnostic>("/api/backend/channels/zernio/diagnostics");setDiagnostic(diag);setNotice(diag.message || (diag.authenticated?"Integração validada: a Véxora autenticou na Zernio e consultou as contas.":"A Zernio não confirmou a autenticação. Confira os secrets do servidor."));}catch(e){setError(e instanceof Error?e.message:"Falha na validação da Zernio.");}finally{setChecking(false);}}
  async function connectAccount(event:React.FormEvent){event.preventDefault();const accountId=(chosen?.accountId||manualAccountId).trim();const accountName=name.trim()||chosen?.username||chosen?.name||platformName(platform);if(!accountId||!accountName){setError("Selecione uma conta disponível ou informe o ID da conta Zernio.");return;}setBusy(true);setError("");setNotice("");setSetup(null);setSecretVisible(false);
    try{const result=await api<Setup>("/api/backend/channels/zernio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:accountName,platform:(chosen?.platform||platform)==="twitter"?"x":(chosen?.platform||platform),accountId})});setSetup(result);setSecretVisible(true);setChannels(await api<Channel[]>("/api/backend/channels"));setNotice("Conta vinculada à Véxora. Falta configurar e testar o webhook para validar o recebimento.");setSelectedAccount("");setName("");setManualAccountId("");}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível vincular a conta.");}finally{setBusy(false);}

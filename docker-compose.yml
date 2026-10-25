@@ -33,6 +33,8 @@ services:
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://app.vexorasuite.com.br}
       WAHA_BASE_URL: ${WAHA_BASE_URL:-}
       WAHA_API_KEY: ${WAHA_API_KEY:-}
+      ZERNIO_API_KEY: ${ZERNIO_API_KEY:-}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-https://api.vexorasuite.com.br}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
     expose:

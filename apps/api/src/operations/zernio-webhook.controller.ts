@@ -27,6 +27,10 @@ export class ZernioWebhookController {
     const event = typeof body.event === "string" ? body.event : "";
     const accountId = String(body.account?.accountId || body.accountId || "");
     if (accountId !== String(settings.accountId || "")) return { ok: true, ignored: true };
+    if (channel.status !== "CONNECTED") {
+      await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "CONNECTED", lastError: null } });
+      this.events.publish(channel.tenantId, "channel.status", { id: channel.id, status: "CONNECTED" });
+    }
 
     if (event === "message.received") {
       const message = body.message && typeof body.message === "object" ? body.message as JsonObject : {};

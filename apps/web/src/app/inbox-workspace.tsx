@@ -65,8 +65,9 @@ function avatarUrl(contact: Contact): string | null {
 function ChannelMark({ channel, kind = "source", mode }: { channel?: string; kind?: "source" | "agent"; mode?: "BOT" | "HUMAN" }) {
   const value = (channel || "WHATSAPP").toUpperCase();
   if (kind === "agent") {
-    if (mode === "HUMAN") return null;
-    const isAi = ["AI", "LLM", "OPENAI", "GPT"].includes(String(mode || "").toUpperCase()) || ["AI", "LLM", "OPENAI", "GPT", "IA"].some(token => value.includes(token));
+    if (mode !== "BOT") return null;
+    if (!value.trim()) return null;
+    const isAi = ["AI", "LLM", "OPENAI", "GPT", "IA"].some(token => value === token);
     return <span className={"channel-mark " + (isAi ? "channel-ai" : "channel-bot")} title={isAi ? "Atendimento por IA" : "Atendimento por chatbot"} aria-label={isAi ? "IA" : "Chatbot"}>{isAi ? <BrainCircuit size={12}/> : <Bot size={12}/>}</span>;
   }
   if (value.includes("INSTAGRAM")) return <span className="channel-mark channel-instagram" title="Instagram" aria-label="Instagram"><Instagram size={13}/></span>;
@@ -544,7 +545,7 @@ export function InboxWorkspace() {
       </nav>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { setSelectedId(item.id); setMobileThreadOpen(true); }}>
-          <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{item.contact.name}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || "")}/></span></span>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:tagForeground(tag.color),borderColor:tag.color}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>
+          <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{item.contact.name}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))}/></span></span>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:tagForeground(tag.color),borderColor:tag.color}}>{tag.name}</span>)}</span> : null}<small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>
         </button>)}
         {!conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
       </div>

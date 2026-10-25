@@ -4,7 +4,7 @@ import { Activity, AlertCircle, RefreshCcw, Wallet } from "lucide-react";
 type Dashboard = { source:string;partial:boolean;caveat:string;environment:string[];months:number;totals:{billed:number;paid:number;open:number;count:number};series:{month:string;billed:number;paid:number;open:number}[];outstandingContacts:number;collectionRate:number|null };
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 
-type PortfolioItem = { id:string;customerId:string;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null;invoiceUrl?:string|null };
+type PortfolioItem = { id:string;customerId:string;customerName?:string|null;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null;invoiceUrl?:string|null };
 type Portfolio = {source:string;environment:string;items:PortfolioItem[];hasMore:boolean;offset:number;totalCount:number|null};
 function PortfolioView(){
  const [status,setStatus]=useState("");
@@ -34,12 +34,12 @@ function PortfolioView(){
   </div>
   {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando cobranças…</p>:data&&<>
    <p className="finance-portfolio-meta">Fonte: Asaas · Ambiente: {data.environment} · Página {Math.floor(data.offset/50)+1}{data.totalCount!==null?" · Total informado: "+data.totalCount:""}</p>
-   <div className="finance-portfolio-scroll"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{data.items.map(p=><tr key={p.id}><td>{p.dueDate}</td><td>{p.description||"Cobrança sem descrição"}</td><td>{currency(p.value)}</td><td>{p.status}</td><td>{["PENDING","OVERDUE"].includes(p.status)?<button type="button" onClick={()=>{setSelected(p);setCopied(false)}}>Cobrar</button>:p.invoiceUrl?<a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer">Fatura</a>:"—"}</td></tr>)}</tbody></table>{!data.items.length?<p>Nenhuma cobrança encontrada.</p>:null}</div>
+   <div className="finance-portfolio-scroll"><table><thead><tr><th>Cliente</th><th>Serviço / referência</th><th>Vencimento</th><th>Situação</th><th>Valor</th><th>Saldo</th><th>Ações</th></tr></thead><tbody>{data.items.map(p=><tr key={p.id}><td><strong>{p.customerName||"Cliente não identificado"}</strong></td><td>{p.description||p.subscriptionId||"Sem referência"}</td><td>{p.dueDate}</td><td>{p.status}</td><td>{currency(p.value)}</td><td>{["PENDING","OVERDUE"].includes(p.status)?currency(p.value):"—"}</td><td>{["PENDING","OVERDUE"].includes(p.status)?<button className="finance-collection-action" type="button" disabled={!p.customerName} title={!p.customerName?"Cliente não identificado no Asaas":undefined} onClick={()=>{setSelected(p);setCopied(false)}}>Cobrar</button>:p.invoiceUrl?<a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer">Fatura</a>:"—"}</td></tr>)}</tbody></table>{!data.items.length?<p>Nenhuma cobrança encontrada.</p>:null}</div>
    <div className="finance-portfolio-pagination"><button type="button" disabled={!offset} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Anterior</button><button type="button" disabled={!data.hasMore} onClick={()=>setOffset(n=>n+50)}>Próxima</button></div>
   </>}
  {selected&&<div className="finance-collection-overlay" role="presentation" onClick={()=>setSelected(null)}><aside className="finance-collection-drawer" role="dialog" aria-modal="true" aria-label="Preparar cobrança" onClick={e=>e.stopPropagation()}>
-  <header><h2>Preparar cobrança</h2><button type="button" aria-label="Fechar" onClick={()=>setSelected(null)}>×</button></header>
-  <p><strong>{currency(selected.value)}</strong> · Vencimento {selected.dueDate} · {selected.status}</p>
+  <header><h2>Enviar cobrança existente</h2><button type="button" aria-label="Fechar" onClick={()=>setSelected(null)}>×</button></header>
+  <p><strong>Cliente: {selected.customerName||"Não identificado"}</strong></p><p><strong>{currency(selected.value)}</strong> · Vencimento {selected.dueDate} · {selected.status}</p>
   <label>Modelo de mensagem<select value={template} onChange={e=>{setTemplate(e.target.value);setCopied(false)}}><option value="friendly">Lembrete cordial</option><option value="due">Aviso de vencimento</option><option value="late">Cobrança após vencimento</option></select></label>
   <p>Mensagem preparada com os dados reais desta cobrança. Confira o destinatário antes de enviar.</p>
   <textarea readOnly rows={7} value={(template==="late"?"Olá! Identificamos uma cobrança pendente com vencimento em ":template==="due"?"Olá! Sua cobrança tem vencimento em ":"Olá! Segue um lembrete sobre sua cobrança com vencimento em ")+selected.dueDate+", no valor de "+currency(selected.value)+"."+(selected.invoiceUrl?" Acesse a fatura: "+selected.invoiceUrl:" Entre em contato com nosso financeiro para obter os dados de pagamento.")+" Se já realizou o pagamento, desconsidere esta mensagem."}/>

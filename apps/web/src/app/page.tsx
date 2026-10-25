@@ -5,6 +5,7 @@ import { AuthScreen, type AuthSession } from "./auth-screen";
 import { InboxWorkspace } from "./inbox-workspace";
 import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
+import { FinanceWorkspace } from "./finance-workspace";
 import { ChannelsIntegrations } from "./channels-integrations";
 import {
   CalendarDays,
@@ -244,6 +245,8 @@ export default function HomePage() {
             </>
           ) : active === "CRM" ? (
             <CrmWorkspace />
+          ) : active === "Financeiro" || active === "Gestão" ? (
+            canConfigure ? <FinanceWorkspace /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
           ) : active === "Workflows" ? (
             <section className="module-workspace">
               <header className="page-heading"><div><p className="eyebrow">AUTOMAÇÃO</p><h1>Workflows</h1><p className="page-subtitle">Organize campanhas e jornadas automatizadas em um espaço único.</p></div></header>

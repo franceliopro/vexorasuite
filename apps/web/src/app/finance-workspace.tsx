@@ -4,7 +4,7 @@ import { Activity, AlertCircle, RefreshCcw, Wallet } from "lucide-react";
 type Dashboard = { source:string;partial:boolean;caveat:string;environment:string[];months:number;totals:{billed:number;paid:number;open:number;count:number};series:{month:string;billed:number;paid:number;open:number}[];outstandingContacts:number;collectionRate:number|null };
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 
-type PortfolioItem = { id:string;customerId:string;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null };
+type PortfolioItem = { id:string;customerId:string;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null;invoiceUrl?:string|null };
 type Portfolio = {source:string;environment:string;items:PortfolioItem[];hasMore:boolean;offset:number;totalCount:number|null};
 function PortfolioView(){
  const [status,setStatus]=useState("");
@@ -15,6 +15,9 @@ function PortfolioView(){
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState("");
  const [refresh,setRefresh]=useState(0);
+ const [selected,setSelected]=useState<PortfolioItem|null>(null);
+ const [template,setTemplate]=useState("friendly");
+ const [copied,setCopied]=useState(false);
  useEffect(()=>{let active=true;setLoading(true);setError("");
   const q=new URLSearchParams({offset:String(offset),limit:"50"});
   if(status)q.set("status",status);if(dueFrom)q.set("dueFrom",dueFrom);if(dueTo)q.set("dueTo",dueTo);
@@ -31,9 +34,19 @@ function PortfolioView(){
   </div>
   {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando cobranças…</p>:data&&<>
    <p className="finance-portfolio-meta">Fonte: Asaas · Ambiente: {data.environment} · Página {Math.floor(data.offset/50)+1}{data.totalCount!==null?" · Total informado: "+data.totalCount:""}</p>
-   <div className="finance-portfolio-scroll"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Valor</th><th>Situação</th><th>Identificador</th></tr></thead><tbody>{data.items.map(p=><tr key={p.id}><td>{p.dueDate}</td><td>{p.description||"Cobrança sem descrição"}</td><td>{currency(p.value)}</td><td>{p.status}</td><td>{p.id}</td></tr>)}</tbody></table>{!data.items.length?<p>Nenhuma cobrança encontrada.</p>:null}</div>
+   <div className="finance-portfolio-scroll"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Valor</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{data.items.map(p=><tr key={p.id}><td>{p.dueDate}</td><td>{p.description||"Cobrança sem descrição"}</td><td>{currency(p.value)}</td><td>{p.status}</td><td>{["PENDING","OVERDUE"].includes(p.status)?<button type="button" onClick={()=>{setSelected(p);setCopied(false)}}>Cobrar</button>:p.invoiceUrl?<a href={p.invoiceUrl} target="_blank" rel="noopener noreferrer">Fatura</a>:"—"}</td></tr>)}</tbody></table>{!data.items.length?<p>Nenhuma cobrança encontrada.</p>:null}</div>
    <div className="finance-portfolio-pagination"><button type="button" disabled={!offset} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Anterior</button><button type="button" disabled={!data.hasMore} onClick={()=>setOffset(n=>n+50)}>Próxima</button></div>
   </>}
+ {selected&&<div className="finance-collection-overlay" role="presentation" onClick={()=>setSelected(null)}><aside className="finance-collection-drawer" role="dialog" aria-modal="true" aria-label="Preparar cobrança" onClick={e=>e.stopPropagation()}>
+  <header><h2>Preparar cobrança</h2><button type="button" aria-label="Fechar" onClick={()=>setSelected(null)}>×</button></header>
+  <p><strong>{currency(selected.value)}</strong> · Vencimento {selected.dueDate} · {selected.status}</p>
+  <label>Modelo de mensagem<select value={template} onChange={e=>{setTemplate(e.target.value);setCopied(false)}}><option value="friendly">Lembrete cordial</option><option value="due">Aviso de vencimento</option><option value="late">Cobrança após vencimento</option></select></label>
+  <p>Mensagem preparada com os dados reais desta cobrança. Confira o destinatário antes de enviar.</p>
+  <textarea readOnly rows={7} value={(template==="late"?"Olá! Identificamos uma cobrança pendente com vencimento em ":template==="due"?"Olá! Sua cobrança tem vencimento em ":"Olá! Segue um lembrete sobre sua cobrança com vencimento em ")+selected.dueDate+", no valor de "+currency(selected.value)+"."+(selected.invoiceUrl?" Acesse a fatura: "+selected.invoiceUrl:" Entre em contato com nosso financeiro para obter os dados de pagamento.")+" Se já realizou o pagamento, desconsidere esta mensagem."}/>
+  <button type="button" onClick={async()=>{const message=(document.querySelector(".finance-collection-drawer textarea") as HTMLTextAreaElement|null)?.value||"";try{await navigator.clipboard.writeText(message);setCopied(true)}catch{setCopied(false)}}}>{copied?"Mensagem copiada":"Copiar mensagem"}</button>
+  {selected.invoiceUrl?<a href={selected.invoiceUrl} target="_blank" rel="noopener noreferrer">Abrir fatura no Asaas</a>:null}
+  <small>Não enviada automaticamente. O envio integrado e seu histórico dependem da conexão do canal e de auditoria.</small>
+ </aside></div>}
  </section>;
 }
 
@@ -50,7 +63,7 @@ export function FinanceWorkspace(){
  const max=Math.max(1,...(data?.series||[]).map(v=>v.billed));
  return <section className="module-workspace finance-health">
    <header className="page-heading"><div><h1>Financeiro</h1><p className="page-subtitle">Visão dos recebimentos registrados nos atendimentos.</p></div></header>
-   <div className="finance-health-toolbar"><div className="module-tabs" role="group" aria-label="Comparar períodos">{[1,2,3,6,12].map(m=><button type="button" key={m} className={!custom&&months===m?"active":""} onClick={()=>{setCustom(false);setMonths(m)}}>{m===1?"Mês atual":m===12?"1 ano":m+" meses"}</button>)}<button type="button" className={custom?"active":""} onClick={()=>{if(!from){const d=new Date();setFrom(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)).toISOString().slice(0,10));setTo(d.toISOString().slice(0,10));}setCustom(true)}}>Personalizado</button></div>{custom&&<div className="finance-health-date-range"><label>De <input type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)}/></label><label>Até <input type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)}/></label></div>}<button className="secondary-button" type="button" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Atualizar</button></div>
+   <div className="finance-health-toolbar"><div className="module-tabs" role="group" aria-label="Comparar períodos">{[1,2,3,6,12].map(m=><button type="button" key={m} className={!custom&&months===m?"active":""} onClick={()=>{setCustom(false);setMonths(m)}}>{m===1?"Mês atual":m===12?"1 ano":m+" meses"}</button>)}<button type="button" className={custom?"active":""} onClick={()=>{if(!from){const d=new Date();setFrom(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)).toISOString().slice(0,10));setTo(d.toISOString().slice(0,10));}setCustom(true)}}>Personalizado</button></div>{false&&custom&&<div className="finance-health-date-range"><label>De <input type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)}/></label><label>Até <input type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)}/></label></div>}<button className="secondary-button" type="button" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Atualizar</button></div>
    {loading?<p role="status">Consultando dados financeiros…</p>:error?<div className="content-card finance-health-note" role="alert"><AlertCircle size={18}/>{error}</div>:data&&<>
    <div className="finance-health-note content-card"><AlertCircle size={17}/><span><strong>Visão parcial dos atendimentos.</strong> {data.caveat}{data.partial?" Limite de 10 mil registros atingido.":""}</span></div>
    <div className="finance-health-metrics">

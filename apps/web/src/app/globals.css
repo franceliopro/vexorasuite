@@ -2905,3 +2905,8 @@ input[type="color"].profile-tag-inline-color {
 @media(max-width:550px){.finance-health-metrics{grid-template-columns:1fr 1fr}.finance-health-metric{padding:12px}.finance-health-metric>strong{font-size:18px}}
 
 .finance-health-date-range{display:flex;gap:10px;flex-wrap:wrap}.finance-health-date-range label{display:flex;align-items:center;gap:6px;font-size:12px}.finance-health-date-range input{min-height:34px;padding:6px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:var(--card,#fff);color:inherit}
+
+/* Compact network and automation provenance marks in the inbox. */
+.conversation-channel-marks{display:inline-flex;align-items:center;gap:3px;flex-shrink:0}
+.conversation-channel-marks .channel-mark{width:15px;height:15px;min-width:15px;display:inline-flex;align-items:center;justify-content:center}
+.conversation-channel-marks .channel-mark svg{width:11px;height:11px}

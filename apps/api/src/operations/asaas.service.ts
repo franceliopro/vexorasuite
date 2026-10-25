@@ -53,6 +53,17 @@ export class AsaasService {
     return { enabled: settings.enabled === true, sandbox: settings.sandbox !== false, configured: Boolean(settings.encryptedApiKey), apiKeyMasked: settings.encryptedApiKey ? "••••••••••••" : "", webhookTokenConfigured: Boolean(settings.encryptedWebhookToken), webhookUrl: origin + "/api/webhooks/asaas/" + tenantId };
   }
 
+  async testConnection(tenantId: string): Promise<{ connected: true; environment: "SANDBOX" | "PRODUCTION"; accountName: string | null }> {
+    const credentials = await this.credentials(tenantId);
+    // Read-only call using the tenant's own credentials. No customer or charge is created.
+    const result = await this.request<{ name?: string; commercialName?: string }>(tenantId, "/myAccount");
+    return {
+      connected: true,
+      environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION",
+      accountName: result.commercialName || result.name || null,
+    };
+  }
+
   async saveSettings(tenantId: string, input: { enabled?: unknown; sandbox?: unknown; apiKey?: unknown; webhookToken?: unknown }) {
     if (typeof input.enabled !== "boolean" || typeof input.sandbox !== "boolean") throw new BadRequestException("Informe se o Asaas está ativado e se usa Sandbox.");
     const current = await this.settings(tenantId);

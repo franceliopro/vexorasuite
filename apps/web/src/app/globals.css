@@ -2937,3 +2937,16 @@ input[type="color"].profile-tag-inline-color {
 .finance-collection-drawer textarea{width:100%;resize:vertical;border-radius:10px;padding:12px;background:transparent;color:inherit;border:1px solid #9995}
 .finance-collection-drawer select{padding:9px;border-radius:8px;background:transparent;color:inherit}
 .finance-collection-drawer button{cursor:pointer;padding:9px 12px;border-radius:8px}
+
+
+/* Compact, recognizable, colorful flat social badges. No distortion. */
+.conversation-channel-marks{gap:4px}
+.conversation-channel-marks .channel-mark{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;min-width:19px;flex:0 0 19px;border-radius:6px;aspect-ratio:1;overflow:hidden;box-shadow:none;border:0}
+.conversation-channel-marks .channel-mark svg{display:block;width:13px;height:13px;flex:none;stroke-width:2.25}
+.conversation-channel-marks .channel-instagram{background:#fce7f3;color:#c02675}
+.conversation-channel-marks .channel-facebook{background:#e7f0ff;color:#1877f2}
+.conversation-channel-marks .channel-tiktok{background:#20242b;color:#fff}
+.conversation-channel-marks .channel-ai{background:#ede9fe;color:#7046d8}
+.conversation-channel-marks .channel-bot{background:#e0f2fe;color:#0284c7}
+.conversation-channel-marks .channel-whatsapp{background:transparent;border-radius:50%}
+.conversation-channel-marks .channel-whatsapp svg{width:19px;height:19px;stroke-width:initial}

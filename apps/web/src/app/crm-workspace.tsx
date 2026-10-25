@@ -205,7 +205,7 @@ export function CrmWorkspace() {
       {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
         <section className="crm-pipeline" aria-label="Pipeline comercial">
           {stages.map((stage) => {
-            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !contact.crmFinalization && (contact.crmStage || "new") === stage.id);
+            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (contact.crmStage || "new") === stage.id);
             const activeDrop = dropTarget === stage.id;
             return <div key={stage.id} className={"crm-pipeline-column tone-" + stage.tone + (activeDrop ? " drop-active" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}

@@ -25,7 +25,11 @@ export class GoogleOAuthController {
     return [iv, cipher.getAuthTag(), data].map(x => x.toString("base64url")).join(".");
   }
   private decrypt(value: string) {
-    const [iv, tag, data] = value.split(".").map(x => Buffer.from(x, "base64url"));
+    const parts = value.split(".");
+    if (parts.length !== 3 || parts.some(part => !part)) throw new BadRequestException("Credencial criptografada inválida.");
+    const iv = Buffer.from(parts[0]!, "base64url");
+    const tag = Buffer.from(parts[1]!, "base64url");
+    const data = Buffer.from(parts[2]!, "base64url");
     const cipher = createDecipheriv("aes-256-gcm", this.key(), iv);
     cipher.setAuthTag(tag);
     return Buffer.concat([cipher.update(data), cipher.final()]).toString("utf8");
@@ -88,7 +92,7 @@ export class GoogleOAuthController {
       const info = await infoResponse.json() as { sub?: string; email?: string; email_verified?: boolean };
       if (!info.sub || !info.email || !info.email_verified) return done("identity_error");
       const granted = (token.scope || "").split(" ");
-      if (!scopes[attempt.service].some(s => s.startsWith("https://") && granted.includes(s))) return done("scope_missing");
+      if (!scopes[attempt.service]?.some(s => s.startsWith("https://") && granted.includes(s))) return done("scope_missing");
       const prior = await this.prisma.googleConnection.findUnique({ where: { tenantId_googleAccountId: { tenantId: attempt.tenantId, googleAccountId: info.sub } } });
       if (!token.refresh_token && !prior?.refreshTokenEncrypted) return done("offline_missing");
       await this.prisma.googleConnection.upsert({

@@ -2910,3 +2910,15 @@ input[type="color"].profile-tag-inline-color {
 .conversation-channel-marks{display:inline-flex;align-items:center;gap:3px;flex-shrink:0}
 .conversation-channel-marks .channel-mark{width:15px;height:15px;min-width:15px;display:inline-flex;align-items:center;justify-content:center}
 .conversation-channel-marks .channel-mark svg{width:11px;height:11px}
+
+
+.finance-portfolio{display:grid;gap:14px;margin-top:16px;padding:18px}
+.finance-portfolio h2{margin:0;font-size:18px}.finance-portfolio header p{margin:5px 0 0;font-size:13px;opacity:.7}
+.finance-portfolio-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.finance-portfolio-filters label{display:grid;gap:5px;font-size:12px;min-width:150px}
+.finance-portfolio-filters input,.finance-portfolio-filters select{max-width:100%;padding:8px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:var(--card,#fff);color:inherit}
+.finance-portfolio-scroll{max-width:100%;overflow-x:auto}.finance-portfolio table{width:100%;border-collapse:collapse;font-size:13px;text-align:left;min-width:630px}
+.finance-portfolio th,.finance-portfolio td{padding:9px 12px;border-bottom:1px solid var(--border,#e6e8ed)}
+.finance-portfolio-meta{font-size:12px;opacity:.75}.finance-portfolio-pagination{display:flex;gap:8px;justify-content:flex-end}
+.finance-portfolio-pagination button{padding:7px 12px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:transparent;color:inherit}
+.finance-portfolio-pagination button:disabled{opacity:.4;cursor:not-allowed}

@@ -17,12 +17,14 @@ import { AsaasService } from "./asaas.service";
 import { AsaasWebhookController } from "./asaas-webhook.controller";
 import { AsaasCustomerSyncScheduler } from "./asaas-customer-sync.scheduler";
 import { ReportsController } from "./reports.controller";
+import { ServiceProtocolsController } from "./service-protocols.controller";
+import { ServiceProtocolsService } from "./service-protocols.service";
 
 @Module({
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule],
-  controllers: [ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController],
-  providers: [EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler],
+  controllers: [ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, ServiceProtocolsController],
+  providers: [EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService],
 })
 export class OperationsModule {}

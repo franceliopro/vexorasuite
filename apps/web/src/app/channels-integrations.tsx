@@ -5,7 +5,7 @@ import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, ExternalLink,
 
 type SocialAccount = { accountId: string; platform: string; username?: string; name?: string; status?: string; profileName?: string };
 type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; authenticated: boolean; accountCount: number; accounts: SocialAccount[]; checkedAt: string; message?: string; diagnosticStage?: string; providerStatus?: number };
-type Channel = { id: string; name: string; provider: string; status: string; platform?: string; accountId?: string; lastError?: string | null; createdAt?: string };
+type Channel = { id: string; name: string; provider: string; status: string; platform?: string; accountId?: string; lastError?: string | null; webhookVerifiedAt?: string; createdAt?: string };
 type Setup = { id: string; name: string; platform: string; accountId: string; webhookUrl: string | null; webhookSecret: string; webhookSetup: string };
 const platformNames: Record<string,string> = { instagram:"Instagram", facebook:"Facebook", messenger:"Messenger", whatsapp:"WhatsApp", tiktok:"TikTok", linkedin:"LinkedIn", youtube:"YouTube", threads:"Threads", pinterest:"Pinterest", x:"X", twitter:"X", reddit:"Reddit", bluesky:"Bluesky", telegram:"Telegram", discord:"Discord", snapchat:"Snapchat", googlebusiness:"Google Business" };
 const platformColors: Record<string,string> = { instagram:"#D9468D", facebook:"#1877F2", messenger:"#168AFF", whatsapp:"#159B75", tiktok:"#20242B", linkedin:"#0A66C2", youtube:"#E53935", threads:"#303030", pinterest:"#BD081C", x:"#111827", twitter:"#111827", reddit:"#FF4500", bluesky:"#1685FE", telegram:"#229ED9", discord:"#5865F2", snapchat:"#E5C900", googlebusiness:"#4285F4" };

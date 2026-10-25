@@ -124,6 +124,17 @@ export class AsaasService {
     if (filters.dueTo) query.set("dueDate[le]", filters.dueTo);
     const result = await this.request<{ data?: Array<{ id: string; customer: string; description?: string | null; value: number; netValue?: number; dueDate: string; paymentDate?: string | null; status: string; billingType?: string; invoiceUrl?: string | null; subscription?: string | null }>; hasMore?: boolean; totalCount?: number }>(tenantId, "/payments?" + query.toString());
     const credentials = await this.credentials(tenantId);
+    const ids = [...new Set((result.data || []).map(p => p.customer).filter(Boolean))];
+    const customerNames = new Map<string, string>();
+    // Resolve only the customers shown on this page, without exposing documents or phones.
+    await Promise.all(Array.from({ length: Math.ceil(ids.length / 10) }, (_, batch) =>
+      Promise.all(ids.slice(batch * 10, batch * 10 + 10).map(async id => {
+        try {
+          const customer = await this.request<{ name?: string }>(tenantId, "/customers/" + encodeURIComponent(id));
+          if (customer.name) customerNames.set(id, customer.name);
+        } catch { /* Missing/deleted customer: explicitly show unidentified rather than guessing. */ }
+      }))
+    ));
     return {
       source: "ASAAS_LIVE",
       environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION",
@@ -132,7 +143,7 @@ export class AsaasService {
       hasMore: !!result.hasMore,
       totalCount: result.totalCount ?? null,
       items: (result.data || []).map(item => ({
-        id: item.id, customerId: item.customer, description: item.description || null,
+        id: item.id, customerId: item.customer, customerName: customerNames.get(item.customer) || null, description: item.description || null,
         value: Number(item.value), netValue: item.netValue == null ? null : Number(item.netValue),
         dueDate: item.dueDate, paymentDate: item.paymentDate || null, status: item.status,
         billingType: item.billingType || null, invoiceUrl: item.invoiceUrl || null,

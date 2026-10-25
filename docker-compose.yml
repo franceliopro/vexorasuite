@@ -35,6 +35,10 @@ services:
       WAHA_API_KEY: ${WAHA_API_KEY:-}
       ZERNIO_API_KEY: ${ZERNIO_API_KEY:-}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-https://api.vexorasuite.com.br}
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
     expose:

@@ -80,7 +80,7 @@ export function advanceRastreabemBot(state: BotState, answer: string, suggestedN
         messages.push(platformMenu);
       } else {
         next.step = "DONE";
-        effects.push({ type: "EXTERNAL_CONTACT", sector: next.sector });
+        effects.push({ type: "EXTERNAL_CONTACT", sector: next.sector === "COMERCIAL" ? "COMERCIAL" : "ADMINISTRATIVO" });
       }
       break;
     }

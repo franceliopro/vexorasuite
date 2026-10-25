@@ -126,12 +126,16 @@ export class AsaasService {
     const credentials = await this.credentials(tenantId);
     const ids = [...new Set((result.data || []).map(p => p.customer).filter(Boolean))];
     const customerNames = new Map<string, string>();
+    const customerDocuments = new Map<string, string>();
     // Resolve only the customers shown on this page, without exposing documents or phones.
     await Promise.all(Array.from({ length: Math.ceil(ids.length / 10) }, (_, batch) =>
       Promise.all(ids.slice(batch * 10, batch * 10 + 10).map(async id => {
         try {
-          const customer = await this.request<{ name?: string }>(tenantId, "/customers/" + encodeURIComponent(id));
+          const customer = await this.request<{ name?: string; cpfCnpj?: string }>(tenantId, "/customers/" + encodeURIComponent(id));
           if (customer.name) customerNames.set(id, customer.name);
+          const digits = (customer.cpfCnpj || "").replace(/\D/g, "");
+          if (digits.length === 11) customerDocuments.set(id, digits.slice(0,3) + ".***.***-" + digits.slice(-2));
+          else if (digits.length === 14) customerDocuments.set(id, digits.slice(0,2) + ".***.***/****-" + digits.slice(-2));
         } catch { /* Missing/deleted customer: explicitly show unidentified rather than guessing. */ }
       }))
     ));
@@ -143,7 +147,7 @@ export class AsaasService {
       hasMore: !!result.hasMore,
       totalCount: result.totalCount ?? null,
       items: (result.data || []).map(item => ({
-        id: item.id, customerId: item.customer, customerName: customerNames.get(item.customer) || null, description: item.description || null,
+        id: item.id, customerId: item.customer, customerName: customerNames.get(item.customer) || null, customerDocument: customerDocuments.get(item.customer) || null, description: item.description || null,
         value: Number(item.value), netValue: item.netValue == null ? null : Number(item.netValue),
         dueDate: item.dueDate, paymentDate: item.paymentDate || null, status: item.status,
         billingType: item.billingType || null, invoiceUrl: item.invoiceUrl || null,

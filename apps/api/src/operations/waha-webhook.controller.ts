@@ -1,5 +1,5 @@
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import type { ChannelConnection } from "@prisma/client";
+import { Prisma, type ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
@@ -57,7 +57,7 @@ export class WahaWebhookController {
     if (!providerMessageId) return { ok: true, ignored: true };
 
     const phone = !isGroup && chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
-    const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload.pushName || "").trim().slice(0, 160);
+    const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
     const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
     const mimeType = String(payload.media?.mimetype || "");
     const contentType = payload.hasMedia ? mimeType.startsWith("image/") ? "image" : mimeType.startsWith("audio/") ? "audio" : mimeType.startsWith("video/") ? "video" : "file" : "text";
@@ -72,14 +72,20 @@ export class WahaWebhookController {
         const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
         if (duplicate) return null;
 
+        const rawAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl;
+        const avatarUrl = typeof rawAvatar === "string" && /^https:\/\//i.test(rawAvatar) ? rawAvatar : null;
         let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId: chatId } });
         if (!contact && phone) contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, phone } });
         if (!contact) {
           contact = await tx.contact.create({
-            data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup } },
+            data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) } },
           });
         } else {
-          const update: { name?: string; phone?: string; externalId?: string } = {};
+          const update: { name?: string; phone?: string; externalId?: string; metadata?: Prisma.InputJsonValue } = {};
+          if (avatarUrl) {
+            const existingMetadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
+            if (existingMetadata.avatarUrl !== avatarUrl) update.metadata = { ...existingMetadata, avatarUrl } as Prisma.InputJsonObject;
+          }
           if (notifyName && (!contact.name || contact.name === contact.phone || contact.name === contact.externalId)) update.name = notifyName;
           if (phone && !contact.phone) update.phone = phone;
           if (!contact.externalId) update.externalId = chatId;

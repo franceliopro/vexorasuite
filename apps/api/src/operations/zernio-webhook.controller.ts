@@ -45,7 +45,7 @@ export class ZernioWebhookController {
       if (!externalConversationId || !externalId) return { ok: true, ignored: true };
       const providerMessageId = String(message.platformMessageId || message.id || body.id || "");
       if (!providerMessageId) return { ok: true, ignored: true };
-      const name = String(sender.name || sender.username || externalId).slice(0, 160);
+      const name = String(sender.name || sender.displayName || sender.fullName || sender.profileName || sender.username || externalId).trim().slice(0, 160);
       const text = String(message.text || message.metadata?.postbackPayload || message.metadata?.interactiveId || "").slice(0, 20000);
       const platform = String(settings.platform || "SOCIAL").toUpperCase();
       try {
@@ -53,13 +53,13 @@ export class ZernioWebhookController {
           const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
           if (duplicate) return null;
           let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId } });
-          const avatar = sender.picture || sender.profilePictureUrl || sender.avatarUrl;
+          const avatar = sender.picture || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
           if (!contact) {
             contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
           } else {
             const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as JsonObject : {};
-            contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...(contact.name === contact.externalId ? { name } : {}) } });
+            contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...((name !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name } : {}) } });
           }
           let conversation = await tx.conversation.findFirst({ where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } }, orderBy: { updatedAt: "desc" } });
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });

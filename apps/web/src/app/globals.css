@@ -2960,3 +2960,9 @@ input[type="color"].profile-tag-inline-color {
 .finance-collection-action{appearance:none;border:1px solid color-mix(in srgb,var(--brand-color,var(--primary,#6258df)) 25%,transparent);background:color-mix(in srgb,var(--brand-color,var(--primary,#6258df)) 9%,transparent);color:var(--brand-color,var(--primary,#6258df));border-radius:8px;padding:6px 12px;font-size:12px;font-weight:650;cursor:pointer;transition:background .15s ease}
 .finance-collection-action:hover:not(:disabled){background:color-mix(in srgb,var(--brand-color,var(--primary,#6258df)) 16%,transparent)}
 .finance-collection-action:disabled{opacity:.4;cursor:not-allowed}
+
+.finance-customer-document{display:block;margin-top:3px;font-size:11px;color:var(--muted-foreground,#8390a3);font-weight:400}
+.finance-portfolio-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.finance-portfolio td:last-child{white-space:nowrap}
+.finance-portfolio td:last-child .finance-collection-action{display:inline-flex;align-items:center;margin:2px 4px 2px 0;text-decoration:none}
+.finance-portfolio th:nth-child(6),.finance-portfolio td:nth-child(6){text-align:left}

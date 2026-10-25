@@ -2,6 +2,7 @@ import { Controller, ForbiddenException, Get, Query, Req, UseGuards } from "@nes
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { AsaasService } from "./asaas.service";
 
 const PAID = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAID"]);
 const EXCLUDED = new Set(["REFUNDED", "CANCELLED", "DELETED"]);
@@ -9,7 +10,16 @@ const money = (value: unknown) => Number(value || 0);
 @Controller("finance")
 @UseGuards(AuthGuard)
 export class FinanceController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService) {}
+
+  @Get("portfolio")
+  async portfolio(@Req() req: AuthenticatedRequest, @Query("status") status?: string, @Query("dueFrom") dueFrom?: string, @Query("dueTo") dueTo?: string, @Query("offset") offsetRaw?: string, @Query("limit") limitRaw?: string) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    const offset = offsetRaw === undefined ? 0 : Number(offsetRaw);
+    const limit = limitRaw === undefined ? 50 : Number(limitRaw);
+    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ForbiddenException("Paginação inválida.");
+    return this.asaas.listPortfolio(req.user.tenantId, { status, dueFrom, dueTo, offset, limit });
+  }
 
   @Get("dashboard")
   async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string, @Query("from") start?: string, @Query("to") end?: string) {

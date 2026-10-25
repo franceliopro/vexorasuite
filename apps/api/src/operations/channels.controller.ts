@@ -25,6 +25,7 @@ export class ChannelConnectionsController {
       return { ...channel, ...(channel.provider === "ZERNIO" ? {
         platform: typeof safeSettings.platform === "string" ? safeSettings.platform : undefined,
         accountId: typeof safeSettings.accountId === "string" ? safeSettings.accountId : undefined,
+        webhookVerifiedAt: typeof safeSettings.webhookVerifiedAt === "string" ? safeSettings.webhookVerifiedAt : undefined,
       } : {}) };
     });
   }

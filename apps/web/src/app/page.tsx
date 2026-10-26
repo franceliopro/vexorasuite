@@ -9,6 +9,7 @@ import { FinanceWorkspace } from "./finance-workspace";
 import { ChannelsIntegrations } from "./channels-integrations";
 import { CalendarWorkspace } from "./calendar-workspace";
 import { TasksWorkspace } from "./tasks-workspace";
+import { ChatbotWorkspace } from "./chatbot-workspace";
 import {
   CalendarDays,
   Activity,
@@ -258,6 +259,8 @@ export default function HomePage() {
             <CrmWorkspace />
           ) : active === "Financeiro" || active === "Gestão" ? (
             canConfigure ? <FinanceWorkspace /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
+          ) : active === "Chatbots" ? (
+            <ChatbotWorkspace />
           ) : active === "Workflows" ? (
             <section className="module-workspace">
               <header className="page-heading"><div><p className="eyebrow">AUTOMAÇÃO</p><h1>Workflows</h1><p className="page-subtitle">Organize campanhas e jornadas automatizadas em um espaço único.</p></div></header>

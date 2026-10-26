@@ -74,6 +74,25 @@ export class WahaService {
   }
 
 
+
+  /** WAHA NOWEB may omit contact photos from message webhooks. Retrieve a photo URL only
+   * from the configured gateway, never from a user-supplied URL. */
+  async contactPicture(channel: ChannelConnection, chatId: string): Promise<string | null> {
+    if (!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId)) return null;
+    const query = new URLSearchParams({ contactId: chatId, session: channel.sessionName });
+    try {
+      const response = await this.request(`/api/contacts/profile-picture?${query.toString()}`);
+      if (!response.ok) return null;
+      const payload = await response.json() as { profilePictureURL?: unknown; profilePictureUrl?: unknown; url?: unknown };
+      const candidate = payload.profilePictureURL || payload.profilePictureUrl || payload.url;
+      if (typeof candidate !== "string") return null;
+      const parsed = new URL(candidate);
+      return parsed.protocol === "https:" && !parsed.username && !parsed.password ? parsed.toString() : null;
+    } catch {
+      return null;
+    }
+  }
+
   async listGroups(channel: ChannelConnection): Promise<{ id: string; name: string }[]> {
     const response = await this.request(`/api/${encodeURIComponent(channel.sessionName)}/chats`);
     if (!response.ok) throw new BadGatewayException(`WAHA não conseguiu listar as conversas (${response.status}).`);

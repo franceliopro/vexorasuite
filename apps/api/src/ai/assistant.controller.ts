@@ -55,6 +55,17 @@ export class AssistantController {
       ]);
       return { source: "database", usedAi: false, answer: `Atendimento: ${open} conversas abertas e ${resolved} resolvidas (totais registrados, sem filtro de período).` };
     }
+    if (/tarefas|pendências|pendencias|prioridades/i.test(question)) {
+      const [open, overdue] = await Promise.all([
+        this.prisma.workTask.count({ where: { tenantId: req.user.tenantId, status: { notIn: ["DONE", "COMPLETED", "CANCELLED"] }, OR: [{ assigneeId: req.user.sub }, { createdById: req.user.sub }] } }),
+        this.prisma.workTask.count({ where: { tenantId: req.user.tenantId, status: { notIn: ["DONE", "COMPLETED", "CANCELLED"] }, dueAt: { lt: new Date() }, OR: [{ assigneeId: req.user.sub }, { createdById: req.user.sub }] } }),
+      ]);
+      return { source: "database", usedAi: false, answer: `Você possui ${open} tarefas em andamento ou pendentes, das quais ${overdue} estão com prazo vencido. Consideradas apenas tarefas atribuídas a você ou criadas por você.` };
+    }
+    if (/clientes|contatos|leads/i.test(question)) {
+      const total = await this.prisma.contact.count({ where: { tenantId: req.user.tenantId } });
+      return { source: "database", usedAi: false, answer: `Esta empresa possui ${total} contatos cadastrados (total geral, sem filtro por período ou tipo).` };
+    }
     if (/agenda|compromissos/i.test(question)) return { source: "rules", usedAi: false, answer: "A consulta de compromissos ainda não está conectada. Abra o módulo Agenda para visualizar seus eventos." };
     if (/financeiro|faturamento|cobranças/i.test(question)) return { source: "rules", usedAi: false, answer: "Os relatórios financeiros devem ser consultados no módulo Financeiro. A assistente ainda não acessa esses dados." };
     return { source: "rules", usedAi: false, answer: "Ainda não tenho uma automação segura para essa solicitação. Nenhuma IA foi acionada." };

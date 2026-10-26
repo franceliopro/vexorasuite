@@ -224,8 +224,8 @@ export default function HomePage() {
         </header>
 
         <div className="page-content">
-          {active !== "Atendimento" && active !== "Configurações" && active !== "Canais e integrações" && active !== "CRM" ? <section className="page-heading">
-            <div><p className="eyebrow">CENTRAL DE OPERAÇÕES</p><h1>{isHome ? greeting+"! 👋" : active}</h1><p className="page-subtitle">{isHome ? "Acompanhe a operação da sua empresa em um só lugar." : `Esta área será construída e conectada aos serviços da Véxora: ${active.toLowerCase()}.`}</p></div>
+          {isHome ? <section className="page-heading">
+            <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">Acompanhe a operação da sua empresa em um só lugar.</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
           </section> : null}
 

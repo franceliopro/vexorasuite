@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { Prisma } from "@prisma/client";
+import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
 type Config = { name: string; wakeWord: string; enabled: boolean; agents: { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string }[] };
 const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [] };
@@ -17,7 +18,7 @@ function parseConfig(value: unknown): Config {
 @Controller("assistant")
 @UseGuards(AuthGuard)
 export class AssistantController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController) {}
   @Get("config")
   async config(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
@@ -66,8 +67,44 @@ export class AssistantController {
       const total = await this.prisma.contact.count({ where: { tenantId: req.user.tenantId } });
       return { source: "database", usedAi: false, answer: `Esta empresa possui ${total} contatos cadastrados (total geral, sem filtro por período ou tipo).` };
     }
-    if (/agenda|compromissos/i.test(question)) return { source: "rules", usedAi: false, answer: "A consulta de compromissos ainda não está conectada. Abra o módulo Agenda para visualizar seus eventos." };
-    if (/financeiro|faturamento|cobranças/i.test(question)) return { source: "rules", usedAi: false, answer: "Os relatórios financeiros devem ser consultados no módulo Financeiro. A assistente ainda não acessa esses dados." };
+    if (/agenda|compromissos|reuniões|reunioes|eventos/i.test(question)) {
+      const accounts = await this.calendar.accounts(req);
+      if (!accounts.length) return { source: "rules", usedAi: false, answer: "Nenhuma conta Google Agenda autorizada está conectada nesta empresa." };
+      const start = new Date();
+      const end = new Date(start.getTime() + 7 * 86400000);
+      const upcoming: { title: string; date: string }[] = [];
+      let calendarsChecked = 0;
+      for (const account of accounts.slice(0, 3)) {
+        const calendars = await this.calendar.calendars(req, account.id) as { items?: { id: string }[] };
+        for (const calendar of (calendars.items || []).slice(0, 5)) {
+          const events = await this.calendar.events(req, account.id, calendar.id, start.toISOString(), end.toISOString()) as { items?: { summary?: string; start?: { dateTime?: string; date?: string }; status?: string }[] };
+          calendarsChecked++;
+          for (const event of events.items || []) {
+            if (event.status === "cancelled") continue;
+            const date = event.start?.dateTime || event.start?.date;
+            if (date) upcoming.push({ title: event.summary || "Sem título", date });
+          }
+        }
+      }
+      upcoming.sort((a, b) => a.date.localeCompare(b.date));
+      const format = (date: string) => new Date(date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
+      const details = upcoming.slice(0, 5).map(e => `${format(e.date)} — ${e.title}`).join("; ");
+      return { source: "google_calendar", usedAi: false, answer: `Agenda dos próximos 7 dias: ${upcoming.length} eventos encontrados em ${calendarsChecked} calendários acessíveis${details ? ". Próximos: " + details : "."} Consulta limitada às primeiras 3 contas e 5 agendas por conta.` };
+    }
+    if (/financeir|faturamento|cobranças|cobrancas|receita|pagamentos/i.test(question)) {
+      if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+      const from = new Date();
+      from.setUTCDate(1); from.setUTCHours(0, 0, 0, 0);
+      const rows = await this.prisma.payment.findMany({ where: { tenantId: req.user.tenantId, provider: "ASAAS", createdAt: { gte: from } }, select: { amount: true, status: true, environment: true }, take: 10001 });
+      const limited = rows.length > 10000;
+      const payments = rows.slice(0, 10000).filter(p => !["REFUNDED", "CANCELLED", "DELETED"].includes(p.status.toUpperCase()));
+      const paid = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAID"]);
+      const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const received = payments.filter(p => paid.has(p.status.toUpperCase())).reduce((sum, p) => sum + Number(p.amount), 0);
+      const env = [...new Set(payments.map(p => p.environment))].join(", ") || "não informado";
+      return { source: "local_payments", usedAi: false, answer: `Resumo financeiro do mês atual, somente pagamentos Asaas registrados na Véxora: ${payments.length} registros, total ${money(total)}, recebidos ${money(received)}, demais situações ${money(total - received)}. Ambientes: ${env}. Não representa a carteira completa do Asaas nem inadimplência conciliada.${limited ? " Resultado parcial: limite de 10 mil registros." : ""}` };
+    }
     return { source: "rules", usedAi: false, answer: "Ainda não tenho uma automação segura para essa solicitação. Nenhuma IA foi acionada." };
   }
 }

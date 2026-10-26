@@ -12,6 +12,14 @@ const money = (value: unknown) => Number(value || 0);
 export class FinanceController {
   constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService) {}
 
+  @Get("catalog")
+  async catalog(@Req() req:AuthenticatedRequest,@Query("offset") offsetRaw?:string,@Query("limit") limitRaw?:string){
+    if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    const offset=offsetRaw===undefined?0:Number(offsetRaw),limit=limitRaw===undefined?50:Number(limitRaw);
+    if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>100)throw new ForbiddenException("Paginação inválida.");
+    return this.asaas.listCatalog(req.user.tenantId,offset,limit);
+  }
+
   @Get("portfolio")
   async portfolio(@Req() req: AuthenticatedRequest, @Query("status") status?: string, @Query("dueFrom") dueFrom?: string, @Query("dueTo") dueTo?: string, @Query("offset") offsetRaw?: string, @Query("limit") limitRaw?: string) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");

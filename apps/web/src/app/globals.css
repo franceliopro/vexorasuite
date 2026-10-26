@@ -3158,3 +3158,23 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-trigger-row label{display:grid;gap:5px;flex:1;min-width:190px}
 .chatbot-trigger-row select,.chatbot-trigger-row input{width:100%}
 @media(max-width:800px){.chatbot-channel-routing{grid-template-columns:1fr}}
+
+
+/* Véxora Flow Studio — high-tech canvas, responsive to existing brand themes. */
+.chatbot-studio-canvas{position:relative;isolation:isolate;border:1px solid color-mix(in srgb,var(--primary,#6756d9) 27%,var(--line,#dce0ea));border-radius:20px;box-shadow:0 18px 55px rgba(15,20,40,.09),inset 0 1px 0 color-mix(in srgb,var(--primary,#6756d9) 13%,transparent);background:radial-gradient(ellipse at 10% 0%,color-mix(in srgb,var(--primary,#6756d9) 10%,transparent),transparent 55%),var(--card,#fff)}
+.chatbot-studio-canvas.chatbot-grid-visible .chatbot-flow-viewport{background-image:radial-gradient(circle,color-mix(in srgb,var(--primary,#6756d9) 23%,transparent) 1px,transparent 1.3px);background-size:21px 21px;background-position:10px 10px}
+.chatbot-studio-canvas.chatbot-grid-hidden .chatbot-flow-viewport{background-image:none}
+.chatbot-canvas-command{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:9px 12px 14px;border-bottom:1px solid var(--line,#dce0ea)}
+.chatbot-canvas-command>div{display:flex;flex-wrap:wrap;gap:7px}
+.chatbot-canvas-command button{font:inherit;font-size:11px;font-weight:650;color:var(--text,#202638);background:var(--card,#fff);border:1px solid var(--line,#dce0ea);padding:7px 10px;border-radius:9px;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.chatbot-canvas-command button:hover{border-color:var(--primary,#6756d9);transform:translateY(-1px)}
+.chatbot-canvas-command button[aria-pressed="true"]{border-color:color-mix(in srgb,var(--primary,#6756d9) 45%,var(--line,#dce0ea));background:color-mix(in srgb,var(--primary,#6756d9) 9%,var(--card,#fff))}
+.chatbot-canvas-live{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.12em;font-weight:800;color:var(--muted,#667085)}
+.chatbot-canvas-live span{width:7px;height:7px;border-radius:50%;background:var(--primary,#6756d9);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary,#6756d9) 13%,transparent)}
+.chatbot-studio-canvas .chatbot-flow-viewport{border-radius:14px;min-height:310px}
+.chatbot-studio-canvas .chatbot-flow-node{border-radius:16px;border-color:color-mix(in srgb,var(--primary,#6756d9) 20%,var(--line,#dce0ea));box-shadow:0 10px 26px rgba(13,20,38,.1),inset 0 1px 0 rgba(255,255,255,.06);transition:box-shadow .18s,border-color .18s,transform .18s}
+.chatbot-studio-canvas .chatbot-flow-node:hover{border-color:var(--primary,#6756d9);box-shadow:0 14px 32px color-mix(in srgb,var(--primary,#6756d9) 17%,transparent);transform:translateY(-2px)}
+.chatbot-studio-canvas .chatbot-flow-node.selected{outline:2px solid var(--primary,#6756d9);box-shadow:0 0 0 5px color-mix(in srgb,var(--primary,#6756d9) 12%,transparent),0 16px 40px rgba(13,20,38,.12)}
+.chatbot-studio-canvas .chatbot-flow-edge-diagram{background:color-mix(in srgb,var(--primary,#6756d9) 3%,var(--card,#fff));border-style:solid}
+@media(max-width:680px){.chatbot-canvas-command{align-items:flex-start}.chatbot-canvas-command>div{width:100%}.chatbot-canvas-command button{flex:1}.chatbot-studio-canvas .chatbot-flow-viewport{min-height:260px}}
+@media(prefers-reduced-motion:reduce){.chatbot-studio-canvas .chatbot-flow-node,.chatbot-canvas-command button{transition:none}.chatbot-studio-canvas .chatbot-flow-node:hover{transform:none}}

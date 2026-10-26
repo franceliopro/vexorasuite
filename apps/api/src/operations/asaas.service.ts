@@ -159,7 +159,6 @@ export class AsaasService {
   async financeListings(tenantId:string,kind:"subscriptions"|"detached",offset:number,limit:number){
     const credentials=await this.credentials(tenantId);
     const query=new URLSearchParams({offset:String(offset),limit:String(limit)});
-    if(kind==="detached")query.set("subscription","null");
     const path=kind==="subscriptions"?"/subscriptions?"+query:"/payments?"+query;
     const result=await this.request<{data?:Array<{id:string;customer:string;description?:string|null;value:number;cycle?:string;status:string;billingType?:string;dueDate?:string;subscription?:string|null;invoiceUrl?:string|null}>;hasMore?:boolean;totalCount?:number}>(tenantId,path);
     const records=kind==="detached"?(result.data||[]).filter(x=>!x.subscription):result.data||[];

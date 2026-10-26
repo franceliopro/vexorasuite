@@ -20,7 +20,7 @@ export class GoogleCalendarController {
   }
   private async token(req: AuthenticatedRequest, accountId: string) {
     const account = await this.prisma.googleConnection.findFirst({ where: { id: accountId, tenantId: req.user.tenantId } });
-    if (!account || !account.scopes.includes("calendar.events")) throw new ForbiddenException("Conta sem autorização para Google Agenda nesta empresa.");
+    if (!account || account.disabledServices.includes("calendar") || !account.scopes.includes("calendar.events")) throw new ForbiddenException("Conta sem autorização para Google Agenda nesta empresa.");
     if (account.expiresAt.getTime() > Date.now() + 60000) return this.decrypt(account.accessTokenEncrypted);
     if (!account.refreshTokenEncrypted) throw new BadRequestException("Reconecte a conta Google para renovar a autorização.");
     const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID || "", client_secret: process.env.GOOGLE_CLIENT_SECRET || "", refresh_token: this.decrypt(account.refreshTokenEncrypted), grant_type: "refresh_token" }), signal: AbortSignal.timeout(15000) });
@@ -58,7 +58,7 @@ export class GoogleCalendarController {
   @Post(":accountId/calendars")
   async createCalendar(@Req() req:AuthenticatedRequest,@Param("accountId") accountId:string,@Body() body:{summary?:string;timeZone?:string}){this.assertAdmin(req);if(!body.summary?.trim()||body.summary.length>120)throw new BadRequestException("Informe o nome da agenda.");return this.google(req,accountId,"calendars",{method:"POST",body:JSON.stringify({summary:body.summary.trim(),timeZone:body.timeZone||"America/Sao_Paulo"})});}
   @Get("accounts")
-  async accounts(@Req() req: AuthenticatedRequest) { return this.prisma.googleConnection.findMany({ where: { tenantId: req.user.tenantId, scopes: { contains: "calendar.events" },  }, select: { id: true, email: true } }); }
+  async accounts(@Req() req: AuthenticatedRequest) { return this.prisma.googleConnection.findMany({ where: { tenantId: req.user.tenantId, scopes: { contains: "calendar.events" }, NOT: { disabledServices: { has: "calendar" } },  }, select: { id: true, email: true } }); }
   @Get(":accountId/calendars")
   async calendars(@Req() req: AuthenticatedRequest, @Param("accountId") accountId: string) { const data=await this.google(req, accountId, "users/me/calendarList?maxResults=250") as {items?:{id:string}[]};if(["OWNER","ADMIN","MANAGER"].includes(req.user.role))return data;const teams=await this.prisma.departmentMember.findMany({where:{tenantId:req.user.tenantId,userId:req.user.sub},select:{departmentId:true}});const grants=await this.prisma.calendarAssignment.findMany({where:{tenantId:req.user.tenantId,accountId}});return {...data,items:(data.items||[]).filter(x=>grants.some(g=>g.calendarId===x.id&&(g.userId===req.user.sub||g.departmentId&&teams.some(t=>t.departmentId===g.departmentId))))};}
   @Get(":accountId/events")

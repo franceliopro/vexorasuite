@@ -51,7 +51,7 @@ export class GoogleOAuthController {
   @UseGuards(AuthGuard)
   async connections(@Req() req: AuthenticatedRequest) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Apenas administradores podem gerenciar o Google.");
-    const rows = await this.prisma.googleConnection.findMany({ where: { tenantId: req.user.tenantId }, select: { id: true, email: true, scopes: true, expiresAt: true, updatedAt: true, refreshTokenEncrypted: true } });
+    const rows = await this.prisma.googleConnection.findMany({ where: { tenantId: req.user.tenantId }, select: { id: true, email: true, scopes: true, disabledServices: true, expiresAt: true, updatedAt: true, refreshTokenEncrypted: true } });
     return rows.map(({ refreshTokenEncrypted, ...row }) => ({ ...row, renewable: Boolean(refreshTokenEncrypted) }));
   }
   @Post("start/:service")
@@ -99,10 +99,20 @@ export class GoogleOAuthController {
       await this.prisma.googleConnection.upsert({
         where: { tenantId_googleAccountId: { tenantId: attempt.tenantId, googleAccountId: info.sub } },
         create: { tenantId: attempt.tenantId, googleAccountId: info.sub, email: info.email, scopes: token.scope || "", accessTokenEncrypted: this.encrypt(token.access_token), refreshTokenEncrypted: token.refresh_token ? this.encrypt(token.refresh_token) : null, expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
-        update: { email: info.email, scopes: Array.from(new Set([...(prior?.scopes || "").split(" "), ...granted])).filter(Boolean).join(" "), accessTokenEncrypted: this.encrypt(token.access_token), ...(token.refresh_token ? { refreshTokenEncrypted: this.encrypt(token.refresh_token) } : {}), expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
+        update: { disabledServices: { set: (prior?.disabledServices || []).filter(s=>s!==attempt.service) }, email: info.email, scopes: Array.from(new Set([...(prior?.scopes || "").split(" "), ...granted])).filter(Boolean).join(" "), accessTokenEncrypted: this.encrypt(token.access_token), ...(token.refresh_token ? { refreshTokenEncrypted: this.encrypt(token.refresh_token) } : {}), expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
       });
       return done("connected");
     } catch { return done("failed"); }
+  }
+  @Delete("connections/:id/services/:service")
+  @UseGuards(AuthGuard)
+  async disconnectService(@Req() req:AuthenticatedRequest,@Param("id") id:string,@Param("service") service:string){
+    if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Apenas administradores podem gerenciar Google.");
+    if(!["calendar","drive"].includes(service))throw new BadRequestException("Serviço inválido.");
+    const row=await this.prisma.googleConnection.findFirst({where:{id,tenantId:req.user.tenantId}});
+    if(!row)throw new BadRequestException("Conexão não encontrada.");
+    await this.prisma.googleConnection.update({where:{id},data:{disabledServices:{set:Array.from(new Set([...row.disabledServices,service]))}}});
+    return {disconnected:true,service,otherServicePreserved:true};
   }
   @Delete("connections/:id")
   @UseGuards(AuthGuard)

@@ -1,4 +1,4 @@
-import { routeIntelligence } from "./intelligence-engine";
+import { routeIntelligence, proposeWorkflow } from "./intelligence-engine";
 import { Body, Controller, ForbiddenException, Get, Put, Post, Req, UseGuards, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
@@ -53,6 +53,15 @@ export class AssistantController {
       { id: "voice.stt", name: "Transcrever áudio", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
       { id: "voice.tts", name: "Responder por voz", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
     ] };
+  }
+
+  @Post("engine/propose-workflow")
+  async propose(@Req() req: AuthenticatedRequest, @Body() body: { request?: string }) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException("Permissão insuficiente");
+    if (typeof body?.request !== "string" || !body.request.trim() || body.request.length > 2000) throw new BadRequestException("Descrição inválida");
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
+    if (!parseConfig(tenant.integrations).enabled) throw new ForbiddenException("Intelligence Engine desabilitado nesta empresa");
+    return { ...proposeWorkflow(body.request), engine: "vexora-intelligence-v1", persisted: false, sideEffects: false };
   }
 
   @Post("engine/route")

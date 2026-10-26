@@ -156,6 +156,18 @@ export class AsaasService {
     };
   }
 
+  async financeListings(tenantId:string,kind:"subscriptions"|"detached",offset:number,limit:number){
+    const credentials=await this.credentials(tenantId);
+    const query=new URLSearchParams({offset:String(offset),limit:String(limit)});
+    const path=kind==="subscriptions"?"/subscriptions?"+query:"/payments?"+query;
+    const result=await this.request<{data?:Array<{id:string;customer:string;description?:string|null;value:number;cycle?:string;status:string;billingType?:string;dueDate?:string;subscription?:string|null;invoiceUrl?:string|null}>;hasMore?:boolean;totalCount?:number}>(tenantId,path);
+    const records=kind==="detached"?(result.data||[]).filter(x=>!x.subscription):result.data||[];
+    const ids=[...new Set(records.map(x=>x.customer).filter(Boolean))];
+    const names=new Map<string,string>();
+    await Promise.all(ids.map(async id=>{try{const customer=await this.request<{name?:string}>(tenantId,"/customers/"+encodeURIComponent(id));if(customer.name)names.set(id,customer.name)}catch{}}));
+    return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",kind,offset,limit,hasMore:!!result.hasMore,totalCount:result.totalCount??null,items:records.map(x=>({id:x.id,customerId:x.customer,customerName:names.get(x.customer)||"Cliente Asaas",description:x.description||"",value:Number(x.value||0),cycle:x.cycle||null,status:x.status,billingType:x.billingType||null,dueDate:x.dueDate||null,invoiceUrl:x.invoiceUrl||null}))};
+  }
+
   async listCatalog(tenantId:string,offset=0,limit=50){
     const [products,subscriptions,credentials]=await Promise.all([
       this.request<{data?:Array<{id:string;name:string;description?:string;value:number;billingType?:string;status?:string}>;hasMore?:boolean}>(tenantId,"/products?"+new URLSearchParams({offset:String(offset),limit:String(limit)})),

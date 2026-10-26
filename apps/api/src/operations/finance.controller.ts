@@ -28,6 +28,15 @@ export class FinanceController {
     return this.asaas.debtsByDocument(req.user.tenantId,document||"");
   }
 
+  @Get("listings")
+  async listings(@Req() req:AuthenticatedRequest,@Query("kind") kind?:string,@Query("offset") offsetRaw?:string,@Query("limit") limitRaw?:string){
+    if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    if(kind!=="subscriptions"&&kind!=="detached")throw new ForbiddenException("Tipo de listagem inválido.");
+    const offset=offsetRaw===undefined?0:Number(offsetRaw),limit=limitRaw===undefined?50:Number(limitRaw);
+    if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>100)throw new ForbiddenException("Paginação inválida.");
+    return this.asaas.financeListings(req.user.tenantId,kind,offset,limit);
+  }
+
   @Get("catalog")
   async catalog(@Req() req:AuthenticatedRequest,@Query("offset") offsetRaw?:string,@Query("limit") limitRaw?:string){
     if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Acesso financeiro restrito à administração.");

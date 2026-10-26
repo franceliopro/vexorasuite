@@ -3089,3 +3089,11 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-transition-editor>small{color:var(--muted,#667085)}
 .chatbot-transition-editor label{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px}
 .chatbot-transition-editor select{max-width:100%;min-width:155px;flex:1}
+
+
+.chatbot-graph-links{width:100%;display:flex;flex-direction:column;gap:7px;margin-top:18px;padding:12px;border:1px solid var(--line,#dce0ea);border-radius:12px}
+.chatbot-graph-links>strong{font-size:12px}.chatbot-graph-links button{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;text-align:left;border:1px solid var(--line,#dce0ea);border-radius:8px;background:var(--card,#fff);color:var(--text,#202638);cursor:pointer}
+.chatbot-graph-links button:hover{border-color:var(--primary,#6756d9)}
+.chatbot-graph-links small{color:var(--muted,#667085)}
+.chatbot-graph-validation{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:13px;margin:12px 0}
+.chatbot-graph-validation small{width:100%;color:var(--muted,#667085)}

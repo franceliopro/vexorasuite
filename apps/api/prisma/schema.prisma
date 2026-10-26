@@ -319,6 +319,7 @@ model GoogleConnection {
   googleAccountId String @map("google_account_id")
   email String
   scopes String
+  disabledServices String[] @default([]) @map("disabled_services")
   refreshTokenEncrypted String? @map("refresh_token_encrypted")
   accessTokenEncrypted String @map("access_token_encrypted")
   expiresAt DateTime @map("expires_at")

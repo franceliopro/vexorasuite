@@ -70,7 +70,8 @@ export class GoogleOAuthController {
   }
   @Get("callback")
   async callback(@Query("state") state: string, @Query("code") code: string, @Query("error") error: string, @Res() res: Response) {
-    const target = new URL("/channels", process.env.PUBLIC_APP_URL || "https://app.vexorasuite.com.br");
+    const target = new URL("/", process.env.WEB_PUBLIC_URL || "https://app.vexorasuite.com.br");
+    target.searchParams.set("module", "Canais e integrações");
     const done = (status: string) => { target.searchParams.set("google", status); return res.redirect(303, target.toString()); };
     if (!state || !/^[A-Za-z0-9_-]{40,100}$/.test(state)) return done("invalid_state");
     const stateHash = createHash("sha256").update(state).digest("hex");

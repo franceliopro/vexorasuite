@@ -5,20 +5,37 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { Prisma } from "@prisma/client";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-type Config = { name: string; wakeWord: string; enabled: boolean; agents: { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string }[] };
+type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
+type VoiceSelection = { provider: string; model: string; endpoint?: string };
+type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
+type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
 const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [] };
 function parseConfig(value: unknown): Config {
   if (!value || typeof value !== "object" || Array.isArray(value)) return initial;
   const item = (value as Record<string, unknown>).assistant;
   if (!item || typeof item !== "object" || Array.isArray(item)) return initial;
   const cfg = item as Partial<Config>;
-  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [] };
+  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
 }
 
 @Controller("assistant")
 @UseGuards(AuthGuard)
 export class AssistantController {
   constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController) {}
+  @Get("model-catalog")
+  async modelCatalog() {
+    const providers = ["openrouter", "openai", "gemini", "anthropic", "deepseek", "ollama", "vllm", "openai-compatible"];
+    const voices = { stt: ["whisper-local", "openai", "deepgram", "openai-compatible"], tts: ["piper-local", "openai", "gemini", "openai-compatible"] };
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/models?sort=pricing-low-to-high", { signal: AbortSignal.timeout(10000) });
+      if (!response.ok) throw new Error("Catalog unavailable");
+      const data = await response.json() as { data?: { id: string; name: string; pricing?: { prompt?: string; completion?: string } }[] };
+      return { providers, voices, models: (data.data || []).filter(m => typeof m.id === "string").slice(0, 1000).map(m => ({ provider: "openrouter", id: m.id, name: m.name, pricePerMillionInputUsd: Number(m.pricing?.prompt || 0) * 1000000, pricePerMillionOutputUsd: Number(m.pricing?.completion || 0) * 1000000 })), source: "openrouter", live: true };
+    } catch {
+      return { providers, voices, models: [], source: "openrouter", live: false, message: "Catálogo temporariamente indisponível; selecione o modelo manualmente." };
+    }
+  }
+
   @Get("config")
   async config(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
@@ -28,11 +45,20 @@ export class AssistantController {
   async save(@Req() req: AuthenticatedRequest, @Body() input: Config) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException();
     if (!input || typeof input.name !== "string" || !input.name.trim() || input.name.length > 80 || typeof input.wakeWord !== "string" || input.wakeWord.length > 80 || typeof input.enabled !== "boolean" || !Array.isArray(input.agents) || input.agents.length > 30) throw new BadRequestException("Configuração inválida");
+    const selection = (value: unknown, voice = false): ModelSelection | VoiceSelection | undefined => {
+      if (value === undefined) return undefined;
+      if (!value || typeof value !== "object" || Array.isArray(value)) throw new BadRequestException("Modelo inválido");
+      const v = value as Record<string, unknown>;
+      if (typeof v.provider !== "string" || !/^[a-z0-9-]{2,40}$/.test(v.provider) || typeof v.model !== "string" || !v.model.trim() || v.model.length > 180 || (v.endpoint !== undefined && (typeof v.endpoint !== "string" || v.endpoint.length > 300))) throw new BadRequestException("Seleção de modelo inválida");
+      if (v.endpoint && !/^https:\/\//.test(v.endpoint as string) && !/^http:\/\/localhost(?::\d+)?(?:\/|$)/.test(v.endpoint as string)) throw new BadRequestException("Endpoint deve usar HTTPS ou localhost");
+      if (!voice && !["Econômico", "Equilíbrio", "Inteligente"].includes(String(v.tier))) throw new BadRequestException("Perfil inválido");
+      return { provider: v.provider, model: v.model.trim(), ...(voice ? {} : { tier: v.tier }), ...(v.endpoint ? { endpoint: v.endpoint } : {}) } as ModelSelection;
+    };
     const agents = input.agents.map(a => {
       if (!a || typeof a.id !== "string" || a.id.length > 80 || typeof a.name !== "string" || !a.name.trim() || a.name.length > 80 || typeof a.role !== "string" || a.role.length > 120 || !["Econômico", "Equilíbrio", "Inteligente"].includes(a.tier) || typeof a.enabled !== "boolean" || typeof a.instructions !== "string" || a.instructions.length > 6000) throw new BadRequestException("Agente inválido");
-      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, instructions: a.instructions };
+      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, instructions: a.instructions, llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
     });
-    const config = { name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents };
+    const config = { name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
     // Transaction locks tenant row to avoid losing concurrent updates to integrations.
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;

@@ -23,6 +23,31 @@ function parseConfig(value: unknown): Config {
 export class AssistantController {
   constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController) {}
   // Central registry: skills are capabilities, not arbitrary executable prompts.
+  @Get("custom-skills")
+  async customSkills(@Req() req: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
+    const root = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    return { skills: Array.isArray(root.customSkills) ? root.customSkills : [] };
+  }
+
+  @Put("custom-skills")
+  async saveCustomSkills(@Req() req: AuthenticatedRequest, @Body() body: { skills?: { id: string; name: string; description: string; instructions: string }[] }) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException();
+    if (!Array.isArray(body?.skills) || body.skills.length > 60) throw new BadRequestException("Lista de Skills inválida");
+    const skills = body.skills.map(skill => {
+      if (!skill || typeof skill.id !== "string" || !/^[a-z0-9][a-z0-9._-]{1,79}$/.test(skill.id) || typeof skill.name !== "string" || !skill.name.trim() || skill.name.length > 100 || typeof skill.description !== "string" || skill.description.length > 1000 || typeof skill.instructions !== "string" || skill.instructions.length > 12000) throw new BadRequestException("Skill inválida");
+      return { id: skill.id, name: skill.name.trim(), description: skill.description.trim(), instructions: skill.instructions, status: "draft" };
+    });
+    if (new Set(skills.map(x => x.id)).size !== skills.length) throw new BadRequestException("IDs duplicados");
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
+      const root = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, Prisma.JsonValue> : {};
+      await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: { ...root, customSkills: skills } as Prisma.InputJsonObject } });
+    });
+    return { skills };
+  }
+
   @Get("skills")
   skills() {
     return { version: 1, executionEnabled: false, skills: [

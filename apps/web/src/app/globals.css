@@ -3108,3 +3108,9 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-connect-controls label{display:flex;align-items:center;gap:7px;font-size:12px}
 .chatbot-connect-controls select{min-width:130px;max-width:230px}
 .chatbot-connect-controls>span{font-size:12px;color:var(--muted,#667085)}
+
+
+.chatbot-flow-nodes-free{position:relative;min-height:600px;min-width:950px;display:block;border-top:0;padding:0}
+.chatbot-flow-nodes-free .chatbot-flow-node{width:175px;max-width:175px;cursor:grab;user-select:none;touch-action:pan-y}
+.chatbot-flow-nodes-free .chatbot-flow-node:active{cursor:grabbing}
+.chatbot-flow-nodes-free .chatbot-flow-node:before{display:none}

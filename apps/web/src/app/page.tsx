@@ -8,6 +8,7 @@ import { CrmWorkspace } from "./crm-workspace";
 import { FinanceWorkspace } from "./finance-workspace";
 import { ChannelsIntegrations } from "./channels-integrations";
 import { CalendarWorkspace } from "./calendar-workspace";
+import { TasksWorkspace } from "./tasks-workspace";
 import {
   CalendarDays,
   Activity,
@@ -54,7 +55,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 type NavigationChild = { label: string };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "workflow" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
     { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Anúncios" }, { label: "Resultados" }] },
@@ -247,6 +248,8 @@ export default function HomePage() {
               </section>
               <section className="bottom-note"><span className="note-icon">i</span><p><strong>Próxima etapa:</strong> concluir a operação de WhatsApp em tempo real e conectar os módulos gradualmente. Os indicadores permanecem sem números fictícios até existirem dados reais.</p></section>
             </>
+          ) : active === "Tarefas" ? (
+            <TasksWorkspace />
           ) : active === "Agenda" ? (
             <CalendarWorkspace />
           ) : active === "CRM" ? (

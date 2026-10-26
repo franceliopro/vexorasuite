@@ -16,6 +16,9 @@ export function AiAgentsWorkspace() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("Perfil");
   const [newAction, setNewAction] = useState("");
+  const [engineInput,setEngineInput] = useState("Quero pagar minha mensalidade");
+  const [engineResult,setEngineResult] = useState<{intent:string;message:string;tokensUsed:number;nextStep:string}|null>(null);
+  const [engineError,setEngineError] = useState("");
   const [skills, setSkills] = useState<{id:string;name:string;category:string;cost:string;implemented:boolean;permission:string}[]>([]);
   useEffect(()=>{fetch("/api/backend/assistant/skills").then(r=>r.ok?r.json():null).then(data=>{if(Array.isArray(data?.skills))setSkills(data.skills)}).catch(()=>{});},[]);
   const [catalog, setCatalog] = useState<{models?:{id:string;name:string;pricePerMillionInputUsd:number}[]}>({});
@@ -86,6 +89,7 @@ export function AiAgentsWorkspace() {
         </div>
       </section>
     </div>
+    <section className="content-card ai-admin-card" style={{marginTop:16}}><h2><Sparkles size={19}/> Véxora Intelligence Engine · Laboratório</h2><p className="ai-admin-note">Teste o roteamento determinístico, sem LLM, sem execução de Skills e sem enviar mensagens a clientes. Requer assistente habilitado nesta empresa.</p><div className="ai-admin-fields"><label>Mensagem de teste<textarea rows={2} maxLength={1000} value={engineInput} onChange={e=>setEngineInput(e.target.value)}/></label><button type="button" className="secondary-button" onClick={async()=>{setEngineError("");setEngineResult(null);try{const response=await fetch("/api/backend/assistant/engine/route",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:engineInput})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha no teste");setEngineResult(data)}catch(e){setEngineError(e instanceof Error?e.message:"Falha no teste")}}}>Testar roteamento</button>{engineResult&&<div role="status"><strong>Intenção:</strong> {engineResult.intent}<p><strong>Próximo passo:</strong> {engineResult.nextStep}</p><p>{engineResult.message}</p><small>Tokens de LLM: {engineResult.tokensUsed}</small></div>}{engineError&&<p role="alert">{engineError}</p>}</div></section>
     {notice && <p role="status">{notice}</p>}
     <p className="ai-admin-note">Configurações armazenadas por empresa. Agentes generativos ainda não executam tarefas; consultas determinísticas não utilizam tokens.</p>
   </section>;

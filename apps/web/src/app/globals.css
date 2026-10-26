@@ -3252,3 +3252,13 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-auto-hide .vx-flow-library:hover,.chatbot-workspace .vx-auto-hide .vx-flow-inspector:hover{background:var(--card,#fff)}
 @media(max-width:1100px) and (min-width:761px){.chatbot-workspace .vx-flow-shell.vx-left-collapsed{grid-template-columns:32px minmax(0,1fr) 270px}.chatbot-workspace .vx-flow-shell.vx-right-collapsed{grid-template-columns:145px minmax(0,1fr) 32px}.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed{grid-template-columns:32px minmax(0,1fr) 32px}}
 @media(max-width:760px){.chatbot-workspace .vx-flow-shell.vx-left-collapsed,.chatbot-workspace .vx-flow-shell.vx-right-collapsed,.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed{display:flex;flex-direction:column}.chatbot-workspace .vx-flow-shell.vx-right-collapsed .vx-flow-inspector{display:block;min-height:34px}.chatbot-workspace .vx-flow-shell.vx-right-collapsed .vx-flow-inspector .vx-panel-handle{top:5px}.chatbot-workspace .vx-auto-hide .vx-flow-inspector:not(:hover):not(:focus-within)>:not(.vx-panel-handle){opacity:1;pointer-events:auto}.vx-flow-window-controls{justify-content:flex-start}}
+
+@media(min-width:761px){
+.chatbot-workspace .vx-flow-shell.vx-auto-hide:not(.vx-left-collapsed):not(.vx-right-collapsed){grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-flow-shell.vx-auto-hide:not(.vx-left-collapsed).vx-right-collapsed{grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-flow-shell.vx-auto-hide.vx-left-collapsed:not(.vx-right-collapsed){grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector{overflow:visible;z-index:5}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:hover,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:hover,.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:focus-within,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:focus-within{width:270px;box-shadow:0 12px 30px #0002}
+.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:hover,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:focus-within{margin-left:-273px;width:305px}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:not(:hover):not(:focus-within)>:not(.vx-panel-handle),.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:not(:hover):not(:focus-within)>:not(.vx-panel-handle){visibility:hidden}
+}

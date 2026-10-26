@@ -1,0 +1,5 @@
+CREATE TABLE "authorized_contacts" ("id" UUID NOT NULL, "tenant_id" UUID NOT NULL, "contact_id" UUID NOT NULL, "name" TEXT NOT NULL, "phone" TEXT NOT NULL, "relationship" TEXT NOT NULL, "permissions" JSONB NOT NULL DEFAULT '[]', "status" TEXT NOT NULL DEFAULT 'PENDING', "verified_by_id" UUID, "verified_at" TIMESTAMP(3), "expires_at" TIMESTAMP(3), "revoked_at" TIMESTAMP(3), "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updated_at" TIMESTAMP(3) NOT NULL, CONSTRAINT "authorized_contacts_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "authorized_contacts_tenant_id_contact_id_status_idx" ON "authorized_contacts"("tenant_id","contact_id","status");
+CREATE INDEX "authorized_contacts_tenant_id_phone_idx" ON "authorized_contacts"("tenant_id","phone");
+ALTER TABLE "authorized_contacts" ADD CONSTRAINT "authorized_contacts_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "authorized_contacts" ADD CONSTRAINT "authorized_contacts_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;

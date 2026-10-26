@@ -4,7 +4,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 
-type DraftStep = { id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
+type DraftStep = { action?: "asaas.customer.lookup" | "asaas.payment.lookup" | "asaas.payment.pix" | "asaas.payment.boleto" | "human.handoff"; id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
 type Draft = { name:string; welcome:string; steps:DraftStep[]; channelIds?:string[]; triggers?:{kind:"message"|"dm"|"keyword";keyword?:string}[] };
 function validDraft(value: unknown): value is Draft {
  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -15,6 +15,7 @@ function validDraft(value: unknown): value is Draft {
  const ids=new Set<string>();
  for(const s of v.steps){
   if(!s || typeof s.id!=="string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(s.id) || ids.has(s.id) || typeof s.title!=="string" || s.title.length>120 || typeof s.message!=="string" || s.message.length>4000 || !Array.isArray(s.options) || s.options.length>30 || s.options.some(o=>typeof o!=="string" || o.length>160))return false;
+  if(s.action!==undefined && !["asaas.customer.lookup","asaas.payment.lookup","asaas.payment.pix","asaas.payment.boleto","human.handoff"].includes(s.action))return false;
   ids.add(s.id);
   if(s.position && (!Number.isFinite(s.position.x) || !Number.isFinite(s.position.y) || s.position.x<0 || s.position.y<0 || s.position.x>900 || s.position.y>520))return false;
  }

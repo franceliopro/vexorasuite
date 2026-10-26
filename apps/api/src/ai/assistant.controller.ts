@@ -22,6 +22,38 @@ function parseConfig(value: unknown): Config {
 @UseGuards(AuthGuard)
 export class AssistantController {
   constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController) {}
+  // Central registry: skills are capabilities, not arbitrary executable prompts.
+  @Get("skills")
+  skills() {
+    return { version: 1, executionEnabled: false, skills: [
+      { id: "assistant.contacts.read", name: "Consultar contatos", category: "CRM", cost: "zero", implemented: true, permission: "contacts.read" },
+      { id: "assistant.tasks.read", name: "Consultar tarefas", category: "Operações", cost: "zero", implemented: true, permission: "tasks.read" },
+      { id: "assistant.calendar.read", name: "Consultar agenda", category: "Agenda", cost: "external", implemented: true, permission: "calendar.read" },
+      { id: "assistant.finance.read", name: "Consultar resumo financeiro", category: "Financeiro", cost: "zero", implemented: true, permission: "finance.admin" },
+      { id: "asaas.payment.lookup", name: "Consultar cobrança Asaas", category: "Financeiro", cost: "external", implemented: false, permission: "finance.read" },
+      { id: "asaas.pix.create", name: "Gerar PIX", category: "Financeiro", cost: "external", implemented: false, permission: "finance.write", confirmationRequired: true },
+      { id: "crm.opportunity.create", name: "Criar oportunidade", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
+      { id: "crm.lead.qualify", name: "Qualificar lead", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
+      { id: "crm.tag.apply", name: "Aplicar etiqueta", category: "CRM", cost: "zero", implemented: false, permission: "contacts.write" },
+      { id: "inbox.transfer", name: "Transferir para humano ou equipe", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.transfer" },
+      { id: "inbox.agent.route", name: "Encaminhar para agente de IA", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.route" },
+      { id: "inbox.participant.invite", name: "Convidar participante", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.invite" },
+      { id: "inbox.stage.move", name: "Mover etapa do atendimento", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.write" },
+      { id: "inbox.resolve", name: "Concluir atendimento", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.resolve", confirmationRequired: true },
+      { id: "calendar.event.create", name: "Criar agendamento", category: "Agenda", cost: "external", implemented: false, permission: "calendar.write", confirmationRequired: true },
+      { id: "crm.contact.update", name: "Atualizar campo do contato", category: "CRM", cost: "zero", implemented: false, permission: "contacts.write" },
+      { id: "crm.pipeline.move", name: "Mover oportunidade no CRM", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
+      { id: "chatbot.flow.trigger", name: "Acionar fluxo de chatbot", category: "Automação", cost: "zero", implemented: false, permission: "automation.execute" },
+      { id: "tracking.triage", name: "Triagem de rastreamento", category: "Suporte", cost: "zero", implemented: false, permission: "tracking.read" },
+      { id: "catalog.menu.show", name: "Mostrar cardápio", category: "Comercial", cost: "zero", implemented: false, permission: "catalog.read" },
+      { id: "catalog.products.show", name: "Mostrar produtos", category: "Comercial", cost: "zero", implemented: false, permission: "catalog.read" },
+      { id: "external.api.call", name: "Consultar ou acionar API", category: "Integrações", cost: "external", implemented: false, permission: "integrations.execute", confirmationRequired: true },
+      { id: "drive.files.search", name: "Buscar arquivos no Google Drive", category: "Conhecimento", cost: "external", implemented: false, permission: "drive.read" },
+      { id: "voice.stt", name: "Transcrever áudio", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
+      { id: "voice.tts", name: "Responder por voz", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
+    ] };
+  }
+
   @Get("model-catalog")
   async modelCatalog() {
     const providers = ["openrouter", "openai", "gemini", "anthropic", "deepseek", "ollama", "vllm", "openai-compatible"];

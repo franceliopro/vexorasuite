@@ -7,6 +7,7 @@ import { OperationsSettings } from "./operations-settings";
 import { CrmWorkspace } from "./crm-workspace";
 import { FinanceWorkspace } from "./finance-workspace";
 import { ChannelsIntegrations } from "./channels-integrations";
+import { CalendarWorkspace } from "./calendar-workspace";
 import {
   CalendarDays,
   Activity,
@@ -245,6 +246,8 @@ export default function HomePage() {
               </section>
               <section className="bottom-note"><span className="note-icon">i</span><p><strong>Próxima etapa:</strong> concluir a operação de WhatsApp em tempo real e conectar os módulos gradualmente. Os indicadores permanecem sem números fictícios até existirem dados reais.</p></section>
             </>
+          ) : active === "Agenda" ? (
+            <CalendarWorkspace />
           ) : active === "CRM" ? (
             <CrmWorkspace />
           ) : active === "Financeiro" || active === "Gestão" ? (

@@ -7,7 +7,7 @@ import { GoogleCalendarController } from "../operations/google-calendar.controll
 
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
 type VoiceSelection = { provider: string; model: string; endpoint?: string };
-type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
+type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
 type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
 const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [] };
 function parseConfig(value: unknown): Config {
@@ -54,9 +54,11 @@ export class AssistantController {
       if (!voice && !["Econômico", "Equilíbrio", "Inteligente"].includes(String(v.tier))) throw new BadRequestException("Perfil inválido");
       return { provider: v.provider, model: v.model.trim(), ...(voice ? {} : { tier: v.tier }), ...(v.endpoint ? { endpoint: v.endpoint } : {}) } as ModelSelection;
     };
+    const strings = (v: unknown, max = 40) => { if (v === undefined) return []; if (!Array.isArray(v) || v.length > max || v.some(x => typeof x !== "string" || x.length > 300)) throw new BadRequestException("Lista inválida"); return v.map((x: string) => x.trim()).filter(Boolean); };
+    const longText = (v: unknown) => { if (v === undefined) return ""; if (typeof v !== "string" || v.length > 6000) throw new BadRequestException("Texto inválido"); return v; };
     const agents = input.agents.map(a => {
       if (!a || typeof a.id !== "string" || a.id.length > 80 || typeof a.name !== "string" || !a.name.trim() || a.name.length > 80 || typeof a.role !== "string" || a.role.length > 120 || !["Econômico", "Equilíbrio", "Inteligente"].includes(a.tier) || typeof a.enabled !== "boolean" || typeof a.instructions !== "string" || a.instructions.length > 6000) throw new BadRequestException("Agente inválido");
-      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, instructions: a.instructions, llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
+      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
     });
     const config = { name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
     // Transaction locks tenant row to avoid losing concurrent updates to integrations.

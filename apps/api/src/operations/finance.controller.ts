@@ -17,7 +17,7 @@ export class FinanceController {
     if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Acesso financeiro restrito à administração.");
     const months=raw===undefined?6:Number(raw);
     if(![1,3,6,12].includes(months))throw new ForbiddenException("Período inválido.");
-    const valid=(s:string|undefined)=>!!s&&/^\\d{4}-\\d{2}-\\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s));
+    const valid=(s:string|undefined)=>!!s&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s));
     if(all!=="true"&&(from||to)&&(!valid(from)||!valid(to)||from!>to!))throw new ForbiddenException("Intervalo inválido.");
     return this.asaas.executiveDashboard(req.user.tenantId,months,all==="true"?undefined:from,all==="true"?undefined:to,all==="true");
   }
@@ -50,7 +50,7 @@ export class FinanceController {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
     const months = [1, 2, 3, 6, 12].includes(Number(period)) ? Number(period) : 1;
     const now = new Date();
-    const validDate = (s: string | undefined) => !!s && /^\\d{4}-\\d{2}-\\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
+    const validDate = (s: string | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
     if ((start || end) && (!validDate(start) || !validDate(end) || start! > end!)) throw new ForbiddenException("Informe datas inicial e final válidas.");
     const from = all === "true" ? new Date("2000-01-01T00:00:00.000Z") : start ? new Date(start + "T00:00:00.000Z") : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
     const until = end ? new Date(end + "T23:59:59.999Z") : now;

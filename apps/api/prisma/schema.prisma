@@ -59,6 +59,7 @@ model Tenant {
   serviceProtocols ServiceProtocol[]
   googleConnections GoogleConnection[]
   googleOAuthAttempts GoogleOAuthAttempt[]
+  workTasks WorkTask[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -77,6 +78,8 @@ model User {
   assignedConversations Conversation[] @relation("ConversationAssignee")
   departmentMemberships DepartmentMember[]
   conversationParticipations ConversationParticipant[]
+  assignedWorkTasks WorkTask[] @relation("WorkTaskAssignee")
+  createdWorkTasks WorkTask[] @relation("WorkTaskCreator")
 
   @@map("users")
 }
@@ -322,4 +325,41 @@ model GoogleConnection {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@unique([tenantId, googleAccountId])
   @@map("google_connections")
+}
+
+model WorkTask {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  title String
+  description String @default("")
+  status String @default("OPEN")
+  priority String @default("NORMAL")
+  complexity Int @default(1)
+  assigneeId String? @db.Uuid @map("assignee_id")
+  createdById String @db.Uuid @map("created_by_id")
+  contactId String? @db.Uuid @map("contact_id")
+  conversationId String? @db.Uuid @map("conversation_id")
+  dueAt DateTime? @map("due_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  assignee User? @relation("WorkTaskAssignee",fields:[assigneeId],references:[id],onDelete:SetNull)
+  creator User @relation("WorkTaskCreator",fields:[createdById],references:[id])
+  steps WorkTaskStep[]
+  @@index([tenantId,status,dueAt])
+  @@index([tenantId,assigneeId])
+  @@map("work_tasks")
+}
+model WorkTaskStep {
+  id String @id @default(uuid()) @db.Uuid
+  taskId String @db.Uuid @map("task_id")
+  label String
+  done Boolean @default(false)
+  position Int @default(0)
+  checkedAt DateTime? @map("checked_at")
+  checkedById String? @db.Uuid @map("checked_by_id")
+  task WorkTask @relation(fields:[taskId],references:[id],onDelete:Cascade)
+  @@index([taskId,position])
+  @@map("work_task_steps")
 }

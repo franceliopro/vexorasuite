@@ -12,6 +12,12 @@ const money = (value: unknown) => Number(value || 0);
 export class FinanceController {
   constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService) {}
 
+  @Get("debts")
+  async debts(@Req() req:AuthenticatedRequest,@Query("document") document?:string){
+    if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Consulta financeira restrita à administração.");
+    return this.asaas.debtsByDocument(req.user.tenantId,document||"");
+  }
+
   @Get("catalog")
   async catalog(@Req() req:AuthenticatedRequest,@Query("offset") offsetRaw?:string,@Query("limit") limitRaw?:string){
     if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Acesso financeiro restrito à administração.");

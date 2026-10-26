@@ -25,6 +25,7 @@ import {
   Sparkles,
   Wallet,
   Workflow,
+  ListTodo,
   UsersRound,
   Share2,
   MoreHorizontal,
@@ -36,6 +37,7 @@ const iconMap = {
   users: UsersRound,
   calendar: CalendarDays,
   workflow: Workflow,
+  tasks: ListTodo,
   megaphone: Megaphone,
   wallet: Wallet,
   settings: Settings2,
@@ -55,7 +57,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 type NavigationChild = { label: string };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "workflow" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
     { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Anúncios" }, { label: "Resultados" }] },

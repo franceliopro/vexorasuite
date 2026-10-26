@@ -55,6 +55,7 @@ function PortfolioView(){
 }
 
 export function FinanceWorkspace(){
+ const [tab,setTab]=useState<"overview"|"charges"|"customers"|"subscriptions"|"catalog"|"automation"|"history">("overview");
  const [months,setMonths]=useState(1);
  const [custom,setCustom]=useState(false);
  const [allTime,setAllTime]=useState(false);
@@ -68,6 +69,8 @@ export function FinanceWorkspace(){
  const max=Math.max(1,...(data?.series||[]).map(v=>v.billed));
  return <section className="module-workspace finance-health">
    <header className="page-heading"><div><h1>Financeiro</h1><p className="page-subtitle">Visão dos recebimentos registrados nos atendimentos.</p></div></header>
+   <nav className="finance-module-tabs" aria-label="Áreas do Financeiro">{([{id:"overview",label:"Visão geral"},{id:"charges",label:"Cobranças"},{id:"customers",label:"Clientes"},{id:"subscriptions",label:"Assinaturas"},{id:"catalog",label:"Produtos e serviços"},{id:"automation",label:"Automação"},{id:"history",label:"Histórico de avisos"}] as const).map(item=><button type="button" key={item.id} className={tab===item.id?"active":""} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}>{item.label}</button>)}</nav>
+   {tab==="overview"?<>
    <div className="finance-health-toolbar"><div className="module-tabs" role="group" aria-label="Comparar períodos">{[1,2,3,6,12].map(m=><button type="button" key={m} className={!custom&&months===m?"active":""} onClick={()=>{setCustom(false);setAllTime(false);setMonths(m)}}>{m===1?"Mês atual":m===12?"1 ano":m+" meses"}</button>)}<button type="button" className={allTime?"active":""} onClick={()=>{setAllTime(true);setCustom(false)}}>Todo o período</button><button type="button" className={custom?"active":""} onClick={()=>{if(!from){const d=new Date();setFrom(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)).toISOString().slice(0,10));setTo(d.toISOString().slice(0,10));}setAllTime(false);setCustom(true)}}>Personalizado</button></div>{custom&&<div className="finance-health-date-range"><label>De <input type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)}/></label><label>Até <input type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)}/></label></div>}<button className="secondary-button" type="button" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Atualizar</button></div>
    {loading?<p role="status">Consultando dados financeiros…</p>:error?<div className="content-card finance-health-note" role="alert"><AlertCircle size={18}/>{error}</div>:data&&<>
    <div className="finance-health-note content-card"><AlertCircle size={17}/><span><strong>Visão parcial dos atendimentos.</strong> {data.caveat}{data.partial?" Limite de 10 mil registros atingido.":""}</span></div>
@@ -79,6 +82,8 @@ export function FinanceWorkspace(){
      <section className="content-card finance-health-summary"><h2>Raio-X inicial</h2><p>Resumo dos registros disponíveis neste período.</p><dl><div><dt>Pagamentos registrados</dt><dd>{data.totals.count}</dd></div><div><dt>Contatos com valores em aberto</dt><dd>{data.outstandingContacts}</dd></div><div><dt>Ambientes registrados</dt><dd>{data.environment.join(", ")||"Sem registros"}</dd></div></dl><p>Para calcular inadimplência real, dias em atraso e régua de cobrança, o próximo passo é importar e conciliar a carteira de cobranças do Asaas com datas de vencimento.</p></section>
    </div>
    </>}
-   <PortfolioView/>
+   </>:null}
+   {tab==="charges"?<PortfolioView/>:null}
+   {tab==="customers"||tab==="subscriptions"||tab==="catalog"||tab==="automation"||tab==="history"?<section className="content-card finance-module-pending"><h2>{({customers:"Clientes",subscriptions:"Assinaturas",catalog:"Produtos e serviços",automation:"Automação",history:"Histórico de avisos"} as Record<string,string>)[tab]}</h2><p>{({customers:"Os clientes financeiros serão associados aos contatos do CRM e aos cadastros do Asaas.",subscriptions:"As assinaturas recorrentes serão consultadas no Asaas e vinculadas aos respectivos clientes.",catalog:"O catálogo será sincronizado com os produtos e serviços do Asaas, preservando valores e periodicidade.",automation:"As rotinas financeiras usarão os contatos, permissões, canais e dados reais das cobranças.",history:"As execuções e falhas serão exibidas a partir de eventos auditáveis, sem simular entregas."} as Record<string,string>)[tab]}</p><small>Integração funcional desta aba ainda pendente. Nenhum dado fictício é exibido.</small></section>:null}
  </section>;
 }

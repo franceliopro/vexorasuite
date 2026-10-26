@@ -4,7 +4,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import type { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 
-type EventInput = { summary?: string; description?: string; location?: string; start?: string; end?: string };
+type EventInput = { summary?: string; description?: string; location?: string; start?: string; end?: string; colorId?: string; attendees?: { email: string }[] };
 @Controller("integrations/google/calendar")
 @UseGuards(AuthGuard)
 export class GoogleCalendarController {
@@ -42,7 +42,7 @@ export class GoogleCalendarController {
     if (!data.summary?.trim() || !data.start || !data.end) throw new BadRequestException("Informe título, início e término.");
     const start = new Date(data.start), end = new Date(data.end);
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) throw new BadRequestException("Datas inválidas.");
-    return { summary: data.summary.trim().slice(0, 200), description: data.description?.slice(0, 4000) || "", location: data.location?.slice(0, 500) || "", start: { dateTime: start.toISOString() }, end: { dateTime: end.toISOString() } };
+    return { colorId: /^[1-9]$|^1[01]$/.test(data.colorId || "") ? data.colorId : undefined, attendees: (data.attendees || []).filter(a=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.email)).slice(0,30).map(a=>({email:a.email})), summary: data.summary.trim().slice(0, 200), description: data.description?.slice(0, 4000) || "", location: data.location?.slice(0, 500) || "", start: { dateTime: start.toISOString() }, end: { dateTime: end.toISOString() } };
   }
   @Get("accounts")
   async accounts(@Req() req: AuthenticatedRequest) { return this.prisma.googleConnection.findMany({ where: { tenantId: req.user.tenantId, scopes: { contains: "calendar.events" } }, select: { id: true, email: true } }); }

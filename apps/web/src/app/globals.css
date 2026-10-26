@@ -3124,3 +3124,5 @@ input[type="color"].profile-tag-inline-color {
  .chatbot-flow-nodes-free .chatbot-flow-node{width:150px;max-width:150px}
 }
 @media(prefers-reduced-motion:reduce){.chatbot-flow-edge-diagram path{animation:none!important}}
+
+.chatbot-flow-nodes-free .chatbot-flow-node{touch-action:none;cursor:grab}

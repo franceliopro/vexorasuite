@@ -6,8 +6,9 @@ import { AiService } from "./ai.service";
 import { AuthorizedContactsController } from "./authorized-contacts.controller";
 import { AssistantController } from "./assistant.controller";
 import { ChatbotDraftController } from "./chatbot-draft.controller";
+import { ChatbotAsaasPreviewController } from "./chatbot-asaas-preview.controller";
 import { ChatbotTriggerPreviewController } from "./chatbot-trigger-preview.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController], providers: [AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [AiService, GoogleCalendarController], exports: [AiService] })
 export class AiModule {}

@@ -3114,3 +3114,13 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-flow-nodes-free .chatbot-flow-node{width:175px;max-width:175px;cursor:grab;user-select:none;touch-action:pan-y}
 .chatbot-flow-nodes-free .chatbot-flow-node:active{cursor:grabbing}
 .chatbot-flow-nodes-free .chatbot-flow-node:before{display:none}
+
+
+@media(max-width:720px){
+ .chatbot-connect-controls{align-items:stretch;flex-direction:column}
+ .chatbot-connect-controls label{width:100%;justify-content:space-between}
+ .chatbot-connect-controls select{max-width:65%;min-width:0}
+ .chatbot-flow-nodes-free{min-width:760px;min-height:620px}
+ .chatbot-flow-nodes-free .chatbot-flow-node{width:150px;max-width:150px}
+}
+@media(prefers-reduced-motion:reduce){.chatbot-flow-edge-diagram path{animation:none!important}}

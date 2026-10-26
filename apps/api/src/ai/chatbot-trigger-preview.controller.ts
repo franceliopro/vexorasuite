@@ -18,7 +18,8 @@ export class ChatbotTriggerPreviewController {
   const draft=root.chatbotDraft as Draft|undefined;
   if(!draft || !Array.isArray(draft.channelIds) || !draft.channelIds.includes(body.channelId as string))return {matched:false,reason:"channel_not_selected",executed:false,sent:false};
   const triggers=Array.isArray(draft.triggers)&&draft.triggers.length?draft.triggers:[{kind:"message" as const}];
-  const matched=triggers.some(t=>t.kind==="message"&&body.eventType==="message" || t.kind==="dm"&&body.eventType==="dm" || t.kind==="keyword"&&typeof t.keyword==="string"&&normalized(body.text).includes(normalized(t.keyword as string)));
+  const messageText:string=body.text;
+  const matched=triggers.some(t=>t.kind==="message"&&body.eventType==="message" || t.kind==="dm"&&body.eventType==="dm" || t.kind==="keyword"&&typeof t.keyword==="string"&&normalized(messageText).includes(normalized(t.keyword as string)));
   return {matched,reason:matched?"draft_trigger_match":"trigger_not_matched",flowName:matched?draft.name:null,previewMessage:matched?draft.welcome:null,executed:false,sent:false,published:false,needsApproval:true};
  }
 }

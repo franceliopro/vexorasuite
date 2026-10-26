@@ -74,6 +74,32 @@ export class AssistantController {
     return { ...decision, engine: "vexora-intelligence-v1", executedSkills: [], sideEffects: false };
   }
 
+  @Get("engine/status")
+  async engineStatus(@Req() req: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
+    const config = parseConfig(tenant.integrations);
+    return {
+      engine: "vexora-intelligence-v1",
+      enabled: config.enabled,
+      executionMode: "simulation",
+      automaticCustomerReplies: false,
+      workflowExecution: false,
+      workflowPersistence: false,
+      agentCount: config.agents.length,
+      enabledAgentCount: config.agents.filter(agent => agent.enabled).length,
+      capabilities: {
+        intentRouting: true,
+        workflowDrafts: true,
+        skillCatalog: true,
+        customSkillExecution: false,
+        authorizedContactManagement: true,
+        authorizedContactVerification: false,
+        customerChannelIntegration: false
+      },
+      nextSteps: ["Configurar assistente", "Simular triagem", "Revisar rascunho de fluxo", "Validar integrações antes de ativar ações"]
+    };
+  }
+
   @Get("model-catalog")
   async modelCatalog() {
     const providers = ["openrouter", "openai", "gemini", "anthropic", "deepseek", "ollama", "vllm", "openai-compatible"];

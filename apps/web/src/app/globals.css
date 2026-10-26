@@ -3083,3 +3083,9 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-flow-map>small{display:block;margin-top:12px;color:var(--muted,#667085)}
 @keyframes chatbot-flow-shimmer{to{background-position:0 200%}}
 @media(prefers-reduced-motion:reduce){.chatbot-flow-trunk{animation:none}}
+
+
+.chatbot-transition-editor{display:flex;flex-direction:column;gap:10px;margin:14px 0;padding:14px;border:1px solid var(--line,#dce0ea);border-radius:12px}
+.chatbot-transition-editor>small{color:var(--muted,#667085)}
+.chatbot-transition-editor label{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px}
+.chatbot-transition-editor select{max-width:100%;min-width:155px;flex:1}

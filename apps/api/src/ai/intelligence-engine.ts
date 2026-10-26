@@ -26,7 +26,7 @@ export function routeIntelligence(input: { text: string; selectedIntent?: Engine
   if (!text || text.length > 1000) throw new Error("Mensagem inválida");
   const selected = input.selectedIntent && patterns.find(p => p.intent === input.selectedIntent);
   const matches = selected ? [selected] : patterns.filter(p => p.terms.test(text));
-  if (matches.length !== 1) return { intent: "unknown", source: "fallback", confidence: 0, nextStep: "human_review", needsLlm: false, tokensUsed: 0, message: "Como podemos ajudar? Escolha Financeiro, Suporte Técnico, Comercial ou Administrativo, ou solicite um atendente." };
+  if (matches.length !== 1 || !matches[0]) return { intent: "unknown", source: "fallback", confidence: 0, nextStep: "human_review", needsLlm: false, tokensUsed: 0, message: "Como podemos ajudar? Escolha Financeiro, Suporte Técnico, Comercial ou Administrativo, ou solicite um atendente." };
   const item = matches[0];
   return { intent: item.intent, source: selected ? "explicit_choice" : "rules", confidence: selected ? 1 : 0.8, nextStep: item.nextStep, needsLlm: false, tokensUsed: 0, message: item.message };
 }

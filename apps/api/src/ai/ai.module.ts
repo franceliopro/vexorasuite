@@ -5,7 +5,8 @@ import { AuthModule } from "../auth/auth.module";
 import { AiService } from "./ai.service";
 import { AuthorizedContactsController } from "./authorized-contacts.controller";
 import { AssistantController } from "./assistant.controller";
+import { ChatbotDraftController } from "./chatbot-draft.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [AssistantController, AuthorizedContactsController], providers: [AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [AssistantController, AuthorizedContactsController, ChatbotDraftController], providers: [AiService, GoogleCalendarController], exports: [AiService] })
 export class AiModule {}

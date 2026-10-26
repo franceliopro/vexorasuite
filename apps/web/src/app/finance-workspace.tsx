@@ -54,6 +54,16 @@ function PortfolioView(){
  </section>;
 }
 
+type CatalogData={source:string;environment:string;products:{id:string;name:string;description:string;value:number;status:string;billingType:string|null}[];subscriptions:{id:string;customerId:string;description:string;value:number;cycle:string;status:string}[];hasMoreProducts:boolean;hasMoreSubscriptions:boolean;offset:number;limit:number};
+function CatalogView({mode}:{mode:"catalog"|"subscriptions"}){
+ const [data,setData]=useState<CatalogData|null>(null),[error,setError]=useState(""),[loading,setLoading]=useState(false),[offset,setOffset]=useState(0),[refresh,setRefresh]=useState(0);
+ useEffect(()=>{let active=true;setLoading(true);setError("");fetch("/api/backend/finance/catalog?offset="+offset+"&limit=50",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as CatalogData}).then(d=>{if(active)setData(d)}).catch(e=>{if(active){setData(null);setError(e.message)}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[offset,refresh]);
+ const isCatalog=mode==="catalog",items=isCatalog?data?.products:data?.subscriptions,hasMore=isCatalog?data?.hasMoreProducts:data?.hasMoreSubscriptions;
+ return <section className="content-card finance-catalog"><header><div><h2>{isCatalog?"Produtos e serviços":"Assinaturas"}</h2><p>Dados consultados diretamente no Asaas · {data?.environment||"ambiente não confirmado"}</p></div><button className="secondary-button" type="button" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Sincronizar agora</button></header>
+ {loading?<p role="status">Consultando Asaas…</p>:error?<p role="alert">{error}</p>:data?<><div className="finance-portfolio-scroll"><table><thead><tr>{isCatalog?<><th>Produto ou serviço</th><th>Valor</th><th>Tipo</th><th>Situação</th></>:<><th>Descrição</th><th>Cliente Asaas</th><th>Valor</th><th>Periodicidade</th><th>Situação</th></>}</tr></thead><tbody>{isCatalog?data.products.map(p=><tr key={p.id}><td><strong>{p.name}</strong><small className="finance-customer-document">{p.description}</small></td><td>{currency(p.value)}</td><td>{p.billingType||"Produto / serviço"}</td><td>{p.status}</td></tr>):data.subscriptions.map(s=><tr key={s.id}><td>{s.description||s.id}</td><td>{s.customerId}</td><td>{currency(s.value)}</td><td>{s.cycle}</td><td>{s.status}</td></tr>)}</tbody></table></div>{!items?.length?<p>Nenhum registro retornado pelo Asaas.</p>:null}<div className="finance-portfolio-pagination"><button disabled={!offset} onClick={()=>setOffset(v=>Math.max(0,v-50))}>Anterior</button><button disabled={!hasMore} onClick={()=>setOffset(v=>v+50)}>Próxima</button></div></>:null}
+ </section>;
+}
+
 export function FinanceWorkspace(){
  const [tab,setTab]=useState<"overview"|"charges"|"customers"|"subscriptions"|"catalog"|"automation"|"history">("overview");
  const [months,setMonths]=useState(1);
@@ -84,6 +94,7 @@ export function FinanceWorkspace(){
    </>}
    </>:null}
    {tab==="charges"?<PortfolioView/>:null}
-   {tab==="customers"||tab==="subscriptions"||tab==="catalog"||tab==="automation"||tab==="history"?<section className="content-card finance-module-pending"><h2>{({customers:"Clientes",subscriptions:"Assinaturas",catalog:"Produtos e serviços",automation:"Automação",history:"Histórico de avisos"} as Record<string,string>)[tab]}</h2><p>{({customers:"Os clientes financeiros serão associados aos contatos do CRM e aos cadastros do Asaas.",subscriptions:"As assinaturas recorrentes serão consultadas no Asaas e vinculadas aos respectivos clientes.",catalog:"O catálogo será sincronizado com os produtos e serviços do Asaas, preservando valores e periodicidade.",automation:"As rotinas financeiras usarão os contatos, permissões, canais e dados reais das cobranças.",history:"As execuções e falhas serão exibidas a partir de eventos auditáveis, sem simular entregas."} as Record<string,string>)[tab]}</p><small>Integração funcional desta aba ainda pendente. Nenhum dado fictício é exibido.</small></section>:null}
+   {tab==="catalog"||tab==="subscriptions"?<CatalogView mode={tab}/>:null}
+   {tab==="customers"||tab==="automation"||tab==="history"?<section className="content-card finance-module-pending"><h2>{({customers:"Clientes",subscriptions:"Assinaturas",catalog:"Produtos e serviços",automation:"Automação",history:"Histórico de avisos"} as Record<string,string>)[tab]}</h2><p>{({customers:"Os clientes financeiros serão associados aos contatos do CRM e aos cadastros do Asaas.",subscriptions:"As assinaturas recorrentes serão consultadas no Asaas e vinculadas aos respectivos clientes.",catalog:"O catálogo será sincronizado com os produtos e serviços do Asaas, preservando valores e periodicidade.",automation:"As rotinas financeiras usarão os contatos, permissões, canais e dados reais das cobranças.",history:"As execuções e falhas serão exibidas a partir de eventos auditáveis, sem simular entregas."} as Record<string,string>)[tab]}</p><small>Integração funcional desta aba ainda pendente. Nenhum dado fictício é exibido.</small></section>:null}
  </section>;
 }

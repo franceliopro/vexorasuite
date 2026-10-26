@@ -64,6 +64,12 @@ export class WahaWebhookController {
     const timestamp = Number(payload.timestamp);
     const occurredAt = Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp < 1000000000000 ? timestamp * 1000 : timestamp) : new Date();
 
+    // Avoid extra gateway requests when the webhook already includes a usable photo.
+    // This is best-effort: a missing photo must never block incoming messages.
+    const webhookAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl;
+    const recoveredAvatar = !isGroup && !(typeof webhookAvatar === "string" && /^https:\/\//i.test(webhookAvatar))
+      ? await this.waha.contactPicture(channel, chatId) : null;
+
     let saved: { contactId: string; conversationId: string; isNewConversation: boolean; handlingMode: "BOT" | "HUMAN"; message: { id: string; content: string; contentType: string; status: string; direction: string; occurredAt: Date } } | null;
     try {
       saved = await this.prisma.$transaction(async (tx) => {
@@ -72,7 +78,7 @@ export class WahaWebhookController {
         const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
         if (duplicate) return null;
 
-        const rawAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl;
+        const rawAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl || recoveredAvatar;
         const avatarUrl = typeof rawAvatar === "string" && /^https:\/\//i.test(rawAvatar) ? rawAvatar : null;
         let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId: chatId } });
         if (!contact && phone) contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, phone } });

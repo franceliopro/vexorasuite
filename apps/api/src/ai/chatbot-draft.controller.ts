@@ -5,11 +5,13 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 
 type DraftStep = { id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
-type Draft = { name:string; welcome:string; steps:DraftStep[] };
+type Draft = { name:string; welcome:string; steps:DraftStep[]; channelIds?:string[]; triggers?:{kind:"message"|"dm"|"keyword";keyword?:string}[] };
 function validDraft(value: unknown): value is Draft {
  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
  const v=value as Partial<Draft>;
  if (typeof v.name!=="string" || !v.name.trim() || v.name.length>120 || typeof v.welcome!=="string" || v.welcome.length>4000 || !Array.isArray(v.steps) || v.steps.length>100) return false;
+ if(v.channelIds!==undefined && (!Array.isArray(v.channelIds) || v.channelIds.length>30 || v.channelIds.some(id=>typeof id!=="string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) || new Set(v.channelIds).size!==v.channelIds.length))return false;
+ if(v.triggers!==undefined && (!Array.isArray(v.triggers) || v.triggers.length>10 || v.triggers.some(t=>!t || !["message","dm","keyword"].includes(t.kind) || (t.kind==="keyword" && (typeof t.keyword!=="string" || !t.keyword.trim() || t.keyword.length>120)))))return false;
  const ids=new Set<string>();
  for(const s of v.steps){
   if(!s || typeof s.id!=="string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(s.id) || ids.has(s.id) || typeof s.title!=="string" || s.title.length>120 || typeof s.message!=="string" || s.message.length>4000 || !Array.isArray(s.options) || s.options.length>30 || s.options.some(o=>typeof o!=="string" || o.length>160))return false;

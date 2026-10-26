@@ -30,3 +30,43 @@ export function routeIntelligence(input: { text: string; selectedIntent?: Engine
   const item = matches[0];
   return { intent: item.intent, source: selected ? "explicit_choice" : "rules", confidence: selected ? 1 : 0.8, nextStep: item.nextStep, needsLlm: false, tokensUsed: 0, message: item.message };
 }
+
+/** Safe, deterministic workflow draft. No activation or external side effects. */
+export function proposeWorkflow(text: string) {
+  const request = normalize(text);
+  if (!request || request.length > 2000) throw new Error("Descrição inválida");
+  const rastreabem = /rastreabem|ceeb vision|rastreamento veicular/.test(request);
+  const marketing = /carrossel|instagram|campanha|marketing|palavra.chave/.test(request);
+  if (rastreabem) return {
+    template: "rastreabem-triage", status: "draft", requiresApproval: true, active: false,
+    title: "Triagem de atendimento Rastreabem",
+    steps: [
+      { id: "start", type: "trigger", label: "Mensagem recebida em canal autorizado" },
+      { id: "sector", type: "choice", label: "Financeiro, Suporte, Comercial ou Administrativo" },
+      { id: "finance", type: "choice", label: "Financeiro: selecionar plataforma e Pagar ou Atendente" },
+      { id: "payment", type: "skill", skill: "asaas.payment.lookup", label: "Consulta financeira autorizada; integração pendente" },
+      { id: "support", type: "route", label: "Suporte: selecionar plataforma e equipe" },
+      { id: "sales", type: "choice", label: "Comercial: Pessoa Física ou Jurídica" },
+      { id: "admin", type: "route", label: "Administrativo: contato configurado" },
+      { id: "human", type: "handoff", label: "Encaminhamento humano quando necessário" },
+    ],
+    missing: ["Destinos reais de cada setor", "Contato comercial PF/PJ", "Contato administrativo", "Skill Asaas executável e autorizada", "Configuração dos canais e permissões"],
+    estimatedLlmTokens: 0,
+  };
+  if (marketing) return {
+    template: "marketing-carousel", status: "draft", requiresApproval: true, active: false,
+    title: "Campanha de carrossel com resposta por palavra-chave",
+    steps: [
+      { id: "research", type: "skill", skill: "web.research", label: "Pesquisar fontes verificáveis" },
+      { id: "script", type: "agent", label: "Criar roteiro, legenda e CTA" },
+      { id: "design", type: "skill", skill: "media.carousel.generate", label: "Gerar artes e revisar formato" },
+      { id: "approval", type: "approval", label: "Revisão e autorização de publicação" },
+      { id: "publish", type: "skill", skill: "social.publish", label: "Publicar na conta autorizada" },
+      { id: "comment", type: "event", label: "Receber webhook de comentário e verificar palavra-chave" },
+      { id: "reply", type: "skill", skill: "social.private_reply", label: "Responder conforme permissões e limites da plataforma" },
+    ],
+    missing: ["Conta profissional autorizada", "Permissões Meta/Zernio", "Fontes de pesquisa", "Identidade visual", "Texto ou link de resposta", "Palavra-chave e aprovação", "Skills de publicação e resposta implementadas"],
+    estimatedLlmTokens: null,
+  };
+  return { template: "unclassified", status: "needs_clarification", requiresApproval: true, active: false, title: "Automação personalizada", steps: [], missing: ["Objetivo, gatilho, ações, destinatários e critérios de conclusão"], estimatedLlmTokens: null };
+}

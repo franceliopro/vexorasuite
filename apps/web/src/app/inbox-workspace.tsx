@@ -57,7 +57,7 @@ const EMOJI_GROUPS: Record<string, string[]> = emojiCatalog.reduce((groups, [emo
 type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; botState?: Record<string, unknown>; isOverdue?: boolean; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
 function avatarUrl(contact: Contact): string | null {
   const meta = contact.metadata || {};
-  for (const key of ["avatarUrl", "profilePictureUrl", "photoUrl", "pictureUrl", "profileImage"]) {
+  for (const key of ["avatarUrl", "profilePictureUrl", "photoUrl", "pictureUrl", "profileImage", "profilePicUrl", "profilePicture", "imageUrl", "photo", "avatar"]) {
     const value = meta[key];
     if (typeof value === "string" && /^https:\/\//i.test(value)) return value;
   }

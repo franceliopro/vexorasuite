@@ -13,7 +13,7 @@ const initial: BotNode[] = [
   { id: "finance", kind: "asaas", title: "Financeiro", detail: "Atendente ou pagamento Asaas", x: 1180, y: 60 },
   { id: "support", kind: "transfer", title: "Suporte", detail: "Encaminhar para equipe responsável", x: 1180, y: 300 },
 ];
-const edges = [["start","name"],["name","sector"],["sector","platform"],["platform","finance"],["platform","support"]];
+const edges: Array<[string,string]> = [["start","name"],["name","sector"],["sector","platform"],["platform","finance"],["platform","support"]];
 const palette: { kind: NodeKind; title: string; detail: string }[] = [
   {kind:"message",title:"Mensagem",detail:"Enviar texto ao cliente"},
   {kind:"choice",title:"Escolha",detail:"Opções e caminhos"},

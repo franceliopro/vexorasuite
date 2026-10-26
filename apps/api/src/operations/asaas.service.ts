@@ -156,6 +156,15 @@ export class AsaasService {
     };
   }
 
+  async listCatalog(tenantId:string,offset=0,limit=50){
+    const [products,subscriptions,credentials]=await Promise.all([
+      this.request<{data?:Array<{id:string;name:string;description?:string;value:number;billingType?:string;status?:string}>;hasMore?:boolean}>(tenantId,"/products?"+new URLSearchParams({offset:String(offset),limit:String(limit)})),
+      this.request<{data?:Array<{id:string;customer:string;value:number;cycle:string;status:string;description?:string}>;hasMore?:boolean}>(tenantId,"/subscriptions?"+new URLSearchParams({offset:String(offset),limit:String(limit)})),
+      this.credentials(tenantId)
+    ]);
+    return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
+  }
+
   private digits(value: string): string { return value.replace(/\D/g, ""); }
 
   private validDocument(value: string): boolean {

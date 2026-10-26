@@ -182,6 +182,27 @@ export class AsaasService {
     return {customerName:matching[0]?.name||null,environment,debts,partial:matching.length>10||debts.length>=500};
   }
 
+  async executiveDashboard(tenantId:string,months:number,fromDate?:string,toDate?:string,allTime=false){
+    const credentials=await this.credentials(tenantId);
+    const now=new Date(),start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-months+1,1));
+    const first=allTime?"2000-01-01":fromDate||start.toISOString().slice(0,10),last=toDate||now.toISOString().slice(0,10);
+    const items:Array<{id:string;value:number;status:string;dueDate:string;paymentDate?:string|null;billingType?:string;customer:string}>=[];
+    let hasMore=true,offset=0;
+    for(let page=0;page<200&&hasMore;page++){
+      const query=new URLSearchParams({offset:String(offset),limit:"100"});query.set("dueDate[ge]",first);query.set("dueDate[le]",last);
+      const result=await this.request<{data?:typeof items;hasMore?:boolean}>(tenantId,"/payments?"+query.toString());
+      items.push(...(result.data||[]));hasMore=!!result.hasMore;offset+=100;
+    }
+    const paid=new Set(["RECEIVED","CONFIRMED","RECEIVED_IN_CASH"]),excluded=new Set(["CANCELLED","DELETED","REFUNDED"]);
+    const valid=items.filter(x=>!excluded.has(x.status)),received=valid.filter(x=>paid.has(x.status)),open=valid.filter(x=>!paid.has(x.status)),overdue=open.filter(x=>x.status==="OVERDUE"||x.dueDate<last);
+    const sum=(xs:typeof items)=>Math.round(xs.reduce((a,x)=>a+Number(x.value||0),0)*100)/100;
+    const firstMonth=new Date(first+"T00:00:00.000Z"),lastMonth=new Date(last+"T00:00:00.000Z");const monthCount=Math.max(1,(lastMonth.getUTCFullYear()-firstMonth.getUTCFullYear())*12+lastMonth.getUTCMonth()-firstMonth.getUTCMonth()+1);const annual=monthCount>24;const bucketCount=annual?lastMonth.getUTCFullYear()-firstMonth.getUTCFullYear()+1:monthCount;
+    const series=Array.from({length:bucketCount},(_,i)=>{const d=new Date(Date.UTC(firstMonth.getUTCFullYear()+(annual?i:0),annual?0:firstMonth.getUTCMonth()+i,1)),month=d.toISOString().slice(0,annual?4:7),rows=valid.filter(x=>x.dueDate?.startsWith(month));return {month,billed:sum(rows),paid:sum(rows.filter(x=>paid.has(x.status))),open:sum(rows.filter(x=>!paid.has(x.status))),overdue:sum(rows.filter(x=>!paid.has(x.status)&&(x.status==="OVERDUE"||x.dueDate<last)))};});
+    const byStatus=Object.entries(valid.reduce<Record<string,{count:number;amount:number}>>((acc,x)=>{const group=acc[x.status]||(acc[x.status]={count:0,amount:0});group.count++;group.amount+=Number(x.value||0);return acc;},{})).map(([status,x])=>({status,count:x.count,amount:Math.round(x.amount*100)/100})).sort((a,b)=>b.amount-a.amount);
+    const byBillingType=Object.entries(valid.reduce<Record<string,{count:number;amount:number}>>((acc,x)=>{const group=acc[x.billingType||"OTHER"]||(acc[x.billingType||"OTHER"]={count:0,amount:0});group.count++;group.amount+=Number(x.value||0);return acc;},{})).map(([type,x])=>({type,count:x.count,amount:Math.round(x.amount*100)/100})).sort((a,b)=>b.amount-a.amount);
+    return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",partial:hasMore,from:first,to:last,months,annual,totals:{billed:sum(valid),paid:sum(received),open:sum(open),overdue:sum(overdue),count:valid.length,overdueCount:overdue.length,customers:new Set(valid.map(x=>x.customer)).size},collectionRate:sum(valid)>0?Math.round(sum(received)/sum(valid)*1000)/10:null,series,byStatus,byBillingType};
+  }
+
   private digits(value: string): string { return value.replace(/\D/g, ""); }
 
   private validDocument(value: string): boolean {

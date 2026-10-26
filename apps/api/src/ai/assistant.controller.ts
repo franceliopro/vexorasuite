@@ -1,3 +1,4 @@
+import { routeIntelligence } from "./intelligence-engine";
 import { Body, Controller, ForbiddenException, Get, Put, Post, Req, UseGuards, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
@@ -52,6 +53,16 @@ export class AssistantController {
       { id: "voice.stt", name: "Transcrever áudio", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
       { id: "voice.tts", name: "Responder por voz", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
     ] };
+  }
+
+  @Post("engine/route")
+  async route(@Req() req: AuthenticatedRequest, @Body() body: { text?: string; selectedIntent?: string }) {
+    if (typeof body?.text !== "string" || !body.text.trim() || body.text.length > 1000) throw new BadRequestException("Mensagem inválida");
+    if (body.selectedIntent !== undefined && !["payment", "finance", "support", "sales", "administration"].includes(body.selectedIntent)) throw new BadRequestException("Intenção inválida");
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
+    if (!parseConfig(tenant.integrations).enabled) throw new ForbiddenException("Intelligence Engine desabilitado nesta empresa");
+    const decision = routeIntelligence({ text: body.text, selectedIntent: body.selectedIntent as "payment" | "finance" | "support" | "sales" | "administration" | undefined });
+    return { ...decision, engine: "vexora-intelligence-v1", executedSkills: [], sideEffects: false };
   }
 
   @Get("model-catalog")

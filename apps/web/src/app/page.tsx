@@ -10,6 +10,7 @@ import { ChannelsIntegrations } from "./channels-integrations";
 import { CalendarWorkspace } from "./calendar-workspace";
 import { TasksWorkspace } from "./tasks-workspace";
 import { ChatbotWorkspace } from "./chatbot-workspace";
+import { AiAgentsWorkspace, PersonalAssistantPanel } from "./ai-agents-workspace";
 import {
   CalendarDays,
   Activity,
@@ -115,6 +116,7 @@ export default function HomePage() {
     else url.searchParams.set("module", active);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [active, navigationReady]);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
@@ -218,6 +220,7 @@ export default function HomePage() {
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">☰</button>
           <div className="breadcrumbs"><span>Véxora Suite</span><span className="crumb-slash">/</span><strong>{active}</strong></div>
           <div className="topbar-actions">
+            <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role === "OWNER" ? <div className="workspace-info-wrap"><button type="button" className="workspace-info-button" onClick={() => setWorkspaceInfoOpen(v=>!v)} aria-expanded={workspaceInfoOpen} title="Informações do ambiente"><span className="workspace-avatar">V</span><span>Ambiente</span><Icon name="chevron-right" size={13}/></button>{workspaceInfoOpen?<div className="workspace-info-popover"><strong>{session?.tenant.name||"Minha empresa"}</strong><small>{session?.tenant.slug||"Workspace"}</small><p>Ambiente atual da empresa. A alternância entre empreendimentos será exibida quando houver mais de um vínculo disponível para sua conta.</p></div>:null}</div>:null}
             <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar" placeholder="Buscar..." /><kbd>⌘ K</kbd></label>
             <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
@@ -259,6 +262,8 @@ export default function HomePage() {
             <CrmWorkspace />
           ) : active === "Financeiro" || active === "Gestão" ? (
             canConfigure ? <FinanceWorkspace /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
+          ) : active === "Agentes de IA" ? (
+            <AiAgentsWorkspace />
           ) : active === "Chatbots" ? (
             <ChatbotWorkspace />
           ) : active === "Workflows" ? (
@@ -287,6 +292,7 @@ export default function HomePage() {
           {active !== "Atendimento" ? <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer> : null}
         </div>
       </main>
+      {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <nav className="mobile-bottom-nav" aria-label="Navegação principal no celular">
         <button type="button" className={active === "Visão geral" ? "active" : ""} onClick={() => { setActive("Visão geral"); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Início</span></button>
         <button type="button" className={active === "Atendimento" ? "active" : ""} onClick={() => { setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>

@@ -60,6 +60,7 @@ model Tenant {
   googleConnections GoogleConnection[]
   googleOAuthAttempts GoogleOAuthAttempt[]
   workTasks WorkTask[]
+  calendarAssignments CalendarAssignment[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -362,4 +363,19 @@ model WorkTaskStep {
   task WorkTask @relation(fields:[taskId],references:[id],onDelete:Cascade)
   @@index([taskId,position])
   @@map("work_task_steps")
+}
+
+model CalendarAssignment {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  accountId String @db.Uuid @map("account_id")
+  calendarId String @map("calendar_id")
+  userId String? @db.Uuid @map("user_id")
+  departmentId String? @db.Uuid @map("department_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  @@unique([tenantId,accountId,calendarId,userId,departmentId])
+  @@index([tenantId,userId])
+  @@index([tenantId,departmentId])
+  @@map("calendar_assignments")
 }

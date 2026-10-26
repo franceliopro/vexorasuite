@@ -7,7 +7,7 @@ import { PrismaService } from "../prisma/prisma.service";
 
 const callbackPath = "/api/integrations/google/callback";
 const scopes: Record<string, string[]> = {
-  calendar: ["openid", "email", "https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar.readonly"],
+  calendar: ["openid", "email", "https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar.readonly"],
   drive: ["openid", "email", "https://www.googleapis.com/auth/drive.file"],
 };
 @Controller("integrations/google")

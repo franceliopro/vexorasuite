@@ -165,6 +165,23 @@ export class AsaasService {
     return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
   }
 
+  async debtsByDocument(tenantId:string,rawDocument:string){
+    const document=rawDocument.replace(/\D/g,"");
+    if(!/^\d{11}$|^\d{14}$/.test(document)||!this.validDocument(document))throw new BadRequestException("CPF/CNPJ inválido.");
+    const customers=await this.request<{data?:Array<{id:string;name:string;cpfCnpj?:string}>}>(tenantId,"/customers?"+new URLSearchParams({cpfCnpj:document,limit:"100"}));
+    const matching=(customers.data||[]).filter(x=>x.cpfCnpj?.replace(/\D/g,"")===document);
+    const debts: Array<{id:string;customerId:string;value:number;dueDate:string;status:string;description:string;invoiceUrl:string|null;bankSlipUrl:string|null}>=[];
+    for(const customer of matching.slice(0,10)){
+      let offset=0;for(let page=0;page<5;page++){
+        const result=await this.request<{data?:Array<{id:string;value:number;dueDate:string;status:string;description?:string;invoiceUrl?:string;bankSlipUrl?:string}>;hasMore?:boolean}>(tenantId,"/payments?"+new URLSearchParams({customer:customer.id,limit:"100",offset:String(offset)}));
+        for(const debt of result.data||[])if(["PENDING","OVERDUE"].includes(debt.status))debts.push({id:debt.id,customerId:customer.id,value:Number(debt.value),dueDate:debt.dueDate,status:debt.status,description:debt.description||"",invoiceUrl:debt.invoiceUrl||null,bankSlipUrl:debt.bankSlipUrl||null});
+        if(!result.hasMore)break;offset+=100;
+      }
+    }
+    const environment=(await this.credentials(tenantId)).sandbox?"SANDBOX":"PRODUCTION";
+    return {customerName:matching[0]?.name||null,environment,debts,partial:matching.length>10||debts.length>=500};
+  }
+
   private digits(value: string): string { return value.replace(/\D/g, ""); }
 
   private validDocument(value: string): boolean {

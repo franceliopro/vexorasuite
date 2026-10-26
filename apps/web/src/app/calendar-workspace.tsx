@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2 } from "lucide-react";
 type Account = { id: string; email: string };
 type Calendar = { id: string; summary: string; primary?: boolean };
-type Event = { id: string; summary?: string; description?: string; location?: string; start?: {dateTime?: string;date?: string}; end?: {dateTime?: string;date?: string}; htmlLink?: string };
+type Event = { id: string; colorId?: string; summary?: string; description?: string; location?: string; start?: {dateTime?: string;date?: string}; end?: {dateTime?: string;date?: string}; htmlLink?: string };
 async function request<T>(path:string,init?:RequestInit):Promise<T>{const r=await fetch("/api/backend/integrations/google/calendar/"+path,{...init,cache:"no-store"});const body=await r.json().catch(()=>({}));if(!r.ok)throw new Error(body.message||"Não foi possível consultar o Google Agenda.");return body as T;}
 function localInput(d:Date){const pad=(n:number)=>String(n).padStart(2,"0");return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());}
 export function CalendarWorkspace(){

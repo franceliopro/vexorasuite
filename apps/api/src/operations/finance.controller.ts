@@ -13,11 +13,13 @@ export class FinanceController {
   constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService) {}
 
   @Get("executive")
-  async executive(@Req() req:AuthenticatedRequest,@Query("months") raw?:string){
+  async executive(@Req() req:AuthenticatedRequest,@Query("months") raw?:string,@Query("from") from?:string,@Query("to") to?:string,@Query("all") all?:string){
     if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Acesso financeiro restrito à administração.");
     const months=raw===undefined?6:Number(raw);
     if(![1,3,6,12].includes(months))throw new ForbiddenException("Período inválido.");
-    return this.asaas.executiveDashboard(req.user.tenantId,months);
+    const valid=(s:string|undefined)=>!!s&&/^\\d{4}-\\d{2}-\\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s));
+    if(all!=="true"&&(from||to)&&(!valid(from)||!valid(to)||from!>to!))throw new ForbiddenException("Intervalo inválido.");
+    return this.asaas.executiveDashboard(req.user.tenantId,months,all==="true"?undefined:from,all==="true"?undefined:to,all==="true");
   }
 
   @Get("debts")

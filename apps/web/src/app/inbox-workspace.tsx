@@ -167,9 +167,9 @@ export function InboxWorkspace() {
     const el = composerRef.current;
     if (!el) return;
     el.style.height = "34px";
-    const next = Math.max(34, Math.min(74, el.scrollHeight));
+    const next = Math.max(34, Math.min(142, el.scrollHeight));
     el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > 74 ? "auto" : "hidden";
+    el.style.overflowY = el.scrollHeight > 142 ? "auto" : "hidden";
     setComposerTextHeight(next);
     if (document.activeElement === el) el.scrollTop = el.scrollHeight;
   }, [draft]);

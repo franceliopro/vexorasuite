@@ -53,6 +53,21 @@ export function validateRuntimeFlow(value: unknown): string[] {
       if (['input.text','tag','variable'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
     }
   }
+  // Detect loops that have no wait for a customer message; they must not flood the channel.
+  const autoSteps = f.steps.filter(s => s && (['variable','condition','tag'].includes(s.kind || '') || (s.kind === 'text' && Array.isArray(s.options) && s.options.length === 1)));
+  const automatic = new Map(autoSteps.map(s => [s.id,s]));
+  const visiting = new Set<string>(), visited = new Set<string>();
+  const cycle = (id: string): boolean => {
+    if (visiting.has(id)) return true;
+    if (visited.has(id) || !automatic.has(id)) return false;
+    visiting.add(id);
+    for (const target of Object.values(automatic.get(id)!.transitions || {})) {
+      const next = target === '__start__' ? (f.steps.find(s => s?.id === 'menu')?.id || f.steps[0]?.id || '') : target;
+      if (cycle(next)) return true;
+    }
+    visiting.delete(id); visited.add(id); return false;
+  };
+  if (autoSteps.some(s => cycle(s.id))) errors.push('Ciclo de execução automática: inclua uma entrada ou escolha do cliente');
   return errors;
 }
 export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');

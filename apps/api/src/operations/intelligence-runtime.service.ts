@@ -32,12 +32,12 @@ export class IntelligenceRuntimeService {
       const published = object(object(tenant.integrations).intelligencePublished) as PublishedFlow;
       if (!published.flow || !published.flow.channelIds?.includes(channel.id)) return null;
       if (!published.active) return { messages: [], handled: true, handoff: false };
-      if (previous.flow === 'ASAAS') return null;
       const processed = await tx.auditLog.findFirst({ where: { tenantId: channel.tenantId, action: 'engine.processed', entityId: inbound.id } });
       if (processed) {
         const queued = await tx.message.findMany({ where: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', metadata: { path: ['sourceMessageId'], equals: inbound.id } }, orderBy: { createdAt: 'asc' }, take: 20 });
         return { messages: queued, handled: true, handoff: object(processed.details).decision === 'human' };
       }
+      if (previous.flow === 'ASAAS') return null;
       const flow = published.flow;
       const findStep = (id: string | undefined) => id === '__start__' ? flow.steps.find(s => s.id === 'menu') || flow.steps[0] : flow.steps.find(s => s.id === id);
       const active = previous.flow === 'INTELLIGENCE' && previous.revision === published.revision;

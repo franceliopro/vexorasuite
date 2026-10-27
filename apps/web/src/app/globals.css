@@ -3358,3 +3358,11 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-flow-node-quick-actions button{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:3px 6px;min-height:23px;border:1px solid var(--line,#d9deea);border-radius:6px;background:var(--card,#fff);color:var(--muted,#667085);font-size:10px;cursor:pointer}
 .chatbot-workspace .vx-flow-node-quick-actions button:hover{border-color:var(--primary,#6756d9);color:var(--primary,#6756d9)}
 .chatbot-workspace .vx-flow-outputs{max-height:260px;overflow-y:auto;scrollbar-width:thin}
+
+/* Flow Studio: consistent page heading and uncluttered property inspector */
+.chatbot-workspace .vx-flow-page-title{margin:0 0 12px;padding:0 2px}
+.chatbot-workspace .vx-flow-page-title h1{margin:0;font-size:clamp(26px,2.3vw,34px);font-weight:750;letter-spacing:-.035em;line-height:1.18;color:var(--text,#202638)}
+.chatbot-workspace .vx-flow-page-title p{margin:4px 0 0;font-size:13px;color:var(--muted,#667085)}
+.chatbot-workspace .vx-flow-field-help{font-size:12px;line-height:1.55;color:var(--muted,#667085);margin:4px 0 12px}
+.chatbot-workspace .vx-flow-inspector-body label small{display:block;margin:2px 0 5px;font-size:11px;font-weight:400;color:var(--muted,#667085);line-height:1.45}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title{display:none}

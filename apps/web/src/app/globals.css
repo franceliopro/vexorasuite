@@ -3230,3 +3230,35 @@ input[type="color"].profile-tag-inline-color {
 .vx-flow-footer small{font-size:11px}
 @media(max-width:1100px){.chatbot-workspace .vx-flow-shell{grid-template-columns:145px minmax(0,1fr) 270px}}
 @media(max-width:760px){.chatbot-workspace .vx-flow-shell{display:flex;flex-direction:column;height:auto;min-height:0}.chatbot-workspace .vx-flow-library{display:none}.chatbot-workspace .vx-flow-stage{height:55vh;min-height:340px}.chatbot-workspace .vx-flow-inspector{display:block;max-height:none;overflow:visible;border-left:0;border-top:1px solid var(--line,#dce0ea)}.vx-flow-topbar{justify-content:stretch}.vx-flow-topbar label{flex-basis:100%}.vx-flow-topbar input{max-width:none}}
+
+/* Flow Studio: collapsible, persistent side windows. */
+.vx-flow-window-controls{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;font-size:12px}
+.vx-flow-window-controls button{border:1px solid var(--line,#d9deeb);border-radius:8px;background:var(--card,#fff);color:var(--text,#202532);padding:6px 10px;cursor:pointer}
+.vx-flow-window-controls button[aria-pressed="false"]{opacity:.75}
+.vx-flow-window-controls label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted,#667085)}
+.vx-flow-window-controls input{accent-color:var(--primary,#6c66f5)}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed{grid-template-columns:32px minmax(0,1fr) 305px}
+.chatbot-workspace .vx-flow-shell.vx-right-collapsed{grid-template-columns:168px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed{grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-flow-library,.chatbot-workspace .vx-flow-inspector{position:relative;min-width:0}
+.chatbot-workspace .vx-panel-handle{position:absolute;right:5px;top:7px;z-index:4;display:grid;place-items:center;width:23px;height:25px;border:1px solid var(--line,#d9deeb);border-radius:7px;background:var(--card,#fff);color:var(--text,#202532);cursor:pointer}
+.chatbot-workspace .vx-flow-inspector .vx-panel-handle{right:auto;left:5px}
+.chatbot-workspace .vx-flow-library .vx-flow-panel-title{padding-right:25px}
+.chatbot-workspace .vx-flow-inspector .vx-flow-panel-title{padding-left:26px}
+.chatbot-workspace .vx-left-collapsed .vx-flow-library,.chatbot-workspace .vx-right-collapsed .vx-flow-inspector{padding:0;overflow:hidden}
+.chatbot-workspace .vx-left-collapsed .vx-flow-library>:not(.vx-panel-handle),.chatbot-workspace .vx-right-collapsed .vx-flow-inspector>:not(.vx-panel-handle){display:none}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:not(:hover):not(:focus-within)>:not(.vx-panel-handle),.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:not(:hover):not(:focus-within)>:not(.vx-panel-handle){opacity:0;pointer-events:none}
+.chatbot-workspace .vx-auto-hide .vx-flow-library,.chatbot-workspace .vx-auto-hide .vx-flow-inspector{transition:background .18s ease}
+.chatbot-workspace .vx-auto-hide .vx-flow-library:hover,.chatbot-workspace .vx-auto-hide .vx-flow-inspector:hover{background:var(--card,#fff)}
+@media(max-width:1100px) and (min-width:761px){.chatbot-workspace .vx-flow-shell.vx-left-collapsed{grid-template-columns:32px minmax(0,1fr) 270px}.chatbot-workspace .vx-flow-shell.vx-right-collapsed{grid-template-columns:145px minmax(0,1fr) 32px}.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed{grid-template-columns:32px minmax(0,1fr) 32px}}
+@media(max-width:760px){.chatbot-workspace .vx-flow-shell.vx-left-collapsed,.chatbot-workspace .vx-flow-shell.vx-right-collapsed,.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed{display:flex;flex-direction:column}.chatbot-workspace .vx-flow-shell.vx-right-collapsed .vx-flow-inspector{display:block;min-height:34px}.chatbot-workspace .vx-flow-shell.vx-right-collapsed .vx-flow-inspector .vx-panel-handle{top:5px}.chatbot-workspace .vx-auto-hide .vx-flow-inspector:not(:hover):not(:focus-within)>:not(.vx-panel-handle){opacity:1;pointer-events:auto}.vx-flow-window-controls{justify-content:flex-start}}
+
+@media(min-width:761px){
+.chatbot-workspace .vx-flow-shell.vx-auto-hide:not(.vx-left-collapsed):not(.vx-right-collapsed){grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-flow-shell.vx-auto-hide:not(.vx-left-collapsed).vx-right-collapsed{grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-flow-shell.vx-auto-hide.vx-left-collapsed:not(.vx-right-collapsed){grid-template-columns:32px minmax(0,1fr) 32px}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector{overflow:visible;z-index:5}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:hover,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:hover,.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:focus-within,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:focus-within{width:270px;box-shadow:0 12px 30px #0002}
+.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:hover,.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:focus-within{margin-left:-273px;width:305px}
+.chatbot-workspace .vx-auto-hide:not(.vx-left-collapsed) .vx-flow-library:not(:hover):not(:focus-within)>:not(.vx-panel-handle),.chatbot-workspace .vx-auto-hide:not(.vx-right-collapsed) .vx-flow-inspector:not(:hover):not(:focus-within)>:not(.vx-panel-handle){visibility:hidden}
+}

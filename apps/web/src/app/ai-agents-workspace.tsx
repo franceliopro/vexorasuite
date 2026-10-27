@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, Plus, Save, Trash2, ShieldCheck, Sparkles } from "lucide-react";
 
 type Agent = { profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[] }; knowledgeUrls?: string[]; llm?: {provider:string;model:string;tier:string;endpoint?:string}; stt?: {provider:string;model:string;endpoint?:string}; tts?: {provider:string;model:string;endpoint?:string}; id: number; name: string; role: string; tier: "Econômico" | "Equilíbrio" | "Inteligente"; enabled: boolean; instructions: string };
@@ -13,6 +13,8 @@ export function AiAgentsWorkspace() {
   const [selected, setSelected] = useState(1);
   const [assistantName, setAssistantName] = useState("Véxora");
   const [wakeWord, setWakeWord] = useState("Olá Véxora");
+  const [primaryModel,setPrimaryModel]=useState({provider:"openrouter",model:"",tier:"Econômico"});
+  const [fallbackModels,setFallbackModels]=useState<{provider:string;model:string;tier:string}[]>([]);
   const [activation, setActivation] = useState("Clique ou texto");
   const [notice, setNotice] = useState("");
   const [assistantEnabled, setAssistantEnabled] = useState(false);
@@ -36,7 +38,7 @@ export function AiAgentsWorkspace() {
       .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.message || "Falha ao carregar"); return data; })
       .then(data => {
         if (!mounted) return;
-        setAssistantName(data.name); setWakeWord(data.wakeWord); setAssistantEnabled(data.enabled);
+        if(data.llm)setPrimaryModel(data.llm);if(Array.isArray(data.fallbackModels))setFallbackModels(data.fallbackModels);setAssistantName(data.name); setWakeWord(data.wakeWord); setAssistantEnabled(data.enabled);
         if (Array.isArray(data.agents)) {
           const items: Agent[] = data.agents.map((a: Agent & { id: string }) => ({ ...a, id: Number(a.id) })).filter((a: Agent) => Number.isSafeInteger(a.id) && a.id > 0);
           setAgents(items); setSelected(items[0]?.id ?? 0);
@@ -49,7 +51,7 @@ export function AiAgentsWorkspace() {
   const save = async () => {
     setSaving(true); setNotice("");
     try {
-      const response = await fetch("/api/backend/assistant/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: assistantName, wakeWord, enabled: assistantEnabled, agents: agents.map(a => ({ ...a, id: String(a.id) })) }) });
+      const response = await fetch("/api/backend/assistant/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: assistantName, wakeWord, enabled: assistantEnabled, ...(primaryModel.model?{llm:primaryModel}:{}), fallbackModels:fallbackModels.filter(m=>m.model.trim()), agents: agents.map(a => ({ ...a, id: String(a.id) })) }) });
       const data = await response.json();
       if (!response.ok) throw new Error(Array.isArray(data.message) ? data.message.join(" ") : data.message || "Não foi possível salvar");
       setNotice("Configuração salva para esta empresa.");
@@ -90,8 +92,10 @@ export function AiAgentsWorkspace() {
         <div className="ai-admin-fields">
           <label>Nome padrão<input value={assistantName} onChange={e => setAssistantName(e.target.value)}/></label>
           <label>Comando de ativação<input value={wakeWord} onChange={e => setWakeWord(e.target.value)}/></label>
-          <label>Ativação<select value={activation} onChange={e => setActivation(e.target.value)}><option>Clique ou texto</option><option>Voz (futuro)</option></select></label>
-          <label className="ai-toggle"><input type="checkbox" checked={assistantEnabled} onChange={e => setAssistantEnabled(e.target.checked)}/> Habilitar assistente para esta empresa</label><p className="ai-admin-note">Escuta contínua e microfone permanecem desligados. O comando de voz ainda não está disponível.</p>
+          <label>Ativação<select value={activation} onChange={e => setActivation(e.target.value)}><option>Clique ou texto</option><option>Ditado por clique</option></select></label>
+          <label>Modelo econômico para a assistente<input list="openrouter-models" value={primaryModel.model} placeholder="Selecione um modelo do catálogo" onChange={e=>setPrimaryModel(m=>({...m,model:e.target.value}))}/></label><label>Provedor<select value={primaryModel.provider} onChange={e=>setPrimaryModel(m=>({...m,provider:e.target.value}))}><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option></select></label>
+          <p className="ai-admin-note">Regras e Skills executam primeiro. Os modelos de contingência só são chamados quando o anterior falha ou não entrega o formato exigido.</p>{[0,1].map(i=><label key={i}>Contingência {i+1} · opcional<input value={fallbackModels[i]?.model||""} list="openrouter-models" onChange={e=>setFallbackModels(current=>{const next=[...current];next[i]={provider:primaryModel.provider,model:e.target.value,tier:i===0?"Equilíbrio":"Inteligente"};return next})}/></label>)}
+          <label className="ai-toggle"><input type="checkbox" checked={assistantEnabled} onChange={e => setAssistantEnabled(e.target.checked)}/> Habilitar assistente para esta empresa</label><p className="ai-admin-note">Ditado disponível por clique em navegadores compatíveis. Não há escuta contínua.</p>
           <button type="button" className="primary-button" onClick={() => void save()} disabled={saving || loading}><Save size={15}/> Salvar configuração</button>
         </div>
       </section>
@@ -99,28 +103,48 @@ export function AiAgentsWorkspace() {
     <section className="content-card ai-admin-card" style={{marginTop:16}}><h2><Sparkles size={19}/> Véxora Intelligence Engine · Laboratório</h2><p className="ai-admin-note">Teste o roteamento determinístico, sem LLM, sem execução de Skills e sem enviar mensagens a clientes. Requer assistente habilitado nesta empresa.</p><div className="ai-admin-fields"><label>Mensagem de teste<textarea rows={2} maxLength={1000} value={engineInput} onChange={e=>setEngineInput(e.target.value)}/></label><button type="button" className="secondary-button" onClick={async()=>{setEngineError("");setEngineResult(null);try{const response=await fetch("/api/backend/assistant/engine/route",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:engineInput})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha no teste");setEngineResult(data)}catch(e){setEngineError(e instanceof Error?e.message:"Falha no teste")}}}>Testar roteamento</button>{engineResult&&<div role="status"><strong>Intenção:</strong> {engineResult.intent}<p><strong>Próximo passo:</strong> {engineResult.nextStep}</p><p>{engineResult.message}</p><small>Tokens de LLM: {engineResult.tokensUsed}</small></div>}{engineError&&<p role="alert">{engineError}</p>}</div></section>
     <section className="content-card ai-admin-card" style={{marginTop:16}}><h2>Construtor por comando · Prévia</h2><p className="ai-admin-note">Descreva o fluxo em linguagem natural. A primeira versão oferece modelos determinísticos de Rastreabem e marketing; ainda não cria nem ativa fluxos reais.</p><div className="ai-admin-fields"><label>O que deseja automatizar?<textarea rows={3} maxLength={2000} value={workflowRequest} onChange={e=>setWorkflowRequest(e.target.value)}/></label><button type="button" className="secondary-button" onClick={async()=>{setWorkflowError("");setWorkflowDraft(null);try{const response=await fetch("/api/backend/assistant/engine/propose-workflow",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({request:workflowRequest})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha na proposta");setWorkflowDraft(data)}catch(e){setWorkflowError(e instanceof Error?e.message:"Falha na proposta")}}}>Gerar proposta de fluxo</button>{workflowDraft&&<div role="status"><strong>{workflowDraft.title}</strong><p>Rascunho — não ativado</p><ol>{workflowDraft.steps.map(step=><li key={step.id}>{step.label}</li>)}</ol><strong>Falta configurar:</strong><ul>{workflowDraft.missing.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}{workflowError&&<p role="alert">{workflowError}</p>}</div></section>
     {notice && <p role="status">{notice}</p>}
-    <p className="ai-admin-note">Configurações armazenadas por empresa. Agentes generativos ainda não executam tarefas; consultas determinísticas não utilizam tokens.</p>
+    <p className="ai-admin-note">Configurações armazenadas por empresa. Agentes respondem nos blocos habilitados; ações operacionais usam Skills autorizadas. Consultas e relatórios determinísticos não utilizam tokens.</p>
   </section>;
 }
 
 export function PersonalAssistantPanel({ onClose }: { onClose: () => void }) {
   const [question, setQuestion] = useState("");
-  const [requests, setRequests] = useState<{ question: string; answer: string }[]>([]);
+  const [requests, setRequests] = useState<{ question: string; answer: string; attachments?:{name:string;url:string}[];sources?:{title:string;url:string}[];automation?:{id:string;carousel:{title:string;caption:string;slides:{title:string;body:string}[]};channels:{id:string;name:string}[]} }[]>([]);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("Véxora");
+  const [voiceStatus,setVoiceStatus]=useState("");
+  const recognitionRef=useRef<{stop:()=>void}|null>(null);
+  useEffect(()=>()=>{recognitionRef.current?.stop()},[]);
+  function dictate(){
+   const Speech=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition;
+   if(!Speech){setVoiceStatus("Ditado indisponível neste navegador. Use o campo de texto.");return;}
+   if(recognitionRef.current){recognitionRef.current.stop();recognitionRef.current=null;setVoiceStatus("");return;}
+   const recognition=new Speech();recognition.lang="pt-BR";recognition.interimResults=false;recognition.continuous=false;
+   recognition.onresult=(event:any)=>{setQuestion(event.results[0][0].transcript);setVoiceStatus("Ditado recebido. Revise e envie.")};
+   recognition.onerror=()=>setVoiceStatus("Não foi possível receber o ditado. Confira a permissão do microfone.");
+   recognition.onend=()=>{recognitionRef.current=null};recognitionRef.current=recognition;recognition.start();setVoiceStatus("Ouvindo… clique em Ditado para parar.");
+  }
   useEffect(() => { fetch("/api/backend/assistant/config", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (data?.name) setName(data.name); }).catch(() => {}); }, []);
   const ask = async (question: string) => {
     setBusy(true);
     try {
       const response = await fetch("/api/backend/assistant/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question }) });
       const data = await response.json();
-      setRequests(items => [...items, { question, answer: response.ok ? data.answer : (Array.isArray(data.message) ? data.message.join(" ") : data.message || "Consulta indisponível") }]);
+      setRequests(items => [...items, { question, automation:response.ok?data.automation:undefined, sources:response.ok?data.sources:undefined, attachments:response.ok?data.attachments:undefined, answer: response.ok ? data.answer : (Array.isArray(data.message) ? data.message.join(" ") : data.message || "Consulta indisponível") }]);
     } catch { setRequests(items => [...items, { question, answer: "Falha de conexão com a API." }]); }
     finally { setBusy(false); }
   };
   return <aside className="ai-assistant-panel" aria-label="Assistente pessoal">
-    <div className="ai-assistant-head"><div><strong><Sparkles size={18}/> {name}</strong><small>Em repouso · sem escuta de microfone</small></div><button type="button" aria-label="Fechar assistente" onClick={onClose}>×</button></div>
-    <div className="ai-assistant-content"><p>Olá! Posso ajudar com relatórios, financeiro, agenda e operações utilizando consultas disponíveis, sem ativar IA automaticamente.</p>{requests.map((q,i) => <div key={i} className="ai-assistant-message"><strong>Você:</strong> {q.question}<p>{q.answer}</p></div>)}</div>
-    <form className="ai-assistant-form" onSubmit={e => { e.preventDefault(); if (question.trim()) { void ask(question.trim()); setQuestion(""); } }}><input aria-label="Solicitação para a assistente" value={question} onChange={e => setQuestion(e.target.value)} placeholder="Peça um relatório ou consulta..." /><button type="submit" disabled={!question.trim() || busy}>Enviar</button></form>
+    <div className="ai-assistant-head"><div><strong><Sparkles size={18}/> {name}</strong><small>{voiceStatus||"Texto ou ditado por clique"}</small></div><button type="button" aria-label="Fechar assistente" onClick={onClose}>×</button></div>
+    <div className="ai-assistant-content"><p>Olá! Posso ajudar com relatórios, financeiro, agenda e operações utilizando consultas disponíveis, sem ativar IA automaticamente.</p>{requests.map((q,i) => <div key={i} className="ai-assistant-message"><strong>Você:</strong> {q.question}<p>{q.answer}</p>{q.attachments?.map(file=><a key={file.url} href={file.url} download className="secondary-button">{file.name}</a>)}{q.sources?.map(source=><p key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></p>)}{q.automation&&<CarouselPublication automation={q.automation}/>}</div>)}</div>
+    <form className="ai-assistant-form" onSubmit={e => { e.preventDefault(); if (question.trim()) { void ask(question.trim()); setQuestion(""); } }}><input aria-label="Solicitação para a assistente" value={question} onChange={e => setQuestion(e.target.value)} placeholder="Peça um relatório ou consulta..." /><button type="button" onClick={dictate} disabled={busy}>Ditado</button><button type="submit" disabled={!question.trim() || busy}>Enviar</button></form>
   </aside>;
+}
+
+
+function CarouselPublication({automation}:{automation:{id:string;carousel:{title:string;caption:string;slides:{title:string;body:string}[]};channels:{id:string;name:string}[]}}){
+ const [channelId,setChannelId]=useState(automation.channels.length===1?automation.channels[0]!.id:"");
+ const [scheduled,setScheduled]=useState("");const [status,setStatus]=useState("");const [busy,setBusy]=useState(false);const [submitted,setSubmitted]=useState(false);
+ async function publish(){setBusy(true);try{const response=await fetch(`/api/backend/assistant/automations/${automation.id}/publish`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({channelId,...(scheduled?{scheduledFor:new Date(scheduled+":00-03:00").toISOString()}:{})})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha ao publicar");setStatus("Estado informado pela Zernio: "+data.status);setSubmitted(true)}catch(error){setStatus(error instanceof Error?error.message:"Falha ao publicar")}finally{setBusy(false)}}
+ return <section><h3>{automation.carousel.title}</h3><p>{automation.carousel.caption}</p><div style={{display:"flex",overflowX:"auto",gap:8}}>{automation.carousel.slides.map((slide,index)=><a key={index} href={`/api/backend/assistant/automations/${automation.id}/slides/${index}`} target="_blank" rel="noreferrer"><img src={`/api/backend/assistant/automations/${automation.id}/slides/${index}`} alt={slide.title} width={160} height={200}/></a>)}</div><label>Conta<select value={channelId} onChange={e=>setChannelId(e.target.value)}><option value="">Selecione</option>{automation.channels.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label>Agendar · horário de Brasília (opcional)<input type="datetime-local" value={scheduled} onChange={e=>setScheduled(e.target.value)}/></label><button type="button" onClick={()=>void publish()} disabled={busy||submitted||!channelId}>{busy?"Enviando…":scheduled?"Agendar publicação":"Publicar agora"}</button>{status&&<p role="status">{status}</p>}</section>
 }

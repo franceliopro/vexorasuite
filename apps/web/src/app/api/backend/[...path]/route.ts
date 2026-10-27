@@ -58,6 +58,8 @@ async function proxyRequest(request: Request, context: Context) {
   if (pathValue === "auth/me" && upstream.status === 401) cookieStore.delete(COOKIE_NAME);
 
   const responseHeaders = new Headers();
+  const disposition = upstream.headers.get("content-disposition");
+  if (disposition) responseHeaders.set("content-disposition", disposition);
   const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
   if (isSse) {
@@ -76,3 +78,4 @@ export const POST = proxyRequest;
 export const PUT = proxyRequest;
 export const PATCH = proxyRequest;
 export const DELETE = proxyRequest;
+

@@ -1,0 +1,70 @@
+/* Shared hierarchy: one page title, a clear primary action and details on demand. */
+:root{--ui-body:14px;--ui-label:13px;--ui-caption:12px;--ui-title:24px;--ui-section:17px;--ui-radius:12px;--ui-gap:16px}
+body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1.5}
+.page-content h1{font-family:var(--font-ui,system-ui)!important;font-size:var(--ui-title)!important;line-height:1.25!important;letter-spacing:-.025em;margin-block:0 8px}
+.page-content h2{font-family:var(--font-ui,system-ui)!important;font-size:var(--ui-section)!important;line-height:1.4!important;letter-spacing:-.015em}
+.page-content h3,.page-content h4{font-family:var(--font-ui,system-ui)!important;font-size:14px!important;line-height:1.5!important}
+.page-content :is(.primary-button,.secondary-button){font-family:inherit;font-size:13px;min-height:40px;border-radius:9px;box-shadow:none;gap:7px}
+.page-content :is(.ai-admin-fields,.creative-upload) label{font-size:var(--ui-label);line-height:1.5}
+.page-content label{font-size:var(--ui-label)!important;line-height:1.5}
+.page-content :is(.content-card,.workspace-surface)>p{font-size:var(--ui-body);line-height:1.55}
+.page-content :is(th,td){font-size:var(--ui-label);line-height:1.5}
+.page-content .text-button{font-size:var(--ui-label)}
+.page-content :is(input:not([type=checkbox]):not([type=radio]):not([type=color]),select,textarea){font-family:inherit;font-size:14px;border-radius:9px;min-width:0}
+.page-content :is(.content-card,.workspace-surface){border-color:var(--border-subtle);border-radius:var(--ui-radius);box-shadow:none}
+.page-content :is([role=dialog],dialog) h2{font-size:var(--ui-section)!important}
+.simple-workspace{display:grid;gap:20px;min-width:0}
+.simple-workspace .creative-heading{margin:0;align-items:center;gap:16px}
+.simple-workspace .creative-heading p{font-size:14px;line-height:1.5;color:var(--text-secondary);margin:0}
+.workspace-actions,.workspace-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.workspace-actions{justify-content:flex-end}
+.workspace-surface{background:var(--surface-1);color:var(--text-primary);border:1px solid var(--border-subtle);padding:24px;min-width:0}
+.workspace-surface>h2{margin-block:16px}
+.simple-workspace .module-tabs{display:flex;gap:4px;border:0;border-bottom:1px solid var(--border-subtle);margin:0;padding:0 0 8px;overflow-x:auto;scrollbar-width:thin}
+.simple-workspace .module-tabs button{font:600 13px var(--font-ui,system-ui);padding:10px 14px;min-height:40px;border:0;border-radius:8px;white-space:nowrap;background:transparent;color:var(--text-secondary);box-shadow:none}
+.simple-workspace .module-tabs button.active{background:var(--surface-active);color:var(--primary)}
+.workspace-filters{display:flex;gap:12px;margin-bottom:12px}
+.workspace-filters input{flex:1;width:100%;padding:10px 12px;border:1px solid var(--border-strong);background:var(--surface-1);color:inherit}
+.workspace-filters select{padding:10px 12px;border:1px solid var(--border-strong);background:var(--surface-1);color:inherit;max-width:200px}
+.publication-row{display:flex;align-items:center;gap:16px;padding:18px 0;border-bottom:1px solid var(--border-subtle);min-width:0}
+.publication-row:last-child{border-bottom:0}
+.publication-row>div:first-child{flex:1;min-width:0}
+.publication-row strong{display:block;font-size:14px;font-weight:600;overflow-wrap:anywhere;line-height:1.5}
+.publication-row small{display:block;font-size:var(--ui-caption);color:var(--text-secondary);margin-top:5px}
+.status-pill{display:inline-flex;align-items:center;flex-shrink:0;gap:5px;border-radius:6px;padding:4px 8px;background:var(--surface-3);color:var(--text-secondary);font-size:12px;line-height:1.4;font-weight:500}
+.workspace-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 16px;gap:10px;color:var(--text-secondary)}
+.workspace-empty h2,.workspace-empty p{margin:0;max-width:440px}
+.workspace-disclosure{border:0;border-top:1px solid var(--border-subtle);padding:12px 0;margin-top:16px;min-width:0}
+.workspace-disclosure>summary{cursor:pointer;font-size:13px;font-weight:600;padding:8px 0;color:var(--text-primary);line-height:1.5}
+.workspace-disclosure[open]>summary{margin-bottom:14px}
+.workspace-disclosure p,.simple-workspace p{font-size:14px;line-height:1.55;overflow-wrap:anywhere}
+.workspace-disclosure pre{font-size:12px;max-height:260px;overflow:auto}
+.simple-workspace .creative-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:16px}
+.simple-workspace .creative-reference{padding:16px;gap:10px;align-self:start;min-width:0}
+.simple-workspace .creative-preview{height:180px;border-radius:8px;overflow:hidden;background:var(--surface-3)}
+.simple-workspace .creative-preview :is(img,video){width:100%;height:100%;object-fit:contain}
+.simple-workspace .creative-reference>strong{font-size:14px;line-height:1.5}
+.simple-workspace .creative-reference>small{font-size:12px;color:var(--text-secondary)}
+.simple-workspace .creative-reference .workspace-disclosure{width:100%;margin-top:0}
+.simple-workspace .creative-fields{gap:16px}
+.simple-workspace .ai-admin-fields{display:grid;gap:16px}
+.simple-workspace .ai-admin-fields>p{margin:0}
+.simple-workspace .ai-admin-fields fieldset{border:0;padding:8px 0;gap:10px}
+.simple-workspace .ai-admin-fields fieldset label{padding:5px 0}
+.simple-workspace .ai-admin-fields label:has(>input[type=file]){padding:16px;border:1px dashed var(--border-strong);border-radius:10px;background:var(--surface-2)}
+.simple-workspace .ai-admin-fields input[type=file]{width:100%;padding:8px 0;background:transparent;border:0}
+.prepared-workspace,.marketing-studio{margin:0;min-width:0}
+.prepared-workspace .routine-row{display:block;padding:16px 0;border-radius:0;box-shadow:none;background:transparent;border-width:0 0 1px}
+.prepared-workspace .routine-row button{margin:4px 8px 4px 0}
+.marketing-job{margin-top:0}
+.marketing-job>summary{display:flex;justify-content:space-between;gap:16px;align-items:center;list-style:inside}
+.activity-title{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.marketing-job>summary .status-pill{white-space:normal;text-align:right}
+.creation-video{display:block;width:100%;max-width:360px;aspect-ratio:9/16}
+.install-sidebar{display:flex;align-items:center;justify-content:center;width:100%;min-height:40px;margin-bottom:12px;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-1);color:var(--text-primary);font:600 13px var(--font-ui,system-ui);cursor:pointer}
+.operation-notices{border:1px solid #dcbf75;background:#fff9e9;color:#684b11;border-radius:9px;padding:10px 14px;margin-bottom:16px;font-size:13px}
+.operation-notices summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;list-style:inside}
+.operation-notices summary span{font-size:12px;font-weight:500;white-space:nowrap}
+.operation-notices p{font-size:13px;margin:12px 0 4px}.operation-notices a{color:inherit;text-decoration:underline}
+:is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+@media(max-width:760px){:root{--ui-title:22px;--ui-section:16px}.simple-workspace{gap:16px}.simple-workspace .creative-heading{align-items:flex-start;flex-direction:column}.workspace-actions{width:100%;flex-wrap:nowrap}.workspace-actions .primary-button{flex:1}.workspace-surface{padding:16px}.workspace-filters{flex-direction:column}.workspace-filters select{max-width:none}.publication-row{flex-wrap:wrap;gap:10px}.publication-row>div:first-child{flex-basis:100%}.publication-row>.secondary-button{margin-left:auto}.page-content :is(.primary-button,.secondary-button),.simple-workspace .module-tabs button{min-height:44px}.simple-workspace .ai-admin-fields{gap:16px}.simple-workspace .ai-admin-fields :is(input:not([type=checkbox]),textarea,select){font-size:16px}.marketing-job>summary{align-items:flex-start}.marketing-job .status-pill{max-width:45%}}

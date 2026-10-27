@@ -4,6 +4,7 @@ import "./globals.css";
 import "./theme-system.css";
 import "./workspace-refinements.css";
 import "./mobile-app.css";
+import "./interface-system.css";
 
 export const metadata: Metadata = {
   title: "Véxora Suite",

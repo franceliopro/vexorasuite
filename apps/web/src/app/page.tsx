@@ -228,6 +228,7 @@ export default function HomePage() {
           })}
         </nav>
         <div className="sidebar-bottom">
+          <button type="button" className="install-sidebar" onClick={()=>{setMenuOpen(false);window.dispatchEvent(new Event('vexora:install'));}}>↓ Instalar Véxora</button>
           <div className="help-card"><span className="help-icon">?</span><div><strong>Precisa de ajuda?</strong><small>Consulte a central de suporte</small></div><span className="help-arrow">↗</span></div>
           <ProfilePhotoEditor onUpdated={refreshProfile}/><div className="profile-row"><span className="profile-avatar">{session?.user.avatarUrl?<img src={session.user.avatarUrl} alt="Minha foto"/>:(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
         </div>

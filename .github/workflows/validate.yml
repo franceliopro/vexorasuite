@@ -136,6 +136,19 @@ jobs:
             const response=await fetch('http://127.0.0.1:3000'+asset.replace(/&amp;/g,'&'));
             if(!response.ok)throw Error('Static asset returned '+response.status);
             console.log('Standalone application and static asset: HTTP 200');
+            const manifestResponse=await fetch('http://127.0.0.1:3000/manifest.webmanifest');
+            const manifest=await manifestResponse.json();
+            if(!manifestResponse.ok||manifest.display!=='standalone'||manifest.scope!=='/'||!manifest.icons?.some(icon=>icon.sizes==='512x512'))throw Error('PWA manifest is incomplete');
+            for(const size of [180,192,512]){
+              const icon=await fetch('http://127.0.0.1:3000/pwa/icon/'+size);
+              const png=Buffer.from(await icon.arrayBuffer());
+              if(!icon.ok||png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||png.readUInt32BE(16)!==size||png.readUInt32BE(20)!==size)throw Error('Invalid PWA icon '+size);
+            }
+            const worker=await fetch('http://127.0.0.1:3000/sw.js');
+            if(!worker.ok||!worker.headers.get('cache-control')?.includes('no-store')||!(await worker.text()).includes('addEventListener'))throw Error('Service worker is unavailable or can become stale');
+            const offline=await fetch('http://127.0.0.1:3000/offline.html');
+            if(!offline.ok||!(await offline.text()).includes('sem conexão'))throw Error('Offline fallback is unavailable');
+            console.log('PWA manifest, Apple/192/512 icons, update headers and offline page: OK');
           })().catch(error=>{console.error(error.message);process.exit(1)});
           JS
       - name: Stop web smoke container

@@ -199,7 +199,7 @@ export class AssistantController {
       let scheduledFor=scheduled?.[1];
       if(!scheduledFor&&local){const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const day=new Date(today+'T12:00:00Z');if(/amanh[aã]/i.test(question))day.setUTCDate(day.getUTCDate()+1);scheduledFor=day.toISOString().slice(0,10)+'T'+local[1]!.padStart(2,'0')+':'+local[2]+':00-03:00';}
       if(/agende|agendar|amanh[aã]|hor[aá]rio/i.test(question)&&!scheduledFor)return {answer:'Informe o horário como “amanhã às 14:30” ou uma data ISO com fuso. Nenhuma publicação foi criada.',usedAi:false,tokensUsed:0};
-      const input={question,format,...(scheduledFor?{scheduledFor}:{}),...(/rascunho|n[aã]o publi|sem publicar|aprova[cç][aã]o/i.test(question)?{publish:false}:{}),...(/narrad|com voz/i.test(question)?{narrate:true}:{}),...(body.agentId?{agentId:body.agentId}:{})};
+      const input={question,format,...(/sem (usar )?refer[eê]ncias|sem imagens do drive|(?:somente|apenas) (a )?identidade visual/i.test(question)?{useBrandOnly:true}:{}),...(scheduledFor?{scheduledFor}:{}),...(/rascunho|n[aã]o publi|sem publicar|aprova[cç][aã]o/i.test(question)?{publish:false}:{}),...(/narrad|com voz/i.test(question)?{narrate:true}:{}),...(body.agentId?{agentId:body.agentId}:{})};
       if(/workflow|todo dia|todos os dias|semanal/i.test(question)){
         if(!scheduledFor)return {answer:'Para criar o workflow, informe a primeira execução: por exemplo, “workflow semanal de carrossel sobre segurança amanhã às 14:30”.',usedAi:false,tokensUsed:0};
         const {scheduledFor:nextRunAt,...payload}=input;

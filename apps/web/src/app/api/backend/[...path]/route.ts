@@ -1,3 +1,4 @@
+import { limitedRequestBody, RequestBodyTooLarge, trustedRequestOrigin } from "../../../../lib/backend-request";
 import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
@@ -26,17 +27,20 @@ async function proxyRequest(request: Request, context: Context) {
 
   const isSse = pathValue === "events";
   const hasBody = !["GET", "HEAD"].includes(request.method);
+  if (hasBody && !trustedRequestOrigin(request, process.env.NEXT_PUBLIC_APP_URL)) return Response.json({ message: "Origem da solicitação não autorizada." }, { status: 403 });
+
   let upstream: Response;
   try {
     const init: RequestInit = {
       method: request.method,
       headers,
-      ...(hasBody ? { body: await request.arrayBuffer() } : {}),
+      ...(hasBody ? { body: await limitedRequestBody(request) } : {}),
       cache: "no-store",
     };
     if (!isSse) init.signal = AbortSignal.timeout(30000);
     upstream = await fetch(apiOrigin + "/api/" + pathValue + requestUrl.search, init);
-  } catch {
+  } catch (error) {
+    if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });
     return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
   }
 

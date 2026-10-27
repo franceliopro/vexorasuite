@@ -1,3 +1,4 @@
+import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
@@ -81,7 +82,7 @@ export class ContactsController {
     const existing = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
     const brandSettings: Record<string, unknown> = { ...existing, primaryColor };
     for (const key of ["logoLight", "logoDark", "favicon", "logoShape", "showCompanyName"] as const) if (input[key] !== undefined) (brandSettings as Record<string, unknown>)[key] = input[key];
-    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, brandSettings } as any } });
+    await mutateTenantSetting(this.prisma, request.user.tenantId, "brandSettings", current => ({ ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}), ...brandSettings }) as any);
     return { primaryColor, logoLight: brandSettings.logoLight || "", logoDark: brandSettings.logoDark || "", favicon: brandSettings.favicon || "", logoShape: brandSettings.logoShape || "rectangular", showCompanyName: brandSettings.showCompanyName !== false };
   }
 
@@ -106,8 +107,14 @@ export class ContactsController {
     if (existing) return existing;
     if (tags.length >= 100) throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
     const tag = { id: randomUUID(), name, color, createdBy: request.user.sub, createdAt: new Date().toISOString() };
-    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, crmProfileConfig: { ...config, tags: [...tags, tag] } } as any } });
-    return tag;
+    const updated=await mutateTenantSetting(this.prisma,request.user.tenantId,"crmProfileConfig",current=>{
+      const value=current&&typeof current==="object"&&!Array.isArray(current)?current as Record<string,any>:{};
+      const latest=Array.isArray(value.tags)?value.tags:[];
+      if(latest.some((t:any)=>typeof t.name==="string"&&t.name.toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR")))return value;
+      if(latest.length>=100)throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
+      return {...value,tags:[...latest,tag]};
+    });
+    return (updated as any).tags.find((t:any)=>t.name.toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR"))||tag;
   }
 
   @Post("profile-config/fields")
@@ -126,7 +133,13 @@ export class ContactsController {
     if (fields.some(field => field.key === key)) throw new BadRequestException("Já existe um campo com esse nome. Escolha outro nome.");
     if (fields.length >= 100) throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
     const field = { id: randomUUID(), name, key, type, options: type === "SELECT" ? options : [], createdBy: request.user.sub, createdAt: new Date().toISOString() };
-    await this.prisma.tenant.update({ where: { id: request.user.tenantId }, data: { integrations: { ...integrations, crmProfileConfig: { ...config, fields: [...fields, field] } } as any } });
+    await mutateTenantSetting(this.prisma,request.user.tenantId,"crmProfileConfig",current=>{
+      const value=current&&typeof current==="object"&&!Array.isArray(current)?current as Record<string,any>:{};
+      const latest=Array.isArray(value.fields)?value.fields:[];
+      if(latest.some((f:any)=>f.key===key))throw new BadRequestException("Já existe um campo com esse nome.");
+      if(latest.length>=100)throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
+      return {...value,fields:[...latest,field]};
+    });
     return field;
   }
 
@@ -252,3 +265,4 @@ export class ContactsController {
     return contact;
   }
 }
+

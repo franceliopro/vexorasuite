@@ -82,6 +82,14 @@ O scheduler da Zernio é usado diretamente; não é preciso manter timers do fro
 
 Testes automatizados cobrem validação de publicação, isolamento/roles, duplicação, transferência humana, estado de input, geração PDF/CSV/PNG, formato do modelo, ordem econômica, agendamento, idempotência e falhas ambíguas. Build e checagem de tipos de API/web são verificações locais; não comprovam entrega real em WhatsApp, Meta/Zernio ou consulta Asaas de produção.
 
-Antes do rollout: validar destinos reais Rastreabem, cadastrar segredos no servidor, testar uma conta social autorizada, testar cobrança sandbox com identidade correta/incorreta, confirmar download dos arquivos na sessão e verificar métricas de tokens/custos do provedor. Limites diários por tenant, scheduler interno genérico, worker de reconciliação, criação de cobrança nova, ferramentas arbitrárias de agentes, publicação em outras redes e agendamentos empresariais com escrita ainda não fazem parte desta entrega.
+Antes do rollout: validar destinos reais Rastreabem, cadastrar segredos no servidor, testar uma conta social autorizada, testar cobrança sandbox com identidade correta/incorreta, confirmar download dos arquivos na sessão e verificar métricas de tokens/custos do provedor. Scheduler interno genérico, worker de reconciliação, criação de cobrança nova, ferramentas arbitrárias de agentes, publicação em outras redes e agendamentos empresariais com escrita ainda não fazem parte desta entrega.
 
 Referências de integração: https://docs.zernio.com/posts/create-post · https://docs.zernio.com/platforms/instagram/posts · https://api-dashboard.search.brave.com/api-reference/web/search/get
+
+## Atualização da auditoria de 27/10
+
+A configuração agora inclui `dailyAiLimit` (0 a 10 mil; padrão 100), aplicado por empresa com reserva transacional. Mede execuções lógicas e não dólares/tokens; cada execução pode tentar até três modelos configurados. A política limita agentes de conversa e roteiros de carrossel; regras, pesquisa, relatórios e montagem das artes continuam independentes de LLM.
+
+A biblioteca em Marketing → Referências reutiliza OAuth Drive, registra arquivos privados por tenant e oferece extração local de paleta. Orientações/paletas ativas alimentam o briefing de carrossel, e o histórico fica recuperável em Postagens. Arquivos originais não são enviados a modelo de visão. Renderização de vídeo e interpretação visual multimodal ainda exigem integração específica.
+
+A auditoria completa, evidências da UI publicada, correções e próximos critérios de aceite estão em [auditoria-vexora-2026-10-27.md](./auditoria-vexora-2026-10-27.md). Imagens Docker passaram a multi-stage, e a web usa o servidor standalone com assets copiados explicitamente. O merge na branch de implantação aciona o Dokploy.

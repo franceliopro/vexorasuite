@@ -81,6 +81,8 @@ export class GoogleOAuthController {
     const consumed = await this.prisma.googleOAuthAttempt.deleteMany({ where: { stateHash, expiresAt: { gt: new Date() } } });
     if (!consumed.count) return done("expired");
     if (error || !code) return done("denied");
+    const authorized = await this.prisma.membership.findFirst({ where: { tenantId: attempt.tenantId, userId: attempt.userId, role: { in: ["OWNER","ADMIN"] }, tenant: { status: "ACTIVE" }, user: { isActive: true } }, select: { id: true } });
+    if (!authorized) return done("access_revoked");
     try {
       const { id, secret, redirect } = this.configValues();
       const body = new URLSearchParams({ code, client_id: id, client_secret: secret, redirect_uri: redirect, grant_type: "authorization_code", code_verifier: this.decrypt(attempt.verifierEncrypted) });
@@ -126,3 +128,4 @@ export class GoogleOAuthController {
     return { disconnected: true };
   }
 }
+

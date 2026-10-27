@@ -7,6 +7,7 @@ import { AssistantAutomationService } from './assistant-automation.service';
 @UseGuards(AuthGuard)
 export class AssistantAutomationController {
  constructor(private readonly automation:AssistantAutomationService){}
+ @Get() list(@Req() req:AuthenticatedRequest){return this.automation.list(req);}
  @Get(':id')
  async read(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){const data=await this.automation.read(req,id);return {id,details:data.details};}
  @Get(':id/slides/:index')

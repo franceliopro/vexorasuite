@@ -1,3 +1,5 @@
+import { OverviewController } from "./overview.controller";
+import { GoogleAccessService } from "./google-access.service";
 import { AiService } from "../ai/ai.service";
 import { IntelligenceRuntimeController } from "./intelligence-runtime.controller";
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
@@ -31,8 +33,8 @@ import { ServiceProtocolsService } from "./service-protocols.service";
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule],
-  controllers: [IntelligenceRuntimeController, TasksController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, FinanceController, ServiceProtocolsController],
-  providers: [AiService, IntelligenceRuntimeService, EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService],
+  controllers: [OverviewController, IntelligenceRuntimeController, TasksController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, FinanceController, ServiceProtocolsController],
+  providers: [GoogleAccessService, AiService, IntelligenceRuntimeService, EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService],
 })
 export class OperationsModule {}
 

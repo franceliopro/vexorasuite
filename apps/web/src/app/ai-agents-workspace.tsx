@@ -13,6 +13,7 @@ export function AiAgentsWorkspace() {
   const [selected, setSelected] = useState(1);
   const [assistantName, setAssistantName] = useState("Véxora");
   const [wakeWord, setWakeWord] = useState("Olá Véxora");
+  const [dailyAiLimit,setDailyAiLimit]=useState(100);
   const [primaryModel,setPrimaryModel]=useState({provider:"openrouter",model:"",tier:"Econômico"});
   const [fallbackModels,setFallbackModels]=useState<{provider:string;model:string;tier:string}[]>([]);
   const [activation, setActivation] = useState("Clique ou texto");
@@ -38,7 +39,7 @@ export function AiAgentsWorkspace() {
       .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.message || "Falha ao carregar"); return data; })
       .then(data => {
         if (!mounted) return;
-        if(data.llm)setPrimaryModel(data.llm);if(Array.isArray(data.fallbackModels))setFallbackModels(data.fallbackModels);setAssistantName(data.name); setWakeWord(data.wakeWord); setAssistantEnabled(data.enabled);
+        if(typeof data.dailyAiLimit==="number")setDailyAiLimit(data.dailyAiLimit);if(data.llm)setPrimaryModel(data.llm);if(Array.isArray(data.fallbackModels))setFallbackModels(data.fallbackModels);setAssistantName(data.name); setWakeWord(data.wakeWord); setAssistantEnabled(data.enabled);
         if (Array.isArray(data.agents)) {
           const items: Agent[] = data.agents.map((a: Agent & { id: string }) => ({ ...a, id: Number(a.id) })).filter((a: Agent) => Number.isSafeInteger(a.id) && a.id > 0);
           setAgents(items); setSelected(items[0]?.id ?? 0);
@@ -51,7 +52,7 @@ export function AiAgentsWorkspace() {
   const save = async () => {
     setSaving(true); setNotice("");
     try {
-      const response = await fetch("/api/backend/assistant/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: assistantName, wakeWord, enabled: assistantEnabled, ...(primaryModel.model?{llm:primaryModel}:{}), fallbackModels:fallbackModels.filter(m=>m.model.trim()), agents: agents.map(a => ({ ...a, id: String(a.id) })) }) });
+      const response = await fetch("/api/backend/assistant/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: assistantName, dailyAiLimit, wakeWord, enabled: assistantEnabled, ...(primaryModel.model?{llm:primaryModel}:{}), fallbackModels:fallbackModels.filter(m=>m.model.trim()), agents: agents.map(a => ({ ...a, id: String(a.id) })) }) });
       const data = await response.json();
       if (!response.ok) throw new Error(Array.isArray(data.message) ? data.message.join(" ") : data.message || "Não foi possível salvar");
       setNotice("Configuração salva para esta empresa.");
@@ -93,7 +94,7 @@ export function AiAgentsWorkspace() {
           <label>Nome padrão<input value={assistantName} onChange={e => setAssistantName(e.target.value)}/></label>
           <label>Comando de ativação<input value={wakeWord} onChange={e => setWakeWord(e.target.value)}/></label>
           <label>Ativação<select value={activation} onChange={e => setActivation(e.target.value)}><option>Clique ou texto</option><option>Ditado por clique</option></select></label>
-          <label>Modelo econômico para a assistente<input list="openrouter-models" value={primaryModel.model} placeholder="Selecione um modelo do catálogo" onChange={e=>setPrimaryModel(m=>({...m,model:e.target.value}))}/></label><label>Provedor<select value={primaryModel.provider} onChange={e=>setPrimaryModel(m=>({...m,provider:e.target.value}))}><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option></select></label>
+          <label>Limite diário de execuções com IA<input type="number" min={0} max={10000} value={dailyAiLimit} onChange={e=>setDailyAiLimit(Number(e.target.value))}/><small>0 desativa chamadas a modelos. Regras, consultas e Skills continuam funcionando.</small></label><label>Modelo econômico para a assistente<input list="openrouter-models" value={primaryModel.model} placeholder="Selecione um modelo do catálogo" onChange={e=>setPrimaryModel(m=>({...m,model:e.target.value}))}/></label><label>Provedor<select value={primaryModel.provider} onChange={e=>setPrimaryModel(m=>({...m,provider:e.target.value}))}><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option></select></label>
           <p className="ai-admin-note">Regras e Skills executam primeiro. Os modelos de contingência só são chamados quando o anterior falha ou não entrega o formato exigido.</p>{[0,1].map(i=><label key={i}>Contingência {i+1} · opcional<input value={fallbackModels[i]?.model||""} list="openrouter-models" onChange={e=>setFallbackModels(current=>{const next=[...current];next[i]={provider:primaryModel.provider,model:e.target.value,tier:i===0?"Equilíbrio":"Inteligente"};return next})}/></label>)}
           <label className="ai-toggle"><input type="checkbox" checked={assistantEnabled} onChange={e => setAssistantEnabled(e.target.checked)}/> Habilitar assistente para esta empresa</label><p className="ai-admin-note">Ditado disponível por clique em navegadores compatíveis. Não há escuta contínua.</p>
           <button type="button" className="primary-button" onClick={() => void save()} disabled={saving || loading}><Save size={15}/> Salvar configuração</button>
@@ -142,7 +143,7 @@ export function PersonalAssistantPanel({ onClose }: { onClose: () => void }) {
 }
 
 
-function CarouselPublication({automation}:{automation:{id:string;carousel:{title:string;caption:string;slides:{title:string;body:string}[]};channels:{id:string;name:string}[]}}){
+export function CarouselPublication({automation}:{automation:{id:string;carousel:{title:string;caption:string;slides:{title:string;body:string}[]};channels:{id:string;name:string}[]}}){
  const [channelId,setChannelId]=useState(automation.channels.length===1?automation.channels[0]!.id:"");
  const [scheduled,setScheduled]=useState("");const [status,setStatus]=useState("");const [busy,setBusy]=useState(false);const [submitted,setSubmitted]=useState(false);
  async function publish(){setBusy(true);try{const response=await fetch(`/api/backend/assistant/automations/${automation.id}/publish`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({channelId,...(scheduled?{scheduledFor:new Date(scheduled+":00-03:00").toISOString()}:{})})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha ao publicar");setStatus("Estado informado pela Zernio: "+data.status);setSubmitted(true)}catch(error){setStatus(error instanceof Error?error.message:"Falha ao publicar")}finally{setBusy(false)}}

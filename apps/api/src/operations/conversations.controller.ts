@@ -1,3 +1,4 @@
+import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
@@ -65,10 +66,7 @@ export class ConversationsController {
     const integrations = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown>
       : {};
-    await this.prisma.tenant.update({
-      where: { id: request.user.tenantId },
-      data: { integrations: { ...integrations, quickReplies: items } },
-    });
+    await mutateTenantSetting(this.prisma, request.user.tenantId, "quickReplies", () => items);
     return items;
   }
 
@@ -116,11 +114,20 @@ export class ConversationsController {
     const integrations = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown>
       : {};
-    await this.prisma.tenant.update({
-      where: { id: request.user.tenantId },
-      data: { integrations: { ...integrations, quickReplySettings: settings } },
-    });
+    await mutateTenantSetting(this.prisma, request.user.tenantId, "quickReplySettings", () => settings);
     return settings;
+  }
+
+  @Get("counts")
+  async counts(@Req() request: AuthenticatedRequest) {
+    const tenantId=request.user.tenantId;
+    const teamIds=await this.memberDepartmentIds(tenantId,request.user.sub);
+    const entries=await Promise.all(["new","mine","team"].map(async view=>{
+      const access=await this.accessWhere(request,view);
+      const where={tenantId,...access,status:{in:["OPEN","PENDING"]},archivedAt:null,deletedAt:null,...(view==="new"?{assigneeId:null,departmentId:null}:view==="mine"?{assigneeId:request.user.sub}:{departmentId:{in:teamIds}})};
+      return [view,await this.prisma.conversation.count({where:where as any})] as const;
+    }));
+    return Object.fromEntries(entries);
   }
 
   @Get()
@@ -349,6 +356,7 @@ export class ConversationsController {
 
   private async accessWhere(request: AuthenticatedRequest, view = "new"): Promise<Record<string, any>> {
     if (["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) return {};
+    if (view === "new") return { assigneeId: null, departmentId: null, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
     if (view === "all-open") return { status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
     return { OR: [
@@ -407,3 +415,4 @@ export class ConversationsController {
   }
 
 }
+

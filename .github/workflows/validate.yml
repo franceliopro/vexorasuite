@@ -65,3 +65,45 @@ jobs:
         run: pnpm --filter @vexorasuite/web typecheck
       - name: Web build
         run: pnpm --filter @vexorasuite/web build
+
+
+  containers:
+    name: Container (${{ matrix.service }})
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build runtime image
+        run: docker build --file apps/${{ matrix.service }}/Dockerfile --tag vexora-${{ matrix.service }}-ci .
+      - name: Check API runtime dependencies
+        if: matrix.service == 'api'
+        run: |
+          docker run --rm vexora-api-ci ./node_modules/.bin/prisma --version
+          docker run --rm vexora-api-ci node -e "const {PrismaClient}=require('@prisma/client');new PrismaClient();require('./dist/app.module');require('sharp');console.log('API runtime dependencies OK')"
+      - name: Check standalone web and static assets
+        if: matrix.service == 'web'
+        run: |
+          docker run --detach --rm --name vexora-web-ci --publish 3000:3000 vexora-web-ci
+          node <<'JS'
+          (async()=>{
+            let html;
+            for(let i=0;i<30;i++){
+              try{const response=await fetch('http://127.0.0.1:3000');if(response.ok){html=await response.text();break}}catch{}
+              await new Promise(resolve=>setTimeout(resolve,1000));
+            }
+            if(!html)throw Error('Standalone server did not serve the application');
+            const asset=html.match(/src="(\/_next\/static\/[^\"]+\.js[^\"]*)"/)?.[1];
+            if(!asset)throw Error('No static script found in application HTML');
+            const response=await fetch('http://127.0.0.1:3000'+asset.replace(/&amp;/g,'&'));
+            if(!response.ok)throw Error('Static asset returned '+response.status);
+            console.log('Standalone application and static asset: HTTP 200');
+          })().catch(error=>{console.error(error.message);process.exit(1)});
+          JS
+      - name: Stop web smoke container
+        if: always() && matrix.service == 'web'
+        run: docker rm --force vexora-web-ci || true

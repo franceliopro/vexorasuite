@@ -344,3 +344,44 @@ html:root[data-theme] :is(.quick-reply-create > button:not(.quick-reply-emoji-tr
 :root[data-theme="hybrid"] :is(.activity-card,.shortcuts-card){background-color:#fff!important;border-color:var(--border-subtle)!important;color:var(--text-primary)}
 :root[data-theme="dark"] :is(.activity-card,.shortcuts-card){background-color:var(--surface-1)!important;border-color:var(--border-subtle)!important;color:var(--text-primary)}
 :root[data-theme="hybrid"] .sidebar .nav-item.active,:root[data-theme="dark"] .sidebar .nav-item.active{background:var(--sidebar-active);border-color:color-mix(in srgb,var(--primary) 55%,transparent)}
+
+
+/* Creative library uses shared surfaces in light, dark and hybrid themes. */
+.creative-workspace{display:flex;flex-direction:column;gap:18px;min-width:0}
+.creative-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.creative-heading h1{margin:0;font-size:28px;color:var(--text-primary)}
+.creative-heading p,.creative-help{margin:5px 0 0;color:var(--text-secondary);font-size:13px}
+.creative-upload,.creative-reference,.creative-opened{padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.creative-upload h2{font-size:17px;margin:0}
+.creative-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.creative-workspace label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--text-primary)}
+.creative-workspace :is(input,select,textarea){width:100%;min-width:0;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;color:var(--text-primary);padding:10px;font:inherit}
+.creative-workspace :is(button,a){max-width:100%}
+.creative-file{border:1px dashed var(--border-strong);padding:14px;border-radius:10px;background:var(--surface-2)}
+.creative-file input{border:0;padding:0}
+.creative-upload small,.creative-reference small{color:var(--text-secondary)}
+.creative-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:18px}
+.creative-preview{aspect-ratio:16/10;border:1px solid var(--border-subtle);border-radius:10px;overflow:hidden;background:var(--surface-3);display:flex;align-items:center;justify-content:center}
+.creative-preview :is(img,video){width:100%;height:100%;object-fit:contain}
+.creative-reference>strong{overflow-wrap:anywhere;color:var(--text-primary)}
+.creative-reference-disabled{opacity:.7}
+.creative-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.creative-actions button{font-size:12px}
+.creative-palette{display:flex;gap:6px;min-height:24px}
+.creative-palette span{width:25px;height:25px;border-radius:50%;border:1px solid var(--border-strong)}
+.creative-empty{padding:30px;text-align:center;color:var(--text-secondary)}
+.creative-error{padding:12px;border:1px solid #c95757;border-radius:9px;color:var(--text-primary);background:color-mix(in srgb,#c95757 12%,var(--surface-1))}
+.creative-slide-list{display:flex;gap:10px;overflow:auto}
+.overview-recent{list-style:none;padding:0;margin:12px 0;display:flex;flex-direction:column;gap:12px}
+.overview-recent li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;padding:10px 0;border-bottom:1px solid var(--border-subtle)}
+.overview-recent strong{color:var(--text-primary);overflow:hidden;text-overflow:ellipsis}
+.overview-recent span,.overview-recent small{font-size:12px;color:var(--text-secondary)}
+.overview-recent small{grid-column:1/-1}
+:root[data-theme] :is(.finalization-dialog,.calendar-modal):focus{outline:none}
+@media(max-width:640px){.creative-fields{grid-template-columns:1fr}.creative-heading h1{font-size:23px}.creative-upload,.creative-reference,.creative-opened{padding:15px}.creative-workspace .module-tabs{display:flex;overflow:auto}}
+/* Verified in the published dark theme: node labels inherited a dark text literal. */
+:root[data-theme] .chatbot-workspace :is(.vx-flow-node,.vx-flow-node-head,.vx-flow-node-body,.vx-flow-node-target,.vx-flow-outputs button,.vx-flow-palette button){color:var(--text-primary)}
+:root[data-theme] .chatbot-workspace :is(.vx-flow-node-body small,.vx-flow-node-head small){color:var(--text-secondary)}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{margin-bottom:0;overflow:hidden}
+.chatbot-workspace .vx-flow-scroll{scrollbar-width:none}
+.chatbot-workspace .vx-flow-scroll::-webkit-scrollbar{display:none}

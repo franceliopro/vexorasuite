@@ -17,8 +17,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-theme="hybrid" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{__html:`try{const theme=localStorage.getItem("vexora:theme");if(["light","dark","hybrid"].includes(theme))document.documentElement.dataset.theme=theme}catch{}`}}/></head>
       <body>{children}</body>
     </html>
   );
 }
+

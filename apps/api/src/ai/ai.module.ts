@@ -1,3 +1,6 @@
+import { CreativeReferencesService } from "./creative-references.service";
+import { CreativeReferencesController } from "./creative-references.controller";
+import { GoogleAccessService } from "../operations/google-access.service";
 import { ZernioService } from "../operations/zernio.service";
 import { AssistantAutomationService } from "./assistant-automation.service";
 import { AssistantAutomationController, AssistantAutomationMediaController } from "./assistant-automation.controller";
@@ -18,6 +21,6 @@ import { ChatbotAsaasPreviewController } from "./chatbot-asaas-preview.controlle
 import { ChatbotTriggerPreviewController } from "./chatbot-trigger-preview.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [CreativeReferencesController, AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
 export class AiModule {}
 

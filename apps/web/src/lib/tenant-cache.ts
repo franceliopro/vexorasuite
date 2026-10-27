@@ -1,0 +1,5 @@
+/** Preferences may be global; company content must always use a tenant key. */
+export function tenantCacheKey(tenantId:string,name:string){return `vexora:${encodeURIComponent(tenantId)}:${name}`;}
+export function readTenantCache<T>(tenantId:string,name:string):T|null{if(!tenantId)return null;try{const raw=localStorage.getItem(tenantCacheKey(tenantId,name));return raw?JSON.parse(raw) as T:null;}catch{return null;}}
+export function writeTenantCache(tenantId:string,name:string,value:unknown){if(!tenantId)return;try{localStorage.setItem(tenantCacheKey(tenantId,name),JSON.stringify(value))}catch{/* Browser cache is optional; server state remains authoritative. */}}
+export function brandTextColor(hex:string){if(!/^#[\da-f]{6}$/i.test(hex))return '#ffffff';const values=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4));const luminance=.2126*values[0]!+.7152*values[1]!+.0722*values[2]!;return 1.05/(luminance+.05)>=(luminance+.05)/.05?'#ffffff':'#000000';}

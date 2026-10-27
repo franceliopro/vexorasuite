@@ -3348,3 +3348,13 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-mini-toolbar{flex-shrink:0}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{min-height:0}
 @media(max-width:760px){.chatbot-workspace .vx-flow-shell,.chatbot-workspace .vx-flow-shell.vx-left-collapsed{display:flex;flex-direction:column}.chatbot-workspace.vx-flow-editing .vx-flow-inspector,.chatbot-workspace.vx-flow-testing .vx-flow-inspector{position:fixed;top:auto;left:8px;right:8px;bottom:8px;width:auto;max-height:70dvh}.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{flex:1;height:auto;min-height:0}}
+
+/* Flow editor direct manipulation */
+.chatbot-workspace .vx-flow-scroll{cursor:grab;overscroll-behavior:contain;touch-action:pan-x pan-y}
+.chatbot-workspace .vx-flow-scroll:active{cursor:grabbing}
+.chatbot-workspace .vx-flow-start-node{touch-action:none;cursor:grab;user-select:none}
+.chatbot-workspace .vx-flow-node-head{touch-action:none;user-select:none}
+.chatbot-workspace .vx-flow-node-quick-actions{display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:4px 8px 0}
+.chatbot-workspace .vx-flow-node-quick-actions button{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:3px 6px;min-height:23px;border:1px solid var(--line,#d9deea);border-radius:6px;background:var(--card,#fff);color:var(--muted,#667085);font-size:10px;cursor:pointer}
+.chatbot-workspace .vx-flow-node-quick-actions button:hover{border-color:var(--primary,#6756d9);color:var(--primary,#6756d9)}
+.chatbot-workspace .vx-flow-outputs{max-height:260px;overflow-y:auto;scrollbar-width:thin}

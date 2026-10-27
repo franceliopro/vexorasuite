@@ -40,9 +40,10 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
   if(publish&&!channel)throw new BadRequestException('Escolha uma única conta social conectada para publicar.');
   return {...input,publish,...(channel?{channelId:channel.id}:{})};
  }
+ private async assertAgent(req:AuthenticatedRequest,input:MarketingInput,workflow=false){if(!input.agentId)return;const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId}});const agent=object(object(tenant.integrations).assistant).agents?.find((a:any)=>a.id===input.agentId&&a.enabled);const needed=['web.research','drive.files.search','media.carousel.generate',...(input.format==='VIDEO'?['media.video.render']:[]),...(input.narrate?['voice.tts']:[]),...(input.publish?['social.publish']:[]),...(workflow?['marketing.workflow.run']:[])];if(!agent||needed.some(skill=>!agent.allowedActions?.includes(skill)))throw new ForbiddenException('Agente sem as Skills necessárias para esta execução: '+needed.join(', '));}
  async enqueue(req:AuthenticatedRequest,value:any,requestKey:string=randomUUID()){
   this.authorize(req);if(!isUUID(requestKey))throw new BadRequestException('Identificador de solicitação inválido.');
-  await this.context(req.user.tenantId,req.user.sub);const input=await this.target(req,marketingInput(value));
+  await this.context(req.user.tenantId,req.user.sub);const input=await this.target(req,marketingInput(value));await this.assertAgent(req,input);
   const job=await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
    const existing=await tx.marketingJob.findUnique({where:{tenantId_requestKey:{tenantId:req.user.tenantId,requestKey}}});if(existing)return existing;
@@ -87,7 +88,7 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
    try{
     const req=await this.context(job.tenantId,job.userId);const input=object(job.payload) as MarketingInput;
     if(object(job.payload).type==='LIBRARY_SYNC'){const result=await this.library.sync(req,true);await this.prisma.marketingJob.update({where:{id:job.id},data:{status:'COMPLETED',completedAt:new Date(),result}});return;}
-    if(input.agentId){const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:job.tenantId}});const agent=object(object(tenant.integrations).assistant).agents?.find((a:any)=>a.id===input.agentId&&a.enabled);const needed=['web.research','media.carousel.generate',...(input.publish?['social.publish']:[])];if(!agent||needed.some(s=>!agent.allowedActions?.includes(s)))throw new ForbiddenException('Agente sem as Skills necessárias para esta execução.');}
+    await this.assertAgent(req,input,job.requestKey.startsWith('workflow:'));
     await this.library.sync(req);
     const created:any=await this.automation.createCarousel(req,input.question,{format:input.format,draftOnly:true,agentId:input.agentId,referenceScope:await this.library.config(req) as {accountId:string;fileIds:string[]}});
     const id=created.automation.id;

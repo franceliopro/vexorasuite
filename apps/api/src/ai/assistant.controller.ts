@@ -59,7 +59,7 @@ export class AssistantController {
       { id: "reports.export", name: "Relatórios PDF e CSV", category: "Operações", cost: "zero", implemented: true, permission: "reports.admin" },
       { id: "web.research", name: "Pesquisa na internet", category: "Conhecimento", cost: "external", implemented: true, permission: "research.admin", requiresConfiguration: "BRAVE_SEARCH_API_KEY" },
       { id:"media.video.render",name:"Renderizar vídeo curto",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
-        { id:"marketing.workflow",name:"Rotinas de publicação",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
+        { id:"marketing.workflow.run",name:"Rotinas de publicação",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
         { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
       { id: "social.publish", name: "Publicar ou agendar na Zernio", category: "Marketing", cost: "external", implemented: true, permission: "marketing.admin" },
       { id: "assistant.contacts.read", name: "Consultar contatos", category: "CRM", cost: "zero", implemented: true, permission: "contacts.read" },

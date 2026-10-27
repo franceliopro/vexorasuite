@@ -26,6 +26,16 @@ export class WahaWebhookController {
     if (envelope.session && envelope.session !== channel.sessionName) return { ok: true, ignored: true };
     const payload = envelope.payload && typeof envelope.payload === "object" ? envelope.payload as Record<string, any> : {};
 
+    if (envelope.event === "session.status") {
+      const status=({WORKING:'CONNECTED',SCAN_QR_CODE:'QR',STARTING:'CONNECTING',STOPPED:'DISCONNECTED',FAILED:'ERROR'} as Record<string,string>)[String(payload.status)]||'UNKNOWN';
+      await this.prisma.$transaction(async tx=>{
+        await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid FOR UPDATE`;
+        const current=await tx.channelConnection.findUnique({where:{id:channel.id}});if(!current?.isActive)return;
+        const settings=current.settings&&typeof current.settings==='object'&&!Array.isArray(current.settings)?current.settings:{};
+        await tx.channelConnection.update({where:{id:channel.id},data:{status,lastError:status==='CONNECTED'?null:'WhatsApp requer atenção: '+String(payload.status),settings:{...settings,healthCheckedAt:new Date().toISOString(),healthProviderStatus:String(payload.status)}}});
+      });
+      this.events.publish(channel.tenantId,'channel.status',{id:channel.id,status});return {ok:true};
+    }
     if (envelope.event === "message.ack") {
       if (payload.fromMe === false) return { ok: true, ignored: true };
       const providerMessageId = this.providerMessageId(payload.id);

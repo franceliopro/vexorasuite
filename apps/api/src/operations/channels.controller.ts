@@ -1,3 +1,4 @@
+import { socialUsername } from "./social-identity";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Delete, Req, UseGuards } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
@@ -22,7 +23,7 @@ export class ChannelConnectionsController {
     });
     return rows.map(({ settings, ...channel }) => {
       const safeSettings = settings && typeof settings === "object" && !Array.isArray(settings) ? settings as Record<string, unknown> : {};
-      return { ...channel, ...(channel.provider === "ZERNIO" ? {
+      return { ...channel, healthCheckedAt: typeof safeSettings.healthCheckedAt === 'string' ? safeSettings.healthCheckedAt : null, healthProviderStatus: safeSettings.healthProviderStatus || null, ...(channel.provider === "ZERNIO" ? {
         platform: typeof safeSettings.platform === "string" ? safeSettings.platform : undefined,
         accountId: typeof safeSettings.accountId === "string" ? safeSettings.accountId : undefined,
         username: typeof safeSettings.username === "string" ? safeSettings.username : undefined,
@@ -68,7 +69,7 @@ export class ChannelConnectionsController {
         return {
           accountId: String(account.accountId ?? account.id ?? account._id ?? ""),
           platform: String(account.platform ?? ""),
-          username: typeof account.username === "string" ? account.username : undefined,
+          username: socialUsername(account),
           name: typeof account.name === "string" ? account.name : typeof account.displayName === "string" ? account.displayName : undefined,
           status: typeof account.status === "string" ? account.status : typeof account.isActive === "boolean" ? account.isActive ? "ACTIVE" : "DISCONNECTED" : undefined,
           profileName: typeof account.profileName === "string" ? account.profileName : undefined,

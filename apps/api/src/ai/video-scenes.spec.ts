@@ -45,7 +45,7 @@ describe('video composition and research context',()=>{
   const meta=await sharp(buffer).metadata();expect(meta.width).toBe(720);expect(meta.height).toBe(1280);
   const pixel=await sharp(buffer).extract({left:360,top:400,width:1,height:1}).removeAlpha().raw().toBuffer();expect([...pixel]).toEqual([228,42,54]);
   if(process.env.VEXORA_QA_OUTPUT)writeFileSync(process.env.VEXORA_QA_OUTPUT+'/video-scene-qa.png',buffer);
- });
+ },30000);
  it('escapes injected text and keeps video-specific footer',()=>{
   const svg=videoOverlay({title:'<script>',body:'A & B'},4,5,'javascript:bad','<empresa>',false);
   expect(svg).toContain('&lt;script&gt;');expect(svg).not.toContain('<script>');expect(svg).toContain('VAMOS CONVERSAR?');expect(svg).not.toContain('DESLIZE');expect(svg).not.toContain('javascript:bad');

@@ -4,6 +4,8 @@ import { MarketingStudio } from "./marketing-studio";
 import { brandTextColor } from "../lib/tenant-cache";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
+import { WorkspaceAlerts } from "./workspace-alerts";
+import { ProfilePhotoEditor } from "./profile-photo-editor";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AuthScreen, type AuthSession } from "./auth-screen";
@@ -96,6 +98,8 @@ export default function HomePage() {
     return () => { mounted = false; };
   }, []);
 
+  const refreshProfile=async()=>{const r=await fetch('/api/backend/auth/me',{cache:'no-store'});if(r.ok)setSession(await r.json());};
+  useEffect(()=>{if(!session)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
   const [active, setActive] = useState("Visão geral");
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
@@ -225,7 +229,7 @@ export default function HomePage() {
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><span className="help-icon">?</span><div><strong>Precisa de ajuda?</strong><small>Consulte a central de suporte</small></div><span className="help-arrow">↗</span></div>
-          <div className="profile-row"><span className="profile-avatar">{(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
+          <ProfilePhotoEditor onUpdated={refreshProfile}/><div className="profile-row"><span className="profile-avatar">{session?.user.avatarUrl?<img src={session.user.avatarUrl} alt="Minha foto"/>:(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
         </div>
       </aside>
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
@@ -245,7 +249,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className="page-content">
+        <div className="page-content"><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isHome ? <section className="page-heading">
             <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">Acompanhe a operação da sua empresa em um só lugar.</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>

@@ -13,7 +13,7 @@ export class AssistantAutomationController {
  @Get(':id/slides/:index')
  async slide(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Res() res:Response){res.setHeader('Content-Type',index===-1?'video/mp4':'image/png');res.setHeader('Cache-Control','private, no-store');res.send(await this.automation.preview(req,id,index));}
  @Post(':id/publish')
- publish(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() body:{channelId?:string;scheduledFor?:string}){return this.automation.publish(req,id,body||{});}
+ publish(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() body:{channelId?:string;channelIds?:string[];scheduledFor?:string}){return this.automation.publish(req,id,body||{});}
 }
 /** Signed media capability for provider fetches. Never exposes an unauthenticated generic file endpoint. */
 @Controller('assistant/automation-media')

@@ -1,3 +1,5 @@
+import { rememberModelPrices } from "./model-prices";
+import { tenantSkills } from "./product-skills";
 import { MarketingJobsService } from "./marketing-jobs.service";
 import { Optional } from "@nestjs/common";
 import { AssistantAutomationService } from "./assistant-automation.service";
@@ -32,7 +34,7 @@ export class AssistantController {
   async customSkills(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     const root = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
-    return { skills: Array.isArray(root.customSkills) ? root.customSkills : [] };
+    return { skills: tenantSkills(root), canEdit: ["OWNER","ADMIN","MANAGER"].includes(req.user.role) };
   }
 
   @Put("custom-skills")
@@ -143,6 +145,7 @@ export class AssistantController {
       const response = await fetch("https://openrouter.ai/api/v1/models?sort=pricing-low-to-high", { signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw new Error("Catalog unavailable");
       const data = await response.json() as { data?: { id: string; name: string; pricing?: { prompt?: string; completion?: string } }[] };
+      rememberModelPrices(data.data || []);
       return { providers, voices, models: (data.data || []).filter(m => typeof m.id === "string").slice(0, 1000).map(m => ({ provider: "openrouter", id: m.id, name: m.name, pricePerMillionInputUsd: Number(m.pricing?.prompt || 0) * 1000000, pricePerMillionOutputUsd: Number(m.pricing?.completion || 0) * 1000000 })), source: "openrouter", live: true };
     } catch {
       return { providers, voices, models: [], source: "openrouter", live: false, message: "Catálogo temporariamente indisponível; selecione o modelo manualmente." };

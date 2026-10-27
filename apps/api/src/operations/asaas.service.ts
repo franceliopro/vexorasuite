@@ -1,3 +1,4 @@
+import { documentDigits } from "../common/documents";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
@@ -182,7 +183,7 @@ export class AsaasService {
   }
 
   async debtsByDocument(tenantId:string,rawDocument:string){
-    const document=rawDocument.replace(/\D/g,"");
+    const document=documentDigits(rawDocument);
     if(!/^\d{11}$|^\d{14}$/.test(document)||!this.validDocument(document))throw new BadRequestException("CPF/CNPJ inválido.");
     const customers=await this.request<{data?:Array<{id:string;name:string;cpfCnpj?:string}>}>(tenantId,"/customers?"+new URLSearchParams({cpfCnpj:document,limit:"100"}));
     const matching=(customers.data||[]).filter(x=>x.cpfCnpj?.replace(/\D/g,"")===document);

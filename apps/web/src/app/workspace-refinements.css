@@ -29,3 +29,22 @@
 .chatbot-workspace .vx-flow-palette-grid button:disabled{opacity:.45;cursor:not-allowed}
 .creative-workspace table th,.creative-workspace table td{padding:9px;border-bottom:1px solid var(--line,#dde2eb);font-size:12px}
 .creative-workspace details{padding:10px 0}.creative-workspace summary{cursor:pointer;font-weight:650}
+
+/* Compact message rhythm and native system typography, as in WhatsApp Web. */
+.inbox-workspace .thread-messages{font-family:"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;gap:2px!important}
+.inbox-workspace .message-line{margin-block:0!important;padding-block:0!important}
+.inbox-workspace .message-bubble{font-family:inherit;line-height:1.35}
+.inbox-workspace .message-bubble p{margin:0 0 2px!important}
+.inbox-workspace.inbox-full-screen{position:fixed;inset:0;z-index:1100;background:var(--background,#f4f5f9);height:100dvh!important;max-height:100dvh;padding:8px;box-sizing:border-box}
+.channel-health-warning{display:flex;flex-wrap:wrap;gap:4px 12px;padding:10px 14px;background:#fff1ce;color:#593800;font-size:12px;border-bottom:1px solid #e4bc59}
+.channel-health-warning span{flex:1;min-width:170px}
+input[type=file]{box-sizing:border-box;display:block;max-width:100%;width:100%;min-width:0;border:1px solid var(--border,#d8dce5);border-radius:10px;padding:8px;background:var(--card,#fff);color:inherit;font:inherit}
+input[type=file]::file-selector-button{border:0;border-radius:7px;background:#eceafa;color:#4134a2;padding:8px 12px;margin-right:10px;cursor:pointer;font:inherit}
+.profile-avatar img,.contact-profile-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.ai-admin-fields label:has(>input[type=checkbox]){display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;font-weight:500}
+.ai-admin-fields input[type=checkbox]{width:16px;height:16px;min-height:16px;flex:0 0 16px;margin:0;padding:0;accent-color:var(--primary,#6258df)}
+.ai-admin-fields fieldset{min-width:0;display:grid;gap:9px;border:1px solid var(--line,#d8dce5);border-radius:10px;padding:12px;margin:0}
+.ai-admin-fields fieldset legend{padding:0 5px;font-size:13px;font-weight:600}
+.ai-admin-fields>h2,.ai-admin-fields>h3,.ai-admin-fields>p{margin:0}
+.ai-admin-fields summary{cursor:pointer;padding-block:8px;font-weight:600}
+.creative-file{display:flex;flex-wrap:wrap;align-items:center;gap:8px}

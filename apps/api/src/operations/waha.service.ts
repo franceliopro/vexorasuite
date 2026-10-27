@@ -62,7 +62,7 @@ export class WahaService {
   }
 
   async connect(channel: ChannelConnection): Promise<void> {
-    const config = { webhooks: [{ url: this.webhookUrl(channel.id), events: ["message", "message.ack"], retries: { policy: "linear", delaySeconds: 2, attempts: 5 } }] };
+    const config = { webhooks: [{ url: this.webhookUrl(channel.id), events: ["message", "message.ack", "session.status"], retries: { policy: "linear", delaySeconds: 2, attempts: 5 } }] };
     let response = await this.request("/api/sessions", { method: "POST", body: JSON.stringify({ name: channel.sessionName, start: true, config }) });
     if (response.status === 409 || response.status === 422) {
       response = await this.request(`/api/sessions/${encodeURIComponent(channel.sessionName)}`, { method: "PUT", body: JSON.stringify({ name: channel.sessionName, config }) });

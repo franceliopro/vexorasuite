@@ -1,7 +1,8 @@
+import { recordProviderLimit } from "./provider-usage";
 import { Injectable, BadGatewayException, BadRequestException } from "@nestjs/common";
 import { localServiceUrl } from './local-services';
 
-export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
+export type AiMessage = { role: "system" | "user" | "assistant"; content: string | ({type:"text";text:string}|{type:"image_url";image_url:{url:string}})[] };
 export type AiProvider = { provider: "openrouter" | "openai" | "ollama"; model: string; apiKey: string; timeoutMs?: number; maxTokens?: number; freeOnly?:boolean };
 export type AiResult = { text: string; model: string; requestedModel?:string; provider: string; usage: { promptTokens: number; completionTokens: number; totalTokens: number } };
 
@@ -21,7 +22,7 @@ export class AiService {
           method: "POST", headers: { ...(p.provider==='ollama'?{}:{authorization: `Bearer ${p.apiKey}`}), "content-type": "application/json" },
           body: JSON.stringify({ model: p.model, messages, max_tokens: Math.min(Math.max(p.maxTokens ?? 500, 1), 2000),...(p.provider==='openrouter'&&p.freeOnly?{provider:{max_price:{prompt:0,completion:0},data_collection:'deny'},plugins:[{id:'web',enabled:false}]}:{}) }), signal: controller.signal, redirect: 'error',
         });
-        if (!response.ok){failures.push(`${p.provider}: HTTP ${response.status}`);continue;}
+        if (!response.ok){recordProviderLimit(p.apiKey,response.status);failures.push(`${p.provider}: HTTP ${response.status}`);continue;}
         const data = await response.json() as { model?:unknown; choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
         usage.promptTokens += data.usage?.prompt_tokens ?? 0;
         usage.completionTokens += data.usage?.completion_tokens ?? 0;

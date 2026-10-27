@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 export interface AuthSession {
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; avatarUrl?:string|null; avatarSource?:string|null };
   tenant: { id: string; name: string; slug: string };
   role: string;
 }

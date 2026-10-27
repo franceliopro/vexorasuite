@@ -35,7 +35,7 @@ export class CreativeReferencesService {
   }
   async list(req: AuthenticatedRequest) {
     this.authorize(req);
-    return this.prisma.creativeReference.findMany({ where: { tenantId: req.user.tenantId }, select: { id:true,name:true,mimeType:true,purpose:true,instructions:true,palette:true,enabled:true,accountId:true,updatedAt:true,account:{select:{email:true,disabledServices:true}} }, orderBy: { createdAt:'desc' }, take: 100 });
+    return this.prisma.creativeReference.findMany({ where: { tenantId: req.user.tenantId,deletedAt:null }, select: { id:true,name:true,mimeType:true,purpose:true,instructions:true,palette:true,enabled:true,accountId:true,updatedAt:true,account:{select:{email:true,disabledServices:true}} }, orderBy: { createdAt:'desc' }, take: 100 });
   }
   private async metadata(req: AuthenticatedRequest, accountId: string, id: string) {
     const token = await this.google.token(req.user.tenantId,accountId,'drive');
@@ -50,11 +50,11 @@ export class CreativeReferencesService {
     this.authorize(req);const fields=referenceFields(input);
     if (!input.accountId || !isUUID(input.accountId)) throw new BadRequestException('Selecione uma conta Drive desta empresa.');
     const id=driveFileId(input.fileId),file=await this.metadata(req,input.accountId,id);
-    const count=await this.prisma.creativeReference.count({where:{tenantId:req.user.tenantId}});
+    const count=await this.prisma.creativeReference.count({where:{tenantId:req.user.tenantId,deletedAt:null}});
     const existing=await this.prisma.creativeReference.findUnique({where:{tenantId_accountId_fileId:{tenantId:req.user.tenantId,accountId:input.accountId,fileId:id}}});
     if(!existing&&count>=100)throw new BadRequestException('A biblioteca aceita até 100 referências por empresa.');
     // Existing references are retained on reimport; only explicit fields are changed.
-    return this.prisma.creativeReference.upsert({where:{tenantId_accountId_fileId:{tenantId:req.user.tenantId,accountId:input.accountId,fileId:id}},create:{tenantId:req.user.tenantId,accountId:input.accountId,fileId:id,name:file.name.slice(0,200),mimeType:file.mimeType,...fields},update:{name:file.name.slice(0,200),mimeType:file.mimeType,...(input.purpose!==undefined?{purpose:fields.purpose}:{}),...(input.instructions!==undefined?{instructions:fields.instructions}:{}),...(input.enabled!==undefined?{enabled:fields.enabled}:{})}});
+    return this.prisma.creativeReference.upsert({where:{tenantId_accountId_fileId:{tenantId:req.user.tenantId,accountId:input.accountId,fileId:id}},create:{tenantId:req.user.tenantId,accountId:input.accountId,fileId:id,name:file.name.slice(0,200),mimeType:file.mimeType,...fields},update:{name:file.name.slice(0,200),mimeType:file.mimeType,deletedAt:null,...(input.purpose!==undefined?{purpose:fields.purpose}:{}),...(input.instructions!==undefined?{instructions:fields.instructions}:{}),...(input.enabled!==undefined?{enabled:fields.enabled}:{})}});
   }
   async upload(req: AuthenticatedRequest,input: ReferenceInput,file?:{buffer:Buffer;size:number;mimetype:string;originalname:string}) {
     this.authorize(req);referenceFields(input);
@@ -73,6 +73,8 @@ export class CreativeReferencesService {
     return this.import(req,{...input,fileId:result.id});
   }
   private async owned(req: AuthenticatedRequest,id:string,requireAccount=true){this.authorize(req);const row=await this.prisma.creativeReference.findFirst({where:{id,tenantId:req.user.tenantId}});if(!row)throw new NotFoundException('Referência não encontrada nesta empresa.');if(requireAccount&&!row.accountId)throw new BadRequestException('A conta Drive desta referência foi desconectada. Importe novamente pela nova conexão.');return row;}
+  async remove(req:AuthenticatedRequest,id:string){const row=await this.owned(req,id,false);return this.prisma.$transaction(async tx=>{await tx.creativeReference.update({where:{id:row.id},data:{enabled:false,deletedAt:new Date()}});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'creative.reference.removed',entityType:'creative_reference',entityId:row.id,details:{name:row.name}}});return {removed:true};});}
+  async restore(req:AuthenticatedRequest,id:string){const row=await this.owned(req,id,false);return this.prisma.creativeReference.update({where:{id:row.id},data:{deletedAt:null,enabled:false}});}
   async update(req: AuthenticatedRequest,id:string,input:ReferenceInput){const row=await this.owned(req,id,false);referenceFields(input);return this.prisma.creativeReference.update({where:{id:row.id},data:{...(input.purpose!==undefined?{purpose:input.purpose}:{}),...(input.instructions!==undefined?{instructions:input.instructions.trim()}:{}),...(input.enabled!==undefined?{enabled:input.enabled}:{})}});}
   async bytes(req:AuthenticatedRequest,id:string){
     const row=await this.owned(req,id);await this.metadata(req,row.accountId!,row.fileId);

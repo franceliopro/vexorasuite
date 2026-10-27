@@ -24,7 +24,11 @@
     "bcryptjs": "^3.0.2",
     "pdfkit": "^0.20.2",
     "sharp": "^0.35.5",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "nodemailer": "10.2.1",
+    "imapflow": "2.9.1",
+    "mailparser": "3.12.4",
+    "sanitize-html": "2.18.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
@@ -37,6 +41,9 @@
     "prisma": "^6.16.2",
     "ts-jest": "^29.4.4",
     "typescript": "^5.9.3",
-    "@types/pdfkit": "^0.17.7"
+    "@types/pdfkit": "^0.17.7",
+    "@types/nodemailer": "8.0.2",
+    "@types/mailparser": "3.9.0",
+    "@types/sanitize-html": "2.16.2"
   }
 }

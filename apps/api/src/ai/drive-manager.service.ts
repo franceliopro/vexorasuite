@@ -2,6 +2,7 @@ import { BadGatewayException, BadRequestException, ForbiddenException, Injectabl
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleAccessService } from '../operations/google-access.service';
 import { AuthenticatedRequest } from '../auth/auth.types';
+import sharp from 'sharp';
 const FOLDER='application/vnd.google-apps.folder',MAX=20*1024*1024;
 export function driveId(value:unknown,root=false){if(typeof value!=='string'||(!/^[\w-]{10,180}$/.test(value)&&!(root&&value==='root')))throw new BadRequestException('Identificador de arquivo/pasta inválido.');return value;}
 export function driveName(value:unknown){if(typeof value!=='string'||!value.trim()||value.length>180||/[\r\n\x00]/.test(value))throw new BadRequestException('Use um nome de até 180 caracteres.');return value.trim();}
@@ -51,5 +52,11 @@ export class DriveManagerService {
   const native=String(file.mimeType).startsWith('application/vnd.google-apps.');const type=native?'application/pdf':file.mimeType;const path='files/'+id+(native?'/export?mimeType=application%2Fpdf':'?alt=media&supportsAllDrives=true');const response=await this.request(req,accountId,path);const reader=response.body?.getReader();if(!reader)throw new BadGatewayException('Arquivo vazio.');const chunks:Buffer[]=[];let size=0;
   try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>MAX)throw new BadRequestException('Arquivo acima de 20 MB.');chunks.push(Buffer.from(part.value));}}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
   return {name:file.name+(native?'.pdf':''),type,buffer:Buffer.concat(chunks)};
+ }
+ async thumbnail(req:AuthenticatedRequest,accountId:string,id:string){
+  const file=await this.metadata(req,accountId,driveId(id));
+  if(!['image/jpeg','image/png','image/webp','image/gif','image/avif'].includes(file.mimeType))throw new BadRequestException('Este arquivo não possui miniatura de imagem.');
+  const source=await this.download(req,accountId,id);
+  try{return await sharp(source.buffer,{limitInputPixels:40000000,animated:false}).rotate().resize(320,240,{fit:'inside',withoutEnlargement:true}).webp({quality:72}).toBuffer();}catch{throw new BadRequestException('Não foi possível gerar a miniatura.');}
  }
 }

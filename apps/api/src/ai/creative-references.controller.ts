@@ -1,4 +1,4 @@
-import { Body, CanActivate, Controller, ExecutionContext, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, CanActivate, Controller, Delete, ExecutionContext, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
@@ -17,6 +17,8 @@ export class CreativeReferencesController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file',{limits:{fileSize:20*1024*1024,files:1,fields:4}}))
   upload(@Req() req:AuthenticatedRequest,@Body() body:ReferenceInput,@UploadedFile() file:{buffer:Buffer;size:number;mimetype:string;originalname:string}) { return this.references.upload(req,body||{},file); }
+  @Delete(':id') remove(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){return this.references.remove(req,id);}
+  @Post(':id/restore') restore(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){return this.references.restore(req,id);}
   @Patch(':id') update(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() body:ReferenceInput) { return this.references.update(req,id,body||{}); }
   @Post(':id/analyze') analyze(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string) { return this.references.analyze(req,id); }
   @Get(':id/content')

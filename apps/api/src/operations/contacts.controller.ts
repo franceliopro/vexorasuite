@@ -152,8 +152,9 @@ export class ContactsController {
   }
 
   @Patch(":id/profile")
-  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown; novo_nome?: unknown }) {
+  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown; novo_nome?: unknown; birthDate?:unknown;partnershipDate?:unknown }) {
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
+    for(const key of ['birthDate','partnershipDate'] as const){const value=input[key];if(value!==undefined&&(typeof value!=='string'||value!==''&&(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T12:00:00Z'))||new Date(value+'T12:00:00Z').toISOString().slice(0,10)!==value)))throw new BadRequestException('Data inválida.');}
     if(input.novo_nome!==undefined&&(typeof input.novo_nome!=='string'||input.novo_nome.length>80||input.novo_nome.trim()&&!/^[\p{L}][\p{L} .’'-]{1,79}$/u.test(input.novo_nome.trim())))throw new BadRequestException('Nome de preferência inválido.');
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
@@ -172,6 +173,7 @@ export class ContactsController {
       ...existing,
       ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(typeof input.birthDate==='string'?{birthDate:input.birthDate}:{}),...(typeof input.partnershipDate==='string'?{partnershipDate:input.partnershipDate}:{}),
       ...(typeof input.novo_nome === "string" ? {novo_nome:input.novo_nome.trim()} : {}),
       ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}),
       ...(leadOriginRecord ? {

@@ -6,7 +6,7 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { executableActions, executableKinds, RuntimeFlow, settings, validateRuntimeFlow } from '../ai/flow-runtime';
 import { object } from './intelligence-runtime.service';
-import { providerApiKey } from '../ai/provider-credentials';
+import { economicalProviders } from '../ai/economical-providers';
 
 @Controller('chatbot/runtime')
 @UseGuards(AuthGuard)
@@ -50,8 +50,8 @@ export class IntelligenceRuntimeController {
           const assistant = object(root.assistant);
           const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a.id === config.agentId && a.enabled === true) : null;
           const selection = object(agent?.llm || assistant.llm);
-          const configured = ['openrouter','openai'].includes(selection.provider) && Boolean(providerApiKey(selection.provider,root,req.user.tenantId));
-          if (!assistant.enabled || !agent || !selection.model || !configured) throw new BadRequestException(`${step.title}: agente, modelo e provedor precisam estar habilitados e configurados`);
+          const configured = economicalProviders(assistant,selection,root,req.user.tenantId).length>0;
+          if (!assistant.enabled || !agent || !configured) throw new BadRequestException(`${step.title}: agente, modelo e provedor precisam estar habilitados e configurados`);
         }
         if (config.departmentKey && !await tx.department.findFirst({ where: { tenantId: req.user.tenantId, key: config.departmentKey, isActive: true } })) throw new BadRequestException(`${step.title}: equipe não encontrada nesta empresa`);
         if(config.userId){

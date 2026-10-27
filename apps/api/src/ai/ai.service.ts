@@ -1,7 +1,8 @@
 import { Injectable, BadGatewayException, BadRequestException } from "@nestjs/common";
+import { localServiceUrl } from './local-services';
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string };
-export type AiProvider = { provider: "openrouter" | "openai"; model: string; apiKey: string; timeoutMs?: number; maxTokens?: number };
+export type AiProvider = { provider: "openrouter" | "openai" | "ollama"; model: string; apiKey: string; timeoutMs?: number; maxTokens?: number; freeOnly?:boolean };
 export type AiResult = { text: string; model: string; provider: string; usage: { promptTokens: number; completionTokens: number; totalTokens: number } };
 
 @Injectable()
@@ -14,10 +15,10 @@ export class AiService {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), Math.min(Math.max(p.timeoutMs ?? 30000, 1000), 120000));
       try {
-        const endpoint = p.provider === "openrouter" ? "https://openrouter.ai/api/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
+        const endpoint = p.provider === 'ollama'?localServiceUrl('OLLAMA_BASE_URL','/v1/chat/completions'):p.provider === "openrouter" ? "https://openrouter.ai/api/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
         const response = await fetch(endpoint, {
-          method: "POST", headers: { authorization: `Bearer ${p.apiKey}`, "content-type": "application/json" },
-          body: JSON.stringify({ model: p.model, messages, max_tokens: Math.min(Math.max(p.maxTokens ?? 500, 1), 2000) }), signal: controller.signal, redirect: 'error',
+          method: "POST", headers: { ...(p.provider==='ollama'?{}:{authorization: `Bearer ${p.apiKey}`}), "content-type": "application/json" },
+          body: JSON.stringify({ model: p.model, messages, max_tokens: Math.min(Math.max(p.maxTokens ?? 500, 1), 2000),...(p.provider==='openrouter'&&p.freeOnly?{provider:{max_price:{prompt:0,completion:0},data_collection:'deny'},plugins:[{id:'web',enabled:false}]}:{}) }), signal: controller.signal, redirect: 'error',
         });
         if (!response.ok) continue;
         const data = await response.json() as { choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };

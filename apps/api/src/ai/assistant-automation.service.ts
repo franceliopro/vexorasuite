@@ -12,6 +12,7 @@ import { ZernioService } from '../operations/zernio.service';
 import { AiService } from './ai.service';
 import { economicalProviders } from './economical-providers';
 import { providerApiKey } from './provider-credentials';
+import { searxngSearch } from './local-services';
 import { normalize } from './flow-runtime';
 type Source={title:string;url:string;description:string};
 export type Carousel={title:string;caption:string;slides:{title:string;body:string}[]};
@@ -34,7 +35,11 @@ export class AssistantAutomationService {
  constructor(private readonly prisma:PrismaService,private readonly ai:AiService,private readonly zernio:ZernioService,private readonly references:CreativeReferencesService,@Optional() private readonly video?:VideoRenderService){}
  authorize(req:AuthenticatedRequest){if(!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException('Automação e publicação restritas à administração.');}
  async search(query:string,tenantId?:string):Promise<Source[]>{
+  if(!query.trim()||query.length>600)throw new BadRequestException('Informe um tema com até 600 caracteres');
+  if(process.env.SEARXNG_URL)return searxngSearch(query);
   const tenant=tenantId?await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}):null;
+  const costPolicy=obj(obj(tenant?.integrations).aiCostPolicy);
+  if(costPolicy.freeFirst&&!costPolicy.allowPaidFallback)throw new ServiceUnavailableException('Configure SearXNG no servidor para pesquisar sem API paga. A política gratuita impediu a troca para Brave.');
   const key=providerApiKey('brave',tenant?.integrations,tenantId);if(!key)throw new ServiceUnavailableException('Cadastre a chave Brave Search em Agentes de IA ou configure BRAVE_SEARCH_API_KEY no servidor para pesquisar na internet.');
   if(!query.trim()||query.length>600)throw new BadRequestException('Informe um tema com até 600 caracteres');
   const url=new URL('https://api.search.brave.com/res/v1/web/search');url.search=new URLSearchParams({q:query,count:'5',country:'BR',search_lang:'pt-br'}).toString();

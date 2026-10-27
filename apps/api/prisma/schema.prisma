@@ -65,6 +65,9 @@ enum ConversationHandlingMode {
 }
 
 model Tenant {
+  mailAccounts MailAccount[]
+  mailTemplates MailTemplate[]
+  internalWorkflows InternalWorkflow[]
   pushConfiguration PushConfiguration?
   pushSubscriptions PushSubscription[]
   marketingJobs MarketingJob[]
@@ -477,6 +480,7 @@ model AuthorizedContact {
 
 
 model CreativeReference {
+  deletedAt DateTime? @map("deleted_at")
   id String @id @default(uuid()) @db.Uuid
   tenantId String @db.Uuid @map("tenant_id")
   accountId String? @db.Uuid @map("account_id")
@@ -540,4 +544,122 @@ model PreparedPublication {
  @@unique([tenantId,fileId])
  @@index([status,updatedAt])
  @@map("prepared_publications")
+}
+
+model MailAccount {
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ items MailItem[]
+ campaigns MailCampaign[]
+ @@unique([tenantId,id])
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ email String
+ name String
+ configEncrypted String @map("config_encrypted")
+ active Boolean @default(true)
+ lastSyncAt DateTime? @map("last_sync_at")
+ lastError String? @map("last_error")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@unique([tenantId,email])
+ @@map("mail_accounts")
+}
+model MailItem {
+ account MailAccount @relation(fields:[tenantId,accountId],references:[tenantId,id],onDelete:Cascade)
+ messageId String? @map("message_id")
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ accountId String @db.Uuid @map("account_id")
+ externalId String @map("external_id")
+ fromAddress String @map("from_address")
+ toAddress String @map("to_address")
+ subject String
+ text String
+ html String
+ receivedAt DateTime @map("received_at")
+ @@unique([tenantId,accountId,externalId])
+ @@index([tenantId,receivedAt])
+ @@map("mail_items")
+}
+model MailTemplate {
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ name String
+ subject String
+ html String
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@index([tenantId])
+ @@map("mail_templates")
+}
+model MailCampaign {
+ account MailAccount @relation(fields:[tenantId,accountId],references:[tenantId,id],onDelete:Cascade)
+ deliveries MailDelivery[]
+ kind String @default("MARKETING")
+ inReplyTo String? @map("in_reply_to")
+ @@unique([tenantId,id])
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ accountId String @db.Uuid @map("account_id")
+ userId String @db.Uuid @map("user_id")
+ name String
+ subject String
+ html String
+ status String @default("DRAFT")
+ scheduledAt DateTime? @map("scheduled_at")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([tenantId,status])
+ @@map("mail_campaigns")
+}
+model MailDelivery {
+ campaign MailCampaign @relation(fields:[tenantId,campaignId],references:[tenantId,id],onDelete:Cascade)
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ campaignId String @db.Uuid @map("campaign_id")
+ email String
+ name String
+ status String @default("QUEUED")
+ error String?
+ providerId String? @map("provider_id")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@unique([campaignId,email])
+ @@index([status,updatedAt])
+ @@map("mail_deliveries")
+}
+model InternalWorkflow {
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ runs WorkflowRun[]
+ @@unique([tenantId,id])
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ userId String @db.Uuid @map("user_id")
+ name String
+ enabled Boolean @default(false)
+ trigger String @default("SCHEDULE")
+ timezone String @default("America/Sao_Paulo")
+ nextRunAt DateTime @map("next_run_at")
+ repeatDays Int @default(0) @map("repeat_days")
+ filters Json @default("{}")
+ steps Json
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([enabled,nextRunAt])
+ @@index([tenantId])
+ @@map("internal_workflows")
+}
+model WorkflowRun {
+ workflow InternalWorkflow @relation(fields:[tenantId,workflowId],references:[tenantId,id],onDelete:Cascade)
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ workflowId String @db.Uuid @map("workflow_id")
+ eventKey String @map("event_key")
+ conversationId String? @db.Uuid @map("conversation_id")
+ status String @default("WAITING")
+ position Int @default(0)
+ nextRunAt DateTime @map("next_run_at")
+ error String?
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@unique([workflowId,eventKey])
+ @@index([status,nextRunAt])
+ @@map("workflow_runs")
 }

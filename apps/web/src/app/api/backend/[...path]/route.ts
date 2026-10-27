@@ -37,7 +37,7 @@ async function proxyRequest(request: Request, context: Context) {
       ...(hasBody ? { body: await limitedRequestBody(request) } : {}),
       cache: "no-store",
     };
-    if (!isSse) init.signal = AbortSignal.timeout(pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
+    if (!isSse) init.signal = AbortSignal.timeout(pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
     upstream = await fetch(apiOrigin + "/api/" + pathValue + requestUrl.search, init);
   } catch (error) {
     if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });
@@ -64,6 +64,7 @@ async function proxyRequest(request: Request, context: Context) {
   const responseHeaders = new Headers();
   const disposition = upstream.headers.get("content-disposition");
   if (disposition) responseHeaders.set("content-disposition", disposition);
+  for(const name of ["content-security-policy","referrer-policy"]){const header=upstream.headers.get(name);if(header)responseHeaders.set(name,header);}
   const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
   if (isSse) {

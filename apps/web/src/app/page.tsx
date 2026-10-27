@@ -1,6 +1,7 @@
 "use client";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
-import { MarketingStudio } from "./marketing-studio";
+const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
+const MailWorkspace=dynamic(()=>import("./mail-workspace").then(m=>m.MailWorkspace));
 import { brandTextColor } from "../lib/tenant-cache";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
@@ -70,7 +71,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "E-mails" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Canais e integrações", icon: "share" }, { label: "Configurações", icon: "settings" }] },
@@ -289,8 +290,10 @@ export default function HomePage() {
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":active==="Postagens"?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+          ) : active === "E-mails" ? (
+            canManage ? <MailWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Workflows" ? (
-            canManage ? <section className="creative-workspace"><header className="page-heading"><div><h1>Workflows de marketing</h1><p>Pesquise, crie e publique em uma execução ou em uma rotina recorrente.</p></div></header><MarketingStudio/></section> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canManage ? <WorkflowsWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Atendimento" ? (
             <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} canManageChannels={canConfigure} />
           ) : active === "Canais e integrações" ? (

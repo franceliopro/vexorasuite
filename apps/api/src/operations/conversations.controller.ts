@@ -1,3 +1,4 @@
+import { whatsappPhone } from './whatsapp-bridge';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
@@ -175,6 +176,31 @@ export class ConversationsController {
     });
     this.events.publish(tenantId, "conversation.created", { id: conversation.id, contactId: conversation.contactId, status: conversation.status });
     return conversation;
+  }
+
+  @Post(':id/whatsapp')
+  async continueOnWhatsapp(@Req() request:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:{phone?:string;channelId?:string},@Query('view') view='new'){
+    await this.assertCanAccess(request,id,view);
+    const source=await this.prisma.conversation.findFirstOrThrow({where:{id,tenantId:request.user.tenantId},include:{contact:true}});
+    const phone=whatsappPhone(input.phone);
+    if(input.channelId&&!isUUID(input.channelId))throw new BadRequestException('Canal inválido.');
+    const channel=await this.prisma.channelConnection.findFirst({where:{tenantId:request.user.tenantId,provider:'WAHA',status:'CONNECTED',isActive:true,...(input.channelId?{id:input.channelId}:{})},orderBy:{createdAt:'asc'}});
+    if(!channel)throw new BadRequestException('Conecte um WhatsApp para continuar.');
+    const conversation=await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${request.user.tenantId}::uuid FOR UPDATE`;
+      // Social identities remain separate; linking never turns a typed phone into verified identity.
+      const target=await tx.contact.upsert({where:{tenantId_externalId:{tenantId:request.user.tenantId,externalId:phone+'@c.us'}},create:{tenantId:request.user.tenantId,name:source.contact.name,phone,externalId:phone+'@c.us',source:'WHATSAPP'},update:{}});
+      let next=await tx.conversation.findFirst({where:{tenantId:request.user.tenantId,contactId:target.id,channelConnectionId:channel.id,channel:'WHATSAPP',deletedAt:null,archivedAt:null,status:{in:['OPEN','PENDING']}},orderBy:{createdAt:'desc'}});
+      if(!next)next=await tx.conversation.create({data:{tenantId:request.user.tenantId,contactId:target.id,channelConnectionId:channel.id,channel:'WHATSAPP',handlingMode:'HUMAN',assigneeId:request.user.sub}});
+      if(source.id!==next.id){
+        const previous=await tx.auditLog.findFirst({where:{tenantId:request.user.tenantId,entityId:source.id,action:'conversation.whatsapp.linked',details:{path:['conversationId'],equals:next.id}}});
+        if(!previous){await tx.message.createMany({data:[{tenantId:request.user.tenantId,conversationId:source.id,direction:'INTERNAL',status:'SENT',content:'Atendimento continuado no WhatsApp.',metadata:{linkedConversationId:next.id}},{tenantId:request.user.tenantId,conversationId:next.id,direction:'INTERNAL',status:'SENT',content:'Atendimento iniciado em outro canal. O histórico de origem está preservado.',metadata:{linkedConversationId:source.id}}]});}
+      }
+      await tx.auditLog.create({data:{tenantId:request.user.tenantId,userId:request.user.sub,action:'conversation.whatsapp.linked',entityType:'conversation',entityId:source.id,details:{conversationId:next.id,contactId:target.id}}});
+      return next;
+    });
+    this.events.publish(request.user.tenantId,'conversation.created',{id:conversation.id,contactId:conversation.contactId,status:conversation.status});
+    return {conversationId:conversation.id,channel:'WHATSAPP',sent:false};
   }
 
   @Get("assignees")

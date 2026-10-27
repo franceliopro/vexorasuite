@@ -17,4 +17,6 @@ export class DriveManagerController {
  upload(@Req() req:AuthenticatedRequest,@Param('accountId',ParseUUIDPipe) accountId:string,@Body() input:any,@UploadedFile() file:any){return this.drive.upload(req,accountId,input?.parent||'root',file);}
  @Get(':accountId/files/:id/download')
  async download(@Req() req:AuthenticatedRequest,@Param('accountId',ParseUUIDPipe) accountId:string,@Param('id') id:string,@Res() res:Response){const file=await this.drive.download(req,accountId,id);res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(file.name));res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, no-store');res.send(file.buffer);}
+ @Get(':accountId/files/:id/thumbnail')
+ async thumbnail(@Req() req:AuthenticatedRequest,@Param('accountId',ParseUUIDPipe) accountId:string,@Param('id') id:string,@Res() res:Response){const buffer=await this.drive.thumbnail(req,accountId,id);res.setHeader('Content-Type','image/webp');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, no-store');res.send(buffer);}
 }

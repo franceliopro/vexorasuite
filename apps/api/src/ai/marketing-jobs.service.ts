@@ -9,14 +9,14 @@ import { MarketingLibraryService } from './marketing-library.service';
 import { VideoRenderService } from './video-render.service';
 import { VoiceService } from './voice.service';
 const object=(v:any):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
-export type MarketingInput={question:string;format:'POST'|'CAROUSEL'|'VIDEO';channelId?:string;scheduledFor?:string;publish?:boolean;narrate?:boolean;agentId?:string};
+export type MarketingInput={question:string;format:'POST'|'CAROUSEL'|'VIDEO';channelId?:string;scheduledFor?:string;publish?:boolean;narrate?:boolean;agentId?:string;useBrandOnly?:boolean};
 export function marketingInput(input:any):MarketingInput {
  if(!input||typeof input.question!=='string'||!input.question.trim()||input.question.length>2000||!['POST','CAROUSEL','VIDEO'].includes(input.format))throw new BadRequestException('Informe tema e formato válidos.');
- for(const key of ['publish','narrate'])if(input[key]!==undefined&&typeof input[key]!=='boolean')throw new BadRequestException('Opção inválida.');
+ for(const key of ['publish','narrate','useBrandOnly'])if(input[key]!==undefined&&typeof input[key]!=='boolean')throw new BadRequestException('Opção inválida.');
  if(input.channelId!==undefined&&!isUUID(input.channelId))throw new BadRequestException('Canal inválido.');
  if(input.agentId!==undefined&&(typeof input.agentId!=='string'||input.agentId.length>80))throw new BadRequestException('Agente inválido.');
  if(input.scheduledFor!==undefined&&(typeof input.scheduledFor!=='string'||!/(Z|[+-]\d{2}:\d{2})$/i.test(input.scheduledFor)||!Number.isFinite(Date.parse(input.scheduledFor))||Date.parse(input.scheduledFor)<Date.now()+120000||Date.parse(input.scheduledFor)>Date.now()+90*86400000))throw new BadRequestException('Agende de 2 minutos a 90 dias à frente, com fuso.');
- return {question:input.question.trim(),format:input.format,...(input.channelId?{channelId:input.channelId}:{}),...(input.scheduledFor?{scheduledFor:input.scheduledFor}:{}),...(input.publish!==undefined?{publish:input.publish}:{}),...(input.narrate!==undefined?{narrate:input.narrate}:{}),...(input.agentId?{agentId:input.agentId}:{})};
+ return {question:input.question.trim(),format:input.format,...(input.channelId?{channelId:input.channelId}:{}),...(input.scheduledFor?{scheduledFor:input.scheduledFor}:{}),...(input.publish!==undefined?{publish:input.publish}:{}),...(input.narrate!==undefined?{narrate:input.narrate}:{}),...(input.useBrandOnly!==undefined?{useBrandOnly:input.useBrandOnly}:{}),...(input.agentId?{agentId:input.agentId}:{})};
 }
 @Injectable()
 export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
@@ -40,7 +40,7 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
   if(publish&&!channel)throw new BadRequestException('Escolha uma única conta social conectada para publicar.');
   return {...input,publish,...(channel?{channelId:channel.id}:{})};
  }
- private async assertAgent(req:AuthenticatedRequest,input:MarketingInput,workflow=false){if(!input.agentId)return;const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId}});const agent=object(object(tenant.integrations).assistant).agents?.find((a:any)=>a.id===input.agentId&&a.enabled);const needed=['web.research','drive.files.search','media.carousel.generate',...(input.format==='VIDEO'?['media.video.render']:[]),...(input.narrate?['voice.tts']:[]),...(input.publish?['social.publish']:[]),...(workflow?['marketing.workflow.run']:[])];if(!agent||needed.some(skill=>!agent.allowedActions?.includes(skill)))throw new ForbiddenException('Agente sem as Skills necessárias para esta execução: '+needed.join(', '));}
+ private async assertAgent(req:AuthenticatedRequest,input:MarketingInput,workflow=false){if(!input.agentId)return;const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId}});const agent=object(object(tenant.integrations).assistant).agents?.find((a:any)=>a.id===input.agentId&&a.enabled);const needed=['web.research',...(!input.useBrandOnly?['drive.files.search']:[]),'media.carousel.generate',...(input.format==='VIDEO'?['media.video.render']:[]),...(input.narrate?['voice.tts']:[]),...(input.publish?['social.publish']:[]),...(workflow?['marketing.workflow.run']:[])];if(!agent||needed.some(skill=>!agent.allowedActions?.includes(skill)))throw new ForbiddenException('Agente sem as Skills necessárias para esta execução: '+needed.join(', '));}
  async enqueue(req:AuthenticatedRequest,value:any,requestKey:string=randomUUID()){
   this.authorize(req);if(!isUUID(requestKey))throw new BadRequestException('Identificador de solicitação inválido.');
   await this.context(req.user.tenantId,req.user.sub);const input=await this.target(req,marketingInput(value));await this.assertAgent(req,input);
@@ -124,9 +124,9 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
     const req=await this.context(job.tenantId,job.userId);const input=object(job.payload) as MarketingInput;
     if(object(job.payload).type==='LIBRARY_SYNC'){const result=await this.library.sync(req,true);await this.prisma.marketingJob.updateMany({where:{id:job.id,status:'RUNNING'},data:{status:'COMPLETED',completedAt:new Date(),result}});return;}
     await this.assertAgent(req,input,job.requestKey.startsWith('workflow:'));
-    await this.library.sync(req);
+    if(!input.useBrandOnly)await this.library.sync(req);
     await ensureRunning();
-    const created:any=await this.automation.createCarousel(req,input.question,{format:input.format,draftOnly:true,agentId:input.agentId,referenceScope:await this.library.config(req) as {accountId:string;fileIds:string[]}});
+    const created:any=await this.automation.createCarousel(req,input.question,{format:input.format,draftOnly:true,agentId:input.agentId,useBrandOnly:input.useBrandOnly===true,referenceScope:input.useBrandOnly?undefined:await this.library.config(req) as {accountId:string;fileIds:string[]}});
     const id=created.automation.id;
     await this.prisma.marketingJob.update({where:{id:job.id},data:{result:{automationId:id,format:input.format} as Prisma.InputJsonValue}});
     await ensureRunning();

@@ -14,5 +14,6 @@ describe('Drive manager boundaries',()=>{
 describe('marketing job input and permissions',()=>{
  it('rejects malformed schedules instead of publishing immediately',()=>{expect(()=>marketingInput({question:'Segurança',format:'POST',scheduledFor:'tomorrow'})).toThrow();expect(()=>marketingInput({question:'Segurança',format:'POST',scheduledFor:new Date(Date.now()-1000).toISOString()})).toThrow();expect(()=>marketingInput({question:'Segurança',format:'RUN_CODE'})).toThrow();});
  it('preserves an explicit draft request',()=>{expect(marketingInput({question:'Segurança',format:'VIDEO',publish:false})).toMatchObject({format:'VIDEO',publish:false});});
+ it('requires an explicit boolean to skip Drive references',()=>{expect(marketingInput({question:'Frotas',format:'VIDEO',useBrandOnly:true})).toMatchObject({useBrandOnly:true});expect(()=>marketingInput({question:'Frotas',format:'VIDEO',useBrandOnly:'true'})).toThrow();expect(marketingInput({question:'Frotas',format:'VIDEO'}).useBrandOnly).toBeUndefined()});
  it('fails when the workflow owner no longer has access',async()=>{const prisma:any={membership:{findFirst:jest.fn().mockResolvedValue(null)}};const s=new MarketingJobsService(prisma,{} as any,{} as any,{} as any,{} as any);await expect(s.context(req.user.tenantId,req.user.sub)).rejects.toThrow('revogada');});
 });

@@ -84,7 +84,7 @@ export class PublicationFoldersService implements OnModuleInit,OnModuleDestroy {
   let pageToken:string|undefined;const files:any[]=[];
   do{const page:any=await this.drive.list(req,rule.accountId,{parent:rule.folderId,pageToken});files.push(...(page.files||[]));pageToken=page.nextPageToken;if(files.length>1000)throw new BadRequestException('Use até 1000 arquivos diretamente na pasta.');}while(pageToken);
   const media=files.filter(f=>['image/jpeg','image/png','image/webp','video/mp4'].includes(f.mimeType)&&Number(f.size||0)>0&&Number(f.size)<=20*1024*1024);
-  const known=await this.prisma.preparedPublication.findMany({where:{tenantId:rule.tenantId,accountId:rule.accountId,fileId:{in:media.map(f=>f.id)}},select:{fileId:true}});
+  const known=await this.prisma.preparedPublication.findMany({where:{tenantId:rule.tenantId,fileId:{in:media.map(f=>f.id)}},select:{fileId:true}});
   const done=new Set(known.map(f=>f.fileId));return media.filter(f=>!done.has(f.id));
  }
  private async scan(){

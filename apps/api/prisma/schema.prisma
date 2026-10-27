@@ -537,6 +537,7 @@ model PreparedPublication {
  createdAt DateTime @default(now()) @map("created_at")
  updatedAt DateTime @updatedAt @map("updated_at")
  @@unique([tenantId,accountId,fileId])
+ @@unique([tenantId,fileId])
  @@index([status,updatedAt])
  @@map("prepared_publications")
 }

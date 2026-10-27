@@ -19,6 +19,12 @@ async function main(){
   await prisma.marketingWorkflow.update({where:{id:workflow.id},data:{nextRunAt:new Date(Date.now()-60000)}});
   await Promise.all([a.tick(),b.tick()]);assert.equal(await prisma.marketingJob.count({where:{tenantId:tenant.id,requestKey:{startsWith:'workflow:'+workflow.id}}}),1);assert.equal(executions,2);
   const next=await prisma.marketingWorkflow.findUniqueOrThrow({where:{id:workflow.id}});assert(next.nextRunAt>Date.now());
+  const queued=await prisma.marketingJob.create({data:{tenantId:tenant.id,userId:user.id,requestKey:'workflow:'+workflow.id+':queued',payload:input}});
+  const creating=await prisma.marketingJob.create({data:{tenantId:tenant.id,userId:user.id,requestKey:'workflow:'+workflow.id+':creating',payload:input,status:'RUNNING',startedAt:new Date()}});
+  const sending=await prisma.marketingJob.create({data:{tenantId:tenant.id,userId:user.id,requestKey:'workflow:'+workflow.id+':sending',payload:input,status:'PUBLISHING',startedAt:new Date()}});
+  const paused=await a.toggle(req,workflow.id,false);assert.equal(paused.cancelledJobs,1);assert.equal(paused.cancellationRequested,1);assert.equal(paused.alreadyPublishing,1);
+  assert.equal((await prisma.marketingJob.findUniqueOrThrow({where:{id:queued.id}})).status,'CANCELLED');assert.equal((await prisma.marketingJob.findUniqueOrThrow({where:{id:creating.id}})).status,'CANCEL_REQUESTED');assert.equal((await prisma.marketingJob.findUniqueOrThrow({where:{id:sending.id}})).status,'PUBLISHING');
+  await Promise.all([a.tick(),b.tick()]);assert.equal(executions,2);
   const revoked=await a.enqueue(req,input,randomUUID());await prisma.membership.deleteMany({where:{tenantId:tenant.id,userId:user.id}});await a.tick();assert.equal((await prisma.marketingJob.findUniqueOrThrow({where:{id:revoked.job.id}})).status,'FAILED');assert.equal(executions,2);
   console.log('PostgreSQL: duplicate requests, two workers, recurring scheduling and revoked access passed');
  }finally{await prisma.tenant.delete({where:{id:tenant.id}});await prisma.user.delete({where:{id:user.id}});await prisma.$disconnect();}

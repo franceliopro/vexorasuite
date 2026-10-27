@@ -55,6 +55,7 @@ export class IntelligenceRuntimeService {
       if(preferred&&!profile.novo_nome){const latest=await lockedContact(tx,channel.tenantId,conversation.contactId);const canonical={...contactMetadata(latest.metadata),novo_nome:preferred};await tx.contact.update({where:{id:conversation.contactId},data:{metadata:canonical}});conversation.contact.metadata=canonical;}
       variables.nome = preferred || conversation.contact.name;
       variables.novo_nome = preferred;
+      const nameReply=/^(sim|s|isso|manter|pode ser)$/i.test(inbound.content.trim())?conversation.contact.name:inbound.content.trim();
       variables.empresa = tenant.name;
       const messages: string[] = [];
       const skills: string[] = [];
@@ -82,12 +83,12 @@ export class IntelligenceRuntimeService {
         const suggested=conversation.contact.name && conversation.contact.name!==conversation.contact.externalId && !/^\d+$/.test(conversation.contact.name) ? conversation.contact.name : '';
         messages.push(suggested ? 'Identifiquei você pelo nome de '+suggested+'. Como gostaria de ser chamado? Responda “sim” para manter ou escreva o nome que prefere.' : 'Como você gostaria de ser chamado?');
         state={flow:'INTELLIGENCE',revision:published.revision,awaitingName:true,variables};
-      } else if (!preferred && previous.awaitingName && !/^[\p{L}][\p{L} .’'-]{1,79}$/u.test(inbound.content.trim())) {
+      } else if (!preferred && previous.awaitingName && !/^[\p{L}][\p{L} .’'-]{0,79}$/u.test(nameReply)) {
         messages.push('Informe como gostaria de ser chamado, ou digite atendente.');state=previous as Prisma.InputJsonValue;
       } else {
         const naming=!preferred && previous.awaitingName;
         if(naming){
-          const name=/^(sim|s|isso|manter|pode ser)$/i.test(inbound.content.trim())?conversation.contact.name:inbound.content.trim();
+          const name=nameReply;
           const current=await lockedContact(tx,channel.tenantId,conversation.contactId);
           const next={...contactMetadata(current.metadata),novo_nome:name};
           await tx.contact.update({where:{id:conversation.contactId},data:{metadata:next}});

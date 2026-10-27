@@ -20,11 +20,13 @@ async function main(){
   const moving=await create({ruleId:rule.id,accountId:google.id,fileId:'ci-file-move'});failMove=true;
   await a.tick();assert.equal(sends,2);assert.equal(moves,0);await b.tick();assert.equal(moves,1);assert.equal((await prisma.preparedPublication.findUniqueOrThrow({where:{id:moving.id}})).status,'MOVE_PENDING');
   failMove=false;await a.tick();assert.equal(sends,2);assert.equal(moves,2);assert.equal((await prisma.preparedPublication.findUniqueOrThrow({where:{id:moving.id}})).status,'PUBLISHED');
+  const otherGoogle=await prisma.googleConnection.create({data:{tenantId:tenant.id,googleAccountId:'ci-other-'+randomUUID(),email:'other@example.test',scopes:'https://www.googleapis.com/auth/drive',accessTokenEncrypted:'not-a-token',expiresAt:new Date(Date.now()+3600000)}});
+  await assert.rejects(()=>create({accountId:otherGoogle.id,fileId:'ci-file-move'}),error=>error.code==='P2002');
   let reached,release;const started=new Promise(r=>reached=r),blocked=new Promise(r=>release=r);
   drive.download=async()=>{reached();await blocked;return {type:'image/jpeg',buffer:Buffer.from('fixture')}};
   const paused=await create({ruleId:rule.id,accountId:google.id,fileId:'ci-file-pause'});const run=a.tick();await started;await b.toggle(req,rule.id,false);release();await run;
   assert.equal(sends,2);assert.equal((await prisma.preparedPublication.findUniqueOrThrow({where:{id:paused.id}})).status,'FAILED');
-  console.log('PostgreSQL: two workers send once; confirmed publications move only afterwards; failed moves retry without reposting; concurrent pause blocks dispatch');
+  console.log('PostgreSQL: two workers send once; confirmed publications move only afterwards; failed moves retry without reposting; concurrent pause blocks dispatch; shared files cannot repeat through another Google connection');
  }finally{await prisma.tenant.delete({where:{id:tenant.id}});await prisma.user.delete({where:{id:user.id}});await prisma.$disconnect();}
 }
 main().catch(error=>{console.error(error);process.exitCode=1});

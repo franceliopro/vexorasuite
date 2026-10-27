@@ -3,6 +3,13 @@ import { localInstant, repeatInstant, workflowSteps } from "./workflow-time";
 import { publicAddress, seal, unseal } from "./security";
 import { whatsappPhone } from "../operations/whatsapp-bridge";
 describe("communication boundaries", () => {
+  it("rejects executable markup even inside malformed discarded regions", () => {
+    const html = cleanEmail(
+      '<p>Cartão</p><textarea><img src=x onerror=alert(1)></textarea/><svg><set attributeName="href" to="javascript:alert(1)" /></svg><form action="javascript:alert(1)"><button formaction="javascript:alert(1)">X</button></form>',
+    );
+    expect(html).toContain("Cartão");
+    expect(html).not.toMatch(/onerror|javascript:|<svg|<set|<form|<textarea/);
+  });
   it("removes scripts, remote CSS, active content and unsafe image schemes", () => {
     const html = cleanEmail(
       '<script>alert(1)</script><style>@import "https://evil.test";</style><p style="color:#6258df;background-image:url(https://evil.test)">Olá</p><img src="javascript:alert(1)" onerror="evil()"><iframe src="https://evil.test"></iframe>',

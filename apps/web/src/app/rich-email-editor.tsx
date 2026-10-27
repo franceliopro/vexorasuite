@@ -124,6 +124,7 @@ export function RichEmailEditor({
             aria-multiline="true"
             contentEditable
             suppressContentEditableWarning
+            onDrop={(e) => e.preventDefault()}
             onPaste={(e) => {
               e.preventDefault();
               command("insertText", e.clipboardData.getData("text/plain"));

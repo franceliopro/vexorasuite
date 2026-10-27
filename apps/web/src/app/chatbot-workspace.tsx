@@ -71,7 +71,7 @@ export function ChatbotWorkspace(){
    const queue=start?[start]:[];
    if(start)depth.set(start,0);
    // Breadth-first placement avoids endless loops for return-to-start connections.
-   for(let i=0;i<queue.length;i++){const id=queue[i];for(const to of edges.get(id)||[])if(!depth.has(to)){depth.set(to,(depth.get(id)||0)+1);queue.push(to)}}
+   for(let i=0;i<queue.length;i++){const id=queue[i];if(!id)continue;for(const to of edges.get(id)||[])if(!depth.has(to)){depth.set(to,(depth.get(id)||0)+1);queue.push(to)}}
    for(const step of f.steps)if(!depth.has(step.id)){depth.set(step.id,Math.max(0,...depth.values())+1)}
    const columns=new Map<number,string[]>();
    for(const step of f.steps){const d=depth.get(step.id)!;columns.set(d,[...(columns.get(d)||[]),step.id])}

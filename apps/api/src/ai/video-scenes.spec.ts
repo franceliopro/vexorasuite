@@ -2,8 +2,19 @@ import sharp from 'sharp';
 import { writeFileSync } from 'node:fs';
 import { composeVideoScene, researchTopic, selectVideoReferences, videoOverlay } from './video-scenes';
 import { AssistantAutomationService } from './assistant-automation.service';
+import { AiService } from './ai.service';
 
 describe('video composition and research context',()=>{
+ afterEach(()=>jest.restoreAllMocks());
+ it('records the model reported by the provider rather than only the free router name',async()=>{
+  jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({model:'vendor/actual-model:free',choices:[{message:{content:'ok'}}]})));
+  const result=await new AiService().generate([{role:'user',content:'Teste'}],[{provider:'openrouter',model:'openrouter/free',apiKey:'fixture',freeOnly:true}]);
+  expect(result.model).toBe('vendor/actual-model:free');expect(result.requestedModel).toBe('openrouter/free');
+ });
+ it('ignores malformed provider model metadata',async()=>{
+  jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({model:'<script>',choices:[{message:{content:'ok'}}]})));
+  expect((await new AiService().generate([{role:'user',content:'Teste'}],[{provider:'openrouter',model:'openrouter/free',apiKey:'fixture'}])).model).toBe('openrouter/free');
+ });
  it('keeps the topic when a format appears later in the request',()=>{
   expect(researchTopic('Rastreamento de frotas: explique como acompanhar veículos. Crie um vídeo curto vertical em português.')).toBe('Rastreamento de frotas');
   expect(researchTopic('Crie um vídeo curto vertical sobre rastreamento de frotas. Use referências.')).toBe('rastreamento de frotas');

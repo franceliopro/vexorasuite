@@ -22,6 +22,15 @@ export class IntelligenceRuntimeController {
     const executions = await this.prisma.auditLog.findMany({ where: { tenantId: req.user.tenantId, action: 'engine.processed' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, createdAt: true, details: true } });
     return { engine: 'Véxora Intelligence Engine', active: published.active === true, revision: published.revision || null, publishedAt: published.publishedAt || null, flowName: published.flow?.name || null, executableKinds, executableActions, executions, llmExecution: true };
   }
+  @Get('destinations')
+  async destinations(@Req() req:AuthenticatedRequest){
+    this.authorize(req);
+    const [departments,memberships]=await Promise.all([
+      this.prisma.department.findMany({where:{tenantId:req.user.tenantId,isActive:true},select:{id:true,key:true,name:true,members:{where:{tenantId:req.user.tenantId,user:{isActive:true}},select:{userId:true}}},orderBy:{name:'asc'}}),
+      this.prisma.membership.findMany({where:{tenantId:req.user.tenantId,user:{isActive:true}},select:{user:{select:{id:true,name:true}}}}),
+    ]);
+    return {departments:departments.map(d=>({...d,members:d.members.map(m=>m.userId)})),agents:memberships.map(m=>m.user).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'))};
+  }
   @Post('publish')
   async publish(@Req() req: AuthenticatedRequest) {
     this.authorize(req);
@@ -44,6 +53,10 @@ export class IntelligenceRuntimeController {
           if (!assistant.enabled || !agent || !selection.model || !configured) throw new BadRequestException(`${step.title}: agente, modelo e provedor precisam estar habilitados e configurados`);
         }
         if (config.departmentKey && !await tx.department.findFirst({ where: { tenantId: req.user.tenantId, key: config.departmentKey, isActive: true } })) throw new BadRequestException(`${step.title}: equipe não encontrada nesta empresa`);
+        if(config.userId){
+          if(!await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:config.userId,user:{isActive:true}},select:{id:true}}))throw new BadRequestException(`${step.title}: atendente não disponível nesta empresa`);
+          if(config.departmentKey&&!await tx.departmentMember.findFirst({where:{tenantId:req.user.tenantId,userId:config.userId,department:{key:config.departmentKey,isActive:true}},select:{id:true}}))throw new BadRequestException(`${step.title}: o atendente não pertence ao time selecionado`);
+        }
       }
       const publication = { revision: randomUUID(), active: true, publishedAt: new Date().toISOString(), flow };
       await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: { ...root, intelligencePublished: publication } as Prisma.InputJsonValue } });

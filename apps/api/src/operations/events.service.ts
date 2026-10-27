@@ -11,6 +11,7 @@ export interface TenantEvent {
 @Injectable()
 export class EventsService {
   private readonly events = new Subject<TenantEvent>();
+  observe(): Observable<TenantEvent> { return this.events.asObservable(); }
 
   publish(tenantId: string, type: string, data: Record<string, unknown>): void {
     this.events.next({ tenantId, type, data, occurredAt: new Date().toISOString() });

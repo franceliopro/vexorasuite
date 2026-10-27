@@ -35,7 +35,12 @@ export function validateRuntimeFlow(value: unknown): string[] {
     try {
       const config = settings(s);
       if (s.kind === 'input.text' && !/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '')) errors.push(`${s.id}: informe a variável de entrada`);
-      if (s.kind === 'assignment' && config.userId) errors.push(`${s.id}: atribuição individual ainda não executável; use departmentKey`);
+      if (config.userId && !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.userId)) errors.push(`${s.id}: atendente inválido`);
+      if (config.targetMode && !['QUEUE','DEPARTMENT','PERSON','PLATFORM'].includes(config.targetMode)) errors.push(`${s.id}: modo de transferência inválido`);
+      if (config.targetMode === 'DEPARTMENT' && !config.departmentKey) errors.push(`${s.id}: selecione o time de destino`);
+      if (config.targetMode === 'PERSON' && !config.userId) errors.push(`${s.id}: selecione o atendente de destino`);
+      if (config.targetMode === 'QUEUE' && (config.departmentKey || config.userId)) errors.push(`${s.id}: fila geral não pode conter time ou atendente`);
+      if (config.targetMode === 'DEPARTMENT' && config.userId) errors.push(`${s.id}: use destino Atendente para atribuição individual`);
       if (s.kind === 'text' && s.options.length > 1) errors.push(`${s.id}: use múltipla escolha para mais de uma saída`);
       if (s.kind === 'agent' && !config.agentId) errors.push(`${s.id}: selecione agentId de um agente configurado`);
       if (['variable','condition'].includes(s.kind || '') && (!/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '') || typeof config.value !== 'string')) errors.push(`${s.id}: configure variable e value`);

@@ -55,15 +55,19 @@ export class IntelligenceRuntimeService {
       let state: Prisma.InputJsonValue = {};
       let human = false;
       let departmentId: string | null = conversation.departmentId;
+      let assigneeId: string | null = null;
       let reason = 'workflow';
       let tokensUsed = 0;
       let model: string | null = null;
-      const handoff = async (key?: string) => {
-        const department = key ? await tx.department.findFirst({ where: { tenantId: channel.tenantId, key, isActive: true } }) : null;
-        human = true; departmentId = department?.id ?? null;
+      const handoff = async (key?: string,userId?:string) => {
+        let department = key ? await tx.department.findFirst({ where: { tenantId: channel.tenantId, key, isActive: true } }) : null;
+        let target = userId ? await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId,user:{isActive:true}},select:{userId:true,user:{select:{name:true}}}}) : null;
+        const belongs = target&&department ? await tx.departmentMember.findFirst({where:{tenantId:channel.tenantId,departmentId:department.id,userId:target.userId},select:{id:true}}) : true;
+        if((key&&!department)||(userId&&(!target||!belongs))){reason='handoff_target_unavailable';department=null;target=null;}
+        human = true; departmentId = department?.id ?? null; assigneeId=target?.userId??null;
         state = { flow: 'INTELLIGENCE', revision: published.revision, completed: true, variables };
         skills.push('human.handoff');
-        messages.push(department ? `Encaminhei sua conversa para ${department.name}. Um atendente continuará por aqui.` : 'Encaminhei sua conversa para a fila de atendimento humano.');
+        messages.push(target ? 'Encaminhei sua conversa para '+target.user.name+(department?', do time '+department.name:'')+'.' : department ? 'Encaminhei sua conversa para o time '+department.name+'. Um atendente continuará por aqui.' : reason==='handoff_target_unavailable'?'O destino configurado está indisponível. Encaminhei sua conversa para a fila geral de atendimento humano.':'Encaminhei sua conversa para a fila geral de atendimento humano.');
       };
       const humanRequest = /^(atendente|humano|falar com atendente|falar com humano)$/i.test(normalize(inbound.content));
       if (humanRequest) { reason = 'explicit_human_request'; await handoff(); }
@@ -138,10 +142,10 @@ export class IntelligenceRuntimeService {
           if (['human.handoff','assignment'].includes(type)) {
             const platform = variables.plataforma;
             const sector = variables.setor;
-            const candidates = config.departmentKey ? [config.departmentKey] : sector ? [...(platform ? [sector+'_'+platform, platform+'_'+sector] : []), sector] : [];
+            const candidates = config.targetMode==='QUEUE'||(config.userId&&!config.departmentKey) ? [] : config.departmentKey ? [config.departmentKey] : sector ? [...(platform ? [sector+'_'+platform, platform+'_'+sector] : []), sector] : [];
             const departments = await tx.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
-            const key = candidates.find(k => departments.some(d => d.key === k));
-            await handoff(key); step = undefined as unknown as RuntimeStep; break;
+            const key = config.targetMode==='QUEUE'?undefined:config.departmentKey||candidates.find(k => departments.some(d => d.key === k));
+            await handoff(key,config.targetMode==='QUEUE'?undefined:config.userId); step = undefined as unknown as RuntimeStep; break;
           }
           if (type === 'asaas.payment.lookup') {
             // Only the WhatsApp adapter can establish financial identity through Asaas.openDebts.
@@ -172,9 +176,9 @@ export class IntelligenceRuntimeService {
         }
         if (step) { reason = 'execution_limit'; await handoff(); }
       }
-      await tx.conversation.update({ where: { id: conversation.id }, data: { botState: state, ...(human ? { handlingMode: 'HUMAN', assigneeId: null, departmentId, status: 'OPEN' } : {}) } });
+      await tx.conversation.update({ where: { id: conversation.id }, data: { botState: state, ...(human ? { handlingMode: 'HUMAN', assigneeId, departmentId, status: 'OPEN' } : {}) } });
       const queued: Message[] = [];
-      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, revision: published.revision, sourceMessageId: inbound.id, handoff: human } } }));
+      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null } } }));
       await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, revision: published.revision, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human };
     }, { timeout: 30000 });
@@ -190,7 +194,7 @@ export class IntelligenceRuntimeService {
       const message = await tx.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId, conversationId, status: 'QUEUED' } });
       if (!message || object(message.metadata).deliveryState === 'SENDING') return false;
       await tx.message.update({ where: { id: messageId }, data: { metadata: { ...object(message.metadata), deliveryState: 'SENDING', deliveryClaimedAt: new Date().toISOString() } } });
-      return { revision: object(message.metadata).revision };
+      return { revision: object(message.metadata).revision, handoffAssigneeId: object(message.metadata).handoffAssigneeId };
     });
     if (!claimed) return;
     this.events.publish(channel.tenantId, 'message.queued', { conversationId, message: { id: messageId, content, direction: 'OUTBOUND', status: 'QUEUED' } });
@@ -202,7 +206,7 @@ export class IntelligenceRuntimeService {
       if (!currentChannel || currentChannel.provider !== channel.provider || !currentPublication.active || currentPublication.revision !== claimed.revision || !currentPublication.flow?.channelIds?.includes(channel.id)) throw new Error('Engine or channel no longer authorized');
       channel = currentChannel;
       const conversation = await this.prisma.conversation.findFirstOrThrow({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
-      if (conversation.assigneeId || (conversation.handlingMode === 'HUMAN' && !handoff) || conversation.deletedAt || conversation.archivedAt || ['CLOSED','RESOLVED'].includes(conversation.status)) throw new Error('Conversation taken over or finalized');
+      if ((conversation.assigneeId && (!handoff || conversation.assigneeId !== claimed.handoffAssigneeId)) || (conversation.handlingMode === 'HUMAN' && !handoff) || conversation.deletedAt || conversation.archivedAt || ['CLOSED','RESOLVED'].includes(conversation.status)) throw new Error('Conversation taken over or finalized');
       let providerMessageId: string | null = null;
       if (channel.provider === 'WAHA') {
         const chatId = conversation.contact.externalId || (conversation.contact.phone ? conversation.contact.phone.replace(/\D/g, '')+'@c.us' : '');

@@ -1,0 +1,8 @@
+import { VoiceService } from './voice.service';
+describe('voice execution boundaries',()=>{
+ const previous=process.env.OPENAI_API_KEY;
+ afterEach(()=>{jest.restoreAllMocks();if(previous===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previous;});
+ it('rejects unsupported or oversized uploads before accessing providers',async()=>{const s=new VoiceService({} as any);await expect(s.transcribe({} as any,{buffer:Buffer.from('test'),mimetype:'text/html',size:4,originalname:'test.html'})).rejects.toThrow();});
+ it('does not execute the voice of an agent without the explicit Skill',async()=>{const prisma:any={tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations:{assistant:{enabled:true,agents:[{id:'1',enabled:true,allowedActions:[],tts:{provider:'openai',model:'gpt-4o-mini-tts'}}]}}})}};const fetch=jest.spyOn(global,'fetch');await expect(new VoiceService(prisma).speak({user:{role:'OWNER',tenantId:'tenant'}} as any,'Olá','1')).rejects.toThrow('Skill');expect(fetch).not.toHaveBeenCalled();});
+ it('reserves budget before an external voice request',async()=>{process.env.OPENAI_API_KEY='test';const tx:any={$queryRaw:jest.fn(),auditLog:{count:jest.fn().mockResolvedValue(0),create:jest.fn()}};const prisma:any={tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations:{assistant:{enabled:true,dailyAiLimit:0,tts:{provider:'openai',model:'gpt-4o-mini-tts'}}}})},$transaction:(fn:any)=>fn(tx)};const fetch=jest.spyOn(global,'fetch');await expect(new VoiceService(prisma).speak({user:{role:'OWNER',tenantId:'tenant'}} as any,'Olá')).rejects.toThrow('Limite diário');expect(fetch).not.toHaveBeenCalled();});
+});

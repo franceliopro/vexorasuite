@@ -73,6 +73,32 @@ describe('delivery authorization at dispatch time', () => {
 
 
 describe('workflow edge cases',()=>{
+
+describe('explicit human handoff destinations',()=>{
+ it('assigns a named tenant member and preserves the handoff confirmation',async()=>{
+  const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
+  const userId='11111111-1111-4111-8111-111111111111';
+  x.flow.steps[1].config=JSON.stringify({targetMode:'PERSON',departmentKey:'SUPORTE',userId});
+  x.tx.membership={findFirst:jest.fn().mockResolvedValue({userId,user:{name:'Ana'}})};
+  x.tx.departmentMember={findFirst:jest.fn().mockResolvedValue({id:'member'})};
+  x.tx.message.findFirst.mockImplementation(async({where}:any)=>where.status?{metadata:{revision:'r1',handoffAssigneeId:userId}}:x.inbound);
+  x.prisma.conversation.findFirstOrThrow.mockResolvedValue({...x.conversation,handlingMode:'HUMAN',assigneeId:userId});
+  x.inbound.content='1';
+  await x.service.receive(x.channel,'conversation','inbound');
+  expect(x.tx.conversation.update.mock.calls[0][0].data).toMatchObject({handlingMode:'HUMAN',departmentId:'support',assigneeId:userId});
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.objectContaining(x.channel),'5511999999999@c.us',expect.stringContaining('Ana, do time Suporte'));
+ });
+ it('falls back visibly to the general queue if the configured person was removed',async()=>{
+  const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
+  x.flow.steps[1].config=JSON.stringify({targetMode:'PERSON',userId:'11111111-1111-4111-8111-111111111111'});
+  x.tx.membership={findFirst:jest.fn().mockResolvedValue(null)};
+  x.inbound.content='1';await x.service.receive(x.channel,'conversation','inbound');
+  expect(x.tx.conversation.update.mock.calls[0][0].data).toMatchObject({assigneeId:null,departmentId:null,handlingMode:'HUMAN'});
+  expect(x.tx.auditLog.create.mock.calls[0][0].data.details.reason).toBe('handoff_target_unavailable');
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.objectContaining(x.channel),expect.any(String),expect.stringContaining('destino configurado está indisponível'));
+ });
+});
+
  it('does not invoke legacy menus when a keyword trigger does not match',async()=>{const x=setup();x.flow.triggers=[{kind:'keyword',keyword:'ativar'}];expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.waha.sendText).not.toHaveBeenCalled();});
  it('allows restarting completed flows',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{},completed:true}});x.inbound.content='menu';await x.service.receive(x.channel,'conversation','inbound');expect(x.waha.sendText).toHaveBeenCalled();});
  it('auto-advances plain text blocks without requiring a customer reply',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});x.flow.steps.splice(1,0,{id:'greeting',kind:'text',title:'Aviso',message:'Aguarde',options:['Continuar'],transitions:{Continuar:'handoff'}});x.flow.steps[0].transitions.Suporte='greeting';x.inbound.content='1';await x.service.receive(x.channel,'conversation','inbound');expect(x.waha.sendText).toHaveBeenCalledTimes(2);expect(x.tx.conversation.update.mock.calls[0][0].data.handlingMode).toBe('HUMAN');});

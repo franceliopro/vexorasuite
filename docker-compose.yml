@@ -21,6 +21,8 @@ services:
       start_period: 30s
 
   api:
+    volumes:
+      - automation_media:/var/lib/vexora/media
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -121,6 +123,7 @@ services:
       - waha_sessions:/app/.sessions
 
 volumes:
+  automation_media:
   postgres_data:
   redis_data:
   pgadmin_data:

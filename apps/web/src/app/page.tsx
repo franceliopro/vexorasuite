@@ -1,4 +1,6 @@
 "use client";
+import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
+import { MarketingStudio } from "./marketing-studio";
 import { brandTextColor } from "../lib/tenant-cache";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
@@ -66,7 +68,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Referências criativas" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Postagens" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Canais e integrações", icon: "share" }, { label: "Configurações", icon: "settings" }] },
@@ -233,12 +235,13 @@ export default function HomePage() {
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">☰</button>
           <div className="breadcrumbs"><span>Véxora Suite</span><span className="crumb-slash">/</span><strong>{active}</strong></div>
           <div className="topbar-actions">
+            <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role === "OWNER" ? <div className="workspace-info-wrap"><button type="button" className="workspace-info-button" onClick={() => setWorkspaceInfoOpen(v=>!v)} aria-expanded={workspaceInfoOpen} title="Informações do ambiente"><span className="workspace-avatar">V</span><span>Ambiente</span><Icon name="chevron-right" size={13}/></button>{workspaceInfoOpen?<div className="workspace-info-popover"><strong>{session?.tenant.name||"Minha empresa"}</strong><small>{session?.tenant.slug||"Workspace"}</small><p>Ambiente atual da empresa. A alternância entre empreendimentos será exibida quando houver mais de um vínculo disponível para sua conta.</p></div>:null}</div>:null}
             <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
             <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
-            <button className="logout-button" onClick={async () => { await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
+            <button className="logout-button" onClick={async () => { await disableDeviceNotifications().catch(()=>{}); await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
           </div>
         </header>
 
@@ -279,16 +282,10 @@ export default function HomePage() {
             canConfigure ? <AiAgentsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Chatbots" ? (
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
-          ) : active === "Referências criativas" || active === "Postagens" || active === "Marketing" ? (
-            canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Postagens"?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+          ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Marketing" ? (
+            canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":active==="Postagens"?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Workflows" ? (
-            <section className="module-workspace">
-              <header className="page-heading"><div><p className="eyebrow">AUTOMAÇÃO</p><h1>Workflows</h1><p className="page-subtitle">Organize campanhas e jornadas automatizadas em um espaço único.</p></div></header>
-              <div className="module-tabs" role="tablist" aria-label="Áreas de Workflows">
-                {["Campanhas de mensagens", "Sequências", "Ligações e SMS", "Regras e gatilhos"].map((tab) => <button key={tab} type="button" role="tab" aria-selected={workflowTab === tab} className={workflowTab === tab ? "active" : ""} onClick={() => setWorkflowTab(tab)}>{tab}</button>)}
-              </div>
-              <section className="content-card module-tab-content"><span className="module-placeholder-icon"><Icon name="workflow" size={24}/></span><p className="eyebrow">WORKFLOWS</p><h2>{workflowTab}</h2><p>Esta área está organizada para receber os recursos de {workflowTab.toLowerCase()}. As ações serão habilitadas conforme cada fluxo for conectado e validado.</p><div className="placeholder-status"><span/> Estrutura de navegação pronta · integração funcional em preparação</div></section>
-            </section>
+            canManage ? <section className="creative-workspace"><header className="page-heading"><div><h1>Workflows de marketing</h1><p>Pesquise, crie e publique em uma execução ou em uma rotina recorrente.</p></div></header><MarketingStudio/></section> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Atendimento" ? (
             <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} canManageChannels={canConfigure} />
           ) : active === "Canais e integrações" ? (

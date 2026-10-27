@@ -131,11 +131,12 @@ export class ConversationsController {
   }
 
   @Get()
-  async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string) {
+  async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string, @Query("focus") focus?: string) {
     const tenantId = request.user.tenantId;
     const normalizedView = ["new", "mine", "team", "others", "all-open", "completed", "archived", "trash"].includes(view) ? view : "new";
     const accessWhere = await this.accessWhere(request, normalizedView);
     const where: Record<string, any> = { tenantId, ...accessWhere };
+    if(focus){if(!isUUID(focus))throw new BadRequestException("Conversa inválida");where.id=focus;}
     if (normalizedView === "new") Object.assign(where, { status: { in: ["OPEN", "PENDING"] }, assigneeId: null, departmentId: null, archivedAt: null, deletedAt: null });
     else if (normalizedView === "mine") Object.assign(where, { assigneeId: request.user.sub, archivedAt: null, deletedAt: null, status: { in: ["OPEN", "PENDING"] } });
     else if (normalizedView === "team") Object.assign(where, { departmentId: { in: await this.memberDepartmentIds(tenantId, request.user.sub) }, archivedAt: null, deletedAt: null, status: { in: ["OPEN", "PENDING"] } });

@@ -5,6 +5,16 @@ type Reference = {id:string;name:string;instructions:string;mimeType?:string};
 const xml=(value:string)=>value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
 const words=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().match(/[a-z0-9]{4,}/g)||[];
 
+function shortText(value:string,max:number){
+ const clean=value.replace(/\s+/g,' ').trim();if(clean.length<=max)return clean;
+ const cut=clean.slice(0,max-1),space=cut.lastIndexOf(' ');
+ return cut.slice(0,space>max/2?space:cut.length).replace(/[,:;.!?]+$/,'')+'…';
+}
+export function compactVideoScript<T extends {slides:Scene[]}>(script:T):T {
+ const slides=script.slides.length>5?[...script.slides.slice(0,4),script.slides[script.slides.length-1]!]:script.slides;
+ return {...script,slides:slides.map(scene=>({title:shortText(scene.title,48),body:shortText(scene.body,155)}))};
+}
+
 // Only remove a creation command at the beginning. A format mentioned later is not the topic.
 export function researchTopic(question:string){
  const value=question.trim().replace(/^(?:(?:por favor|pesquise e|faça|crie|criar|gere|gerar|produza)\s+)*(?:(?:um|uma)\s+)?(?:carrossel|carroussel|carousel|post|publicação|vídeo|video|reel)(?:\s+curto)?(?:\s+vertical)?\s+(?:sobre|a respeito de)\s+/i,'');

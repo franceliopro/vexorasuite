@@ -1,3 +1,11 @@
+import { MarketingController } from "./marketing.controller";
+import { DriveManagerController } from "./drive-manager.controller";
+import { DriveManagerService } from "./drive-manager.service";
+import { MarketingJobsService } from "./marketing-jobs.service";
+import { MarketingLibraryService } from "./marketing-library.service";
+import { VideoRenderService } from "./video-render.service";
+import { VoiceService } from "./voice.service";
+import { VoiceController } from "./voice.controller";
 import { CreativeReferencesService } from "./creative-references.service";
 import { CreativeReferencesController } from "./creative-references.controller";
 import { GoogleAccessService } from "../operations/google-access.service";
@@ -21,6 +29,6 @@ import { ChatbotAsaasPreviewController } from "./chatbot-asaas-preview.controlle
 import { ChatbotTriggerPreviewController } from "./chatbot-trigger-preview.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [CreativeReferencesController, AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [DriveManagerService, MarketingJobsService, MarketingLibraryService, VideoRenderService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
 export class AiModule {}
 

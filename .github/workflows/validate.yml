@@ -63,6 +63,8 @@ jobs:
         run: pnpm --filter @vexorasuite/api build
       - name: PostgreSQL concurrency regressions
         run: pnpm --filter @vexorasuite/api exec node test/contact-concurrency.cjs
+      - name: Marketing worker concurrency regressions
+        run: pnpm --filter @vexorasuite/api exec node test/marketing-concurrency.cjs
       - name: Web typecheck
         run: pnpm --filter @vexorasuite/web typecheck
       - name: Web build
@@ -87,6 +89,8 @@ jobs:
         run: |
           docker run --rm vexora-api-ci ./node_modules/.bin/prisma --version
           docker run --rm vexora-api-ci node -e "const {PrismaClient}=require('@prisma/client');new PrismaClient();require('./dist/app.module');require('sharp');console.log('API runtime dependencies OK')"
+          docker run --rm vexora-api-ci ffmpeg -version
+          docker run --rm --volume "${{ github.workspace }}/apps/api/test/video-smoke.cjs:/workspace/apps/api/test/video-smoke.cjs:ro" vexora-api-ci node test/video-smoke.cjs
       - name: Check standalone web and static assets
         if: matrix.service == 'web'
         run: |

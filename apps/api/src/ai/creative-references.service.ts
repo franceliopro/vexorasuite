@@ -91,9 +91,9 @@ export class CreativeReferencesService {
     await this.prisma.creativeReference.update({where:{id:row.id},data:{palette:colors}});
     return {palette:colors,usedAi:false,tokensUsed:0};
   }
-  async brief(req:AuthenticatedRequest,purpose:'ART'|'CAROUSEL'|'VIDEO'){
+  async brief(req:AuthenticatedRequest,purpose:'ART'|'CAROUSEL'|'VIDEO',scope?:{accountId:string;fileIds:string[]}){
     this.authorize(req);
-    const rows=await this.prisma.creativeReference.findMany({where:{tenantId:req.user.tenantId,enabled:true,purpose:{in:['ALL',purpose]},accountId:{not:null},account:{is:{tenantId:req.user.tenantId,NOT:{disabledServices:{has:'drive'}}}}},orderBy:{updatedAt:'desc'},take:8,select:{id:true,name:true,instructions:true,palette:true,purpose:true}});
+    const rows=await this.prisma.creativeReference.findMany({where:{tenantId:req.user.tenantId,enabled:true,purpose:{in:['ALL',purpose]},...(scope?{accountId:scope.accountId,fileId:{in:scope.fileIds}}:{accountId:{not:null}}),account:{is:{tenantId:req.user.tenantId,NOT:{disabledServices:{has:'drive'}}}}},orderBy:{updatedAt:'desc'},take:8,select:{id:true,name:true,instructions:true,palette:true,purpose:true}});
     return rows.map(r=>({id:r.id,name:r.name,instructions:r.instructions,purpose:r.purpose,palette:Array.isArray(r.palette)?r.palette.filter((c):c is string=>typeof c==='string'&&/^#[\da-f]{6}$/i.test(c)):[]}));
   }
 }

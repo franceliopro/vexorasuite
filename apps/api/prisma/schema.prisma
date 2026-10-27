@@ -2,6 +2,29 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model PushConfiguration {
+  tenantId String @id @db.Uuid @map("tenant_id")
+  publicKey String @map("public_key")
+  privateKeyEncrypted String @map("private_key_encrypted")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  @@map("push_configurations")
+}
+model PushSubscription {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  userId String @db.Uuid @map("user_id")
+  endpointHash String @unique @map("endpoint_hash")
+  endpoint String
+  p256dh String
+  auth String
+  createdAt DateTime @default(now()) @map("created_at")
+  lastTestAt DateTime? @map("last_test_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([tenantId,userId])
+  @@map("push_subscriptions")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -42,6 +65,10 @@ enum ConversationHandlingMode {
 }
 
 model Tenant {
+  pushConfiguration PushConfiguration?
+  pushSubscriptions PushSubscription[]
+  marketingJobs MarketingJob[]
+  marketingWorkflows MarketingWorkflow[]
   id          String       @id @default(uuid()) @db.Uuid
   name        String
   slug        String       @unique
@@ -68,7 +95,44 @@ model Tenant {
   @@map("tenants")
 }
 
+model MarketingJob {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  userId String @db.Uuid @map("user_id")
+  requestKey String @map("request_key")
+  status String @default("QUEUED")
+  payload Json
+  result Json?
+  error String?
+  runAt DateTime @default(now()) @map("run_at")
+  startedAt DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  @@unique([tenantId,requestKey])
+  @@index([status,runAt])
+  @@index([tenantId,createdAt])
+  @@map("marketing_jobs")
+}
+
+model MarketingWorkflow {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  userId String @db.Uuid @map("user_id")
+  name String
+  enabled Boolean @default(true)
+  payload Json
+  everyDays Int @default(0) @map("every_days")
+  nextRunAt DateTime @map("next_run_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  @@index([enabled,nextRunAt])
+  @@index([tenantId,createdAt])
+  @@map("marketing_workflows")
+}
+
 model User {
+  pushSubscriptions PushSubscription[]
   id              String            @id @default(uuid()) @db.Uuid
   email           String            @unique
   passwordHash    String            @map("password_hash")

@@ -9,6 +9,8 @@ const callbackPath = "/api/integrations/google/callback";
 const scopes: Record<string, string[]> = {
   calendar: ["openid", "email", "https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar.readonly"],
   drive: ["openid", "email", "https://www.googleapis.com/auth/drive.file"],
+  "drive-library": ["openid", "email", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.readonly"],
+  "drive-manager": ["openid", "email", "https://www.googleapis.com/auth/drive"],
 };
 @Controller("integrations/google")
 export class GoogleOAuthController {
@@ -101,7 +103,7 @@ export class GoogleOAuthController {
       await this.prisma.googleConnection.upsert({
         where: { tenantId_googleAccountId: { tenantId: attempt.tenantId, googleAccountId: info.sub } },
         create: { tenantId: attempt.tenantId, googleAccountId: info.sub, email: info.email, scopes: token.scope || "", accessTokenEncrypted: this.encrypt(token.access_token), refreshTokenEncrypted: token.refresh_token ? this.encrypt(token.refresh_token) : null, expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
-        update: { disabledServices: { set: (prior?.disabledServices || []).filter(s=>s!==attempt.service) }, email: info.email, scopes: Array.from(new Set([...(prior?.scopes || "").split(" "), ...granted])).filter(Boolean).join(" "), accessTokenEncrypted: this.encrypt(token.access_token), ...(token.refresh_token ? { refreshTokenEncrypted: this.encrypt(token.refresh_token) } : {}), expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
+        update: { disabledServices: { set: (prior?.disabledServices || []).filter(s=>s!==(attempt.service.startsWith("drive-")?"drive":attempt.service)) }, email: info.email, scopes: Array.from(new Set([...(prior?.scopes || "").split(" "), ...granted])).filter(Boolean).join(" "), accessTokenEncrypted: this.encrypt(token.access_token), ...(token.refresh_token ? { refreshTokenEncrypted: this.encrypt(token.refresh_token) } : {}), expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
       });
       return done("connected");
     } catch { return done("failed"); }

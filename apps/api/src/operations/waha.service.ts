@@ -93,6 +93,23 @@ export class WahaService {
     }
   }
 
+  async contactPhoto(channel:ChannelConnection,chatId:string):Promise<Buffer|null>{
+    if(!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId))return null;
+    try{
+      const query=new URLSearchParams({contactId:chatId,session:channel.sessionName});
+      const response=await this.request('/api/contacts/profile-picture?'+query,{redirect:'error'});if(!response.ok)return null;
+      const data=await response.json() as any;const candidate=data.profilePictureURL||data.profilePictureUrl||data.url;if(typeof candidate!=='string')return null;
+      const {baseUrl}=this.config();const target=new URL(candidate,baseUrl+'/');if(target.username||target.password)return null;
+      const internal=target.toString().startsWith(baseUrl+'/');
+      const publicHost=['whatsapp.net','fbcdn.net','fbsbx.com'].some(d=>target.hostname===d||target.hostname.endsWith('.'+d));
+      if(!internal&&(target.protocol!=='https:'||target.port||!publicHost))return null;
+      const photo=internal?await this.request(target.toString().slice(baseUrl.length),{redirect:'error'}):await fetch(target,{redirect:'error',signal:AbortSignal.timeout(8000)});
+      if(!photo.ok||Number(photo.headers.get('content-length')||0)>1024*1024)return null;
+      const reader=photo.body?.getReader();if(!reader)return null;const chunks:Buffer[]=[];let size=0;
+      try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>1024*1024)return null;chunks.push(Buffer.from(part.value));}return Buffer.concat(chunks);}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+    }catch{return null;}
+  }
+
   async listGroups(channel: ChannelConnection): Promise<{ id: string; name: string }[]> {
     const response = await this.request(`/api/${encodeURIComponent(channel.sessionName)}/chats`);
     if (!response.ok) throw new BadGatewayException(`WAHA não conseguiu listar as conversas (${response.status}).`);

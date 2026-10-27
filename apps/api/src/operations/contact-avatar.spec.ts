@@ -1,0 +1,5 @@
+import { ContactAvatarController, publicPhotoUrl } from './contact-avatar.controller';
+describe('private conversation avatars',()=>{
+ it('allows provider CDNs and rejects arbitrary/internal URLs',()=>{expect(publicPhotoUrl('https://pps.whatsapp.net/photo.jpg')).toBeTruthy();expect(publicPhotoUrl('http://127.0.0.1/admin')).toBeNull();expect(publicPhotoUrl('https://evil.test/photo')).toBeNull();expect(publicPhotoUrl('https://whatsapp.net.evil.test/photo')).toBeNull();expect(publicPhotoUrl('https://user:pass@pps.whatsapp.net/photo')).toBeNull();});
+ it('does not query providers for contacts outside the tenant',async()=>{const contact={findFirst:jest.fn().mockResolvedValue(null)},waha:any={contactPhoto:jest.fn()},res:any={status:jest.fn().mockReturnThis(),end:jest.fn()};await new ContactAvatarController({contact} as any,waha).avatar({user:{tenantId:'tenant-a'}} as any,'contact-b',res);expect(contact.findFirst).toHaveBeenCalledWith({where:{id:'contact-b',tenantId:'tenant-a'}});expect(waha.contactPhoto).not.toHaveBeenCalled();expect(res.status).toHaveBeenCalledWith(404);});
+});

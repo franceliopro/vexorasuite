@@ -1,3 +1,5 @@
+import { MarketingJobsService } from "./marketing-jobs.service";
+import { Optional } from "@nestjs/common";
 import { AssistantAutomationService } from "./assistant-automation.service";
 import { ReportExportService } from "./report-export.service";
 import { routeIntelligence, proposeWorkflow } from "./intelligence-engine";
@@ -9,7 +11,7 @@ import { Prisma } from "@prisma/client";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
-type VoiceSelection = { provider: string; model: string; endpoint?: string };
+type VoiceSelection = { provider: string; model: string; endpoint?: string; voice?: string };
 type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
 type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; dailyAiLimit?: number; fallbackModels?: ModelSelection[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
 const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [] };
@@ -24,7 +26,7 @@ function parseConfig(value: unknown): Config {
 @Controller("assistant")
 @UseGuards(AuthGuard)
 export class AssistantController {
-  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController, private readonly reportExport: ReportExportService, private readonly automation: AssistantAutomationService) {}
+  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController, private readonly reportExport: ReportExportService, private readonly automation: AssistantAutomationService, @Optional() private readonly marketing?: MarketingJobsService) {}
   // Central registry: skills are capabilities, not arbitrary executable prompts.
   @Get("custom-skills")
   async customSkills(@Req() req: AuthenticatedRequest) {
@@ -56,7 +58,9 @@ export class AssistantController {
     return { version: 2, executionEnabled: true, skills: [
       { id: "reports.export", name: "Relatórios PDF e CSV", category: "Operações", cost: "zero", implemented: true, permission: "reports.admin" },
       { id: "web.research", name: "Pesquisa na internet", category: "Conhecimento", cost: "external", implemented: true, permission: "research.admin", requiresConfiguration: "BRAVE_SEARCH_API_KEY" },
-      { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
+      { id:"media.video.render",name:"Renderizar vídeo curto",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
+        { id:"marketing.workflow.run",name:"Rotinas de publicação",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
+        { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
       { id: "social.publish", name: "Publicar ou agendar na Zernio", category: "Marketing", cost: "external", implemented: true, permission: "marketing.admin" },
       { id: "assistant.contacts.read", name: "Consultar contatos", category: "CRM", cost: "zero", implemented: true, permission: "contacts.read" },
       { id: "assistant.tasks.read", name: "Consultar tarefas", category: "Operações", cost: "zero", implemented: true, permission: "tasks.read" },
@@ -80,9 +84,9 @@ export class AssistantController {
       { id: "catalog.menu.show", name: "Mostrar cardápio", category: "Comercial", cost: "zero", implemented: false, permission: "catalog.read" },
       { id: "catalog.products.show", name: "Mostrar produtos", category: "Comercial", cost: "zero", implemented: false, permission: "catalog.read" },
       { id: "external.api.call", name: "Consultar ou acionar API", category: "Integrações", cost: "external", implemented: false, permission: "integrations.execute", confirmationRequired: true },
-      { id: "drive.files.search", name: "Buscar arquivos no Google Drive", category: "Conhecimento", cost: "external", implemented: false, permission: "drive.read" },
-      { id: "voice.stt", name: "Transcrever áudio", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
-      { id: "voice.tts", name: "Responder por voz", category: "Voz", cost: "model", implemented: false, permission: "voice.use" },
+      { id: "drive.files.search", name: "Buscar arquivos na pasta de referências", category: "Conhecimento", cost: "external", implemented: true, permission: "drive.read" },
+      { id: "voice.stt", name: "Transcrever áudio", category: "Voz", cost: "model", implemented: true, permission: "voice.use" },
+      { id: "voice.tts", name: "Responder por voz", category: "Voz", cost: "model", implemented: true, permission: "voice.use" },
     ] };
   }
 
@@ -161,7 +165,7 @@ export class AssistantController {
       if (typeof v.provider !== "string" || !/^[a-z0-9-]{2,40}$/.test(v.provider) || typeof v.model !== "string" || !v.model.trim() || v.model.length > 180 || (v.endpoint !== undefined && (typeof v.endpoint !== "string" || v.endpoint.length > 300))) throw new BadRequestException("Seleção de modelo inválida");
       if (v.endpoint && !/^https:\/\//.test(v.endpoint as string) && !/^http:\/\/localhost(?::\d+)?(?:\/|$)/.test(v.endpoint as string)) throw new BadRequestException("Endpoint deve usar HTTPS ou localhost");
       if (!voice && !["Econômico", "Equilíbrio", "Inteligente"].includes(String(v.tier))) throw new BadRequestException("Perfil inválido");
-      return { provider: v.provider, model: v.model.trim(), ...(voice ? {} : { tier: v.tier }), ...(v.endpoint ? { endpoint: v.endpoint } : {}) } as ModelSelection;
+      return { provider: v.provider, model: v.model.trim(), ...(voice ? {} : { tier: v.tier }), ...(v.endpoint ? { endpoint: v.endpoint } : {}), ...(voice && typeof v.voice === "string" && /^[a-z]{2,20}$/.test(v.voice) ? {voice:v.voice} : {}) } as ModelSelection;
     };
     const strings = (v: unknown, max = 40) => { if (v === undefined) return []; if (!Array.isArray(v) || v.length > max || v.some(x => typeof x !== "string" || x.length > 300)) throw new BadRequestException("Lista inválida"); return v.map((x: string) => x.trim()).filter(Boolean); };
     const longText = (v: unknown) => { if (v === undefined) return ""; if (typeof v !== "string" || v.length > 6000) throw new BadRequestException("Texto inválido"); return v; };
@@ -183,11 +187,27 @@ export class AssistantController {
     return config;
   }
   @Post("ask")
-  async ask(@Req() req: AuthenticatedRequest, @Body() body: { question?: string }) {
-    const question = body?.question?.trim() ?? "";
-    if (!question || question.length > 500) throw new BadRequestException("Solicitação inválida");
+  async ask(@Req() req: AuthenticatedRequest, @Body() body: { question?: string; agentId?: string; requestKey?: string }) {
+    const question = typeof body?.question === "string" ? body.question.trim() : "";
+    if (!question || question.length > 2000) throw new BadRequestException("Solicitação inválida");
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     if (!parseConfig(tenant.integrations).enabled) throw new ForbiddenException("Assistente desabilitada para esta empresa");
+    if(this.marketing && /\b(post|posts|carrossel|carroussel|carousel|video|vídeo|reel|publica[cç][aã]o)\b/i.test(question) && /crie|criar|fa[cç]a|gere|produza|publique|agende|workflow/i.test(question)){
+      const format:'POST'|'CAROUSEL'|'VIDEO' = /video|vídeo|reel/i.test(question)?'VIDEO':/carrossel|carroussel|carousel/i.test(question)?'CAROUSEL':'POST';
+      const scheduled=question.match(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2}))\b/);
+      const local=question.normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/\b(?:as|para)\s+(\d{1,2})[:h](\d{2})\b/i);
+      let scheduledFor=scheduled?.[1];
+      if(!scheduledFor&&local){const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const day=new Date(today+'T12:00:00Z');if(/amanh[aã]/i.test(question))day.setUTCDate(day.getUTCDate()+1);scheduledFor=day.toISOString().slice(0,10)+'T'+local[1]!.padStart(2,'0')+':'+local[2]+':00-03:00';}
+      if(/agende|agendar|amanh[aã]|hor[aá]rio/i.test(question)&&!scheduledFor)return {answer:'Informe o horário como “amanhã às 14:30” ou uma data ISO com fuso. Nenhuma publicação foi criada.',usedAi:false,tokensUsed:0};
+      const input={question,format,...(scheduledFor?{scheduledFor}:{}),...(/rascunho|n[aã]o publi|sem publicar|aprova[cç][aã]o/i.test(question)?{publish:false}:{}),...(/narrad|com voz/i.test(question)?{narrate:true}:{}),...(body.agentId?{agentId:body.agentId}:{})};
+      if(/workflow|todo dia|todos os dias|semanal/i.test(question)){
+        if(!scheduledFor)return {answer:'Para criar o workflow, informe a primeira execução: por exemplo, “workflow semanal de carrossel sobre segurança amanhã às 14:30”.',usedAi:false,tokensUsed:0};
+        const {scheduledFor:nextRunAt,...payload}=input;
+        const workflow=await this.marketing.saveWorkflow(req,{...payload,name:question.slice(0,120),nextRunAt,everyDays:/semanal/i.test(question)?7:/todo dia|todos os dias/i.test(question)?1:0});
+        return {answer:'Workflow salvo. A primeira execução será '+new Date(workflow.nextRunAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+'.',workflow,usedAi:false,tokensUsed:0};
+      }
+      return this.marketing.enqueue(req,input,body.requestKey);
+    }
     if (/carrossel|carroussel|carousel|^(fa[cç]a\s+)?(uma\s+)?(busca|pesquisa|pesquise|busque|procure)/i.test(question)) return this.automation.request(req,question);
     // Reports reuse operational modules and persist the exact snapshot behind both downloads.
     if (/pdf|csv|relat[oó]rio|resumo.*(atendente|desempenho|financeir)|desempenho.*atendente/i.test(question) && /atendente|atendimento|desempenho|financeir|faturamento|pagamento|cobran[cç]a|receita/i.test(question)) return this.reportExport.create(req, question);

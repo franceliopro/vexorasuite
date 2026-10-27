@@ -11,7 +11,7 @@ export class AssistantAutomationController {
  @Get(':id')
  async read(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){const data=await this.automation.read(req,id);return {id,details:data.details};}
  @Get(':id/slides/:index')
- async slide(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Res() res:Response){res.setHeader('Content-Type','image/png');res.setHeader('Cache-Control','private, no-store');res.send(await this.automation.preview(req,id,index));}
+ async slide(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Res() res:Response){res.setHeader('Content-Type',index===-1?'video/mp4':'image/png');res.setHeader('Cache-Control','private, no-store');res.send(await this.automation.preview(req,id,index));}
  @Post(':id/publish')
  publish(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() body:{channelId?:string;scheduledFor?:string}){return this.automation.publish(req,id,body||{});}
 }
@@ -20,5 +20,5 @@ export class AssistantAutomationController {
 export class AssistantAutomationMediaController {
  constructor(private readonly automation:AssistantAutomationService){}
  @Get(':tenantId/:id/:index')
- async media(@Param('tenantId',ParseUUIDPipe) tenantId:string,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Query('expires') expires:string,@Query('signature') signature:string,@Res() res:Response){const buffer=await this.automation.media(tenantId,id,index,Number(expires),signature||'');res.setHeader('Content-Type','image/png');res.setHeader('Cache-Control','private, no-store');res.send(buffer);}
+ async media(@Param('tenantId',ParseUUIDPipe) tenantId:string,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Query('expires') expires:string,@Query('signature') signature:string,@Res() res:Response){const buffer=await this.automation.media(tenantId,id,index,Number(expires),signature||'');res.setHeader('Content-Type',index===-1?'video/mp4':'image/png');res.setHeader('Cache-Control','private, no-store');res.send(buffer);}
 }

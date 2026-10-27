@@ -17,6 +17,31 @@ permissions:
   contents: read
 
 jobs:
+  local-search:
+    name: Private SearXNG runtime
+    runs-on: ubuntu-latest
+    env:
+      JWT_ACCESS_SECRET: ci-only-application-secret
+      POSTGRES_PASSWORD: ci-only-database-password
+      PGADMIN_DEFAULT_EMAIL: ci@example.test
+      PGADMIN_DEFAULT_PASSWORD: ci-only-admin-password
+      WAHA_API_KEY: ci-only-gateway-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate compose and start private search
+        run: |
+          docker compose config --quiet
+          docker compose up --detach --no-deps --wait --wait-timeout 90 searxng
+      - name: Verify JSON search API
+        run: |
+          docker compose exec -T searxng /usr/local/searxng/.venv/bin/python -c "import urllib.request,json; r=json.load(urllib.request.urlopen('http://127.0.0.1:8080/search?q=software&format=json',timeout=25)); assert isinstance(r.get('results'),list); print('Private JSON search API OK')"
+      - name: Search service diagnostics
+        if: failure()
+        run: docker compose logs --tail 60 searxng
+      - name: Stop isolated search
+        if: always()
+        run: docker compose down --volumes
   validate:
     runs-on: ubuntu-latest
     services:

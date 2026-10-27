@@ -47,24 +47,56 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
   const job=await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
    const existing=await tx.marketingJob.findUnique({where:{tenantId_requestKey:{tenantId:req.user.tenantId,requestKey}}});if(existing)return existing;
-   if(await tx.marketingJob.count({where:{tenantId:req.user.tenantId,status:{in:['QUEUED','RUNNING']}}})>=20)throw new BadRequestException('Aguarde as execuções em andamento antes de criar mais trabalhos.');
+   if(await tx.marketingJob.count({where:{tenantId:req.user.tenantId,status:{in:['QUEUED','RUNNING','PUBLISHING','CANCEL_REQUESTED']}}})>=20)throw new BadRequestException('Aguarde as execuções em andamento antes de criar mais trabalhos.');
    return tx.marketingJob.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,requestKey,payload:input as unknown as Prisma.InputJsonValue}});
   });
   return {answer:'Solicitação registrada. A Véxora vai pesquisar, sincronizar referências, criar e '+(input.publish?(input.scheduledFor?'agendar.':'publicar.'):'preparar o rascunho.'),job:{id:job.id,status:job.status},usedAi:false,tokensUsed:0};
  }
  async list(req:AuthenticatedRequest){this.authorize(req);return this.prisma.marketingJob.findMany({where:{tenantId:req.user.tenantId},orderBy:{createdAt:'desc'},take:50});}
- async syncLibrary(req:AuthenticatedRequest){this.authorize(req);await this.context(req.user.tenantId,req.user.sub);const job=await this.prisma.marketingJob.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,requestKey:randomUUID(),payload:{type:'LIBRARY_SYNC',question:'Sincronizar biblioteca do Drive'}}});return {job:{id:job.id,status:job.status},answer:'Sincronização registrada.'};}
+ async syncLibrary(req:AuthenticatedRequest){
+  this.authorize(req);await this.context(req.user.tenantId,req.user.sub);
+  const job=await this.prisma.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
+   if(await tx.marketingJob.count({where:{tenantId:req.user.tenantId,status:{in:['QUEUED','RUNNING','PUBLISHING','CANCEL_REQUESTED']}}})>=20)throw new BadRequestException('Aguarde as execuções em andamento antes de sincronizar.');
+   return tx.marketingJob.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,requestKey:randomUUID(),payload:{type:'LIBRARY_SYNC',question:'Sincronizar biblioteca do Drive'}}});
+  });return {job:{id:job.id,status:job.status},answer:'Sincronização registrada.'};
+ }
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const job=await this.prisma.marketingJob.findFirst({where:{id,tenantId:req.user.tenantId}});if(!job)throw new NotFoundException('Execução não encontrada.');return job;}
- async cancel(req:AuthenticatedRequest,id:string){this.authorize(req);await this.prisma.marketingJob.updateMany({where:{id,tenantId:req.user.tenantId,status:'QUEUED'},data:{status:'CANCELLED',completedAt:new Date()}});return this.read(req,id);}
+ async cancel(req:AuthenticatedRequest,id:string){
+  this.authorize(req);
+  await this.prisma.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM marketing_jobs WHERE id=${id}::uuid AND tenant_id=${req.user.tenantId}::uuid FOR UPDATE`;
+   const job=await tx.marketingJob.findFirst({where:{id,tenantId:req.user.tenantId}});if(!job)throw new NotFoundException('Execução não encontrada.');
+   if(job.status==='PUBLISHING')throw new BadRequestException('O envio à rede social já começou. Confira a publicação na Zernio; cancelar esta execução não desfaz esse envio.');
+   if(job.status==='QUEUED')await tx.marketingJob.update({where:{id},data:{status:'CANCELLED',completedAt:new Date()}});
+   else if(job.status==='RUNNING')await tx.marketingJob.update({where:{id},data:{status:'CANCEL_REQUESTED'}});
+  });return this.read(req,id);
+ }
  async workflows(req:AuthenticatedRequest){this.authorize(req);return this.prisma.marketingWorkflow.findMany({where:{tenantId:req.user.tenantId},orderBy:{createdAt:'desc'},take:50});}
  async saveWorkflow(req:AuthenticatedRequest,value:any){
   this.authorize(req);await this.context(req.user.tenantId,req.user.sub);
   const input=await this.target(req,marketingInput(value));
+  await this.assertAgent(req,input,true);
   if(typeof value.name!=='string'||!value.name.trim()||value.name.length>120||typeof value.nextRunAt!=='string'||!/(Z|[+-]\d{2}:\d{2})$/i.test(value.nextRunAt)||!Number.isFinite(Date.parse(value.nextRunAt))||Date.parse(value.nextRunAt)<Date.now()+60000||Date.parse(value.nextRunAt)>Date.now()+90*86400000||!Number.isInteger(value.everyDays)||value.everyDays<0||value.everyDays>30)throw new BadRequestException('Configure nome, próxima execução futura e recorrência de 0 a 30 dias.');
   if(input.scheduledFor)throw new BadRequestException('Use a próxima execução do workflow; o horário da publicação será a execução.');
   return this.prisma.marketingWorkflow.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,name:value.name.trim(),payload:input as unknown as Prisma.InputJsonValue,nextRunAt:new Date(value.nextRunAt),everyDays:value.everyDays}});
  }
- async toggle(req:AuthenticatedRequest,id:string,enabled:boolean){this.authorize(req);if(typeof enabled!=='boolean')throw new BadRequestException('Estado inválido.');const row=await this.prisma.marketingWorkflow.findFirst({where:{id,tenantId:req.user.tenantId}});if(!row)throw new NotFoundException();return this.prisma.marketingWorkflow.update({where:{id},data:{enabled}});}
+ async toggle(req:AuthenticatedRequest,id:string,enabled:boolean){
+  this.authorize(req);if(typeof enabled!=='boolean')throw new BadRequestException('Estado inválido.');
+  if(enabled)await this.context(req.user.tenantId,req.user.sub);
+  return this.prisma.$transaction(async tx=>{
+   // Scheduler and pause use the same lock: no new run can appear after pause completes.
+   await tx.$queryRaw`SELECT id FROM marketing_workflows WHERE id=${id}::uuid AND tenant_id=${req.user.tenantId}::uuid FOR UPDATE`;
+   const row=await tx.marketingWorkflow.findFirst({where:{id,tenantId:req.user.tenantId}});if(!row)throw new NotFoundException();
+   const workflow=await tx.marketingWorkflow.update({where:{id},data:{enabled}});
+   if(enabled)return {...workflow,cancelledJobs:0,cancellationRequested:0,alreadyPublishing:0};
+   const where={tenantId:req.user.tenantId,requestKey:{startsWith:'workflow:'+id+':'}};
+   const queued=await tx.marketingJob.updateMany({where:{...where,status:'QUEUED'},data:{status:'CANCELLED',completedAt:new Date()}});
+   const running=await tx.marketingJob.updateMany({where:{...where,status:'RUNNING'},data:{status:'CANCEL_REQUESTED'}});
+   const alreadyPublishing=await tx.marketingJob.count({where:{...where,status:'PUBLISHING'}});
+   return {...workflow,cancelledJobs:queued.count,cancellationRequested:running.count,alreadyPublishing};
+  });
+ }
  private async schedule(){
   await this.prisma.$transaction(async tx=>{
    const workflows=await tx.$queryRaw<{id:string}[]>`SELECT id FROM marketing_workflows WHERE enabled = true AND next_run_at <= NOW() ORDER BY next_run_at LIMIT 10 FOR UPDATE SKIP LOCKED`;
@@ -80,31 +112,44 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
   try{
    await this.schedule();
    // A crashed run may already have reached the provider. Never replay it blindly.
-   await this.prisma.marketingJob.updateMany({where:{status:'RUNNING',startedAt:{lt:new Date(Date.now()-10*60000)}},data:{status:'NEEDS_REVIEW',error:'Execução interrompida. Verifique a criação e a Zernio antes de repetir.',completedAt:new Date()}});
+   await this.prisma.marketingJob.updateMany({where:{status:{in:['RUNNING','PUBLISHING']},startedAt:{lt:new Date(Date.now()-10*60000)}},data:{status:'NEEDS_REVIEW',error:'Execução interrompida. Verifique a criação e a Zernio antes de repetir.',completedAt:new Date()}});
+   await this.prisma.marketingJob.updateMany({where:{status:'CANCEL_REQUESTED',startedAt:{lt:new Date(Date.now()-10*60000)}},data:{status:'CANCELLED',completedAt:new Date()}});
    const job=await this.prisma.$transaction(async tx=>{const rows=await tx.$queryRaw<{id:string}[]>`SELECT id FROM marketing_jobs WHERE status = 'QUEUED' AND run_at <= NOW() ORDER BY run_at,created_at LIMIT 1 FOR UPDATE SKIP LOCKED`;if(!rows.length)return null;return tx.marketingJob.update({where:{id:rows[0]!.id},data:{status:'RUNNING',startedAt:new Date()}});});
    if(!job)return;
    let leaseLost=false;
-   const heartbeat=setInterval(()=>{void this.prisma.marketingJob.updateMany({where:{id:job.id,status:'RUNNING'},data:{startedAt:new Date()}}).catch(()=>{leaseLost=true})},30000);heartbeat.unref();
+   const heartbeat=setInterval(()=>{void this.prisma.marketingJob.updateMany({where:{id:job.id,status:{in:['RUNNING','PUBLISHING','CANCEL_REQUESTED']}},data:{startedAt:new Date()}}).catch(()=>{leaseLost=true})},30000);heartbeat.unref();
+   let sending=false;
+   const ensureRunning=async()=>{if(leaseLost||!await this.prisma.marketingJob.findFirst({where:{id:job.id,status:'RUNNING'}}))throw new BadRequestException('A execução foi interrompida antes da próxima etapa.');};
    try{
     const req=await this.context(job.tenantId,job.userId);const input=object(job.payload) as MarketingInput;
-    if(object(job.payload).type==='LIBRARY_SYNC'){const result=await this.library.sync(req,true);await this.prisma.marketingJob.update({where:{id:job.id},data:{status:'COMPLETED',completedAt:new Date(),result}});return;}
+    if(object(job.payload).type==='LIBRARY_SYNC'){const result=await this.library.sync(req,true);await this.prisma.marketingJob.updateMany({where:{id:job.id,status:'RUNNING'},data:{status:'COMPLETED',completedAt:new Date(),result}});return;}
     await this.assertAgent(req,input,job.requestKey.startsWith('workflow:'));
     await this.library.sync(req);
+    await ensureRunning();
     const created:any=await this.automation.createCarousel(req,input.question,{format:input.format,draftOnly:true,agentId:input.agentId,referenceScope:await this.library.config(req) as {accountId:string;fileIds:string[]}});
     const id=created.automation.id;
     await this.prisma.marketingJob.update({where:{id:job.id},data:{result:{automationId:id,format:input.format} as Prisma.InputJsonValue}});
+    await ensureRunning();
     if(input.format==='VIDEO'){
      const record=await this.automation.read(req,id);const data=object(record.details);const buffers:Buffer[]=[];
      for(let i=0;i<data.carousel.slides.length;i++)buffers.push(await this.automation.preview(req,id,i));
+     await ensureRunning();
      const narration=input.narrate?await this.voice.speak(req,data.carousel.slides.map((s:any)=>s.title+'. '+s.body).join(' ').slice(0,700),input.agentId):undefined;
+     await ensureRunning();
      const video=await this.video.render(req.user.tenantId,id,buffers,narration);
      await this.prisma.auditLog.update({where:{id:record.id},data:{details:{...data,status:'DRAFT',video}}});
     }
     await this.context(job.tenantId,job.userId);
+    await this.assertAgent(req,input,job.requestKey.startsWith('workflow:'));
     const stillRunning=await this.prisma.marketingJob.findFirst({where:{id:job.id,status:'RUNNING'}});if(!stillRunning||leaseLost)throw new BadRequestException('A execução foi interrompida antes da publicação.');
+    if(input.publish){
+     // This atomic transition is the boundary after which an external send cannot be cancelled locally.
+     const claim=await this.prisma.marketingJob.updateMany({where:{id:job.id,status:'RUNNING'},data:{status:'PUBLISHING',startedAt:new Date()}});
+     if(!claim.count)throw new BadRequestException('A execução foi cancelada antes do envio.');sending=true;
+    }
     const publication=input.publish?await this.automation.publish(req,id,{channelId:input.channelId,scheduledFor:input.scheduledFor}):null;
-    await this.prisma.marketingJob.update({where:{id:job.id},data:{status:'COMPLETED',completedAt:new Date(),result:{automationId:id,format:input.format,...(publication?{publication}:{}),sources:created.sources||[]} as Prisma.InputJsonValue}});
-   }catch(error){await this.prisma.marketingJob.update({where:{id:job.id},data:{status:'FAILED',error:(error instanceof Error?error.message:'Falha na execução').slice(0,500),completedAt:new Date()}});}finally{clearInterval(heartbeat);}
+    await this.prisma.marketingJob.updateMany({where:{id:job.id,status:sending?'PUBLISHING':'RUNNING'},data:{status:'COMPLETED',completedAt:new Date(),result:{automationId:id,format:input.format,...(publication?{publication}:{}),sources:created.sources||[]} as Prisma.InputJsonValue}});
+   }catch(error){await this.prisma.marketingJob.updateMany({where:{id:job.id,status:{in:['RUNNING','PUBLISHING']}},data:{status:sending?'NEEDS_REVIEW':'FAILED',error:((sending?'Confira a publicação na Zernio antes de repetir. ':'')+(error instanceof Error?error.message:'Falha na execução')).slice(0,500),completedAt:new Date()}});}finally{clearInterval(heartbeat);await this.prisma.marketingJob.updateMany({where:{id:job.id,status:'CANCEL_REQUESTED'},data:{status:'CANCELLED',completedAt:new Date()}});}
   }catch{this.logger.error('Falha na verificação das automações de marketing.');}finally{this.running=false;}
  }
 }

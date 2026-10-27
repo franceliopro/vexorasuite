@@ -58,6 +58,7 @@ export class PublicationFoldersService implements OnModuleInit,OnModuleDestroy {
    const row=await tx.publicationFolder.findFirst({where:{id,tenantId:req.user.tenantId}});if(!row)throw new BadRequestException('Rotina não encontrada.');
    await tx.publicationFolder.update({where:{id},data:{enabled,userId:req.user.sub,nextScanAt:new Date()}});
    if(!enabled)await tx.preparedPublication.updateMany({where:{tenantId:req.user.tenantId,ruleId:id,status:'QUEUED'},data:{status:'CANCELLED'}});
+   else await tx.preparedPublication.updateMany({where:{tenantId:req.user.tenantId,ruleId:id,status:'CANCELLED'},data:{status:'QUEUED',userId:req.user.sub,channelIds:row.channelIds,error:null}});
    return {enabled};
   });
  }

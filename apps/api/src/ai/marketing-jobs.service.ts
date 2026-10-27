@@ -131,8 +131,8 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
     await this.prisma.marketingJob.update({where:{id:job.id},data:{result:{automationId:id,format:input.format} as Prisma.InputJsonValue}});
     await ensureRunning();
     if(input.format==='VIDEO'){
-     const record=await this.automation.read(req,id);const data=object(record.details);const buffers:Buffer[]=[];
-     for(let i=0;i<data.carousel.slides.length;i++)buffers.push(await this.automation.preview(req,id,i));
+     const record=await this.automation.read(req,id);const data=object(record.details);
+     const buffers=await this.automation.videoScenes(req,id);
      await ensureRunning();
      const narration=input.narrate?await this.voice.speak(req,data.carousel.slides.map((s:any)=>s.title+'. '+s.body).join(' ').slice(0,700),input.agentId):undefined;
      await ensureRunning();

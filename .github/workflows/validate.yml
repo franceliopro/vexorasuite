@@ -61,6 +61,8 @@ jobs:
         run: pnpm --filter @vexorasuite/api typecheck
       - name: API build
         run: pnpm --filter @vexorasuite/api build
+      - name: PostgreSQL concurrency regressions
+        run: pnpm --filter @vexorasuite/api exec node test/contact-concurrency.cjs
       - name: Web typecheck
         run: pnpm --filter @vexorasuite/web typecheck
       - name: Web build

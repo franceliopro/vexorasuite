@@ -1,3 +1,4 @@
+import { contactMetadata, lockedContact } from "../prisma/contact-metadata";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { economicalProviders } from "../ai/economical-providers";
 import { AiService } from "../ai/ai.service";
@@ -153,7 +154,8 @@ export class IntelligenceRuntimeService {
             step = undefined as unknown as RuntimeStep; break;
           }
           if (type === 'tag') {
-            const profile = object(conversation.contact.metadata);
+            const latestContact = await lockedContact(tx, channel.tenantId, conversation.contactId);
+            const profile = contactMetadata(latestContact.metadata);
             const tags: any[] = Array.isArray(profile.tags) ? profile.tags : [];
             if (!tags.some(t => normalize(typeof t === 'string' ? t : String(t?.name || '')) === normalize(config.name!)) && tags.length < 50) tags.push({ name: config.name, color: config.color });
             await tx.contact.update({ where: { id: conversation.contactId }, data: { metadata: { ...profile, tags } } });
@@ -172,7 +174,7 @@ export class IntelligenceRuntimeService {
       }
       await tx.conversation.update({ where: { id: conversation.id }, data: { botState: state, ...(human ? { handlingMode: 'HUMAN', assigneeId: null, departmentId, status: 'OPEN' } : {}) } });
       const queued: Message[] = [];
-      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, revision: published.revision, sourceMessageId: inbound.id } } }));
+      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, revision: published.revision, sourceMessageId: inbound.id, handoff: human } } }));
       await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, revision: published.revision, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human };
     }, { timeout: 30000 });
@@ -188,12 +190,18 @@ export class IntelligenceRuntimeService {
       const message = await tx.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId, conversationId, status: 'QUEUED' } });
       if (!message || object(message.metadata).deliveryState === 'SENDING') return false;
       await tx.message.update({ where: { id: messageId }, data: { metadata: { ...object(message.metadata), deliveryState: 'SENDING', deliveryClaimedAt: new Date().toISOString() } } });
-      return true;
+      return { revision: object(message.metadata).revision };
     });
     if (!claimed) return;
     this.events.publish(channel.tenantId, 'message.queued', { conversationId, message: { id: messageId, content, direction: 'OUTBOUND', status: 'QUEUED' } });
     try {
-      const conversation = await this.prisma.conversation.findFirstOrThrow({ where: { id: conversationId, tenantId: channel.tenantId }, include: { contact: true } });
+      // A response may have waited while an administrator stopped the engine or disconnected a channel.
+      const currentChannel = await this.prisma.channelConnection.findFirst({ where: { id: channel.id, tenantId: channel.tenantId, isActive: true, tenant: { status: 'ACTIVE' } } });
+      const currentTenant = await this.prisma.tenant.findUnique({ where: { id: channel.tenantId }, select: { integrations: true } });
+      const currentPublication = object(object(currentTenant?.integrations).intelligencePublished);
+      if (!currentChannel || currentChannel.provider !== channel.provider || !currentPublication.active || currentPublication.revision !== claimed.revision || !currentPublication.flow?.channelIds?.includes(channel.id)) throw new Error('Engine or channel no longer authorized');
+      channel = currentChannel;
+      const conversation = await this.prisma.conversation.findFirstOrThrow({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
       if (conversation.assigneeId || (conversation.handlingMode === 'HUMAN' && !handoff) || conversation.deletedAt || conversation.archivedAt || ['CLOSED','RESOLVED'].includes(conversation.status)) throw new Error('Conversation taken over or finalized');
       let providerMessageId: string | null = null;
       if (channel.provider === 'WAHA') {

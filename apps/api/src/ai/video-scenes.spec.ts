@@ -1,11 +1,24 @@
 import sharp from 'sharp';
 import { writeFileSync } from 'node:fs';
-import { composeVideoScene, researchTopic, selectVideoReferences, videoOverlay } from './video-scenes';
+import { compactVideoScript, composeVideoScene, researchTopic, selectVideoReferences, videoOverlay } from './video-scenes';
 import { AssistantAutomationService } from './assistant-automation.service';
 import { AiService } from './ai.service';
 
 describe('video composition and research context',()=>{
  afterEach(()=>jest.restoreAllMocks());
+ it('shortens a valid long script without rejecting or mutating the provider response',()=>{
+  const scene={title:'Como acompanhar os veículos e organizar toda a operação da frota',body:'Uma orientação verificável sobre rastreamento e planejamento de rotas. '.repeat(4)};
+  const script={slides:Array.from({length:6},()=>({...scene}))};const original=JSON.stringify(script);
+  const result=compactVideoScript(script);expect(result.slides).toHaveLength(5);expect(result.slides.every(s=>s.title.length<=48&&s.body.length<=155)).toBe(true);expect(result.slides[0]!.body).toContain('Uma orientação verificável');expect(JSON.stringify(script)).toBe(original);
+ });
+ it('reports rate limiting separately without exposing the provider body or credential',async()=>{
+  jest.spyOn(global,'fetch').mockResolvedValue(new Response('private-provider-details',{status:429}));
+  await expect(new AiService().generate([{role:'user',content:'Teste'}],[{provider:'openrouter',model:'openrouter/free',apiKey:'secret-fixture'}])).rejects.toThrow('openrouter: HTTP 429');
+ });
+ it('distinguishes schema rejection from missing configuration',async()=>{
+  jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'invalid'}}]})));
+  await expect(new AiService().generate([{role:'user',content:'Teste'}],[{provider:'openrouter',model:'openrouter/free',apiKey:'fixture'}],()=>false)).rejects.toThrow('roteiro não veio no formato esperado');
+ });
  it('records the model reported by the provider rather than only the free router name',async()=>{
   jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({model:'vendor/actual-model:free',choices:[{message:{content:'ok'}}]})));
   const result=await new AiService().generate([{role:'user',content:'Teste'}],[{provider:'openrouter',model:'openrouter/free',apiKey:'fixture',freeOnly:true}]);

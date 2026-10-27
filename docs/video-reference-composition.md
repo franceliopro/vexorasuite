@@ -1,6 +1,6 @@
 # Vídeo vertical com referências da biblioteca
 
-Novas criações VIDEO têm cinco cenas curtas de seis segundos, em 720 × 1280, com aproximação suave e transição por fade. A arte original da referência aparece inteira, sem recortar logotipo ou texto. Um fundo desfocado e uma área de texto separada preservam contraste e leitura. A última cena usa o convite do roteiro, sem a instrução de deslizar própria de carrossel.
+Novas criações VIDEO solicitam cinco cenas curtas de seis segundos, em 720 × 1280, com aproximação suave e transição por fade. Roteiros válidos com três ou quatro cenas também são aceitos; acima de cinco, preservam-se as primeiras quatro e a última. Os textos são encurtados em limites de palavras para caber na tela, sem rejeitar toda a geração por um excesso de caracteres. A arte original da referência aparece inteira, sem recortar logotipo ou texto. Um fundo desfocado e uma área de texto separada preservam contraste e leitura. A última cena usa o convite do roteiro, sem a instrução de deslizar própria de carrossel.
 
 A seleção usa nomes e orientações das imagens ativas e compatíveis, dentro da pasta sincronizada da empresa. Quando existe correspondência com o tema, artes sem correspondência ficam de fora. Até quatro imagens são incorporadas, alternadas nas cenas. Sem imagens compatíveis, usa a identidade visual; não há geração de imagens nem análise por visão. Uma referência revogada ou ilegível interrompe a execução em vez de publicar silenciosamente um substituto.
 

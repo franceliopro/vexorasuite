@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Req, Res, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
@@ -8,6 +9,9 @@ import { AssistantAutomationService } from './assistant-automation.service';
 export class AssistantAutomationController {
  constructor(private readonly automation:AssistantAutomationService){}
  @Get() list(@Req() req:AuthenticatedRequest){return this.automation.list(req);}
+ @Post('import-video')
+ @UseInterceptors(FileInterceptor('file',{limits:{fileSize:20*1024*1024,files:1,fields:2}}))
+ importVideo(@Req() req:AuthenticatedRequest,@Body() body:{title?:string;caption?:string},@UploadedFile() file?:{buffer:Buffer;mimetype:string;size:number}){return this.automation.importVideo(req,body||{},file);}
  @Get(':id')
  async read(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){const data=await this.automation.read(req,id);return {id,details:data.details};}
  @Get(':id/slides/:index')

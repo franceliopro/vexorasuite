@@ -104,6 +104,18 @@ export class AssistantAutomationService {
   return {answer:'Carrossel criado com título, legenda e artes. Referências ativas orientam o briefing e a paleta analisada. A última lâmina contém o convite para curtir, comentar e compartilhar. Escolha a conta e publique agora ou agende.',usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,automation:{id,carousel,channels:channels.filter(c=>['instagram','facebook'].includes(String(obj(c.settings).platform).toLowerCase())).map(c=>({id:c.id,name:c.name}))},sources};
  }
  async list(req:AuthenticatedRequest){this.authorize(req);const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'assistant.carousel',entityId:{not:null}},orderBy:{createdAt:'desc'},take:50,select:{entityId:true,details:true,createdAt:true}});return rows.map(row=>({id:row.entityId,title:obj(obj(row.details).carousel).title||'Criação',status:obj(row.details).status||'DRAFT',createdAt:row.createdAt}));}
+ async importVideo(req:AuthenticatedRequest,input:{title?:string;caption?:string},file?:{buffer:Buffer;mimetype:string;size:number}){
+  this.authorize(req);
+  if(!this.video)throw new ServiceUnavailableException('Renderização indisponível.');
+  if(typeof input.title!=='string'||!input.title.trim()||input.title.length>120||typeof input.caption!=='string'||!input.caption.trim()||input.caption.length>2000||!file||file.mimetype!=='video/mp4'||file.size>20*1024*1024||!file.buffer.length)throw new BadRequestException('Informe título, legenda e vídeo MP4 de até 20 MB.');
+  const id=randomUUID(),carousel={title:input.title.trim(),caption:input.caption.trim(),slides:[{title:input.title.trim(),body:'Prévia do vídeo importado.'}]};
+  const record=await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'assistant.carousel',entityType:'automation',entityId:id,details:{status:'RENDERING',format:'VIDEO',origin:'UPLOAD',carousel}}});
+  try{
+   const video=await this.video.importReady(req.user.tenantId,id,file.buffer);
+   await this.prisma.auditLog.update({where:{id:record.id},data:{details:{status:'DRAFT',format:'VIDEO',origin:'UPLOAD',carousel,video}}});
+   return {id,status:'DRAFT'};
+  }catch(error){await this.prisma.auditLog.update({where:{id:record.id},data:{details:{status:'FAILED',format:'VIDEO',origin:'UPLOAD',carousel}}});throw error;}
+ }
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const audit=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,entityId:id,action:'assistant.carousel'}});if(!audit)throw new NotFoundException('Automação não encontrada.');return audit;}
  async videoScenes(req:AuthenticatedRequest,id:string){
   const record=await this.read(req,id),data=obj(record.details);
@@ -126,10 +138,10 @@ export class AssistantAutomationService {
   const expected=Buffer.from(this.signature(tenantId,id,index,expires),'hex'),actual=Buffer.from(signature,'hex');if(!timingSafeEqual(expected,actual))throw new ForbiddenException();
   const record=await this.prisma.auditLog.findFirst({where:{tenantId,entityId:id,action:'assistant.carousel'},select:{details:true}});if(!record)throw new NotFoundException();const data=obj(record.details);
   if(index===-1){if(data.format!=='VIDEO'||!this.video)throw new NotFoundException();return this.video.read(tenantId,id);}
-  if(data.video?.visualVersion===2&&this.video)return this.video.readScene(tenantId,id,index);
+  if(data.video?.visualVersion>=2&&this.video)return this.video.readScene(tenantId,id,index);
   return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[]))).png().toBuffer();
  }
- async preview(req:AuthenticatedRequest,id:string,index:number){const record=await this.read(req,id);if(index===-1){if(!this.video)throw new ServiceUnavailableException('Vídeo indisponível');return this.video.read(req.user.tenantId,id);}const data=obj(record.details);if(data.video?.visualVersion===2&&this.video)return this.video.readScene(req.user.tenantId,id,index);return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[]))).png().toBuffer();}
+ async preview(req:AuthenticatedRequest,id:string,index:number){const record=await this.read(req,id);if(index===-1){if(!this.video)throw new ServiceUnavailableException('Vídeo indisponível');return this.video.read(req.user.tenantId,id);}const data=obj(record.details);if(data.video?.visualVersion>=2&&this.video)return this.video.readScene(req.user.tenantId,id,index);return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[]))).png().toBuffer();}
  async publish(req:AuthenticatedRequest,id:string,input:{channelId?:string;scheduledFor?:string}){
   this.authorize(req);
   if(typeof input.channelId!=='string')throw new BadRequestException('Selecione uma conta conectada');

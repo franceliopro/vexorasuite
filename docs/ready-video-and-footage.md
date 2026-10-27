@@ -1,0 +1,9 @@
+# Filmagem, voz e música — e importação de vídeos prontos
+
+O renderizador `renderFootage` aceita filmagem MP4 privada de até 20 MB, sobreposições transparentes por cena e narração opcional. A duração segue seis segundos por cena, entre duas e sete cenas. A música instrumental é sintetizada localmente com acordes e arpejo; não usa gravações de terceiros ou uma API paga. A voz é normalizada e a trilha tem ganho baixo. O áudio original da filmagem não entra na mistura.
+
+O vídeo final usa H.264/AAC em 720 × 1280. As prévias são quadros extraídos do resultado, com a mesma composição. Identificadores de mídia são UUID e o armazenamento é separado por empresa. FFmpeg recebe caminhos locais gerados pelo servidor, formato MP4 explícito, memória por alocação limitada e prazo de execução. Não recebe URLs de mídia fornecidas pelo usuário.
+
+Na biblioteca de Postagens, “Adicionar vídeo pronto” permite enviar um MP4 de até 20 MB com título e legenda. O sistema prepara até os primeiros 60 segundos em formato vertical e salva como DRAFT. A preferência global de publicação automática não publica um arquivo importado. Publicação/agendamento continuam sendo ações explícitas pela criação. Somente OWNER/ADMIN podem importar. A rota da interface permite aguardar a conversão por até 70 segundos; após uma interrupção, o usuário deve conferir o histórico antes de repetir.
+
+A criação de exemplo Rastreabem foi produzida localmente com filmagem de São Paulo, voz Kokoro em português, trilha original e marca fornecida pelo usuário. O modo de filmagem ainda não foi ligado ao gerador automático de roteiros/workflows: este commit entrega o renderizador reutilizável e a entrada de vídeos prontos. A execução automática existente continua usando suas cenas com imagens. Não apresentar a importação como prova de automação completa de voz/filmagem.

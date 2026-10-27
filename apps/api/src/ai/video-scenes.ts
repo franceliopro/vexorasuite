@@ -53,3 +53,12 @@ export async function composeVideoScene(scene:Scene,index:number,total:number,br
  }else canvas=canvas.composite([{input:overlay}]);
  return canvas.png().toBuffer();
 }
+
+export async function footageOverlay(scene:Scene,index:number,total:number,brand:string,company:string,logo?:Buffer){
+ const color=/^#[\da-f]{6}$/i.test(brand)?brand:'#ff7a00',title=wrap(scene.title,23,3);
+ const text=title.map((line,i)=>`<text x="52" y="${924+i*59}" font-family="DejaVu Sans, Arial, sans-serif" font-size="46" font-weight="700" fill="white">${xml(line)}</text>`).join('');
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280"><defs><linearGradient id="bottom" x2="0" y2="1"><stop offset="0" stop-color="#051a3b" stop-opacity="0"/><stop offset=".58" stop-color="#051a3b" stop-opacity=".1"/><stop offset=".76" stop-color="#051a3b" stop-opacity=".72"/><stop offset="1" stop-color="#051a3b" stop-opacity=".97"/></linearGradient><linearGradient id="top" x2="0" y2="1"><stop stop-color="#051a3b" stop-opacity=".85"/><stop offset="1" stop-color="#051a3b" stop-opacity="0"/></linearGradient></defs><rect width="720" height="1280" fill="url(#bottom)"/><rect width="720" height="300" fill="url(#top)"/>${!logo?`<text x="52" y="135" font-family="DejaVu Sans, Arial, sans-serif" font-size="35" font-weight="700" fill="white">${xml(company.slice(0,30))}</text>`:''}<rect x="52" y="${logo?244:161}" width="76" height="5" rx="2" fill="${color}"/>${text}<text x="52" y="1165" font-family="DejaVu Sans, Arial, sans-serif" font-size="23" fill="${color}">${index===total-1?'FALE COM A '+xml(company.toUpperCase().slice(0,30)):'GESTÃO DE FROTAS'}</text></svg>`;
+ const overlays:{input:Buffer;left?:number;top?:number}[]=[{input:Buffer.from(svg)}];
+ if(logo)overlays.push({input:await sharp(logo,{limitInputPixels:40000000}).resize(190,160,{fit:'inside'}).png().toBuffer(),left:52,top:58});
+ return sharp({create:{width:720,height:1280,channels:4,background:{r:0,g:0,b:0,alpha:0}}}).composite(overlays).png().toBuffer();
+}

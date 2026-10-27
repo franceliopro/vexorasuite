@@ -37,7 +37,7 @@ async function proxyRequest(request: Request, context: Context) {
       ...(hasBody ? { body: await limitedRequestBody(request) } : {}),
       cache: "no-store",
     };
-    if (!isSse) init.signal = AbortSignal.timeout(pathValue.startsWith('assistant/voice/')?70000:30000);
+    if (!isSse) init.signal = AbortSignal.timeout(pathValue.startsWith('assistant/voice/')||pathValue==='assistant/automations/import-video'?70000:30000);
     upstream = await fetch(apiOrigin + "/api/" + pathValue + requestUrl.search, init);
   } catch (error) {
     if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });

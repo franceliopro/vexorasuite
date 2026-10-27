@@ -1,7 +1,7 @@
 import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common';
 
 /** Normalize only document fields; never rewrite a customer's message or a file. */
-export const isDocumentField = (key: string) => /^(cpf|cnpj|cpf_?cnpj|document|documento|document_number)$/i.test(key);
+export const isDocumentField = (key: string) => /^(cpf|cnpj|cpf_?cnpj|document|documento|document_?number)$/i.test(key);
 export function documentDigits(value: unknown): string {
   return typeof value === 'string' ? value.normalize('NFKC').replace(/\D/g, '') : '';
 }

@@ -51,8 +51,8 @@ export class IntelligenceRuntimeService {
       const variables: Record<string, string> = active ? object(previous.variables) : {};
       // These values always come from the current tenant/conversation, never caller-supplied IDs.
       const profile=object(conversation.contact.metadata);
-      const preferred=[profile.novo_nome,profile.preferredName,object(previous.variables).novo_nome,previous.novo_nome].find(value=>typeof value==='string'&&!!value.trim()&&!value.includes('{{'))?.trim().slice(0,80)||'';
-      if(preferred&&!profile.novo_nome){const latest=await lockedContact(tx,channel.tenantId,conversation.contactId);const canonical={...contactMetadata(latest.metadata),novo_nome:preferred};await tx.contact.update({where:{id:conversation.contactId},data:{metadata:canonical}});conversation.contact.metadata=canonical;}
+      let preferred=[profile.novo_nome,profile.preferredName,object(previous.variables).novo_nome,previous.novo_nome].find(value=>typeof value==='string'&&!!value.trim()&&!value.includes('{{'))?.trim().slice(0,80)||'';
+      if(preferred&&!profile.novo_nome){const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),current=contactMetadata(latest.metadata);if(typeof current.novo_nome==='string'&&current.novo_nome.trim())preferred=current.novo_nome.trim().slice(0,80);const canonical={...current,novo_nome:preferred};await tx.contact.update({where:{id:conversation.contactId},data:{metadata:canonical}});conversation.contact.metadata=canonical;}
       variables.nome = preferred || conversation.contact.name;
       variables.novo_nome = preferred;
       const nameReply=/^(sim|s|isso|manter|pode ser)$/i.test(inbound.content.trim())?conversation.contact.name:inbound.content.trim();

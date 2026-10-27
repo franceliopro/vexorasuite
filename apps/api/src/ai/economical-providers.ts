@@ -1,3 +1,4 @@
+import { modelPrice } from "./model-prices";
 import { AiProvider } from './ai.service';
 import { providerApiKey } from './provider-credentials';
 /** Only explicitly configured models; no unbounded escalation or guessed model IDs. */
@@ -11,7 +12,8 @@ export function economicalProviders(assistant: any, override?: any, integrations
  const seen=new Set<string>();
  return selections.filter(s=>!policy?.freeFirst||policy.allowPaidFallback||free(s)).sort((a,b)=>{
   const priority=(s:any)=>s.provider==='ollama'?0:free(s)?1:2;
-  return (policy?.freeFirst?priority(a)-priority(b):0)||(rank[a.tier]??9)-(rank[b.tier]??9);
+  const costA=a.provider==='openrouter'?modelPrice(a.model):null,costB=b.provider==='openrouter'?modelPrice(b.model):null;
+  return (policy?.freeFirst?priority(a)-priority(b):0)||(costA!==null&&costB!==null?costA-costB:0)||(rank[a.tier]??9)-(rank[b.tier]??9);
  }).flatMap(s=>{
   const apiKey=s.provider==='ollama'&&process.env.OLLAMA_BASE_URL?'local':['openrouter','openai'].includes(s.provider)?providerApiKey(s.provider,integrations,tenantId):undefined;
   const id=s.provider+':'+s.model;

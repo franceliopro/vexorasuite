@@ -28,7 +28,7 @@ export class AuthController {
   async me(@Req() request: AuthenticatedRequest) {
     const user = await this.prisma.user.findUnique({
       where: { id: request.user.sub },
-      select: { id: true, name: true, email: true, isActive: true },
+      select: { id: true, name: true, email: true, isActive: true, avatarUrl: true, avatarSource: true, avatarCheckedAt: true },
     });
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: request.user.tenantId },

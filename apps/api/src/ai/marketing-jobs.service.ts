@@ -9,14 +9,15 @@ import { MarketingLibraryService } from './marketing-library.service';
 import { VideoRenderService } from './video-render.service';
 import { VoiceService } from './voice.service';
 const object=(v:any):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
-export type MarketingInput={question:string;format:'POST'|'CAROUSEL'|'VIDEO';channelId?:string;scheduledFor?:string;publish?:boolean;narrate?:boolean;agentId?:string;useBrandOnly?:boolean};
+export type MarketingInput={question:string;format:'POST'|'CAROUSEL'|'VIDEO';channelId?:string;channelIds?:string[];scheduledFor?:string;publish?:boolean;narrate?:boolean;agentId?:string;useBrandOnly?:boolean};
 export function marketingInput(input:any):MarketingInput {
  if(!input||typeof input.question!=='string'||!input.question.trim()||input.question.length>2000||!['POST','CAROUSEL','VIDEO'].includes(input.format))throw new BadRequestException('Informe tema e formato válidos.');
  for(const key of ['publish','narrate','useBrandOnly'])if(input[key]!==undefined&&typeof input[key]!=='boolean')throw new BadRequestException('Opção inválida.');
  if(input.channelId!==undefined&&!isUUID(input.channelId))throw new BadRequestException('Canal inválido.');
+ if(input.channelIds!==undefined&&(!Array.isArray(input.channelIds)||!input.channelIds.length||input.channelIds.length>30||input.channelIds.some((id:unknown)=>typeof id!=='string'||!isUUID(id))||new Set(input.channelIds).size!==input.channelIds.length))throw new BadRequestException('Contas inválidas.');
  if(input.agentId!==undefined&&(typeof input.agentId!=='string'||input.agentId.length>80))throw new BadRequestException('Agente inválido.');
  if(input.scheduledFor!==undefined&&(typeof input.scheduledFor!=='string'||!/(Z|[+-]\d{2}:\d{2})$/i.test(input.scheduledFor)||!Number.isFinite(Date.parse(input.scheduledFor))||Date.parse(input.scheduledFor)<Date.now()+120000||Date.parse(input.scheduledFor)>Date.now()+90*86400000))throw new BadRequestException('Agende de 2 minutos a 90 dias à frente, com fuso.');
- return {question:input.question.trim(),format:input.format,...(input.channelId?{channelId:input.channelId}:{}),...(input.scheduledFor?{scheduledFor:input.scheduledFor}:{}),...(input.publish!==undefined?{publish:input.publish}:{}),...(input.narrate!==undefined?{narrate:input.narrate}:{}),...(input.useBrandOnly!==undefined?{useBrandOnly:input.useBrandOnly}:{}),...(input.agentId?{agentId:input.agentId}:{})};
+ return {question:input.question.trim(),format:input.format,...(input.channelId?{channelId:input.channelId}:{}),...(input.channelIds?{channelIds:input.channelIds}:{}),...(input.scheduledFor?{scheduledFor:input.scheduledFor}:{}),...(input.publish!==undefined?{publish:input.publish}:{}),...(input.narrate!==undefined?{narrate:input.narrate}:{}),...(input.useBrandOnly!==undefined?{useBrandOnly:input.useBrandOnly}:{}),...(input.agentId?{agentId:input.agentId}:{})};
 }
 @Injectable()
 export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
@@ -34,10 +35,11 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
  private async target(req:AuthenticatedRequest,input:MarketingInput){
   const config=await this.library.config(req);const publish=input.publish??config.autoPublish===true;
   const channels=await this.prisma.channelConnection.findMany({where:{tenantId:req.user.tenantId,provider:'ZERNIO',isActive:true,status:'CONNECTED'}});
-  const eligible=channels.filter(c=>['instagram','facebook'].includes(String(object(c.settings).platform).toLowerCase()));
+  const eligible=channels.filter(c=>['instagram','facebook','tiktok','linkedin','youtube','threads','pinterest','x','twitter','bluesky','reddit','telegram'].includes(String(object(c.settings).platform).toLowerCase()));
   const named=eligible.filter(c=>c.name.length>=3&&input.question.toLocaleLowerCase('pt-BR').includes(c.name.toLocaleLowerCase('pt-BR')));
   const channel=input.channelId?eligible.find(c=>c.id===input.channelId):named.length===1?named[0]:eligible.length===1?eligible[0]:undefined;
-  if(publish&&!channel)throw new BadRequestException('Escolha uma única conta social conectada para publicar.');
+  if(input.channelIds?.some(id=>!eligible.some(c=>c.id===id)))throw new BadRequestException('Uma das contas não está conectada nesta empresa.');
+  if(publish&&!channel&&!input.channelIds?.length)throw new BadRequestException('Escolha as contas sociais para publicar.');
   return {...input,publish,...(channel?{channelId:channel.id}:{})};
  }
  private async assertAgent(req:AuthenticatedRequest,input:MarketingInput,workflow=false){if(!input.agentId)return;const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId}});const agent=object(object(tenant.integrations).assistant).agents?.find((a:any)=>a.id===input.agentId&&a.enabled);const needed=['web.research',...(!input.useBrandOnly?['drive.files.search']:[]),'media.carousel.generate',...(input.format==='VIDEO'?['media.video.render']:[]),...(input.narrate?['voice.tts']:[]),...(input.publish?['social.publish']:[]),...(workflow?['marketing.workflow.run']:[])];if(!agent||needed.some(skill=>!agent.allowedActions?.includes(skill)))throw new ForbiddenException('Agente sem as Skills necessárias para esta execução: '+needed.join(', '));}
@@ -147,7 +149,7 @@ export class MarketingJobsService implements OnModuleInit,OnModuleDestroy {
      const claim=await this.prisma.marketingJob.updateMany({where:{id:job.id,status:'RUNNING'},data:{status:'PUBLISHING',startedAt:new Date()}});
      if(!claim.count)throw new BadRequestException('A execução foi cancelada antes do envio.');sending=true;
     }
-    const publication=input.publish?await this.automation.publish(req,id,{channelId:input.channelId,scheduledFor:input.scheduledFor}):null;
+    const publication=input.publish?await this.automation.publish(req,id,{channelId:input.channelId,channelIds:input.channelIds,scheduledFor:input.scheduledFor}):null;
     await this.prisma.marketingJob.updateMany({where:{id:job.id,status:sending?'PUBLISHING':'RUNNING'},data:{status:'COMPLETED',completedAt:new Date(),result:{automationId:id,format:input.format,...(publication?{publication}:{}),sources:created.sources||[]} as Prisma.InputJsonValue}});
    }catch(error){await this.prisma.marketingJob.updateMany({where:{id:job.id,status:{in:['RUNNING','PUBLISHING']}},data:{status:sending?'NEEDS_REVIEW':'FAILED',error:((sending?'Confira a publicação na Zernio antes de repetir. ':'')+(error instanceof Error?error.message:'Falha na execução')).slice(0,500),completedAt:new Date()}});}finally{clearInterval(heartbeat);await this.prisma.marketingJob.updateMany({where:{id:job.id,status:'CANCEL_REQUESTED'},data:{status:'CANCELLED',completedAt:new Date()}});}
   }catch{this.logger.error('Falha na verificação das automações de marketing.');}finally{this.running=false;}

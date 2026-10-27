@@ -85,7 +85,7 @@ export class AssistantAutomationService {
   if(options.format==='POST'){carousel.slides=carousel.slides.slice(0,1);carousel.caption+='\n\nCurta, comente e compartilhe.';}
   const id=randomUUID();const channels=await this.prisma.channelConnection.findMany({where:{tenantId:req.user.tenantId,provider:'ZERNIO',isActive:true,status:'CONNECTED'},select:{id:true,name:true,settings:true}});
   await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'assistant.carousel',entityType:'automation',entityId:id,details:{status:options.format==='VIDEO'?'RENDERING':'DRAFT',format:options.format||'CAROUSEL',carousel,sources,brand:root.brandSettings?.primaryColor||'#5865da',company:tenant.name,referenceIds:references.map(r=>r.id),...(isVideo?{sceneReferenceIds:selectVideoReferences(references,topic).map(r=>r.id)}:{}),referencePalette:references.flatMap(r=>r.palette).slice(0,5),model:result.model,tokensUsed:result.usage.totalTokens} as Prisma.InputJsonValue}});
-  const eligible=channels.filter(c=>['instagram','facebook'].includes(String(obj(c.settings).platform).toLowerCase()));
+  const eligible=channels.filter(c=>['instagram','facebook','tiktok','linkedin','youtube','threads','pinterest','x','twitter','bluesky','reddit','telegram'].includes(String(obj(c.settings).platform).toLowerCase()));
   const named=eligible.filter(c=>normalize(question).includes(normalize(c.name)));
   const selected=named.length===1?named[0]:eligible.length===1?eligible[0]:undefined;
   const command=normalize(question);
@@ -101,7 +101,7 @@ export class AssistantAutomationService {
    const publication=await this.publish(req,id,{channelId:selected.id,...(schedule?{scheduledFor:schedule}:{})});
    return {answer:'Carrossel enviado à Zernio. Estado confirmado: '+publication.status+(schedule?' · '+schedule:'.'),usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,sources,publication,attachments:carousel.slides.map((_,i)=>({name:`Lâmina ${i+1}`,url:`/api/backend/assistant/automations/${id}/slides/${i}`}))};
   }
-  return {answer:'Carrossel criado com título, legenda e artes. Referências ativas orientam o briefing e a paleta analisada. A última lâmina contém o convite para curtir, comentar e compartilhar. Escolha a conta e publique agora ou agende.',usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,automation:{id,carousel,channels:channels.filter(c=>['instagram','facebook'].includes(String(obj(c.settings).platform).toLowerCase())).map(c=>({id:c.id,name:c.name}))},sources};
+  return {answer:'Carrossel criado com título, legenda e artes. Referências ativas orientam o briefing e a paleta analisada. A última lâmina contém o convite para curtir, comentar e compartilhar. Escolha a conta e publique agora ou agende.',usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,automation:{id,carousel,channels:channels.filter(c=>['instagram','facebook','tiktok','linkedin','youtube','threads','pinterest','x','twitter','bluesky','reddit','telegram'].includes(String(obj(c.settings).platform).toLowerCase())).map(c=>({id:c.id,name:c.name}))},sources};
  }
  async list(req:AuthenticatedRequest){this.authorize(req);const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'assistant.carousel',entityId:{not:null}},orderBy:{createdAt:'desc'},take:50,select:{entityId:true,details:true,createdAt:true}});return rows.map(row=>({id:row.entityId,title:obj(obj(row.details).carousel).title||'Criação',status:obj(row.details).status||'DRAFT',createdAt:row.createdAt}));}
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const audit=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,entityId:id,action:'assistant.carousel'}});if(!audit)throw new NotFoundException('Automação não encontrada.');return audit;}
@@ -130,11 +130,14 @@ export class AssistantAutomationService {
   return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[]))).png().toBuffer();
  }
  async preview(req:AuthenticatedRequest,id:string,index:number){const record=await this.read(req,id);if(index===-1){if(!this.video)throw new ServiceUnavailableException('Vídeo indisponível');return this.video.read(req.user.tenantId,id);}const data=obj(record.details);if(data.video?.visualVersion===2&&this.video)return this.video.readScene(req.user.tenantId,id,index);return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[]))).png().toBuffer();}
- async publish(req:AuthenticatedRequest,id:string,input:{channelId?:string;scheduledFor?:string}){
+ async publish(req:AuthenticatedRequest,id:string,input:{channelId?:string;channelIds?:string[];scheduledFor?:string}){
   this.authorize(req);
-  if(typeof input.channelId!=='string')throw new BadRequestException('Selecione uma conta conectada');
-  const channel=await this.prisma.channelConnection.findFirst({where:{id:input.channelId,tenantId:req.user.tenantId,provider:'ZERNIO',isActive:true,status:'CONNECTED'}});
-  const settings=obj(channel?.settings);if(!channel||!settings.accountId||!['instagram','facebook'].includes(String(settings.platform).toLowerCase()))throw new BadRequestException('Conta social inválida nesta empresa');
+  const ids=input.channelIds??(input.channelId?[input.channelId]:[]);
+  if(!Array.isArray(ids)||!ids.length||ids.length>30||ids.some(id=>typeof id!=='string')||new Set(ids).size!==ids.length)throw new BadRequestException('Selecione de 1 a 30 contas sem repetição.');
+  const channels=await this.prisma.channelConnection.findMany({where:{id:{in:ids},tenantId:req.user.tenantId,provider:'ZERNIO',isActive:true,status:'CONNECTED'}});
+  const supported=['instagram','facebook','tiktok','linkedin','youtube','threads','pinterest','x','twitter','bluesky','reddit','telegram'];
+  if(channels.length!==ids.length||channels.some(c=>!obj(c.settings).accountId||!supported.includes(String(obj(c.settings).platform).toLowerCase())))throw new BadRequestException('Uma das contas selecionadas está desconectada, não pertence à empresa ou não permite publicações.');
+  const channel=channels[0]!;
   let scheduled:number|null=null;
   if(input.scheduledFor!==undefined){scheduled=Date.parse(input.scheduledFor);if(!/[zZ]|[+-]\d{2}:\d{2}$/.test(input.scheduledFor)||!Number.isFinite(scheduled)||scheduled<Date.now()+60000||scheduled>Date.now()+90*86400000)throw new BadRequestException('Agende entre 1 minuto e 90 dias à frente, com fuso explícito.');}
   const origin=process.env.API_PUBLIC_URL;if(!origin||!/^https:\/\//.test(origin))throw new ServiceUnavailableException('Configure API_PUBLIC_URL para disponibilizar as artes à Zernio');
@@ -147,14 +150,14 @@ export class AssistantAutomationService {
   await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM audit_logs WHERE id = ${audit.id}::uuid FOR UPDATE`;
    const latest=await tx.auditLog.findUniqueOrThrow({where:{id:audit.id}});if(obj(latest.details).status!=='DRAFT')throw new BadRequestException('Publicação já em andamento');
-   await tx.auditLog.update({where:{id:audit.id},data:{details:{...data,status:'SUBMITTING',channelId:channel.id,scheduledFor:input.scheduledFor||null}}});
+   await tx.auditLog.update({where:{id:audit.id},data:{details:{...data,status:'SUBMITTING',channelId:channel.id,channelIds:ids,scheduledFor:input.scheduledFor||null}}});
   });
   try{
-   const response=await this.zernio.request<any>('/posts',{method:'POST',idempotencyKey:id,body:{title:data.carousel.title,content:data.carousel.caption,mediaItems,platforms:[{platform:String(settings.platform).toLowerCase(),accountId:settings.accountId,...(data.format==='VIDEO'?{platformSpecificData:{contentType:'reel'}}:{})}],...(scheduled?{scheduledFor:new Date(scheduled).toISOString(),timezone:'America/Sao_Paulo'}:{publishNow:true})}});
+   const response=await this.zernio.request<any>('/posts',{method:'POST',idempotencyKey:id,body:{title:data.carousel.title,content:data.carousel.caption,mediaItems,platforms:channels.map(c=>{const settings=obj(c.settings),platform=String(settings.platform).toLowerCase();return {platform,accountId:settings.accountId,...(data.format==='VIDEO'&&['instagram','facebook'].includes(platform)?{platformSpecificData:{contentType:'reel'}}:{})}}),...(scheduled?{scheduledFor:new Date(scheduled).toISOString(),timezone:'America/Sao_Paulo'}:{publishNow:true})}});
    const post=response?.post||response?.data?.post;
    if(!post?._id||!post.status)throw new BadGatewayException('A Zernio ainda não confirmou o estado da publicação');
-   await this.prisma.auditLog.update({where:{id:audit.id},data:{details:{...data,status:String(post.status),postId:post._id,channelId:channel.id,scheduledFor:input.scheduledFor||null,platforms:post.platforms||[]}}});
+   await this.prisma.auditLog.update({where:{id:audit.id},data:{details:{...data,status:String(post.status),postId:post._id,channelId:channel.id,channelIds:ids,scheduledFor:input.scheduledFor||null,platforms:post.platforms||[]}}});
    return {status:post.status,postId:post._id,platforms:post.platforms||[],scheduledFor:input.scheduledFor||null};
-  }catch(error){await this.prisma.auditLog.update({where:{id:audit.id},data:{details:{...data,status:'NEEDS_RECONCILIATION',channelId:channel.id,scheduledFor:input.scheduledFor||null}}});throw error;}
+  }catch(error){await this.prisma.auditLog.update({where:{id:audit.id},data:{details:{...data,status:'NEEDS_RECONCILIATION',channelId:channel.id,channelIds:ids,scheduledFor:input.scheduledFor||null}}});throw error;}
  }
 }

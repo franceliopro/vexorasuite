@@ -152,8 +152,9 @@ export class ContactsController {
   }
 
   @Patch(":id/profile")
-  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown }) {
+  async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown; novo_nome?: unknown }) {
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
+    if(input.novo_nome!==undefined&&(typeof input.novo_nome!=='string'||input.novo_nome.length>80||input.novo_nome.trim()&&!/^[\p{L}][\p{L} .’'-]{1,79}$/u.test(input.novo_nome.trim())))throw new BadRequestException('Nome de preferência inválido.');
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
     const leadOriginRecord = typeof input.leadOrigin === "string"
@@ -171,6 +172,7 @@ export class ContactsController {
       ...existing,
       ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(typeof input.novo_nome === "string" ? {novo_nome:input.novo_nome.trim()} : {}),
       ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}),
       ...(leadOriginRecord ? {
         leadOrigin: {

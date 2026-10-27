@@ -57,7 +57,7 @@ export class ZernioWebhookController {
           const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
           if (duplicate) return null;
           let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId } });
-          const avatar = sender.picture || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
+          const avatar = sender.profile_pic || sender.profile_picture_url || sender.picture?.data?.url || (typeof sender.picture === "string" ? sender.picture : undefined) || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
           if (!contact) {
             contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });

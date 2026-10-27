@@ -135,6 +135,9 @@ model User {
   pushSubscriptions PushSubscription[]
   id              String            @id @default(uuid()) @db.Uuid
   email           String            @unique
+  avatarUrl       String? @map("avatar_url")
+  avatarSource    String? @map("avatar_source")
+  avatarCheckedAt DateTime? @map("avatar_checked_at")
   passwordHash    String            @map("password_hash")
   name            String
   isActive        Boolean           @default(true) @map("is_active")
@@ -491,4 +494,49 @@ model CreativeReference {
   @@unique([tenantId,accountId,fileId])
   @@index([tenantId,enabled,purpose])
   @@map("creative_references")
+}
+
+model PublicationFolder {
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ userId String @db.Uuid @map("user_id")
+ accountId String @db.Uuid @map("account_id")
+ folderId String @map("folder_id")
+ publishedFolderId String @map("published_folder_id")
+ mode String
+ channelIds String[] @db.Uuid @map("channel_ids")
+ enabled Boolean @default(false)
+ everyDays Int @default(1) @map("every_days")
+ nextPublishAt DateTime @map("next_publish_at")
+ nextScanAt DateTime @default(now()) @map("next_scan_at")
+ remaining Int @default(0)
+ lastScanAt DateTime? @map("last_scan_at")
+ lastError String? @map("last_error")
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@unique([tenantId,accountId,folderId])
+ @@index([enabled,nextScanAt])
+ @@map("publication_folders")
+}
+model PreparedPublication {
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ userId String @db.Uuid @map("user_id")
+ accountId String? @db.Uuid @map("account_id")
+ fileId String? @map("file_id")
+ ruleId String? @db.Uuid @map("rule_id")
+ name String
+ type String
+ caption String @default("")
+ model String?
+ status String @default("QUEUED")
+ postId String? @map("post_id")
+ channelIds String[] @db.Uuid @map("channel_ids")
+ result Json @default("{}")
+ error String?
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@unique([tenantId,accountId,fileId])
+ @@index([status,updatedAt])
+ @@map("prepared_publications")
 }

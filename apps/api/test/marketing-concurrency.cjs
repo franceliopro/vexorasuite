@@ -2,6 +2,9 @@ const assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
 const {PrismaClient}=require('@prisma/client');
 const {MarketingJobsService}=require('../dist/ai/marketing-jobs.service');
+const {ProviderConnectionsController}=require('../dist/ai/provider-connections.controller');
+const {providerApiKey}=require('../dist/ai/provider-credentials');
+const {mutateTenantSetting}=require('../dist/prisma/tenant-settings');
 async function main(){
  const db=new URL(process.env.DATABASE_URL||'');assert(process.env.CI==='true'&&['localhost','127.0.0.1'].includes(db.hostname),'Use the isolated CI database');
  const prisma=new PrismaClient();const tenant=await prisma.tenant.create({data:{name:'Marketing concurrency',slug:'ci-'+randomUUID(),integrations:{assistant:{enabled:true}}}});
@@ -9,6 +12,20 @@ async function main(){
  try{
   await prisma.membership.create({data:{tenantId:tenant.id,userId:user.id,role:'OWNER'}});
   const req={user:{tenantId:tenant.id,sub:user.id,role:'OWNER'}};let executions=0;
+  const previousEncryptionKey=process.env.INTEGRATION_ENCRYPTION_KEY;
+  try{
+   process.env.INTEGRATION_ENCRYPTION_KEY='ci-provider-encryption-secret';
+   const connections=new ProviderConnectionsController(prisma);
+   await Promise.all([
+    ...['openrouter','openai','brave'].map(provider=>connections.save(req,{provider,key:'ci-'+provider+'-provider-key'})),
+    mutateTenantSetting(prisma,tenant.id,'brandSettings',()=>({primaryColor:'#2020aa'})),
+   ]);
+   const stored=(await prisma.tenant.findUniqueOrThrow({where:{id:tenant.id}})).integrations;
+   for(const provider of ['openrouter','openai','brave'])assert.equal(providerApiKey(provider,stored,tenant.id),'ci-'+provider+'-provider-key');
+   assert.equal(stored.brandSettings.primaryColor,'#2020aa');assert.equal(stored.assistant.enabled,true);
+   assert(!JSON.stringify(stored).includes('provider-key'));
+   console.log('PostgreSQL: concurrent company credentials and unrelated settings preserved');
+  }finally{if(previousEncryptionKey===undefined)delete process.env.INTEGRATION_ENCRYPTION_KEY;else process.env.INTEGRATION_ENCRYPTION_KEY=previousEncryptionKey;}
   const automation={authorize(){},async createCarousel(){executions++;await new Promise(r=>setTimeout(r,50));return {automation:{id:randomUUID()},sources:[]};},async publish(){throw Error('No external publication allowed');}};
   const library={async config(){return {autoPublish:false}},async sync(){return {files:1}}};
   const a=new MarketingJobsService(prisma,automation,library,{},{}),b=new MarketingJobsService(prisma,automation,library,{},{});

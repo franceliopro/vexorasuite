@@ -17,7 +17,7 @@ export class AiService {
         const endpoint = p.provider === "openrouter" ? "https://openrouter.ai/api/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
         const response = await fetch(endpoint, {
           method: "POST", headers: { authorization: `Bearer ${p.apiKey}`, "content-type": "application/json" },
-          body: JSON.stringify({ model: p.model, messages, max_tokens: Math.min(Math.max(p.maxTokens ?? 500, 1), 2000) }), signal: controller.signal,
+          body: JSON.stringify({ model: p.model, messages, max_tokens: Math.min(Math.max(p.maxTokens ?? 500, 1), 2000) }), signal: controller.signal, redirect: 'error',
         });
         if (!response.ok) continue;
         const data = await response.json() as { choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };

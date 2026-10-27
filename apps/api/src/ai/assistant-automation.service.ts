@@ -11,6 +11,7 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { ZernioService } from '../operations/zernio.service';
 import { AiService } from './ai.service';
 import { economicalProviders } from './economical-providers';
+import { providerApiKey } from './provider-credentials';
 import { normalize } from './flow-runtime';
 type Source={title:string;url:string;description:string};
 export type Carousel={title:string;caption:string;slides:{title:string;body:string}[]};
@@ -32,8 +33,9 @@ export function slideSvg(carousel:Carousel,index:number,brand:string,company='V�
 export class AssistantAutomationService {
  constructor(private readonly prisma:PrismaService,private readonly ai:AiService,private readonly zernio:ZernioService,private readonly references:CreativeReferencesService,@Optional() private readonly video?:VideoRenderService){}
  authorize(req:AuthenticatedRequest){if(!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException('Automação e publicação restritas à administração.');}
- async search(query:string):Promise<Source[]>{
-  const key=process.env.BRAVE_SEARCH_API_KEY;if(!key)throw new ServiceUnavailableException('Configure BRAVE_SEARCH_API_KEY para habilitar pesquisa na internet sem tokens de IA.');
+ async search(query:string,tenantId?:string):Promise<Source[]>{
+  const tenant=tenantId?await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}):null;
+  const key=providerApiKey('brave',tenant?.integrations,tenantId);if(!key)throw new ServiceUnavailableException('Cadastre a chave Brave Search em Agentes de IA ou configure BRAVE_SEARCH_API_KEY no servidor para pesquisar na internet.');
   if(!query.trim()||query.length>600)throw new BadRequestException('Informe um tema com até 600 caracteres');
   const url=new URL('https://api.search.brave.com/res/v1/web/search');url.search=new URLSearchParams({q:query,count:'5',country:'BR',search_lang:'pt-br'}).toString();
   const response=await fetch(url,{headers:{'X-Subscription-Token':key,accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)});
@@ -44,7 +46,7 @@ export class AssistantAutomationService {
  private async research(req:AuthenticatedRequest,query:string){
   const previous=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,action:'assistant.research',createdAt:{gte:new Date(Date.now()-15*60000)},details:{path:['query'],equals:query}},orderBy:{createdAt:'desc'},select:{details:true}});
   const cached=obj(previous?.details).sources;if(Array.isArray(cached))return cached as Source[];
-  const sources=await this.search(query);
+  const sources=await this.search(query,req.user.tenantId);
   await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'assistant.research',entityType:'skill',details:{query,sources,tokensUsed:0}}});
   return sources;
  }
@@ -60,7 +62,7 @@ export class AssistantAutomationService {
   const root=obj(tenant.integrations),assistant=obj(root.assistant);
   const chosen=options.agentId?(Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.id===options.agentId&&a.enabled):null):null;
   if(options.agentId&&!chosen)throw new BadRequestException('Agente não habilitado.');
-  const providers=economicalProviders(assistant,chosen?.llm || assistant.llm || (Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.enabled&&a.llm)?.llm:null));if(!providers.length)throw new ServiceUnavailableException('Configure um modelo econômico e a chave do provedor para criar o roteiro.');
+  const providers=economicalProviders(assistant,chosen?.llm || assistant.llm || (Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.enabled&&a.llm)?.llm:null),root,req.user.tenantId);if(!providers.length)throw new ServiceUnavailableException('Selecione um modelo econômico e cadastre a chave do provedor em Agentes de IA para criar o roteiro.');
   // Research is a direct API skill. It never invokes a language model.
   const topic=question.replace(/^.*?(?:carrossel|carroussel|carousel|post|publicação|video|vídeo|reel)\s*(sobre|a respeito de)?\s*/i,'').replace(/\s+e\s+(publique|publicar|poste|postar|agende|agendar).*$/i,'').trim();
   const sources=await this.research(req,(topic||question).slice(0,600));

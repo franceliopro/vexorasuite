@@ -122,7 +122,8 @@ export class IntelligenceRuntimeService {
             const assistant = object(object(tenant.integrations).assistant);
             const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a.id === config.agentId && a.enabled === true) : null;
             const selection = object(agent?.llm || assistant.llm);
-            const providers = economicalProviders(assistant, selection);
+            let providers: ReturnType<typeof economicalProviders> = [];
+            try { providers = economicalProviders(assistant, selection, tenant.integrations, channel.tenantId); } catch { /* An unreadable company credential routes to a human, never a shared key. */ }
             if (!assistant.enabled || !agent || !providers.length) { reason = 'agent_unavailable'; await handoff(); step = undefined; break; }
             try {
               await reserveAiExecution(tx,channel.tenantId,dailyAiLimit(assistant.dailyAiLimit),'customer_agent');

@@ -6,6 +6,7 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { executableActions, executableKinds, RuntimeFlow, settings, validateRuntimeFlow } from '../ai/flow-runtime';
 import { object } from './intelligence-runtime.service';
+import { providerApiKey } from '../ai/provider-credentials';
 
 @Controller('chatbot/runtime')
 @UseGuards(AuthGuard)
@@ -49,7 +50,7 @@ export class IntelligenceRuntimeController {
           const assistant = object(root.assistant);
           const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a.id === config.agentId && a.enabled === true) : null;
           const selection = object(agent?.llm || assistant.llm);
-          const configured = selection.provider === 'openrouter' ? !!process.env.OPENROUTER_API_KEY : selection.provider === 'openai' ? !!process.env.OPENAI_API_KEY : false;
+          const configured = ['openrouter','openai'].includes(selection.provider) && Boolean(providerApiKey(selection.provider,root,req.user.tenantId));
           if (!assistant.enabled || !agent || !selection.model || !configured) throw new BadRequestException(`${step.title}: agente, modelo e provedor precisam estar habilitados e configurados`);
         }
         if (config.departmentKey && !await tx.department.findFirst({ where: { tenantId: req.user.tenantId, key: config.departmentKey, isActive: true } })) throw new BadRequestException(`${step.title}: equipe não encontrada nesta empresa`);

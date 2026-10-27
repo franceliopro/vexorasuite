@@ -62,6 +62,7 @@ model Tenant {
   googleOAuthAttempts GoogleOAuthAttempt[]
   workTasks WorkTask[]
   calendarAssignments CalendarAssignment[]
+  creativeReferences CreativeReference[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -316,6 +317,7 @@ model GoogleOAuthAttempt {
 }
 
 model GoogleConnection {
+  creativeReferences CreativeReference[]
   id String @id @default(uuid()) @db.Uuid
   tenantId String @db.Uuid @map("tenant_id")
   googleAccountId String @map("google_account_id")
@@ -404,4 +406,25 @@ model AuthorizedContact {
   @@index([tenantId, contactId, status])
   @@index([tenantId, phone])
   @@map("authorized_contacts")
+}
+
+
+model CreativeReference {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  accountId String? @db.Uuid @map("account_id")
+  fileId String @map("file_id")
+  name String
+  mimeType String @map("mime_type")
+  purpose String @default("ALL")
+  instructions String @default("")
+  palette Json @default("[]")
+  enabled Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  account GoogleConnection? @relation(fields:[accountId],references:[id],onDelete:SetNull)
+  @@unique([tenantId,accountId,fileId])
+  @@index([tenantId,enabled,purpose])
+  @@map("creative_references")
 }

@@ -4,7 +4,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 
-type DraftStep = { action?: "asaas.customer.lookup" | "asaas.payment.lookup" | "asaas.payment.pix" | "asaas.payment.boleto" | "human.handoff"; id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
+type DraftStep = { action?: "asaas.customer.lookup" | "asaas.payment.lookup" | "asaas.payment.pix" | "asaas.payment.boleto" | "human.handoff"; kind?: string; config?: string; id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
 type Draft = { name:string; welcome:string; steps:DraftStep[]; channelIds?:string[]; triggers?:{kind:"message"|"dm"|"keyword";keyword?:string}[] };
 function validDraft(value: unknown): value is Draft {
  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -16,8 +16,10 @@ function validDraft(value: unknown): value is Draft {
  for(const s of v.steps){
   if(!s || typeof s.id!=="string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(s.id) || ids.has(s.id) || typeof s.title!=="string" || s.title.length>120 || typeof s.message!=="string" || s.message.length>4000 || !Array.isArray(s.options) || s.options.length>30 || s.options.some(o=>typeof o!=="string" || o.length>160))return false;
   if(s.action!==undefined && !["asaas.customer.lookup","asaas.payment.lookup","asaas.payment.pix","asaas.payment.boleto","human.handoff"].includes(s.action))return false;
+  if(s.kind!==undefined && (typeof s.kind!=="string" || s.kind.length>80))return false;
+  if(s.config!==undefined && (typeof s.config!=="string" || s.config.length>4000))return false;
   ids.add(s.id);
-  if(s.position && (!Number.isFinite(s.position.x) || !Number.isFinite(s.position.y) || s.position.x<0 || s.position.y<0 || s.position.x>900 || s.position.y>520))return false;
+  if(s.position && (!Number.isFinite(s.position.x) || !Number.isFinite(s.position.y) || s.position.x<0 || s.position.y<0 || s.position.x>10000 || s.position.y>10000))return false;
  }
  return v.steps.every(s=>!s.transitions || (typeof s.transitions==="object" && !Array.isArray(s.transitions) && Object.entries(s.transitions).every(([option,target])=>s.options.includes(option) && typeof target==="string" && (target==="__start__" || ids.has(target)))));
 }
@@ -29,7 +31,7 @@ export class ChatbotDraftController {
  async read(@Req() req:AuthenticatedRequest){
   const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
   const data=tenant.integrations && typeof tenant.integrations==="object" && !Array.isArray(tenant.integrations)?tenant.integrations as Record<string,unknown>:{};
-  return {draft:data.chatbotDraft??null,published:false,executionEnabled:false};
+  return {draft:data.chatbotDraft??null,published:!!data.intelligencePublished,executionEnabled:(data.intelligencePublished as {active?:boolean}|undefined)?.active===true};
  }
  @Put()
  async save(@Req() req:AuthenticatedRequest,@Body() body:{draft?:unknown}){
@@ -37,10 +39,12 @@ export class ChatbotDraftController {
   if(!validDraft(body?.draft))throw new BadRequestException("Rascunho inválido");
   const draft=body.draft;
   await this.prisma.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
    const tenant=await tx.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
    const data=tenant.integrations && typeof tenant.integrations==="object" && !Array.isArray(tenant.integrations)?tenant.integrations as Record<string,unknown>:{};
    await tx.tenant.update({where:{id:req.user.tenantId},data:{integrations:{...data,chatbotDraft:draft} as Prisma.InputJsonValue}});
   });
-  return {saved:true,published:false,executionEnabled:false};
+  return {saved:true,draftOnly:true};
  }
 }
+

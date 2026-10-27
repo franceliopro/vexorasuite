@@ -1,3 +1,4 @@
+import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post, RawBodyRequest, Req } from "@nestjs/common";
 import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
@@ -10,7 +11,7 @@ type JsonObject = Record<string, any>;
 export class ZernioWebhookController {
   private readonly logger = new Logger(ZernioWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly zernio: ZernioService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly zernio: ZernioService, private readonly engine: IntelligenceRuntimeService) {}
 
   @Post(":channelId")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Req() request: RawBodyRequest<Request>) {
@@ -73,6 +74,11 @@ export class ZernioWebhookController {
         if (saved) {
           this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
           this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId });
+          await this.engine.receive(channel, saved.conversationId, saved.message.id);
+        }
+        if (!saved) {
+          const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
+          if (prior) await this.engine.receive(channel, prior.conversationId, prior.id);
         }
         return { ok: true, duplicate: !saved };
       } catch (error) {
@@ -88,3 +94,4 @@ export class ZernioWebhookController {
     return { ok: true, accepted: true, type: normalizedType };
   }
 }
+

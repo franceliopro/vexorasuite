@@ -1,3 +1,4 @@
+import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import { Prisma, type ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -9,7 +10,7 @@ import { AsaasService } from "./asaas.service";
 export class WahaWebhookController {
   private readonly logger = new Logger(WahaWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly asaas: AsaasService) {}
+  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly asaas: AsaasService, private readonly engine: IntelligenceRuntimeService) {}
 
   @Post(":channelId/:token")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Param("token") token: string, @Body() body: unknown) {
@@ -120,11 +121,19 @@ export class WahaWebhookController {
       throw error;
     }
 
-    if (!saved) return { ok: true, duplicate: true };
+    if (!saved) {
+      const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
+      if (prior) await this.engine.receive(channel, prior.conversationId, prior.id);
+      return { ok: true, duplicate: true };
+    }
     this.logger.log(`Mensagem recebida e gravada: canal=${channelId} conversa=${saved.conversationId} tipo=${contentType}`);
     this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
     this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId, lastMessageAt: saved.message.occurredAt.toISOString() });
-    if (saved.handlingMode === "BOT") void this.runMenuBot(channel, chatId, saved.conversationId, saved.isNewConversation, content);
+    if (saved.handlingMode === "BOT") {
+      if (!await this.engine.receive(channel, saved.conversationId, saved.message.id)) {
+        await this.runMenuBot(channel, chatId, saved.conversationId, saved.isNewConversation, content);
+      }
+    }
     return { ok: true };
   }
 
@@ -213,7 +222,7 @@ export class WahaWebhookController {
         update: {},
       });
     }
-    const specific = platform ? [platform + "_SUPORTE", "SUPORTE_" + platform] : [];
+    const specific = platform ? [platform + "_" + key, key + "_" + platform] : [];
     const fallback = key.startsWith("COMERCIAL_") ? ["COMERCIAL"] : [];
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
     const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
@@ -224,6 +233,9 @@ export class WahaWebhookController {
   }
 
   private async runMenuBot(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
+    const current = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { botState: true, handlingMode: true } });
+    if (!current || current.handlingMode !== "BOT") return;
+    if ((current.botState as Record<string, unknown> | null)?.flow === "ASAAS") { await this.runAsaasFlow(channel, chatId, conversationId, inboundText); return; }
     if (await this.runGuidedTriage(channel, chatId, conversationId, isNewConversation, inboundText)) return;
     if (await this.runAsaasFlow(channel, chatId, conversationId, inboundText)) return;
     const defaults = [
@@ -425,3 +437,4 @@ export class WahaWebhookController {
     return null;
   }
 }
+

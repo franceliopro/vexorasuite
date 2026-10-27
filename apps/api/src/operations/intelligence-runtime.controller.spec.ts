@@ -1,0 +1,7 @@
+import { IntelligenceRuntimeController } from './intelligence-runtime.controller';
+const req:any={user:{tenantId:'tenant',role:'OWNER',sub:'owner'}};
+describe('flow publication',()=>{
+ it('denies non-admin publication',async()=>{const c=new IntelligenceRuntimeController({} as any);await expect(c.publish({user:{role:'AGENT'}} as any)).rejects.toThrow();});
+ it('validates executable snapshot before activation',async()=>{const tx:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations:{chatbotDraft:{name:'Draft',welcome:'',channelIds:['channel'],triggers:[{kind:'message'}],steps:[{id:'start',title:'HTTP',message:'',kind:'api',options:[]}]}}})}};const c=new IntelligenceRuntimeController({$transaction:(fn:any)=>fn(tx)} as any);await expect(c.publish(req)).rejects.toThrow();});
+ it('refuses binding to foreign channels',async()=>{const tx:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations:{chatbotDraft:{name:'Draft',welcome:'',channelIds:['foreign'],triggers:[{kind:'message'}],steps:[{id:'start',title:'Hello',message:'Olá',options:[]}]}}})},channelConnection:{findMany:jest.fn().mockResolvedValue([])}};const c=new IntelligenceRuntimeController({$transaction:(fn:any)=>fn(tx)} as any);await expect(c.publish(req)).rejects.toThrow();expect(tx.channelConnection.findMany.mock.calls[0][0].where.tenantId).toBe('tenant');});
+});

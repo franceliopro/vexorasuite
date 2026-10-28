@@ -226,6 +226,13 @@ export class IntelligenceRuntimeService {
             step = undefined as unknown as RuntimeStep; break;
           }
           if (type === 'crm.stage.move') {
+            if (!conversation.departmentId) {
+              reason = 'crm_stage_move_unavailable';
+              messages.push('Vou encaminhar sua solicitação à equipe para que ela continue por aqui.');
+              await handoff();
+              step = undefined as unknown as RuntimeStep;
+              break;
+            }
             const pipeline = await tx.crmPipeline.findFirst({
               where: {
                 id: config.pipelineId,

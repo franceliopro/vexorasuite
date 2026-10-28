@@ -79,7 +79,8 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
   useEffect(()=>{void Promise.all([api<any>('/api/backend/crm/pipelines'),api<any>('/api/backend/auth/me')]).then(([data,me])=>{const admin=['OWNER','ADMIN'].includes(me.role);setIsAdmin(admin);setPipelines(data.pipelines);setPipelineId(data.pipelines[0]?.id||'');setPipelineReady(true);}).catch(e=>{setError(e.message);setPipelineReady(true)});},[]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [fieldDefinitions, setFieldDefinitions] = useState<CrmFieldDefinition[]>([]);
-  const [query, setQuery] = useState("");\n  const queryRef=useRef(query);queryRef.current=query;
+  const [query, setQuery] = useState("");
+  const queryRef=useRef(query);queryRef.current=query;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState("");

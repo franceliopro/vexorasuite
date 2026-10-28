@@ -1,4 +1,5 @@
 "use client";
+import { formatDateBR, formatDateTimeBR, formatTimeBR } from "../lib/date-format";
 import {PresentationHome} from "./presentation-home";
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
@@ -274,7 +275,7 @@ export default function HomePage() {
               <section className="dashboard-grid">
                 <article className="content-card activity-card">
                   <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <span>→</span></button></div>
-                  {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{new Date(item.updatedAt).toLocaleString("pt-BR")}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span>◫</span><i>✳</i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <span>→</span></button></div>}
+                  {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span>◫</span><i>✳</i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <span>→</span></button></div>}
                 </article>
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>

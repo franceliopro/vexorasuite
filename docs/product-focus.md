@@ -1,28 +1,23 @@
 # Escopo operacional aprovado — Véxora
 
-O proprietário aprovou reduzir o produto para concluir o núcleo. A retirada vale para a Véxora Suite; não alterar o sistema antigo.
+O proprietário aprovou enxugar código, banco e serviços para concluir a plataforma de atendimento.
 
-## Manter e concluir
-- Atendimento: WhatsApp e chat no site, histórico, mídia básica, bot/IA, transferência humana, filas, departamentos e notificações por atribuição.
-- Empresas, usuários, senhas, permissões e isolamento.
-- CRM e pipelines, tarefas, agenda básica e relatórios operacionais.
-- Asaas como fonte financeira, consulta e operação de cobrança com confirmação do provedor.
-- Marketing: marca, referências, artes/textos, rascunhos, revisão/aprovação manual, planejamento editorial e download.
-- Conexões Google e sociais existentes apenas no escopo necessário ao núcleo; não ampliar provedores.
-- Templates existentes como configurações iniciais, aprofundando clientes reais após aceite.
+Manter: WhatsApp e chat no site; atendimento com bot/IA e transferência humana; empresas/equipes/permissões; CRM/pipelines; tarefas; agenda; Asaas/cobrança; relatórios operacionais; Marketing com marca, referências, rascunhos, revisão manual, planejamento editorial e download.
 
-## Retirar da aplicação ativa
-Telefonia, SMS, campanhas em massa/e-mail, anúncios pagos, WordPress, vídeo automático e publicação social automática/recorrente. Não iniciar novos produtos clínicos, escolares, delivery, ERP ou BI livre.
+Retirar: telefonia, SMS, campanhas em massa/e-mail, anúncios pagos, WordPress, vídeo automático e publicação social automática/recorrente. Não retomar expansões verticais, troca de motores, integrações adicionais ou BI livre antes do aceite do núcleo.
 
-Os controllers e workers de campanhas/publicações deixam de ser registrados no servidor. UI de publicação, automação social e e-mails é retirada da navegação. Chamadas de publicação/anúncio também são bloqueadas no transporte Zernio; atendimento via mensagens permanece permitido. Solicitações da assistente geram somente rascunhos de arte/carrossel. Não há cancelamento de publicações já aceitas externamente: devem ser conferidas no provedor.
+## Limpeza autorizada
+Excluídos arquivos de campanhas/e-mail, gateways, renderização de vídeo, filas de Marketing e publicação automática, juntamente com dependências exclusivas e tabelas aposentadas. Histórico de criações/pesquisas de Marketing e mídias geradas são removidos na atualização. Marcas, referências, contatos, conversas, pagamentos e permissões permanecem.
 
-Dados, históricos e migrações permanecem preservados. Código legado e testes históricos no Git não equivalem a serviços ativos. Não apagar dados de clientes para economizar recursos.
+A migração é transacional. Uma limpeza única da pasta privada remove apenas arquivos com os padrões de nomes usados pelos geradores antigos; não segue links simbólicos nem toca em arquivos de origem. Não apaga arquivos no Google Drive nem cancela publicações já aceitas por provedores externos.
 
-## Redução de recursos
-FFmpeg deixa de integrar a imagem da API. Serviços locais Ollama/Speaches passam ao perfil opcional local-ai, sem endereços locais habilitados por padrão. PgAdmin passa ao perfil maintenance. Esses serviços não sobem na inicialização padrão. SearXNG permanece para pesquisa de criação manual. Nada disso comprova que containers antigos já foram parados no ambiente real: conferir a implantação e o consumo.
+Ollama/Speaches ficam em perfil opcional local-ai, PgAdmin em maintenance, e FFmpeg sai da imagem da API. Isso não comprova que containers antigos já foram desligados: conferir a implantação e medir o consumo.
+
+## Agenda no atendimento
+Janela para consultar compromissos e agendar com o cliente atual, seguida de confirmação revisada na conversa. Não usar ausência de eventos em uma agenda como disponibilidade universal de toda a empresa.
 
 ## Chat no site
-Canal mantido explicitamente no núcleo por solicitação do proprietário. A árvore de código consultada não revelou um widget de atendimento público completo. Não marcar a implementação como entregue sem receber mensagem de um visitante, persistir, responder e transferir para um humano em teste de ponta a ponta. Essa pendência tem prioridade sobre integrações adiadas.
+Mantido explicitamente no núcleo. A árvore de código consultada não comprovou um widget público completo. Exigir teste visitante → mensagem persistida → resposta → transferência humana antes de marcar como entregue.
 
 ## GOWS
-Teste futuro isolado, com número de teste, mantendo a sessão de produção. Medir recursos, texto, imagens, áudio, confirmação, reconexão e ausência de duplicações. Não trocar o motor somente por expectativa de economia.
+Só testar isoladamente depois da estabilização, com outro número e sem alterar a sessão de produção. Medir recursos, reconexão, mídia e duplicações antes de decidir.

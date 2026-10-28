@@ -206,7 +206,7 @@ export default function HomePage() {
 
   if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
   return (
-    <div className="suite-app">
+    <div className={"suite-app"+(presentationHome?" home-mode":"")}>
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("");setMenuOpen(false); }}>
           {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+((theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?"has-custom-logo ":"")+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
@@ -220,7 +220,7 @@ export default function HomePage() {
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
-                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onFocusCapture={event=>{if(event.target instanceof HTMLElement&&event.target.matches(":focus-visible"))setExpandedModules(current=>current.filter(name=>name===item.label))}}>
+                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onPointerEnter={event=>{if(event.pointerType==="mouse")setExpandedModules(current=>current.filter(name=>name===item.label))}} onFocusCapture={()=>setExpandedModules(current=>current.filter(name=>name===item.label))}>
                   <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {

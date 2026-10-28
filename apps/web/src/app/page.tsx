@@ -23,6 +23,30 @@ const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module
 const ChatbotWorkspace=dynamic(()=>import("./chatbot-workspace").then(module=>module.ChatbotWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const AiAgentsWorkspace=dynamic(()=>import("./ai-agents-workspace").then(module=>module.AiAgentsWorkspace));
 const PersonalAssistantPanel=dynamic(()=>import("./ai-agents-workspace").then(module=>module.PersonalAssistantPanel));
+
+const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
+  "Atendimento":()=>import("./inbox-workspace"),
+  "CRM":()=>import("./crm-workspace"),
+  "Agenda":()=>import("./calendar-workspace"),
+  "Tarefas":()=>import("./tasks-workspace"),
+  "Chatbots":()=>import("./chatbot-workspace"),
+  "Workflows":()=>import("./workflows-workspace"),
+  "Agentes de IA":()=>import("./ai-agents-workspace"),
+  "Criações":()=>import("./creative-library-workspace"),
+  "Postagens":()=>import("./creative-library-workspace"),
+  "Marketing":()=>import("./creative-library-workspace"),
+  "Referências criativas":()=>import("./creative-library-workspace"),
+  "Google Drive":()=>import("./creative-library-workspace"),
+  "Financeiro":()=>import("./finance-workspace"),
+  "Gestão":()=>import("./finance-workspace"),
+  "Canais e integrações":()=>import("./channels-integrations"),
+  "Configurações":()=>import("./operations-settings"),
+  "Atendentes":()=>import("./team-workspace"),
+};
+function preloadWorkspace(label:string){
+  const targets=label==="Automação"?["Chatbots","Workflows","Agentes de IA"]:[label];
+  for(const target of targets){const load=workspacePreloaders[target];if(load)void load().catch(()=>{});}
+}
 import {
   CalendarDays,
   Activity,
@@ -119,6 +143,7 @@ export default function HomePage() {
     else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
     else if (requested && validModules.has(requested)) {
+      preloadWorkspace(requested);
       setActive(requested);
       const parent = navigation.flatMap((group) => group.items).find((item) => item.children?.some((child) => child.label === requested));
       if (parent) setExpandedModules([parent.label]);
@@ -221,18 +246,18 @@ export default function HomePage() {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
                 return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onPointerEnter={event=>{if(event.pointerType==="mouse")setExpandedModules(current=>current.filter(name=>name===item.label))}} onFocusCapture={()=>setExpandedModules(current=>current.filter(name=>name===item.label))}>
-                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
-                        setExpandedModules([]);setActive(item.label); setMenuOpen(false);
+                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
                       }
                     }}>
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onClick={() => { setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -253,7 +278,7 @@ export default function HomePage() {
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
-            <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
+            <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
             <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
             <button className="logout-button" onClick={async () => { await disableDeviceNotifications().catch(()=>{}); await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
@@ -279,7 +304,7 @@ export default function HomePage() {
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
                   </div>
                 </article>
               </section>
@@ -326,8 +351,8 @@ export default function HomePage() {
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <nav className="mobile-bottom-nav" aria-label="Navegação principal no celular">
         <button type="button" className={presentationHome ? "active" : ""} onClick={() => { setActive(""); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Início</span></button>
-        <button type="button" className={active === "Atendimento" ? "active" : ""} onClick={() => { setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>
-        <button type="button" className={active === "CRM" ? "active" : ""} onClick={() => { setActive("CRM"); setMenuOpen(false); }}><Icon name="users" size={20}/><span>CRM</span></button>
+        <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>
+        <button type="button" className={active === "CRM" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("CRM")} onFocus={()=>preloadWorkspace("CRM")} onClick={() => { preloadWorkspace("CRM");setActive("CRM"); setMenuOpen(false); }}><Icon name="users" size={20}/><span>CRM</span></button>
         <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen}><Icon name="more" size={20}/><span>Mais</span></button>
       </nav>
     </div>

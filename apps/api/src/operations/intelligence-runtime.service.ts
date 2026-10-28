@@ -71,7 +71,7 @@ export class IntelligenceRuntimeService {
       const profile=object(conversation.contact.metadata);
       const customFields=object(profile.customFields);
       for (const [key,value] of Object.entries(customFields)) {
-        const token=key.trim().replace(/[^\\p{L}\\p{N}_-]+/gu,'_').replace(/^([^\\p{L}_])/, '_$1').slice(0,40);
+        const token=key.trim().replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^([^\p{L}_])/, '_$1').slice(0,40);
         if(token&&typeof value==='string') variables[token]=value.slice(0,500);
       }
       const pipeline=conversation.contact.pipelineId?await tx.crmPipeline.findFirst({where:{id:conversation.contact.pipelineId,tenantId:channel.tenantId},select:{name:true,stages:true}}):null;
@@ -227,7 +227,7 @@ export class IntelligenceRuntimeService {
                 'Restrições: '+interpolateVariables(String(object(agent.behavior).prohibitions||'').slice(0,3000),variables),
                 'Estrutura da empresa para orientar o atendimento, sem expor identificadores: '+JSON.stringify(ecosystem).slice(0,7000),
                 'Mantenha o escopo e recuse solicitações fora dele.'
-              ].join('\\n')+research+'\\nAções de CRM permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+'\\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique etiqueta ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
+              ].join('\n')+research+'\nAções de CRM permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique etiqueta ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
 
               const generated = await this.ai.generate([
                 { role: 'system', content: systemPrompt },

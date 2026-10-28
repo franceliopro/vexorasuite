@@ -33,6 +33,7 @@ export class IntelligenceRuntimeService {
   /** Atomic state + outbox + audit under a database lock, shared by every API replica. */
   async receive(channel: ChannelConnection, conversationId: string, messageId: string): Promise<boolean> {
     let crmStageChange: { id: string; pipelineId: string; stage: string } | null = null;
+    let crmFinalizationChange: {id:string;outcome:string;reason?:string} | null = null;
     const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${conversationId}::uuid AND tenant_id = ${channel.tenantId}::uuid FOR UPDATE`;
       const conversation = await tx.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
@@ -290,6 +291,29 @@ export class IntelligenceRuntimeService {
             step = findStep(step.transitions?.[step.options[0]!]);
             continue;
           }
+          if (type === 'crm.finalize') {
+            const outcome=config.outcome;
+            const reasons=['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade'];
+            if(!['WON','LOST'].includes(outcome||'')||(outcome==='LOST'&&!reasons.includes(config.reason||''))){
+              reason='crm_finalization_unavailable';await handoff();step=undefined as unknown as RuntimeStep;break;
+            }
+            const latestContact=await lockedContact(tx,channel.tenantId,conversation.contactId);
+            const existing=contactMetadata(latestContact.metadata);
+            if(existing.crmFinalization||existing.crmRemoved){
+              reason='crm_finalization_conflict';await handoff();step=undefined as unknown as RuntimeStep;break;
+            }
+            const priorTags=Array.isArray(existing.tags)?existing.tags.filter((tag:any)=>typeof tag==='string'||(tag&&typeof tag==='object'&&typeof tag.name==='string')):[];
+            const tags=outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
+            const metadata=Object.fromEntries(Object.entries(existing).filter(([key])=>key!=='crmStage')) as Prisma.JsonObject;
+            await tx.contact.update({where:{id:latestContact.id},data:{metadata:{...metadata,tags,contactType:outcome==='WON'?'CUSTOMER':(typeof existing.contactType==='string'?existing.contactType:'LEAD'),crmFinalization:{outcome,...(outcome==='LOST'?{reason:config.reason}:{}),finalizedAt:new Date().toISOString(),kind:'FLOW'}}}});
+            await tx.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:latestContact.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
+            crmFinalizationChange={id:latestContact.id,outcome,...(outcome==='LOST'?{reason:config.reason}:{})};
+            skills.push('crm.deal.finalize');
+            messages.push(renderStep({...step,options:[]},variables));
+            state={flow:'INTELLIGENCE',revision:published.revision,completed:true,variables};
+            step=undefined as unknown as RuntimeStep;
+            break;
+          }
           if (type === 'tag') {
             const latestContact = await lockedContact(tx, channel.tenantId, conversation.contactId);
             const profile = contactMetadata(latestContact.metadata);
@@ -319,6 +343,7 @@ export class IntelligenceRuntimeService {
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });
     if (crmStageChange) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange);
+    if (crmFinalizationChange) this.events.publish(channel.tenantId,'contact.finalized',crmFinalizationChange);
     if('assigned' in result&&result.assigned)this.events.publish(channel.tenantId,'conversation.assigned',{id:conversationId});
     return result.handled;
   }

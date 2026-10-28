@@ -344,7 +344,7 @@ export class IntelligenceRuntimeService {
               where: { id: conversation.contactId },
               data: { pipelineId: pipeline.id, metadata: { ...profile, crmStage: config.stage } },
             });
-            crmStageChange = { id: conversation.contactId, pipelineId: pipeline.id, stage: config.stage! };crmContactChanged=true;
+            crmStageChange.value = { id: conversation.contactId, pipelineId: pipeline.id, stage: config.stage! };crmContactChanged=true;
             skills.push('crm.stage.move');
             step = findStep(step.transitions?.[step.options[0]!]);
             continue;

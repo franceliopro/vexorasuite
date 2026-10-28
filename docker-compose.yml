@@ -107,8 +107,9 @@ services:
       WHISPER__INFERENCE_DEVICE: cpu
       WHISPER__COMPUTE_TYPE: int8
       WHISPER__CPU_THREADS: "1"
-      STT_MODEL_TTL: "60"
-      TTS_MODEL_TTL: "60"
+      # Speaches v0.8.2 shares this TTL across STT and TTS.
+      # Release each model after use to stay within the 2 GiB memory limit.
+      WHISPER__TTL: "0"
       PRELOAD_MODELS: '["Systran/faster-whisper-small", "speaches-ai/Kokoro-82M-v1.0-ONNX"]'
     volumes:
       - speech_models:/home/ubuntu/.cache/huggingface/hub

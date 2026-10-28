@@ -1,3 +1,4 @@
+import {assignedConversationScope} from "./conversation-visibility";
 import {
   BadRequestException,
   Controller,
@@ -51,7 +52,7 @@ export async function contactPipelineAccess(
   });
   if (!contact) throw new BadRequestException("Contato não encontrado.");
   if (!administrative(req.user.role)) {
-    if(!contact.pipelineId){const permitted=req.user.allowedModules?.includes('INBOX')&&await prisma.conversation.findFirst({where:{tenantId:req.user.tenantId,contactId:id,deletedAt:null,OR:[{assigneeId:req.user.sub},{departmentId:{in:req.user.departmentIds||[]}}]},select:{id:true}});if(!permitted)throw new BadRequestException('Este contato não pertence a um CRM permitido.');return contact;}
+    if(!contact.pipelineId){const permitted=req.user.allowedModules?.includes('INBOX')&&await prisma.conversation.findFirst({where:{tenantId:req.user.tenantId,contactId:id,deletedAt:null,...assignedConversationScope(req.user.tenantId,req.user.sub,req.user.departmentIds||[])},select:{id:true}});if(!permitted)throw new BadRequestException('Este contato não pertence a um CRM permitido.');return contact;}
     await accessiblePipeline(prisma, req, contact.pipelineId);
   }
   return contact;

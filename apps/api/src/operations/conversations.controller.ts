@@ -160,7 +160,8 @@ export class ConversationsController {
   @Post()
   async create(@Req() request: AuthenticatedRequest, @Body() input: CreateConversationDto) {
     const tenantId = request.user.tenantId;
-    const contact = await this.prisma.contact.findFirst({ where: { id: input.contactId, tenantId }, select: { id: true } });
+    const departmentIds=await this.memberDepartmentIds(tenantId,request.user.sub);
+    const contact = await this.prisma.contact.findFirst({ where: { id: input.contactId, tenantId,...(!["OWNER","ADMIN"].includes(request.user.role)?{OR:[{conversations:{some:{tenantId,...assignedConversationScope(tenantId,request.user.sub,departmentIds)}}},{pipeline:{tenantId,departmentId:{in:departmentIds}}}]}:{}) }, select: { id: true,pipeline:{select:{departmentId:true,tenantId:true}} } });
     if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
     let channelConnectionId: string | undefined;
     if (input.channelConnectionId) {
@@ -172,10 +173,11 @@ export class ConversationsController {
       channelConnectionId = channel?.id;
     }
     const conversation = await this.prisma.conversation.create({
-      data: { tenantId, contactId: contact.id, channel: input.channel?.trim().toUpperCase() || "WHATSAPP", ...(channelConnectionId ? { channelConnectionId } : {}) },
+      data: { tenantId, contactId: contact.id,handlingMode:"HUMAN",assigneeId:request.user.sub,departmentId:contact.pipeline?.tenantId===tenantId?contact.pipeline.departmentId:null, channel: input.channel?.trim().toUpperCase() || "WHATSAPP", ...(channelConnectionId ? { channelConnectionId } : {}) },
       include: { contact: { select: { id: true, name: true, phone: true } } },
     });
     this.events.publish(tenantId, "conversation.created", { id: conversation.id, contactId: conversation.contactId, status: conversation.status });
+    this.events.publish(tenantId,"conversation.assigned",{id:conversation.id});
     return conversation;
   }
 

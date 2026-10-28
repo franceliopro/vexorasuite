@@ -208,7 +208,7 @@ export class AssistantController {
   }
   @Post("knowledge-documents/parse")
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 5 * 1024 * 1024 } }))
-  async parseKnowledgeDocument(@Req() req: AuthenticatedRequest, @UploadedFile() file?: Express.Multer.File) {
+  async parseKnowledgeDocument(@Req() req: AuthenticatedRequest, @UploadedFile() file?: { buffer: Buffer; originalname: string }) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException("Permissão insuficiente");
     if (!file?.buffer?.length) throw new BadRequestException("Selecione um documento.");
     const extension = file.originalname.split(".").pop()?.toLowerCase() || "";

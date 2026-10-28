@@ -2,7 +2,7 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const DATE_BR = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 
 export function formatDateBR(value: string | Date | null | undefined, timeZone = "America/Sao_Paulo"): string {
-  if (value == null || value === "") return "";
+  if (value == null || (typeof value === "string" && value === "")) return "";
   if (typeof value === "string") {
     const match = DATE_ONLY.exec(value);
     if (match) {

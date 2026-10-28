@@ -12,7 +12,6 @@ export function formatDateBR(value: string | Date | null | undefined, timeZone =
       return dayText + "/" + monthText + "/" + yearText;
     }
   }
-  if (typeof value === "string" && DATE_ONLY.test(value)) return formatDateBR(value);
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);
   return new Intl.DateTimeFormat("pt-BR", {
@@ -24,7 +23,8 @@ export function formatDateBR(value: string | Date | null | undefined, timeZone =
 }
 
 export function formatDateTimeBR(value: string | Date | null | undefined, timeZone = "America/Sao_Paulo"): string {
-  if (value == null || value === "") return "";
+  if (value == null || (typeof value === "string" && value === "")) return "";
+  if (typeof value === "string" && DATE_ONLY.test(value)) return formatDateBR(value, timeZone);
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);
   return new Intl.DateTimeFormat("pt-BR", {

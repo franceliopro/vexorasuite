@@ -460,7 +460,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const state=selected?.botState&&typeof selected.botState==="object"?selected.botState as Record<string,unknown>:{};
     const custom=metadata.customFields&&typeof metadata.customFields==="object"&&!Array.isArray(metadata.customFields)?metadata.customFields as Record<string,unknown>:{};
     const dynamic={...custom,...(state.variables&&typeof state.variables==="object"?state.variables as Record<string,unknown>:{})};
-    const keys=Object.keys(dynamic).filter(key=>/^[\p{L}_][\p{L}\p{N}_.-]{0,39}$/u.test(key));
+    const keys=Object.keys(dynamic).map(key=>/^[\p{L}_][\p{L}\p{N}_.-]{0,39}$/u.test(key)?key:key.trim().replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^([^\p{L}_])/,"_$1").slice(0,40)).filter(Boolean);
     return [...QUICK_REPLY_VARIABLES,...keys.filter(key=>!QUICK_REPLY_VARIABLES.some(v=>v.token==="{{"+key+"}}")).map(key=>({token:"{{"+key+"}}",label:key,hint:"Campo disponível neste contato ou fluxo"}))];
   }
   function resolveQuickReply(content: string) {

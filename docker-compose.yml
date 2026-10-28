@@ -107,6 +107,8 @@ services:
       WHISPER__INFERENCE_DEVICE: cpu
       WHISPER__COMPUTE_TYPE: int8
       WHISPER__CPU_THREADS: "1"
+      STT_MODEL_TTL: "60"
+      TTS_MODEL_TTL: "60"
       PRELOAD_MODELS: '["Systran/faster-whisper-small", "speaches-ai/Kokoro-82M-v1.0-ONNX"]'
     volumes:
       - speech_models:/home/ubuntu/.cache/huggingface/hub
@@ -120,6 +122,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  lightweight-text-models:
+    profiles: ["local-ai"]
+    image: python:3.12-alpine
+    restart: "on-failure:3"
+    command: ["python", "-u", "/opt/vexora/install-text-models.py"]
+    volumes:
+      - ./infra/speaches/install-text-models.py:/opt/vexora/install-text-models.py:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+    mem_limit: 64m
+    cpus: 0.25
 
   speech-models:
     profiles: ["local-ai"]

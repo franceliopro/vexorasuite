@@ -23,6 +23,30 @@ const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module
 const ChatbotWorkspace=dynamic(()=>import("./chatbot-workspace").then(module=>module.ChatbotWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const AiAgentsWorkspace=dynamic(()=>import("./ai-agents-workspace").then(module=>module.AiAgentsWorkspace));
 const PersonalAssistantPanel=dynamic(()=>import("./ai-agents-workspace").then(module=>module.PersonalAssistantPanel));
+
+const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
+  "Atendimento":()=>import("./inbox-workspace"),
+  "CRM":()=>import("./crm-workspace"),
+  "Agenda":()=>import("./calendar-workspace"),
+  "Tarefas":()=>import("./tasks-workspace"),
+  "Chatbots":()=>import("./chatbot-workspace"),
+  "Workflows":()=>import("./workflows-workspace"),
+  "Agentes de IA":()=>import("./ai-agents-workspace"),
+  "Criações":()=>import("./creative-library-workspace"),
+  "Postagens":()=>import("./creative-library-workspace"),
+  "Marketing":()=>import("./creative-library-workspace"),
+  "Referências criativas":()=>import("./creative-library-workspace"),
+  "Google Drive":()=>import("./creative-library-workspace"),
+  "Financeiro":()=>import("./finance-workspace"),
+  "Gestão":()=>import("./finance-workspace"),
+  "Canais e integrações":()=>import("./channels-integrations"),
+  "Configurações":()=>import("./operations-settings"),
+  "Atendentes":()=>import("./team-workspace"),
+};
+function preloadWorkspace(label:string){
+  const targets=label==="Automação"?["Chatbots","Workflows","Agentes de IA"]:[label];
+  for(const target of targets){const load=workspacePreloaders[target];if(load)void load().catch(()=>{});}
+}
 import {
   CalendarDays,
   Activity,
@@ -221,7 +245,7 @@ export default function HomePage() {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
                 return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onPointerEnter={event=>{if(event.pointerType==="mouse")setExpandedModules(current=>current.filter(name=>name===item.label))}} onFocusCapture={()=>setExpandedModules(current=>current.filter(name=>name===item.label))}>
-                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
@@ -232,7 +256,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onClick={() => { setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -279,7 +303,7 @@ export default function HomePage() {
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onClick={() => setActive(item.target)}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
                   </div>
                 </article>
               </section>

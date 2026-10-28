@@ -5,7 +5,12 @@ export function formatDateBR(value: string | Date | null | undefined, timeZone =
   if (value == null || value === "") return "";
   if (typeof value === "string") {
     const match = DATE_ONLY.exec(value);
-    if (match) return match[3] + "/" + match[2] + "/" + match[1];
+    if (match) {
+      const [, yearText, monthText, dayText] = match;
+      const date = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)));
+      if (date.getUTCFullYear() !== Number(yearText) || date.getUTCMonth() !== Number(monthText) - 1 || date.getUTCDate() !== Number(dayText)) return value;
+      return dayText + "/" + monthText + "/" + yearText;
+    }
   }
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);

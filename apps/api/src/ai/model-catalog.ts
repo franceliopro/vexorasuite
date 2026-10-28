@@ -4,14 +4,14 @@ import { localServiceUrl } from './local-services';
 import { rememberModelPrices } from './model-prices';
 export async function modelCatalog(integrations:unknown,tenantId:string){
  const models:any[]=[],services:{provider:string;available:boolean;message?:string;partial?:boolean}[]=[];
- const targets=[...llmProviders,'local-voice'];
+ const targets=[...llmProviders,'local-stt','local-tts'];
  await Promise.all(targets.map(async provider=>{
   try{
-   const local=provider==='ollama'||provider==='local-voice';
+   const local=provider==='ollama'||provider==='local-stt'||provider==='local-tts';
    const definition=remoteProviders[provider as keyof typeof remoteProviders];
    const key=local||provider==='openrouter'?'':providerApiKey(provider,integrations,tenantId);
    if(!local&&provider!=='openrouter'&&!key){services.push({provider,available:false,message:'Cadastre a chave deste provedor em Conexões de IA.'});return;}
-   let url=provider==='ollama'?localServiceUrl('OLLAMA_BASE_URL','/api/tags'):provider==='local-voice'?localServiceUrl('LOCAL_VOICE_URL','/v1/models'):definition.models;
+   let url=provider==='ollama'?localServiceUrl('OLLAMA_BASE_URL','/api/tags'):provider.startsWith('local-')?localServiceUrl('LOCAL_VOICE_URL','/v1/models?task='+(provider==='local-stt'?'automatic-speech-recognition':'text-to-speech')):definition.models;
    const headers=key?providerHeaders(provider,key):{};
    const deadline=Date.now()+10000;
    for(let page=1;page<=10;page++){
@@ -25,6 +25,10 @@ export async function modelCatalog(integrations:unknown,tenantId:string){
     for(const item of items.slice(0,1000)){
      const id=provider==='ollama'?item.name:provider==='qwen'?item.model:item.id;
      if(typeof id!=='string'||!id||id.length>180||models.some(m=>m.provider===provider&&m.id===id))continue;
+     if(provider==='openai'){
+      const kind=/^(whisper-1|gpt-transcribe(?:-|$)|gpt-4o(?:-mini)?-transcribe(?:-|$))/.test(id)&&!/diarize/.test(id)?'stt':/^(tts-1(?:-hd)?|gpt-4o-mini-tts)(?:-|$)/.test(id)?'tts':null;
+      if(kind)models.push({provider:'openai-'+kind,id,name:id,installed:false,pricePerMillionInputUsd:null});
+     }
      // Text-only editor: omit known non-chat OpenAI models, retain manual entry for custom IDs.
      if(provider==='openai'&&(!/^(gpt-|chatgpt-|o[1-9]|ft:)/.test(id)||/audio|realtime|transcribe|tts|image|search|codex/.test(id)))continue;
      if(item.lifecycle==='retired')continue;

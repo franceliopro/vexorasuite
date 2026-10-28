@@ -72,7 +72,7 @@ export class IntelligenceRuntimeService {
       const customFields=object(profile.customFields);
       for (const [key,value] of Object.entries(customFields)) {
         const token=key.trim().replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^([^\p{L}_])/, '_$1').slice(0,40);
-        if(token&&typeof value==='string') variables[token]=value.slice(0,500);
+        if(token&&value!==null&&['string','number','boolean'].includes(typeof value)){if(!Object.hasOwn(variables,key))variables[key]=String(value).slice(0,500);if(!Object.hasOwn(variables,token))variables[token]=String(value).slice(0,500);}
       }
       const pipeline=conversation.contact.pipelineId?await tx.crmPipeline.findFirst({where:{id:conversation.contact.pipelineId,tenantId:channel.tenantId},select:{name:true,stages:true}}):null;
       const stageId=typeof profile.crmStage==='string'?profile.crmStage:'';
@@ -267,6 +267,7 @@ export class IntelligenceRuntimeService {
                   const rest=Object.fromEntries(Object.entries(profile).filter(([key])=>key!=='crmStage'));
                   await tx.contact.update({where:{id:latest.id},data:{metadata:{...rest,tags,contactType:action.outcome==='WON'?'CUSTOMER':(typeof profile.contactType==='string'?profile.contactType:'LEAD'),crmFinalization:{outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{}),finalizedAt:new Date().toISOString(),kind:'AGENT'}}}});
                   crmFinalizationChange={id:latest.id,outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{})};skills.push('crm.deal.finalize');
+                  break;
                 }
               }
               messages.push(reply);

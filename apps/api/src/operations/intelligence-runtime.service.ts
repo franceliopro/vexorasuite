@@ -231,7 +231,7 @@ export class IntelligenceRuntimeService {
                 id: config.pipelineId,
                 tenantId: channel.tenantId,
                 enabled: true,
-                ...(conversation.departmentId ? { departmentId: conversation.departmentId } : {}),
+                departmentId: conversation.departmentId,
               },
               select: { id: true, departmentId: true, stages: true },
             });

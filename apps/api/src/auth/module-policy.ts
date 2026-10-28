@@ -43,6 +43,7 @@ export function routeModules(path: string, method: string): string[] {
     .replace(/^\/api\//, "")
     .replace(/^\//, "")
     .split("?")[0]!;
+  if (/^home-presentation(?:\/|$)/.test(p)) return [];
   if (/^(auth\/|profile(?:\/|$))/.test(p)) return [];
   if (/^wordpress(?:\/|$)/.test(p)) return ["WORDPRESS"];
   if (/^department-resources\/context$/.test(p) && method === "GET") return ["INBOX","CRM","CALENDAR","MARKETING","TASKS"];

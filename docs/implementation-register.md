@@ -19,7 +19,7 @@ Este registro substitui checklists antigos como fonte de estado, sem apagar os d
 
 Esses itens têm implementação no repositório; isso não substitui testes operacionais de contas externas e aparelhos reais.
 
-## Em implementação nesta entrega
+## Entregue no PR #179
 - Administração da plataforma separada dos proprietários de empresas clientes; criação exclusiva pela administração Véxora, com nome, segmento e plataformas internas opcionais.
 - Estrutura inicial isolada com departamentos, pipelines, rascunhos, agentes de IA e rotinas de acompanhamento.
 - Alternância real de empresa no servidor e renovação da sessão HTTP-only.
@@ -29,6 +29,13 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Senha temporária com troca obrigatória, redefinição administrativa, revogação de sessões e negativas individuais de módulo.
 - Bot silencioso, filas e eventos restritos à atribuição humana e notificações por destino configuráveis.
 - Testes de isolamento, políticas de senha, acesso por URL e criação concorrente na CI.
+
+## Em implementação: Home de apresentação
+- Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
+- Imagem e cor de fundo independentes para desktop/celular; logo pequeno centralizado por padrão.
+- Ajustar, preencher, centralizar, estender, ampliar e lado a lado; prévia, aplicação, edição com clique duplo/toque duplo e exclusão.
+- Armazenamento privado por empresa, validação de imagem e controle de revisões concorrentes.
+- Sidebar fixa no desktop com rolagem chapada na cor do tema; submenus sem rolagem própria.
 
 ## Pendências preservadas para as próximas alterações
 1. Personalizações detalhadas por recurso: os pacotes agora materializam agentes e rotinas também nas empresas existentes e preservam edições; falta uma matriz de sobrescritas por recurso com precedência explícita.

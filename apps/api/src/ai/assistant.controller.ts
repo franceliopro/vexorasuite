@@ -228,7 +228,7 @@ export class AssistantController {
           : "Não foi possível extrair texto deste documento. Verifique se o arquivo não está protegido ou danificado.");
       }
     }
-    content = content.replace(/\\u0000/g, "").trim();
+    content = content.split(String.fromCharCode(0)).join("").trim();
     if (!content) throw new BadRequestException("O arquivo não contém texto extraível. PDFs digitalizados por imagem precisam de OCR.");
     return { name: file.originalname.slice(0, 180), content: content.slice(0, 8000), truncated: content.length > 8000 };
   }

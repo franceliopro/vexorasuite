@@ -56,9 +56,11 @@ export function validateRuntimeFlow(value: unknown): string[] {
     if (s.transitions !== undefined && (!s.transitions || typeof s.transitions !== 'object' || Array.isArray(s.transitions))) { errors.push(`${s.id}: conexões inválidas`); continue; }
     for (const [option, target] of Object.entries(s.transitions || {})) if (!s.options.includes(option) || (target !== '__start__' && !ids.has(target))) errors.push(`${s.id}: destino inválido`);
     const type = s.action || s.kind || 'buttons';
-    if (!['human.handoff','assignment','department.route','asaas.payment.lookup'].includes(type)) {
+    if (type === 'crm.finalize') {
+      if (s.options.length) errors.push(`${s.id}: finalização comercial não precisa de saídas`);
+    } else if (!['human.handoff','assignment','department.route','asaas.payment.lookup'].includes(type)) {
       if (s.options.some(o => !s.transitions?.[o])) errors.push(`${s.id}: conecte todas as saídas`);
-      if (['input.text','tag','variable','crm.stage.move','crm.finalize'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
+      if (['input.text','tag','variable','crm.stage.move'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
     }
   }
   // Detect loops that have no wait for a customer message; they must not flood the channel.

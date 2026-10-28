@@ -74,7 +74,7 @@ export class IntelligenceRuntimeService {
       const profile=object(conversation.contact.metadata);
       const customFields=object(profile.customFields);
       for (const [key,value] of Object.entries(customFields)) {
-        const token=key.trim().replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^([^\p{L}_])/, '_$1').slice(0,40);
+        const token=key.trim().replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^([^\p{L}_])/u, '_$1').slice(0,40);
         if(token&&value!==null&&['string','number','boolean'].includes(typeof value)){if(!Object.hasOwn(variables,key))variables[key]=String(value).slice(0,500);if(!Object.hasOwn(variables,token))variables[token]=String(value).slice(0,500);}
       }
       const pipeline=conversation.contact.pipelineId?await tx.crmPipeline.findFirst({where:{id:conversation.contact.pipelineId,tenantId:channel.tenantId},select:{id:true,name:true,stages:true}}):null;
@@ -218,7 +218,7 @@ export class IntelligenceRuntimeService {
               const companyKnowledge = interpolateVariables(String(assistant.companyKnowledge || '').slice(0, 30000),variables);
               const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+interpolateVariables(doc.content.slice(0, 8000),variables)).join('').slice(0, 40000);
               const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize'].includes(id)):[];
-              const crmCatalog=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{id:true,name:true,stages:true}}):[];
+              const crmCatalog:any[]=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{id:true,name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>typeof stage?.id==='string').map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
               const systemPrompt = [
                 `Você atende pela empresa ${tenant.name}. Responda somente sobre a empresa, seus produtos, serviços e processos. Se o pedido sair do escopo ou faltar informação, explique com cordialidade e ofereça encaminhar a uma pessoa.`,
@@ -255,7 +255,8 @@ export class IntelligenceRuntimeService {
                 if(action.type==='move_pipeline'&&permittedActions.includes('crm.pipeline.move')&&conversation.departmentId&&typeof action.pipeline==='string'&&typeof action.stage==='string'){
                   const matchingPipelines=crmCatalog.filter((item:any)=>normalize(item.name)===normalize(action.pipeline));
                   const pipeline=matchingPipelines.length===1?matchingPipelines[0]:null;
-                  const stage=Array.isArray(pipeline?.stages)?pipeline.stages.find((item:any)=>item?.id===action.stage):null;
+                  const pipelineStages:any[]=Array.isArray(pipeline?.stages)?pipeline.stages as any[]:[];
+                  const stage:any=pipelineStages.find((item:any)=>typeof item?.id==='string'&&item.id===action.stage)||null;
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata);
                   if(pipeline&&stage&&!profile.crmFinalization&&!profile.crmRemoved&&(!latest.pipelineId||latest.pipelineId===pipeline.id)){
                     await tx.contact.update({where:{id:latest.id},data:{pipelineId:pipeline.id,metadata:{...profile,crmStage:stage.id}}});
@@ -351,8 +352,9 @@ export class IntelligenceRuntimeService {
           }
           if (type === 'crm.finalize') {
             const outcome=config.outcome;
+            const lossReason=typeof config.reason==='string'?config.reason:undefined;
             const reasons=['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade'];
-            if(!['WON','LOST'].includes(outcome||'')||(outcome==='LOST'&&!reasons.includes(config.reason||''))){
+            if(!['WON','LOST'].includes(outcome||'')||(outcome==='LOST'&&!reasons.includes(lossReason||''))){
               reason='crm_finalization_unavailable';await handoff();step=undefined as unknown as RuntimeStep;break;
             }
             const latestContact=await lockedContact(tx,channel.tenantId,conversation.contactId);
@@ -363,8 +365,8 @@ export class IntelligenceRuntimeService {
             const priorTags=Array.isArray(existing.tags)?existing.tags.filter((tag:any)=>typeof tag==='string'||(tag&&typeof tag==='object'&&typeof tag.name==='string')):[];
             const tags=outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
             const metadata=Object.fromEntries(Object.entries(existing).filter(([key])=>key!=='crmStage')) as Prisma.JsonObject;
-            await tx.contact.update({where:{id:latestContact.id},data:{metadata:{...metadata,tags,contactType:outcome==='WON'?'CUSTOMER':(typeof existing.contactType==='string'?existing.contactType:'LEAD'),crmFinalization:{outcome,...(outcome==='LOST'?{reason:config.reason}:{}),finalizedAt:new Date().toISOString(),kind:'FLOW'}}}});
-            crmFinalizationChange.value={id:latestContact.id,outcome,...(outcome==='LOST'&&typeof config.reason==='string'?{reason:config.reason}:{})};crmContactChanged=true;
+            await tx.contact.update({where:{id:latestContact.id},data:{metadata:{...metadata,tags,contactType:outcome==='WON'?'CUSTOMER':(typeof existing.contactType==='string'?existing.contactType:'LEAD'),crmFinalization:{outcome,...(outcome==='LOST'&&lossReason?{reason:lossReason}:{}),finalizedAt:new Date().toISOString(),kind:'FLOW'}}}});
+            crmFinalizationChange.value={id:latestContact.id,outcome,...(outcome==='LOST'&&lossReason?{reason:lossReason}:{})};crmContactChanged=true;
             skills.push('crm.deal.finalize');
             messages.push(renderStep({...step,options:[]},variables));
             state={flow:'INTELLIGENCE',revision:published.revision,completed:true,variables};

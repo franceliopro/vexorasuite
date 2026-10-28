@@ -79,7 +79,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
   useEffect(()=>{void Promise.all([api<any>('/api/backend/crm/pipelines'),api<any>('/api/backend/auth/me')]).then(([data,me])=>{const admin=['OWNER','ADMIN'].includes(me.role);setIsAdmin(admin);setPipelines(data.pipelines);setPipelineId(data.pipelines[0]?.id||'');setPipelineReady(true);}).catch(e=>{setError(e.message);setPipelineReady(true)});},[]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [fieldDefinitions, setFieldDefinitions] = useState<CrmFieldDefinition[]>([]);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState("");\n  const queryRef=useRef(query);queryRef.current=query;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState("");
@@ -118,7 +118,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     }
   }, [pipelineId,pipelineReady,isAdmin]);
 
-  useEffect(() => { void loadContacts(initialSearch);if(initialSearch){setQuery(initialSearch);setView("contacts")} void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(!initialSearch&&new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts,initialSearch]);
+  useEffect(() => { void loadContacts(initialSearch);if(initialSearch){setQuery(initialSearch);setView("contacts")} void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(!initialSearch&&new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts,initialSearch]);\n\n  useEffect(()=>{if(!pipelineReady)return;const source=new EventSource("/api/backend/events",{withCredentials:true});const onStage=(event:Event)=>{try{const data=JSON.parse((event as MessageEvent<string>).data) as {pipelineId?:string};if(data.pipelineId===pipelineId)void loadContacts(queryRef.current)}catch{}};source.addEventListener("contact.stage_changed",onStage);return()=>{source.removeEventListener("contact.stage_changed",onStage);source.close()}},[loadContacts,pipelineId,pipelineReady]);
 
   async function createContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

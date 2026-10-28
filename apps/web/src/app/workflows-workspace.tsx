@@ -120,7 +120,7 @@ export function WorkflowsWorkspace() {
     setEditing(true);
   }
   return (
-    <section className="simple-workspace">
+    <section className="simple-workspace workflows-workspace">
       <header className="creative-heading">
         <div>
           <h1>Workflows</h1>

@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { ReportsController } from '../operations/reports.controller';
 import { FinanceController } from '../operations/finance.controller';
 import { normalize } from './flow-runtime';
-import { parseBrazilianDate, formatDateBR } from '../common/date-format';
+import { parseBrazilianDate, formatDateBR, formatMonthBR } from '../common/date-format';
 export type ExportReport = { title:string; from:string; to:string; source:string; basis:string; summary:string; headers:string[]; rows:(string|number)[][]; chart:{label:string;value:number}[]; unit:string };
 const DAY=86400000;
 export function reportPeriod(question:string,now=new Date()) {

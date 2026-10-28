@@ -23,3 +23,5 @@ Novos controles de automação ficam abaixo do fluxo/canvas; nunca adicionar car
 Sidebar desktop fixa no viewport, com rolagem apenas na navegação quando necessário e barra fina chapada na cor do tema. Submenus expandem normalmente, sem rolagem própria. A Home aceita uma cor sólida e um logo pequeno centralizado, com escolhas independentes para desktop e celular.
 
 Toda barra de rolagem do produto deve ser fina e chapada: cinza escuro em área clara e branca em área escura, inclusive a sidebar escura do tema híbrido. Aplicar a documentos e regiões internas; evitar barras próprias nos submenus.
+
+Na navegação lateral, recolher o grupo de submenus ao selecionar outro módulo ou focar outro grupo. Manter aberto enquanto a pessoa navega dentro do mesmo grupo; somente um grupo aberto por vez.

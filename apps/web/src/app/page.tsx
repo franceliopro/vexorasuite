@@ -108,6 +108,7 @@ export default function HomePage() {
   useEffect(()=>{if(!session||session.user.mustChangePassword)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
   const [active, setActive] = useState("");
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
+  useEffect(()=>{const parent=navigation.flatMap(group=>group.items).find(item=>item.children?.some(child=>child.label===active));setExpandedModules(parent?[parent.label]:[]);},[active]);
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
@@ -220,13 +221,13 @@ export default function HomePage() {
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
-                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label}>
+                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onFocusCapture={()=>setExpandedModules(current=>current.filter(name=>name===item.label))}>
                   <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {
-                        setExpandedModules((current) => current.includes(item.label) ? current.filter((name) => name !== item.label) : [...current, item.label]);
+                        setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
-                        setActive(item.label); setMenuOpen(false);
+                        setExpandedModules([]);setActive(item.label); setMenuOpen(false);
                       }
                     }}>
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>

@@ -17,3 +17,5 @@ A sidebar desktop é fixa no viewport. Somente sua área de navegação rola qua
 Novos controles de automação ficam abaixo do fluxo; o título Véxora Intelligence Engine permanece no topo.
 
 A padronização das barras de rolagem vale para todo o produto: documento, painéis, editores e campos. Sem bordas arredondadas, sombras ou relevo. A sidebar do tema híbrido usa a variação de ambiente escuro.
+
+Na navegação, apenas um grupo de submenus permanece aberto. Selecionar outro módulo ou focar outro grupo pelo teclado recolhe o anterior; navegar entre os filhos do grupo mantém sua abertura. O logo também recolhe os grupos ao voltar à apresentação.

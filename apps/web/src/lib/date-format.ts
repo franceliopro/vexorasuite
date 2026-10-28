@@ -34,6 +34,7 @@ export function formatTimeBR(value: string | Date | null | undefined): string {
 
 export function formatDateTimeBR(value: string | Date | null | undefined): string {
   if (value == null || value === "") return "";
+  if (typeof value === "string" && DATE_ONLY.test(value)) return formatDateBR(value);
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);
   return formatDateBR(date) + " " + formatTimeBR(date);

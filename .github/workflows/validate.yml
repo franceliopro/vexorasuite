@@ -94,6 +94,10 @@ jobs:
         run: pnpm --filter @vexorasuite/api exec node test/prepared-concurrency.cjs
       - name: Communications and internal workflow concurrency regressions
         run: pnpm --filter @vexorasuite/api exec node test/communications-concurrency.cjs
+      - name: Company onboarding and isolation regressions
+        run: pnpm --filter @vexorasuite/api exec node test/company-isolation.cjs
+      - name: Platform, passwords and department isolation regressions
+        run: pnpm --filter @vexorasuite/api exec node test/platform-access-isolation.cjs
       - name: Web typecheck
         run: pnpm --filter @vexorasuite/web typecheck
       - name: Web build

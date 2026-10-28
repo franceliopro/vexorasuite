@@ -6,7 +6,7 @@ describe('department presets',()=>{
  const departmentId='12345678-1234-4234-8234-123456789abc';
  function fixture(target:any={id:departmentId,key:'FINANCEIRO_LINK',name:'Financeiro Link',modules:['EMAIL'],isActive:true}){
  let integrations:any={google:{connected:true},chatbotDraft:{name:'Preservar'}};
- const tx:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations})),update:jest.fn(async(v:any)=>{integrations=v.data.integrations})},department:{findFirst:jest.fn(async()=>target),create:jest.fn(),update:jest.fn(async(v:any)=>({...target,...v.data}))},crmPipeline:{findUnique:jest.fn(async()=>null),create:jest.fn()},auditLog:{create:jest.fn()}};
+ const tx:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations})),update:jest.fn(async(v:any)=>{integrations=v.data.integrations})},department:{findFirst:jest.fn(async()=>target),create:jest.fn(),update:jest.fn(async(v:any)=>({...target,...v.data}))},crmPipeline:{findUnique:jest.fn(async()=>null),create:jest.fn()},internalWorkflow:{findFirst:jest.fn(async()=>null),create:jest.fn(async()=>({id:'workflow'})),update:jest.fn()},auditLog:{create:jest.fn()}};
  const db:any={$transaction:(fn:any)=>fn(tx)};
  return {tx,controller:new BusinessTemplatesController(db),root:()=>integrations};
  }

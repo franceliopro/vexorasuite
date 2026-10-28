@@ -1,3 +1,4 @@
+import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
@@ -159,7 +160,8 @@ export class ConversationsController {
   @Post()
   async create(@Req() request: AuthenticatedRequest, @Body() input: CreateConversationDto) {
     const tenantId = request.user.tenantId;
-    const contact = await this.prisma.contact.findFirst({ where: { id: input.contactId, tenantId }, select: { id: true } });
+    const departmentIds=await this.memberDepartmentIds(tenantId,request.user.sub);
+    const contact = await this.prisma.contact.findFirst({ where: { id: input.contactId, tenantId,...(!["OWNER","ADMIN"].includes(request.user.role)?{OR:[{conversations:{some:{tenantId,...assignedConversationScope(tenantId,request.user.sub,departmentIds)}}},{pipeline:{tenantId,departmentId:{in:departmentIds}}}]}:{}) }, select: { id: true,pipeline:{select:{departmentId:true,tenantId:true}} } });
     if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
     let channelConnectionId: string | undefined;
     if (input.channelConnectionId) {
@@ -171,10 +173,11 @@ export class ConversationsController {
       channelConnectionId = channel?.id;
     }
     const conversation = await this.prisma.conversation.create({
-      data: { tenantId, contactId: contact.id, channel: input.channel?.trim().toUpperCase() || "WHATSAPP", ...(channelConnectionId ? { channelConnectionId } : {}) },
+      data: { tenantId, contactId: contact.id,handlingMode:"HUMAN",assigneeId:request.user.sub,departmentId:contact.pipeline?.tenantId===tenantId?contact.pipeline.departmentId:null, channel: input.channel?.trim().toUpperCase() || "WHATSAPP", ...(channelConnectionId ? { channelConnectionId } : {}) },
       include: { contact: { select: { id: true, name: true, phone: true } } },
     });
     this.events.publish(tenantId, "conversation.created", { id: conversation.id, contactId: conversation.contactId, status: conversation.status });
+    this.events.publish(tenantId,"conversation.assigned",{id:conversation.id});
     return conversation;
   }
 
@@ -225,12 +228,13 @@ export class ConversationsController {
     // Conditional update prevents two agents from simultaneously taking the same unassigned conversation.
     const claimed = await this.prisma.conversation.updateMany({
       where: { id, tenantId, status: { in: ["OPEN", "PENDING"] }, OR: [{ assigneeId: null }, { assigneeId: request.user.sub }] },
-      data: { assigneeId: request.user.sub },
+      data: { assigneeId: request.user.sub,handlingMode:"HUMAN" },
     });
     if (!claimed.count) throw new BadRequestException("Esta conversa já foi atribuída a outro atendente ou não está mais disponível.");
     const updated = await this.prisma.conversation.findFirst({ where: { id, tenantId }, include: { assignee: { select: { id: true, name: true } } } });
     if (!updated) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status, assigneeId: updated.assigneeId });
+    if(updated.assigneeId)this.events.publish(tenantId,"conversation.assigned",{id});
     return updated;
   }
 
@@ -238,16 +242,18 @@ export class ConversationsController {
   async assign(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string | null | undefined, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true,departmentId:true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de alterar o responsável.");
     if (userId !== null && userId !== undefined) {
       if (!isUUID(userId)) throw new BadRequestException("Atendente inválido.");
       const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId, user: { isActive: true } }, select: { id: true } });
       if (!membership) throw new BadRequestException("O atendente selecionado não pertence a esta empresa.");
+      if(conversation.departmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:conversation.departmentId,userId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento desta conversa. Use a transferência para mudar de departamento.");
     }
-    const updated = await this.prisma.conversation.update({ where: { id }, data: { assigneeId: userId ?? null }, include: { assignee: { select: { id: true, name: true } } } });
+    const updated = await this.prisma.conversation.update({ where: { id }, data: { assigneeId: userId ?? null,...(userId?{handlingMode:"HUMAN" as const}:{}) }, include: { assignee: { select: { id: true, name: true } } } });
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status, assigneeId: updated.assigneeId });
+    if(updated.assigneeId)this.events.publish(tenantId,"conversation.assigned",{id});
     return updated;
   }
 
@@ -295,12 +301,14 @@ export class ConversationsController {
         throw new BadRequestException("Atendente inválido para esta empresa.");
       }
     }
+    if(departmentId&&assigneeId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
     const updated = await this.prisma.conversation.update({
       where: { id },
       data: { handlingMode: "HUMAN", departmentId, assigneeId, status: "OPEN" },
       include: { assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } } },
     });
     this.events.publish(tenantId, "conversation.updated", { id, handlingMode: "HUMAN", departmentId, assigneeId, status: updated.status });
+    if(departmentId||assigneeId)this.events.publish(tenantId,"conversation.assigned",{id});
     return updated;
   }
 
@@ -377,20 +385,14 @@ export class ConversationsController {
     return sent;
   }
   private async memberDepartmentIds(tenantId: string, userId: string): Promise<string[]> {
-    const rows = await this.prisma.departmentMember.findMany({ where: { tenantId, userId }, select: { departmentId: true } });
+    const rows = await this.prisma.departmentMember.findMany({ where: { tenantId, userId,department:{isActive:true,modules:{has:"INBOX"}} }, select: { departmentId: true } });
     return rows.map((row) => row.departmentId);
   }
 
   private async accessWhere(request: AuthenticatedRequest, view = "new"): Promise<Record<string, any>> {
     if (["OWNER", "ADMIN"].includes(request.user.role)) return {};
-    if (view === "new") return { assigneeId: null, departmentId: null, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
-    if (view === "all-open") return { OR:[{assigneeId:request.user.sub},{departmentId:{in:request.user.departmentIds||[]}},{participants:{some:{tenantId:request.user.tenantId,userId:request.user.sub}}}], status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
-    return { OR: [
-      { assigneeId: request.user.sub },
-      { departmentId: { in: departmentIds } },
-      { participants: { some: { tenantId: request.user.tenantId, userId: request.user.sub } } },
-    ] };
+    return assignedConversationScope(request.user.tenantId,request.user.sub,departmentIds);
   }
 
   private async assertCanAccess(request: AuthenticatedRequest, conversationId: string, view = "new"): Promise<void> {
@@ -424,7 +426,7 @@ export class ConversationsController {
 
   @Post(":id/restore")
   async restore(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) await this.assertCanAccess(request, id, view);
+    if (!["OWNER", "ADMIN"].includes(request.user.role)) await this.assertCanAccess(request, id, view);
     const existing = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, include: { contact: { select: { metadata: true } } } });
     if (!existing) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (isFinalizedConversation(existing.contact.metadata, existing.id)) throw new BadRequestException("Este atendimento foi finalizado comercialmente e não pode voltar à fila.");

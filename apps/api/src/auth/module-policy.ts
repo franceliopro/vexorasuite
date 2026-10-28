@@ -5,6 +5,7 @@ export const MODULES = [
   "TASKS",
   "AUTOMATION",
   "MARKETING",
+  "WORDPRESS",
   "EMAIL",
   "FINANCE",
   "CHANNELS",
@@ -27,13 +28,14 @@ export function effectiveModules(
   individual: readonly string[],
   departments: { modules: string[]; isActive?: boolean }[],
   inherited: readonly string[] = [],
+  denied: readonly string[] = [],
 ): string[] {
-  if (administrative(role)) return [...MODULES];
+  if (administrative(role)) return MODULES.filter(m=>!denied.includes(m));
   const permitted = new Set(
     departments.filter((d) => d.isActive !== false).flatMap((d) => d.modules),
   );
   return [...new Set([...individual,...inherited])].filter(
-    (m) => MODULES.includes(m as ModuleKey) && permitted.has(m),
+    (m) => MODULES.includes(m as ModuleKey) && permitted.has(m) && !denied.includes(m),
   );
 }
 export function routeModules(path: string, method: string): string[] {
@@ -42,6 +44,8 @@ export function routeModules(path: string, method: string): string[] {
     .replace(/^\//, "")
     .split("?")[0]!;
   if (/^(auth\/|profile(?:\/|$))/.test(p)) return [];
+  if (/^wordpress(?:\/|$)/.test(p)) return ["WORDPRESS"];
+  if (/^department-resources\/context$/.test(p) && method === "GET") return ["INBOX","CRM","CALENDAR","MARKETING","TASKS"];
   if (/^contacts\/(brand-settings|profile-config)/.test(p) && method === "GET")
     return ["INBOX", "CRM", "SETTINGS"];
   if(/^contacts\/[^/]+\/(profile|history)$/.test(p))return ['INBOX','CRM'];

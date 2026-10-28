@@ -1,8 +1,8 @@
 "use client";
 import { DepartmentManager } from "./department-manager";
-import { ModuleChoices } from "./module-choices";
+import { ModuleChoices,moduleLabels } from "./module-choices";
 import { useEffect, useState } from "react";
-export function TeamWorkspace() {
+export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
   const [editingId,setEditingId]=useState('');
   const [tab, setTab] = useState("agents");
   const [rows, setRows] = useState<any[]>([]),
@@ -10,7 +10,8 @@ export function TeamWorkspace() {
     [form, setForm] = useState({
       name: "",
       email: "",
-      password: "",
+      password: "senha123",
+      role:"AGENT",deniedModules:[] as string[],
       departmentIds: [] as string[],
       modules: [] as string[],
     }),
@@ -41,7 +42,7 @@ export function TeamWorkspace() {
         </div>
         <button
           className="primary-button"
-          onClick={() => {setEditingId('');setForm({name:'',email:'',password:'',departmentIds:[],modules:[]});setEditing(v=>!v)}}
+          onClick={() => {setEditingId('');setForm({name:'',email:'',password:'senha123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
         >
           {editing ? "Fechar cadastro" : "+ Cadastrar atendente"}
         </button>
@@ -85,7 +86,8 @@ export function TeamWorkspace() {
                   setForm({
                     name: "",
                     email: "",
-                    password: "",
+                    password: "senha123",
+      role:"AGENT",deniedModules:[] as string[],
                     departmentIds: [],
                     modules: [],
                   });
@@ -128,12 +130,12 @@ export function TeamWorkspace() {
                 />
               </label>
               <label>
-                Senha inicial
+                Senha temporária
                 <input
                   type="password"
                   disabled={!!editingId}
                   required={!editingId}
-                  minLength={12}
+                  minLength={8}
                   maxLength={128}
                   autoComplete="new-password"
                   value={form.password}
@@ -142,6 +144,8 @@ export function TeamWorkspace() {
                   }
                 />
               </label>
+              <p>A senha temporária deverá ser alterada antes do acesso aos módulos.</p>
+              {platformAdmin&&!editingId&&<label>Perfil<select value={form.role} onChange={e=>setForm(v=>({...v,role:e.target.value,modules:e.target.value==="OWNER"?Object.keys(moduleLabels):v.modules,deniedModules:[]}))}><option value="AGENT">Atendente</option><option value="OWNER">Proprietário da empresa</option></select></label>}
               <fieldset>
                 <legend>Setores</legend>
                 {departments
@@ -154,6 +158,7 @@ export function TeamWorkspace() {
                         onChange={(e) =>
                           setForm((v) => ({
                             ...v,
+                            modules:e.target.checked?[...new Set([...v.modules,...(d.modules||[])])]:v.modules,
                             departmentIds: e.target.checked
                               ? [...v.departmentIds, d.id]
                               : v.departmentIds.filter((id) => id !== d.id),
@@ -167,7 +172,7 @@ export function TeamWorkspace() {
               <ModuleChoices
                 value={form.modules}
                 allowed={
-                  [
+                  form.role==="OWNER"?undefined:[
                     ...new Set(
                       departments
                         .filter((d) => form.departmentIds.includes(d.id))
@@ -175,7 +180,7 @@ export function TeamWorkspace() {
                     ),
                   ] as string[]
                 }
-                onChange={(modules) => setForm((v) => ({ ...v, modules }))}
+                onChange={(modules) => setForm((v) => ({ ...v, modules,deniedModules:Object.keys(moduleLabels).filter(id=>!modules.includes(id)) }))}
               />
               <button className="primary-button" disabled={busy}>
                 {editingId?"Salvar permissões":"Cadastrar"}
@@ -207,7 +212,8 @@ export function TeamWorkspace() {
                       .join(", ") || "Sem setor definido"}
                   </small>
                 </div>
-<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.name,email:r.email,password:'',departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>
+{r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.name,email:r.email,password:'senha123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}
+              {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice('Senha de '+r.name+' redefinida para senha123. A troca será obrigatória no próximo acesso.');await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               </article>
             ))}
           </section>

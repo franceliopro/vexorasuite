@@ -1,4 +1,6 @@
 "use client";
+import {ChangePasswordScreen} from "./change-password-screen";
+import {CompanySwitcher} from "./company-switcher";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 const MailWorkspace=dynamic(()=>import("./mail-workspace").then(m=>m.MailWorkspace));
@@ -102,7 +104,7 @@ export default function HomePage() {
   }, []);
 
   const refreshProfile=async()=>{const r=await fetch('/api/backend/auth/me',{cache:'no-store'});if(r.ok)setSession(await r.json());};
-  useEffect(()=>{if(!session)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
+  useEffect(()=>{if(!session||session.user.mustChangePassword)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
   const [active, setActive] = useState("Visão geral");
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
@@ -132,7 +134,7 @@ export default function HomePage() {
   useEffect(()=>{try{localStorage.removeItem("vexora:quick-replies");localStorage.removeItem("vexora-chatbot-rastreabem-draft-v2")}catch{}},[]);
   const [overview,setOverview]=useState<{openConversations:number;contacts:number;activeAgents:number;completedConversations:number;recent:{id:string;status:string;updatedAt:string;contact:{name:string}}[]}|null>(null);
   const [overviewError,setOverviewError]=useState("");
-  useEffect(()=>{if(!session||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível atualizar os indicadores.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
+  useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível atualizar os indicadores.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -168,7 +170,7 @@ export default function HomePage() {
   useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if(saved==="dark"||saved==="hybrid"||saved==="light")setTheme(saved); } catch {} finally{setThemeReady(true)} }, []);
   useEffect(() => { if(!themeReady)return; document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme,themeReady]);
   useEffect(() => { const updateGreeting=()=>{const hour=new Date().getHours();setGreeting(hour>=5&&hour<12?"Bom dia":hour>=12&&hour<18?"Boa tarde":hour>=18?"Boa noite":"Boa madrugada");};updateGreeting();const timer=window.setInterval(updateGreeting,60000);return()=>window.clearInterval(timer); }, []);
-  useEffect(() => { if (!session) return; let live=true; const apply=(v:any)=>{if(!live||!v)return;const next={...defaultBrandAssets,...v};if(!/^#[0-9a-fA-F]{6}$/.test(next.primaryColor))next.primaryColor=defaultBrandAssets.primaryColor;setBrandAssets(next);document.documentElement.style.setProperty("--primary",next.primaryColor);const hex=next.primaryColor.slice(1);const rgb={r:parseInt(hex.slice(0,2),16),g:parseInt(hex.slice(2,4),16),b:parseInt(hex.slice(4,6),16)};const luminance=(0.2126*rgb.r+0.7152*rgb.g+0.0722*rgb.b)/255;document.documentElement.style.setProperty("--primary-contrast",brandTextColor(next.primaryColor));document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${next.primaryColor} 13%, var(--card))`);if(next.favicon){let link=document.querySelector<HTMLLinkElement>('link[rel~="icon"]');if(!link){link=document.createElement("link");link.rel="icon";document.head.appendChild(link);}link.href=next.favicon;}};void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(apply).catch(()=>{});const onBrandUpdate=(event:Event)=>apply((event as CustomEvent).detail);window.addEventListener("vexora:brand-updated",onBrandUpdate);return()=>{live=false;window.removeEventListener("vexora:brand-updated",onBrandUpdate);}; }, [session?.tenant.slug]);
+  useEffect(() => { if (!session||session.user.mustChangePassword) return; let live=true; const apply=(v:any)=>{if(!live||!v)return;const next={...defaultBrandAssets,...v};if(!/^#[0-9a-fA-F]{6}$/.test(next.primaryColor))next.primaryColor=defaultBrandAssets.primaryColor;setBrandAssets(next);document.documentElement.style.setProperty("--primary",next.primaryColor);const hex=next.primaryColor.slice(1);const rgb={r:parseInt(hex.slice(0,2),16),g:parseInt(hex.slice(2,4),16),b:parseInt(hex.slice(4,6),16)};const luminance=(0.2126*rgb.r+0.7152*rgb.g+0.0722*rgb.b)/255;document.documentElement.style.setProperty("--primary-contrast",brandTextColor(next.primaryColor));document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${next.primaryColor} 13%, var(--card))`);if(next.favicon){let link=document.querySelector<HTMLLinkElement>('link[rel~="icon"]');if(!link){link=document.createElement("link");link.rel="icon";document.head.appendChild(link);}link.href=next.favicon;}};void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(apply).catch(()=>{});const onBrandUpdate=(event:Event)=>apply((event as CustomEvent).detail);window.addEventListener("vexora:brand-updated",onBrandUpdate);return()=>{live=false;window.removeEventListener("vexora:brand-updated",onBrandUpdate);}; }, [session?.tenant.slug]);
   useEffect(()=>{if(!assistantOpen)return;const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape")setAssistantOpen(false)};const outside=(e:MouseEvent)=>{if(e.target instanceof Element&&!e.target.closest(".ai-assistant-panel,.ai-assistant-trigger"))setAssistantOpen(false)};document.addEventListener("keydown",onKey);document.addEventListener("mousedown",outside);return()=>{document.removeEventListener("keydown",onKey);document.removeEventListener("mousedown",outside)}},[assistantOpen]);
   const [globalSearch,setGlobalSearch]=useState("");
   const [crmSearch,setCrmSearch]=useState("");
@@ -186,8 +188,9 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
-  const moduleVisible=(label:string)=>['OWNER','ADMIN'].includes(session?.role||'')||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleVisible=(label:string)=>session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
+  const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isHome = active === "Visão geral";
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
@@ -196,9 +199,10 @@ export default function HomePage() {
     return <div className="auth-screen"><div className="auth-panel"><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
   }
   if (authStatus === "anonymous") {
-    return <AuthScreen onAuthenticated={(value) => { setSession(value); setAuthStatus("authenticated"); }} />;
+    return <AuthScreen onAuthenticated={(value) => { setSession(value); setAuthStatus("authenticated");void refreshProfile(); }} />;
   }
 
+  if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
   return (
     <div className="suite-app">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
@@ -234,7 +238,7 @@ export default function HomePage() {
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-utilities"><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button><details className="sidebar-help"><summary className="sidebar-icon" aria-label="Ajuda" title="Ajuda"><CircleHelp size={18}/></summary><div><strong>Precisa de ajuda?</strong><p>Consulte as configurações dos canais ou peça orientação no assistente Véxora.</p><button className="text-button" onClick={()=>setAssistantOpen(true)}>Abrir assistente</button></div></details></div>
-          {session&&<SidebarProfile user={session.user} canManage={canManage} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
+          {session&&<SidebarProfile user={session.user} canManage={canManage&&moduleVisible("Atendentes")} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
         </div>
       </aside>
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
@@ -246,7 +250,7 @@ export default function HomePage() {
           <div className="topbar-actions">
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
-            {session?.role === "OWNER" ? <div className="workspace-info-wrap"><button type="button" className="workspace-info-button" onClick={() => setWorkspaceInfoOpen(v=>!v)} aria-expanded={workspaceInfoOpen} title="Informações do ambiente"><span className="workspace-avatar">V</span><span>Ambiente</span><Icon name="chevron-right" size={13}/></button>{workspaceInfoOpen?<div className="workspace-info-popover"><strong>{session?.tenant.name||"Minha empresa"}</strong><small>{session?.tenant.slug||"Workspace"}</small><p>Ambiente atual da empresa. A alternância entre empreendimentos será exibida quando houver mais de um vínculo disponível para sua conta.</p></div>:null}</div>:null}
+            {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
             <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
             <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
@@ -256,11 +260,11 @@ export default function HomePage() {
 
         <div className="page-content"><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isHome ? <section className="page-heading">
-            <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">Acompanhe a operação da sua empresa em um só lugar.</p></div>
+            <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
           </section> : null}
 
-          {isHome ? (
+          {!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p></section>:isHome ? (
             <>
               {overviewError&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
                 {metrics.map((metric) => <article className="metric-card" key={metric.label}><div className="metric-top"><span>{metric.label}</span><span className="metric-icon"><Icon name={metric.icon} size={17} /></span></div><strong className="metric-value">{overview?overview[metric.key].toLocaleString("pt-BR"):metric.value}</strong><p>{metric.note}</p></article>)}
@@ -294,7 +298,7 @@ export default function HomePage() {
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":active==="Postagens"?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Atendentes" ? (
-            canManage ? <TeamWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true}/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (
             canManage ? <MailWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Workflows" ? (

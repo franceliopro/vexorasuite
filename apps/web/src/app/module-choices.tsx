@@ -6,6 +6,7 @@ export const moduleLabels: Record<string, string> = {
   TASKS: "Tarefas",
   AUTOMATION: "Automação e agentes de IA",
   MARKETING: "Marketing e Drive",
+  WORDPRESS: "Gestão do WordPress",
   EMAIL: "E-mails",
   FINANCE: "Financeiro",
   CHANNELS: "Canais e integrações",

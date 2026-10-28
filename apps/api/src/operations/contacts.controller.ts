@@ -1,3 +1,4 @@
+import {assignedConversationScope} from "./conversation-visibility";
 import {accessiblePipeline,contactPipelineAccess} from './crm-pipelines.controller';
 import {administrative} from '../auth/module-policy';
 import { contactMetadata, lockedContact, mutateContactMetadata } from "../prisma/contact-metadata";
@@ -154,7 +155,7 @@ export class ContactsController {
     await contactPipelineAccess(this.prisma,request,id);
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
-    return this.prisma.conversation.findMany({ where: { contactId: contact.id, tenantId: request.user.tenantId }, select: { id: true, status: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 50 });
+    return this.prisma.conversation.findMany({ where: { contactId: contact.id, tenantId: request.user.tenantId,...(!administrative(request.user.role)?assignedConversationScope(request.user.tenantId,request.user.sub,request.user.departmentIds||[]):{}) }, select: { id: true, status: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 50 });
   }
 
   @Patch(":id/profile")

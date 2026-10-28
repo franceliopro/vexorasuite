@@ -1,4 +1,4 @@
-import { moduleSelection } from "../auth/module-policy";
+import { MODULES,moduleSelection,effectiveModules,patternModules } from "../auth/module-policy";
 import {
   BadRequestException,
   Body,
@@ -36,18 +36,22 @@ export class TeamController {
       select: {
         role: true,
         modules: true,
-        user: { select: { id: true, name: true, email: true, isActive: true } },
+        deniedModules:true,
+        user: { select: { id: true, name: true, email: true, isActive: true,mustChangePassword:true } },
       },
       orderBy: { user: { name: "asc" } },
     });
     const members = await this.prisma.departmentMember.findMany({
       where: { tenantId: req.user.tenantId },
-      select: { departmentId: true, userId: true },
+      select: { departmentId: true, userId: true,department:{select:{modules:true,isActive:true}} },
     });
+    const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
     return rows.map((r) => ({
       ...r.user,
       role: r.role,
-      modules: r.modules,
+      modules: effectiveModules(r.role,r.modules,members.filter(m=>m.userId===r.user.id).map(m=>m.department),patternModules(tenant.integrations,r.user.id,members.filter(m=>m.userId===r.user.id).map(m=>m.departmentId)),r.deniedModules),
+      deniedModules:r.deniedModules,
+      canEditAccess:req.user.isPlatformAdmin===true||r.role==="AGENT",
       departmentIds: members
         .filter((m) => m.userId === r.user.id)
         .map((m) => m.departmentId),
@@ -58,17 +62,19 @@ export class TeamController {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const email =
       typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+    const password=typeof input.password==="string"&&input.password?input.password:"senha123";
+    const role=input.role==="OWNER"&&req.user.isPlatformAdmin?"OWNER":"AGENT";
+    if(input.role&&input.role!==role)throw new ForbiddenException("Somente a administração da Véxora cadastra proprietários.");
     if (
       name.length < 2 ||
       name.length > 160 ||
       !/^[-\w.+]+@[\w.-]+\.[a-z]{2,}$/i.test(email) ||
       email.length > 254 ||
-      typeof input.password !== "string" ||
-      input.password.length < 12 ||
-      input.password.length > 128
+      password.length < 8 ||
+      password.length > 128
     )
       throw new BadRequestException(
-        "Informe nome, e-mail e senha inicial de 12 a 128 caracteres.",
+        "Informe nome, e-mail e senha temporária de 8 a 128 caracteres.",
       );
     const ids = Array.isArray(input.departmentIds)
       ? ([...new Set(input.departmentIds)] as string[])
@@ -87,13 +93,15 @@ export class TeamController {
       throw new BadRequestException(
         "Este e-mail já possui uma conta. Use outro e-mail ou o vínculo existente da empresa.",
       );
-    let modules: string[];
+    let modules: string[],deniedModules:string[];
     try {
       modules = moduleSelection(input.modules || []);
+      deniedModules=moduleSelection(input.deniedModules||[]);
     } catch {
       throw new BadRequestException("Módulos inválidos.");
     }
-    const passwordHash = await hash(input.password, 12);
+    if(!req.user.isPlatformAdmin){const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException("Você não pode conceder módulos que não possui.");deniedModules=[...new Set([...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}
+    const passwordHash = await hash(password, 12);
     try {
       const user = await this.prisma.$transaction(async (tx) => {
         const departments = await tx.department.count({
@@ -108,15 +116,15 @@ export class TeamController {
             "Um setor não está ativo nesta empresa.",
           );
         const user = await tx.user.create({
-          data: { name, email, passwordHash },
+          data: { name, email, passwordHash,mustChangePassword:true },
           select: { id: true, name: true, email: true },
         });
         await tx.membership.create({
           data: {
             tenantId: req.user.tenantId,
             userId: user.id,
-            role: "AGENT",
-            modules,
+            role,
+            modules,deniedModules,
           },
         });
         if (ids.length)
@@ -147,6 +155,20 @@ export class TeamController {
       throw e;
     }
   }
- @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);let modules:string[];try{modules=moduleSelection(input.modules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id}});if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
+ @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);let modules:string[],deniedModules:string[];try{modules=moduleSelection(input.modules||[]);deniedModules=moduleSelection(input.deniedModules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});if(member?.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('O acesso da administração Véxora não pode ser alterado por uma empresa.');if(member&&!req.user.isPlatformAdmin){if(member.role!=='AGENT')throw new ForbiddenException('Somente a administração da Véxora altera acessos administrativos.');const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException('Você não pode conceder módulos que não possui.');deniedModules=[...new Set([...member.deniedModules,...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules,deniedModules}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,deniedModules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
+
+ @Post(':id/reset-password') async resetPassword(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
+  if(!req.user.isPlatformAdmin)throw new ForbiddenException('Somente a administração da Véxora pode redefinir a senha.');
+  const passwordHash=await hash('senha123',12);
+  await this.prisma.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
+   if(!await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true}}))throw new BadRequestException('Usuário não pertence a esta empresa.');
+   await tx.user.update({where:{id},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
+   await tx.pushSubscription.deleteMany({where:{userId:id}});
+   await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'user.password.reset',entityType:'user',entityId:id}});
+  });
+  this.events.publish(req.user.tenantId,'team.updated',{id});
+  return {reset:true,mustChangePassword:true};
+ }
 
 }

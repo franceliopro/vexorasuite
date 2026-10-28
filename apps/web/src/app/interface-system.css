@@ -98,3 +98,16 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .business-template-card details {margin:12px 0}
 .business-flow-library {margin-bottom:14px}
 .business-flow-library button,.business-flow-library select {margin:6px;max-width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:inherit}
+
+.company-dialog-backdrop{position:fixed;inset:0;z-index:2000;background:#0007;display:grid;place-items:center;padding:16px}
+.company-dialog{width:min(520px,100%);max-height:85dvh;overflow:auto;padding:24px}
+.company-dialog header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.company-dialog form,.resource-fields{display:grid;gap:14px}
+.company-dialog label,.resource-fields label{display:grid;gap:6px;font-size:13px}
+.company-dialog input,.company-dialog select,.resource-fields input,.resource-fields select{width:100%;max-width:100%;min-height:42px;padding:9px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-1);color:inherit}
+.company-list{display:grid;gap:8px;margin:16px 0}
+.company-list button{display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-1);color:inherit;cursor:pointer}
+.company-list small{display:block;color:var(--text-secondary)}
+@media(max-width:760px){.company-dialog{padding:16px}.company-dialog :is(input,select){font-size:16px}.resource-fields{grid-template-columns:1fr}}
+
+.topbar-company-button{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;max-width:230px;min-width:0}.topbar-company-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.topbar-company-button svg{flex-shrink:0}@media(max-width:760px){.topbar-company-button{max-width:150px;font-size:11px;padding:6px}}

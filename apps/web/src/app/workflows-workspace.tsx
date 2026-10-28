@@ -43,7 +43,7 @@ export function WorkflowsWorkspace() {
   const [id, setId] = useState(""),
     [name, setName] = useState(""),
     [trigger, setTrigger] = useState("SCHEDULE"),
-    [timezone, setTimezone] = useState("America/Sao_Paulo", "America/Cuiaba"),
+    [timezone, setTimezone] = useState("America/Sao_Paulo"),
     [localStart, setLocalStart] = useState(""),
     [repeatDays, setRepeatDays] = useState(0),
     [channelId, setChannelId] = useState(""),
@@ -231,6 +231,7 @@ export function WorkflowsWorkspace() {
               >
                 {[
                   "America/Sao_Paulo",
+                  "America/Cuiaba",
                   "America/Manaus",
                   "America/Rio_Branco",
                   "America/Noronha",

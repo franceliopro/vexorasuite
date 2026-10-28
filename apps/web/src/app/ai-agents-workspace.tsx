@@ -35,6 +35,13 @@ export function AiAgentsWorkspace() {
   const [configAvailable,setConfigAvailable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("Perfil");
+  const [workspaceTab,setWorkspaceTab]=useState<"Agentes"|"Configuração geral"|"Testar">("Agentes");
+  const [engineStatus,setEngineStatus]=useState<{active?:boolean;publications?:{active:boolean;flowName?:string}[]}|null>(null);
+  const [testMessage,setTestMessage]=useState("Olá! Como você pode me ajudar?");
+  const [testResponse,setTestResponse]=useState<{answer:string;model:string;provider:string;tokensUsed:number}|null>(null);
+  const [testError,setTestError]=useState("");
+  const [testVoiceStatus,setTestVoiceStatus]=useState("");
+  const [testing,setTesting]=useState(false);
   const [newAction, setNewAction] = useState("");
   const [workflowRequest,setWorkflowRequest] = useState("Crie o fluxo de atendimento da Rastreabem com financeiro, suporte, comercial e administrativo.");
   const [workflowDraft,setWorkflowDraft] = useState<{title:string;status:string;steps:{id:string;type:string;label:string}[];missing:string[]}|null>(null);
@@ -42,6 +49,41 @@ export function AiAgentsWorkspace() {
   const [engineInput,setEngineInput] = useState("Quero pagar minha mensalidade");
   const [engineResult,setEngineResult] = useState<{intent:string;message:string;tokensUsed:number;nextStep:string}|null>(null);
   const [engineError,setEngineError] = useState("");
+  const refreshEngineStatus=async()=>{try{const response=await fetch("/api/backend/assistant/engine/status",{cache:"no-store"});if(response.ok)setEngineStatus(await response.json());}catch{}};
+  useEffect(()=>{void refreshEngineStatus();},[]);
+  const runAgentTest=async()=>{
+    if(!agent||!testMessage.trim())return;
+    setTesting(true);setTestError("");setTestResponse(null);setTestVoiceStatus("");
+    try{
+      const response=await fetch("/api/backend/assistant/agents/"+encodeURIComponent(agent.id)+"/test",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:testMessage.trim()})});
+      const data=await response.json();
+      if(!response.ok)throw Error(Array.isArray(data.message)?data.message.join(" "):data.message||"Não foi possível testar o agente.");
+      setTestResponse(data);
+    }catch(error){setTestError(error instanceof Error?error.message:"Falha ao testar o agente.");}
+    finally{setTesting(false);}
+  };
+  const playAgentTestVoice=async()=>{
+    if(!testResponse?.answer||!agent)return;
+    const voice=agent.tts||globalTts;
+    setTestVoiceStatus("Preparando a voz…");
+    if(voice.provider==="browser"){
+      if(!("speechSynthesis" in window)){setTestVoiceStatus("Este navegador não oferece voz sintética.");return;}
+      const utterance=new SpeechSynthesisUtterance(testResponse.answer);
+      utterance.lang="pt-BR";
+      utterance.onstart=()=>setTestVoiceStatus("Reproduzindo voz do navegador…");
+      utterance.onend=()=>setTestVoiceStatus("Voz concluída.");
+      utterance.onerror=()=>setTestVoiceStatus("O navegador não conseguiu reproduzir a voz.");
+      window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);return;
+    }
+    try{
+      const response=await fetch("/api/backend/assistant/voice/speak-preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:testResponse.answer.slice(0,1500),agentId:agent.id})});
+      if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.message||"Não foi possível gerar a voz.");}
+      const url=URL.createObjectURL(await response.blob()),audio=new Audio(url);
+      audio.onended=()=>{URL.revokeObjectURL(url);setTestVoiceStatus("Voz concluída.");};
+      audio.onerror=()=>{URL.revokeObjectURL(url);setTestVoiceStatus("O áudio foi gerado, mas não pôde ser reproduzido.");};
+      await audio.play();setTestVoiceStatus("Reproduzindo voz do provedor…");
+    }catch(error){setTestVoiceStatus(error instanceof Error?error.message:"Falha ao gerar voz.");}
+  };
   const [skills, setSkills] = useState<{id:string;name:string;category:string;cost:string;implemented:boolean;permission:string}[]>([]);
   useEffect(()=>{fetch("/api/backend/assistant/skills").then(r=>r.ok?r.json():null).then(data=>{if(Array.isArray(data?.skills))setSkills(data.skills)}).catch(()=>{});},[]);
   const [catalog, setCatalog] = useState<{models?:{id:string;name:string;pricePerMillionInputUsd:number}[]}>({});
@@ -71,6 +113,7 @@ export function AiAgentsWorkspace() {
       const data = await response.json();
       if (!response.ok) throw new Error(Array.isArray(data.message) ? data.message.join(" ") : data.message || "Não foi possível salvar");
       setNotice("Configuração salva para esta empresa.");
+      await refreshEngineStatus();
     } catch (error) { setNotice(error instanceof Error ? error.message : "Erro ao salvar"); }
     finally { setSaving(false); }
   };
@@ -88,9 +131,11 @@ export function AiAgentsWorkspace() {
   };
   return <section className="module-workspace">
     <header className="page-heading"><div><h1>Agentes de IA</h1><p className="page-subtitle">Automação primeiro. Inteligência artificial apenas quando necessária.</p></div></header>
-    <ProviderConnections/>
+
     <datalist id="openrouter-models"><option value="openrouter/free">OpenRouter Free · cota gratuita</option>{(catalog.models||[]).filter(model=>model.id!=="openrouter/free").map(model=><option key={model.id} value={model.id}>{model.name} · US$ {Number.isFinite(model.pricePerMillionInputUsd)?Number(model.pricePerMillionInputUsd.toFixed(4)):0}/1M entrada</option>)}</datalist>
-    <div className="ai-admin-grid">
+    <nav className="ai-workspace-tabs" role="tablist" aria-label="Áreas de configuração da inteligência" style={{display:"flex",gap:8,overflowX:"auto",whiteSpace:"nowrap",paddingBottom:10,borderBottom:"1px solid var(--border-color, #ddd)"}}>{(["Agentes","Configuração geral","Testar"] as const).map(item=><button key={item} type="button" role="tab" aria-selected={workspaceTab===item} className={workspaceTab===item?"primary-button":"secondary-button"} onClick={()=>setWorkspaceTab(item)}>{item}</button>)}</nav>
+    {notice&&<p role="status">{notice}</p>}
+    {workspaceTab==="Agentes"&&<div className="ai-admin-grid">
       <section className="content-card ai-admin-card">
         <div className="ai-admin-heading"><h2><Bot size={19}/> Agentes</h2><select aria-label="Modelo de novo agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><button className="primary-button" type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>
         {agents.map(a => <button key={a.id} type="button" className={selected === a.id ? "ai-agent-row selected" : "ai-agent-row"} onClick={() => setSelected(a.id)}><span><strong>{a.name}</strong><small>{a.role}</small></span><span>{a.enabled ? "Ligado" : "Off"}</span></button>)}
@@ -99,10 +144,11 @@ export function AiAgentsWorkspace() {
         <h2><ShieldCheck size={19}/> Configuração</h2>
         {agent ? <div className="ai-admin-fields">
           <p className="ai-admin-note">{agent.allowedActions?.length||0} Skills selecionadas · LLM: {agent.llm?.model||primaryModel.model||"falta configurar"} · STT: {agent.stt?.provider||"herdado"} · TTS: {agent.tts?.provider||"herdado"}</p>
-          <nav className="ai-agent-tabs" aria-label="Configurações do agente" style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Perfil","Acesso","Modelos e Voz","Conhecimento","Comportamento","Skills","Papel e vínculos"].map(t => <button key={t} type="button" className={tab===t?"primary-button":"secondary-button"} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+          <nav className="ai-agent-tabs" role="tablist" aria-label="Configurações do agente" style={{display:"flex",gap:8,overflowX:"auto",whiteSpace:"nowrap",paddingBottom:8}}>{["Perfil","Acesso","Modelos e Voz","Conhecimento","Comportamento","Skills","Papel e vínculos"].map(t=><button key={t} type="button" role="tab" aria-selected={tab===t} className={tab===t?"primary-button":"secondary-button"} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2><ShieldCheck size={19}/> {agent.name}</h2><label className="ai-toggle"><input type="checkbox" checked={agent.enabled} onChange={e=>update({enabled:e.target.checked})}/> Disponível para fluxos e testes</label></div>
           {tab==="Perfil" && <>
             <label>Nome do agente<input value={agent.name} onChange={e=>update({name:e.target.value})}/></label>
-            <label className="ai-toggle"><input type="checkbox" checked={agent.personalAssistant===true||agent.id==="1"} disabled={agent.id==="1"||(!agent.personalAssistant&&agents.some(a=>a.id!=="1"&&a.personalAssistant))} onChange={e=>markPersonalAssistant(e.target.checked)}/>Assistente Pessoal — só responde no WhatsApp aos celulares autorizados</label>
+            <label className="ai-toggle"><input type="checkbox" checked={agent.personalAssistant===true||agent.id==="1"} disabled={agent.id==="1"||(!agent.personalAssistant&&agents.some(a=>a.id!=="1"&&a.personalAssistant))} onChange={e=>markPersonalAssistant(e.target.checked)}/>Acesso restrito à Assistente Pessoal — WhatsApp só para celulares autorizados</label>
             <label>Papel na operação<select value={agent.role} onChange={e=>update({role:e.target.value})}>{["Atendimento","Marketing","Financeiro","Assistente virtual","Supervisor","SDR · qualificação","Vendedor online","Parceiro comercial","Funcionário","Coordenador"].map(x=><option key={x}>{x}</option>)}</select></label>
             <label>Tom de fala<select value={agent.profile?.tone||"Cordial e objetivo"} onChange={e=>update({profile:{...agent.profile,channels:agent.profile?.channels||[],tone:e.target.value}})}>{["Cordial e objetivo","Consultivo e acolhedor","Neutro e equilibrado","Formal e institucional"].map(x=><option key={x}>{x}</option>)}</select></label>
             <strong>Canais habilitados</strong>{["WhatsApp","Instagram","Facebook","Telegram","Chat do site","Interface interna"].map(x=><label key={x} className="ai-toggle"><input type="checkbox" checked={(agent.profile?.channels||[]).includes(x)} onChange={e=>update({profile:{tone:agent.profile?.tone||"Cordial e objetivo",channels:e.target.checked?[...(agent.profile?.channels||[]),x]:(agent.profile?.channels||[]).filter(y=>y!==x)}})}/>{x}</label>)}
@@ -113,12 +159,14 @@ export function AiAgentsWorkspace() {
           {tab==="Comportamento"&&<><label>Prompt principal (Markdown)<textarea rows={7} value={agent.instructions} onChange={e=>update({instructions:e.target.value})}/></label><label>Regras de atendimento<textarea rows={4} value={agent.behavior?.rules||""} onChange={e=>update({behavior:{rules:e.target.value,prohibitions:agent.behavior?.prohibitions||""}})}/></label><label>O que NÃO pode fazer?<textarea rows={4} value={agent.behavior?.prohibitions||""} onChange={e=>update({behavior:{rules:agent.behavior?.rules||"",prohibitions:e.target.value}})}/></label><strong>Prévia do comportamento</strong><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{[agent.instructions,agent.behavior?.rules&&"Regras de atendimento:\n"+agent.behavior.rules,agent.behavior?.prohibitions&&"Proibições:\n"+agent.behavior.prohibitions].filter(Boolean).join("\n\n")}</pre></>}
           {tab==="Skills"&&<><h3>Biblioteca de Skills</h3><ProductSkillsEditor/><details><summary><strong>+ Criar Skill personalizada</strong></summary><div className="ai-admin-fields" style={{paddingTop:12}}><label>Nome<input value={skillDraft.name} onChange={e=>setSkillDraft(v=>({...v,name:e.target.value,id:v.id||e.target.value.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}))}/></label><label>ID técnico<input value={skillDraft.id} onChange={e=>setSkillDraft(v=>({...v,id:e.target.value}))}/></label><label>Descrição<textarea rows={3} value={skillDraft.description} onChange={e=>setSkillDraft(v=>({...v,description:e.target.value}))}/></label><label>Instruções (Markdown)<textarea rows={7} value={skillDraft.instructions} onChange={e=>setSkillDraft(v=>({...v,instructions:e.target.value}))}/></label><label>Importar arquivo .md<input type="file" accept=".md,text/markdown,text/plain" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>50000){setSkillNotice("Arquivo muito grande");return;}const content=await file.text();setSkillDraft(v=>({...v,name:v.name||file.name.replace(/\\.md$/i,""),instructions:content}));}}/></label><button type="button" className="primary-button" onClick={async()=>{const next=[...customSkills,skillDraft];try{const response=await fetch("/api/backend/assistant/custom-skills",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({skills:next})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha ao salvar");setCustomSkills(data.skills);setSkillDraft({id:"",name:"",description:"",instructions:""});setSkillNotice("Skill salva como rascunho; não executável.");}catch(error){setSkillNotice(error instanceof Error?error.message:"Erro ao salvar");}}}><Save size={15}/> Salvar Skill</button>{skillNotice&&<p role="status">{skillNotice}</p>}</div></details><p className="ai-admin-note">Skills personalizadas são rascunhos não executáveis. Para executar ações, é necessária uma implementação revisada e autorizada.</p>{customSkills.filter(skill=>skill.status!=='implemented').map(skill=><p key={skill.id}><strong>{skill.name}</strong> · Rascunho <small>{skill.description}</small></p>)}<p className="ai-admin-note">Habilidades compartilhadas, priorizando custo zero. Selecionar uma Skill não a executa nem ultrapassa permissões do usuário. Recursos ainda não implementados são exibidos desabilitados.</p>{skills.length===0?<p>Catálogo indisponível. Verifique a conexão com a API.</p>:skills.map(skill=><label key={skill.id} className="ai-toggle" style={{opacity:skill.implemented?1:0.65}}><input type="checkbox" disabled={!skill.implemented} checked={(agent.allowedActions||[]).includes(skill.id)} onChange={e=>update({allowedActions:e.target.checked?[...(agent.allowedActions||[]),skill.id]:(agent.allowedActions||[]).filter(x=>x!==skill.id)})}/><span><strong>{skill.name}</strong><small style={{display:"block"}}>{skill.category} · {skill.cost==="zero"?"Sem custo de LLM":skill.cost==="model"?"Depende do modelo":"Pode consumir API externa"} · {skill.implemented?"Disponível para configuração":"Em desenvolvimento"}</small></span></label>)}</>}
           {tab==="Papel e vínculos"&&<><label>Como este agente entra no atendimento<select value={agent.bindings?.mode||"principal"} onChange={e=>update({bindings:{mode:e.target.value,specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[]}})}><option value="principal">Principal · pode iniciar atendimentos</option><option value="specialist">Especialista · somente por encaminhamento</option></select></label><p className="ai-admin-note">O papel orienta o comportamento; as ações e os vínculos determinam as habilidades. Destinos reais exigem cadastro e autorização.</p>{(["specialists","flows","pipelines","externalSystems","modules"] as const).map((key,i)=><label key={key}>{["Especialistas para encaminhamento","Fluxos que pode acionar","Painéis onde pode criar oportunidades","Sistemas externos que pode consultar ou acionar","Módulos onde pode atuar"][i]} (um por linha)<textarea rows={3} value={(agent.bindings?.[key]||[]).join("\n")} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],[key]:e.target.value.split("\n").map(x=>x.trim()).filter(Boolean)}})}/></label>)}</>}
-                    <label className="ai-toggle"><input type="checkbox" checked={agent.enabled} onChange={e => update({ enabled: e.target.checked })}/> Habilitar agente</label>
+
           <div className="ai-admin-actions"><button type="button" className="secondary-button" onClick={() => { setAgents(items => items.filter(a => a.id !== selected)); setSelected(agents.find(a => a.id !== selected)?.id ?? ""); }}><Trash2 size={15}/> Excluir</button></div>
         </div> : <p>Crie um agente para configurar.</p>}
       </section>
+    </div>}
+    {workspaceTab==="Configuração geral"&&<div className="ai-admin-grid"><ProviderConnections/>
       <section className="content-card ai-admin-card">
-        <h2><Sparkles size={19}/> Assistente pessoal</h2>
+        <h2><Sparkles size={19}/> Configuração geral da IA</h2>
         <div className="ai-admin-fields">
           {(["stt","tts"] as const).map(kind=>{const value=kind==="stt"?globalStt:globalTts;const set=kind==="stt"?setGlobalStt:setGlobalTts;return <fieldset key={kind}><legend>{kind==="stt"?"Entrada de voz da assistente":"Saída de voz da assistente"}</legend><select aria-label={kind} value={value.provider} onChange={e=>set({provider:e.target.value,model:voiceModel(kind,e.target.value)})}><option value="browser">Navegador · sem LLM</option><option value="local">Whisper/Kokoro · servidor local</option><option value="openai">OpenAI · chave protegida</option></select>{value.provider!=="browser"&&<input aria-label={"Modelo "+kind} value={value.model} onChange={e=>set(v=>({...v,model:e.target.value}))}/>}</fieldset>})}
           <label>Nome padrão<input value={assistantName} onChange={e => setAssistantName(e.target.value)}/></label>
@@ -126,16 +174,37 @@ export function AiAgentsWorkspace() {
           <label>Ativação<select value={activation} onChange={e => setActivation(e.target.value)}><option>Clique ou texto</option><option>Ditado por clique</option></select></label>
           <label>Limite diário de execuções com IA<input type="number" min={0} max={10000} value={dailyAiLimit} onChange={e=>setDailyAiLimit(Number(e.target.value))}/><small>0 desativa chamadas a modelos. Regras, consultas e Skills continuam funcionando.</small></label><label>Modelo econômico para a assistente<input list={primaryModel.provider==="openrouter"?"openrouter-models":undefined} value={primaryModel.model} placeholder="Selecione um modelo do catálogo" onChange={e=>setPrimaryModel(m=>({...m,model:e.target.value}))}/></label><label>Provedor<select value={primaryModel.provider} onChange={e=>{setPrimaryModel({provider:e.target.value,model:"",tier:"Econômico"});setFallbackModels([])}}><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="ollama">Ollama · local</option></select></label>
           <p className="ai-admin-note">Regras e Skills executam primeiro. Os modelos de contingência só são chamados quando o anterior falha ou não entrega o formato exigido.</p>{[0,1].map(i=><label key={i}>Contingência {i+1} · opcional<input value={fallbackModels[i]?.model||""} list={primaryModel.provider==="openrouter"?"openrouter-models":undefined} onChange={e=>setFallbackModels(current=>{const next=[...current];next[i]={provider:primaryModel.provider,model:e.target.value,tier:i===0?"Equilíbrio":"Inteligente"};return next})}/></label>)}
-          <label className="ai-toggle"><input type="checkbox" checked={assistantEnabled} onChange={e => setAssistantEnabled(e.target.checked)}/> Habilitar assistente para esta empresa</label><p className="ai-admin-note">Ditado disponível por clique em navegadores compatíveis. Não há escuta contínua.</p>
+          <label className="ai-toggle"><input type="checkbox" checked={assistantEnabled} onChange={e => setAssistantEnabled(e.target.checked)}/> Permitir IA da Véxora nesta empresa</label><p className="ai-admin-note">Este controle libera a IA configurada. Para responder clientes, ainda é preciso publicar um fluxo e associá-lo ao canal correto. O teste nesta tela não envia mensagens.</p>
+          <section className="content-card" style={{padding:16,border:"1px solid var(--border-color, #ddd)",borderRadius:12}}>
+            <h3>Atendimento aos clientes</h3>
+            <p>{((engineStatus?.active?1:0)+(engineStatus?.publications||[]).filter(item=>item.active).length)>0?"Há "+((engineStatus?.active?1:0)+(engineStatus?.publications||[]).filter(item=>item.active).length)+" fluxo(s) publicado(s).":"Nenhum fluxo de IA publicado no momento."}</p>
+            <p className="ai-admin-note">Um agente habilitado fica disponível para entrar em um fluxo. Ele só conversa automaticamente depois que o fluxo é publicado com um canal conectado.</p>
+            <a className="secondary-button" href="/?module=Chatbots">Abrir fluxos de atendimento</a>
+          </section>
           <button type="button" className="primary-button" onClick={() => void save()} disabled={saving || loading || !configAvailable}><Save size={15}/> Salvar configuração</button>
         </div>
       </section>
-    </div>
-    <details className="workspace-disclosure"><summary>Ferramentas avançadas e testes</summary>
+    </div>}
+    {workspaceTab==="Testar"&&<section className="content-card ai-admin-card" style={{marginTop:16}}>
+      <h2><Sparkles size={19}/> Teste privado do agente</h2>
+      <p className="ai-admin-note">Converse com o modelo configurado, revise a resposta e teste a voz. A prévia não altera conversas nem envia mensagens a clientes. Cada teste de texto usa o limite diário de IA.</p>
+      <div className="ai-admin-fields">
+        <label>Agente<select value={selected} onChange={e=>{setSelected(e.target.value);setTestResponse(null);setTestError("");setTestVoiceStatus("");}}>{agents.map(item=><option key={item.id} value={item.id}>{item.name}{item.enabled?" · habilitado":" · desabilitado"}</option>)}</select></label>
+        {agent&&<p className="ai-admin-note">Modelo: {agent.llm?.model||primaryModel.model||"não configurado"} · Status: {agent.enabled?"disponível para fluxos":"ainda desabilitado"}</p>}
+        <label>Mensagem<textarea rows={3} maxLength={1200} value={testMessage} onChange={e=>setTestMessage(e.target.value)}/></label>
+        <button type="button" className="primary-button" disabled={!agent||!testMessage.trim()||testing} onClick={()=>void runAgentTest()}>{testing?"Consultando…":"Testar resposta em texto"}</button>
+        {testError&&<p role="alert">{testError}</p>}
+        {testResponse&&<section role="status" className="content-card" style={{padding:16,border:"1px solid var(--border-color, #ddd)",borderRadius:12}}>
+          <strong>Resposta de {agent?.name}</strong><p style={{whiteSpace:"pre-wrap"}}>{testResponse.answer}</p>
+          <small>{testResponse.provider} · {testResponse.model} · {testResponse.tokensUsed} tokens</small>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:12}}><button type="button" className="secondary-button" onClick={()=>void playAgentTestVoice()}>Ouvir resposta</button>{testVoiceStatus&&<small aria-live="polite">{testVoiceStatus}</small>}</div>
+        </section>}
+      </div>
+    </section>}
+    {workspaceTab==="Testar"&&<details className="workspace-disclosure"><summary>Simular roteamento e revisar rascunhos</summary>
     <section className="content-card ai-admin-card" style={{marginTop:16}}><h2><Sparkles size={19}/> Véxora Intelligence Engine · Laboratório</h2><p className="ai-admin-note">Teste o roteamento determinístico, sem LLM, sem execução de Skills e sem enviar mensagens a clientes. Requer assistente habilitado nesta empresa.</p><div className="ai-admin-fields"><label>Mensagem de teste<textarea rows={2} maxLength={1000} value={engineInput} onChange={e=>setEngineInput(e.target.value)}/></label><button type="button" className="secondary-button" onClick={async()=>{setEngineError("");setEngineResult(null);try{const response=await fetch("/api/backend/assistant/engine/route",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:engineInput})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha no teste");setEngineResult(data)}catch(e){setEngineError(e instanceof Error?e.message:"Falha no teste")}}}>Testar roteamento</button>{engineResult&&<div role="status"><strong>Intenção:</strong> {engineResult.intent}<p><strong>Próximo passo:</strong> {engineResult.nextStep}</p><p>{engineResult.message}</p><small>Tokens de LLM: {engineResult.tokensUsed}</small></div>}{engineError&&<p role="alert">{engineError}</p>}</div></section>
     <section className="content-card ai-admin-card" style={{marginTop:16}}><h2>Construtor por comando · Prévia</h2><p className="ai-admin-note">Descreva o fluxo em linguagem natural. A primeira versão oferece modelos determinísticos de Rastreabem e marketing; ainda não cria nem ativa fluxos reais.</p><div className="ai-admin-fields"><label>O que deseja automatizar?<textarea rows={3} maxLength={2000} value={workflowRequest} onChange={e=>setWorkflowRequest(e.target.value)}/></label><button type="button" className="secondary-button" onClick={async()=>{setWorkflowError("");setWorkflowDraft(null);try{const response=await fetch("/api/backend/assistant/engine/propose-workflow",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({request:workflowRequest})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha na proposta");setWorkflowDraft(data)}catch(e){setWorkflowError(e instanceof Error?e.message:"Falha na proposta")}}}>Gerar proposta de fluxo</button>{workflowDraft&&<div role="status"><strong>{workflowDraft.title}</strong><p>Rascunho — não ativado</p><ol>{workflowDraft.steps.map(step=><li key={step.id}>{step.label}</li>)}</ol><strong>Falta configurar:</strong><ul>{workflowDraft.missing.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}{workflowError&&<p role="alert">{workflowError}</p>}</div></section>
-    {notice && <p role="status">{notice}</p>}
-    </details>
+    </details>}
     <p className="ai-admin-note">Configurações armazenadas por empresa. Agentes respondem nos blocos habilitados; ações operacionais usam Skills autorizadas. Consultas e relatórios determinísticos não utilizam tokens.</p>
   </section>;
 }

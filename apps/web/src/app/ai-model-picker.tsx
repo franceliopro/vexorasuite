@@ -14,3 +14,13 @@ export function AiVoiceModelPicker({label,kind,provider,value,models,onChange}:{
  if(provider==='browser')return <label>{label}<select value="browser" onChange={()=>onChange('browser')}><option value="browser">Voz do navegador</option></select></label>;
  return <AiModelPicker label={label} provider={provider+'-'+kind} value={value} models={models} onChange={onChange}/>;
 }
+
+export type VoiceOption={id:string;model:string;name:string;language:string;gender:string};
+export function TtsVoicePicker({provider,model,value,voices,onChange}:{provider:string;model:string;value:string;voices:VoiceOption[];onChange:(voice:string)=>void}){
+ if(provider!=="local")return null;
+ const rank=(language:string)=>language==="pt-br"?0:language.startsWith("pt")?1:language.startsWith("es")?2:language.startsWith("en")?3:4;
+ const options=voices.filter(v=>v.model===model).sort((a,b)=>rank(a.language)-rank(b.language)||a.name.localeCompare(b.name));
+ const language=(value:string)=>value==="pt-br"?"Português do Brasil":value.startsWith("pt")?"Português":value.startsWith("es")?"Espanhol":value==="en-us"?"Inglês americano":value==="en-gb"?"Inglês britânico":value.startsWith("en")?"Inglês":value;
+ const name=(value:string)=>value.replace(/^[a-z]{2}_/,"").replace(/^speaches-ai\/piper-/,"").replace(/_/g," ");
+ return <label>Voz<select value={value} onChange={e=>onChange(e.target.value)}><option value="">Padrão do modelo</option>{value&&!options.some(v=>v.id===value)&&<option value={value}>{value} · não retornada pelo catálogo</option>}{options.map(v=><option key={v.id} value={v.id}>{name(v.name)} · {language(v.language)}{v.gender==="female"?" · feminina":v.gender==="male"?" · masculina":""}</option>)}</select>{options.length===0&&<small>Atualize os modelos para consultar as vozes instaladas.</small>}</label>;
+}

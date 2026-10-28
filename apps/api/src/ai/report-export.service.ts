@@ -8,6 +8,7 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { ReportsController } from '../operations/reports.controller';
 import { FinanceController } from '../operations/finance.controller';
 import { normalize } from './flow-runtime';
+import { parseBrazilianDate, formatDateBR } from '../common/date-format';
 export type ExportReport = { title:string; from:string; to:string; source:string; basis:string; summary:string; headers:string[]; rows:(string|number)[][]; chart:{label:string;value:number}[]; unit:string };
 const DAY=86400000;
 export function reportPeriod(question:string,now=new Date()) {
@@ -15,6 +16,7 @@ export function reportPeriod(question:string,now=new Date()) {
  const q=normalize(question), date=new Date(today+'T12:00:00Z');
  const iso=(d:Date)=>d.toISOString().slice(0,10);
  const dates=q.match(/\d{4}-\d{2}-\d{2}/g);
+ const brazilianDates=q.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
  let from:string,to=today;
  if(dates||brazilianDates){if((dates&&brazilianDates)||((dates||brazilianDates)!.length!==2))throw new BadRequestException('Informe duas datas no formato DD/MM/AAAA.');const selected=dates||brazilianDates!;const normalized=dates?selected:selected.map(value=>{const parsed=parseBrazilianDate(value);if(!parsed)throw new BadRequestException('Data inválida. Use DD/MM/AAAA.');return parsed;});[from,to]=normalized as [string,string];}
  else if(/hoje/.test(q))from=today;

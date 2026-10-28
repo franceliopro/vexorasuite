@@ -36,3 +36,14 @@
  .suite-app>.sidebar:has(.nav-accordion.expanded){scrollbar-width:none}
  .suite-app>.sidebar:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none;width:0;height:0}
 }
+
+/* Native file controls must stay hidden even when shared form styles set display. */
+.home-presentation .presentation-file-input{display:none!important}
+@media(min-width:761px) and (hover:hover) and (pointer:fine){
+ .suite-app.home-mode .main-area>.topbar{position:fixed;top:0;left:var(--desktop-sidebar-width);right:0;z-index:50;transform:translateY(calc(-100% + 8px));opacity:0;transition:transform .18s ease,opacity .18s ease}
+ .suite-app.home-mode .main-area>.topbar:hover,
+ .suite-app.home-mode .main-area>.topbar:focus-within,
+ .suite-app.home-mode .main-area>.topbar:has([aria-expanded=true]){transform:translateY(0);opacity:1}
+ .suite-app.home-mode .home-presentation{min-height:100dvh}
+}
+@media(prefers-reduced-motion:reduce){.suite-app.home-mode .main-area>.topbar{transition:none}}

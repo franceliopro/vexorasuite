@@ -114,6 +114,25 @@ services:
       - "8000"
     mem_limit: 2g
     cpus: 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  speech-models:
+    profiles: ["local-ai"]
+    image: python:3.12-alpine
+    restart: "on-failure:3"
+    command: ["python", "-u", "/opt/vexora/install-models.py"]
+    volumes:
+      - ./infra/speaches/install-models.py:/opt/vexora/install-models.py:ro
+    depends_on:
+      speaches:
+        condition: service_healthy
+    mem_limit: 64m
+    cpus: 0.25
 
   searxng:
     image: docker.io/searxng/searxng:latest

@@ -1,3 +1,4 @@
+import {assertSocialRequest} from '../auth/product-scope';
 import { BadGatewayException, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -19,6 +20,7 @@ export class ZernioService {
   }
 
   async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; idempotencyKey?: string; allowPartialFailure?: boolean } = {}): Promise<T> {
+    assertSocialRequest(path,options.method??'GET');
     this.assertConfigured();
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("..")) {
       throw new ServiceUnavailableException("Caminho de integração inválido.");

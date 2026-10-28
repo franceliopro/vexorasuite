@@ -64,6 +64,9 @@ export class AssistantAutomationService {
   return {answer:sources.length?'Pesquisa concluída. Estas são as fontes encontradas; os trechos não substituem a leitura dos textos completos.':'Nenhum resultado encontrado.',sources,usedAi:false,tokensUsed:0};
  }
  async createCarousel(req:AuthenticatedRequest,question:string,options:{format?:'POST'|'CAROUSEL'|'VIDEO';draftOnly?:boolean;agentId?:string;useBrandOnly?:boolean;referenceScope?:{accountId:string;fileIds:string[]}}={}){
+  this.authorize(req);
+  if(options.format==='VIDEO')throw new ForbiddenException('Geração de vídeos retirada do escopo atual.');
+  options={...options,draftOnly:true};
   const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true,name:true}});
   const root=obj(tenant.integrations),assistant=obj(root.assistant);
   const chosen=options.agentId?(Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.id===options.agentId&&a.enabled):null):null;
@@ -101,9 +104,9 @@ export class AssistantAutomationService {
    const publication=await this.publish(req,id,{channelId:selected.id,...(schedule?{scheduledFor:schedule}:{})});
    return {answer:'Carrossel enviado à Zernio. Estado confirmado: '+publication.status+(schedule?' · '+schedule:'.'),usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,sources,publication,attachments:carousel.slides.map((_,i)=>({name:`Lâmina ${i+1}`,url:`/api/backend/assistant/automations/${id}/slides/${i}`}))};
   }
-  return {answer:'Carrossel criado com título, legenda e artes. Referências ativas orientam o briefing e a paleta analisada. A última lâmina contém o convite para curtir, comentar e compartilhar. Escolha a conta e publique agora ou agende.',usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,automation:{id,carousel,channels:channels.filter(c=>['instagram','facebook','tiktok','linkedin','youtube','threads','pinterest','x','twitter','bluesky','reddit','telegram'].includes(String(obj(c.settings).platform).toLowerCase())).map(c=>({id:c.id,name:(obj(c.settings).username?"@"+String(obj(c.settings).username).replace(/^@/,""):c.name)+" · "+String(obj(c.settings).platform)}))},sources};
+  return {answer:'Carrossel criado com título, legenda e artes. Referências ativas orientam o briefing e a paleta analisada. A última lâmina contém o convite para curtir, comentar e compartilhar. Revise o texto e baixe as artes para publicar manualmente.',usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,automation:{id,carousel,channels:channels.filter(c=>['instagram','facebook','tiktok','linkedin','youtube','threads','pinterest','x','twitter','bluesky','reddit','telegram'].includes(String(obj(c.settings).platform).toLowerCase())).map(c=>({id:c.id,name:(obj(c.settings).username?"@"+String(obj(c.settings).username).replace(/^@/,""):c.name)+" · "+String(obj(c.settings).platform)}))},sources};
  }
- async list(req:AuthenticatedRequest){this.authorize(req);const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'assistant.carousel',entityId:{not:null}},orderBy:{createdAt:'desc'},take:50,select:{entityId:true,details:true,createdAt:true}});return rows.map(row=>({id:row.entityId,title:obj(obj(row.details).carousel).title||'Criação',status:obj(row.details).status||'DRAFT',createdAt:row.createdAt}));}
+ async list(req:AuthenticatedRequest){this.authorize(req);const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'assistant.carousel',entityId:{not:null}},orderBy:{createdAt:'desc'},take:50,select:{entityId:true,details:true,createdAt:true}});return rows.map(row=>({id:row.entityId,title:obj(obj(row.details).carousel).title||'Criação',status:obj(row.details).status||'DRAFT',plannedFor:obj(obj(row.details).manualReview).plannedFor||null,createdAt:row.createdAt}));}
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const audit=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,entityId:id,action:'assistant.carousel'}});if(!audit)throw new NotFoundException('Automação não encontrada.');return audit;}
  async videoScenes(req:AuthenticatedRequest,id:string){
   const record=await this.read(req,id),data=obj(record.details);

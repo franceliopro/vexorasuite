@@ -124,9 +124,6 @@ jobs:
         run: |
           docker run --rm vexora-api-ci ./node_modules/.bin/prisma --version
           docker run --rm vexora-api-ci node -e "const {PrismaClient}=require('@prisma/client');new PrismaClient();require('./dist/app.module');require('sharp');console.log('API runtime dependencies OK')"
-          docker run --rm vexora-api-ci ffmpeg -version
-          docker run --rm --volume "${{ github.workspace }}/apps/api/test/video-smoke.cjs:/workspace/apps/api/test/video-smoke.cjs:ro" vexora-api-ci node test/video-smoke.cjs
-          docker run --rm --volume "${{ github.workspace }}/apps/api/test/prepared-media-smoke.cjs:/workspace/apps/api/test/prepared-media-smoke.cjs:ro" vexora-api-ci node test/prepared-media-smoke.cjs
       - name: Check standalone web and static assets
         if: matrix.service == 'web'
         run: |

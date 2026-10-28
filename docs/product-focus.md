@@ -1,35 +1,28 @@
-# Foco da Véxora — avaliação de escopo
+# Escopo operacional aprovado — Véxora
 
-Decisão autorizada: retirar telefonia, chamadas ao vivo WhatsApp e chamadas por IA do produto atual. Preservar áudios em mensagens, transcrição, dados e históricos. Demais cortes abaixo são recomendações, não desativações autorizadas.
+O proprietário aprovou reduzir o produto para concluir o núcleo. A retirada vale para a Véxora Suite; não alterar o sistema antigo.
 
-## 🏗️ Arquitetura e Modelagem da Solução
+## Manter e concluir
+- Atendimento: WhatsApp e chat no site, histórico, mídia básica, bot/IA, transferência humana, filas, departamentos e notificações por atribuição.
+- Empresas, usuários, senhas, permissões e isolamento.
+- CRM e pipelines, tarefas, agenda básica e relatórios operacionais.
+- Asaas como fonte financeira, consulta e operação de cobrança com confirmação do provedor.
+- Marketing: marca, referências, artes/textos, rascunhos, revisão/aprovação manual, planejamento editorial e download.
+- Conexões Google e sociais existentes apenas no escopo necessário ao núcleo; não ampliar provedores.
+- Templates existentes como configurações iniciais, aprofundando clientes reais após aceite.
 
-O núcleo é atendimento com CRM, bot/IA supervisionada, equipes, empresas isoladas e cobrança conectada. O risco de prazo está em desenvolver simultaneamente uma central de atendimento, plataforma financeira, agência de marketing, editor de vídeo e central telefônica.
+## Retirar da aplicação ativa
+Telefonia, SMS, campanhas em massa/e-mail, anúncios pagos, WordPress, vídeo automático e publicação social automática/recorrente. Não iniciar novos produtos clínicos, escolares, delivery, ERP ou BI livre.
 
-Manter os 14 modelos como configurações iniciais. Aprofundar somente Rastreamento veicular e Escola de músicas e instrumentos após validar o primeiro cliente. Segmentos não devem virar sistemas clínicos, escolares, delivery ou ERP completos.
+Os controllers e workers de campanhas/publicações deixam de ser registrados no servidor. UI de publicação, automação social e e-mails é retirada da navegação. Chamadas de publicação/anúncio também são bloqueadas no transporte Zernio; atendimento via mensagens permanece permitido. Solicitações da assistente geram somente rascunhos de arte/carrossel. Não há cancelamento de publicações já aceitas externamente: devem ser conferidas no provedor.
 
-## 🛠️ Stack Tecnológica Recomendada
+Dados, históricos e migrações permanecem preservados. Código legado e testes históricos no Git não equivalem a serviços ativos. Não apagar dados de clientes para economizar recursos.
 
-Preservar Next.js, NestJS, Prisma e PostgreSQL existentes. Não trocar o motor WhatsApp, criar aplicativo nativo ou introduzir microsserviços nesta fase. Reduzir a quantidade de provedores ativos por capacidade e validar um caminho real antes de ampliar opções.
+## Redução de recursos
+FFmpeg deixa de integrar a imagem da API. Serviços locais Ollama/Speaches passam ao perfil opcional local-ai, sem endereços locais habilitados por padrão. PgAdmin passa ao perfil maintenance. Esses serviços não sobem na inicialização padrão. SearXNG permanece para pesquisa de criação manual. Nada disso comprova que containers antigos já foram parados no ambiente real: conferir a implantação e o consumo.
 
-## 💻 Implementação do Código (Pronto para Produção)
+## Chat no site
+Canal mantido explicitamente no núcleo por solicitação do proprietário. A árvore de código consultada não revelou um widget de atendimento público completo. Não marcar a implementação como entregue sem receber mensagem de um visitante, persistir, responder e transferir para um humano em teste de ponta a ponta. Essa pendência tem prioridade sobre integrações adiadas.
 
-Prioridade: recebimento e resposta confiáveis, mídia básica, transferência humana, fila recuperável, notificações por atribuição, isolamento, permissões e sincronização financeira.
-
-Marketing recomendado: marca, referências, biblioteca de artes/textos, calendário editorial, preparação e aprovação manual, download/exportação. Preservar conectores existentes; congelar expansão de publicação social, campanhas em massa, anúncios pagos e vídeo automático. Nada disso é removido por esta decisão de telefonia.
-
-Financeiro recomendado: Asaas como fonte do pagamento e a Véxora como operação de cobrança. Evitar contabilidade, conciliação bancária universal, múltiplos gateways e negociação autônoma pela IA nesta fase.
-
-Relatórios: volume, filas, tempo de resposta, pendências e cobranças confirmadas. Adiar BI livre e atribuição multicanal sofisticada.
-
-## 🐳 Infraestrutura, Docker & Deploy (Foco Dokploy)
-
-Telefonia é removida da interface, endpoint e variáveis Asterisk dos arquivos de implantação. Não há remoção de tabelas ou históricos, cancelamento de serviços externos nem alteração do ambiente antigo. Usar a CI e os containers existentes. CI aprovada não confirma implantação em produção.
-
-## ⚡ Automação e Otimizações Futuras
-
-Congelar expansão de SMS, WordPress, IMAP completo, sincronização Google bidirecional ampla, múltiplos motores/provedores de IA, geração automática de vídeos e anúncios pagos.
-
-Dependências continuam existindo: disponibilidade e sessões WhatsApp; confirmação e webhooks Asaas; consentimento e permissões Google; permissões e limites das redes via Zernio; custos e disponibilidade de provedores de IA. Concentrar esforço em diagnóstico, recuperação e limites, sem prometer controle sobre o provedor.
-
-Critério de retomada: caminho do cliente real testado de ponta a ponta, falhas recuperáveis, restauração de backup exercitada e equipe usando o produto antes de ampliar escopo.
+## GOWS
+Teste futuro isolado, com número de teste, mantendo a sessão de produção. Medir recursos, texto, imagens, áudio, confirmação, reconexão e ausência de duplicações. Não trocar o motor somente por expectativa de economia.

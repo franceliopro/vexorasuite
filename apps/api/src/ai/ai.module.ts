@@ -1,13 +1,8 @@
-import { PublicationFoldersService } from './publication-folders.service';
-import { PublicationFoldersController, PreparedMediaController } from './publication-folders.controller';
-import { PreparedMediaService } from './prepared-media.service';
 import { ProviderConnectionsController } from "./provider-connections.controller";
 import { MarketingController } from "./marketing.controller";
 import { DriveManagerController } from "./drive-manager.controller";
 import { DriveManagerService } from "./drive-manager.service";
-import { MarketingJobsService } from "./marketing-jobs.service";
 import { MarketingLibraryService } from "./marketing-library.service";
-import { VideoRenderService } from "./video-render.service";
 import { VoiceService } from "./voice.service";
 import { VoiceController } from "./voice.controller";
 import { CreativeReferencesService } from "./creative-references.service";
@@ -33,6 +28,6 @@ import { ChatbotAsaasPreviewController } from "./chatbot-asaas-preview.controlle
 import { ChatbotTriggerPreviewController } from "./chatbot-trigger-preview.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [PublicationFoldersController, PreparedMediaController, ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [PublicationFoldersService, PreparedMediaService, DriveManagerService, MarketingJobsService, MarketingLibraryService, VideoRenderService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
 export class AiModule {}
 

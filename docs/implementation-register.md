@@ -51,7 +51,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 10. Régua configurável D-5, D-3, D0, D+2 e D+5, janela de contato, opt-out, suspensão por pagamento e prévia da cobrança manual.
 11. Completar a matriz de ações por papel além dos módulos; identidade/apelido do atendente e SLA de ociosidade. Visibilidade do bot, negativas individuais e redefinição de senhas estão implementadas nesta entrega.
 12. API de captura e atribuição de leads, formulários e campanhas com proveniência confiável.
-13. Telefonia e chamadas ao vivo com IA retiradas do escopo por decisão do proprietário. SMS existente preservado, sem nova expansão nesta alteração. Áudios em mensagens continuam no atendimento.
+13. Telefonia/SMS e chamadas ao vivo com IA, incluindo mídia e gravação; não confundir eventos de ligação do WhatsApp com suporte a conversar por voz.
 14. Testar GOWS em ambiente separado, conforme solicitado para depois do escopo funcional. Não trocar o motor operacional sem medir compatibilidade e reconexões.
 15. Rate limiting distribuído, retenção, restauração de backup e observabilidade operacional.
 16. Validar cenários reais Google, Zernio, financeiro sandbox, permissões, mobile, teclado/leitor de tela e o piloto Rastreabem.
@@ -61,3 +61,6 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 
 ## Continuidade
 A partir desta entrega o desenvolvimento ocorre diretamente no GitHub, com uma branch por conjunto coerente de alterações, CI completa e histórico de PRs. Não marcar o inventário inteiro como concluído por ter publicado um único conjunto de funcionalidades.
+
+## Escopo reduzido aprovado
+O proprietário substituiu as expansões acima pelo escopo de docs/product-focus.md. Telefonia, SMS, campanhas em massa, anúncios, WordPress, vídeo automático e publicação social automática saem da aplicação ativa. WhatsApp e chat no site permanecem prioritários; não tratar widget público como entregue sem teste real. Marketing mantém criação e organização manual. Backlog histórico acima é referência, não autorização para retomar funcionalidades retiradas.

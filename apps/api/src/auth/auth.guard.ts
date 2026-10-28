@@ -1,3 +1,4 @@
+import {assertProductRoute} from './product-scope';
 import {administrative,effectiveModules,routeModules,patternModules} from './module-policy';
 import { CanActivate, ExecutionContext, Injectable, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -52,6 +53,7 @@ export class AuthGuard implements CanActivate {
     if(membership.tenant?.kind==="PLATFORM"&&!membership.user?.isPlatformAdmin)throw new ForbiddenException("Este painel pertence à administração da Véxora.");
     const path=String(request.path||"").replace(/^\/api\//,"").replace(/^\//,"").split("?")[0]||"";
     if(membership.user?.mustChangePassword&&!["auth/me","auth/change-password"].includes(path))throw new ForbiddenException("Altere sua senha temporária para continuar.");
+    assertProductRoute(path,request.method||'GET');
     const departments=administrative(membership.role)?[]:await this.prisma.departmentMember.findMany({where:{tenantId:payload.tenantId,userId:payload.sub,department:{isActive:true}},select:{department:{select:{id:true,modules:true,isActive:true}}}});
     const allowedModules=effectiveModules(membership.role,membership.modules||[],departments.map(d=>d.department),patternModules(membership.tenant?.integrations,payload.sub,departments.map(d=>d.department.id)),membership.deniedModules||[]);
     const needed=typeof request.path==='string'?routeModules(request.path,request.method||'GET'):[];

@@ -247,7 +247,7 @@ export class IntelligenceRuntimeService {
                 if(!action||typeof action!=='object')continue;
                 if(action.type==='tag'&&permittedActions.includes('crm.tag.apply')&&typeof action.name==='string'&&action.name.trim()&&action.name.length<=40){
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata),tags:any[]=Array.isArray(profile.tags)?profile.tags:[];
-                  const name=action.name.trim(),color=typeof action.color==='string'&&/^#[a-f\\d]{6}$/i.test(action.color)?action.color:'#5865da';
+                  const name=action.name.trim(),color=typeof action.color==='string'&&/^#[a-f\d]{6}$/i.test(action.color)?action.color:'#5865da';
                   if(!tags.some(t=>normalize(typeof t==='string'?t:String(t?.name||''))===normalize(name))&&tags.length<50)tags.push({name,color});
                   await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;skills.push('crm.tag.apply');
                 }
@@ -274,7 +274,7 @@ export class IntelligenceRuntimeService {
                 }
               }
               messages.push(reply);
-              if (step.options.length) messages.push(step.options.map((o,i)=>`${i+1}. ${interpolateVariables(o,variables)}`).join('\\n'));
+              if (step.options.length) messages.push(step.options.map((o,i)=>`${i+1}. ${interpolateVariables(o,variables)}`).join('\n'));
               skills.push('agent.respond');
               state = { flow: 'INTELLIGENCE', revision: published.revision, stepId: step.id, variables, completed: false };
             } catch { reason = 'agent_failed'; await handoff(); }

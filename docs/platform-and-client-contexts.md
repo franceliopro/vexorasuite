@@ -41,3 +41,5 @@ Somente a administração Véxora redefine uma senha para o padrão temporário.
 Restrições individuais explícitas prevalecem sobre herança de padrões/departamentos e valem inclusive para OWNER/ADMIN de empresa cliente. Os controles visuais usam as permissões retornadas pelo servidor. A administração Véxora conserva recuperação administrativa.
 
 WORDPRESS já tem chave de permissão separada e regra de URL. Isso não declara implementada uma integração WordPress completa; seu conector e suas operações ainda precisam ser entregues e validados.
+
+Administradores de empresas não alteram permissões de contas administrativas, não concedem módulos que não possuem e não removem negativas existentes de atendentes. A reativação de permissões restritas pela administração Véxora permanece com a plataforma.

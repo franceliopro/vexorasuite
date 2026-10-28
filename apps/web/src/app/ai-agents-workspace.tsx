@@ -223,7 +223,7 @@ export function AiAgentsWorkspace() {
     </div>}
     {workspaceTab==="Testar"&&<section className="content-card ai-admin-card" style={{marginTop:16}}>
       <h2><Sparkles size={19}/> Teste privado do agente</h2>
-      <p className="ai-admin-note">Converse com o modelo configurado, revise a resposta e teste a voz. A prévia não altera conversas nem envia mensagens a clientes. Cada teste de texto usa o limite diário de IA.</p>
+      <p className="ai-admin-note">Converse com o modelo configurado, revise a resposta e teste a voz. A prévia não altera conversas nem envia mensagens a clientes. Os testes de texto e áudio usam o limite diário de IA.</p>
       <div className="ai-admin-fields">
         <label>Agente<select value={selected} onChange={e=>{setSelected(e.target.value);setTestResponse(null);setTestError("");setTestVoiceStatus("");setTestAudio(null);setTestAudioUrl("");setTranscription("");}}>{agents.map(item=><option key={item.id} value={item.id}>{item.name}{item.enabled?" · habilitado":" · desabilitado"}</option>)}</select></label>
         {agent&&<p className="ai-admin-note">Modelo: {agent.llm?.model||primaryModel.model||"não configurado"} · Status: {agent.enabled?"disponível para fluxos":"ainda desabilitado"}</p>}

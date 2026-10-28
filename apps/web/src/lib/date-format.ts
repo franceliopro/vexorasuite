@@ -7,7 +7,9 @@ function dateParts(value: string | Date): [number, number, number] | null {
   }
   const match = DATE_ONLY.exec(value);
   if (match) {
-    const [year, month, day] = match.slice(1).map(Number);
+    const year = Number(match[1]!);
+    const month = Number(match[2]!);
+    const day = Number(match[3]!);
     const check = new Date(year, month - 1, day);
     if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) return null;
     return [day, month, year];

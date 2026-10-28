@@ -11,6 +11,7 @@ DROP TABLE publication_folders;
 DROP TABLE marketing_jobs;
 DROP TABLE marketing_workflows;
 DELETE FROM audit_logs WHERE action IN ('assistant.carousel','assistant.research');
-UPDATE tenants SET integrations = integrations - 'marketing';
+UPDATE tenants SET integrations = jsonb_set(integrations, '{marketing}', (integrations->'marketing') - 'autoPublish')
+WHERE jsonb_typeof(integrations->'marketing') = 'object';
 
 COMMIT;

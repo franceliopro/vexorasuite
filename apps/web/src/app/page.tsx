@@ -221,7 +221,7 @@ export default function HomePage() {
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
-                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onFocusCapture={()=>setExpandedModules(current=>current.filter(name=>name===item.label))}>
+                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onFocusCapture={event=>{if(event.target instanceof HTMLElement&&event.target.matches(":focus-visible"))setExpandedModules(current=>current.filter(name=>name===item.label))}}>
                   <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {

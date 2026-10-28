@@ -59,6 +59,7 @@ export function routeModules(path: string, method: string): string[] {
   if (/^channels(?:\/|$)/.test(p) && method === "GET")
     return ["INBOX", "AUTOMATION", "MARKETING", "CHANNELS"];
   if (/^channels(?:\/|$)/.test(p)) return ["CHANNELS"];
+  if (/^integrations\/google\/calendar(?:\/|$)/.test(p)) return ["CALENDAR"];
   if (/^calendar|^google-calendar/.test(p)) return ["CALENDAR"];
   if (/^tasks(?:\/|$)/.test(p)) return ["TASKS"];
   if (/^mail(?:\/|$)/.test(p)) return ["EMAIL"];

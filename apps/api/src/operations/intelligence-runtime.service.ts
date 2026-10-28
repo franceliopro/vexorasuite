@@ -34,6 +34,7 @@ export class IntelligenceRuntimeService {
   async receive(channel: ChannelConnection, conversationId: string, messageId: string): Promise<boolean> {
     let crmStageChange: { id: string; pipelineId: string; stage: string } | null = null;
     let crmFinalizationChange: {id:string;outcome:string;reason?:string} | null = null;
+    let crmContactChanged=false;
     const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${conversationId}::uuid AND tenant_id = ${channel.tenantId}::uuid FOR UPDATE`;
       const conversation = await tx.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
@@ -246,7 +247,7 @@ export class IntelligenceRuntimeService {
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata),tags:any[]=Array.isArray(profile.tags)?profile.tags:[];
                   const name=action.name.trim(),color=typeof action.color==='string'&&/^#[a-f\\d]{6}$/i.test(action.color)?action.color:'#5865da';
                   if(!tags.some(t=>normalize(typeof t==='string'?t:String(t?.name||''))===normalize(name))&&tags.length<50)tags.push({name,color});
-                  await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};skills.push('crm.tag.apply');
+                  await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;skills.push('crm.tag.apply');
                 }
                 if(action.type==='move_pipeline'&&permittedActions.includes('crm.pipeline.move')&&conversation.departmentId&&typeof action.pipeline==='string'&&typeof action.stage==='string'){
                   const pipeline=crmCatalog.find((item:any)=>normalize(item.name)===normalize(action.pipeline));
@@ -254,7 +255,7 @@ export class IntelligenceRuntimeService {
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata);
                   if(pipeline&&stage&&!profile.crmFinalization&&!profile.crmRemoved&&(!latest.pipelineId||latest.pipelineId===pipeline.id)){
                     await tx.contact.update({where:{id:latest.id},data:{pipelineId:pipeline.id,metadata:{...profile,crmStage:stage.id}}});
-                    crmStageChange={id:latest.id,pipelineId:pipeline.id,stage:stage.id};skills.push('crm.pipeline.move');
+                    crmStageChange={id:latest.id,pipelineId:pipeline.id,stage:stage.id};crmContactChanged=true;skills.push('crm.pipeline.move');
                   }
                 }
                 if(action.type==='finalize'&&permittedActions.includes('crm.deal.finalize')&&['WON','LOST'].includes(action.outcome)){
@@ -266,7 +267,7 @@ export class IntelligenceRuntimeService {
                   const tags=action.outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
                   const rest=Object.fromEntries(Object.entries(profile).filter(([key])=>key!=='crmStage'));
                   await tx.contact.update({where:{id:latest.id},data:{metadata:{...rest,tags,contactType:action.outcome==='WON'?'CUSTOMER':(typeof profile.contactType==='string'?profile.contactType:'LEAD'),crmFinalization:{outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{}),finalizedAt:new Date().toISOString(),kind:'AGENT'}}}});
-                  crmFinalizationChange={id:latest.id,outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{})};skills.push('crm.deal.finalize');
+                  crmFinalizationChange={id:latest.id,outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{})};crmContactChanged=true;skills.push('crm.deal.finalize');
                   break;
                 }
               }
@@ -339,7 +340,7 @@ export class IntelligenceRuntimeService {
               where: { id: conversation.contactId },
               data: { pipelineId: pipeline.id, metadata: { ...profile, crmStage: config.stage } },
             });
-            crmStageChange = { id: conversation.contactId, pipelineId: pipeline.id, stage: config.stage! };
+            crmStageChange = { id: conversation.contactId, pipelineId: pipeline.id, stage: config.stage! };crmContactChanged=true;
             skills.push('crm.stage.move');
             step = findStep(step.transitions?.[step.options[0]!]);
             continue;
@@ -359,7 +360,7 @@ export class IntelligenceRuntimeService {
             const tags=outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
             const metadata=Object.fromEntries(Object.entries(existing).filter(([key])=>key!=='crmStage')) as Prisma.JsonObject;
             await tx.contact.update({where:{id:latestContact.id},data:{metadata:{...metadata,tags,contactType:outcome==='WON'?'CUSTOMER':(typeof existing.contactType==='string'?existing.contactType:'LEAD'),crmFinalization:{outcome,...(outcome==='LOST'?{reason:config.reason}:{}),finalizedAt:new Date().toISOString(),kind:'FLOW'}}}});
-            crmFinalizationChange={id:latestContact.id,outcome,...(outcome==='LOST'?{reason:config.reason}:{})};
+            crmFinalizationChange={id:latestContact.id,outcome,...(outcome==='LOST'?{reason:config.reason}:{})};crmContactChanged=true;
             skills.push('crm.deal.finalize');
             messages.push(renderStep({...step,options:[]},variables));
             state={flow:'INTELLIGENCE',revision:published.revision,completed:true,variables};
@@ -394,6 +395,7 @@ export class IntelligenceRuntimeService {
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
     if (crmFinalizationChange) await this.prisma.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:crmFinalizationChange.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
+    if(crmContactChanged)this.events.publish(channel.tenantId,'contact.updated',{id:conversation.contactId});
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });
     if (crmStageChange) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange);
     if (crmFinalizationChange) this.events.publish(channel.tenantId,'contact.finalized',crmFinalizationChange);

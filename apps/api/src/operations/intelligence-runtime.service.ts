@@ -86,7 +86,9 @@ export class IntelligenceRuntimeService {
       variables.etapa=stage?.label||stage?.name||stageId;
       variables.time=department?.name||'';
       variables.atendente=assignee?.user.name||'';
-      variables.saudacao=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric'}).format(new Date()).match(/\\d+/)?.[0] ? (()=>{const h=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'}).format(new Date()));return h<6?'Olá, boa madrugada!':h<12?'Bom dia!':h<18?'Boa tarde!':'Boa noite!'})() : 'Olá!';
+      const currentHour=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'}).format(new Date()));
+      variables.saudacao=currentHour<6?'Olá, boa madrugada!':currentHour<12?'Bom dia!':currentHour<18?'Boa tarde!':'Boa noite!';
+      variables.despedida=currentHour<6?'Tenha uma ótima madrugada!':currentHour<12?'Tenha um ótimo dia!':currentHour<18?'Tenha uma ótima tarde!':'Tenha uma ótima noite!';
       for (const [key,value] of Object.entries(profile)) if(typeof value==='string'&&key!=='phone'&&key!=='email'&&!key.startsWith('crm')) variables[key]=value;
       let preferred=[profile.novo_nome,profile.preferredName,object(previous.variables).novo_nome,previous.novo_nome].find(value=>typeof value==='string'&&!!value.trim()&&!value.includes('{{'))?.trim().slice(0,80)||'';
       if(preferred&&!profile.novo_nome){const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),current=contactMetadata(latest.metadata);if(typeof current.novo_nome==='string'&&current.novo_nome.trim())preferred=current.novo_nome.trim().slice(0,80);const canonical={...current,novo_nome:preferred};await tx.contact.update({where:{id:conversation.contactId},data:{metadata:canonical}});conversation.contact.metadata=canonical;}
@@ -158,7 +160,7 @@ export class IntelligenceRuntimeService {
           }
         } else {
           step = flow.steps.find(s => s.id === 'menu') || flow.steps[0];
-          if (!active && flow.welcome) messages.push(flow.welcome);
+          if (!active && flow.welcome) messages.push(interpolateVariables(flow.welcome,variables));
         }
         for (let count = 0; step && count < 10; count++) {
           const type = step.action || step.kind || 'buttons';
@@ -209,8 +211,8 @@ export class IntelligenceRuntimeService {
                 }catch{research='\\nA pesquisa externa está indisponível. Não afirme ter consultado referências.';}
               }
               const knowledgeDocuments = Array.isArray(assistant.knowledgeDocuments) ? assistant.knowledgeDocuments.filter((doc: any) => doc && typeof doc.name === 'string' && typeof doc.content === 'string').slice(0, 10) : [];
-              const companyKnowledge = String(assistant.companyKnowledge || '').slice(0, 30000);
-              const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+doc.content.slice(0, 8000)).join('').slice(0, 40000);
+              const companyKnowledge = interpolateVariables(String(assistant.companyKnowledge || '').slice(0, 30000),variables);
+              const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+interpolateVariables(doc.content.slice(0, 8000),variables)).join('').slice(0, 40000);
               const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize'].includes(id)):[];
               const crmCatalog=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>['new','qualification','proposal'].includes(stage?.id)).map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
@@ -284,7 +286,7 @@ export class IntelligenceRuntimeService {
             }
             departmentId=target.id;assigneeId=null;runtimeScope=nextScope;scopeKey=next.key;published=next.publication;flow=published.flow;
             delete variables.plataforma;delete variables.setor;
-            if(flow.welcome)messages.push(flow.welcome);
+            if(flow.welcome)messages.push(interpolateVariables(flow.welcome,variables));
             step=flow.steps.find(s=>s.id==='menu')||flow.steps[0];skills.push('department.route');continue;
           }
           if (['human.handoff','assignment'].includes(type)) {

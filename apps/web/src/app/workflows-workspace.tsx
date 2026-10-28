@@ -1,4 +1,5 @@
 "use client";
+import { formatDateBR, formatDateTimeBR, formatTimeBR } from "../lib/date-format";
 import { useEffect, useState } from "react";
 async function api(path = "", body?: unknown) {
   const r = await fetch("/api/backend/workflows" + (path ? "/" + path : ""), {
@@ -42,7 +43,7 @@ export function WorkflowsWorkspace() {
   const [id, setId] = useState(""),
     [name, setName] = useState(""),
     [trigger, setTrigger] = useState("SCHEDULE"),
-    [timezone, setTimezone] = useState("America/Sao_Paulo"),
+    [timezone, setTimezone] = useState("America/Sao_Paulo", "America/Cuiaba"),
     [localStart, setLocalStart] = useState(""),
     [repeatDays, setRepeatDays] = useState(0),
     [channelId, setChannelId] = useState(""),
@@ -501,7 +502,7 @@ export function WorkflowsWorkspace() {
                     {r.status === "WAITING" && (
                       <small>
                         Próximo horário:{" "}
-                        {new Date(r.nextRunAt).toLocaleString("pt-BR")}
+                        {formatDateTimeBR(r.nextRunAt)}
                       </small>
                     )}
                     {r.error && (

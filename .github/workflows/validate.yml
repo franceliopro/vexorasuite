@@ -84,6 +84,8 @@ jobs:
         run: pnpm test
       - name: Apply migrations to PostgreSQL
         run: pnpm --filter @vexorasuite/api exec prisma migrate deploy
+      - name: Retired product data upgrade regression
+        run: pnpm --filter @vexorasuite/api exec node test/retirement-upgrade.cjs
       - name: API typecheck
         run: pnpm --filter @vexorasuite/api typecheck
       - name: API build

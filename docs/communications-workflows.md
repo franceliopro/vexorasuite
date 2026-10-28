@@ -38,18 +38,11 @@ A implantação utiliza os Dockerfiles multi-stage existentes. A migração `202
 
 É necessário manter `INTEGRATION_ENCRYPTION_KEY` estável, com o fallback atual em `JWT_ACCESS_SECRET`, e `PUBLIC_APP_URL` com a origem HTTPS pública. A rotação da chave de cifra exige reconectar as contas. SMTP/IMAP são conectados na interface por empresa com senha de aplicativo; nenhum serviço de e-mail foi contratado automaticamente.
 
-### SMS e telefonia econômica
+### SMS existente e retirada da telefonia
 
-Jasmin é o adaptador de SMS; Asterisk ARI origina uma chamada que toca primeiro no ramal do atendente e depois disca o contato. Os gateways são provisionados pelo operador, com rotas distintas por empresa. A interface não permite escolher URLs arbitrárias nem mostra senhas. Solicitações possuem chave de idempotência e auditoria.
+Telefonia retirada do escopo por decisão do proprietário: sem originação Asterisk/ARI, chamadas WhatsApp ao vivo ou chamadas por IA. Os controles e o endpoint de chamada foram removidos. Nenhum histórico é apagado e nenhuma conta externa é cancelada. Áudios, transcrição e respostas de voz em mensagens permanecem independentes dessa decisão.
 
-Configuração do operador, sem valores reais no repositório:
-
-- `JASMIN_BASE_URL`: origem do gateway privado. `JASMIN_TENANT_ROUTES`: JSON indexado pelo UUID da empresa, com `username`, `password` e `from` opcional.
-- `ASTERISK_ARI_URL`: URL base do ARI, incluindo `/ari`. `ASTERISK_ARI_USERNAME` e `ASTERISK_ARI_PASSWORD`: credenciais do gateway. `ASTERISK_TENANT_ROUTES`: JSON por UUID da empresa, com `agentEndpoint` autorizado e `context` restrito de saída.
-
-O operador deve isolar os gateways na rede privada e provisionar os ramais/rotas por empresa. O software aberto não elimina tarifas de operadora. Sem rotas configuradas, SMS e ligações permanecem indisponíveis. Não houve chamadas nem SMS reais nos testes.
-
-Chamadas ao vivo pelo WhatsApp, gravação e agente de voz por IA permanecem pendentes de implementação e configuração de mídia/telefonia. O conector WhatsApp pronto do LiveKit é exclusivo do LiveKit Cloud; o SIP/Agents pode ter outra arquitetura. WAHA e whatsmeow não tornam esse recurso automaticamente disponível.
+O adaptador SMS Jasmin existente permanece sem expansão nesta alteração. Exige rota e créditos próprios; não foi validada entrega real. Configuração do operador: JASMIN_BASE_URL e JASMIN_TENANT_ROUTES por empresa. Aceitação pelo gateway não comprova entrega.
 
 ## ⚡ Automação e Otimizações Futuras
 

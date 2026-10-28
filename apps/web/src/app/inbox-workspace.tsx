@@ -14,12 +14,13 @@ import { emojiCatalog } from "./emoji-catalog";
 
 type FinanceDebt={id:string;value:number;dueDate:string;status:string;description:string;invoiceUrl:string|null;bankSlipUrl:string|null};
 type Channel = { id: string; name: string; provider: string; status: string; lastError?: string | null; healthCheckedAt?: string | null };
-type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; metadata?: Record<string, unknown> };
+type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; pipelineId?:string|null; metadata?: Record<string, unknown> };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string; metadata?: {linkedConversationId?:string} };
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
 type Agent = { id: string; name: string; email: string };
 type QuickReply = { id:string; title:string; content:string; category?:string; shortcut?:string };
+type QuickReplyPipeline={id:string;name:string;stages:{id:string;label?:string}[]};
 type QuickReplySettings = { companyName:string; greetings:{dawn:string;morning:string;afternoon:string;evening:string}; farewells:{dawn:string;morning:string;afternoon:string;evening:string} };
 const DEFAULT_QUICK_REPLY_SETTINGS: QuickReplySettings = {
   companyName: "",
@@ -34,6 +35,12 @@ const QUICK_REPLY_VARIABLES = [
   { token:"{{despedida}}", label:"Despedida", hint:"Varia conforme o horário" },
   { token:"{{atendente}}", label:"Atendente", hint:"Atendente responsável pela conversa (conhecido_por)" },
   { token:"{{time}}", label:"Time", hint:"Equipe responsável pela conversa" },
+  { token:"{{equipe}}", label:"Equipe", hint:"Equipe responsável pela conversa" },
+  { token:"{{telefone}}", label:"Telefone", hint:"Telefone do contato" },
+  { token:"{{email}}", label:"E-mail", hint:"E-mail do contato" },
+  { token:"{{origem}}", label:"Origem", hint:"Origem do contato" },
+  { token:"{{pipeline}}", label:"Pipeline", hint:"Pipeline atual do contato" },
+  { token:"{{etapa}}", label:"Etapa", hint:"Etapa atual do contato" },
 ] as const;
 function greetingPeriod(date = new Date()): "dawn"|"morning"|"afternoon"|"evening" {
   const hour = date.getHours();
@@ -122,6 +129,8 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 
 export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:string;canManageChannels?:boolean}) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [quickReplyPipelines,setQuickReplyPipelines]=useState<QuickReplyPipeline[]>([]);
+  useEffect(()=>{let live=true;fetch("/api/backend/crm/pipelines",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{if(live)setQuickReplyPipelines(Array.isArray(data?.pipelines)?data.pipelines:[])}).catch(()=>{});return()=>{live=false}},[tenantId]);
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [queueView, setQueueView] = useState("mine");
   const notificationFocus=useRef<string|null>(null),conversationRequest=useRef(0);
@@ -473,12 +482,15 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const team=selected?.department?.name?.trim()||getText("team","teamName","equipe","nome_equipe","departmentName")||"";
     const periodGreeting=quickReplySettings.greetings[period]||DEFAULT_QUICK_REPLY_SETTINGS.greetings[period];
     const periodFarewell=quickReplySettings.farewells[period]||DEFAULT_QUICK_REPLY_SETTINGS.farewells[period];
+    const crmPipeline=quickReplyPipelines.find(p=>p.id===selected?.contact.pipelineId);
+    const stageId=getText("crmStage","stage");
+    const stageLabel=crmPipeline?.stages.find(stage=>stage.id===stageId)?.label||stageId;
     const context:Record<string,string>={
       ...Object.fromEntries(Object.entries(metadata).filter(([,v])=>typeof v==="string") as [string,string][]),
       ...Object.fromEntries(Object.entries(customFields).filter(([,v])=>typeof v==="string") as [string,string][]),
       ...Object.fromEntries(Object.entries(flowVariables).filter(([,v])=>typeof v==="string") as [string,string][]),
-      telefone:selected?.contact.phone||"",email:selected?.contact.email||"",pipeline:getText("pipelineName","pipeline"),
-      etapa:getText("crmStage","stage"),atendente:attendant,time:team,team,empresa:quickReplySettings.companyName.trim()||"nossa equipe",
+      telefone:selected?.contact.phone||"",email:selected?.contact.email||"",origem:selected?.contact.source||getText("source","origem"),pipeline:crmPipeline?.name||getText("pipelineName","pipeline"),
+      etapa:stageLabel,atendente:attendant,time:team,equipe:team,team,empresa:quickReplySettings.companyName.trim()||"nossa equipe",
       nome,novo_nome:typeof preferred==="string"&&preferred.trim()?preferred.trim():name,saudacao:periodGreeting,despedida:periodFarewell
     };
     const valueFor=(name:string)=>{

@@ -266,7 +266,6 @@ export class IntelligenceRuntimeService {
                   const tags=action.outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
                   const rest=Object.fromEntries(Object.entries(profile).filter(([key])=>key!=='crmStage'));
                   await tx.contact.update({where:{id:latest.id},data:{metadata:{...rest,tags,contactType:action.outcome==='WON'?'CUSTOMER':(typeof profile.contactType==='string'?profile.contactType:'LEAD'),crmFinalization:{outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{}),finalizedAt:new Date().toISOString(),kind:'AGENT'}}}});
-                  await tx.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:latest.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
                   crmFinalizationChange={id:latest.id,outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{})};skills.push('crm.deal.finalize');
                 }
               }
@@ -359,7 +358,6 @@ export class IntelligenceRuntimeService {
             const tags=outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
             const metadata=Object.fromEntries(Object.entries(existing).filter(([key])=>key!=='crmStage')) as Prisma.JsonObject;
             await tx.contact.update({where:{id:latestContact.id},data:{metadata:{...metadata,tags,contactType:outcome==='WON'?'CUSTOMER':(typeof existing.contactType==='string'?existing.contactType:'LEAD'),crmFinalization:{outcome,...(outcome==='LOST'?{reason:config.reason}:{}),finalizedAt:new Date().toISOString(),kind:'FLOW'}}}});
-            await tx.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:latestContact.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
             crmFinalizationChange={id:latestContact.id,outcome,...(outcome==='LOST'?{reason:config.reason}:{})};
             skills.push('crm.deal.finalize');
             messages.push(renderStep({...step,options:[]},variables));
@@ -394,6 +392,7 @@ export class IntelligenceRuntimeService {
     }, { timeout: 30000 });
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
+    if (crmFinalizationChange) await this.prisma.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:crmFinalizationChange.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });
     if (crmStageChange) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange);
     if (crmFinalizationChange) this.events.publish(channel.tenantId,'contact.finalized',crmFinalizationChange);

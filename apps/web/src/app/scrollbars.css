@@ -8,3 +8,11 @@
 *::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent!important;border:0!important;box-shadow:none!important}
 *::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb)!important;border:0!important;border-radius:0!important;box-shadow:none!important}
 *::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important}
+
+/* Expanded navigation is the intentional exception to the global scrollbar rule. */
+.sidebar .side-nav:has(.nav-accordion.expanded){scrollbar-width:none!important}
+.sidebar .side-nav:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+@media(max-width:760px){
+ .suite-app>.sidebar:has(.nav-accordion.expanded){scrollbar-width:none!important}
+ .suite-app>.sidebar:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+}

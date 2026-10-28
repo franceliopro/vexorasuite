@@ -32,8 +32,8 @@ export class IntelligenceRuntimeService {
   }
   /** Atomic state + outbox + audit under a database lock, shared by every API replica. */
   async receive(channel: ChannelConnection, conversationId: string, messageId: string): Promise<boolean> {
-    let crmStageChange: { id: string; pipelineId: string; stage: string } | null = null;
-    let crmFinalizationChange: {id:string;outcome:string;reason?:string} | null = null;
+    const crmStageChange: {value:{ id: string; pipelineId: string; stage: string } | null} = {value:null};
+    const crmFinalizationChange: {value:{id:string;outcome:string;reason?:string} | null} = {value:null};
     let crmContactChanged=false;
     let crmContactId:string|null=null;
     const result = await this.prisma.$transaction(async tx => {
@@ -77,16 +77,17 @@ export class IntelligenceRuntimeService {
         const token=key.trim().replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^([^\p{L}_])/, '_$1').slice(0,40);
         if(token&&value!==null&&['string','number','boolean'].includes(typeof value)){if(!Object.hasOwn(variables,key))variables[key]=String(value).slice(0,500);if(!Object.hasOwn(variables,token))variables[token]=String(value).slice(0,500);}
       }
-      const pipeline=conversation.contact.pipelineId?await tx.crmPipeline.findFirst({where:{id:conversation.contact.pipelineId,tenantId:channel.tenantId},select:{name:true,stages:true}}):null;
+      const pipeline=conversation.contact.pipelineId?await tx.crmPipeline.findFirst({where:{id:conversation.contact.pipelineId,tenantId:channel.tenantId},select:{id:true,name:true,stages:true}}):null;
       const stageId=typeof profile.crmStage==='string'?profile.crmStage:'';
-      const stage=Array.isArray(pipeline?.stages)?pipeline!.stages.find((item:any)=>item?.id===stageId):null;
+      const stages: any[]=Array.isArray(pipeline?.stages)?pipeline.stages as any[]:[];
+      const stage=stages.find((item:any)=>item?.id===stageId)||null;
       const department=conversation.departmentId?await tx.department.findFirst({where:{id:conversation.departmentId,tenantId:channel.tenantId,isActive:true},select:{name:true}}):null;
       const assignee=conversation.assigneeId?await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId:conversation.assigneeId,user:{isActive:true}},select:{user:{select:{name:true}}}}):null;
       variables.telefone=conversation.contact.phone||'';
       variables.email=conversation.contact.email||'';
       variables.origem=typeof profile.source==='string'?profile.source:'';
       variables.pipeline=pipeline?.name||'';
-      variables.etapa=stage?.label||stage?.name||stageId;
+      variables.etapa=typeof stage?.label==='string'?stage.label:typeof stage?.name==='string'?stage.name:stageId;
       variables.time=department?.name||'';
       variables.atendente=assignee?.user.name||'';
       const currentHour=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'}).format(new Date()));
@@ -217,7 +218,7 @@ export class IntelligenceRuntimeService {
               const companyKnowledge = interpolateVariables(String(assistant.companyKnowledge || '').slice(0, 30000),variables);
               const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+interpolateVariables(doc.content.slice(0, 8000),variables)).join('').slice(0, 40000);
               const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize'].includes(id)):[];
-              const crmCatalog=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{name:true,stages:true}}):[];
+              const crmCatalog=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{id:true,name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>typeof stage?.id==='string').map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
               const systemPrompt = [
                 `Você atende pela empresa ${tenant.name}. Responda somente sobre a empresa, seus produtos, serviços e processos. Se o pedido sair do escopo ou faltar informação, explique com cordialidade e ofereça encaminhar a uma pessoa.`,
@@ -258,7 +259,7 @@ export class IntelligenceRuntimeService {
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata);
                   if(pipeline&&stage&&!profile.crmFinalization&&!profile.crmRemoved&&(!latest.pipelineId||latest.pipelineId===pipeline.id)){
                     await tx.contact.update({where:{id:latest.id},data:{pipelineId:pipeline.id,metadata:{...profile,crmStage:stage.id}}});
-                    crmStageChange={id:latest.id,pipelineId:pipeline.id,stage:stage.id};crmContactChanged=true;skills.push('crm.pipeline.move');
+                    crmStageChange.value={id:latest.id,pipelineId:pipeline.id,stage:stage.id};crmContactChanged=true;skills.push('crm.pipeline.move');
                   }
                 }
                 if(action.type==='finalize'&&permittedActions.includes('crm.deal.finalize')&&['WON','LOST'].includes(action.outcome)){
@@ -270,7 +271,7 @@ export class IntelligenceRuntimeService {
                   const tags=action.outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
                   const rest=Object.fromEntries(Object.entries(profile).filter(([key])=>key!=='crmStage'));
                   await tx.contact.update({where:{id:latest.id},data:{metadata:{...rest,tags,contactType:action.outcome==='WON'?'CUSTOMER':(typeof profile.contactType==='string'?profile.contactType:'LEAD'),crmFinalization:{outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{}),finalizedAt:new Date().toISOString(),kind:'AGENT'}}}});
-                  crmFinalizationChange={id:latest.id,outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{})};crmContactChanged=true;skills.push('crm.deal.finalize');
+                  crmFinalizationChange.value={id:latest.id,outcome:action.outcome,...(action.outcome==='LOST'?{reason:action.reason}:{})};crmContactChanged=true;skills.push('crm.deal.finalize');
                   break;
                 }
               }
@@ -363,7 +364,7 @@ export class IntelligenceRuntimeService {
             const tags=outcome==='WON'?priorTags.filter((tag:any)=>(typeof tag==='string'?tag:String(tag.name||'')).trim().toLocaleLowerCase('pt-BR')!=='novo lead'):priorTags;
             const metadata=Object.fromEntries(Object.entries(existing).filter(([key])=>key!=='crmStage')) as Prisma.JsonObject;
             await tx.contact.update({where:{id:latestContact.id},data:{metadata:{...metadata,tags,contactType:outcome==='WON'?'CUSTOMER':(typeof existing.contactType==='string'?existing.contactType:'LEAD'),crmFinalization:{outcome,...(outcome==='LOST'?{reason:config.reason}:{}),finalizedAt:new Date().toISOString(),kind:'FLOW'}}}});
-            crmFinalizationChange={id:latestContact.id,outcome,...(outcome==='LOST'?{reason:config.reason}:{})};crmContactChanged=true;
+            crmFinalizationChange.value={id:latestContact.id,outcome,...(outcome==='LOST'&&typeof config.reason==='string'?{reason:config.reason}:{})};crmContactChanged=true;
             skills.push('crm.deal.finalize');
             messages.push(renderStep({...step,options:[]},variables));
             state={flow:'INTELLIGENCE',revision:published.revision,completed:true,variables};
@@ -397,11 +398,11 @@ export class IntelligenceRuntimeService {
     }, { timeout: 30000 });
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
-    if (crmFinalizationChange) await this.prisma.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:crmFinalizationChange.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
+    if (crmFinalizationChange.value) await this.prisma.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:crmFinalizationChange.value.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
     if(crmContactChanged&&crmContactId)this.events.publish(channel.tenantId,'contact.updated',{id:crmContactId});
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });
-    if (crmStageChange) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange);
-    if (crmFinalizationChange) this.events.publish(channel.tenantId,'contact.finalized',crmFinalizationChange);
+    if (crmStageChange.value) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange.value);
+    if (crmFinalizationChange.value) this.events.publish(channel.tenantId,'contact.finalized',crmFinalizationChange.value);
     if('assigned' in result&&result.assigned)this.events.publish(channel.tenantId,'conversation.assigned',{id:conversationId});
     return result.handled;
   }

@@ -50,7 +50,7 @@ export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMEN
   'Peça somente os dados necessários, proteja dados pessoais e nunca solicite senhas, códigos de autenticação ou dados de cartão.',
   'Nunca afirme que marcou, cobrou, consultou ou moveu algo sem confirmação do sistema.',
   'Mantenha o atendimento dentro do escopo da empresa. Para solicitações fora da área, encaminhe com gentileza à equipe apropriada.',
- ].join('\\n\\n');
+ ].join('\n\n');
 }
 export function templateFlow(id:string, department?:keyof typeof DEPARTMENT_PRESETS):RuntimeFlow {
  const segment=SEGMENTS.find(s=>s.id===id);

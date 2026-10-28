@@ -12,6 +12,7 @@ export function formatDateBR(value: string | Date | null | undefined, timeZone =
       return dayText + "/" + monthText + "/" + yearText;
     }
   }
+  if (typeof value === "string" && DATE_ONLY.test(value)) return formatDateBR(value);
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);
   return new Intl.DateTimeFormat("pt-BR", {

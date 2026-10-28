@@ -17,7 +17,7 @@ const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];
 function readCrmStage(metadata: Prisma.JsonValue): CrmStage | null {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
-    if ("crmFinalization" in metadata && metadata.crmFinalization) return null;
+    if (metadata.crmRemoved || ("crmFinalization" in metadata && metadata.crmFinalization)) return null;
     if (metadata.contactType === "CUSTOMER") return null;
     if ("asaas" in metadata && metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas) && "customerId" in metadata.asaas) return null;
     if ("crmStage" in metadata) { const stage = metadata.crmStage; if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage; }
@@ -209,6 +209,20 @@ export class ContactsController {
     return { ...updated, crmStage: input.stage };
   }
 
+
+  @Post(":id/remove-from-pipeline")
+  async removeFromPipeline(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: {pipelineId?:string}) {
+    if(!input.pipelineId) throw new BadRequestException("Selecione o pipeline.");
+    await accessiblePipeline(this.prisma,request,input.pipelineId);
+    const result=await this.prisma.$transaction(async tx=>{
+      const contact=await lockedContact(tx,request.user.tenantId,id);
+      if(contact.pipelineId!==input.pipelineId) throw new BadRequestException("O contato mudou de pipeline. Atualize a tela.");
+      const metadata=contactMetadata(contact.metadata);
+      return tx.contact.update({where:{id},data:{pipelineId:null,metadata:{...metadata,crmRemoved:{pipelineId:input.pipelineId,removedAt:new Date().toISOString(),removedBy:request.user.sub}}}});
+    });
+    this.events.publish(request.user.tenantId,"contact.updated",{id});
+    return {id:result.id,removed:true};
+  }
 
   @Post(":id/finalize")
   async finalize(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { outcome?: string; reason?: string }) {

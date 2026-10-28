@@ -13,6 +13,7 @@ type CrmTag = {name:string;color?:string};
 type CrmFieldDefinition = {name:string;key:string};
 type Contact = {
   id: string;
+  pipelineId?: string | null;
   name: string;
   phone: string | null;
   email: string | null;
@@ -58,6 +59,17 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(Array.isArray(message) ? message.join(" ") : message || data?.error || "Não foi possível concluir a operação.");
   }
   return data as T;
+}
+
+function AdaptiveCards({children}:{children: React.ReactNode}) {
+ const ref=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+ const el=ref.current;if(!el)return;
+ const measure=()=>{const cards=Array.from(el.querySelectorAll<HTMLElement>(':scope > article'));const fifth=cards[4];el.style.maxHeight=Math.min(800,fifth?fifth.getBoundingClientRect().bottom-el.getBoundingClientRect().top+el.scrollTop:800)+'px';};
+ const observer=new ResizeObserver(measure);observer.observe(el);Array.from(el.children).forEach(child=>observer.observe(child));measure();
+ return ()=>observer.disconnect();
+ },[children]);
+ return <div ref={ref} className="crm-stage-cards">{children}</div>;
 }
 
 export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
@@ -144,6 +156,16 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
   }
 
 
+  async function removeFromPipeline(contact:Contact) {
+    if(!pipelineId||movingId||!window.confirm("Retirar "+contact.name+" deste pipeline? O cadastro e o histórico serão preservados."))return;
+    setMovingId(contact.id);setError("");
+    try {
+      await api("/api/backend/contacts/"+contact.id+"/remove-from-pipeline",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({pipelineId})});
+      setContacts(items=>items.filter(item=>item.id!==contact.id));setNotice(contact.name+" retirado do pipeline.");
+    }catch(cause){setError(cause instanceof Error?cause.message:"Não foi possível retirar o contato.");}
+    finally{setMovingId("");}
+  }
+
   async function confirmFinalization() {
     if (!finalizingContact || !finalOutcome || (finalOutcome === "LOST" && !lossReason) || movingId) return;
     const contact = finalizingContact;
@@ -216,14 +238,14 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
       {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
         <section className="crm-pipeline" aria-label="Pipeline comercial">
           {stages.map((stage) => {
-            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (contact.crmStage || "new") === stage.id);
+            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (!contact.metadata?.crmRemoved || !!contact.pipelineId) && (contact.crmStage || "new") === stage.id);
             const activeDrop = dropTarget === stage.id;
             return <div key={stage.id} className={"crm-pipeline-column tone-" + stage.tone + (activeDrop ? " drop-active" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}
               onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(""); }}
               onDrop={(event) => dropOnStage(event, stage.id)}>
               <header className="crm-stage-heading"><span className="crm-stage-indicator"/><div><h2>{stage.label}</h2><p>{stage.hint}</p></div><span className="crm-stage-count">{columnContacts.length}</span></header>
-              <div className="crm-stage-cards">
+              <AdaptiveCards>
                 {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"crm-pipeline-card" + (draggingId === contact.id ? " is-dragging" : "")}>
                   <div className="crm-card-top"><ContactPhoto id={contact.id} name={contact.name} version={contact.metadata?.avatarUrl} className="crm-contact-avatar"/><span className="crm-card-source">{contact.source || "Contato"}</span></div>
                   <strong className="crm-card-name">{contact.name}</strong>
@@ -231,10 +253,10 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
                   {contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
                   <span className="crm-card-detail">{contact.phone || contact.email || "Sem telefone ou e-mail"}</span>
                   {contact.phone && contact.email ? <span className="crm-card-detail">{contact.email}</span> : null}
-                  <div className="crm-card-footer"><label className="crm-move-label">Mover para<select aria-label={"Mover " + contact.name + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><ArrowRight size={14} aria-hidden="true"/></div>
+                  <div className="crm-card-footer"><label className="crm-move-label">Mover para<select aria-label={"Mover " + contact.name + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><ArrowRight size={14} aria-hidden="true"/>{pipelineId?<button type="button" className="secondary-button" disabled={!!movingId} onClick={()=>void removeFromPipeline(contact)} aria-label={"Retirar "+contact.name+" do pipeline"}>Retirar</button>:null}</div>
                 </article>)}
                 {!columnContacts.length ? <div className={"crm-stage-empty" + (activeDrop ? " is-lit" : "")}><span>{activeDrop ? <Check size={17}/> : <Plus size={17}/>}</span><strong>{activeDrop ? "Solte para mover" : "Sem contatos nesta etapa"}</strong><small>{activeDrop ? (stage.id === "finalization" ? "Escolha ganho ou perda" : "O pipeline será atualizado") : (stage.id === "finalization" ? "Arraste um contato para registrar o resultado" : "Arraste um cartão para cá")}</small></div> : null}
-              </div>
+              </AdaptiveCards>
             </div>;
           })}
         </section>

@@ -354,7 +354,7 @@ export class IntelligenceRuntimeService {
             const outcome=config.outcome;
             const lossReason=typeof config.reason==='string'?config.reason:undefined;
             const reasons=['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade'];
-            if(!['WON','LOST'].includes(outcome||'')||(outcome==='LOST'&&!reasons.includes(lossReason||''))){
+            if((outcome!=='WON'&&outcome!=='LOST')||(outcome==='LOST'&&!reasons.includes(lossReason||''))){
               reason='crm_finalization_unavailable';await handoff();step=undefined as unknown as RuntimeStep;break;
             }
             const latestContact=await lockedContact(tx,channel.tenantId,conversation.contactId);

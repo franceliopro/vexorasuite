@@ -1,5 +1,5 @@
 "use client";
-import { formatDateBR, formatDateTimeBR, formatTimeBR } from "../lib/date-format";
+import { formatDateBR } from "../lib/date-format";
 import { CommunicationActions } from "./communication-actions";
 
 import { ContactPhoto } from "./contact-photo";

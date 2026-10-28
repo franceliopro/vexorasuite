@@ -35,7 +35,8 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Imagem e cor de fundo independentes para desktop/celular; logo pequeno centralizado por padrão.
 - Ajustar, preencher, centralizar, estender, ampliar e lado a lado; prévia, aplicação, edição com clique duplo/toque duplo e exclusão.
 - Armazenamento privado por empresa, validação de imagem e controle de revisões concorrentes.
-- Sidebar fixa no desktop com rolagem chapada na cor do tema; submenus sem rolagem própria.
+- Sidebar fixa no desktop com rolagem fina e chapada; submenus sem rolagem própria.
+- Barras de rolagem padronizadas em todo o produto: cinza escuro em área clara, brancas em área escura.
 
 ## Pendências preservadas para as próximas alterações
 1. Personalizações detalhadas por recurso: os pacotes agora materializam agentes e rotinas também nas empresas existentes e preservam edições; falta uma matriz de sobrescritas por recurso com precedência explícita.

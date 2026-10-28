@@ -16,8 +16,8 @@
  .suite-app:has(>.sidebar.sidebar-collapsed){--desktop-sidebar-width:78px}
  .suite-app>.sidebar{position:fixed;inset:0 auto 0 0;width:var(--desktop-sidebar-width);height:100dvh;min-height:0;max-height:100dvh;overflow:visible;z-index:35;display:flex;flex-direction:column}
  .suite-app>.main-area{margin-left:var(--desktop-sidebar-width);width:calc(100% - var(--desktop-sidebar-width));max-width:calc(100% - var(--desktop-sidebar-width));min-width:0}
- .sidebar .side-nav{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--primary) transparent}
- .sidebar .side-nav::-webkit-scrollbar{width:6px}.sidebar .side-nav::-webkit-scrollbar-track{background:transparent}.sidebar .side-nav::-webkit-scrollbar-thumb{background:var(--primary);border-radius:0;border:0;box-shadow:none}
+ .sidebar .side-nav{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent}
+ .sidebar .side-nav::-webkit-scrollbar{width:6px}.sidebar .side-nav::-webkit-scrollbar-track{background:transparent}.sidebar .side-nav::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:0;border:0;box-shadow:none}
  .sidebar .nav-submenu{overflow:visible;max-height:none}
  .sidebar .sidebar-bottom{margin-top:0;flex-shrink:0}
  .sidebar .nav-glyph,.sidebar .nav-item,.sidebar .sidebar-brand-row{flex-shrink:0}

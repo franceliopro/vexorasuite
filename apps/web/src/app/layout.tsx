@@ -7,6 +7,7 @@ import "./mobile-app.css";
 import "./interface-system.css";
 import "./mobile-scroll.css";
 import "./home-presentation.css";
+import "./scrollbars.css";
 
 export const metadata: Metadata = {
   title: "Véxora Suite",

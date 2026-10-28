@@ -12,6 +12,8 @@ Clique no botão central quando não houver fundo. Após aplicar, clique duas ve
 
 Leitura exige sessão válida da própria empresa. Edição exige administração Véxora ou OWNER/ADMIN com Configurações permitido. O endpoint da imagem valida o contexto e não usa cache compartilhado. Revisões concorrentes retornam conflito e exigem reabrir a edição.
 
-A sidebar desktop é fixa no viewport. Somente sua área de navegação rola quando necessário, com barra fina chapada na cor do tema. Submenus expandem no fluxo normal e não possuem rolagem própria. A rolagem das páginas mobile continua pertencendo ao documento; o editor de fundo tem sua própria rolagem interna e o mesmo controle de foco/rolagem dos diálogos existentes.
+A sidebar desktop é fixa no viewport. Somente sua área de navegação rola quando necessário, com barra fina chapada, cinza escuro em área clara e branca em área escura. Submenus expandem no fluxo normal e não possuem rolagem própria. A rolagem das páginas mobile continua pertencendo ao documento; o editor de fundo tem sua própria rolagem interna e o mesmo controle de foco/rolagem dos diálogos existentes.
 
 Novos controles de automação ficam abaixo do fluxo; o título Véxora Intelligence Engine permanece no topo.
+
+A padronização das barras de rolagem vale para todo o produto: documento, painéis, editores e campos. Sem bordas arredondadas, sombras ou relevo. A sidebar do tema híbrido usa a variação de ambiente escuro.

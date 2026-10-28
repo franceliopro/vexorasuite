@@ -3,6 +3,9 @@ import {randomUUID} from 'node:crypto';
 import {provisionCompany} from './company-blueprint';
 import {AuthService} from './auth.service';
 describe('company onboarding and switching',()=>{
+ const originalSecret=process.env.JWT_ACCESS_SECRET;
+ beforeAll(()=>{process.env.JWT_ACCESS_SECRET='company-test-secret-with-at-least-thirty-two-bytes';});
+ afterAll(()=>{if(originalSecret===undefined)delete process.env.JWT_ACCESS_SECRET;else process.env.JWT_ACCESS_SECRET=originalSecret;});
  it('prepares isolated departments and drafts without copying credentials',async()=>{
   const tx:any={department:{create:jest.fn(async({data})=>({id:randomUUID(),...data}))},departmentMember:{create:jest.fn()},crmPipeline:{create:jest.fn(async()=>({id:randomUUID()}))},internalWorkflow:{create:jest.fn(async()=>({id:randomUUID()}))},tenant:{update:jest.fn()}};
   await provisionCompany(tx,{id:randomUUID()},randomUUID(),'music-school',randomUUID());

@@ -9,7 +9,7 @@ describe('provider catalogs and execution',()=>{
   const fetcher=jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'ok'}}],usage:{prompt_tokens:2,completion_tokens:3,total_tokens:5}})));
   const providers=economicalProviders({llm:{provider,model:'selected'}},undefined,{keys:{[provider]:'tenant-key'}},'tenant');
   const result=await new AiService().generate([{role:'user',content:'test'}],providers);
-  const [url,init]=fetcher.mock.calls[0],body=JSON.parse(init?.body as string);
+  const [url,init]=fetcher.mock.calls[0]!,body=JSON.parse(init?.body as string);
   expect(String(url)).toContain(({openai:'api.openai.com',gemini:'generativelanguage.googleapis.com',deepseek:'api.deepseek.com',qwen:'dashscope-intl.aliyuncs.com'})[provider]);
   expect((init?.headers as any).authorization).toBe('Bearer tenant-key');
   expect(body[provider==='openai'?'max_completion_tokens':'max_tokens']).toBe(1200);
@@ -18,7 +18,7 @@ describe('provider catalogs and execution',()=>{
  it('converts Claude system instructions, images and usage without dropping context',async()=>{
   const fetcher=jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({content:[{type:'text',text:'hello'}],usage:{input_tokens:7,output_tokens:3}})));
   const result=await new AiService().generate([{role:'system',content:'Tenant rules'},{role:'user',content:[{type:'text',text:'look'},{type:'image_url',image_url:{url:'https://example.test/image.png'}}]}],[{provider:'anthropic',model:'selected',apiKey:'secret'}]);
-  const [url,init]=fetcher.mock.calls[0],body=JSON.parse(init?.body as string);
+  const [url,init]=fetcher.mock.calls[0]!,body=JSON.parse(init?.body as string);
   expect(url).toBe('https://api.anthropic.com/v1/messages');expect((init?.headers as any)['x-api-key']).toBe('secret');
   expect(body.system).toBe('Tenant rules');expect(body.messages).toHaveLength(1);expect(body.messages[0].content[1].source.url).toBe('https://example.test/image.png');
   expect(result.text).toBe('hello');expect(result.usage).toEqual({promptTokens:7,completionTokens:3,totalTokens:10});

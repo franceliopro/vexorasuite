@@ -89,7 +89,7 @@ export class IntelligenceRuntimeService {
       variables.pipeline=pipeline?.name||'';
       variables.etapa=typeof stage?.label==='string'?stage.label:typeof stage?.name==='string'?stage.name:stageId;
       variables.time=department?.name||'';
-      variables.atendente=assignee?.user.name||'';
+      variables.atendente=assignee?.user?.name||'';
       const currentHour=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'}).format(new Date()));
       variables.saudacao=currentHour<6?'Olá, boa madrugada!':currentHour<12?'Bom dia!':currentHour<18?'Boa tarde!':'Boa noite!';
       variables.despedida=currentHour<6?'Tenha uma ótima madrugada!':currentHour<12?'Tenha um ótimo dia!':currentHour<18?'Tenha uma ótima tarde!':'Tenha uma ótima noite!';

@@ -10,11 +10,12 @@ export async function provisionCompany(tx:any,tenant:any,ownerId:string,segmentI
   const department=await tx.department.create({data:{tenantId:tenant.id,key,name:preset.name,modules:preset.modules,routingCategory:preset.category,isActive:true}});
   await tx.departmentMember.create({data:{tenantId:tenant.id,departmentId:department.id,userId:ownerId}});
   const pipeline=await tx.crmPipeline.create({data:{tenantId:tenant.id,departmentId:department.id,name:'CRM · '+department.name,template:key,stages:pipelineStages(key),enabled:true}});
+  const workflow=await tx.internalWorkflow.create({data:{tenantId:tenant.id,userId:ownerId,name:'Acompanhamento · '+department.name,enabled:false,trigger:'INBOX',timezone:'America/Sao_Paulo',nextRunAt:new Date(),repeatDays:0,filters:{departmentId:department.id,stopOnReply:true},steps:[{type:'TASK',text:'Revisar solicitação de '+department.name+' e registrar o próximo passo.',minutes:0}]}});
   const id='department:'+department.id+':'+key,agentId=randomUUID();
   const flow=templateFlow(segmentId,key);flow.name='Fluxo '+department.name;
-  presets[id]={version:1,departmentId:department.id,departmentKey:key,preset:key,segment:segment.name,modules:preset.modules,agentId,pipelineId:pipeline.id,agentInstructions:segment.guidance};
+  presets[id]={version:1,bundleVersion:2,workflowId:workflow.id,departmentId:department.id,departmentKey:key,preset:key,segment:segment.name,modules:preset.modules,agentId,pipelineId:pipeline.id,agentInstructions:segment.guidance};
   flows[id]={version:1,draft:flow};
-  agents.push({id:agentId,name:'Assistente '+department.name,role:preset.name,tier:'ECONOMY',enabled:false,instructions:segment.guidance,profile:{tone:'Natural e objetivo',channels:[]},behavior:{rules:'Confirme dados antes de agir. Encaminhe dúvidas à equipe.',prohibitions:'Não inventar consultas ou operações.'},allowedActions:[],bindings:{mode:'SPECIALIST',specialists:[],flows:[id],pipelines:[pipeline.id],externalSystems:[],modules:preset.modules}});
+  agents.push({id:agentId,name:'Assistente '+department.name,role:preset.name,tier:'Econômico',enabled:false,instructions:segment.guidance,profile:{tone:'Natural e objetivo',channels:[]},behavior:{rules:'Confirme dados antes de agir. Encaminhe dúvidas à equipe.',prohibitions:'Não inventar consultas ou operações.'},allowedActions:[],bindings:{mode:'specialist',specialists:[],flows:[id],pipelines:[pipeline.id],externalSystems:[],modules:preset.modules}});
  }
  await tx.tenant.update({where:{id:tenant.id},data:{integrations:{onboarding:{requestId,segmentId,version:1},businessPresets:presets,businessFlows:flows,assistant:{name:'Véxora',wakeWord:'Olá Véxora',enabled:false,agents,dailyAiLimit:100}}}});
 }

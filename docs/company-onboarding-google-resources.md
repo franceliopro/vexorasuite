@@ -23,3 +23,6 @@ Os links abrem a pasta/agenda correspondente no Explorer e na Agenda da Véxora.
 
 ## Validação
 Testes unitários e regressão PostgreSQL executados no GitHub Actions. O resultado efetivo fica no PR; não interpretar a existência do teste como aprovação.
+
+## Pacotes departamentais
+Carregar um padrão agora materializa também o agente de IA e a rotina de acompanhamento. A ativação de tarefas internas é opcional no carregamento; não envia mensagens a clientes. Agentes exigem modelo/provedor antes da ativação. A reaplicação preserva rascunhos, agentes personalizados e rotinas existentes.

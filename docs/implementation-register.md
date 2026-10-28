@@ -21,7 +21,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 
 ## Em implementação nesta entrega
 - Criação de outra empresa pela mesma conta proprietária, com nome e segmento.
-- Estrutura inicial isolada com departamentos, pipelines, rascunhos e agentes desativados para configurar.
+- Estrutura inicial isolada com departamentos, pipelines, rascunhos, agentes de IA e rotinas de acompanhamento.
 - Alternância real de empresa no servidor e renovação da sessão HTTP-only.
 - Google Drive e Agenda vinculados à empresa, departamento ou atendente naquele contexto.
 - Provisionamento retomável de Referências, Novidades, Prontas e Publicadas, sem cópia de credenciais ou arquivos existentes.
@@ -29,7 +29,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Testes de isolamento e criação concorrente na CI.
 
 ## Pendências preservadas para as próximas alterações
-1. Pacotes departamentais completos: materializar rotinas e agentes também para padrões aplicados a empresas existentes, com ativação/desativação por recurso e precedência de personalizações.
+1. Personalizações detalhadas por recurso: os pacotes agora materializam agentes e rotinas também nas empresas existentes e preservam edições; falta uma matriz de sobrescritas por recurso com precedência explícita.
 2. Especializar os 14 segmentos além da triagem inicial, começando por Rastreamento veicular e Escola de músicas e instrumentos.
 3. Vincular os recursos provisionados aos monitoramentos de publicação existentes e ao contexto efetivo da IA/chatbot.
 4. Picker real do Google no Brand e seleção de arquivos/pastas; validar credenciais habilitadas e operações autorizadas.

@@ -1,9 +1,10 @@
+import {AssistantController} from '../ai/assistant.controller';
 import {randomUUID} from 'node:crypto';
 import {provisionCompany} from './company-blueprint';
 import {AuthService} from './auth.service';
 describe('company onboarding and switching',()=>{
  it('prepares isolated departments and drafts without copying credentials',async()=>{
-  const tx:any={department:{create:jest.fn(async({data})=>({id:randomUUID(),...data}))},departmentMember:{create:jest.fn()},crmPipeline:{create:jest.fn(async()=>({id:randomUUID()}))},tenant:{update:jest.fn()}};
+  const tx:any={department:{create:jest.fn(async({data})=>({id:randomUUID(),...data}))},departmentMember:{create:jest.fn()},crmPipeline:{create:jest.fn(async()=>({id:randomUUID()}))},internalWorkflow:{create:jest.fn(async()=>({id:randomUUID()}))},tenant:{update:jest.fn()}};
   await provisionCompany(tx,{id:randomUUID()},randomUUID(),'music-school',randomUUID());
   expect(tx.department.create).toHaveBeenCalledTimes(4);
   expect(tx.departmentMember.create).toHaveBeenCalledTimes(4);
@@ -12,6 +13,9 @@ describe('company onboarding and switching',()=>{
   expect(Object.keys(root.businessFlows)).toHaveLength(4);
   expect(root.assistant.agents).toHaveLength(4);expect(root.assistant.enabled).toBe(false);
   expect(root.google).toBeUndefined();expect(root.asaas).toBeUndefined();
+  const saved:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations:root})),update:jest.fn()}};
+  const db:any={$transaction:(fn:any)=>fn(saved)};
+  await expect(new AssistantController(db,{} as any,{} as any,{} as any).save({user:{role:'OWNER',tenantId:randomUUID()}} as any,root.assistant)).resolves.toMatchObject({enabled:false});
  });
  it('refuses switching to a company outside the users owner memberships',async()=>{
   const db:any={membership:{findFirst:jest.fn(async()=>null)}},jwt:any={signAsync:jest.fn()};

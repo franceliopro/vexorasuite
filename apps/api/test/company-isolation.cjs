@@ -16,6 +16,7 @@ async function main(){
   const targetId=results[0].tenant.id;assert.equal(results[1].tenant.id,targetId);
   assert.notEqual(targetId,sourceId);assert.equal(await db.department.count({where:{tenantId:targetId}}),4);
   assert.equal(await db.crmPipeline.count({where:{tenantId:targetId}}),4);
+  assert.equal(await db.internalWorkflow.count({where:{tenantId:targetId}}),4);
   assert.equal(await db.department.count({where:{tenantId:sourceId}}),0);
   const tenant=await db.tenant.findUniqueOrThrow({where:{id:targetId}});
   assert.equal(tenant.integrations.onboarding.segmentId,'music-school');assert.equal(tenant.integrations.assistant.agents.length,4);

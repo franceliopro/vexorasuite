@@ -16,13 +16,13 @@ export function reportPeriod(question:string,now=new Date()) {
  const iso=(d:Date)=>d.toISOString().slice(0,10);
  const dates=q.match(/\d{4}-\d{2}-\d{2}/g);
  let from:string,to=today;
- if(dates){if(dates.length!==2)throw new BadRequestException('Informe duas datas: AAAA-MM-DD a AAAA-MM-DD.');[from,to]=dates as [string,string];}
+ if(dates||brazilianDates){if((dates&&brazilianDates)||((dates||brazilianDates)!.length!==2))throw new BadRequestException('Informe duas datas no formato DD/MM/AAAA.');const selected=dates||brazilianDates!;const normalized=dates?selected:selected.map(value=>{const parsed=parseBrazilianDate(value);if(!parsed)throw new BadRequestException('Data inválida. Use DD/MM/AAAA.');return parsed;});[from,to]=normalized as [string,string];}
  else if(/hoje/.test(q))from=today;
  else if(/ontem/.test(q)){from=iso(new Date(date.getTime()-DAY));to=from;}
  else if(/mes passado|ultimo mes/.test(q)){from=iso(new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()-1,1,12)));to=iso(new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),0,12)));}
  else if(/este mes|nesse mes|neste mes|mes atual/.test(q))from=today.slice(0,7)+'-01';
  else if(/ultimos? (7|30|90) dias|semana/.test(q)){const days=/90/.test(q)?90:/30/.test(q)?30:7;from=iso(new Date(date.getTime()-(days-1)*DAY));}
- else if(/\d{1,2}\/\d{1,2}|\d+ dias|\b(ano|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/.test(q))throw new BadRequestException('Para esse período, informe as datas inicial e final em AAAA-MM-DD.');
+ else if(/\d{1,2}\/\d{1,2}|\d+ dias|\b(ano|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/.test(q))throw new BadRequestException('Para esse período, informe as datas inicial e final em DD/MM/AAAA.');
  else from=iso(new Date(date.getTime()-29*DAY));
  for(const value of [from,to]){const d=new Date(value+'T00:00:00Z');if(Number.isNaN(d.getTime())||iso(d)!==value)throw new BadRequestException('Data inválida.');}
  if(from>to||Date.parse(to)-Date.parse(from)>365*DAY)throw new BadRequestException('Selecione um período de até 366 dias.');
@@ -30,7 +30,7 @@ export function reportPeriod(question:string,now=new Date()) {
 }
 export function reportCsv(report:ExportReport):Buffer {
  const cell=(v:string|number)=>'"'+(typeof v==='string'&&/^[\s]*[=+@-]/.test(v)?"'"+v:String(v)).replace(/"/g,'""')+'"';
- const rows:(string|number)[][]=[[report.title],[`Período: ${report.from} a ${report.to}`],[`Fonte: ${report.source}`],[report.basis],[report.summary],[],report.headers,...report.rows];
+ const rows:(string|number)[][]=[[report.title],[`Período: ${formatDateBR(report.from)} a ${formatDateBR(report.to)}`],[`Fonte: ${report.source}`],[report.basis],[report.summary],[],report.headers,...report.rows];
  return Buffer.from('\ufeff'+rows.map(row=>row.map(cell).join(';')).join('\r\n'),'utf8');
 }
 export async function reportPdf(report:ExportReport):Promise<Buffer> {
@@ -65,14 +65,14 @@ export class ReportExportService {
    const live=/asaas|carteira completa/.test(q)||(!/local|registrados/.test(q)&&configured.enabled&&configured.configured);
    const data=live?await this.finance.executive(req,'1',period.from,period.to):await this.finance.dashboard(req,'1',period.from,period.to);
    const d=data as any;const money=(v:number)=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-   report={title:'Relatório financeiro',...period,source:d.source+' · '+(Array.isArray(d.environment)?d.environment.join(', '):d.environment),basis:(d.caveat||'Cobranças Asaas selecionadas pelo vencimento. Situações refletem a consulta atual.')+(d.partial?' Resultado parcial: limite de registros atingido.':''),summary:`${d.totals.count} cobranças. Total: ${money(d.totals.billed)}. Recebido: ${money(d.totals.paid)}. Em aberto: ${money(d.totals.open)}.`,headers:['Período','Total (R$)','Recebido (R$)','Aberto (R$)'],rows:d.series.map((s:any)=>[s.month,s.billed,s.paid,s.open]),chart:d.series.map((s:any)=>({label:s.month,value:s.paid})),unit:'Recebido (R$)'};
+   report={title:'Relatório financeiro',...period,source:d.source+' · '+(Array.isArray(d.environment)?d.environment.join(', '):d.environment),basis:(d.caveat||'Cobranças Asaas selecionadas pelo vencimento. Situações refletem a consulta atual.')+(d.partial?' Resultado parcial: limite de registros atingido.':''),summary:`${d.totals.count} cobranças. Total: ${money(d.totals.billed)}. Recebido: ${money(d.totals.paid)}. Em aberto: ${money(d.totals.open)}.`,headers:['Período','Total (R$)','Recebido (R$)','Aberto (R$)'],rows:d.series.map((s:any)=>[formatMonthBR(s.month),s.billed,s.paid,s.open]),chart:d.series.map((s:any)=>({label:formatMonthBR(s.month),value:s.paid})),unit:'Recebido (R$)'};
   }else{
    const data=await this.reports.service(req,period.from,period.to,'180');
    report={title:'Desempenho do atendimento',...period,source:'Inteligência Operacional',basis:data.basis+' Atribuição por responsável atual; não mede tempo efetivo de trabalho nem qualidade individual. Limite de 10 mil conversas por período.',summary:`${data.summary.total} atendimentos; ${data.summary.resolved+data.summary.closed} finalizados; ${data.summary.open} abertos; ${data.summary.pending} pendentes.`,headers:['Atendente','Total','Abertos','Pendentes','Finalizados'],rows:data.byAgent.map(a=>[a.name,a.total,a.open,a.pending,a.finished]),chart:data.byAgent.map(a=>({label:a.name,value:a.total})),unit:'Atendimentos'};
   }
   const id=randomUUID();
   await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'assistant.report.created',entityType:'report',entityId:id,details:{report,usedAi:false,tokensUsed:0} as unknown as Prisma.InputJsonValue}});
-  return {answer:report.summary+` Período: ${period.from} a ${period.to}. `+report.basis,source:report.source,usedAi:false,tokensUsed:0,attachments:[{name:report.title+'.pdf',url:`/api/backend/assistant/reports/${id}/pdf`},{name:report.title+'.csv',url:`/api/backend/assistant/reports/${id}/csv`}]};
+  return {answer:report.summary+` Período: ${formatDateBR(period.from)} a ${formatDateBR(period.to)}. `+report.basis,source:report.source,usedAi:false,tokensUsed:0,attachments:[{name:report.title+'.pdf',url:`/api/backend/assistant/reports/${id}/pdf`},{name:report.title+'.csv',url:`/api/backend/assistant/reports/${id}/csv`}]};
  }
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const record=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,entityId:id,action:'assistant.report.created'},select:{details:true}});if(!record)throw new NotFoundException('Relatório não encontrado nesta empresa.');return (record.details as any).report as ExportReport;}
 }

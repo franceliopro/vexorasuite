@@ -14,6 +14,10 @@ describe("Brazilian date formatting", () => {
     expect(parseBrazilianDate("31/02/2026")).toBeNull();
   });
 
+  it("keeps all-day dates free of a midnight timestamp", () => {
+    expect(formatDateTimeBR("2026-10-28")).toBe("28/10/2026");
+  });
+
   it("formats monthly report buckets as MM/yyyy", () => {
     expect(formatMonthBR("2026-10")).toBe("10/2026");
   });

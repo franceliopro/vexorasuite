@@ -72,7 +72,9 @@ export class AssistantAutomationService {
   const providers=economicalProviders(assistant,chosen?.llm || assistant.llm || (Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.enabled&&a.llm)?.llm:null),root,req.user.tenantId);if(!providers.length)throw new ServiceUnavailableException('Selecione um modelo econômico e cadastre a chave do provedor em Agentes de IA para criar o roteiro.');
   // Research is a direct API skill. It never invokes a language model.
   const topic=researchTopic(question);
-  const sources=await this.research(req,(topic||question).slice(0,600));
+  const referenceSites=['envato.com','freepik.com','gplvault.com','artlist.io','flaticon.com','iconscout.com','gplzone.com','motionarray.com','productioncrate.com','lordicon.com','storyblocks.com','festingervault.com','behance.net','dribbble.com','awwwards.com','pinterest.com','muz.li','designspiration.com'];
+  const referenceQuery=`${(topic||question).slice(0,160)} design inspiration ${referenceSites.map(site=>'site:'+site).join(' OR ')}`.slice(0,600);
+  const sources=await this.research(req,referenceQuery);
   if(!sources.length)throw new BadRequestException('Não foram encontradas fontes para embasar o carrossel.');
   const references=options.useBrandOnly?[]:await this.references.brief(req,options.format==='POST'?'ART':'CAROUSEL',options.referenceScope);
   await this.prisma.$transaction(tx=>reserveAiExecution(tx,req.user.tenantId,dailyAiLimit(assistant.dailyAiLimit),'carousel',req.user.sub));

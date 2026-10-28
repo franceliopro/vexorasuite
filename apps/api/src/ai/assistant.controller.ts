@@ -32,7 +32,7 @@ function parseConfig(value: unknown): Config {
 @Controller("assistant")
 @UseGuards(AuthGuard)
 export class AssistantController {
-  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController, private readonly reportExport: ReportExportService, private readonly automation: AssistantAutomationService, private readonly ai: AiService) {}
+  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController, private readonly reportExport: ReportExportService, private readonly automation: AssistantAutomationService, @Optional() private readonly ai?: AiService) {}
   // Central registry: skills are capabilities, not arbitrary executable prompts.
   @Get("custom-skills")
   async customSkills(@Req() req: AuthenticatedRequest) {
@@ -220,7 +220,9 @@ export class AssistantController {
       config.companyKnowledge ? "Informações da empresa:\n" + config.companyKnowledge : "",
       ...(config.knowledgeDocuments || []).map(doc => "Documento de referência " + doc.name + ":\n" + doc.content),
     ].filter(Boolean).join("\n\n").slice(0, 40000);
-    const generated = await this.ai.generate([
+    const ai = this.ai;
+    if (!ai) throw new ServiceUnavailableException("Teste de IA indisponível.");
+    const generated = await ai.generate([
       { role: "system", content: [
         "Você está em uma prévia privada do agente " + agent.name + " da empresa " + tenant.name + ".",
         "Responda em português brasileiro, com tom " + (agent.profile?.tone || "cordial e objetivo") + ".",

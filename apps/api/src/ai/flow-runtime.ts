@@ -8,7 +8,7 @@ export type RuntimeFlow = {
   name: string; welcome: string; steps: RuntimeStep[]; channelIds?: string[];
   triggers?: { kind: 'message' | 'dm' | 'keyword'; keyword?: string }[];
 };
-export const executableKinds = ['text', 'buttons', 'input.text', 'human.handoff', 'assignment', 'tag', 'asaas.payment.lookup', 'agent', 'variable', 'condition'];
+export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'agent', 'variable', 'condition'];
 export const executableActions = ['human.handoff', 'asaas.payment.lookup'];
 export function settings(step: RuntimeStep): Record<string, string> {
   if (!step.config?.trim()) return {};
@@ -34,7 +34,8 @@ export function validateRuntimeFlow(value: unknown): string[] {
     if (s.kind && s.action && s.kind !== s.action) errors.push(`${s.id}: tipo e Skill conflitantes`);
     try {
       const config = settings(s);
-      if (s.kind === 'input.text' && !/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '')) errors.push(`${s.id}: informe a variável de entrada`);
+      if (['input.text','input.cpf'].includes(s.kind||'') && !/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '')) errors.push(`${s.id}: informe a variável de entrada`);
+      if (s.kind==='department.route'&&!config.departmentKey) errors.push(s.id+': selecione o departamento de destino');
       if (config.userId && !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.userId)) errors.push(`${s.id}: atendente inválido`);
       if (config.targetMode && !['QUEUE','DEPARTMENT','PERSON','PLATFORM'].includes(config.targetMode)) errors.push(`${s.id}: modo de transferência inválido`);
       if (config.targetMode === 'DEPARTMENT' && !config.departmentKey) errors.push(`${s.id}: selecione o time de destino`);
@@ -53,7 +54,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
     if (s.transitions !== undefined && (!s.transitions || typeof s.transitions !== 'object' || Array.isArray(s.transitions))) { errors.push(`${s.id}: conexões inválidas`); continue; }
     for (const [option, target] of Object.entries(s.transitions || {})) if (!s.options.includes(option) || (target !== '__start__' && !ids.has(target))) errors.push(`${s.id}: destino inválido`);
     const type = s.action || s.kind || 'buttons';
-    if (!['human.handoff','assignment','asaas.payment.lookup'].includes(type)) {
+    if (!['human.handoff','assignment','department.route','asaas.payment.lookup'].includes(type)) {
       if (s.options.some(o => !s.transitions?.[o])) errors.push(`${s.id}: conecte todas as saídas`);
       if (['input.text','tag','variable'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
     }
@@ -85,3 +86,5 @@ export function renderStep(step: RuntimeStep, variables: Record<string, string>)
   const message = step.message.replace(/\{\{(\w+)\}\}/g, (_, name: string) => Object.hasOwn(variables,name) && typeof variables[name] === 'string' ? variables[name]! : '');
   return [message, step.options.map((o, i) => `${i + 1}. ${o}`).join('\n')].filter(Boolean).join('\n\n');
 }
+
+

@@ -65,6 +65,7 @@ enum ConversationHandlingMode {
 }
 
 model Tenant {
+  pipelines CrmPipeline[]
   mailAccounts MailAccount[]
   mailTemplates MailTemplate[]
   internalWorkflows InternalWorkflow[]
@@ -158,6 +159,7 @@ model User {
 }
 
 model Membership {
+  modules String[] @default([])
   id        String         @id @default(uuid()) @db.Uuid
   tenantId  String         @db.Uuid @map("tenant_id")
   userId    String         @db.Uuid @map("user_id")
@@ -172,6 +174,8 @@ model Membership {
 }
 
 model Contact {
+  pipelineId String? @db.Uuid @map("pipeline_id")
+  pipeline CrmPipeline? @relation(fields:[pipelineId],references:[id],onDelete:Restrict)
   id           String         @id @default(uuid()) @db.Uuid
   tenantId     String         @db.Uuid @map("tenant_id")
   name         String
@@ -248,6 +252,10 @@ model ChannelConnection {
 }
 
 model Department {
+  modules String[] @default([])
+  routingCategory String? @map("routing_category")
+  routingPlatform String? @map("routing_platform")
+  pipeline CrmPipeline?
   id             String         @id @default(uuid()) @db.Uuid
   tenantId       String         @db.Uuid @map("tenant_id")
   key            String
@@ -662,4 +670,19 @@ model WorkflowRun {
  @@unique([workflowId,eventKey])
  @@index([status,nextRunAt])
  @@map("workflow_runs")
+}
+
+model CrmPipeline {
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ departmentId String @unique @db.Uuid @map("department_id")
+ name String
+ template String @default("GENERAL")
+ stages Json
+ enabled Boolean @default(true)
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ department Department @relation(fields:[departmentId],references:[id],onDelete:Cascade)
+ contacts Contact[]
+ @@index([tenantId,enabled])
+ @@map("crm_pipelines")
 }

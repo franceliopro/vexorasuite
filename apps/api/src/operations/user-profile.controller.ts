@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Req, Res, UploadedFile, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import sharp from 'sharp';
@@ -6,11 +6,14 @@ import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleAccessService } from './google-access.service';
+import { mutateTenantSetting } from '../prisma/tenant-settings';
 import { publicPhotoUrl } from './contact-avatar.controller';
 @Controller('profile')
 @UseGuards(AuthGuard)
 export class UserProfileController {
  constructor(private readonly prisma:PrismaService,private readonly google:GoogleAccessService){}
+ @Get() async profile(@Req() req:AuthenticatedRequest){const user=await this.prisma.user.findUniqueOrThrow({where:{id:req.user.sub},select:{name:true,email:true}});const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});const root=tenant.integrations as any;return {...(root?.userProfiles?.[req.user.sub]||{}),...user};}
+ @Post() async saveProfile(@Req() req:AuthenticatedRequest,@Body() input:any){const name=typeof input.name==='string'?input.name.trim():'';if(name.length<2||name.length>160)throw new BadRequestException('Nome inválido.');for(const [key,max] of [['phone',30],['jobTitle',100],['bio',500]] as const)if(input[key]!==undefined&&(typeof input[key]!=='string'||input[key].length>max))throw new BadRequestException('Campo de perfil inválido.');await mutateTenantSetting(this.prisma,req.user.tenantId,'userProfiles',(raw:any)=>({...raw,[req.user.sub]:{phone:input.phone||'',jobTitle:input.jobTitle||'',bio:input.bio||''}}));await this.prisma.user.update({where:{id:req.user.sub},data:{name}});return {saved:true};}
  @Post('photo')
  @UseInterceptors(FileInterceptor('file',{limits:{fileSize:2*1024*1024,files:1,fields:0}}))
  async upload(@Req() req:AuthenticatedRequest,@UploadedFile() file?:{buffer:Buffer}){

@@ -382,9 +382,9 @@ export class ConversationsController {
   }
 
   private async accessWhere(request: AuthenticatedRequest, view = "new"): Promise<Record<string, any>> {
-    if (["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) return {};
+    if (["OWNER", "ADMIN"].includes(request.user.role)) return {};
     if (view === "new") return { assigneeId: null, departmentId: null, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
-    if (view === "all-open") return { status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
+    if (view === "all-open") return { OR:[{assigneeId:request.user.sub},{departmentId:{in:request.user.departmentIds||[]}},{participants:{some:{tenantId:request.user.tenantId,userId:request.user.sub}}}], status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null };
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
     return { OR: [
       { assigneeId: request.user.sub },

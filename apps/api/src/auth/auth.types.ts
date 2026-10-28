@@ -1,6 +1,8 @@
 import { Request } from "express";
 
 export interface AuthPayload {
+  allowedModules?:string[];
+  departmentIds?:string[];
   sub: string;
   tenantId: string;
   tenantSlug: string;

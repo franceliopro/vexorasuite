@@ -26,7 +26,8 @@ export class VoiceService {
   return {model:selected.model,voice:typeof selected.voice==='string'?selected.voice:local?(process.env.LOCAL_TTS_VOICE||'pf_dora'):'coral',apiKey,base};
  }
  async transcribe(req:AuthenticatedRequest,file?:{buffer:Buffer;mimetype:string;size:number;originalname:string},agentId?:string){
-  const types:Record<string,string>={'audio/webm':'webm','video/webm':'webm','audio/mpeg':'mp3','audio/mp3':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/mp4':'m4a','video/mp4':'mp4'};
+  const types:Record<string,string>={'audio/ogg':'ogg','audio/opus':'opus','audio/webm':'webm','video/webm':'webm','audio/mpeg':'mp3','audio/mp3':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/mp4':'m4a','video/mp4':'mp4'};
+  if(file)file={...file,mimetype:file.mimetype.split(';')[0]!.trim()};
   if(!file||!file.buffer.length||file.size>12*1024*1024||!types[file.mimetype])throw new BadRequestException('Envie áudio MP3, M4A, WAV ou WebM com até 12 MB.');
   const selected=await this.selection(req,'stt',agentId);const form=new FormData();form.set('file',new Blob([new Uint8Array(file.buffer)],{type:file.mimetype}),'voice.'+types[file.mimetype]);form.set('model',selected.model);
   const response=await fetch(selected.base+'transcriptions',{method:'POST',headers:selected.apiKey?{authorization:'Bearer '+selected.apiKey}:{},body:form,signal:AbortSignal.timeout(60000),redirect:'error'});
@@ -39,4 +40,8 @@ export class VoiceService {
   const response=await fetch(selected.base+'speech',{method:'POST',headers:{...(selected.apiKey?{authorization:'Bearer '+selected.apiKey}:{}),'content-type':'application/json'},body:JSON.stringify({model:selected.model,voice:selected.voice,input:text,response_format:'mp3'}),signal:AbortSignal.timeout(60000),redirect:'error'});
   if(!response.ok)throw new BadGatewayException('A síntese de voz não foi confirmada pelo provedor.');return Buffer.from(await response.arrayBuffer());
  }
+ private async companyRequest(tenantId:string):Promise<AuthenticatedRequest>{const owner=await this.prisma.membership.findFirst({where:{tenantId,role:{in:['OWNER','ADMIN']},user:{isActive:true}},select:{userId:true,role:true,tenant:{select:{slug:true}}}});if(!owner)throw new ForbiddenException('Empresa sem administração ativa.');return {user:{tenantId,sub:owner.userId,tenantSlug:owner.tenant.slug,role:owner.role}} as AuthenticatedRequest;}
+ async transcribeCustomer(tenantId:string,buffer:Buffer,mimetype:string){return this.transcribe(await this.companyRequest(tenantId),{buffer,size:buffer.length,mimetype,originalname:'voice.ogg'});}
+ async speakCustomer(tenantId:string,text:string){return this.speak(await this.companyRequest(tenantId),text);}
+
 }

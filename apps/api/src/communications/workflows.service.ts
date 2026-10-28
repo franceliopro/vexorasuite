@@ -94,6 +94,11 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
       );
     if (input.enabled !== undefined && typeof input.enabled !== "boolean")
       throw new BadRequestException("Estado inválido.");
+    if(f.assigneeId){
+      if(!isUUID(f.assigneeId)||!await this.prisma.membership.findFirst({where:{tenantId:req.user.tenantId,userId:f.assigneeId,user:{isActive:true}},select:{id:true}}))throw new BadRequestException("Atendente não disponível nesta empresa.");
+      if(f.departmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId:req.user.tenantId,userId:f.assigneeId,departmentId:f.departmentId},select:{id:true}}))throw new BadRequestException("Atendente não pertence ao departamento.");
+      if(input.trigger==="QUEUE")throw new BadRequestException("Rotinas de fila sem atendente não aceitam um atendente específico.");
+    }
     const data = {
       name,
       timezone,
@@ -105,6 +110,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
       filters: {
         channelId: f.channelId || null,
         departmentId: f.departmentId || null,
+        assigneeId: f.assigneeId || null,
         stage: f.stage || null,
         stopOnReply: f.stopOnReply !== false,
       },
@@ -249,6 +255,8 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
             archivedAt: null,
             deletedAt: null,
             ...(f.channelId ? { channelConnectionId: f.channelId } : {}),
+            ...(f.departmentId ? {departmentId:f.departmentId,department:{isActive:true}} : {}),
+            ...(f.assigneeId ? {assigneeId:f.assigneeId,assignee:{isActive:true}} : {}),
             ...(rule.trigger === "QUEUE"
               ? {
                   assigneeId: null,
@@ -376,6 +384,12 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
         where: { id: run.id },
         data: { status: "CANCELLED" },
       });
+    const scope=(rule.filters||{}) as any;
+    if(conversation&&(scope.departmentId||scope.assigneeId)){
+      const departmentOk=!scope.departmentId||(conversation.departmentId===scope.departmentId&&await this.prisma.department.findFirst({where:{id:scope.departmentId,tenantId:rule.tenantId,isActive:true},select:{id:true}}));
+      const personOk=!scope.assigneeId||(conversation.assigneeId===scope.assigneeId&&await this.prisma.membership.findFirst({where:{tenantId:rule.tenantId,userId:scope.assigneeId,user:{isActive:true}},select:{id:true}})&&(!scope.departmentId||await this.prisma.departmentMember.findFirst({where:{tenantId:rule.tenantId,departmentId:scope.departmentId,userId:scope.assigneeId},select:{id:true}})));
+      if(!departmentOk||!personOk)return this.prisma.workflowRun.update({where:{id:run.id},data:{status:"CANCELLED"}});
+    }
     if (
       conversation &&
       (rule.filters as any).stopOnReply !== false &&
@@ -516,3 +530,4 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 }
+

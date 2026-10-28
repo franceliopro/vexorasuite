@@ -34,6 +34,6 @@ export class AuthController {
       where: { id: request.user.tenantId },
       select: { id: true, name: true, slug: true },
     });
-    return { user, tenant, role: request.user.role };
+    return { user, tenant, role: request.user.role, allowedModules:request.user.allowedModules||[], departmentIds:request.user.departmentIds||[] };
   }
 }

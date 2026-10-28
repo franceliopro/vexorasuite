@@ -34,6 +34,7 @@ export const SEGMENTS = [
  {id:'consulting',name:'Consultoria',requests:['Conhecer serviços','Solicitar proposta','Acompanhar projeto'],guidance:'Entenda objetivo, prazo e escopo desejado. Não prometa resultados; organize contexto e encaminhe ao consultor adequado.'},
  {id:'logistics',name:'Logística e transportadora',requests:['Cotação de frete','Rastrear entrega','Ocorrência na entrega'],guidance:'Colete identificador e dados mínimos. Informe somente status consultado no sistema e encaminhe divergências à operação.'},
  {id:'photography',name:'Fotografia e eventos',requests:['Solicitar orçamento','Disponibilidade de data','Pacotes e entrega'],guidance:'Confirme tipo de evento, data, local e entregáveis. Não prometa disponibilidade antes da checagem da equipe.'},
+];
 export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMENT_PRESETS):string {
  const segment=SEGMENTS.find(item=>item.id===id);
  if(!segment)return '';
@@ -51,7 +52,6 @@ export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMEN
   'Mantenha o atendimento dentro do escopo da empresa. Para solicitações fora da área, encaminhe com gentileza à equipe apropriada.',
  ].join('\\n\\n');
 }
-];
 export function templateFlow(id:string, department?:keyof typeof DEPARTMENT_PRESETS):RuntimeFlow {
  const segment=SEGMENTS.find(s=>s.id===id);
  const requests=department ? [DEPARTMENT_PRESETS[department].name,'Falar com atendente'] : [...(segment?.requests||['Suporte','Comercial']), 'Financeiro','Falar com atendente'];

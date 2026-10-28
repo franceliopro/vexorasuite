@@ -20,7 +20,7 @@ async function main(){
    await fs.cp(path.join('prisma/migrations',entry.name),path.join(root,'migrations',entry.name),{recursive:true});
   }
   deploy();
-  const tenant=await db.tenant.create({data:{name:'Keep company',slug:'cleanup-'+randomUUID(),integrations:{brandSettings:{primaryColor:'#123456'},marketing:{autoPublish:true}}}});
+  const tenant=await db.tenant.create({data:{name:'Keep company',slug:'cleanup-'+randomUUID(),integrations:{brandSettings:{primaryColor:'#123456'},marketing:{autoPublish:true,folderId:'keep-folder'}}}});
   const user=await db.user.create({data:{name:'Keep user',email:randomUUID()+'@example.test',passwordHash:'fixture'}});
   const contact=await db.contact.create({data:{tenantId:tenant.id,name:'Keep contact',metadata:{notes:'keep',asaas:{customerId:'cus_fixture'}}}});
   const conversation=await db.conversation.create({data:{tenantId:tenant.id,contactId:contact.id}});
@@ -35,7 +35,7 @@ async function main(){
   assert.equal(await db.message.count({where:{id:message.id}}),1);
   assert.equal(await db.creativeReference.count({where:{id:reference.id}}),1);
   assert.deepEqual((await db.contact.findUniqueOrThrow({where:{id:contact.id}})).metadata,{notes:'keep',asaas:{customerId:'cus_fixture'}});
-  assert.deepEqual((await db.tenant.findUniqueOrThrow({where:{id:tenant.id}})).integrations,{brandSettings:{primaryColor:'#123456'}});
+  assert.deepEqual((await db.tenant.findUniqueOrThrow({where:{id:tenant.id}})).integrations,{brandSettings:{primaryColor:'#123456'},marketing:{folderId:'keep-folder'}});
   assert.equal(await db.auditLog.count({where:{action:'assistant.carousel'}}),0);
   assert.equal(await db.auditLog.count({where:{action:'security.keep'}}),1);
   const missing=await db.$queryRawUnsafe("SELECT table_name FROM information_schema.tables WHERE table_schema=$1 AND table_name IN ('marketing_jobs','mail_accounts','prepared_publications')",schema);

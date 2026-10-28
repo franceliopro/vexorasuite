@@ -13,6 +13,7 @@ type CrmTag = {name:string;color?:string};
 type CrmFieldDefinition = {name:string;key:string};
 type Contact = {
   id: string;
+  pipelineId?: string | null;
   name: string;
   phone: string | null;
   email: string | null;
@@ -64,7 +65,7 @@ function AdaptiveCards({children}:{children: React.ReactNode}) {
  const ref=useRef<HTMLDivElement>(null);
  useEffect(()=>{
  const el=ref.current;if(!el)return;
- const measure=()=>{const cards=Array.from(el.querySelectorAll<HTMLElement>(':scope > article'));const fifth=cards[4];el.style.maxHeight=Math.min(800,fifth?fifth.offsetTop-el.offsetTop+fifth.offsetHeight:800)+'px';};
+ const measure=()=>{const cards=Array.from(el.querySelectorAll<HTMLElement>(':scope > article'));const fifth=cards[4];el.style.maxHeight=Math.min(800,fifth?fifth.getBoundingClientRect().bottom-el.getBoundingClientRect().top+el.scrollTop:800)+'px';};
  const observer=new ResizeObserver(measure);observer.observe(el);Array.from(el.children).forEach(child=>observer.observe(child));measure();
  return ()=>observer.disconnect();
  },[children]);
@@ -237,7 +238,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
       {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
         <section className="crm-pipeline" aria-label="Pipeline comercial">
           {stages.map((stage) => {
-            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && !contact.metadata?.crmRemoved && (contact.crmStage || "new") === stage.id);
+            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (!contact.metadata?.crmRemoved || !!contact.pipelineId) && (contact.crmStage || "new") === stage.id);
             const activeDrop = dropTarget === stage.id;
             return <div key={stage.id} className={"crm-pipeline-column tone-" + stage.tone + (activeDrop ? " drop-active" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}

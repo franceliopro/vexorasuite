@@ -249,7 +249,7 @@ export class IntelligenceRuntimeService {
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata),tags:any[]=Array.isArray(profile.tags)?profile.tags:[];
                   const name=action.name.trim(),color=typeof action.color==='string'&&/^#[a-f\\d]{6}$/i.test(action.color)?action.color:'#5865da';
                   if(!tags.some(t=>normalize(typeof t==='string'?t:String(t?.name||''))===normalize(name))&&tags.length<50)tags.push({name,color});
-                  await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;crmContactChanged=true;skills.push('crm.tag.apply');
+                  await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;skills.push('crm.tag.apply');
                 }
                 if(action.type==='move_pipeline'&&permittedActions.includes('crm.pipeline.move')&&conversation.departmentId&&typeof action.pipeline==='string'&&typeof action.stage==='string'){
                   const pipeline=crmCatalog.find((item:any)=>normalize(item.name)===normalize(action.pipeline));

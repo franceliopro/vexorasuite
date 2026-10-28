@@ -17,6 +17,31 @@ permissions:
   contents: read
 
 jobs:
+  local-search:
+    name: Private SearXNG runtime
+    runs-on: ubuntu-latest
+    env:
+      JWT_ACCESS_SECRET: ci-only-application-secret
+      POSTGRES_PASSWORD: ci-only-database-password
+      PGADMIN_DEFAULT_EMAIL: ci@example.test
+      PGADMIN_DEFAULT_PASSWORD: ci-only-admin-password
+      WAHA_API_KEY: ci-only-gateway-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate compose and start private search
+        run: |
+          docker compose config --quiet
+          docker compose up --detach --no-deps --wait --wait-timeout 90 searxng
+      - name: Verify JSON search API
+        run: |
+          docker compose exec -T searxng /usr/local/searxng/.venv/bin/python -c "import urllib.request,json; r=json.load(urllib.request.urlopen('http://127.0.0.1:8080/search?q=software&format=json',timeout=25)); assert isinstance(r.get('results'),list); print('Private JSON search API OK')"
+      - name: Search service diagnostics
+        if: failure()
+        run: docker compose logs --tail 60 searxng
+      - name: Stop isolated search
+        if: always()
+        run: docker compose down --volumes
   validate:
     runs-on: ubuntu-latest
     services:
@@ -53,15 +78,84 @@ jobs:
         run: pnpm --filter @vexorasuite/api exec prisma validate
       - name: Generate Prisma client
         run: pnpm --filter @vexorasuite/api exec prisma generate
+      - name: Retired marketing file cleanup regression
+        run: pnpm --filter @vexorasuite/api exec node --test test/marketing-cleanup.test.cjs
       - name: Test
         run: pnpm test
       - name: Apply migrations to PostgreSQL
         run: pnpm --filter @vexorasuite/api exec prisma migrate deploy
+      - name: Retired product data upgrade regression
+        run: pnpm --filter @vexorasuite/api exec node test/retirement-upgrade.cjs
       - name: API typecheck
         run: pnpm --filter @vexorasuite/api typecheck
       - name: API build
         run: pnpm --filter @vexorasuite/api build
+      - name: PostgreSQL concurrency regressions
+        run: pnpm --filter @vexorasuite/api exec node test/contact-concurrency.cjs
+      - name: Communications and internal workflow concurrency regressions
+        run: pnpm --filter @vexorasuite/api exec node test/communications-concurrency.cjs
+      - name: Company onboarding and isolation regressions
+        run: pnpm --filter @vexorasuite/api exec node test/company-isolation.cjs
+      - name: Platform, passwords and department isolation regressions
+        run: pnpm --filter @vexorasuite/api exec node test/platform-access-isolation.cjs
+      - name: Home presentation isolation regressions
+        run: pnpm --filter @vexorasuite/api exec node test/home-presentation-isolation.cjs
       - name: Web typecheck
         run: pnpm --filter @vexorasuite/web typecheck
       - name: Web build
         run: pnpm --filter @vexorasuite/web build
+
+
+  containers:
+    name: Container (${{ matrix.service }})
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build runtime image
+        run: docker build --file apps/${{ matrix.service }}/Dockerfile --tag vexora-${{ matrix.service }}-ci .
+      - name: Check API runtime dependencies
+        if: matrix.service == 'api'
+        run: |
+          docker run --rm vexora-api-ci ./node_modules/.bin/prisma --version
+          docker run --rm vexora-api-ci node -e "const {PrismaClient}=require('@prisma/client');new PrismaClient();require('./dist/app.module');require('sharp');console.log('API runtime dependencies OK')"
+      - name: Check standalone web and static assets
+        if: matrix.service == 'web'
+        run: |
+          docker run --detach --rm --name vexora-web-ci --publish 3000:3000 vexora-web-ci
+          node <<'JS'
+          (async()=>{
+            let html;
+            for(let i=0;i<30;i++){
+              try{const response=await fetch('http://127.0.0.1:3000');if(response.ok){html=await response.text();break}}catch{}
+              await new Promise(resolve=>setTimeout(resolve,1000));
+            }
+            if(!html)throw Error('Standalone server did not serve the application');
+            const asset=html.match(/src="(\/_next\/static\/[^\"]+\.js[^\"]*)"/)?.[1];
+            if(!asset)throw Error('No static script found in application HTML');
+            const response=await fetch('http://127.0.0.1:3000'+asset.replace(/&amp;/g,'&'));
+            if(!response.ok)throw Error('Static asset returned '+response.status);
+            console.log('Standalone application and static asset: HTTP 200');
+            const manifestResponse=await fetch('http://127.0.0.1:3000/manifest.webmanifest');
+            const manifest=await manifestResponse.json();
+            if(!manifestResponse.ok||manifest.display!=='standalone'||manifest.scope!=='/'||!manifest.icons?.some(icon=>icon.sizes==='512x512'))throw Error('PWA manifest is incomplete');
+            for(const size of [180,192,512]){
+              const icon=await fetch('http://127.0.0.1:3000/pwa/icon/'+size);
+              const png=Buffer.from(await icon.arrayBuffer());
+              if(!icon.ok||png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||png.readUInt32BE(16)!==size||png.readUInt32BE(20)!==size)throw Error('Invalid PWA icon '+size);
+            }
+            const worker=await fetch('http://127.0.0.1:3000/sw.js');
+            if(!worker.ok||!worker.headers.get('cache-control')?.includes('no-store')||!(await worker.text()).includes('addEventListener'))throw Error('Service worker is unavailable or can become stale');
+            const offline=await fetch('http://127.0.0.1:3000/offline.html');
+            if(!offline.ok||!(await offline.text()).includes('sem conexão'))throw Error('Offline fallback is unavailable');
+            console.log('PWA manifest, Apple/192/512 icons, update headers and offline page: OK');
+          })().catch(error=>{console.error(error.message);process.exit(1)});
+          JS
+      - name: Stop web smoke container
+        if: always() && matrix.service == 'web'
+        run: docker rm --force vexora-web-ci || true

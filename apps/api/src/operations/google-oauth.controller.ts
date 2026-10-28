@@ -7,8 +7,10 @@ import { PrismaService } from "../prisma/prisma.service";
 
 const callbackPath = "/api/integrations/google/callback";
 const scopes: Record<string, string[]> = {
-  calendar: ["openid", "email", "https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar.readonly"],
-  drive: ["openid", "email", "https://www.googleapis.com/auth/drive.file"],
+  calendar: ["openid", "email", "profile", "https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar.readonly"],
+  drive: ["openid", "email", "profile", "https://www.googleapis.com/auth/drive.file"],
+  "drive-library": ["openid", "email", "profile", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.readonly"],
+  "drive-manager": ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"],
 };
 @Controller("integrations/google")
 export class GoogleOAuthController {
@@ -81,6 +83,8 @@ export class GoogleOAuthController {
     const consumed = await this.prisma.googleOAuthAttempt.deleteMany({ where: { stateHash, expiresAt: { gt: new Date() } } });
     if (!consumed.count) return done("expired");
     if (error || !code) return done("denied");
+    const authorized = await this.prisma.membership.findFirst({ where: { tenantId: attempt.tenantId, userId: attempt.userId, role: { in: ["OWNER","ADMIN"] }, tenant: { status: "ACTIVE" }, user: { isActive: true } }, select: { id: true } });
+    if (!authorized) return done("access_revoked");
     try {
       const { id, secret, redirect } = this.configValues();
       const body = new URLSearchParams({ code, client_id: id, client_secret: secret, redirect_uri: redirect, grant_type: "authorization_code", code_verifier: this.decrypt(attempt.verifierEncrypted) });
@@ -99,7 +103,7 @@ export class GoogleOAuthController {
       await this.prisma.googleConnection.upsert({
         where: { tenantId_googleAccountId: { tenantId: attempt.tenantId, googleAccountId: info.sub } },
         create: { tenantId: attempt.tenantId, googleAccountId: info.sub, email: info.email, scopes: token.scope || "", accessTokenEncrypted: this.encrypt(token.access_token), refreshTokenEncrypted: token.refresh_token ? this.encrypt(token.refresh_token) : null, expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
-        update: { disabledServices: { set: (prior?.disabledServices || []).filter(s=>s!==attempt.service) }, email: info.email, scopes: Array.from(new Set([...(prior?.scopes || "").split(" "), ...granted])).filter(Boolean).join(" "), accessTokenEncrypted: this.encrypt(token.access_token), ...(token.refresh_token ? { refreshTokenEncrypted: this.encrypt(token.refresh_token) } : {}), expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
+        update: { disabledServices: { set: (prior?.disabledServices || []).filter(s=>s!==(attempt.service.startsWith("drive-")?"drive":attempt.service)&&s!=="hidden:"+(attempt.service.startsWith("drive-")?"drive":attempt.service)) }, email: info.email, scopes: Array.from(new Set([...(prior?.scopes || "").split(" "), ...granted])).filter(Boolean).join(" "), accessTokenEncrypted: this.encrypt(token.access_token), ...(token.refresh_token ? { refreshTokenEncrypted: this.encrypt(token.refresh_token) } : {}), expiresAt: new Date(Date.now() + (token.expires_in || 3600) * 1000) },
       });
       return done("connected");
     } catch { return done("failed"); }
@@ -114,6 +118,28 @@ export class GoogleOAuthController {
     await this.prisma.googleConnection.update({where:{id},data:{disabledServices:{set:Array.from(new Set([...row.disabledServices,service]))}}});
     return {disconnected:true,service,otherServicePreserved:true};
   }
+  @Delete('connections/:id/services/:service/forget')
+  @UseGuards(AuthGuard)
+  async forgetService(@Req() req:AuthenticatedRequest,@Param('id') id:string,@Param('service') service:string){
+    if(!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException();
+    if(!['calendar','drive'].includes(service))throw new BadRequestException('Serviço inválido.');
+    await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM google_connections WHERE id=${id}::uuid AND tenant_id=${req.user.tenantId}::uuid FOR UPDATE`;
+      const row=await tx.googleConnection.findFirst({where:{id,tenantId:req.user.tenantId}});
+      if(!row||!row.disabledServices.includes(service))throw new BadRequestException('Desconecte este serviço antes de removê-lo da lista.');
+      await tx.googleConnection.update({where:{id},data:{disabledServices:{set:Array.from(new Set([...row.disabledServices,'hidden:'+service]))}}});
+    });return {removed:true,service};
+  }
+  @Delete("connections/:id/forget")
+  @UseGuards(AuthGuard)
+  async forget(@Req() req:AuthenticatedRequest,@Param('id') id:string){
+    if(!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException();
+    const row=await this.prisma.googleConnection.findFirst({where:{id,tenantId:req.user.tenantId}});
+    if(!row)throw new BadRequestException('Conexão não encontrada.');
+    const services=['calendar','drive'].filter(service=>row.scopes.includes(service==='drive'?'/drive':'/calendar'));
+    if(services.some(service=>!row.disabledServices.includes(service)))throw new BadRequestException('Desconecte os serviços antes de remover a conta.');
+    await this.prisma.googleConnection.deleteMany({where:{id,tenantId:req.user.tenantId}});return {removed:true};
+  }
   @Delete("connections/:id")
   @UseGuards(AuthGuard)
   async disconnect(@Req() req: AuthenticatedRequest, @Param("id") id: string) {
@@ -126,3 +152,4 @@ export class GoogleOAuthController {
     return { disconnected: true };
   }
 }
+

@@ -8,6 +8,7 @@
     ],
     "allowJs": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "incremental": true,
     "jsx": "preserve",
     "plugins": [
@@ -19,7 +20,8 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "isolatedModules": true
   },
   "include": [
     "next-env.d.ts",
@@ -31,3 +33,4 @@
     "node_modules"
   ]
 }
+

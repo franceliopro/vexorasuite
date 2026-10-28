@@ -62,7 +62,7 @@ export class WahaService {
   }
 
   async connect(channel: ChannelConnection): Promise<void> {
-    const config = { webhooks: [{ url: this.webhookUrl(channel.id), events: ["message", "message.ack"], retries: { policy: "linear", delaySeconds: 2, attempts: 5 } }] };
+    const config = { webhooks: [{ url: this.webhookUrl(channel.id), events: ["message", "message.ack", "session.status"], retries: { policy: "linear", delaySeconds: 2, attempts: 5 } }] };
     let response = await this.request("/api/sessions", { method: "POST", body: JSON.stringify({ name: channel.sessionName, start: true, config }) });
     if (response.status === 409 || response.status === 422) {
       response = await this.request(`/api/sessions/${encodeURIComponent(channel.sessionName)}`, { method: "PUT", body: JSON.stringify({ name: channel.sessionName, config }) });
@@ -91,6 +91,23 @@ export class WahaService {
     } catch {
       return null;
     }
+  }
+
+  async contactPhoto(channel:ChannelConnection,chatId:string):Promise<Buffer|null>{
+    if(!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId))return null;
+    try{
+      const query=new URLSearchParams({contactId:chatId,session:channel.sessionName});
+      const response=await this.request('/api/contacts/profile-picture?'+query,{redirect:'error'});if(!response.ok)return null;
+      const data=await response.json() as any;const candidate=data.profilePictureURL||data.profilePictureUrl||data.url;if(typeof candidate!=='string')return null;
+      const {baseUrl}=this.config();const target=new URL(candidate,baseUrl+'/');if(target.username||target.password)return null;
+      const internal=target.toString().startsWith(baseUrl+'/');
+      const publicHost=['whatsapp.net','fbcdn.net','fbsbx.com'].some(d=>target.hostname===d||target.hostname.endsWith('.'+d));
+      if(!internal&&(target.protocol!=='https:'||target.port||!publicHost))return null;
+      const photo=internal?await this.request(target.toString().slice(baseUrl.length),{redirect:'error'}):await fetch(target,{redirect:'error',signal:AbortSignal.timeout(8000)});
+      if(!photo.ok||Number(photo.headers.get('content-length')||0)>1024*1024)return null;
+      const reader=photo.body?.getReader();if(!reader)return null;const chunks:Buffer[]=[];let size=0;
+      try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>1024*1024)return null;chunks.push(Buffer.from(part.value));}return Buffer.concat(chunks);}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+    }catch{return null;}
   }
 
   async listGroups(channel: ChannelConnection): Promise<{ id: string; name: string }[]> {
@@ -152,4 +169,8 @@ export class WahaService {
     const result = await response.json().catch(() => ({})) as { id?: string | { _serialized?: string } };
     return typeof result.id === "string" ? result.id : result.id?._serialized || null;
   }
+ /** Download only the gateway's authenticated file path; never request a webhook-supplied host. */
+ async incomingAudio(channel:ChannelConnection,raw:string):Promise<{buffer:Buffer;mimetype:string}>{const {baseUrl}=this.config();let url:URL;try{url=new URL(raw,baseUrl+'/')}catch{throw new BadGatewayException('Áudio indisponível.');}if(!/^\/api\/files\//.test(url.pathname)||url.username||url.password||url.search||url.hash)throw new BadGatewayException('Caminho de áudio inválido.');const response=await this.request(url.pathname,{redirect:'error'});const mime=(response.headers.get('content-type')||'').split(';')[0]!;if(!response.ok||!mime.startsWith('audio/')||Number(response.headers.get('content-length')||0)>12*1024*1024)throw new BadGatewayException('Áudio indisponível ou acima do limite.');const reader=response.body?.getReader();if(!reader)throw new BadGatewayException('Áudio vazio.');const chunks:Buffer[]=[];let size=0;try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>12*1024*1024)throw new BadGatewayException('Áudio acima do limite.');chunks.push(Buffer.from(part.value));}}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}return {buffer:Buffer.concat(chunks),mimetype:mime};}
+ async sendVoice(channel:ChannelConnection,chatId:string,buffer:Buffer):Promise<string|null>{if(!buffer.length||buffer.length>12*1024*1024)throw new BadGatewayException('Áudio inválido.');const response=await this.request('/api/sendVoice',{method:'POST',body:JSON.stringify({session:channel.sessionName,chatId,file:{mimetype:'audio/mpeg',data:buffer.toString('base64'),filename:'resposta.mp3'},convert:true})});if(!response.ok)throw new BadGatewayException('Não foi possível confirmar o áudio.');const result=await response.json() as any;return typeof result.id==='string'?result.id:result.id?._serialized||null;}
+
 }

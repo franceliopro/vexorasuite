@@ -1,6 +1,8 @@
 "use client";
+import { ContactPhoto } from "./contact-photo";
+import { useModalDialog } from "../lib/use-modal-dialog";
 
-import { useCallback, useEffect, useState, type DragEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { ArrowRight, Check, ChartNoAxesCombined, LayoutGrid, List, Plus, Search, UsersRound, X } from "lucide-react";
 import { LeadOriginsWorkspace } from "./lead-origins-workspace";
 import { ReportsWorkspace } from "./reports-workspace";
@@ -11,6 +13,7 @@ type CrmTag = {name:string;color?:string};
 type CrmFieldDefinition = {name:string;key:string};
 type Contact = {
   id: string;
+  pipelineId?: string | null;
   name: string;
   phone: string | null;
   email: string | null;
@@ -41,11 +44,11 @@ function contactFieldSummary(contact: Contact, definitions: CrmFieldDefinition[]
   return definitions.map(field => ({ field, value: values[field.key] })).filter(item => item.value !== undefined && item.value !== null && item.value !== "").slice(0, 3);
 }
 
-const stages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
+const defaultStages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
   { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
   { id: "qualification", label: "Qualificação", hint: "Entenda a oportunidade", tone: "blue" },
   { id: "proposal", label: "Proposta", hint: "Em negociação", tone: "amber" },
-  { id: "finalization", label: "Finalização", hint: "Registrar o resultado comercial", tone: "green" },
+  { id: "finalization", label: "Finalização", hint: "Registrar o resultado", tone: "green" },
 ];
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -58,7 +61,22 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export function CrmWorkspace() {
+function AdaptiveCards({children}:{children: React.ReactNode}) {
+ const ref=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+ const el=ref.current;if(!el)return;
+ const measure=()=>{const cards=Array.from(el.querySelectorAll<HTMLElement>(':scope > article'));const fifth=cards[4];el.style.maxHeight=Math.min(800,fifth?fifth.getBoundingClientRect().bottom-el.getBoundingClientRect().top+el.scrollTop:800)+'px';};
+ const observer=new ResizeObserver(measure);observer.observe(el);Array.from(el.children).forEach(child=>observer.observe(child));measure();
+ return ()=>observer.disconnect();
+ },[children]);
+ return <div ref={ref} className="crm-stage-cards">{children}</div>;
+}
+
+export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
+  const [pipelines,setPipelines]=useState<any[]>([]),[pipelineId,setPipelineId]=useState(''),[pipelineReady,setPipelineReady]=useState(false),[isAdmin,setIsAdmin]=useState(false);
+  const salesPipeline=!pipelineId||pipelines.find(p=>p.id===pipelineId)?.template==='SALES';
+  const stages=(pipelines.find(p=>p.id===pipelineId)?.stages||defaultStages) as typeof defaultStages;
+  useEffect(()=>{void Promise.all([api<any>('/api/backend/crm/pipelines'),api<any>('/api/backend/auth/me')]).then(([data,me])=>{const admin=['OWNER','ADMIN'].includes(me.role);setIsAdmin(admin);setPipelines(data.pipelines);setPipelineId(data.pipelines[0]?.id||'');setPipelineReady(true);}).catch(e=>{setError(e.message);setPipelineReady(true)});},[]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [fieldDefinitions, setFieldDefinitions] = useState<CrmFieldDefinition[]>([]);
   const [query, setQuery] = useState("");
@@ -77,15 +95,20 @@ export function CrmWorkspace() {
   const [leadOrigin, setLeadOrigin] = useState("");
   const [leadOriginId, setLeadOriginId] = useState("");
   const [finalizingContact, setFinalizingContact] = useState<Contact | null>(null);
+ const modalRef=useRef<HTMLElement|null>(null);
+ useModalDialog(!!finalizingContact,modalRef,()=>{if(!movingId)setFinalizingContact(null)});
   const [finalOutcome, setFinalOutcome] = useState<"WON" | "LOST" | "">("");
   const [lossReason, setLossReason] = useState("");
   const lossReasons = ["Preço/Condição", "Sem interesse", "Sem retorno", "Concorrência", "Inatividade"];
 
   const loadContacts = useCallback(async (search: string) => {
+    if(!pipelineReady)return;
+    if(!pipelineId&&!isAdmin){setContacts([]);setLoading(false);return;}
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
+      if(pipelineId)params.set("pipelineId",pipelineId);
       if (search.trim()) params.set("q", search.trim());
       setContacts(await api<Contact[]>("/api/backend/contacts" + (params.size ? "?" + params.toString() : "")));
     } catch (cause) {
@@ -93,16 +116,16 @@ export function CrmWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pipelineId,pipelineReady,isAdmin]);
 
-  useEffect(() => { void loadContacts(""); void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts]);
+  useEffect(() => { void loadContacts(initialSearch);if(initialSearch){setQuery(initialSearch);setView("contacts")} void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(!initialSearch&&new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts,initialSearch]);
 
   async function createContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      const created = await api<Contact>("/api/backend/contacts", {
+      const created = await api<Contact>("/api/backend/contacts"+(pipelineId?"?pipelineId="+pipelineId:""), {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined, email: email.trim() || undefined, source: leadOrigin || undefined }),
       });
@@ -132,6 +155,16 @@ export function CrmWorkspace() {
     } finally { setMovingId(""); setDraggingId(""); setDropTarget(""); }
   }
 
+
+  async function removeFromPipeline(contact:Contact) {
+    if(!pipelineId||movingId||!window.confirm("Retirar "+contact.name+" deste pipeline? O cadastro e o histórico serão preservados."))return;
+    setMovingId(contact.id);setError("");
+    try {
+      await api("/api/backend/contacts/"+contact.id+"/remove-from-pipeline",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({pipelineId})});
+      setContacts(items=>items.filter(item=>item.id!==contact.id));setNotice(contact.name+" retirado do pipeline.");
+    }catch(cause){setError(cause instanceof Error?cause.message:"Não foi possível retirar o contato.");}
+    finally{setMovingId("");}
+  }
 
   async function confirmFinalization() {
     if (!finalizingContact || !finalOutcome || (finalOutcome === "LOST" && !lossReason) || movingId) return;
@@ -176,7 +209,7 @@ export function CrmWorkspace() {
         <div><h1>CRM</h1><p>Acompanhe cada oportunidade e mova os contatos pelo funil comercial.</p></div>
       </header>
 
-      <div className="crm-toolbar">
+      <div className="crm-pipeline-selector"><label>CRM do departamento<select value={pipelineId} onChange={e=>setPipelineId(e.target.value)}>{isAdmin&&<option value="">Todos os contatos · administração</option>}{pipelines.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>{!pipelines.length&&<small>{isAdmin?'Ative o CRM nos setores em Atendentes → Setores e permissões.':'Nenhum CRM está habilitado para seu perfil e departamento.'}</small>}</div><div className="crm-toolbar">
         <div className="crm-view-switch" role="tablist" aria-label="Visualização do CRM">
           <button role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><LayoutGrid size={15}/> Pipeline</button>
           <button role="tab" aria-selected={view === "customers"} className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><UsersRound size={15}/> Clientes <span className="crm-tab-count">{contacts.filter(isCustomer).length}</span></button>
@@ -205,25 +238,25 @@ export function CrmWorkspace() {
       {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
         <section className="crm-pipeline" aria-label="Pipeline comercial">
           {stages.map((stage) => {
-            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (contact.crmStage || "new") === stage.id);
+            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (!contact.metadata?.crmRemoved || !!contact.pipelineId) && (contact.crmStage || "new") === stage.id);
             const activeDrop = dropTarget === stage.id;
             return <div key={stage.id} className={"crm-pipeline-column tone-" + stage.tone + (activeDrop ? " drop-active" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}
               onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(""); }}
               onDrop={(event) => dropOnStage(event, stage.id)}>
               <header className="crm-stage-heading"><span className="crm-stage-indicator"/><div><h2>{stage.label}</h2><p>{stage.hint}</p></div><span className="crm-stage-count">{columnContacts.length}</span></header>
-              <div className="crm-stage-cards">
+              <AdaptiveCards>
                 {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"crm-pipeline-card" + (draggingId === contact.id ? " is-dragging" : "")}>
-                  <div className="crm-card-top"><span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><span className="crm-card-source">{contact.source || "Contato"}</span></div>
+                  <div className="crm-card-top"><ContactPhoto id={contact.id} name={contact.name} version={contact.metadata?.avatarUrl} className="crm-contact-avatar"/><span className="crm-card-source">{contact.source || "Contato"}</span></div>
                   <strong className="crm-card-name">{contact.name}</strong>
                   {contactTags(contact).length?<span className="crm-contact-tags">{contactTags(contact).map((tag,index)=><span key={tag.name+index} style={{backgroundColor:`color-mix(in srgb, ${tag.color||"#eeecff"} 20%, white)`,borderColor:`color-mix(in srgb, ${tag.color||"#eeecff"} 68%, #334155)`}}>{tag.name}</span>)}</span>:null}
                   {contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
                   <span className="crm-card-detail">{contact.phone || contact.email || "Sem telefone ou e-mail"}</span>
                   {contact.phone && contact.email ? <span className="crm-card-detail">{contact.email}</span> : null}
-                  <div className="crm-card-footer"><label className="crm-move-label">Mover para<select aria-label={"Mover " + contact.name + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><ArrowRight size={14} aria-hidden="true"/></div>
+                  <div className="crm-card-footer"><label className="crm-move-label">Mover para<select aria-label={"Mover " + contact.name + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><ArrowRight size={14} aria-hidden="true"/>{pipelineId?<button type="button" className="secondary-button" disabled={!!movingId} onClick={()=>void removeFromPipeline(contact)} aria-label={"Retirar "+contact.name+" do pipeline"}>Retirar</button>:null}</div>
                 </article>)}
                 {!columnContacts.length ? <div className={"crm-stage-empty" + (activeDrop ? " is-lit" : "")}><span>{activeDrop ? <Check size={17}/> : <Plus size={17}/>}</span><strong>{activeDrop ? "Solte para mover" : "Sem contatos nesta etapa"}</strong><small>{activeDrop ? (stage.id === "finalization" ? "Escolha ganho ou perda" : "O pipeline será atualizado") : (stage.id === "finalization" ? "Arraste um contato para registrar o resultado" : "Arraste um cartão para cá")}</small></div> : null}
-              </div>
+              </AdaptiveCards>
             </div>;
           })}
         </section>
@@ -235,13 +268,14 @@ export function CrmWorkspace() {
           <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>{heading}</h2><p>{rows.length} {rows.length === 1 ? (customerView ? "cliente" : "contato") : (customerView ? "clientes" : "contatos")} encontrados</p></div></div>
           {customerView ? <div className="crm-customer-note"><strong>Cadastro de clientes</strong><span>Clientes vinculados ao Asaas são sincronizados e protegidos contra exclusão pela Véxora. Atualizações financeiras devem respeitar o cadastro de origem.</span></div> : null}
           {rows.length ? <div className="crm-contact-list">{rows.map((contact) => { const asaasCustomer = isAsaasCustomer(contact); return <article className="crm-contact-row" key={contact.id}>
-            <span className="crm-contact-avatar">{contact.name.trim().slice(0, 1).toUpperCase() || "?"}</span><div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span>{contactTags(contact).length?<span className="crm-contact-tags">{contactTags(contact).map((tag,index)=><span key={tag.name+index} style={{backgroundColor:`color-mix(in srgb, ${tag.color||"#eeecff"} 20%, white)`,borderColor:`color-mix(in srgb, ${tag.color||"#eeecff"} 68%, #334155)`}}>{tag.name}</span>)}</span>:null}{contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}</div>
+            <ContactPhoto id={contact.id} name={contact.name} version={contact.metadata?.avatarUrl} className="crm-contact-avatar"/><div className="crm-contact-main"><strong>{contact.name}</strong><span>{contact.phone || "Sem telefone"}{contact.email ? " · " + contact.email : ""}</span>{contactTags(contact).length?<span className="crm-contact-tags">{contactTags(contact).map((tag,index)=><span key={tag.name+index} style={{backgroundColor:`color-mix(in srgb, ${tag.color||"#eeecff"} 20%, white)`,borderColor:`color-mix(in srgb, ${tag.color||"#eeecff"} 68%, #334155)`}}>{tag.name}</span>)}</span>:null}{contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}</div>
             {customerView ? <span className={"crm-customer-origin" + (asaasCustomer ? " is-asaas" : "") + ((contact.metadata?.asaasSync && typeof contact.metadata.asaasSync === "object" && (contact.metadata.asaasSync as Record<string, unknown>).status === "PENDING") ? " is-pending" : "")}>{contact.metadata?.asaasSync && typeof contact.metadata.asaasSync === "object" && (contact.metadata.asaasSync as Record<string, unknown>).status === "PENDING" ? "Asaas pendente" : asaasCustomer ? "Asaas sincronizado" : "Cliente Véxora"}</span> : contact.crmFinalization ? <span className={"crm-stage-pill tone-rose"}><span>{"Perda · " + (contact.crmFinalization.reason || "Motivo registrado")}</span></span> : <label className={"crm-stage-pill tone-" + stages.find((stage) => stage.id === (contact.crmStage || "new"))?.tone}><span>{stages.find((stage) => stage.id === (contact.crmStage || "new"))?.label}</span><select aria-label={"Etapa de " + contact.name} value={contact.crmStage || "new"} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.filter((stage) => stage.id !== "finalization").map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label>}
           </article>; })}</div> : <div className="empty-state crm-empty"><span className="empty-illustration"><UsersRound size={24} /></span><h3>{query.trim() ? "Nenhum registro encontrado" : customerView ? "Nenhum cliente cadastrado" : "Nenhum contato cadastrado"}</h3><p>{query.trim() ? "Tente outro nome, telefone ou e-mail." : customerView ? "Clientes convertidos pelo CRM ou sincronizados do Asaas aparecerão aqui." : "Cadastre um contato para começar a organizar seu relacionamento comercial."}</p>{!customerView ? <button className="secondary-button" onClick={() => setFormOpen(true)}><Plus size={15} /> Cadastrar contato</button> : null}</div>}
         </section>;
       })()}
 
-      {finalizingContact ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !movingId) setFinalizingContact(null); }}><section className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="crm-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={!!movingId} onClick={() => setFinalizingContact(null)}><X size={18}/></button><span className="finalization-icon"><Check size={22}/></span><h2 id="crm-finalization-title">Finalizar oportunidade</h2><p>Qual foi o resultado comercial de <strong>{finalizingContact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalOutcome("WON"); setLossReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Converter lead em cliente</small></span></button><button type="button" className={finalOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={lossReason} onChange={(event) => setLossReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A finalização remove o contato do Kanban e encerra as conversas abertas. O histórico permanece em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={!!movingId} onClick={() => setFinalizingContact(null)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalOutcome || (finalOutcome === "LOST" && !lossReason) || !!movingId} onClick={() => void confirmFinalization()}>{movingId ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
+      {finalizingContact ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !movingId) setFinalizingContact(null); }}><section ref={modalRef} tabIndex={-1} className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="crm-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={!!movingId} onClick={() => setFinalizingContact(null)}><X size={18}/></button><span className="finalization-icon"><Check size={22}/></span><h2 id="crm-finalization-title">Finalizar oportunidade</h2><p>Qual foi o resultado comercial de <strong>{finalizingContact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalOutcome("WON"); setLossReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Concluir o item</small></span></button><button type="button" className={finalOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={lossReason} onChange={(event) => setLossReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A finalização remove o contato do Kanban e encerra as conversas abertas. O histórico permanece em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={!!movingId} onClick={() => setFinalizingContact(null)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalOutcome || (finalOutcome === "LOST" && !lossReason) || !!movingId} onClick={() => void confirmFinalization()}>{movingId ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
     </section>
   );
 }
+

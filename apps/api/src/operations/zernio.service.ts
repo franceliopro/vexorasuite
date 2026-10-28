@@ -1,3 +1,4 @@
+import {assertSocialRequest} from '../auth/product-scope';
 import { BadGatewayException, Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -18,7 +19,8 @@ export class ZernioService {
     return received.length === expected.length && timingSafeEqual(received, expected);
   }
 
-  async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; idempotencyKey?: string } = {}): Promise<T> {
+  async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; idempotencyKey?: string; allowPartialFailure?: boolean } = {}): Promise<T> {
+    assertSocialRequest(path,options.method??'GET');
     this.assertConfigured();
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("..")) {
       throw new ServiceUnavailableException("Caminho de integração inválido.");
@@ -40,7 +42,7 @@ export class ZernioService {
       throw new BadGatewayException("Não foi possível alcançar o serviço Zernio.");
     }
     const payload = await response.json().catch(() => null);
-    if (!response.ok || (payload && typeof payload === "object" && "success" in payload && payload.success === false) || (payload && typeof payload === "object" && "data" in payload && payload.data && typeof payload.data === "object" && "partialFailure" in payload.data && payload.data.partialFailure)) {
+    if (!response.ok || (payload && typeof payload === "object" && "success" in payload && payload.success === false) || (!options.allowPartialFailure && payload && typeof payload === "object" && "data" in payload && payload.data && typeof payload.data === "object" && "partialFailure" in payload.data && payload.data.partialFailure)) {
       throw new BadGatewayException({
         message: "A Zernio não confirmou a operação. Confira a conta, as permissões e os requisitos da rede social.",
         providerStatus: response.status,

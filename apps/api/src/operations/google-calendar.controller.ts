@@ -1,5 +1,5 @@
+import { GoogleAccessService } from "./google-access.service";
 import { BadGatewayException, BadRequestException, Controller, ForbiddenException, Get, Param, Post, Patch, Delete, Body, Query, Req, UseGuards } from "@nestjs/common";
-import { createDecipheriv } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import type { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -8,30 +8,9 @@ type EventInput = { summary?: string; description?: string; location?: string; s
 @Controller("integrations/google/calendar")
 @UseGuards(AuthGuard)
 export class GoogleCalendarController {
-  constructor(private readonly prisma: PrismaService) {}
-  private decrypt(value: string) {
-    const key = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || "";
-    if (!/^[a-f0-9]{64}$/i.test(key)) throw new BadRequestException("Criptografia Google não configurada.");
-    const parts = value.split(".");
-    if (parts.length !== 3) throw new BadRequestException("Token criptografado inválido.");
-    const decipher = createDecipheriv("aes-256-gcm", Buffer.from(key, "hex"), Buffer.from(parts[0]!, "base64url"));
-    decipher.setAuthTag(Buffer.from(parts[1]!, "base64url"));
-    return Buffer.concat([decipher.update(Buffer.from(parts[2]!, "base64url")), decipher.final()]).toString("utf8");
-  }
-  private async token(req: AuthenticatedRequest, accountId: string) {
-    const account = await this.prisma.googleConnection.findFirst({ where: { id: accountId, tenantId: req.user.tenantId } });
-    if (!account || account.disabledServices.includes("calendar") || !account.scopes.includes("calendar.events")) throw new ForbiddenException("Conta sem autorização para Google Agenda nesta empresa.");
-    if (account.expiresAt.getTime() > Date.now() + 60000) return this.decrypt(account.accessTokenEncrypted);
-    if (!account.refreshTokenEncrypted) throw new BadRequestException("Reconecte a conta Google para renovar a autorização.");
-    const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID || "", client_secret: process.env.GOOGLE_CLIENT_SECRET || "", refresh_token: this.decrypt(account.refreshTokenEncrypted), grant_type: "refresh_token" }), signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new BadGatewayException("Falha ao renovar acesso Google. Reconecte a conta.");
-    const result = await response.json() as { access_token?: string; expires_in?: number };
-    if (!result.access_token) throw new BadGatewayException("Google não retornou token.");
-    // Refresh is not persisted here; use the short-lived token for this request.
-    return result.access_token;
-  }
+  constructor(private readonly prisma: PrismaService, private readonly access: GoogleAccessService) {}
   private async google(req: AuthenticatedRequest, accountId: string, path: string, init: RequestInit = {}) {
-    const accessToken = await this.token(req, accountId);
+    const accessToken = await this.access.token(req.user.tenantId, accountId, "calendar");
     const response = await fetch("https://www.googleapis.com/calendar/v3/" + path, { ...init, headers: { authorization: "Bearer " + accessToken, "content-type": "application/json" }, signal: AbortSignal.timeout(15000) });
     const result = await response.json().catch(() => ({})) as Record<string, unknown>;
     if (!response.ok) throw new BadGatewayException(typeof result.error === "object" ? "Google Agenda recusou a operação. Verifique as permissões da conta." : "Falha na comunicação com Google Agenda.");
@@ -65,6 +44,7 @@ export class GoogleCalendarController {
   async events(@Req() req: AuthenticatedRequest, @Param("accountId") accountId: string, @Query("calendarId") calendarId = "primary", @Query("timeMin") timeMin?: string, @Query("timeMax") timeMax?: string) {
     await this.accessible(req,accountId,calendarId);
     const params = new URLSearchParams({ singleEvents: "true", orderBy: "startTime", maxResults: "250" });
+    if ((timeMin && Number.isNaN(Date.parse(timeMin))) || (timeMax && Number.isNaN(Date.parse(timeMax))) || (timeMin && timeMax && Date.parse(timeMin) >= Date.parse(timeMax))) throw new BadRequestException("Período da agenda inválido.");
     if (timeMin) params.set("timeMin", new Date(timeMin).toISOString());
     if (timeMax) params.set("timeMax", new Date(timeMax).toISOString());
     return this.google(req, accountId, "calendars/" + encodeURIComponent(calendarId) + "/events?" + params);
@@ -86,3 +66,4 @@ export class GoogleCalendarController {
     return { deleted: true };
   }
 }
+

@@ -3367,6 +3367,13 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-flow-inspector-body label small{display:block;margin:2px 0 5px;font-size:11px;font-weight:400;color:var(--muted,#667085);line-height:1.45}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title{display:none}
 
+/* Columns grow naturally until five cards or 800px. */
+.crm-workspace .crm-pipeline{height:auto;min-height:0;align-items:start;overflow-y:visible}
+.crm-workspace .crm-pipeline-column{height:auto;min-height:0}
+.crm-workspace .crm-stage-cards{position:relative;flex:0 1 auto;min-height:0;max-height:800px;overflow-y:auto}
+
+.inbox-appointments{padding:12px;overflow-y:auto;min-height:0}.inbox-appointment-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}.inbox-appointments ul{padding-left:20px}.inbox-appointments li{padding:6px 0}
+
 /* Flow Studio v2: viewport-sized work area and independently scrollable tool columns. */
 .chatbot-workspace{display:flex;flex-direction:column;min-height:0;height:calc(100dvh - 155px);max-height:calc(100dvh - 155px);overflow:hidden}
 .chatbot-workspace .vx-flow-page-title,.chatbot-workspace .vx-flow-mini-toolbar{flex:0 0 auto}

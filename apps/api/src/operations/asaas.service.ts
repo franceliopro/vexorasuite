@@ -1,3 +1,5 @@
+import { documentDigits } from "../common/documents";
+import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
@@ -81,7 +83,10 @@ export class AsaasService {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
     const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown> : {};
-    await this.prisma.tenant.update({ where: { id: tenantId }, data: { integrations: { ...all, asaas: { enabled: input.enabled, sandbox: input.sandbox, encryptedApiKey: encryptedApiKey || null, encryptedWebhookToken: encryptedWebhookToken || null } } as any } });
+    await mutateTenantSetting(this.prisma,tenantId,"asaas",value=>{
+      const latest=value&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,any>:{};
+      return {enabled:input.enabled as boolean,sandbox:input.sandbox as boolean,encryptedApiKey:typeof input.apiKey==="string"&&input.apiKey.trim()?encryptedApiKey||null:latest.encryptedApiKey||encryptedApiKey||null,encryptedWebhookToken:typeof input.webhookToken==="string"&&input.webhookToken.trim()?encryptedWebhookToken||null:latest.encryptedWebhookToken||encryptedWebhookToken||null};
+    });
     if (input.enabled) void this.syncPendingCustomers(tenantId).catch((error) => this.logger.warn("Falha ao retomar sincronização de clientes pendentes do Asaas: " + (error instanceof Error ? error.message : "erro desconhecido")));
     return this.publicSettings(tenantId);
   }
@@ -178,7 +183,7 @@ export class AsaasService {
   }
 
   async debtsByDocument(tenantId:string,rawDocument:string){
-    const document=rawDocument.replace(/\D/g,"");
+    const document=documentDigits(rawDocument);
     if(!/^\d{11}$|^\d{14}$/.test(document)||!this.validDocument(document))throw new BadRequestException("CPF/CNPJ inválido.");
     const customers=await this.request<{data?:Array<{id:string;name:string;cpfCnpj?:string}>}>(tenantId,"/customers?"+new URLSearchParams({cpfCnpj:document,limit:"100"}));
     const matching=(customers.data||[]).filter(x=>x.cpfCnpj?.replace(/\D/g,"")===document);
@@ -620,7 +625,7 @@ export class AsaasService {
 
   async openDebts(tenantId: string, document: string, whatsappPhone?: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {
     const doc = this.digits(document);
-    if (!this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido. Digite somente números.");
+    if (!this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido. Confira os dígitos do documento. Pontos, traços e espaços são aceitos.");
     const credentials = await this.credentials(tenantId);
     const customers = await this.request<{ data?: Array<{ id: string; name: string; cpfCnpj: string; phone?: string; mobilePhone?: string }> }>(tenantId, "/customers?cpfCnpj=" + encodeURIComponent(doc) + "&limit=100");
     const found = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 10);
@@ -663,3 +668,4 @@ export class AsaasService {
     };
   }
 }
+

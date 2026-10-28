@@ -1,0 +1,50 @@
+/* Compact, resizable conversation tools anchored beside the contact sheet. */
+.inbox-workspace .inbox-quick-overlay{position:fixed;inset:0;z-index:950;padding:0;display:block;background:transparent;pointer-events:none}
+.inbox-workspace .inbox-quick-dialog,.inbox-workspace .inbox-quick-dialog:has(.inbox-finance-lookup){position:fixed;top:82px;right:18px;left:auto;bottom:auto;display:flex;flex-direction:column;min-width:0;max-width:calc(100vw - 36px);max-height:calc(100dvh - 100px);padding:0;overflow:hidden;pointer-events:auto;background:var(--card,#fff);color:var(--ink,#202638);border-radius:14px}
+.inbox-workspace .inbox-quick-dialog>header{position:relative;z-index:2;display:flex;flex:0 0 auto;gap:8px;align-items:center;justify-content:space-between;margin:0;padding:12px;border-bottom:1px solid var(--line,#dde2eb);background:var(--card,#fff)}
+.inbox-workspace .inbox-quick-dialog>header strong{min-width:0;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.inbox-workspace .inbox-quick-dialog>header button{display:grid;place-items:center;flex:none;width:32px;height:32px;padding:5px;color:inherit}
+.inbox-workspace .inbox-quick-dialog>div{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 12px 24px;scrollbar-width:thin;overscroll-behavior:contain}
+.inbox-workspace .inbox-quick-dialog .inbox-finance-debts{max-height:none;overflow:visible}
+.inbox-workspace .inbox-finance-lookup{display:flex;flex-wrap:nowrap;align-items:center;gap:6px}
+.inbox-workspace .inbox-finance-lookup input{flex:1 1 160px;width:160px;min-width:0;max-width:190px;height:34px;min-height:34px;padding:6px 8px;font-size:12px}
+.inbox-workspace .inbox-finance-lookup button{flex:none;min-height:34px;padding:6px 8px;font-size:11px}
+.inbox-workspace .inbox-quick-resize{position:absolute;bottom:3px;left:3px;z-index:3;width:25px;height:22px;padding:0;border:0;border-radius:5px;background:var(--card,#fff);color:var(--muted,#667085);cursor:nesw-resize;touch-action:none}
+.inbox-workspace .inbox-quick-resize:focus-visible{outline:2px solid var(--primary,#6258df)}
+.inbox-workspace .inbox-finance-select-all{flex-wrap:wrap}
+.inbox-workspace .inbox-finance-debts label{flex-wrap:wrap}
+.inbox-workspace .thread-contact h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversation-avatar>img{position:absolute;inset:0}
+@media(max-width:640px){.inbox-workspace .inbox-quick-dialog,.inbox-workspace .inbox-quick-dialog:has(.inbox-finance-lookup){top:70px;right:8px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 84px)}.inbox-workspace .inbox-finance-lookup input{flex-basis:150px}}
+/* Flow details remain readable while the canvas keeps its working area. */
+.chatbot-workspace .vx-flow-node-body{display:flex;flex-direction:column;gap:5px;align-items:flex-start;padding:10px 13px}
+.chatbot-workspace .vx-flow-node-body p{margin:0;font-size:11px;line-height:1.45;color:var(--muted,#667085);overflow-wrap:anywhere}
+.chatbot-workspace .vx-flow-node-body small{color:var(--ink,#202638);font-size:10px;line-height:1.45}
+.chatbot-workspace .vx-flow-inspector-body fieldset{min-width:0;margin:10px 0;padding:12px;border:1px solid var(--line,#dde2eb);border-radius:10px}
+.chatbot-workspace .vx-flow-inspector-body legend{font-size:12px;font-weight:700}
+.chatbot-workspace .vx-flow-validation{flex:none;margin:5px 0;font-size:11px;line-height:1.5;color:var(--muted,#667085)}
+.chatbot-workspace .vx-flow-validation[open]{max-height:140px;overflow:auto;padding:8px;border:1px solid var(--line,#dde2eb);border-radius:9px}
+.chatbot-workspace .vx-flow-validation summary{cursor:pointer}
+.chatbot-workspace .vx-flow-validation button{border:0;background:transparent;color:var(--primary,#6258df);text-align:left;font:inherit;cursor:pointer}
+.chatbot-workspace .vx-flow-palette-grid button:disabled{opacity:.45;cursor:not-allowed}
+.creative-workspace table th,.creative-workspace table td{padding:9px;border-bottom:1px solid var(--line,#dde2eb);font-size:12px}
+.creative-workspace details{padding:10px 0}.creative-workspace summary{cursor:pointer;font-weight:650}
+
+/* Compact message rhythm and native system typography, as in WhatsApp Web. */
+.inbox-workspace .thread-messages{font-family:"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;gap:2px!important}
+.inbox-workspace .message-line{margin-block:0!important;padding-block:0!important}
+.inbox-workspace .message-bubble{font-family:inherit;line-height:1.35}
+.inbox-workspace .message-bubble p{margin:0 0 2px!important}
+.inbox-workspace.inbox-full-screen{position:fixed;inset:0;z-index:1100;background:var(--background,#f4f5f9);height:100dvh!important;max-height:100dvh;padding:8px;box-sizing:border-box}
+.channel-health-warning{display:flex;flex-wrap:wrap;gap:4px 12px;padding:10px 14px;background:#fff1ce;color:#593800;font-size:12px;border-bottom:1px solid #e4bc59}
+.channel-health-warning span{flex:1;min-width:170px}
+input[type=file]{box-sizing:border-box;display:block;max-width:100%;width:100%;min-width:0;border:1px solid var(--border,#d8dce5);border-radius:10px;padding:8px;background:var(--card,#fff);color:inherit;font:inherit}
+input[type=file]::file-selector-button{border:0;border-radius:7px;background:#eceafa;color:#4134a2;padding:8px 12px;margin-right:10px;cursor:pointer;font:inherit}
+.profile-avatar img,.contact-profile-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.ai-admin-fields label:has(>input[type=checkbox]){display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;font-weight:500}
+.ai-admin-fields input[type=checkbox]{width:16px;height:16px;min-height:16px;flex:0 0 16px;margin:0;padding:0;accent-color:var(--primary,#6258df)}
+.ai-admin-fields fieldset{min-width:0;display:grid;gap:9px;border:1px solid var(--line,#d8dce5);border-radius:10px;padding:12px;margin:0}
+.ai-admin-fields fieldset legend{padding:0 5px;font-size:13px;font-weight:600}
+.ai-admin-fields>h2,.ai-admin-fields>h3,.ai-admin-fields>p{margin:0}
+.ai-admin-fields summary{cursor:pointer;padding-block:8px;font-weight:600}
+.creative-file{display:flex;flex-wrap:wrap;align-items:center;gap:8px}

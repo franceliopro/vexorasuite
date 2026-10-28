@@ -2,6 +2,29 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model PushConfiguration {
+  tenantId String @id @db.Uuid @map("tenant_id")
+  publicKey String @map("public_key")
+  privateKeyEncrypted String @map("private_key_encrypted")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  @@map("push_configurations")
+}
+model PushSubscription {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  userId String @db.Uuid @map("user_id")
+  endpointHash String @unique @map("endpoint_hash")
+  endpoint String
+  p256dh String
+  auth String
+  createdAt DateTime @default(now()) @map("created_at")
+  lastTestAt DateTime? @map("last_test_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([tenantId,userId])
+  @@map("push_subscriptions")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -42,9 +65,15 @@ enum ConversationHandlingMode {
 }
 
 model Tenant {
+  homePresentation HomePresentation?
+  pipelines CrmPipeline[]
+  internalWorkflows InternalWorkflow[]
+  pushConfiguration PushConfiguration?
+  pushSubscriptions PushSubscription[]
   id          String       @id @default(uuid()) @db.Uuid
   name        String
   slug        String       @unique
+  kind        String       @default("COMPANY")
   status      String       @default("ACTIVE")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
@@ -62,14 +91,26 @@ model Tenant {
   googleOAuthAttempts GoogleOAuthAttempt[]
   workTasks WorkTask[]
   calendarAssignments CalendarAssignment[]
+  creativeReferences CreativeReference[]
   integrations Json @default("{}")
 
   @@map("tenants")
 }
 
+
+
+
+
 model User {
+  pushSubscriptions PushSubscription[]
   id              String            @id @default(uuid()) @db.Uuid
   email           String            @unique
+  avatarUrl       String? @map("avatar_url")
+  avatarSource    String? @map("avatar_source")
+  avatarCheckedAt DateTime? @map("avatar_checked_at")
+  isPlatformAdmin Boolean @default(false) @map("is_platform_admin")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  authVersion Int @default(0) @map("auth_version")
   passwordHash    String            @map("password_hash")
   name            String
   isActive        Boolean           @default(true) @map("is_active")
@@ -87,6 +128,8 @@ model User {
 }
 
 model Membership {
+  deniedModules String[] @default([]) @map("denied_modules")
+  modules String[] @default([])
   id        String         @id @default(uuid()) @db.Uuid
   tenantId  String         @db.Uuid @map("tenant_id")
   userId    String         @db.Uuid @map("user_id")
@@ -101,6 +144,8 @@ model Membership {
 }
 
 model Contact {
+  pipelineId String? @db.Uuid @map("pipeline_id")
+  pipeline CrmPipeline? @relation(fields:[pipelineId],references:[id],onDelete:Restrict)
   id           String         @id @default(uuid()) @db.Uuid
   tenantId     String         @db.Uuid @map("tenant_id")
   name         String
@@ -177,6 +222,10 @@ model ChannelConnection {
 }
 
 model Department {
+  modules String[] @default([])
+  routingCategory String? @map("routing_category")
+  routingPlatform String? @map("routing_platform")
+  pipeline CrmPipeline?
   id             String         @id @default(uuid()) @db.Uuid
   tenantId       String         @db.Uuid @map("tenant_id")
   key            String
@@ -316,6 +365,7 @@ model GoogleOAuthAttempt {
 }
 
 model GoogleConnection {
+  creativeReferences CreativeReference[]
   id String @id @default(uuid()) @db.Uuid
   tenantId String @db.Uuid @map("tenant_id")
   googleAccountId String @map("google_account_id")
@@ -404,4 +454,101 @@ model AuthorizedContact {
   @@index([tenantId, contactId, status])
   @@index([tenantId, phone])
   @@map("authorized_contacts")
+}
+
+
+model CreativeReference {
+  deletedAt DateTime? @map("deleted_at")
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  accountId String? @db.Uuid @map("account_id")
+  fileId String @map("file_id")
+  name String
+  mimeType String @map("mime_type")
+  purpose String @default("ALL")
+  instructions String @default("")
+  palette Json @default("[]")
+  enabled Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  account GoogleConnection? @relation(fields:[accountId],references:[id],onDelete:SetNull)
+  @@unique([tenantId,accountId,fileId])
+  @@index([tenantId,enabled,purpose])
+  @@map("creative_references")
+}
+
+
+
+
+
+
+
+
+
+model InternalWorkflow {
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ runs WorkflowRun[]
+ @@unique([tenantId,id])
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ userId String @db.Uuid @map("user_id")
+ name String
+ enabled Boolean @default(false)
+ trigger String @default("SCHEDULE")
+ timezone String @default("America/Sao_Paulo")
+ nextRunAt DateTime @map("next_run_at")
+ repeatDays Int @default(0) @map("repeat_days")
+ filters Json @default("{}")
+ steps Json
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([enabled,nextRunAt])
+ @@index([tenantId])
+ @@map("internal_workflows")
+}
+model WorkflowRun {
+ workflow InternalWorkflow @relation(fields:[tenantId,workflowId],references:[tenantId,id],onDelete:Cascade)
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ workflowId String @db.Uuid @map("workflow_id")
+ eventKey String @map("event_key")
+ conversationId String? @db.Uuid @map("conversation_id")
+ status String @default("WAITING")
+ position Int @default(0)
+ nextRunAt DateTime @map("next_run_at")
+ error String?
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@unique([workflowId,eventKey])
+ @@index([status,nextRunAt])
+ @@map("workflow_runs")
+}
+
+model CrmPipeline {
+ id String @id @default(uuid()) @db.Uuid
+ tenantId String @db.Uuid @map("tenant_id")
+ departmentId String @unique @db.Uuid @map("department_id")
+ name String
+ template String @default("GENERAL")
+ stages Json
+ enabled Boolean @default(true)
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ department Department @relation(fields:[departmentId],references:[id],onDelete:Cascade)
+ contacts Contact[]
+ @@index([tenantId,enabled])
+ @@map("crm_pipelines")
+}
+
+model HomePresentation {
+ tenantId String @id @db.Uuid @map("tenant_id")
+ desktopColor String? @map("desktop_color")
+ mobileColor String? @map("mobile_color")
+ desktopImage Bytes? @map("desktop_image")
+ desktopMode String @default("center") @map("desktop_mode")
+ mobileImage Bytes? @map("mobile_image")
+ mobileMode String @default("center") @map("mobile_mode")
+ revision Int @default(0)
+ updatedAt DateTime @updatedAt @map("updated_at")
+ tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+ @@map("home_presentations")
 }

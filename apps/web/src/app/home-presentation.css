@@ -1,0 +1,49 @@
+/* Presentation occupies only the workspace; operational pages retain document scrolling. */
+.main-area > .page-content.presentation-page{max-width:none;width:100%;margin:0;padding:0!important;flex:1;display:flex;min-height:0}
+.home-presentation{position:relative;flex:1;width:100%;min-width:0;min-height:calc(100dvh - 70px);overflow:hidden;isolation:isolate;background:var(--page);touch-action:manipulation}
+.presentation-wallpaper{position:absolute;inset:0;background-position:center;background-repeat:no-repeat;pointer-events:none}
+.presentation-mode-contain{background-size:contain}.presentation-mode-cover{background-size:cover}.presentation-mode-center{background-size:auto}.presentation-mode-stretch{background-size:100% 100%}.presentation-mode-zoom{background-size:cover;transform:scale(1.25)}.presentation-mode-tile{background-repeat:repeat;background-size:auto}
+.presentation-add{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 30px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);background:color-mix(in srgb,var(--card) 70%,transparent);max-width:85%;font-size:14px}
+.presentation-keyboard-edit{position:absolute;top:12px;left:12px;opacity:0;pointer-events:none}.presentation-keyboard-edit:focus-visible{opacity:1;pointer-events:auto;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:8px}
+.presentation-state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px}
+.presentation-backdrop{position:fixed;inset:0;z-index:1000;background:#080d2080;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.presentation-dialog{width:min(700px,100%);max-height:calc(100dvh - 40px);overflow:auto;overscroll-behavior:contain;padding:24px;display:flex;flex-direction:column;gap:16px}
+.presentation-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:16px}.presentation-dialog h2{margin:0}.presentation-dialog .module-tabs button{display:flex;align-items:center;gap:8px}.presentation-dialog .workspace-actions{display:flex;gap:12px;flex-wrap:wrap}.presentation-dialog .workspace-actions button{display:flex;align-items:center;gap:7px}
+.presentation-preview{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--line);border-radius:10px;background:var(--page);display:grid;place-items:center;align-self:center;flex-shrink:0}.presentation-preview-desktop{width:100%;aspect-ratio:16/9;max-height:270px}.presentation-preview-mobile{height:270px;aspect-ratio:9/16;max-width:100%}
+.presentation-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}.presentation-modes legend{font-weight:600;margin-bottom:10px}.presentation-modes label{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:9px;cursor:pointer}.presentation-modes label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}.presentation-modes input{flex-shrink:0}.presentation-modes span{display:flex;flex-direction:column;gap:3px}.presentation-modes small{font-size:11px;color:var(--muted)}.presentation-dialog footer{justify-content:flex-end}.presentation-dialog .settings-muted{font-size:12px;margin:0}
+@media(min-width:761px){
+ .suite-app{--desktop-sidebar-width:258px}
+ .suite-app:has(>.sidebar.sidebar-collapsed){--desktop-sidebar-width:78px}
+ .suite-app>.sidebar{position:fixed;inset:0 auto 0 0;width:var(--desktop-sidebar-width);height:100dvh;min-height:0;max-height:100dvh;overflow:visible;z-index:35;display:flex;flex-direction:column}
+ .suite-app>.main-area{margin-left:var(--desktop-sidebar-width);width:calc(100% - var(--desktop-sidebar-width));max-width:calc(100% - var(--desktop-sidebar-width));min-width:0}
+ .sidebar .side-nav{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent}
+ .sidebar .side-nav::-webkit-scrollbar{width:6px}.sidebar .side-nav::-webkit-scrollbar-track{background:transparent}.sidebar .side-nav::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:0;border:0;box-shadow:none}
+ .sidebar .nav-submenu{overflow:visible;max-height:none}
+ .sidebar .sidebar-bottom{margin-top:0;flex-shrink:0}
+ .sidebar .nav-glyph,.sidebar .nav-item,.sidebar .sidebar-brand-row{flex-shrink:0}
+}
+@media(min-width:761px) and (max-width:1120px){.suite-app{--desktop-sidebar-width:230px}}
+.presentation-color{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:600}.presentation-color input[type=color]{width:48px;height:36px;min-height:36px;padding:2px;border:1px solid var(--line);border-radius:7px;background:var(--card);cursor:pointer}.presentation-color span{font-size:12px;color:var(--muted);font-weight:400}
+@media(max-width:760px){.main-area:has(.home-presentation){padding-bottom:calc(74px + env(safe-area-inset-bottom))}.main-area>.page-content.presentation-page{padding:0!important;max-height:none;overflow:visible}.home-presentation{min-height:calc(100dvh - 58px - 74px - env(safe-area-inset-bottom))}.presentation-backdrop{padding:10px}.presentation-dialog{padding:18px;max-height:calc(100dvh - 20px);border-radius:14px}.presentation-modes label{padding:8px}.presentation-modes small{font-size:10px}.presentation-preview-mobile{height:220px}.presentation-dialog .workspace-actions button{min-height:44px}.presentation-add{padding:20px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.home-presentation *{transition:none}}
+
+/* Submenus expand in the navigation flow, without independent scroll regions. */
+.sidebar .nav-accordion,.sidebar .nav-submenu{overflow:visible;max-height:none;flex-shrink:0}
+.sidebar .side-nav:has(.nav-accordion.expanded){scrollbar-width:none}
+.sidebar .side-nav:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none;width:0;height:0}
+/* The mobile drawer owns scrolling; keep expanded navigation equally unobtrusive. */
+@media(max-width:760px){
+ .suite-app>.sidebar:has(.nav-accordion.expanded){scrollbar-width:none}
+ .suite-app>.sidebar:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none;width:0;height:0}
+}
+
+/* Native file controls must stay hidden even when shared form styles set display. */
+.home-presentation .presentation-file-input{display:none!important}
+@media(min-width:761px) and (hover:hover) and (pointer:fine){
+ .suite-app.home-mode .main-area>.topbar{position:fixed;top:0;left:var(--desktop-sidebar-width);right:0;z-index:50;transform:translateY(calc(-100% + 8px));opacity:0;transition:transform .18s ease,opacity .18s ease}
+ .suite-app.home-mode .main-area>.topbar:hover,
+ .suite-app.home-mode .main-area>.topbar:focus-within,
+ .suite-app.home-mode .main-area>.topbar:has([aria-expanded=true]){transform:translateY(0);opacity:1}
+ .suite-app.home-mode .home-presentation{min-height:100dvh}
+}
+@media(prefers-reduced-motion:reduce){.suite-app.home-mode .main-area>.topbar{transition:none}}

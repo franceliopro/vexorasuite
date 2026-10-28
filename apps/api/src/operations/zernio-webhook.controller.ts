@@ -1,3 +1,4 @@
+import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post, RawBodyRequest, Req } from "@nestjs/common";
 import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
@@ -10,7 +11,7 @@ type JsonObject = Record<string, any>;
 export class ZernioWebhookController {
   private readonly logger = new Logger(ZernioWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly zernio: ZernioService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly zernio: ZernioService, private readonly engine: IntelligenceRuntimeService) {}
 
   @Post(":channelId")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Req() request: RawBodyRequest<Request>) {
@@ -56,7 +57,7 @@ export class ZernioWebhookController {
           const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
           if (duplicate) return null;
           let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId } });
-          const avatar = sender.picture || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
+          const avatar = sender.profile_pic || sender.profile_picture_url || sender.picture?.data?.url || (typeof sender.picture === "string" ? sender.picture : undefined) || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
           if (!contact) {
             contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
@@ -73,6 +74,11 @@ export class ZernioWebhookController {
         if (saved) {
           this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
           this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId });
+          await this.engine.receive(channel, saved.conversationId, saved.message.id);
+        }
+        if (!saved) {
+          const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
+          if (prior) await this.engine.receive(channel, prior.conversationId, prior.id);
         }
         return { ok: true, duplicate: !saved };
       } catch (error) {
@@ -88,3 +94,4 @@ export class ZernioWebhookController {
     return { ok: true, accepted: true, type: normalizedType };
   }
 }
+

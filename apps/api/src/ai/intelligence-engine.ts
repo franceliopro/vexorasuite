@@ -44,13 +44,13 @@ export function proposeWorkflow(text: string) {
       { id: "start", type: "trigger", label: "Mensagem recebida em canal autorizado" },
       { id: "sector", type: "choice", label: "Financeiro, Suporte, Comercial ou Administrativo" },
       { id: "finance", type: "choice", label: "Financeiro: selecionar plataforma e Pagar ou Atendente" },
-      { id: "payment", type: "skill", skill: "asaas.payment.lookup", label: "Consulta financeira autorizada; integração pendente" },
+      { id: "payment", type: "skill", skill: "asaas.payment.lookup", label: "Diálogo financeiro Asaas com verificação de identidade" },
       { id: "support", type: "route", label: "Suporte: selecionar plataforma e equipe" },
       { id: "sales", type: "choice", label: "Comercial: Pessoa Física ou Jurídica" },
       { id: "admin", type: "route", label: "Administrativo: contato configurado" },
       { id: "human", type: "handoff", label: "Encaminhamento humano quando necessário" },
     ],
-    missing: ["Destinos reais de cada setor", "Contato comercial PF/PJ", "Contato administrativo", "Skill Asaas executável e autorizada", "Configuração dos canais e permissões"],
+    missing: ["Destinos reais de cada setor", "Contato comercial PF/PJ", "Contato administrativo", "Credenciais Asaas e validação sandbox", "Configuração dos canais e permissões"],
     estimatedLlmTokens: 0,
   };
   if (marketing) return {
@@ -65,8 +65,9 @@ export function proposeWorkflow(text: string) {
       { id: "comment", type: "event", label: "Receber webhook de comentário e verificar palavra-chave" },
       { id: "reply", type: "skill", skill: "social.private_reply", label: "Responder conforme permissões e limites da plataforma" },
     ],
-    missing: ["Conta profissional autorizada", "Permissões Meta/Zernio", "Fontes de pesquisa", "Identidade visual", "Texto ou link de resposta", "Palavra-chave e aprovação", "Skills de publicação e resposta implementadas"],
+    missing: ["Conta profissional autorizada", "Permissões Meta/Zernio", "Fontes de pesquisa", "Identidade visual", "Texto ou link de resposta", "Palavra-chave e aprovação", "Validar publicação na conta autorizada; resposta privada por palavra-chave ainda pendente"],
     estimatedLlmTokens: null,
   };
   return { template: "unclassified", status: "needs_clarification", requiresApproval: true, active: false, title: "Automação personalizada", steps: [], missing: ["Objetivo, gatilho, ações, destinatários e critérios de conclusão"], estimatedLlmTokens: null };
 }
+

@@ -1,4 +1,5 @@
 import { rememberModelPrices } from "./model-prices";
+import { formatDateTimeBR } from "../common/date-format";
 import { tenantSkills } from "./product-skills";
 import { Optional } from "@nestjs/common";
 import { AssistantAutomationService } from "./assistant-automation.service";
@@ -240,7 +241,7 @@ export class AssistantController {
         }
       }
       upcoming.sort((a, b) => a.date.localeCompare(b.date));
-      const format = (date: string) => new Date(date).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
+      const format = (date: string) => formatDateTimeBR(date);
       const details = upcoming.slice(0, 5).map(e => `${format(e.date)} — ${e.title}`).join("; ");
       return { source: "google_calendar", usedAi: false, answer: `Agenda dos próximos 7 dias: ${upcoming.length} eventos encontrados em ${calendarsChecked} calendários acessíveis${details ? ". Próximos: " + details : "."} Consulta limitada às primeiras 3 contas e 5 agendas por conta.` };
     }

@@ -215,7 +215,7 @@ export function PersonalAssistantPanel({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("Véxora");
   const [voiceProvider,setVoiceProvider]=useState("browser");
-  const [agentsAvailable,setAgentsAvailable]=useState<{id:string;name:string}[]>([]);
+  const [agentsAvailable,setAgentsAvailable]=useState<{id:string;name:string;tts?:{provider:string;model:string}}[]>([]);
   const [activeAgent,setActiveAgent]=useState("");
   const [ttsProvider,setTtsProvider]=useState("browser");
   const [voiceStatus,setVoiceStatus]=useState("");
@@ -230,18 +230,38 @@ export function PersonalAssistantPanel({ onClose }: { onClose: () => void }) {
    recognition.onerror=()=>setVoiceStatus("Não foi possível receber o ditado. Confira a permissão do microfone.");
    recognition.onend=()=>{recognitionRef.current=null};recognitionRef.current=recognition;recognition.start();setVoiceStatus("Ouvindo… clique em Ditado para parar.");
   }
-  useEffect(() => { fetch("/api/backend/assistant/config", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if(data?.name)setName(data.name);setVoiceProvider(data?.stt?.provider||"browser");setTtsProvider(data?.tts?.provider||"browser");setAgentsAvailable((data?.agents||[]).filter((a:any)=>a.enabled)); }).catch(() => {}); }, []);
+  useEffect(() => { fetch("/api/backend/assistant/config", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if(data?.name)setName(data.name);setVoiceProvider(data?.stt?.provider||"browser");setTtsProvider(data?.tts?.provider||"browser");setAgentsAvailable((data?.agents||[]).filter((a:any)=>a.enabled).map((a:any)=>({id:String(a.id),name:a.name,tts:a.tts}))); }).catch(() => {}); }, []);
   const ask = async (question: string) => {
     setBusy(true);
     try {
-      const response = await fetch("/api/backend/assistant/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question,requestKey:crypto.randomUUID(),...(activeAgent?{agentId:activeAgent}:{}) }) });
+      const endpoint=activeAgent?"/api/backend/assistant/agents/"+encodeURIComponent(activeAgent)+"/test":"/api/backend/assistant/ask";
+      const payload=activeAgent?{message:question}:{question,requestKey:crypto.randomUUID()};
+      const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const data = await response.json();
       setRequests(items => [...items, { question, job:response.ok?data.job:undefined, automation:response.ok?data.automation:undefined, sources:response.ok?data.sources:undefined, attachments:response.ok?data.attachments:undefined, answer: response.ok ? data.answer : (Array.isArray(data.message) ? data.message.join(" ") : data.message || "Consulta indisponível") }]);
     } catch { setRequests(items => [...items, { question, answer: "Falha de conexão com a API." }]); }
     finally { setBusy(false); }
   };
   async function transcribe(file:File){setBusy(true);try{const form=new FormData();form.set("file",file);if(activeAgent)form.set("agentId",activeAgent);const r=await fetch("/api/backend/assistant/voice/transcribe",{method:"POST",body:form});const d=await r.json();if(!r.ok)throw Error(d.message||"Transcrição indisponível");setQuestion(d.text);setVoiceStatus("Áudio transcrito. Revise e envie.");}catch(e){setVoiceStatus(e instanceof Error?e.message:"Falha ao transcrever")}finally{setBusy(false)}}
-  async function speak(text:string){if(ttsProvider==="browser"){const speech=new SpeechSynthesisUtterance(text);speech.lang="pt-BR";window.speechSynthesis.cancel();window.speechSynthesis.speak(speech);return;}try{const r=await fetch("/api/backend/assistant/voice/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:text.slice(0,1500),...(activeAgent?{agentId:activeAgent}:{})})});if(!r.ok)throw Error((await r.json()).message||"Voz indisponível");const url=URL.createObjectURL(await r.blob());const audio=new Audio(url);audio.onended=()=>URL.revokeObjectURL(url);audio.onerror=()=>URL.revokeObjectURL(url);await audio.play();}catch(e){setVoiceStatus(e instanceof Error?e.message:"Falha ao gerar voz")}}
+  async function speak(text:string){
+    const selectedTts=agentsAvailable.find(item=>item.id===activeAgent)?.tts;
+    const provider=activeAgent?(selectedTts?.provider||"browser"):ttsProvider;
+    if(provider==="browser"){
+      if(!("speechSynthesis" in window)){setVoiceStatus("Voz do navegador indisponível.");return;}
+      const speech=new SpeechSynthesisUtterance(text);speech.lang="pt-BR";speech.onerror=()=>setVoiceStatus("O navegador não conseguiu reproduzir a voz.");
+      window.speechSynthesis.cancel();window.speechSynthesis.speak(speech);return;
+    }
+    try{
+      setVoiceStatus("Gerando voz…");
+      const route=activeAgent?"/api/backend/assistant/voice/speak-preview":"/api/backend/assistant/voice/speak";
+      const response=await fetch(route,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:text.slice(0,1500),...(activeAgent?{agentId:activeAgent}:{})})});
+      if(!response.ok)throw Error((await response.json()).message||"Voz indisponível");
+      const url=URL.createObjectURL(await response.blob()),audio=new Audio(url);
+      audio.onended=()=>{URL.revokeObjectURL(url);setVoiceStatus("Voz concluída.");};
+      audio.onerror=()=>{URL.revokeObjectURL(url);setVoiceStatus("O áudio não pôde ser reproduzido.");};
+      await audio.play();setVoiceStatus("Reproduzindo…");
+    }catch(error){setVoiceStatus(error instanceof Error?error.message:"Falha ao gerar voz");}
+  }
   return <aside className="ai-assistant-panel" aria-label="Assistente pessoal">
     <div className="ai-assistant-head"><div><strong><Sparkles size={18}/> {name}</strong><small>{voiceStatus||"Texto ou ditado por clique"}</small></div><button type="button" aria-label="Fechar assistente" onClick={onClose}>×</button></div>
     <div className="ai-assistant-content"><p>Olá! Posso ajudar com relatórios, financeiro, agenda e operações utilizando consultas disponíveis, sem ativar IA automaticamente.</p>{requests.map((q,i) => <div key={i} className="ai-assistant-message"><strong>Você:</strong> {q.question}<p>{q.answer}</p><button type="button" className="secondary-button" onClick={()=>void speak(q.answer)}>Ouvir resposta · voz sintética</button>{q.attachments?.map(file=><a key={file.url} href={file.url} download className="secondary-button">{file.name}</a>)}{q.sources?.map(source=><p key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></p>)}{q.automation&&<CarouselPublication automation={q.automation}/>}</div>)}</div>

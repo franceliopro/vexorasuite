@@ -252,7 +252,8 @@ export class IntelligenceRuntimeService {
                   await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;skills.push('crm.tag.apply');
                 }
                 if(action.type==='move_pipeline'&&permittedActions.includes('crm.pipeline.move')&&conversation.departmentId&&typeof action.pipeline==='string'&&typeof action.stage==='string'){
-                  const pipeline=crmCatalog.find((item:any)=>normalize(item.name)===normalize(action.pipeline));
+                  const matchingPipelines=crmCatalog.filter((item:any)=>normalize(item.name)===normalize(action.pipeline));
+                  const pipeline=matchingPipelines.length===1?matchingPipelines[0]:null;
                   const stage=Array.isArray(pipeline?.stages)?pipeline.stages.find((item:any)=>item?.id===action.stage):null;
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata);
                   if(pipeline&&stage&&!profile.crmFinalization&&!profile.crmRemoved&&(!latest.pipelineId||latest.pipelineId===pipeline.id)){

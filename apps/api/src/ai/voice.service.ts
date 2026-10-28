@@ -8,11 +8,11 @@ const object=(v:any):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(
 @Injectable()
 export class VoiceService {
  constructor(private readonly prisma:PrismaService){}
- private async selection(req:AuthenticatedRequest,kind:'stt'|'tts',agentId?:string){
+ private async selection(req:AuthenticatedRequest,kind:'stt'|'tts',agentId?:string,preview=false){
   if(!['OWNER','ADMIN','MANAGER'].includes(req.user.role))throw new ForbiddenException('Permissão de voz insuficiente.');
   const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
-  const assistant=object(object(tenant.integrations).assistant);if(!assistant.enabled)throw new ForbiddenException('Assistente desabilitada.');
-  const agent=agentId?(Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.id===agentId&&a.enabled):null):null;
+  const assistant=object(object(tenant.integrations).assistant);if(!assistant.enabled&&!preview)throw new ForbiddenException('Assistente desabilitada.');
+  const agent=agentId?(Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.id===agentId&&(a.enabled||preview)):null):null;
   if(agentId&&(!agent||!agent.allowedActions?.includes('voice.'+kind)))throw new ForbiddenException('Agente sem esta Skill de voz.');
   const selected=object(agent?.[kind]||assistant[kind]);
   if(!['openai','local'].includes(selected.provider)||typeof selected.model!=='string'||!selected.model||selected.endpoint)throw new BadRequestException('Selecione voz local ou OpenAI e um modelo válido. A voz do navegador é executada pela interface.');
@@ -34,9 +34,9 @@ export class VoiceService {
   if(!response.ok)throw new BadGatewayException('A transcrição não foi confirmada pelo provedor.');const data=await response.json() as any;
   if(typeof data.text!=='string'||!data.text.trim())throw new BadGatewayException('O áudio não retornou texto.');return {text:data.text.trim().slice(0,4000),model:selected.model};
  }
- async speak(req:AuthenticatedRequest,text:string,agentId?:string){
+ async speak(req:AuthenticatedRequest,text:string,agentId?:string,preview=false){
   if(typeof text!=='string'||!text.trim()||text.length>1500)throw new BadRequestException('Use até 1500 caracteres para a resposta por voz.');
-  const selected=await this.selection(req,'tts',agentId);
+  const selected=await this.selection(req,'tts',agentId,preview);
   const response=await fetch(selected.base+'speech',{method:'POST',headers:{...(selected.apiKey?{authorization:'Bearer '+selected.apiKey}:{}),'content-type':'application/json'},body:JSON.stringify({model:selected.model,voice:selected.voice,input:text,response_format:'mp3'}),signal:AbortSignal.timeout(60000),redirect:'error'});
   if(!response.ok)throw new BadGatewayException('A síntese de voz não foi confirmada pelo provedor.');return Buffer.from(await response.arrayBuffer());
  }

@@ -55,7 +55,7 @@ export function AiAgentsWorkspace() {
         setConfigAvailable(true);
         if(data.stt)setGlobalStt(data.stt);if(data.tts)setGlobalTts(data.tts);if(typeof data.dailyAiLimit==="number")setDailyAiLimit(data.dailyAiLimit);if(data.llm)setPrimaryModel(data.llm);if(Array.isArray(data.fallbackModels))setFallbackModels(data.fallbackModels);if(Array.isArray(data.allowedPhones))setAllowedPhones(data.allowedPhones);setCompanyRules(typeof data.companyRules==="string"?data.companyRules:"");setCompanyKnowledge(typeof data.companyKnowledge==="string"?data.companyKnowledge:"");if(Array.isArray(data.knowledgeDocuments))setKnowledgeDocuments(data.knowledgeDocuments);setAssistantName(data.name); setWakeWord(data.wakeWord); setAssistantEnabled(data.enabled);
         if (Array.isArray(data.agents)) {
-          const items: Agent[] = data.agents.map((a: Agent) => ({ ...a, id: String(a.id) }));
+          const items: Agent[] = data.agents.map((a: Agent) => ({ ...a, id: String(a.id), personalAssistant: a.personalAssistant === true || String(a.id) === "1" }));
           setAgents(items); setSelected(items[0]?.id ?? "");
         }
       })

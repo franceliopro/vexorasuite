@@ -35,11 +35,13 @@ export class IntelligenceRuntimeService {
     let crmStageChange: { id: string; pipelineId: string; stage: string } | null = null;
     let crmFinalizationChange: {id:string;outcome:string;reason?:string} | null = null;
     let crmContactChanged=false;
+    let crmContactId:string|null=null;
     const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${conversationId}::uuid AND tenant_id = ${channel.tenantId}::uuid FOR UPDATE`;
       const conversation = await tx.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
       const inbound = await tx.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId, conversationId, direction: 'INBOUND' } });
       if (!conversation || !inbound || conversation.handlingMode !== 'BOT' || conversation.archivedAt || conversation.deletedAt || !['OPEN','PENDING'].includes(conversation.status)) return null;
+      crmContactId=conversation.contactId;
       const metadata = object(inbound.metadata);
       if (metadata.isGroup || conversation.contact.externalId?.endsWith('@g.us')) return null;
       // The established, identity-checked Asaas dialogue owns its subsequent messages.
@@ -247,7 +249,7 @@ export class IntelligenceRuntimeService {
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata),tags:any[]=Array.isArray(profile.tags)?profile.tags:[];
                   const name=action.name.trim(),color=typeof action.color==='string'&&/^#[a-f\\d]{6}$/i.test(action.color)?action.color:'#5865da';
                   if(!tags.some(t=>normalize(typeof t==='string'?t:String(t?.name||''))===normalize(name))&&tags.length<50)tags.push({name,color});
-                  await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;skills.push('crm.tag.apply');
+                  await tx.contact.update({where:{id:latest.id},data:{metadata:{...profile,tags}}});conversation.contact.metadata={...profile,tags};crmContactChanged=true;crmContactChanged=true;skills.push('crm.tag.apply');
                 }
                 if(action.type==='move_pipeline'&&permittedActions.includes('crm.pipeline.move')&&conversation.departmentId&&typeof action.pipeline==='string'&&typeof action.stage==='string'){
                   const pipeline=crmCatalog.find((item:any)=>normalize(item.name)===normalize(action.pipeline));
@@ -374,7 +376,7 @@ export class IntelligenceRuntimeService {
             if (!tags.some(t => normalize(typeof t === 'string' ? t : String(t?.name || '')) === normalize(config.name!)) && tags.length < 50) tags.push({ name: config.name, color: config.color });
             await tx.contact.update({ where: { id: conversation.contactId }, data: { metadata: { ...profile, tags } } });
             conversation.contact.metadata = { ...profile, tags };
-            skills.push('crm.tag.apply');
+            crmContactChanged=true;skills.push('crm.tag.apply');
             const nextId: string | undefined = step.transitions?.[step.options[0]!];
             step = findStep(nextId);
             continue;
@@ -395,7 +397,7 @@ export class IntelligenceRuntimeService {
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
     if (crmFinalizationChange) await this.prisma.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:crmFinalizationChange.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
-    if(crmContactChanged)this.events.publish(channel.tenantId,'contact.updated',{id:conversation.contactId});
+    if(crmContactChanged&&crmContactId)this.events.publish(channel.tenantId,'contact.updated',{id:crmContactId});
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });
     if (crmStageChange) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange);
     if (crmFinalizationChange) this.events.publish(channel.tenantId,'contact.finalized',crmFinalizationChange);

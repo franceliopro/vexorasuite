@@ -1,9 +1,9 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
-export const credentialProviders = ['openrouter', 'openai', 'brave'] as const;
+export const credentialProviders = ['openrouter', 'openai', 'gemini', 'anthropic', 'deepseek', 'qwen', 'brave'] as const;
 export type CredentialProvider = typeof credentialProviders[number];
-const environment = { openrouter: 'OPENROUTER_API_KEY', openai: 'OPENAI_API_KEY', brave: 'BRAVE_SEARCH_API_KEY' } as const;
+const environment = { openrouter: 'OPENROUTER_API_KEY', openai: 'OPENAI_API_KEY', gemini: 'GEMINI_API_KEY', anthropic: 'ANTHROPIC_API_KEY', deepseek: 'DEEPSEEK_API_KEY', qwen: 'DASHSCOPE_API_KEY', brave: 'BRAVE_SEARCH_API_KEY' } as const;
 const object = (value: any): Record<string, any> => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 function encryptionKey() {
   const secret = process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET;

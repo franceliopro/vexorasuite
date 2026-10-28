@@ -37,7 +37,8 @@ async function proxyRequest(request: Request, context: Context) {
       ...(hasBody ? { body: await limitedRequestBody(request) } : {}),
       cache: "no-store",
     };
-    if (!isSse) init.signal = AbortSignal.timeout(pathValue==='department-resources'?180000:pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
+    const isAiGeneration = pathValue==='assistant/ask'||pathValue==='assistant/engine/create-flow'||/^assistant\/agents\/[^/]+\/test$/.test(pathValue);
+    if (!isSse) init.signal = AbortSignal.timeout(isAiGeneration?200000:pathValue==='department-resources'?180000:pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
     upstream = await fetch(apiOrigin + "/api/" + pathValue + requestUrl.search, init);
   } catch (error) {
     if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });

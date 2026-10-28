@@ -3390,7 +3390,19 @@ input[type="color"].profile-tag-inline-color {
 .workflows-workspace label:focus-within{position:relative;z-index:50}
 
 @media(min-width:761px){
- .ai-admin-grid{grid-template-columns:fit-content(45%) minmax(0,1fr)}
- .ai-admin-grid>:first-child{width:280px;min-width:210px;max-width:45vw;resize:horizontal;overflow:auto}
+ .ai-admin-grid{grid-template-columns:minmax(300px,360px) minmax(0,1fr)}
+ .ai-admin-grid>:first-child{width:100%;min-width:0;max-width:none;resize:none;overflow:auto}
  .ai-admin-grid>:not(:first-child){width:100%;min-width:0;max-width:none}
 }
+
+/* Explicit agent layout prevents the title and filters competing on one line. */
+.ai-agent-layout{grid-template-columns:minmax(300px,360px) minmax(0,1fr);align-items:start}
+.ai-agent-list-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.ai-agent-list-heading h2{grid-column:1/-1;white-space:nowrap}
+.ai-agent-list-heading select{width:100%;min-width:0}
+.ai-agent-list-heading select[aria-label="Template da área"]{grid-column:1/-1;grid-row:3}
+.ai-workspace-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin:12px 0}
+.ai-model-picker{display:grid;gap:7px;min-width:0}
+.ai-model-picker details{font-size:12px;color:var(--muted)}
+.ai-model-picker summary{cursor:pointer}
+@media(max-width:1000px){.ai-admin-grid,.ai-agent-layout{grid-template-columns:minmax(0,1fr)}.ai-admin-grid>:first-child{width:100%;max-width:none;min-width:0;resize:none}}

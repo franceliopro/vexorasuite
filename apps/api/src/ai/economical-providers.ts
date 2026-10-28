@@ -15,7 +15,7 @@ export function economicalProviders(assistant: any, override?: any, integrations
   const costA=a.provider==='openrouter'?modelPrice(a.model):null,costB=b.provider==='openrouter'?modelPrice(b.model):null;
   return (policy?.freeFirst?priority(a)-priority(b):0)||(costA!==null&&costB!==null?costA-costB:0)||(rank[a.tier]??9)-(rank[b.tier]??9);
  }).flatMap(s=>{
-  const apiKey=s.provider==='ollama'&&process.env.OLLAMA_BASE_URL?'local':['openrouter','openai'].includes(s.provider)?providerApiKey(s.provider,integrations,tenantId):undefined;
+  const apiKey=s.provider==='ollama'&&process.env.OLLAMA_BASE_URL?'local':['openrouter','openai','gemini','anthropic','deepseek','qwen'].includes(s.provider)?providerApiKey(s.provider,integrations,tenantId):undefined;
   const id=s.provider+':'+s.model;
   if(!apiKey||!s.model||seen.has(id))return [];seen.add(id);
   return [{provider:s.provider,model:s.model,apiKey,timeoutMs:s.provider==='ollama'?60000:20000,maxTokens:1200,...(s.provider==='openrouter'&&free(s)?{freeOnly:true}:{})} as AiProvider];

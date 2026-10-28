@@ -143,17 +143,27 @@ export class AssistantController {
 
   @Get("model-catalog")
   async modelCatalog() {
-    const providers = ["openrouter", "openai", "gemini", "anthropic", "deepseek", "ollama", "vllm", "openai-compatible"];
-    const voices = { stt: ["whisper-local", "openai", "deepgram", "openai-compatible"], tts: ["piper-local", "openai", "gemini", "openai-compatible"] };
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/models?sort=pricing-low-to-high", { signal: AbortSignal.timeout(10000) });
-      if (!response.ok) throw new Error("Catalog unavailable");
-      const data = await response.json() as { data?: { id: string; name: string; pricing?: { prompt?: string; completion?: string } }[] };
-      rememberModelPrices(data.data || []);
-      return { providers, voices, models: (data.data || []).filter(m => typeof m.id === "string").slice(0, 1000).map(m => ({ provider: "openrouter", id: m.id, name: m.name, pricePerMillionInputUsd: Number(m.pricing?.prompt || 0) * 1000000, pricePerMillionOutputUsd: Number(m.pricing?.completion || 0) * 1000000 })), source: "openrouter", live: true };
-    } catch {
-      return { providers, voices, models: [], source: "openrouter", live: false, message: "Catálogo temporariamente indisponível; selecione o modelo manualmente." };
-    }
+    const models:any[]=[];
+    const services:{provider:string;available:boolean;message?:string}[]=[];
+    const targets=[{provider:'ollama',url:process.env.OLLAMA_BASE_URL?new URL('/api/tags',process.env.OLLAMA_BASE_URL).toString():null},{provider:'local-voice',url:process.env.LOCAL_VOICE_URL?new URL('/v1/models',process.env.LOCAL_VOICE_URL).toString():null},{provider:'openrouter',url:'https://openrouter.ai/api/v1/models?sort=pricing-low-to-high'}];
+    await Promise.all(targets.map(async target=>{
+      if(!target.url){services.push({provider:target.provider,available:false,message:'Serviço não configurado no servidor'});return;}
+      try{
+        const response=await fetch(target.url,{redirect:'error',signal:AbortSignal.timeout(10000)});
+        if(!response.ok)throw Error('HTTP '+response.status);
+        const data=await response.json() as any;
+        const items=target.provider==='ollama'?data.models:data.data;
+        if(!Array.isArray(items))throw Error('Catálogo inválido');
+        if(target.provider==='openrouter')rememberModelPrices(items);
+        for(const item of items.slice(0,1000)){
+          const id=target.provider==='ollama'?item.name:item.id;if(typeof id!=='string')continue;
+          const size=Number(item.size||0);
+          models.push({provider:target.provider,id,name:item.name||id,installed:target.provider!=='openrouter',tier:target.provider==='ollama'?(size<=3e9?'Econômico':size<=6e9?'Equilíbrio':'Inteligente'):undefined,pricePerMillionInputUsd:Number(item.pricing?.prompt||0)*1e6,pricePerMillionOutputUsd:Number(item.pricing?.completion||0)*1e6});
+        }
+        services.push({provider:target.provider,available:true});
+      }catch{services.push({provider:target.provider,available:false,message:'Não foi possível consultar o catálogo deste serviço'});}
+    }));
+    return {providers:['ollama','openrouter','openai'],voices:{stt:['local','openai','browser'],tts:['local','openai','browser']},models,services,live:services.some(service=>service.available)};
   }
 
   @Get("config")

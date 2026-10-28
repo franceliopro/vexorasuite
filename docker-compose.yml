@@ -38,19 +38,13 @@ services:
       ZERNIO_API_KEY: ${ZERNIO_API_KEY:-}
       BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
       SEARXNG_URL: http://searxng:8080
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-qwen2.5:1.5b}
-      LOCAL_VOICE_URL: ${LOCAL_VOICE_URL:-http://speaches:8000}
+      LOCAL_VOICE_URL: ${LOCAL_VOICE_URL:-}
       LOCAL_TTS_VOICE: ${LOCAL_TTS_VOICE:-pf_dora}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
-      JASMIN_BASE_URL: ${JASMIN_BASE_URL:-}
-      JASMIN_TENANT_ROUTES: ${JASMIN_TENANT_ROUTES:-}
-      ASTERISK_ARI_URL: ${ASTERISK_ARI_URL:-}
-      ASTERISK_ARI_USERNAME: ${ASTERISK_ARI_USERNAME:-}
-      ASTERISK_ARI_PASSWORD: ${ASTERISK_ARI_PASSWORD:-}
-      ASTERISK_TENANT_ROUTES: ${ASTERISK_TENANT_ROUTES:-}
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-https://api.vexorasuite.com.br}
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
@@ -74,6 +68,7 @@ services:
       start_period: 20s
 
   ollama:
+    profiles: ["local-ai"]
     image: ollama/ollama:latest
     restart: unless-stopped
     environment:
@@ -92,6 +87,7 @@ services:
       timeout: 5s
       retries: 3
   ollama-model:
+    profiles: ["local-ai"]
     image: ollama/ollama:latest
     restart: "no"
     environment:
@@ -102,6 +98,7 @@ services:
         condition: service_healthy
     mem_limit: 256m
   speaches:
+    profiles: ["local-ai"]
     image: ghcr.io/speaches-ai/speaches:latest-cpu
     restart: unless-stopped
     environment:
@@ -160,6 +157,7 @@ services:
       start_period: 15s
 
   pgadmin:
+    profiles: ["maintenance"]
     image: dpage/pgadmin4:latest
     restart: unless-stopped
     environment:

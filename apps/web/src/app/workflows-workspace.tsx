@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { PreparedPublications } from "./prepared-publications";
-import { MarketingStudio } from "./marketing-studio";
 async function api(path = "", body?: unknown) {
   const r = await fetch("/api/backend/workflows" + (path ? "/" + path : ""), {
     cache: "no-store",
@@ -136,7 +134,6 @@ export function WorkflowsWorkspace() {
       <div className="module-tabs" role="group" aria-label="Workflows">
         {[
           ["routines", "Rotinas"],
-          ["publishing", "Publicações"],
           ["runs", "Execuções"],
         ].map(([value, label]) => (
           <button
@@ -476,18 +473,6 @@ export function WorkflowsWorkspace() {
                   </button>
                 </article>
               ))}
-            </section>
-          )}
-          {tab === "publishing" && (
-            <section className="workspace-surface">
-              <PreparedPublications mode="automation" />
-              <details className="workspace-disclosure">
-                <summary>Criação recorrente com IA</summary>
-                <MarketingStudio mode="automation" />
-                <a className="secondary-button" href="/?module=Postagens">
-                  Criar uma publicação com IA
-                </a>
-              </details>
             </section>
           )}
           {tab === "runs" && (

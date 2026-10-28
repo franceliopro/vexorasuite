@@ -1,5 +1,4 @@
 "use client";
-import { CommunicationConnections } from "./communication-connections";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, Plus, RefreshCw, ShieldCheck, Unplug, Info, Copy } from "lucide-react";
@@ -91,5 +90,5 @@ export function ChannelsIntegrations(){
    </section>
    </section>
 
- <CommunicationConnections/></section>;
+ </section>;
 }

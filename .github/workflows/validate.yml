@@ -78,20 +78,20 @@ jobs:
         run: pnpm --filter @vexorasuite/api exec prisma validate
       - name: Generate Prisma client
         run: pnpm --filter @vexorasuite/api exec prisma generate
+      - name: Retired marketing file cleanup regression
+        run: pnpm --filter @vexorasuite/api exec node --test test/marketing-cleanup.test.cjs
       - name: Test
         run: pnpm test
       - name: Apply migrations to PostgreSQL
         run: pnpm --filter @vexorasuite/api exec prisma migrate deploy
+      - name: Retired product data upgrade regression
+        run: pnpm --filter @vexorasuite/api exec node test/retirement-upgrade.cjs
       - name: API typecheck
         run: pnpm --filter @vexorasuite/api typecheck
       - name: API build
         run: pnpm --filter @vexorasuite/api build
       - name: PostgreSQL concurrency regressions
         run: pnpm --filter @vexorasuite/api exec node test/contact-concurrency.cjs
-      - name: Marketing worker concurrency regressions
-        run: pnpm --filter @vexorasuite/api exec node test/marketing-concurrency.cjs
-      - name: Prepared publication concurrency regressions
-        run: pnpm --filter @vexorasuite/api exec node test/prepared-concurrency.cjs
       - name: Communications and internal workflow concurrency regressions
         run: pnpm --filter @vexorasuite/api exec node test/communications-concurrency.cjs
       - name: Company onboarding and isolation regressions
@@ -124,9 +124,6 @@ jobs:
         run: |
           docker run --rm vexora-api-ci ./node_modules/.bin/prisma --version
           docker run --rm vexora-api-ci node -e "const {PrismaClient}=require('@prisma/client');new PrismaClient();require('./dist/app.module');require('sharp');console.log('API runtime dependencies OK')"
-          docker run --rm vexora-api-ci ffmpeg -version
-          docker run --rm --volume "${{ github.workspace }}/apps/api/test/video-smoke.cjs:/workspace/apps/api/test/video-smoke.cjs:ro" vexora-api-ci node test/video-smoke.cjs
-          docker run --rm --volume "${{ github.workspace }}/apps/api/test/prepared-media-smoke.cjs:/workspace/apps/api/test/prepared-media-smoke.cjs:ro" vexora-api-ci node test/prepared-media-smoke.cjs
       - name: Check standalone web and static assets
         if: matrix.service == 'web'
         run: |

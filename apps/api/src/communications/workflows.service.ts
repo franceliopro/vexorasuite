@@ -8,7 +8,7 @@ import {
 import { isUUID } from "class-validator";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthenticatedRequest } from "../auth/auth.types";
-import { mailAdmin } from "./mail.service";
+import { mailAdmin } from "./access";
 import { localInstant, repeatInstant, workflowSteps } from "./workflow-time";
 import { WahaService } from "../operations/waha.service";
 import { contactMetadata, lockedContact } from "../prisma/contact-metadata";

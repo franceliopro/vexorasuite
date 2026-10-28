@@ -30,7 +30,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Bot silencioso, filas e eventos restritos à atribuição humana e notificações por destino configuráveis.
 - Testes de isolamento, políticas de senha, acesso por URL e criação concorrente na CI.
 
-## Em implementação: Home de apresentação
+## Entregue no PR #180: Home de apresentação
 - Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
 - Imagem e cor de fundo independentes para desktop/celular; logo pequeno centralizado por padrão.
 - Ajustar, preencher, centralizar, estender, ampliar e lado a lado; prévia, aplicação, edição com clique duplo/toque duplo e exclusão.
@@ -61,3 +61,6 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 
 ## Continuidade
 A partir desta entrega o desenvolvimento ocorre diretamente no GitHub, com uma branch por conjunto coerente de alterações, CI completa e histórico de PRs. Não marcar o inventário inteiro como concluído por ter publicado um único conjunto de funcionalidades.
+
+## Escopo reduzido aprovado
+O proprietário substituiu as expansões acima pelo escopo de docs/product-focus.md. Telefonia, SMS, campanhas em massa, anúncios, WordPress, vídeo automático e publicação social automática saem da aplicação ativa. WhatsApp e chat no site permanecem prioritários; não tratar widget público como entregue sem teste real. Marketing mantém criação e organização manual. Backlog histórico acima é referência, não autorização para retomar funcionalidades retiradas.

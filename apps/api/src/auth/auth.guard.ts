@@ -1,3 +1,4 @@
+import {assertProductRoute} from './product-scope';
 import {administrative,effectiveModules,routeModules,patternModules} from './module-policy';
 import { CanActivate, ExecutionContext, Injectable, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -56,6 +57,7 @@ export class AuthGuard implements CanActivate {
     const allowedModules=effectiveModules(membership.role,membership.modules||[],departments.map(d=>d.department),patternModules(membership.tenant?.integrations,payload.sub,departments.map(d=>d.department.id)),membership.deniedModules||[]);
     const needed=typeof request.path==='string'?routeModules(request.path,request.method||'GET'):[];
     if(!membership.user?.isPlatformAdmin&&needed.length&&!needed.some(m=>allowedModules.includes(m)))throw new ForbiddenException('Este módulo não está habilitado para seu perfil e departamento.');
+    assertProductRoute(path,request.method||'GET');
     request.user = { ...payload, role: membership.role, isPlatformAdmin:membership.user?.isPlatformAdmin===true,mustChangePassword:membership.user?.mustChangePassword===true, allowedModules, departmentIds:departments.map(d=>d.department.id) };
     return true;
   }

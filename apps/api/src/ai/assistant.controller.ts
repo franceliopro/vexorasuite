@@ -1,6 +1,5 @@
 import { rememberModelPrices } from "./model-prices";
 import { tenantSkills } from "./product-skills";
-import { MarketingJobsService } from "./marketing-jobs.service";
 import { Optional } from "@nestjs/common";
 import { AssistantAutomationService } from "./assistant-automation.service";
 import { ReportExportService } from "./report-export.service";
@@ -28,7 +27,7 @@ function parseConfig(value: unknown): Config {
 @Controller("assistant")
 @UseGuards(AuthGuard)
 export class AssistantController {
-  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController, private readonly reportExport: ReportExportService, private readonly automation: AssistantAutomationService, @Optional() private readonly marketing?: MarketingJobsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly calendar: GoogleCalendarController, private readonly reportExport: ReportExportService, private readonly automation: AssistantAutomationService) {}
   // Central registry: skills are capabilities, not arbitrary executable prompts.
   @Get("custom-skills")
   async customSkills(@Req() req: AuthenticatedRequest) {
@@ -60,10 +59,7 @@ export class AssistantController {
     return { version: 2, executionEnabled: true, skills: [
       { id: "reports.export", name: "Relatórios PDF e CSV", category: "Operações", cost: "zero", implemented: true, permission: "reports.admin" },
       { id: "web.research", name: "Pesquisa na internet", category: "Conhecimento", cost: "external", implemented: true, permission: "research.admin", requiresConfiguration: "BRAVE_SEARCH_API_KEY" },
-      { id:"media.video.render",name:"Renderizar vídeo curto",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
-        { id:"marketing.workflow.run",name:"Rotinas de publicação",category:"Marketing",cost:"external",implemented:true,permission:"marketing.admin" },
         { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
-      { id: "social.publish", name: "Publicar ou agendar na Zernio", category: "Marketing", cost: "external", implemented: true, permission: "marketing.admin" },
       { id: "assistant.contacts.read", name: "Consultar contatos", category: "CRM", cost: "zero", implemented: true, permission: "contacts.read" },
       { id: "assistant.tasks.read", name: "Consultar tarefas", category: "Operações", cost: "zero", implemented: true, permission: "tasks.read" },
       { id: "assistant.calendar.read", name: "Consultar agenda", category: "Agenda", cost: "external", implemented: true, permission: "calendar.read" },
@@ -196,21 +192,11 @@ export class AssistantController {
     if (!question || question.length > 2000) throw new BadRequestException("Solicitação inválida");
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     if (!parseConfig(tenant.integrations).enabled) throw new ForbiddenException("Assistente desabilitada para esta empresa");
-    if(this.marketing && /\b(post|posts|carrossel|carroussel|carousel|video|vídeo|reel|publica[cç][aã]o)\b/i.test(question) && /crie|criar|fa[cç]a|gere|produza|publique|agende|workflow/i.test(question)){
-      const format:'POST'|'CAROUSEL'|'VIDEO' = /video|vídeo|reel/i.test(question)?'VIDEO':/carrossel|carroussel|carousel/i.test(question)?'CAROUSEL':'POST';
-      const scheduled=question.match(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2}))\b/);
-      const local=question.normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/\b(?:as|para)\s+(\d{1,2})[:h](\d{2})\b/i);
-      let scheduledFor=scheduled?.[1];
-      if(!scheduledFor&&local){const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const day=new Date(today+'T12:00:00Z');if(/amanh[aã]/i.test(question))day.setUTCDate(day.getUTCDate()+1);scheduledFor=day.toISOString().slice(0,10)+'T'+local[1]!.padStart(2,'0')+':'+local[2]+':00-03:00';}
-      if(/agende|agendar|amanh[aã]|hor[aá]rio/i.test(question)&&!scheduledFor)return {answer:'Informe o horário como “amanhã às 14:30” ou uma data ISO com fuso. Nenhuma publicação foi criada.',usedAi:false,tokensUsed:0};
-      const input={question,format,...(/sem (usar )?refer[eê]ncias|sem imagens do drive|(?:somente|apenas) (a )?identidade visual/i.test(question)?{useBrandOnly:true}:{}),...(scheduledFor?{scheduledFor}:{}),...(/rascunho|n[aã]o publi|sem publicar|aprova[cç][aã]o/i.test(question)?{publish:false}:{}),...(/narrad|com voz/i.test(question)?{narrate:true}:{}),...(body.agentId?{agentId:body.agentId}:{})};
-      if(/workflow|todo dia|todos os dias|semanal/i.test(question)){
-        if(!scheduledFor)return {answer:'Para criar o workflow, informe a primeira execução: por exemplo, “workflow semanal de carrossel sobre segurança amanhã às 14:30”.',usedAi:false,tokensUsed:0};
-        const {scheduledFor:nextRunAt,...payload}=input;
-        const workflow=await this.marketing.saveWorkflow(req,{...payload,name:question.slice(0,120),nextRunAt,everyDays:/semanal/i.test(question)?7:/todo dia|todos os dias/i.test(question)?1:0});
-        return {answer:'Workflow salvo. A primeira execução será '+new Date(workflow.nextRunAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+'.',workflow,usedAi:false,tokensUsed:0};
-      }
-      return this.marketing.enqueue(req,input,body.requestKey);
+    if(/\b(post|posts|carrossel|carroussel|carousel|video|vídeo|reel|publica[cç][aã]o)\b/i.test(question)&&/crie|criar|fa[cç]a|gere|produza|publique|agende|workflow/i.test(question)){
+      if(/video|vídeo|reel|publique|agende|workflow|todo dia|todos os dias|semanal/i.test(question))
+        return {answer:'Posso preparar artes e carrosséis para revisão e download. Vídeos e publicação automática foram retirados desta versão.',usedAi:false,tokensUsed:0};
+      this.automation.authorize(req);
+      return this.automation.createCarousel(req,question,{format:/carrossel|carroussel|carousel/i.test(question)?'CAROUSEL':'POST',draftOnly:true,useBrandOnly:true,agentId:body.agentId});
     }
     if (/carrossel|carroussel|carousel|^(fa[cç]a\s+)?(uma\s+)?(busca|pesquisa|pesquise|busque|procure)/i.test(question)) return this.automation.request(req,question);
     // Reports reuse operational modules and persist the exact snapshot behind both downloads.

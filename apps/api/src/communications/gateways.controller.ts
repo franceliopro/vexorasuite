@@ -9,7 +9,6 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
 import { isUUID } from "class-validator";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -17,11 +16,11 @@ import { PrismaService } from "../prisma/prisma.service";
 import { mailAdmin } from "./mail.service";
 import { whatsappPhone } from "../operations/whatsapp-bridge";
 /** Hosts and tenant routing are provisioned by the operator, never taken from an outbound request. */
-function tenantRoute(kind: "SMS" | "VOICE", tenantId: string) {
+function tenantRoute(kind: "SMS", tenantId: string) {
   try {
     const routes = JSON.parse(
       process.env[
-        kind === "SMS" ? "JASMIN_TENANT_ROUTES" : "ASTERISK_TENANT_ROUTES"
+        "JASMIN_TENANT_ROUTES"
       ] || "{}",
     );
     return routes[tenantId] || null;
@@ -58,24 +57,7 @@ export class GatewaysController {
         provider: "Jasmin",
         description: "Gateway aberto; requer rota e créditos da operadora.",
       },
-      voice: {
-        configured:
-          !!process.env.ASTERISK_ARI_URL &&
-          !!tenantRoute("VOICE", req.user.tenantId),
-        provider: "Asterisk",
-        description:
-          "A chamada toca primeiro no ramal autorizado e depois no telefone do contato.",
-      },
-      whatsappCalls: {
-        configured: false,
-        description:
-          "Exigem WhatsApp Business Calling e integração própria. A conexão de mensagens WAHA não habilita chamadas ao vivo.",
-      },
-      aiCalls: {
-        configured: false,
-        description:
-          "Exigem agente de voz, serviço de mídia e rota de telefonia. Não são ativadas automaticamente.",
-      },
+
     };
   }
   private async reserve(req: AuthenticatedRequest, input: any, kind: string) {
@@ -184,77 +166,6 @@ export class GatewaysController {
       });
       throw new BadGatewayException(
         "Não foi possível confirmar o envio. Confira o gateway antes de repetir.",
-      );
-    }
-  }
-  @Post("call") async call(
-    @Req() req: AuthenticatedRequest,
-    @Body() input: any,
-  ) {
-    mailAdmin(req);
-    const route = tenantRoute("VOICE", req.user.tenantId);
-    if (
-      !route?.agentEndpoint ||
-      !route?.context ||
-      !process.env.ASTERISK_ARI_USERNAME ||
-      !process.env.ASTERISK_ARI_PASSWORD
-    )
-      throw new ServiceUnavailableException(
-        "Conecte o ramal e a rota de telefonia desta empresa.",
-      );
-    const base = gatewayUrl("ASTERISK_ARI_URL"),
-      reserved = await this.reserve(req, input, "VOICE");
-    try {
-      const query = new URLSearchParams({
-        endpoint: route.agentEndpoint,
-        context: route.context,
-        extension: reserved.phone,
-        priority: "1",
-        timeout: "30",
-        channelId: randomUUID(),
-      });
-      const response = await fetch(base + "/channels?" + query, {
-        method: "POST",
-        headers: {
-          authorization:
-            "Basic " +
-            Buffer.from(
-              process.env.ASTERISK_ARI_USERNAME +
-                ":" +
-                process.env.ASTERISK_ARI_PASSWORD,
-            ).toString("base64"),
-        },
-        redirect: "error",
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!response.ok) throw Error();
-      await this.prisma.auditLog.update({
-        where: { id: reserved.id },
-        data: {
-          details: {
-            requestKey: input.requestKey,
-            kind: "VOICE",
-            status: "ACCEPTED",
-          },
-        },
-      });
-      return {
-        accepted: true,
-        message: "Chamada solicitada. Atenda seu ramal para chamar o contato.",
-      };
-    } catch {
-      await this.prisma.auditLog.update({
-        where: { id: reserved.id },
-        data: {
-          details: {
-            requestKey: input.requestKey,
-            kind: "VOICE",
-            status: "REVIEW",
-          },
-        },
-      });
-      throw new BadGatewayException(
-        "Não foi possível confirmar a chamada. Confira seu ramal antes de repetir.",
       );
     }
   }

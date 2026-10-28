@@ -19,6 +19,7 @@ import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { searxngSearch } from "./local-services";
 import { FileInterceptor } from "@nestjs/platform-express";
 
+const object=(value:unknown):Record<string,any>=>value&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,any>:{};
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
 type VoiceSelection = { provider: string; model: string; endpoint?: string; voice?: string };
 type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; personalAssistant?: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };

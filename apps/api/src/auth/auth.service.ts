@@ -1,3 +1,7 @@
+import {BadRequestException,ForbiddenException} from '@nestjs/common';
+import {isUUID} from 'class-validator';
+import {SEGMENTS} from '../operations/business-templates';
+import {provisionCompany} from './company-blueprint';
 import { ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { MembershipRole } from "@prisma/client";
@@ -124,6 +128,35 @@ export class AuthService {
       tenant: { id: membership.tenant.id, name: membership.tenant.name, slug: membership.tenant.slug },
       role: membership.role,
     };
+  }
+
+
+  async companies(userId:string){
+    return this.prisma.membership.findMany({where:{userId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}},select:{tenant:{select:{id:true,name:true,slug:true}}},orderBy:{tenant:{name:'asc'}}});
+  }
+  async companySession(userId:string,tenantId:unknown){
+    if(typeof tenantId!=='string'||!isUUID(tenantId))throw new BadRequestException('Selecione uma empresa válida.');
+    const member=await this.prisma.membership.findFirst({where:{userId,tenantId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}},include:{user:{select:{id:true,name:true,email:true}},tenant:{select:{id:true,name:true,slug:true}}}});
+    if(!member)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
+    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role}),tokenType:'Bearer',expiresIn:28800,user:member.user,tenant:member.tenant,role:member.role};
+  }
+  async createCompany(userId:string,sourceTenantId:string,input:any){
+    this.secret();
+    if(typeof input?.name!=='string'||input.name.trim().length<2||input.name.trim().length>100||!SEGMENTS.some(s=>s.id===input.segmentId)||!isUUID(input.requestId||''))throw new BadRequestException('Informe nome, segmento e identificador da solicitação.');
+    const tenant=await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+      if(!await tx.membership.findFirst({where:{userId,tenantId:sourceTenantId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}},select:{id:true}}))throw new ForbiddenException('Somente proprietários podem criar empresas.');
+      const existing=await tx.tenant.findFirst({where:{memberships:{some:{userId,role:'OWNER'}},integrations:{path:['onboarding','requestId'],equals:input.requestId}}});
+      if(existing)return existing;
+      if(await tx.membership.count({where:{userId,role:'OWNER'}})>=25)throw new BadRequestException('Limite de empresas atingido. Entre em contato com a administração.');
+      const base=input.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||'empresa';
+      const tenant=await tx.tenant.create({data:{name:input.name.trim(),slug:base+'-'+randomBytes(5).toString('hex')}});
+      await tx.membership.create({data:{tenantId:tenant.id,userId,role:'OWNER'}});
+      await provisionCompany(tx,tenant,userId,input.segmentId,input.requestId);
+      await tx.auditLog.create({data:{tenantId:tenant.id,userId,action:'company.created',entityType:'tenant',entityId:tenant.id,details:{segmentId:input.segmentId}}});
+      return tenant;
+    });
+    return this.companySession(userId,tenant.id);
   }
 
   private isUniqueViolation(error: unknown): boolean {

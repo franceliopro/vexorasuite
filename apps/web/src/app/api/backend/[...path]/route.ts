@@ -37,14 +37,14 @@ async function proxyRequest(request: Request, context: Context) {
       ...(hasBody ? { body: await limitedRequestBody(request) } : {}),
       cache: "no-store",
     };
-    if (!isSse) init.signal = AbortSignal.timeout(pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
+    if (!isSse) init.signal = AbortSignal.timeout(pathValue==='department-resources'?180000:pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
     upstream = await fetch(apiOrigin + "/api/" + pathValue + requestUrl.search, init);
   } catch (error) {
     if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });
     return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
   }
 
-  const isAuth = request.method === "POST" && (pathValue === "auth/login" || pathValue === "auth/register");
+  const isAuth = request.method === "POST" && (["auth/login","auth/register","auth/companies","auth/switch"].includes(pathValue));
   if (isAuth && upstream.ok) {
     const payload = await upstream.json() as Record<string, unknown>;
     const accessToken = payload.accessToken;

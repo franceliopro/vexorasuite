@@ -131,7 +131,7 @@ export function WorkflowsWorkspace() {
             + Nova rotina
           </button>
         )}
-      </header>
+      </header><details className="workspace-surface" style={{padding:12,marginBottom:12}}><summary>Como usar uma rotina? · Exemplo de follow-up</summary><p>Escolha o gatilho, filtre o canal e o departamento, depois ordene as ações. Exemplo: ao entrar em Proposta → esperar 60 minutos → criar uma tarefa para o atendente → adicionar uma etiqueta.</p><p>Use “parar quando o cliente responder” para evitar continuar uma sequência após o retorno. Mensagens de WhatsApp exigem canal autorizado e devem respeitar a janela de atendimento. Confira as execuções para distinguir o que foi agendado, concluído ou enviado para revisão.</p></details>
       <div className="module-tabs" role="group" aria-label="Workflows">
         {[
           ["routines", "Rotinas"],

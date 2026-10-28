@@ -17,3 +17,5 @@
 - Consult docs/implementation-register.md for the consolidated requirements. An unchecked item is not automatically an instruction to perform a real external transaction or publish content to customers.
 
 O painel PLATFORM pertence exclusivamente à administração Véxora. OWNER de empresa cliente não é administrador da plataforma. Empresas clientes não herdam os dados/credenciais atuais da Véxora. BOT nunca gera notificações de atendimento; atendentes somente veem atribuições humanas permitidas. Negativas individuais de módulo prevalecem sobre padrões herdados. Leia docs/platform-and-client-contexts.md.
+
+Novos controles de automação ficam abaixo do fluxo/canvas; nunca adicionar cartões acima do título Véxora Intelligence Engine. A Home deve ser uma apresentação sem título acessada pelo logo, distinta de Visão geral, com fundos desktop/mobile por empresa.

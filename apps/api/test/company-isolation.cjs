@@ -7,8 +7,8 @@ async function main(){
  assert(process.env.CI==='true'&&['localhost','127.0.0.1'].includes(url.hostname),'Use isolated CI database only');
  const db=new PrismaClient(),userId=randomUUID(),sourceId=randomUUID();
  try{
-  await db.user.create({data:{id:userId,email:randomUUID()+'@example.test',name:'CI owner',passwordHash:'not-a-login'}});
-  await db.tenant.create({data:{id:sourceId,name:'Source CI',slug:'source-'+sourceId}});
+  await db.user.create({data:{id:userId,email:randomUUID()+'@example.test',name:'CI owner',passwordHash:'not-a-login',isPlatformAdmin:true}});
+  await db.tenant.create({data:{id:sourceId,name:'Source CI',slug:'source-'+sourceId,kind:'PLATFORM'}});
   await db.membership.create({data:{userId,tenantId:sourceId,role:'OWNER'}});
   const service=new AuthService(db,{signAsync:async()=> 'ci-token'}),requestId=randomUUID();
   const input={name:'Escola de música CI',segmentId:'music-school',requestId};

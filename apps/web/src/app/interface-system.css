@@ -109,3 +109,5 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .company-list button{display:flex;align-items:center;gap:12px;text-align:left;padding:12px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-1);color:inherit;cursor:pointer}
 .company-list small{display:block;color:var(--text-secondary)}
 @media(max-width:760px){.company-dialog{padding:16px}.company-dialog :is(input,select){font-size:16px}.resource-fields{grid-template-columns:1fr}}
+
+.topbar-company-button{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;max-width:230px;min-width:0}.topbar-company-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.topbar-company-button svg{flex-shrink:0}@media(max-width:760px){.topbar-company-button{max-width:150px;font-size:11px;padding:6px}}

@@ -15,3 +15,5 @@
 - Public descriptions must distinguish configured, executed, confirmed, ambiguous and failed operations. Never claim payment, publication, delivery or a live connection from a configuration flag alone.
 - Keep the UI concise, consistent and responsive. Use expandable sections for details and keep implementation details out of ordinary product flows.
 - Consult docs/implementation-register.md for the consolidated requirements. An unchecked item is not automatically an instruction to perform a real external transaction or publish content to customers.
+
+O painel PLATFORM pertence exclusivamente à administração Véxora. OWNER de empresa cliente não é administrador da plataforma. Empresas clientes não herdam os dados/credenciais atuais da Véxora. BOT nunca gera notificações de atendimento; atendentes somente veem atribuições humanas permitidas. Negativas individuais de módulo prevalecem sobre padrões herdados. Leia docs/platform-and-client-contexts.md.

@@ -44,7 +44,7 @@ async function proxyRequest(request: Request, context: Context) {
     return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
   }
 
-  const isAuth = request.method === "POST" && (["auth/login","auth/register","auth/companies","auth/switch"].includes(pathValue));
+  const isAuth = request.method === "POST" && (["auth/login","auth/register","auth/companies","auth/switch", "auth/change-password"].includes(pathValue));
   if (isAuth && upstream.ok) {
     const payload = await upstream.json() as Record<string, unknown>;
     const accessToken = payload.accessToken;

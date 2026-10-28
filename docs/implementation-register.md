@@ -20,13 +20,15 @@ Este registro substitui checklists antigos como fonte de estado, sem apagar os d
 Esses itens têm implementação no repositório; isso não substitui testes operacionais de contas externas e aparelhos reais.
 
 ## Em implementação nesta entrega
-- Criação de outra empresa pela mesma conta proprietária, com nome e segmento.
+- Administração da plataforma separada dos proprietários de empresas clientes; criação exclusiva pela administração Véxora, com nome, segmento e plataformas internas opcionais.
 - Estrutura inicial isolada com departamentos, pipelines, rascunhos, agentes de IA e rotinas de acompanhamento.
 - Alternância real de empresa no servidor e renovação da sessão HTTP-only.
 - Google Drive e Agenda vinculados à empresa, departamento ou atendente naquele contexto.
 - Provisionamento retomável de Referências, Novidades, Prontas e Publicadas, sem cópia de credenciais ou arquivos existentes.
 - Abertura dos recursos corretos no Explorer e na Agenda.
-- Testes de isolamento e criação concorrente na CI.
+- Senha temporária com troca obrigatória, redefinição administrativa, revogação de sessões e negativas individuais de módulo.
+- Bot silencioso, filas e eventos restritos à atribuição humana e notificações por destino configuráveis.
+- Testes de isolamento, políticas de senha, acesso por URL e criação concorrente na CI.
 
 ## Pendências preservadas para as próximas alterações
 1. Personalizações detalhadas por recurso: os pacotes agora materializam agentes e rotinas também nas empresas existentes e preservam edições; falta uma matriz de sobrescritas por recurso com precedência explícita.
@@ -39,14 +41,15 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 8. Consolidar os escritores restantes de metadata, com concorrência entre Asaas, webhooks e CRM.
 9. Financeiro por carteira/plataforma, vínculos múltiplos, pessoas autorizadas e validação real de identidade.
 10. Régua configurável D-5, D-3, D0, D+2 e D+5, janela de contato, opt-out, suspensão por pagamento e prévia da cobrança manual.
-11. Completar a matriz de ações por papel e visibilidade por departamento; identidade/apelido do atendente e SLA de ociosidade.
+11. Completar a matriz de ações por papel além dos módulos; identidade/apelido do atendente e SLA de ociosidade. Visibilidade do bot, negativas individuais e redefinição de senhas estão implementadas nesta entrega.
 12. API de captura e atribuição de leads, formulários e campanhas com proveniência confiável.
 13. Telefonia/SMS e chamadas ao vivo com IA, incluindo mídia e gravação; não confundir eventos de ligação do WhatsApp com suporte a conversar por voz.
 14. Testar GOWS em ambiente separado, conforme solicitado para depois do escopo funcional. Não trocar o motor operacional sem medir compatibilidade e reconexões.
 15. Rate limiting distribuído, retenção, restauração de backup e observabilidade operacional.
 16. Validar cenários reais Google, Zernio, financeiro sandbox, permissões, mobile, teclado/leitor de tela e o piloto Rastreabem.
 17. Revisar a migração de configurações do repositório antigo sem alterar o sistema antigo ou copiar segredos.
-18. Conferir a implantação no Dokploy por evidência; aprovação de CI não prova atualização do site.
+18. Implementar a integração WordPress completa usando sua permissão própria; ainda não entregue.
+19. Conferir a implantação no Dokploy por evidência; aprovação de CI não prova atualização do site.
 
 ## Continuidade
 A partir desta entrega o desenvolvimento ocorre diretamente no GitHub, com uma branch por conjunto coerente de alterações, CI completa e histórico de PRs. Não marcar o inventário inteiro como concluído por ter publicado um único conjunto de funcionalidades.

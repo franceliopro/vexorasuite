@@ -17,3 +17,11 @@ describe('modules inherited from department patterns',()=>{
  });
 });
 
+
+describe('explicit module denial',()=>{
+ it('takes priority over department and personal patterns, including administrative company roles',()=>{
+  expect(effectiveModules('AGENT',['CRM'],[{modules:['CRM','WORDPRESS']}],['WORDPRESS'],['WORDPRESS'])).toEqual(['CRM']);
+  expect(effectiveModules('OWNER',[],[],[],['WORDPRESS'])).not.toContain('WORDPRESS');
+  expect(routeModules('/api/wordpress/sites','GET')).toEqual(['WORDPRESS']);
+ });
+});

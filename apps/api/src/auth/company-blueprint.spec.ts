@@ -35,11 +35,24 @@ describe('company onboarding and switching',()=>{
   const db:any={membership:{findFirst:jest.fn(async()=>member)}},jwt:any={signAsync:jest.fn(async()=> 'new-session')};
   const session=await new AuthService(db,jwt).companySession(userId,id);
   expect(session.tenant.id).toBe(id);
-  expect(jwt.signAsync.mock.calls[0][0]).toEqual({sub:userId,tenantId:id,tenantSlug:'escola-123',role:'OWNER'});
+  expect(jwt.signAsync.mock.calls[0][0]).toEqual({sub:userId,tenantId:id,tenantSlug:'escola-123',role:'OWNER',sessionVersion:0});
  });
  it('lists only active companies owned by the current user',async()=>{
   const userId=randomUUID(),db:any={membership:{findMany:jest.fn(async()=>[])}};
   await new AuthService(db,{} as any).companies(userId);
   expect(db.membership.findMany.mock.calls[0][0].where).toEqual({userId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}});
+ });
+});
+
+describe('multiple platforms inside one client company',()=>{
+ it('creates isolated finance and support for each platform and shared commercial and administration',async()=>{
+  const tx:any={department:{create:jest.fn(async({data})=>({id:randomUUID(),...data}))},departmentMember:{create:jest.fn()},crmPipeline:{create:jest.fn(async()=>({id:randomUUID()}))},internalWorkflow:{create:jest.fn(async()=>({id:randomUUID()}))},tenant:{update:jest.fn()}};
+  await provisionCompany(tx,{id:randomUUID()},randomUUID(),'vehicle-tracking',randomUUID(),['Link','Ceeb Vision','Rastreabem']);
+  const departments=tx.department.create.mock.calls.map(([input]:any)=>input.data);
+  expect(departments).toHaveLength(8);
+  expect(departments.filter((d:any)=>d.routingCategory==='FINANCE').map((d:any)=>d.routingPlatform)).toEqual(['Link','Ceeb Vision','Rastreabem']);
+  expect(departments.filter((d:any)=>d.routingCategory==='SUPPORT')).toHaveLength(3);
+  const root=tx.tenant.update.mock.calls[0][0].data.integrations;
+  for(const value of Object.values(root.businessFlows) as any[]){for(const step of value.draft.steps.filter((s:any)=>s.action==='human.handoff'))expect(departments.some((d:any)=>d.key===JSON.parse(step.config).departmentKey)).toBe(true);}
  });
 });

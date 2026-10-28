@@ -26,3 +26,5 @@ Testes unitários e regressão PostgreSQL executados no GitHub Actions. O result
 
 ## Pacotes departamentais
 Carregar um padrão agora materializa também o agente de IA e a rotina de acompanhamento. A ativação de tarefas internas é opcional no carregamento; não envia mensagens a clientes. Agentes exigem modelo/provedor antes da ativação. A reaplicação preserva rascunhos, agentes personalizados e rotinas existentes.
+
+A criação de empresas é exclusiva da administração Véxora e aceita plataformas internas opcionais. Consulte [Plataforma e empresas](platform-and-client-contexts.md) para a distinção de papéis, configuração inicial, senha temporária e regras de visibilidade.

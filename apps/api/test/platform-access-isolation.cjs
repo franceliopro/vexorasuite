@@ -1,0 +1,76 @@
+const assert=require('node:assert/strict');
+const {randomUUID}=require('node:crypto');
+const {PrismaClient}=require('@prisma/client');
+const {JwtService}=require('@nestjs/jwt');
+const {AuthService}=require('../dist/auth/auth.service');
+const {AuthGuard}=require('../dist/auth/auth.guard');
+const {TeamController}=require('../dist/operations/team.controller');
+const {ConversationsController}=require('../dist/operations/conversations.controller');
+async function main(){
+ const url=new URL(process.env.DATABASE_URL||'');
+ assert(process.env.CI==='true'&&['localhost','127.0.0.1'].includes(url.hostname),'Use isolated CI database only');
+ const db=new PrismaClient(),platformId=randomUUID(),platformUser=randomUUID(),users=[platformUser],events={publish(){}},jwt=new JwtService();
+ const guard=new AuthGuard(jwt,db),auth=new AuthService(db,jwt),team=new TeamController(db,events);
+ const allow=(token,path)=>guard.canActivate({switchToHttp:()=>({getRequest:()=>({headers:{authorization:'Bearer '+token},path,method:'GET'})})});
+ try{
+  await db.user.create({data:{id:platformUser,email:randomUUID()+'@example.test',name:'Platform administrator',passwordHash:'not-a-login',isPlatformAdmin:true}});
+  await db.tenant.create({data:{id:platformId,name:'Véxora CI',slug:'platform-'+platformId,kind:'PLATFORM',integrations:{testSourceData:true}}});
+  await db.membership.create({data:{userId:platformUser,tenantId:platformId,role:'OWNER'}});
+  const result=await auth.createCompany(platformUser,platformId,{name:'Tracking client CI',segmentId:'vehicle-tracking',requestId:randomUUID(),platforms:['Link','Ceeb Vision','Rastreabem']});
+  const tenantId=result.tenant.id;
+  assert.equal(result.tenant.kind,'COMPANY');
+  const company=await db.tenant.findUniqueOrThrow({where:{id:tenantId}});
+  assert.equal(company.integrations.testSourceData,undefined);
+  const departments=await db.department.findMany({where:{tenantId}});
+  assert.equal(departments.length,8);
+  const link=departments.find(d=>d.routingCategory==='FINANCE'&&d.routingPlatform==='Link');
+  const ceeb=departments.find(d=>d.routingCategory==='FINANCE'&&d.routingPlatform==='Ceeb Vision');
+  const request={user:{sub:platformUser,tenantId,role:'OWNER',isPlatformAdmin:true}};
+  const ownerEmail=randomUUID()+'@example.test';
+  const owner=await team.create(request,{name:'Client company owner',email:ownerEmail,role:'OWNER',modules:[],departmentIds:[]});users.push(owner.id);
+  const login=await auth.login({email:ownerEmail,password:'senha123',tenantSlug:company.slug});
+  assert.equal(login.user.mustChangePassword,true);
+  await assert.rejects(()=>allow(login.accessToken,'/api/contacts'),/senha temporária/);
+  await allow(login.accessToken,'/api/auth/me');
+  await assert.rejects(()=>auth.createCompany(owner.id,tenantId,{name:'Unauthorized company',segmentId:'music-school',requestId:randomUUID()}),/administração da Véxora/);
+  await assert.rejects(()=>team.resetPassword({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false}},owner.id),/administração da Véxora/);
+  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:'senha123',newPassword:'a-personal-test-password'});
+  assert.equal(changed.user.mustChangePassword,false);
+  await assert.rejects(()=>allow(login.accessToken,'/api/auth/me'),/sessão foi encerrada/);
+  await allow(changed.accessToken,'/api/contacts');
+  await team.access(request,owner.id,{modules:['INBOX','CRM'],departmentIds:[],deniedModules:['WORDPRESS']});
+  await assert.rejects(()=>allow(changed.accessToken,'/api/wordpress/sites'),/não está habilitado/);
+  const forged=await jwt.signAsync({sub:owner.id,tenantId:platformId,tenantSlug:'platform-'+platformId,role:'OWNER',isPlatformAdmin:true,sessionVersion:1},{secret:process.env.JWT_ACCESS_SECRET});
+  await assert.rejects(()=>allow(forged,'/api/auth/me'),/revogado/);
+  await team.resetPassword(request,owner.id);
+  await assert.rejects(()=>allow(changed.accessToken,'/api/auth/me'),/sessão foi encerrada/);
+  const afterReset=await auth.login({email:ownerEmail,password:'senha123',tenantSlug:company.slug});
+  assert.equal(afterReset.user.mustChangePassword,true);
+  await assert.rejects(()=>allow(afterReset.accessToken,'/api/wordpress/sites'),/senha temporária/);
+
+  const a=await team.create(request,{name:'Link attendant',email:randomUUID()+'@example.test',departmentIds:[link.id],modules:['INBOX','CRM']});users.push(a.id);
+  const b=await team.create(request,{name:'Ceeb attendant',email:randomUUID()+'@example.test',departmentIds:[ceeb.id],modules:['INBOX','CRM']});users.push(b.id);
+  const contact=await db.contact.create({data:{tenantId,name:'Shared Asaas customer',source:'ASAAS',externalId:randomUUID()}});
+  const conversation=await db.conversation.create({data:{tenantId,contactId:contact.id,departmentId:link.id,handlingMode:'BOT'}});
+  const inbox=new ConversationsController(db,events,{},{}),agent=id=>({user:{sub:id,tenantId,role:'AGENT',departmentIds:id===a.id?[link.id]:[ceeb.id]}});
+  assert.equal((await inbox.list(agent(a.id),'team')).length,0);
+  assert.equal((await inbox.list(agent(a.id),'all-open')).length,0);
+  await assert.rejects(()=>inbox.messages(agent(a.id),conversation.id,'all-open'),/não tem acesso/);
+  await db.conversation.update({where:{id:conversation.id},data:{handlingMode:'HUMAN'}});
+  assert.equal((await inbox.list(agent(a.id),'team')).length,1);
+  assert.equal((await inbox.list(agent(b.id),'team')).length,0);
+  await assert.rejects(()=>inbox.messages(agent(b.id),conversation.id,'all-open'),/não tem acesso/);
+  await db.departmentMember.create({data:{tenantId,userId:a.id,departmentId:ceeb.id}});
+  const second=await db.conversation.create({data:{tenantId,contactId:contact.id,departmentId:ceeb.id,handlingMode:'HUMAN'}});
+  assert.equal((await inbox.list(agent(a.id),'team')).length,2);
+  assert.equal((await inbox.list(agent(b.id),'team')).length,1);
+  assert.notEqual(second.id,conversation.id);
+  console.log('Platform/client separation, forced passwords, session revocation, URL denial and department isolation OK');
+ }finally{
+  const memberships=await db.membership.findMany({where:{userId:platformUser},select:{tenantId:true}});
+  await db.tenant.deleteMany({where:{id:{in:[platformId,...memberships.map(m=>m.tenantId)]}}});
+  await db.user.deleteMany({where:{id:{in:users}}});
+  await db.$disconnect();
+ }
+}
+main().catch(error=>{console.error(error);process.exitCode=1});

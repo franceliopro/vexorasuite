@@ -211,7 +211,6 @@ export class IntelligenceRuntimeService {
               const knowledgeDocuments = Array.isArray(assistant.knowledgeDocuments) ? assistant.knowledgeDocuments.filter((doc: any) => doc && typeof doc.name === 'string' && typeof doc.content === 'string').slice(0, 10) : [];
               const companyKnowledge = String(assistant.companyKnowledge || '').slice(0, 30000);
               const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+doc.content.slice(0, 8000)).join('').slice(0, 40000);
-;
               const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize'].includes(id)):[];
               const crmCatalog=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>['new','qualification','proposal'].includes(stage?.id)).map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
@@ -228,7 +227,7 @@ export class IntelligenceRuntimeService {
                 'Restrições: '+interpolateVariables(String(object(agent.behavior).prohibitions||'').slice(0,3000),variables),
                 'Estrutura da empresa para orientar o atendimento, sem expor identificadores: '+JSON.stringify(ecosystem).slice(0,7000),
                 'Mantenha o escopo e recuse solicitações fora dele.'
-              ].join('\\n')+research+'\\nAções de CRM permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+'\\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique etiqueta ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.'
+              ].join('\\n')+research+'\\nAções de CRM permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+'\\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique etiqueta ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
 
               const generated = await this.ai.generate([
                 { role: 'system', content: systemPrompt },

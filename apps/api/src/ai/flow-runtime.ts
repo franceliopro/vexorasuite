@@ -83,9 +83,17 @@ export function selectedOption(step: RuntimeStep, text: string): string | undefi
   if (/^[1-9]\d*$/.test(value)) return step.options[Number(value) - 1];
   return step.options.find(o => normalize(o) === value);
 }
-export function renderStep(step: RuntimeStep, variables: Record<string, string>): string {
-  const message = step.message.replace(/\{\{(\w+)\}\}/g, (_, name: string) => Object.hasOwn(variables,name) && typeof variables[name] === 'string' ? variables[name]! : '');
-  return [message, step.options.map((o, i) => `${i + 1}. ${o}`).join('\n')].filter(Boolean).join('\n\n');
+export function interpolateVariables(value: string, variables: Record<string, string>): string {
+  return value.replace(/\{\{([\w.-]+)\}\}/g, (_, name: string) => {
+    const direct = variables[name];
+    if (typeof direct === 'string') return direct;
+    const normalized = name.toLocaleLowerCase('pt-BR').replace(/[\s_-]/g, '');
+    const match = Object.entries(variables).find(([key]) => key.toLocaleLowerCase('pt-BR').replace(/[\s_-]/g, '') === normalized);
+    return typeof match?.[1] === 'string' ? match[1] : '';
+  });
 }
-
-
+export function renderStep(step: RuntimeStep, variables: Record<string, string>): string {
+  const message = interpolateVariables(step.message, variables);
+  const options = step.options.map((option, i) => `${i + 1}. ${interpolateVariables(option, variables)}`).join('\n');
+  return [message, options].filter(Boolean).join('\n\n');
+}

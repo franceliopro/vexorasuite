@@ -25,3 +25,5 @@ describe('explicit module denial',()=>{
   expect(routeModules('/api/wordpress/sites','GET')).toEqual(['WORDPRESS']);
  });
 });
+
+it('uses calendar permission for Google calendar actions in the inbox',()=>{expect(routeModules('/api/integrations/google/calendar/account/events','POST')).toEqual(['CALENDAR']);});

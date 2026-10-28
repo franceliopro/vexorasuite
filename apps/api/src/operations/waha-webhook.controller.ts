@@ -1,6 +1,7 @@
 import {inboundKind} from './inbound-kind';
 import {AudioTriageService} from './audio-triage.service';
 import {documentDigits} from '../common/documents';
+import { formatDateBR } from '../common/date-format';
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import { Prisma, type ChannelConnection } from "@prisma/client";
@@ -353,7 +354,7 @@ export class WahaWebhookController {
       }
       const debts = result.debts.slice(0, 10).map((debt) => ({ id: debt.id, value: Number(debt.value), dueDate: debt.dueDate, status: debt.status, description: debt.description || "Cobrança" }));
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "PICK_DEBT", debts } } });
-      const lines = debts.map((debt, index) => `${index + 1}. ${debt.description} — ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${debt.dueDate || "não informado"}${debt.status === "OVERDUE" ? " (vencida)" : ""}`);
+      const lines = debts.map((debt, index) => `${index + 1}. ${debt.description} — ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${formatDateBR(debt.dueDate) || "não informado"}${debt.status === "OVERDUE" ? " (vencida)" : ""}`);
       await this.sendBotReply(channel, chatId, conversationId, environmentNote + `Encontrei estas cobranças em aberto:\n\n${lines.join("\n")}\n\nResponda com o número da cobrança desejada.`);
       return true;
     }
@@ -382,7 +383,7 @@ export class WahaWebhookController {
         return true;
       }
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { ...state, step: "PAYMENT_METHOD", selectedDebt: debt } as any } });
-      await this.sendBotReply(channel, chatId, conversationId, `Cobrança selecionada: ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${debt.dueDate || "não informado"}.\n\nEscolha a forma de pagamento:\n1. Boleto / PDF\n2. Linha digitável\n3. Pix copia e cola\n4. Fatura completa (outras formas disponíveis no Asaas)`);
+      await this.sendBotReply(channel, chatId, conversationId, `Cobrança selecionada: ${debt.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${formatDateBR(debt.dueDate) || "não informado"}.\n\nEscolha a forma de pagamento:\n1. Boleto / PDF\n2. Linha digitável\n3. Pix copia e cola\n4. Fatura completa (outras formas disponíveis no Asaas)`);
       return true;
     }
     if (step === "PAYMENT_METHOD") {
@@ -407,7 +408,7 @@ export class WahaWebhookController {
             update: { amount: detail.value, status: detail.status || "PENDING", billingType: ({ 1: "BOLETO", 2: "BOLETO_LINE", 3: "PIX", 4: "INVOICE" } as Record<number, string>)[choice], invoiceUrl: detail.invoiceUrl, bankSlipUrl: detail.bankSlipUrl, pixPayload: detail.pixPayload, environment: detail.environment },
           });
         }
-        const heading = (detail.environment === "SANDBOX" ? "🧪 TESTE · Sandbox, sem pagamento real\n" : "") + `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${detail.dueDate || selected.dueDate || "não informado"}`;
+        const heading = (detail.environment === "SANDBOX" ? "🧪 TESTE · Sandbox, sem pagamento real\n" : "") + `Cobrança de ${detail.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — venc. ${formatDateBR(detail.dueDate || selected.dueDate) || "não informado"}`;
         let response = heading;
         if (choice === 1) response += "\n\nBoleto / PDF: " + (detail.bankSlipUrl || detail.invoiceUrl || "O boleto não está disponível nesta cobrança.");
         else if (choice === 2) response += "\n\nLinha digitável: " + (detail.identificationField || "Não disponibilizada pelo Asaas. Use a fatura: " + (detail.invoiceUrl || "indisponível"));

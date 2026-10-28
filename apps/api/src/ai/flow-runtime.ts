@@ -87,7 +87,7 @@ export function selectedOption(step: RuntimeStep, text: string): string | undefi
   return step.options.find(o => normalize(o) === value);
 }
 export function interpolateVariables(value: string, variables: Record<string, string>): string {
-  return value.replace(/\{\{([\w.-]+)\}\}/g, (_, name: string) => {
+  return value.replace(/\{\{([\w .-]+)\}\}/g, (_, name: string) => {
     const direct = variables[name];
     if (typeof direct === 'string') return direct;
     const normalized = name.toLocaleLowerCase('pt-BR').replace(/[\s_-]/g, '');

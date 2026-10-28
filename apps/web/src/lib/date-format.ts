@@ -18,7 +18,7 @@ function dateParts(value: string | Date): [number, number, number] | null {
 }
 
 export function formatDateBR(value: string | Date | null | undefined): string {
-  if (value == null || value === "") return "";
+  if (value == null || (typeof value === "string" && value === "")) return "";
   const parts = dateParts(value);
   if (!parts) return String(value);
   const [day, month, year] = parts;

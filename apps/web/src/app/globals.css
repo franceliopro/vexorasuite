@@ -3371,3 +3371,5 @@ input[type="color"].profile-tag-inline-color {
 .crm-workspace .crm-pipeline{height:auto;min-height:0;align-items:start;overflow-y:visible}
 .crm-workspace .crm-pipeline-column{height:auto;min-height:0}
 .crm-workspace .crm-stage-cards{position:relative;flex:0 1 auto;min-height:0;max-height:800px;overflow-y:auto}
+
+.inbox-appointments{padding:12px;overflow-y:auto;min-height:0}.inbox-appointment-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}.inbox-appointments ul{padding-left:20px}.inbox-appointments li{padding:6px 0}

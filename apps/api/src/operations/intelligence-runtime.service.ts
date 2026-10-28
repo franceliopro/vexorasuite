@@ -295,7 +295,7 @@ export class IntelligenceRuntimeService {
       for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, scopeKey, runtimeScope, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null } } }));
       await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
-    }, { timeout: 30000 });
+    }, { timeout: 120000 });
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });

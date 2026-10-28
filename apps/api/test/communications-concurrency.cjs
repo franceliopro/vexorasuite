@@ -1,7 +1,6 @@
 const assert = require("node:assert/strict");
 const { randomUUID } = require("node:crypto");
 const { PrismaClient } = require("@prisma/client");
-const { MailService } = require("../dist/communications/mail.service");
 const {
   WorkflowsService,
 } = require("../dist/communications/workflows.service");
@@ -27,106 +26,8 @@ async function main() {
     await prisma.membership.create({
       data: { tenantId: tenant.id, userId: user.id, role: "OWNER" },
     });
-    const req = { user: { tenantId: tenant.id, sub: user.id, role: "OWNER" } },
-      account = await prisma.mailAccount.create({
-        data: {
-          tenantId: tenant.id,
-          name: "CI mail",
-          email: "sender@example.test",
-          configEncrypted: "fixture-not-a-secret",
-        },
-      });
-    const contact = await prisma.contact.create({
-      data: {
-        tenantId: tenant.id,
-        name: "CI contact",
-        email: "contact@example.test",
-      },
-    });
-    const campaign = await prisma.mailCampaign.create({
-      data: {
-        tenantId: tenant.id,
-        accountId: account.id,
-        userId: user.id,
-        name: "CI campaign",
-        subject: "Hello",
-        html: "<p>Hello</p>",
-        status: "ACTIVE",
-      },
-    });
-    const delivery = await prisma.mailDelivery.create({
-      data: {
-        tenantId: tenant.id,
-        campaignId: campaign.id,
-        email: contact.email,
-        name: contact.name,
-      },
-    });
-    let sends = 0;
-    const a = new MailService(prisma),
-      b = new MailService(prisma);
-    for (const service of [a, b]) {
-      service.account = async () => ({ ...account, config: {} });
-      service.transport = async () => ({
-        sendMail: async () => {
-          sends++;
-          return { messageId: "ci-message" };
-        },
-        close() {},
-      });
-    }
-    await Promise.all([a.tick(), b.tick()]);
-    assert.equal(sends, 1);
-    assert.equal(
-      (
-        await prisma.mailDelivery.findUniqueOrThrow({
-          where: { id: delivery.id },
-        })
-      ).status,
-      "SENT",
-    );
-    const pending = await prisma.mailDelivery.create({
-      data: {
-        tenantId: tenant.id,
-        campaignId: campaign.id,
-        email: "other@example.test",
-        name: "Other",
-      },
-    });
-    await prisma.mailCampaign.update({
-      where: { id: campaign.id },
-      data: { status: "PAUSED" },
-    });
-    await a.tick();
-    assert.equal(sends, 1);
-    assert.equal(
-      (
-        await prisma.mailDelivery.findUniqueOrThrow({
-          where: { id: pending.id },
-        })
-      ).status,
-      "QUEUED",
-    );
-    const unknown = await prisma.mailDelivery.create({
-      data: {
-        tenantId: tenant.id,
-        campaignId: campaign.id,
-        email: "unknown@example.test",
-        name: "Unknown",
-        status: "SENDING",
-        updatedAt: new Date(Date.now() - 300000),
-      },
-    });
-    await a.tick();
-    assert.equal(
-      (
-        await prisma.mailDelivery.findUniqueOrThrow({
-          where: { id: unknown.id },
-        })
-      ).status,
-      "REVIEW",
-    );
-    assert.equal(sends, 1);
+    const req={user:{tenantId:tenant.id,sub:user.id,role:'OWNER'}};
+    const contact=await prisma.contact.create({data:{tenantId:tenant.id,name:'CI contact',email:'contact@example.test'}});
     const workflow = await prisma.internalWorkflow.create({
       data: {
         tenantId: tenant.id,
@@ -211,7 +112,7 @@ async function main() {
       "CANCELLED",
     );
     console.log(
-      "Communications: two workers send once, pause stops queued delivery, uncertain sends are not retried; workflow workers create one task and stop after customer replies.",
+      "Internal workflow workers create one task and stop after customer replies.",
     );
   } finally {
     await prisma.tenant.delete({ where: { id: tenant.id } });

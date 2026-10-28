@@ -67,13 +67,9 @@ enum ConversationHandlingMode {
 model Tenant {
   homePresentation HomePresentation?
   pipelines CrmPipeline[]
-  mailAccounts MailAccount[]
-  mailTemplates MailTemplate[]
   internalWorkflows InternalWorkflow[]
   pushConfiguration PushConfiguration?
   pushSubscriptions PushSubscription[]
-  marketingJobs MarketingJob[]
-  marketingWorkflows MarketingWorkflow[]
   id          String       @id @default(uuid()) @db.Uuid
   name        String
   slug        String       @unique
@@ -101,41 +97,9 @@ model Tenant {
   @@map("tenants")
 }
 
-model MarketingJob {
-  id String @id @default(uuid()) @db.Uuid
-  tenantId String @db.Uuid @map("tenant_id")
-  userId String @db.Uuid @map("user_id")
-  requestKey String @map("request_key")
-  status String @default("QUEUED")
-  payload Json
-  result Json?
-  error String?
-  runAt DateTime @default(now()) @map("run_at")
-  startedAt DateTime? @map("started_at")
-  completedAt DateTime? @map("completed_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
-  @@unique([tenantId,requestKey])
-  @@index([status,runAt])
-  @@index([tenantId,createdAt])
-  @@map("marketing_jobs")
-}
 
-model MarketingWorkflow {
-  id String @id @default(uuid()) @db.Uuid
-  tenantId String @db.Uuid @map("tenant_id")
-  userId String @db.Uuid @map("user_id")
-  name String
-  enabled Boolean @default(true)
-  payload Json
-  everyDays Int @default(0) @map("every_days")
-  nextRunAt DateTime @map("next_run_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
-  @@index([enabled,nextRunAt])
-  @@index([tenantId,createdAt])
-  @@map("marketing_workflows")
-}
+
+
 
 model User {
   pushSubscriptions PushSubscription[]
@@ -514,132 +478,14 @@ model CreativeReference {
   @@map("creative_references")
 }
 
-model PublicationFolder {
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- userId String @db.Uuid @map("user_id")
- accountId String @db.Uuid @map("account_id")
- folderId String @map("folder_id")
- publishedFolderId String @map("published_folder_id")
- mode String
- channelIds String[] @db.Uuid @map("channel_ids")
- enabled Boolean @default(false)
- everyDays Int @default(1) @map("every_days")
- nextPublishAt DateTime @map("next_publish_at")
- nextScanAt DateTime @default(now()) @map("next_scan_at")
- remaining Int @default(0)
- lastScanAt DateTime? @map("last_scan_at")
- lastError String? @map("last_error")
- createdAt DateTime @default(now()) @map("created_at")
- updatedAt DateTime @updatedAt @map("updated_at")
- @@unique([tenantId,accountId,folderId])
- @@index([enabled,nextScanAt])
- @@map("publication_folders")
-}
-model PreparedPublication {
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- userId String @db.Uuid @map("user_id")
- accountId String? @db.Uuid @map("account_id")
- fileId String? @map("file_id")
- ruleId String? @db.Uuid @map("rule_id")
- name String
- type String
- caption String @default("")
- model String?
- status String @default("QUEUED")
- postId String? @map("post_id")
- channelIds String[] @db.Uuid @map("channel_ids")
- result Json @default("{}")
- error String?
- createdAt DateTime @default(now()) @map("created_at")
- updatedAt DateTime @updatedAt @map("updated_at")
- @@unique([tenantId,accountId,fileId])
- @@unique([tenantId,fileId])
- @@index([status,updatedAt])
- @@map("prepared_publications")
-}
 
-model MailAccount {
- tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
- items MailItem[]
- campaigns MailCampaign[]
- @@unique([tenantId,id])
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- email String
- name String
- configEncrypted String @map("config_encrypted")
- active Boolean @default(true)
- lastSyncAt DateTime? @map("last_sync_at")
- lastError String? @map("last_error")
- createdAt DateTime @default(now()) @map("created_at")
- @@unique([tenantId,email])
- @@map("mail_accounts")
-}
-model MailItem {
- account MailAccount @relation(fields:[tenantId,accountId],references:[tenantId,id],onDelete:Cascade)
- messageId String? @map("message_id")
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- accountId String @db.Uuid @map("account_id")
- externalId String @map("external_id")
- fromAddress String @map("from_address")
- toAddress String @map("to_address")
- subject String
- text String
- html String
- receivedAt DateTime @map("received_at")
- @@unique([tenantId,accountId,externalId])
- @@index([tenantId,receivedAt])
- @@map("mail_items")
-}
-model MailTemplate {
- tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- name String
- subject String
- html String
- createdAt DateTime @default(now()) @map("created_at")
- updatedAt DateTime @updatedAt @map("updated_at")
- @@index([tenantId])
- @@map("mail_templates")
-}
-model MailCampaign {
- account MailAccount @relation(fields:[tenantId,accountId],references:[tenantId,id],onDelete:Cascade)
- deliveries MailDelivery[]
- kind String @default("MARKETING")
- inReplyTo String? @map("in_reply_to")
- @@unique([tenantId,id])
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- accountId String @db.Uuid @map("account_id")
- userId String @db.Uuid @map("user_id")
- name String
- subject String
- html String
- status String @default("DRAFT")
- scheduledAt DateTime? @map("scheduled_at")
- createdAt DateTime @default(now()) @map("created_at")
- @@index([tenantId,status])
- @@map("mail_campaigns")
-}
-model MailDelivery {
- campaign MailCampaign @relation(fields:[tenantId,campaignId],references:[tenantId,id],onDelete:Cascade)
- id String @id @default(uuid()) @db.Uuid
- tenantId String @db.Uuid @map("tenant_id")
- campaignId String @db.Uuid @map("campaign_id")
- email String
- name String
- status String @default("QUEUED")
- error String?
- providerId String? @map("provider_id")
- updatedAt DateTime @updatedAt @map("updated_at")
- @@unique([campaignId,email])
- @@index([status,updatedAt])
- @@map("mail_deliveries")
-}
+
+
+
+
+
+
+
 model InternalWorkflow {
  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
  runs WorkflowRun[]

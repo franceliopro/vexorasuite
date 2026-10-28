@@ -10,7 +10,7 @@ import { CreativeReferencesController } from "./creative-references.controller";
 import { GoogleAccessService } from "../operations/google-access.service";
 import { ZernioService } from "../operations/zernio.service";
 import { AssistantAutomationService } from "./assistant-automation.service";
-import { AssistantAutomationController, AssistantAutomationMediaController } from "./assistant-automation.controller";
+import { AssistantAutomationController } from "./assistant-automation.controller";
 import { ReportsController } from "../operations/reports.controller";
 import { FinanceController } from "../operations/finance.controller";
 import { AsaasService } from "../operations/asaas.service";
@@ -28,6 +28,6 @@ import { ChatbotAsaasPreviewController } from "./chatbot-asaas-preview.controlle
 import { ChatbotTriggerPreviewController } from "./chatbot-trigger-preview.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, AssistantAutomationMediaController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
 export class AiModule {}
 

@@ -3373,3 +3373,24 @@ input[type="color"].profile-tag-inline-color {
 .crm-workspace .crm-stage-cards{position:relative;flex:0 1 auto;min-height:0;max-height:800px;overflow-y:auto}
 
 .inbox-appointments{padding:12px;overflow-y:auto;min-height:0}.inbox-appointment-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}.inbox-appointments ul{padding-left:20px}.inbox-appointments li{padding:6px 0}
+
+/* Expand working areas without forcing page-wide horizontal scrolling. */
+.ai-admin-grid{grid-template-columns:minmax(210px,280px) minmax(0,1fr)}
+.ai-admin-grid>*{min-width:0;max-width:100%}
+.ai-admin-grid>:last-child{grid-column:auto}
+.ai-admin-card{min-width:0;overflow-wrap:anywhere}
+.ai-admin-fields input,.ai-admin-fields select,.ai-admin-fields textarea{min-width:0;max-width:100%;box-sizing:border-box}
+.ai-model-presets{display:flex;flex-wrap:wrap;gap:8px}
+.ai-agent-tabs{flex-wrap:wrap;white-space:normal!important;overflow:visible!important}
+@media(max-width:760px){.ai-admin-grid{grid-template-columns:minmax(0,1fr)}}
+.chatbot-workspace .vx-flow-shell{resize:vertical;overflow:auto;min-height:420px;max-height:none}
+.chatbot-workspace .vx-flow-stage-bar button,.chatbot-workspace .vx-flow-inspector-actions button,.chatbot-workspace .vx-flow-outputs button{font:inherit;min-height:30px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;white-space:normal}
+.chatbot-workspace .vx-flow-node button{flex-shrink:0}
+.workflows-workspace,.workflows-workspace .workspace-surface{overflow:visible}
+.workflows-workspace label:focus-within{position:relative;z-index:50}
+
+@media(min-width:761px){
+ .ai-admin-grid{grid-template-columns:fit-content(45%) minmax(0,1fr)}
+ .ai-admin-grid>:first-child{width:280px;min-width:210px;max-width:45vw;resize:horizontal;overflow:auto}
+ .ai-admin-grid>:not(:first-child){width:100%;min-width:0;max-width:none}
+}

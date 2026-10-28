@@ -27,6 +27,9 @@ export class ProviderConnectionsController {
   async usage(@Req() req:AuthenticatedRequest){
     this.authorize(req);
     const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
+    const assistant=object(object(tenant.integrations).assistant);
+    const selections=[assistant.llm,...(Array.isArray(assistant.agents)?assistant.agents.map((agent:any)=>agent.llm):[]),...(Array.isArray(assistant.fallbackModels)?assistant.fallbackModels:[])];
+    if(!selections.some((selection:any)=>selection?.provider==='openrouter'&&selection.model))return {configured:false,provider:'local',message:'OpenRouter não está em uso nos modelos configurados.'};
     const key=providerApiKey('openrouter',tenant.integrations,req.user.tenantId);
     if(!key)return {configured:false};
     const incident=providerLimit(key),cached=this.usageCache.get(req.user.tenantId);

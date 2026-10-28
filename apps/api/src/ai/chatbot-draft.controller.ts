@@ -19,7 +19,7 @@ export function validDraft(value: unknown): value is Draft {
   if(s.kind!==undefined && (typeof s.kind!=="string" || s.kind.length>80))return false;
   if(s.config!==undefined && (typeof s.config!=="string" || s.config.length>4000))return false;
   ids.add(s.id);
-  if(s.position && (!Number.isFinite(s.position.x) || !Number.isFinite(s.position.y) || s.position.x<0 || s.position.y<0 || s.position.x>10000 || s.position.y>10000))return false;
+  if(s.position && (!Number.isFinite(s.position.x) || !Number.isFinite(s.position.y) || s.position.x<0 || s.position.y<0 || s.position.x>Number.MAX_SAFE_INTEGER || s.position.y>Number.MAX_SAFE_INTEGER))return false;
  }
  return v.steps.every(s=>!s.transitions || (typeof s.transitions==="object" && !Array.isArray(s.transitions) && Object.entries(s.transitions).every(([option,target])=>s.options.includes(option) && typeof target==="string" && (target==="__start__" || ids.has(target)))));
 }

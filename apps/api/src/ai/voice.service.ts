@@ -14,7 +14,8 @@ export class VoiceService {
   const assistant=object(object(tenant.integrations).assistant);if(!assistant.enabled&&!preview)throw new ForbiddenException('Assistente desabilitada.');
   const agent=agentId?(Array.isArray(assistant.agents)?assistant.agents.find((a:any)=>a.id===agentId&&(a.enabled||preview)):null):null;
   if(agentId&&(!agent||!agent.allowedActions?.includes('voice.'+kind)))throw new ForbiddenException('Agente sem esta Skill de voz.');
-  const selected=object(agent?.[kind]||assistant[kind]);
+  let selected=object(agent?.[kind]||assistant[kind]);
+  if((!selected.provider||selected.provider==='browser')&&process.env.LOCAL_VOICE_URL)selected={provider:'local',model:kind==='stt'?(process.env.LOCAL_STT_MODEL||'Systran/faster-whisper-small'):(process.env.LOCAL_TTS_MODEL||'speaches-ai/Kokoro-82M-v1.0-ONNX')};
   if(!['openai','local'].includes(selected.provider)||typeof selected.model!=='string'||!selected.model||selected.endpoint)throw new BadRequestException('Selecione voz local ou OpenAI e um modelo válido. A voz do navegador é executada pela interface.');
   const policy=object(object(tenant.integrations).aiCostPolicy);
   if(selected.provider==='openai'&&policy.freeFirst&&!policy.allowPaidFallback)throw new BadRequestException('A política gratuita está ativa. Use voz do navegador/local ou autorize provedores pagos.');

@@ -12,6 +12,14 @@ describe("tenant communication routes", () => {
     process.env = { ...previous };
     jest.restoreAllMocks();
   });
+  it("does not expose live call capabilities or an origination handler", () => {
+    const controller=new GatewaysController({} as any);
+    const status=controller.status(req);
+    expect(status).not.toHaveProperty("voice");
+    expect(status).not.toHaveProperty("whatsappCalls");
+    expect(status).not.toHaveProperty("aiCalls");
+    expect(controller).not.toHaveProperty("call");
+  });
   it("does not expose another company route or credentials", () => {
     process.env.JASMIN_BASE_URL = "https://gateway.example.test";
     process.env.JASMIN_TENANT_ROUTES = JSON.stringify({

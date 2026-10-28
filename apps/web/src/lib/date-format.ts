@@ -6,7 +6,12 @@ function dateParts(value: string | Date): [number, number, number] | null {
     return [value.getDate(), value.getMonth() + 1, value.getFullYear()];
   }
   const match = DATE_ONLY.exec(value);
-  if (match) return [Number(match[3]), Number(match[2]), Number(match[1])];
+  if (match) {
+    const [year, month, day] = match.slice(1).map(Number);
+    const check = new Date(year, month - 1, day);
+    if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) return null;
+    return [day, month, year];
+  }
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return null;
   return [parsed.getDate(), parsed.getMonth() + 1, parsed.getFullYear()];

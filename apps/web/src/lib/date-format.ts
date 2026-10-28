@@ -26,7 +26,7 @@ export function formatDateBR(value: string | Date | null | undefined): string {
 }
 
 export function formatTimeBR(value: string | Date | null | undefined): string {
-  if (value == null || value === "") return "";
+  if (value == null || (typeof value === "string" && value === "")) return "";
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);
   return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);

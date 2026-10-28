@@ -44,7 +44,7 @@ describe('department presets',()=>{
   const aesthetics=segmentAgentPrompt('aesthetics','SUPPORT');
   expect(aesthetics).toContain('Clínica de estética');
   expect(aesthetics).toContain('Suporte');
-  expect(aesthetics).toContain('não invente');
+  expect(aesthetics).toContain('Use somente preços');
   expect(segmentAgentPrompt('restaurant','SALES')).toContain('Restaurante');
  });
  it.each(SEGMENTS.map(s=>[s.id]))('generates an executable draft for %s after channel selection',(id)=>{

@@ -56,11 +56,11 @@ async function main(){
   const inbox=new ConversationsController(db,events,{},{}),agent=id=>({user:{sub:id,tenantId,role:'AGENT',departmentIds:id===a.id?[link.id]:[ceeb.id]}});
   assert.equal((await inbox.list(agent(a.id),'team')).length,0);
   assert.equal((await inbox.list(agent(a.id),'all-open')).length,0);
-  await assert.rejects(()=>inbox.messages(agent(a.id),conversation.id,'all-open'),/não tem acesso/);
+  await assert.rejects(()=>inbox.messages(agent(a.id),conversation.id,'all-open'),{name:"NotFoundException"});
   await db.conversation.update({where:{id:conversation.id},data:{handlingMode:'HUMAN'}});
   assert.equal((await inbox.list(agent(a.id),'team')).length,1);
   assert.equal((await inbox.list(agent(b.id),'team')).length,0);
-  await assert.rejects(()=>inbox.messages(agent(b.id),conversation.id,'all-open'),/não tem acesso/);
+  await assert.rejects(()=>inbox.messages(agent(b.id),conversation.id,'all-open'),{name:"NotFoundException"});
   await db.departmentMember.create({data:{tenantId,userId:a.id,departmentId:ceeb.id}});
   const second=await db.conversation.create({data:{tenantId,contactId:contact.id,departmentId:ceeb.id,handlingMode:'HUMAN'}});
   assert.equal((await inbox.list(agent(a.id),'team')).length,2);

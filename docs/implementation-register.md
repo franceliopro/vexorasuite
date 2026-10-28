@@ -30,7 +30,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Bot silencioso, filas e eventos restritos à atribuição humana e notificações por destino configuráveis.
 - Testes de isolamento, políticas de senha, acesso por URL e criação concorrente na CI.
 
-## Em implementação: Home de apresentação
+## Entregue no PR #180: Home de apresentação
 - Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
 - Imagem e cor de fundo independentes para desktop/celular; logo pequeno centralizado por padrão.
 - Ajustar, preencher, centralizar, estender, ampliar e lado a lado; prévia, aplicação, edição com clique duplo/toque duplo e exclusão.
@@ -51,7 +51,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 10. Régua configurável D-5, D-3, D0, D+2 e D+5, janela de contato, opt-out, suspensão por pagamento e prévia da cobrança manual.
 11. Completar a matriz de ações por papel além dos módulos; identidade/apelido do atendente e SLA de ociosidade. Visibilidade do bot, negativas individuais e redefinição de senhas estão implementadas nesta entrega.
 12. API de captura e atribuição de leads, formulários e campanhas com proveniência confiável.
-13. Telefonia/SMS e chamadas ao vivo com IA, incluindo mídia e gravação; não confundir eventos de ligação do WhatsApp com suporte a conversar por voz.
+13. Telefonia e chamadas ao vivo com IA retiradas do escopo por decisão do proprietário. SMS existente preservado, sem nova expansão nesta alteração. Áudios em mensagens continuam no atendimento.
 14. Testar GOWS em ambiente separado, conforme solicitado para depois do escopo funcional. Não trocar o motor operacional sem medir compatibilidade e reconexões.
 15. Rate limiting distribuído, retenção, restauração de backup e observabilidade operacional.
 16. Validar cenários reais Google, Zernio, financeiro sandbox, permissões, mobile, teclado/leitor de tela e o piloto Rastreabem.

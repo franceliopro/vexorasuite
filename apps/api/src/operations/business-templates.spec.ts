@@ -1,5 +1,5 @@
 import {BusinessTemplatesController} from './business-templates.controller';
-import {SEGMENTS,templateFlow} from './business-templates';
+import {SEGMENTS,segmentAgentPrompt,templateFlow} from './business-templates';
 import {validateRuntimeFlow} from '../ai/flow-runtime';
 describe('department presets',()=>{
  const req:any={user:{tenantId:'a',role:'OWNER',sub:'owner'}};
@@ -38,6 +38,14 @@ describe('department presets',()=>{
  it('rejects non-admin configuration',async()=>{
  const f=fixture();await expect(f.controller.apply({user:{role:'AGENT'}} as any,{})).rejects.toThrow('administradores');
  expect(f.tx.$queryRaw).not.toHaveBeenCalled();
+ });
+ it('provides a complete, scoped prompt for each business segment',()=>{
+  expect(SEGMENTS.length).toBeGreaterThanOrEqual(25);
+  const aesthetics=segmentAgentPrompt('aesthetics','SUPPORT');
+  expect(aesthetics).toContain('Clínica de estética');
+  expect(aesthetics).toContain('Suporte');
+  expect(aesthetics).toContain('Use somente preços');
+  expect(segmentAgentPrompt('restaurant','SALES')).toContain('Restaurante');
  });
  it.each(SEGMENTS.map(s=>[s.id]))('generates an executable draft for %s after channel selection',(id)=>{
  const flow=templateFlow(id);flow.channelIds=['channel'];

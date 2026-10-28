@@ -9,7 +9,7 @@ import {Prisma} from '@prisma/client';
 import {AuthGuard} from '../auth/auth.guard';
 import {AuthenticatedRequest} from '../auth/auth.types';
 import {PrismaService} from '../prisma/prisma.service';
-import {DEPARTMENT_PRESETS,SEGMENTS,templateFlow} from './business-templates';
+import {DEPARTMENT_PRESETS,SEGMENTS,segmentAgentPrompt,templateFlow} from './business-templates';
 import {pipelineStages} from './departments.controller';
 @Controller('business-templates') @UseGuards(AuthGuard)
 export class BusinessTemplatesController {
@@ -74,7 +74,7 @@ export class BusinessTemplatesController {
    const old=presets[id]||{};
    if(old.bundleVersion===2&&body.activateWorkflow===undefined)continue;
    const spec=DEPARTMENT_PRESETS[target.category as keyof typeof DEPARTMENT_PRESETS];
-   const assignment={name:target.name,departmentId:target.departmentId,departmentKey:target.key,userId:target.userId,preset:target.category,modules:spec.modules,pipelineId:target.pipelineId,segment:segment.name,agentInstructions:segment.guidance};
+   const assignment={name:target.name,departmentId:target.departmentId,departmentKey:target.key,userId:target.userId,preset:target.category,modules:spec.modules,pipelineId:target.pipelineId,segment:segment.name,agentInstructions:segmentAgentPrompt(segment.id, target.category as keyof typeof DEPARTMENT_PRESETS)};
    presets[id]=await materializePresetBundle(tx,{tenantId:req.user.tenantId,actorId:req.user.sub},root,id,assignment,old,body.activateWorkflow);
    if(!flows[id]){
     if(Object.keys(flows).length>=100)throw new BadRequestException('Limite de 100 fluxos atingido.');

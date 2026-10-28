@@ -13,4 +13,6 @@ export class VoiceController {
  transcribe(@Req() req:AuthenticatedRequest,@UploadedFile() file:any,@Body() body:{agentId?:string}){return this.voice.transcribe(req,file,body?.agentId);}
  @Post('speak')
  async speak(@Req() req:AuthenticatedRequest,@Body() body:{text?:string;agentId?:string},@Res() res:Response){const buffer=await this.voice.speak(req,body?.text||'',body?.agentId);res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','private, no-store');res.send(buffer);}
+ @Post('speak-preview')
+ async speakPreview(@Req() req:AuthenticatedRequest,@Body() body:{text?:string;agentId?:string},@Res() res:Response){const buffer=await this.voice.speak(req,body?.text||'',body?.agentId,true);res.setHeader('Content-Type','audio/mpeg');res.setHeader('Cache-Control','private, no-store');res.send(buffer);}
 }

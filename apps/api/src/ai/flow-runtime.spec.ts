@@ -2,6 +2,17 @@ import { RuntimeFlow, renderStep, selectedOption, validateRuntimeFlow } from './
 const flow = (): RuntimeFlow => ({ name: 'Teste', welcome: 'Olá', channelIds: ['channel'], triggers: [{ kind: 'message' }], steps: [{ id: 'menu', title: 'Menu', message: 'Escolha', options: ['Suporte'], transitions: { Suporte: 'human' } }, { id: 'human', title: 'Humano', message: '', options: [], action: 'human.handoff' }] });
 describe('published flow contract', () => {
  it('accepts executable flows',()=>expect(validateRuntimeFlow(flow())).toEqual([]));
+ it('requires an existing-looking pipeline and supported stage for CRM automation',()=>{
+  const f=flow();
+  f.steps[1]!.action='crm.stage.move';
+  f.steps[1]!.kind='crm.stage.move';
+  f.steps[1]!.config=JSON.stringify({pipelineId:'12345678-1234-4234-8234-123456789abc',stage:'qualification'});
+  f.steps[1]!.options=['Continuar'];
+  f.steps[1]!.transitions={Continuar:'human'};
+  expect(validateRuntimeFlow(f)).toEqual([]);
+  f.steps[1]!.config=JSON.stringify({pipelineId:'invalid',stage:'won'});
+  expect(validateRuntimeFlow(f).join()).toContain('pipeline e etapa válidos');
+ });
  it('blocks unsupported skills',()=>{const f=flow();f.steps[1]!.action='asaas.payment.pix';expect(validateRuntimeFlow(f).join()).toContain('ainda não executável');});
  it('rejects dangling transitions',()=>{const f=flow();f.steps[0]!.transitions={Suporte:'missing'};expect(validateRuntimeFlow(f).join()).toContain('destino inválido');});
  it('rejects malformed options without crashing',()=>{const f=flow();f.steps[0]!.options=[null] as any;expect(validateRuntimeFlow(f).length).toBeGreaterThan(0);});

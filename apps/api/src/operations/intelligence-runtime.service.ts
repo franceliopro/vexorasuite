@@ -32,6 +32,7 @@ export class IntelligenceRuntimeService {
   }
   /** Atomic state + outbox + audit under a database lock, shared by every API replica. */
   async receive(channel: ChannelConnection, conversationId: string, messageId: string): Promise<boolean> {
+    let crmStageChange: { id: string; pipelineId: string; stage: string } | null = null;
     const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${conversationId}::uuid AND tenant_id = ${channel.tenantId}::uuid FOR UPDATE`;
       const conversation = await tx.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
@@ -233,6 +234,43 @@ export class IntelligenceRuntimeService {
             }
             step = undefined as unknown as RuntimeStep; break;
           }
+          if (type === 'crm.stage.move') {
+            if (!conversation.departmentId) {
+              reason = 'crm_stage_move_unavailable';
+              messages.push('Vou encaminhar sua solicitação à equipe para que ela continue por aqui.');
+              await handoff();
+              step = undefined as unknown as RuntimeStep;
+              break;
+            }
+            const pipeline = await tx.crmPipeline.findFirst({
+              where: {
+                id: config.pipelineId,
+                tenantId: channel.tenantId,
+                enabled: true,
+                departmentId: conversation.departmentId,
+              },
+              select: { id: true, departmentId: true, stages: true },
+            });
+            const stageAllowed = Array.isArray(pipeline?.stages) && pipeline.stages.some((item: any) => item && item.id === config.stage && ['new','qualification','proposal'].includes(item.id));
+            const latestContact = await lockedContact(tx, channel.tenantId, conversation.contactId);
+            const profile = contactMetadata(latestContact.metadata);
+            const conflict = !!profile.crmFinalization || !!profile.crmRemoved || (!!latestContact.pipelineId && latestContact.pipelineId !== pipeline?.id);
+            if (!pipeline || !stageAllowed || conflict) {
+              reason = 'crm_stage_move_unavailable';
+              messages.push('Vou encaminhar sua solicitação à equipe para que ela continue por aqui.');
+              await handoff();
+              step = undefined as unknown as RuntimeStep;
+              break;
+            }
+            await tx.contact.update({
+              where: { id: conversation.contactId },
+              data: { pipelineId: pipeline.id, metadata: { ...profile, crmStage: config.stage } },
+            });
+            crmStageChange = { id: conversation.contactId, pipelineId: pipeline.id, stage: config.stage! };
+            skills.push('crm.stage.move');
+            step = findStep(step.transitions?.[step.options[0]!]);
+            continue;
+          }
           if (type === 'tag') {
             const latestContact = await lockedContact(tx, channel.tenantId, conversation.contactId);
             const profile = contactMetadata(latestContact.metadata);
@@ -261,6 +299,7 @@ export class IntelligenceRuntimeService {
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });
+    if (crmStageChange) this.events.publish(channel.tenantId, 'contact.stage_changed', crmStageChange);
     if('assigned' in result&&result.assigned)this.events.publish(channel.tenantId,'conversation.assigned',{id:conversationId});
     return result.handled;
   }

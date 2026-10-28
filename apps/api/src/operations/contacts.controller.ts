@@ -205,7 +205,7 @@ export class ContactsController {
       if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
       return { ...metadata, crmStage: input.stage! };
     });
-    this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, stage: input.stage });
+    this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, pipelineId: updated.pipelineId, stage: input.stage });
     return { ...updated, crmStage: input.stage };
   }
 

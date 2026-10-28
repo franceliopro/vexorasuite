@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 type Connection = { provider: string; configured: boolean; source: 'tenant' | 'server' | null; needsRepair: boolean };
-const labels: Record<string,string> = { openrouter: 'OpenRouter · modelos de IA', openai: 'OpenAI · modelos e voz', brave: 'Brave Search · pesquisa na internet' };
+const labels: Record<string,string> = { openrouter: 'OpenRouter · modelos de IA', openai: 'OpenAI · modelos e voz', gemini: 'Google Gemini', anthropic: 'Claude · Anthropic', deepseek: 'DeepSeek', qwen: 'Qwen · Alibaba Cloud (Singapura)', brave: 'Brave Search · pesquisa na internet' };
 
 export function ProviderConnections() {
   const [connections,setConnections] = useState<Connection[] | null>(null);

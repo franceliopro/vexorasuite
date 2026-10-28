@@ -43,11 +43,11 @@ function contactFieldSummary(contact: Contact, definitions: CrmFieldDefinition[]
   return definitions.map(field => ({ field, value: values[field.key] })).filter(item => item.value !== undefined && item.value !== null && item.value !== "").slice(0, 3);
 }
 
-const stages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
+const defaultStages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
   { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
   { id: "qualification", label: "Qualificação", hint: "Entenda a oportunidade", tone: "blue" },
   { id: "proposal", label: "Proposta", hint: "Em negociação", tone: "amber" },
-  { id: "finalization", label: "Finalização", hint: "Registrar o resultado comercial", tone: "green" },
+  { id: "finalization", label: "Finalização", hint: "Registrar o resultado", tone: "green" },
 ];
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -61,6 +61,10 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
+  const [pipelines,setPipelines]=useState<any[]>([]),[pipelineId,setPipelineId]=useState(''),[pipelineReady,setPipelineReady]=useState(false),[isAdmin,setIsAdmin]=useState(false);
+  const salesPipeline=!pipelineId||pipelines.find(p=>p.id===pipelineId)?.template==='SALES';
+  const stages=(pipelines.find(p=>p.id===pipelineId)?.stages||defaultStages) as typeof defaultStages;
+  useEffect(()=>{void Promise.all([api<any>('/api/backend/crm/pipelines'),api<any>('/api/backend/auth/me')]).then(([data,me])=>{const admin=['OWNER','ADMIN'].includes(me.role);setIsAdmin(admin);setPipelines(data.pipelines);setPipelineId(data.pipelines[0]?.id||'');setPipelineReady(true);}).catch(e=>{setError(e.message);setPipelineReady(true)});},[]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [fieldDefinitions, setFieldDefinitions] = useState<CrmFieldDefinition[]>([]);
   const [query, setQuery] = useState("");
@@ -86,10 +90,13 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
   const lossReasons = ["Preço/Condição", "Sem interesse", "Sem retorno", "Concorrência", "Inatividade"];
 
   const loadContacts = useCallback(async (search: string) => {
+    if(!pipelineReady)return;
+    if(!pipelineId&&!isAdmin){setContacts([]);setLoading(false);return;}
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
+      if(pipelineId)params.set("pipelineId",pipelineId);
       if (search.trim()) params.set("q", search.trim());
       setContacts(await api<Contact[]>("/api/backend/contacts" + (params.size ? "?" + params.toString() : "")));
     } catch (cause) {
@@ -97,7 +104,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pipelineId,pipelineReady,isAdmin]);
 
   useEffect(() => { void loadContacts(initialSearch);if(initialSearch){setQuery(initialSearch);setView("contacts")} void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(!initialSearch&&new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts,initialSearch]);
 
@@ -106,7 +113,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     if (!name.trim()) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      const created = await api<Contact>("/api/backend/contacts", {
+      const created = await api<Contact>("/api/backend/contacts"+(pipelineId?"?pipelineId="+pipelineId:""), {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined, email: email.trim() || undefined, source: leadOrigin || undefined }),
       });
@@ -180,7 +187,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
         <div><h1>CRM</h1><p>Acompanhe cada oportunidade e mova os contatos pelo funil comercial.</p></div>
       </header>
 
-      <div className="crm-toolbar">
+      <div className="crm-pipeline-selector"><label>CRM do departamento<select value={pipelineId} onChange={e=>setPipelineId(e.target.value)}>{isAdmin&&<option value="">Todos os contatos · administração</option>}{pipelines.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>{!pipelines.length&&<small>{isAdmin?'Ative o CRM nos setores em Atendentes → Setores e permissões.':'Nenhum CRM está habilitado para seu perfil e departamento.'}</small>}</div><div className="crm-toolbar">
         <div className="crm-view-switch" role="tablist" aria-label="Visualização do CRM">
           <button role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "active" : ""} onClick={() => setView("pipeline")}><LayoutGrid size={15}/> Pipeline</button>
           <button role="tab" aria-selected={view === "customers"} className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><UsersRound size={15}/> Clientes <span className="crm-tab-count">{contacts.filter(isCustomer).length}</span></button>
@@ -245,7 +252,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
         </section>;
       })()}
 
-      {finalizingContact ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !movingId) setFinalizingContact(null); }}><section ref={modalRef} tabIndex={-1} className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="crm-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={!!movingId} onClick={() => setFinalizingContact(null)}><X size={18}/></button><span className="finalization-icon"><Check size={22}/></span><h2 id="crm-finalization-title">Finalizar oportunidade</h2><p>Qual foi o resultado comercial de <strong>{finalizingContact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalOutcome("WON"); setLossReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Converter lead em cliente</small></span></button><button type="button" className={finalOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={lossReason} onChange={(event) => setLossReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A finalização remove o contato do Kanban e encerra as conversas abertas. O histórico permanece em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={!!movingId} onClick={() => setFinalizingContact(null)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalOutcome || (finalOutcome === "LOST" && !lossReason) || !!movingId} onClick={() => void confirmFinalization()}>{movingId ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
+      {finalizingContact ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !movingId) setFinalizingContact(null); }}><section ref={modalRef} tabIndex={-1} className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="crm-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={!!movingId} onClick={() => setFinalizingContact(null)}><X size={18}/></button><span className="finalization-icon"><Check size={22}/></span><h2 id="crm-finalization-title">Finalizar oportunidade</h2><p>Qual foi o resultado comercial de <strong>{finalizingContact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalOutcome("WON"); setLossReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Concluir o item</small></span></button><button type="button" className={finalOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={lossReason} onChange={(event) => setLossReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A finalização remove o contato do Kanban e encerra as conversas abertas. O histórico permanece em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={!!movingId} onClick={() => setFinalizingContact(null)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalOutcome || (finalOutcome === "LOST" && !lossReason) || !!movingId} onClick={() => void confirmFinalization()}>{movingId ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
     </section>
   );
 }

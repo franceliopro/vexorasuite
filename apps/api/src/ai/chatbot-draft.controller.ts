@@ -6,7 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 
 type DraftStep = { action?: "asaas.customer.lookup" | "asaas.payment.lookup" | "asaas.payment.pix" | "asaas.payment.boleto" | "human.handoff"; kind?: string; config?: string; id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
 type Draft = { name:string; welcome:string; steps:DraftStep[]; channelIds?:string[]; triggers?:{kind:"message"|"dm"|"keyword";keyword?:string}[] };
-function validDraft(value: unknown): value is Draft {
+export function validDraft(value: unknown): value is Draft {
  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
  const v=value as Partial<Draft>;
  if (typeof v.name!=="string" || !v.name.trim() || v.name.length>120 || typeof v.welcome!=="string" || v.welcome.length>4000 || !Array.isArray(v.steps) || v.steps.length>100) return false;
@@ -47,4 +47,5 @@ export class ChatbotDraftController {
   return {saved:true,draftOnly:true};
  }
 }
+
 

@@ -1,3 +1,5 @@
+import {accessiblePipeline,contactPipelineAccess} from './crm-pipelines.controller';
+import {administrative} from '../auth/module-policy';
 import { contactMetadata, lockedContact, mutateContactMetadata } from "../prisma/contact-metadata";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
@@ -32,11 +34,13 @@ export class ContactsController {
   ) {}
 
   @Get()
-  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string) {
+  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string,@Query("pipelineId") pipelineId?:string) {
     const q = query?.trim();
+    if(pipelineId)await accessiblePipeline(this.prisma,request,pipelineId);else if(!administrative(request.user.role))throw new ForbiddenException('Selecione um CRM permitido.');
     const contacts = await this.prisma.contact.findMany({
       where: {
         tenantId: request.user.tenantId,
+        ...(pipelineId?{pipelineId}:{}),
         ...(q ? {
           OR: [
             { name: { contains: q, mode: "insensitive" as const } },
@@ -48,9 +52,10 @@ export class ContactsController {
       orderBy: { updatedAt: "desc" },
       take: 100,
     });
-    return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
+    return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: contact.pipelineId ? (metadata.crmFinalization?null:typeof metadata.crmStage==='string'&&['new','qualification','proposal'].includes(metadata.crmStage)?metadata.crmStage:'new') : readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
   }
 
+  @Patch(':id/pipeline') async movePipeline(@Req() request:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:{pipelineId?:string}){if(!administrative(request.user.role))throw new ForbiddenException('Somente a administração move contatos entre CRMs.');await contactPipelineAccess(this.prisma,request,id);const pipeline=await accessiblePipeline(this.prisma,request,input.pipelineId||'');return this.prisma.contact.update({where:{id},data:{pipelineId:pipeline.id}});}
   @Get("brand-settings")
   async brandSettings(@Req() request: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
@@ -146,6 +151,7 @@ export class ContactsController {
 
   @Get(":id/history")
   async history(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await contactPipelineAccess(this.prisma,request,id);
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
     return this.prisma.conversation.findMany({ where: { contactId: contact.id, tenantId: request.user.tenantId }, select: { id: true, status: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 50 });
@@ -153,6 +159,7 @@ export class ContactsController {
 
   @Patch(":id/profile")
   async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown; novo_nome?: unknown; birthDate?:unknown;partnershipDate?:unknown }) {
+    await contactPipelineAccess(this.prisma,request,id);
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
     for(const key of ['birthDate','partnershipDate'] as const){const value=input[key];if(value!==undefined&&(typeof value!=='string'||value!==''&&(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T12:00:00Z'))||new Date(value+'T12:00:00Z').toISOString().slice(0,10)!==value)))throw new BadRequestException('Data inválida.');}
     if(input.novo_nome!==undefined&&(typeof input.novo_nome!=='string'||input.novo_nome.length>80||input.novo_nome.trim()&&!/^[\p{L}][\p{L} .’'-]{1,79}$/u.test(input.novo_nome.trim())))throw new BadRequestException('Nome de preferência inválido.');
@@ -191,6 +198,7 @@ export class ContactsController {
 
   @Patch(":id/stage")
   async updateStage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { stage?: string }) {
+    await contactPipelineAccess(this.prisma,request,id);
     if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida. Para finalizar, registre o resultado comercial.");
     const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, metadata => {
       if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
@@ -203,6 +211,9 @@ export class ContactsController {
 
   @Post(":id/finalize")
   async finalize(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { outcome?: string; reason?: string }) {
+    await contactPipelineAccess(this.prisma,request,id);
+    const record=await this.prisma.contact.findFirstOrThrow({where:{id,tenantId:request.user.tenantId},select:{pipeline:{select:{template:true}}}});
+    if(record.pipeline&&record.pipeline.template!=='SALES'){if(!['WON','LOST'].includes(input.outcome||''))throw new BadRequestException('Selecione o resultado.');const contact=await mutateContactMetadata(this.prisma,request.user.tenantId,id,m=>({...m,crmFinalization:{outcome:input.outcome,reason:typeof input.reason==='string'?input.reason.slice(0,200):'',finalizedAt:new Date().toISOString(),kind:'DEPARTMENT'}}));this.events.publish(request.user.tenantId,'contact.updated',{id});return {contact,finalizedConversations:0};}
     const tenantId = request.user.tenantId;
     const outcome = typeof input.outcome === "string" ? input.outcome.toUpperCase() : "";
     if (outcome !== "WON" && outcome !== "LOST") throw new BadRequestException("Escolha se o resultado foi ganho ou perda.");
@@ -247,10 +258,12 @@ export class ContactsController {
   }
 
   @Post()
-  async create(@Req() request: AuthenticatedRequest, @Body() input: CreateContactDto) {
+  async create(@Req() request: AuthenticatedRequest, @Body() input: CreateContactDto,@Query("pipelineId") pipelineId?:string) {
+    if(pipelineId)await accessiblePipeline(this.prisma,request,pipelineId);else if(!administrative(request.user.role))throw new ForbiddenException("Selecione um CRM permitido.");
     const contact = await this.prisma.contact.create({
       data: {
         tenantId: request.user.tenantId,
+        ...(pipelineId?{pipelineId}:{}),
         name: input.name.trim(),
         phone: input.phone?.trim() || null,
         email: input.email?.trim().toLowerCase() || null,

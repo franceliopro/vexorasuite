@@ -8,6 +8,7 @@
     ],
     "allowJs": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "incremental": true,
     "jsx": "preserve",
     "plugins": [
@@ -32,3 +33,4 @@
     "node_modules"
   ]
 }
+

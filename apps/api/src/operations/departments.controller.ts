@@ -1,85 +1,269 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Put, Req, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
-
-const DEFAULT_DEPARTMENTS = [
-  { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "nota fiscal", "reembolso", "cobrança"] },
-  { key: "COMERCIAL", name: "Comercial (Vendas)", keywords: ["preço", "preco", "orçamento", "orcamento", "comprar", "venda", "plano"] },
-  { key: "SUPORTE", name: "Suporte", keywords: ["problema", "erro", "ajuda", "suporte", "não funciona", "nao funciona"] },
-  { key: "ADMINISTRATIVO", name: "Administrativo", keywords: ["documento", "contrato", "cadastro", "administrativo"] },
-];
-
+import { administrative, moduleSelection } from "../auth/module-policy";
+import { EventsService } from "./events.service";
+export const PIPELINE_TEMPLATES = {
+  GENERAL: ["Novos", "Em andamento", "Aguardando retorno", "Finalização"],
+  FINANCE: ["Solicitações", "Em análise", "Em negociação", "Finalização"],
+  SUPPORT: ["Novos chamados", "Diagnóstico", "Em solução", "Finalização"],
+  SALES: ["Novos", "Qualificação", "Proposta", "Finalização"],
+};
+export function pipelineStages(template: keyof typeof PIPELINE_TEMPLATES) {
+  return ["new", "qualification", "proposal", "finalization"].map((id, i) => ({
+    id,
+    label: PIPELINE_TEMPLATES[template][i],
+    tone: ["violet", "blue", "amber", "green"][i],
+  }));
+}
 @Controller("departments")
 @UseGuards(AuthGuard)
 export class DepartmentsController {
-  constructor(private readonly prisma: PrismaService) {}
-
-  @Get()
-  async list(@Req() request: AuthenticatedRequest) {
-    const tenantId = request.user.tenantId;
-    for (const department of DEFAULT_DEPARTMENTS) {
-      await this.prisma.department.upsert({
-        where: { tenantId_key: { tenantId, key: department.key } },
-        create: { tenantId, ...department },
-        update: {},
-      });
-    }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsService,
+  ) {}
+  private admin(req: AuthenticatedRequest) {
+    if (!administrative(req.user.role))
+      throw new ForbiddenException(
+        "Somente administradores configuram setores e permissões.",
+      );
+  }
+  @Get() async list(@Req() req: AuthenticatedRequest) {
     return this.prisma.department.findMany({
-      where: { tenantId },
-      select: { id: true, key: true, name: true, keywords: true, isActive: true },
+      where: {
+        tenantId: req.user.tenantId,
+        ...(!administrative(req.user.role)
+          ? { id: { in: req.user.departmentIds || [] }, isActive: true }
+          : {}),
+      },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        keywords: true,
+        isActive: true,
+        modules: true,
+        routingCategory: true,
+        routingPlatform: true,
+        pipeline: {
+          select: { id: true, name: true, template: true, enabled: true },
+        },
+      },
       orderBy: { name: "asc" },
     });
   }
-
-  @Patch(":id")
-  async update(
-    @Req() request: AuthenticatedRequest,
+  private fields(input: any, creating = false) {
+    const data: any = {};
+    for (const [k, max] of [
+      ["name", 80],
+      ["key", 40],
+      ["routingPlatform", 80],
+    ] as const)
+      if (input[k] !== undefined) {
+        if (typeof input[k] !== "string" || input[k].length > max)
+          throw new BadRequestException("Campo de setor inválido.");
+        data[k] = input[k].trim() || null;
+      }
+    if (creating && (!data.name || !data.key))
+      throw new BadRequestException("Informe nome e chave do setor.");
+    if (data.key && !/^[A-Z0-9_-]+$/.test(data.key))
+      throw new BadRequestException(
+        "Use uma chave com letras maiúsculas, números e sublinhado.",
+      );
+    if (input.modules !== undefined) {
+      try {
+        data.modules = moduleSelection(input.modules);
+      } catch {
+        throw new BadRequestException("Seleção de módulos inválida.");
+      }
+    }
+    if (input.isActive !== undefined) {
+      if (typeof input.isActive !== "boolean")
+        throw new BadRequestException("Estado inválido.");
+      data.isActive = input.isActive;
+    }
+    if (input.routingCategory !== undefined) {
+      if (
+        !["FINANCE", "SUPPORT", "SALES", "ADMIN", "OTHER"].includes(
+          input.routingCategory,
+        )
+      )
+        throw new BadRequestException("Finalidade inválida.");
+      data.routingCategory = input.routingCategory;
+    }
+    if (input.keywords !== undefined) {
+      if (
+        !Array.isArray(input.keywords) ||
+        input.keywords.length > 50 ||
+        input.keywords.some((s: any) => typeof s !== "string" || s.length > 60)
+      )
+        throw new BadRequestException("Palavras-chave inválidas.");
+      data.keywords = input.keywords
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+    }
+    return data;
+  }
+  private async save(req: AuthenticatedRequest, input: any, id?: string) {
+    this.admin(req);
+    const data = this.fields(input, !id);
+    if (
+      input.crmTemplate &&
+      !Object.hasOwn(PIPELINE_TEMPLATES, input.crmTemplate)
+    )
+      throw new BadRequestException("Modelo de CRM inválido.");
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;
+      const old = id
+        ? await tx.department.findFirst({
+            where: { id, tenantId: req.user.tenantId },
+          })
+        : null;
+      if (id && !old)
+        throw new BadRequestException("Setor não encontrado nesta empresa.");
+      const row = old
+        ? await tx.department.update({ where: { id: old.id }, data })
+        : await tx.department.create({
+            data: { tenantId: req.user.tenantId, ...data },
+          });
+      if (row.modules.includes("CRM")) {
+        const template = input.crmTemplate || "GENERAL";
+        await tx.crmPipeline.upsert({
+          where: { departmentId: row.id },
+          create: {
+            tenantId: req.user.tenantId,
+            departmentId: row.id,
+            name: "CRM · " + row.name,
+            template,
+            stages: pipelineStages(template),
+            enabled: row.isActive,
+          },
+          update: {
+            name: "CRM · " + row.name,
+            enabled: row.isActive,
+            ...(input.crmTemplate
+              ? { template, stages: pipelineStages(template) }
+              : {}),
+          },
+        });
+      } else
+        await tx.crmPipeline.updateMany({
+          where: { tenantId: req.user.tenantId, departmentId: row.id },
+          data: { enabled: false },
+        });
+      await tx.auditLog.create({
+        data: {
+          tenantId: req.user.tenantId,
+          userId: req.user.sub,
+          action: "department.configured",
+          entityType: "department",
+          entityId: row.id,
+          details: { modules: row.modules, isActive: row.isActive },
+        },
+      });
+      return row;
+    });
+    this.events.publish(req.user.tenantId, "team.updated", {
+      departmentId: result.id,
+    });
+    return result;
+  }
+  @Post() create(@Req() req: AuthenticatedRequest, @Body() input: any) {
+    return this.save(req, input || {});
+  }
+  @Patch(":id") update(
+    @Req() req: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() input: { isActive?: unknown; name?: unknown; keywords?: unknown },
+    @Body() input: any,
   ) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem alterar departamentos.");
-    const department = await this.prisma.department.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
-    if (!department) throw new BadRequestException("Departamento não encontrado nesta empresa.");
-    const data: { isActive?: boolean; name?: string; keywords?: string[] } = {};
-    if (typeof input.isActive === "boolean") data.isActive = input.isActive;
-    if (typeof input.name === "string" && input.name.trim()) data.name = input.name.trim().slice(0, 80);
-    if (Array.isArray(input.keywords)) data.keywords = input.keywords.filter((value): value is string => typeof value === "string").map((value) => value.trim().slice(0, 60)).filter(Boolean).slice(0, 50);
-    return this.prisma.department.update({ where: { id }, data });
+    return this.save(req, input || {}, id);
   }
-
-  @Get(":id/members")
-  async members(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
-    const department = await this.prisma.department.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
-    if (!department) throw new BadRequestException("Departamento não encontrado nesta empresa.");
-    const rows = await this.prisma.departmentMember.findMany({ where: { tenantId: request.user.tenantId, departmentId: id }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { user: { name: "asc" } } });
-    return rows.map((row) => row.user);
+  @Delete(":id") remove(
+    @Req() req: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.save(req, { isActive: false, modules: [] }, id);
   }
-
-  @Put(":id/members")
-  async setMembers(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userIds") userIds: unknown) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem alterar os membros de uma equipe.");
-    const department = await this.prisma.department.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
-    if (!department) throw new BadRequestException("Departamento não encontrado nesta empresa.");
-    if (!Array.isArray(userIds) || userIds.some((value) => typeof value !== "string")) throw new BadRequestException("Informe a lista de atendentes da equipe.");
-    const ids = [...new Set(userIds as string[])];
-    if (ids.length > 200) throw new BadRequestException("A equipe ultrapassa o limite de atendentes.");
-    const members = ids.length ? await this.prisma.membership.findMany({ where: { tenantId: request.user.tenantId, userId: { in: ids }, user: { isActive: true } }, select: { userId: true } }) : [];
-    if (members.length !== ids.length) throw new BadRequestException("Um ou mais atendentes não pertencem a esta empresa.");
-    await this.prisma.$transaction([
-      this.prisma.departmentMember.deleteMany({ where: { tenantId: request.user.tenantId, departmentId: id } }),
-      ...(ids.length ? [this.prisma.departmentMember.createMany({ data: ids.map((userId) => ({ tenantId: request.user.tenantId, departmentId: id, userId })) })] : []),
-    ]);
-    return this.members(request, id);
+  @Get(":id/members") async members(
+    @Req() req: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    this.admin(req);
+    if (
+      !(await this.prisma.department.findFirst({
+        where: { id, tenantId: req.user.tenantId },
+      }))
+    )
+      throw new BadRequestException("Setor não encontrado nesta empresa.");
+    return (
+      await this.prisma.departmentMember.findMany({
+        where: { tenantId: req.user.tenantId, departmentId: id },
+        select: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { user: { name: "asc" } },
+      })
+    ).map((r) => r.user);
   }
-
-  @Post()
-  async create(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; key?: unknown; keywords?: unknown }) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem criar departamentos.");
-    const name = typeof input.name === "string" ? input.name.trim().slice(0, 80) : "";
-    const key = typeof input.key === "string" ? input.key.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 40) : "";
-    const keywords = Array.isArray(input.keywords) ? input.keywords.filter((value): value is string => typeof value === "string").map((value) => value.trim().slice(0, 60)).filter(Boolean).slice(0, 50) : [];
-    if (!name || !key) throw new BadRequestException("Informe o nome e a chave do departamento.");
-    return this.prisma.department.create({ data: { tenantId: request.user.tenantId, name, key, keywords } });
+  @Put(":id/members") async setMembers(
+    @Req() req: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body("userIds") ids: unknown,
+  ) {
+    this.admin(req);
+    if (
+      !Array.isArray(ids) ||
+      ids.length > 200 ||
+      ids.some((x) => typeof x !== "string")
+    )
+      throw new BadRequestException("Selecione atendentes válidos.");
+    const userIds = [...new Set(ids)];
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM departments WHERE id=${id}::uuid AND tenant_id=${req.user.tenantId}::uuid FOR UPDATE`;
+      if (
+        !(await tx.department.findFirst({
+          where: { id, tenantId: req.user.tenantId },
+        })) ||
+        (await tx.membership.count({
+          where: {
+            tenantId: req.user.tenantId,
+            userId: { in: userIds },
+            user: { isActive: true },
+          },
+        })) !== userIds.length
+      )
+        throw new BadRequestException(
+          "Setor ou atendente não pertence à empresa.",
+        );
+      await tx.departmentMember.deleteMany({
+        where: { tenantId: req.user.tenantId, departmentId: id },
+      });
+      if (userIds.length)
+        await tx.departmentMember.createMany({
+          data: userIds.map((userId) => ({
+            tenantId: req.user.tenantId,
+            departmentId: id,
+            userId,
+          })),
+        });
+    });
+    this.events.publish(req.user.tenantId, "team.updated", {
+      departmentId: id,
+    });
+    return this.members(req, id);
   }
 }

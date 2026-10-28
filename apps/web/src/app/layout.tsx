@@ -5,6 +5,7 @@ import "./theme-system.css";
 import "./workspace-refinements.css";
 import "./mobile-app.css";
 import "./interface-system.css";
+import "./mobile-scroll.css";
 
 export const metadata: Metadata = {
   title: "Véxora Suite",
@@ -31,4 +32,5 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     </html>
   );
 }
+
 

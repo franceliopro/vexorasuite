@@ -33,6 +33,7 @@ const triggers: Record<string, string> = {
 };
 type Step = { type: string; text: string; minutes: number };
 export function WorkflowsWorkspace() {
+  const [agents,setAgents]=useState<any[]>([]),[assigneeId,setAssigneeId]=useState("");
   const [tab, setTab] = useState("routines"),
     [data, setData] = useState<any>({ workflows: [], runs: [] }),
     [channels, setChannels] = useState<any[]>([]),
@@ -58,6 +59,7 @@ export function WorkflowsWorkspace() {
   }
   useEffect(() => {
     void load().catch((e) => setNotice(e.message));
+    void fetch("/api/backend/team").then(r=>r.ok?r.json():[]).then(d=>setAgents(Array.isArray(d)?d:[])).catch(()=>{});
     void Promise.all([
       fetch("/api/backend/channels").then((r) => r.json()),
       fetch("/api/backend/departments").then((r) => r.json()),
@@ -113,6 +115,7 @@ export function WorkflowsWorkspace() {
     );
     setChannelId(row?.filters?.channelId || "");
     setDepartmentId(row?.filters?.departmentId || "");
+    setAssigneeId(row?.filters?.assigneeId || "");
     setStage(row?.filters?.stage || "proposal");
     setStopOnReply(row?.filters?.stopOnReply !== false);
     setEditing(true);
@@ -167,6 +170,7 @@ export function WorkflowsWorkspace() {
                 filters: {
                   channelId: channelId || undefined,
                   departmentId: departmentId || undefined,
+                  assigneeId: trigger==="QUEUE"?undefined:assigneeId||undefined,
                   stage,
                   stopOnReply,
                 },
@@ -281,14 +285,14 @@ export function WorkflowsWorkspace() {
                   ))}
                 </select>
               </label>
-              {trigger === "QUEUE" && (
+              {trigger !== "SCHEDULE" && (
                 <label>
                   Fila
                   <select
                     value={departmentId}
-                    onChange={(e) => setDepartmentId(e.target.value)}
+                    onChange={(e) => {setDepartmentId(e.target.value);setAssigneeId("");}}
                   >
-                    <option value="">Todas as filas sem responsável</option>
+                    <option value="">Todos os departamentos</option>
                     {departments.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
@@ -297,6 +301,7 @@ export function WorkflowsWorkspace() {
                   </select>
                 </label>
               )}
+              {trigger!=="QUEUE"&&trigger!=="SCHEDULE"&&<label>Atendente<select value={assigneeId} onChange={e=>setAssigneeId(e.target.value)}><option value="">Todos os atendentes do contexto</option>{agents.filter(a=>!departmentId||a.departmentIds?.includes(departmentId)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}
               {trigger === "STAGE" && (
                 <label>
                   Etapa do CRM
@@ -543,3 +548,4 @@ export function WorkflowsWorkspace() {
     </section>
   );
 }
+

@@ -625,7 +625,7 @@ export class AsaasService {
 
   async openDebts(tenantId: string, document: string, whatsappPhone?: string): Promise<{ name: string; environment: string; debts: AsaasDebt[] }> {
     const doc = this.digits(document);
-    if (!this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido. Digite somente números.");
+    if (!this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido. Confira os dígitos do documento. Pontos, traços e espaços são aceitos.");
     const credentials = await this.credentials(tenantId);
     const customers = await this.request<{ data?: Array<{ id: string; name: string; cpfCnpj: string; phone?: string; mobilePhone?: string }> }>(tenantId, "/customers?cpfCnpj=" + encodeURIComponent(doc) + "&limit=100");
     const found = (customers.data || []).filter((customer) => this.digits(customer.cpfCnpj) === doc).slice(0, 10);

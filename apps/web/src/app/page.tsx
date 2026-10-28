@@ -6,7 +6,8 @@ import { brandTextColor } from "../lib/tenant-cache";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
 import { WorkspaceAlerts } from "./workspace-alerts";
-import { ProfilePhotoEditor } from "./profile-photo-editor";
+import { SidebarProfile } from "./sidebar-profile";
+const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AuthScreen, type AuthSession } from "./auth-screen";
@@ -39,6 +40,7 @@ import {
   ListTodo,
   UsersRound,
   Share2,
+  Download, CircleHelp,
   MoreHorizontal,
 } from "lucide-react";
 
@@ -94,7 +96,7 @@ export default function HomePage() {
         if (!response.ok) throw new Error("not authenticated");
         return response.json();
       })
-      .then((value) => { if (mounted) { setSession(value); setAuthStatus("authenticated"); } })
+      .then((value) => { if (mounted) { setSession(value); setAuthStatus("authenticated"); void refreshProfile(); } })
       .catch(() => { if (mounted) setAuthStatus("anonymous"); });
     return () => { mounted = false; };
   }, []);
@@ -106,7 +108,7 @@ export default function HomePage() {
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
-    const validModules = new Set(navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)])));
+    const validModules = new Set(["Atendentes",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Gestão") setActive("Financeiro");
@@ -184,6 +186,8 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
+  const moduleForLabel:Record<string,string>={'Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleVisible=(label:string)=>['OWNER','ADMIN'].includes(session?.role||'')||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const isHome = active === "Visão geral";
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
@@ -199,11 +203,11 @@ export default function HomePage() {
     <div className="suite-app">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="sidebar-brand-row"><a className="brand" href="#" onClick={(event) => { event.preventDefault(); setActive("Visão geral"); }}>
-          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
+          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+((theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?"has-custom-logo ":"")+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a><button className="sidebar-collapse" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"} title={sidebarCollapsed ? "Expandir menu · Alt+M" : "Recolher menu · Alt+M"}><Icon name={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} /></button></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => (!["Financeiro","Marketing"].includes(item.label) || canManage) && (!["Configurações","Canais e integrações","Automação"].includes(item.label) || canConfigure));
+            const visibleItems = group.items.filter((item) => moduleVisible(item.label) && (!["Financeiro","Marketing"].includes(item.label) || canManage) && (!["Configurações","Canais e integrações","Automação"].includes(item.label) || canConfigure));
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
@@ -222,16 +226,15 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu">{item.children.map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onClick={() => { setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onClick={() => { setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
                 </div>;
               })}
             </div>;
           })}
         </nav>
         <div className="sidebar-bottom">
-          <button type="button" className="install-sidebar" onClick={()=>{setMenuOpen(false);window.dispatchEvent(new Event('vexora:install'));}}>↓ Instalar Véxora</button>
-          <div className="help-card"><span className="help-icon">?</span><div><strong>Precisa de ajuda?</strong><small>Consulte a central de suporte</small></div><span className="help-arrow">↗</span></div>
-          <ProfilePhotoEditor onUpdated={refreshProfile}/><div className="profile-row"><span className="profile-avatar">{session?.user.avatarUrl?<img src={session.user.avatarUrl} alt="Minha foto"/>:(session?.user.name || "V").slice(0, 2).toUpperCase()}</span><span className="profile-copy"><strong>{session?.user.name || "Usuário"}</strong><small>{session?.user.email || ""}</small></span></div>
+          <div className="sidebar-utilities"><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button><details className="sidebar-help"><summary className="sidebar-icon" aria-label="Ajuda" title="Ajuda"><CircleHelp size={18}/></summary><div><strong>Precisa de ajuda?</strong><p>Consulte as configurações dos canais ou peça orientação no assistente Véxora.</p><button className="text-button" onClick={()=>setAssistantOpen(true)}>Abrir assistente</button></div></details></div>
+          {session&&<SidebarProfile user={session.user} canManage={canManage} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
         </div>
       </aside>
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
@@ -290,6 +293,8 @@ export default function HomePage() {
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":active==="Postagens"?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+          ) : active === "Atendentes" ? (
+            canManage ? <TeamWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (
             canManage ? <MailWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Workflows" ? (

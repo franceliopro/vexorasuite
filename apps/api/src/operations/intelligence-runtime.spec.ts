@@ -112,3 +112,54 @@ describe('persistent preferred name',()=>{
  it('accepts keeping the current name and remembers it across a fresh conversation',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',awaitingName:true}});x.conversation.contact.metadata={};x.inbound.content='sim';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.contact.update).toHaveBeenCalledWith(expect.objectContaining({data:{metadata:{novo_nome:'Ana'}}}));const y=setup();await y.service.receive(y.channel,'conversation','inbound');expect(y.tx.message.create.mock.calls.some((call:any)=>call[0].data.content.includes('Como gostaria'))).toBe(false)});
  it('normalizes document variables before the next step uses them',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'doc',variables:{}}});x.flow.steps=[{id:'doc',kind:'input.text',message:'CPF',title:'CPF',options:['Continuar'],transitions:{Continuar:'done'},config:'{"variable":"cpf"}'},{id:'done',kind:'text',message:'Recebido',title:'Fim',options:[]}];x.inbound.content='012.345.678-90';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.cpf).toBe('01234567890')});
 });
+
+describe('department and attendant publications in the message engine',()=>{
+ function scoped(overrides:any={}){
+ const x=setup({departmentId:'link',assigneeId:null,...overrides});
+ const publications:any={'department:link':{...x.published,revision:'link-r1',flow:{...structuredClone(x.flow),welcome:'Financeiro Link'}}};
+ const root:any={intelligencePublished:x.published,intelligencePublications:publications};
+ const queued=new Map<string,any>();
+ x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:'Empresa',integrations:root});
+ x.prisma.tenant.findUnique.mockResolvedValue({integrations:root});
+ x.tx.department.findFirst.mockImplementation(async({where}:any)=>({id:where.id||'link',key:where.key||'LINK',name:'Financeiro Link',routingCategory:'FINANCE'}));
+ x.tx.membership={findFirst:jest.fn().mockResolvedValue({id:'member'})};
+ x.tx.departmentMember={findFirst:jest.fn().mockResolvedValue({id:'link-member'})};
+ x.prisma.membership=x.tx.membership;x.prisma.departmentMember=x.tx.departmentMember;
+ x.tx.message.create.mockImplementation(async({data}:any)=>{const m={id:'out-'+queued.size,...data};queued.set(m.id,m);return m});
+ x.tx.message.findFirst.mockImplementation(async({where}:any)=>where.status?queued.get(where.id):x.inbound);
+ x.tx.conversation.update.mockImplementation(async({data}:any)=>{Object.assign(x.conversation,data);return x.conversation});
+ return {...x,root,publications,queued};
+ }
+ it('runs the current departments publication and records its context',async()=>{
+ const x=scoped();await x.service.receive(x.channel,'conversation','inbound');
+ expect(x.waha.sendText.mock.calls[0][2]).toBe('Financeiro Link');
+ expect(x.conversation.botState.scopeKey).toBe('department:link');
+ expect(x.conversation.botState.revision).toBe('link-r1');
+ });
+ it('lets a BOT-owned conversation inherit its assigned attendants department',async()=>{
+ const x=scoped({assigneeId:'ana'});await x.service.receive(x.channel,'conversation','inbound');
+ expect(x.waha.sendText).toHaveBeenCalled();expect(x.tx.departmentMember.findFirst).toHaveBeenCalled();
+ });
+ it('does not inherit after the attendant has left the department',async()=>{
+ const x=scoped({assigneeId:'ana'});x.tx.departmentMember.findFirst.mockResolvedValue(null);
+ expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);
+ expect(x.tx.message.create).not.toHaveBeenCalled();
+ });
+ it('does not deliver remaining messages when the department changes before dispatch',async()=>{
+ const x=scoped();x.prisma.conversation.findFirstOrThrow.mockResolvedValue({...x.conversation,departmentId:'tracking'});
+ await x.service.receive(x.channel,'conversation','inbound');expect(x.waha.sendText).not.toHaveBeenCalled();
+ });
+ it('honors a department pause without using the generic flow',async()=>{
+ const x=scoped();x.publications['department:link'].active=false;
+ expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.tx.message.create).not.toHaveBeenCalled();
+ });
+ it('routes a department block into the departments published chatbot',async()=>{
+ const x=scoped({departmentId:null,botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
+ x.flow.steps[1]={id:'handoff',title:'Financeiro',message:'',kind:'department.route',config:'{"departmentKey":"LINK"}',options:[]};
+ x.inbound.content='1';await x.service.receive(x.channel,'conversation','inbound');
+ expect(x.conversation.handlingMode).toBe('BOT');expect(x.conversation.departmentId).toBe('link');
+ expect(x.conversation.botState.scopeKey).toBe('department:link');
+ expect(x.waha.sendText.mock.calls[0][2]).toBe('Financeiro Link');
+ });
+});
+

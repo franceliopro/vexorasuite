@@ -8,8 +8,8 @@ export type RuntimeFlow = {
   name: string; welcome: string; steps: RuntimeStep[]; channelIds?: string[];
   triggers?: { kind: 'message' | 'dm' | 'keyword'; keyword?: string }[];
 };
-export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'agent', 'crm.stage.move', 'variable', 'condition'];
-export const executableActions = ['human.handoff', 'asaas.payment.lookup', 'crm.stage.move'];
+export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition'];
+export const executableActions = ['human.handoff', 'asaas.payment.lookup', 'crm.stage.move', 'crm.finalize'];
 export function settings(step: RuntimeStep): Record<string, string> {
   if (!step.config?.trim()) return {};
   const parsed: unknown = JSON.parse(step.config);
@@ -35,7 +35,8 @@ export function validateRuntimeFlow(value: unknown): string[] {
     try {
       const config = settings(s);
       if (['input.text','input.cpf'].includes(s.kind||'') && !/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '')) errors.push(`${s.id}: informe a variável de entrada`);
-      if ((s.action==='crm.stage.move'||s.kind==='crm.stage.move') && (!/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.pipelineId || '') || !['new','qualification','proposal'].includes(config.stage || ''))) errors.push(s.id+': selecione pipeline e etapa válidos');
+      if ((s.action==='crm.stage.move'||s.kind==='crm.stage.move') && (!/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.pipelineId || '') || !/^[-\w]{1,80}$/.test(config.stage || ''))) errors.push(s.id+': selecione pipeline e etapa válidos');
+      if ((s.action==='crm.finalize'||s.kind==='crm.finalize') && (!['WON','LOST'].includes(config.outcome||'') || (config.outcome==='LOST'&&!['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade'].includes(config.reason||'')))) errors.push(s.id+': informe o resultado comercial e um motivo válido quando for perda');
       if (s.kind==='department.route'&&!config.departmentKey) errors.push(s.id+': selecione o departamento de destino');
       if (config.userId && !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.userId)) errors.push(`${s.id}: atendente inválido`);
       if (config.targetMode && !['QUEUE','DEPARTMENT','PERSON','PLATFORM'].includes(config.targetMode)) errors.push(`${s.id}: modo de transferência inválido`);
@@ -55,7 +56,9 @@ export function validateRuntimeFlow(value: unknown): string[] {
     if (s.transitions !== undefined && (!s.transitions || typeof s.transitions !== 'object' || Array.isArray(s.transitions))) { errors.push(`${s.id}: conexões inválidas`); continue; }
     for (const [option, target] of Object.entries(s.transitions || {})) if (!s.options.includes(option) || (target !== '__start__' && !ids.has(target))) errors.push(`${s.id}: destino inválido`);
     const type = s.action || s.kind || 'buttons';
-    if (!['human.handoff','assignment','department.route','asaas.payment.lookup'].includes(type)) {
+    if (type === 'crm.finalize') {
+      if (s.options.length) errors.push(`${s.id}: finalização comercial não precisa de saídas`);
+    } else if (!['human.handoff','assignment','department.route','asaas.payment.lookup'].includes(type)) {
       if (s.options.some(o => !s.transitions?.[o])) errors.push(`${s.id}: conecte todas as saídas`);
       if (['input.text','tag','variable','crm.stage.move'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
     }
@@ -83,9 +86,17 @@ export function selectedOption(step: RuntimeStep, text: string): string | undefi
   if (/^[1-9]\d*$/.test(value)) return step.options[Number(value) - 1];
   return step.options.find(o => normalize(o) === value);
 }
-export function renderStep(step: RuntimeStep, variables: Record<string, string>): string {
-  const message = step.message.replace(/\{\{(\w+)\}\}/g, (_, name: string) => Object.hasOwn(variables,name) && typeof variables[name] === 'string' ? variables[name]! : '');
-  return [message, step.options.map((o, i) => `${i + 1}. ${o}`).join('\n')].filter(Boolean).join('\n\n');
+export function interpolateVariables(value: string, variables: Record<string, string>): string {
+  return value.replace(/\{\{([\w .-]+)\}\}/g, (_, name: string) => {
+    const direct = variables[name];
+    if (typeof direct === 'string') return direct;
+    const normalized = name.toLocaleLowerCase('pt-BR').replace(/[\s_-]/g, '');
+    const match = Object.entries(variables).find(([key]) => key.toLocaleLowerCase('pt-BR').replace(/[\s_-]/g, '') === normalized);
+    return typeof match?.[1] === 'string' ? match[1] : '';
+  });
 }
-
-
+export function renderStep(step: RuntimeStep, variables: Record<string, string>): string {
+  const message = interpolateVariables(step.message, variables);
+  const options = step.options.map((option, i) => `${i + 1}. ${interpolateVariables(option, variables)}`).join('\n');
+  return [message, options].filter(Boolean).join('\n\n');
+}

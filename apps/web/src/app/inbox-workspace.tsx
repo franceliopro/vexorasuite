@@ -451,9 +451,45 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const state=selected?.botState&&typeof selected.botState==="object"?selected.botState as Record<string,unknown>:{};
     const custom=metadata.customFields&&typeof metadata.customFields==="object"&&!Array.isArray(metadata.customFields)?metadata.customFields as Record<string,unknown>:{};
     const dynamic={...custom,...(state.variables&&typeof state.variables==="object"?state.variables as Record<string,unknown>:{})};
-    const keys=Object.keys(dynamic).filter(key=>/^[\\p{L}_][\\p{L}\\p{N}_.-]{0,39}$/u.test(key));
+    const keys=Object.keys(dynamic).filter(key=>/^[\p{L}_][\p{L}\p{N}_.-]{0,39}$/u.test(key));
     return [...QUICK_REPLY_VARIABLES,...keys.filter(key=>!QUICK_REPLY_VARIABLES.some(v=>v.token==="{{"+key+"}}")).map(key=>({token:"{{"+key+"}}",label:key,hint:"Campo disponível neste contato ou fluxo"}))];
   }
+  function resolveQuickReply(content: string) {
+    const period=greetingPeriod();
+    const metadata=selected?.contact.metadata||{};
+    const customFields=metadata.customFields&&typeof metadata.customFields==="object"&&!Array.isArray(metadata.customFields)?metadata.customFields as Record<string,unknown>:{};
+    const state=selected?.botState&&typeof selected.botState==="object"?selected.botState as Record<string,unknown>:{};
+    const flowVariables=state.variables&&typeof state.variables==="object"?state.variables as Record<string,unknown>:{};
+    const preferred=selected?contactDisplayName(selected.contact,selected.botState):"";
+    const name=selected?.contact.name?.trim()||"";
+    const getText=(...keys:string[])=>{
+      for(const key of keys){
+        const match=Object.entries(metadata).find(([candidate])=>candidate.toLocaleLowerCase("pt-BR").replace(/[\s_.-]/g,"")===key.toLocaleLowerCase("pt-BR").replace(/[\s_.-]/g,""));
+        if(typeof match?.[1]==="string"&&(match[1] as string).trim())return (match[1] as string).trim();
+      }
+      return "";
+    };
+    const attendant=getText("known_by","knownBy","conhecido_por","conhecidoPor","attendant","atendente")||selected?.assignee?.name||"";
+    const team=selected?.department?.name?.trim()||getText("team","teamName","equipe","nome_equipe","departmentName")||"";
+    const periodGreeting=quickReplySettings.greetings[period]||DEFAULT_QUICK_REPLY_SETTINGS.greetings[period];
+    const periodFarewell=quickReplySettings.farewells[period]||DEFAULT_QUICK_REPLY_SETTINGS.farewells[period];
+    const context:Record<string,string>={
+      ...Object.fromEntries(Object.entries(metadata).filter(([,v])=>typeof v==="string") as [string,string][]),
+      ...Object.fromEntries(Object.entries(customFields).filter(([,v])=>typeof v==="string") as [string,string][]),
+      ...Object.fromEntries(Object.entries(flowVariables).filter(([,v])=>typeof v==="string") as [string,string][]),
+      telefone:selected?.contact.phone||"",email:selected?.contact.email||"",pipeline:getText("pipelineName","pipeline"),
+      etapa:getText("crmStage","stage"),atendente:attendant,time:team,team,empresa:quickReplySettings.companyName.trim()||"nossa equipe",
+      nome,novo_nome:typeof preferred==="string"&&preferred.trim()?preferred.trim():name,saudacao:periodGreeting,despedida:periodFarewell
+    };
+    const valueFor=(name:string)=>{
+      if(typeof context[name]==="string")return context[name]!;
+      const normalized=name.toLocaleLowerCase("pt-BR").replace(/[\s_.-]/g,"");
+      const match=Object.entries(context).find(([key])=>key.toLocaleLowerCase("pt-BR").replace(/[\s_.-]/g,"")===normalized);
+      return match?.[1]||"";
+    };
+    return content.replace(/\{\{([^{}]+)\}\}/g,(_,key:string)=>valueFor(key.trim()));
+  }
+
   function resolveQuickReply(content: string) {
     const period = greetingPeriod();
     const metadata = selected?.contact.metadata || {};

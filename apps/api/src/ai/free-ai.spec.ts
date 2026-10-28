@@ -12,17 +12,17 @@ describe('free and local execution policy',()=>{
  afterEach(()=>{jest.restoreAllMocks();for(const name of names){if(old[name]===undefined)delete process.env[name];else process.env[name]=old[name];}});
  const root={aiCostPolicy:{freeFirst:true,allowPaidFallback:false}};
  const assistant={llm:{provider:'openai',model:'paid-model',tier:'Econômico'}};
- it('excludes paid providers and selects the explicit free-router preset',()=>{
-  expect(economicalProviders(assistant,undefined,root).map(p=>[p.provider,p.model,p.freeOnly])).toEqual([['openrouter','openrouter/free',true]]);
+ it('excludes paid providers without inventing a free-router selection',()=>{
+  expect(economicalProviders(assistant,undefined,root).map(p=>[p.provider,p.model,p.freeOnly])).toEqual([]);
  });
  it('prioritizes the configured local model and permits paid fallback only when opted in',()=>{
   process.env.OLLAMA_BASE_URL='http://ollama:11434';process.env.OLLAMA_DEFAULT_MODEL='installed-model';
   const providers=economicalProviders(assistant,undefined,{aiCostPolicy:{freeFirst:true,allowPaidFallback:true}});
-  expect(providers.map(p=>p.provider)).toEqual(['ollama','openrouter','openai']);expect(providers[0]!.model).toBe('installed-model');
+  expect(providers.map(p=>p.provider)).toEqual(['ollama','openai']);expect(providers[0]!.model).toBe('installed-model');
  });
  it('pins free OpenRouter token prices to zero and disables the paid web plugin',async()=>{
   const fetch=jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'ok'}}]})));
-  await new AiService().generate([{role:'user',content:'Teste'}],economicalProviders(assistant,undefined,root));
+  await new AiService().generate([{role:'user',content:'Teste'}],economicalProviders({llm:{provider:'openrouter',model:'openrouter/free'}},undefined,root));
   const body=JSON.parse(String(fetch.mock.calls[0]![1]?.body));expect(body.provider.max_price).toEqual({prompt:0,completion:0});expect(body.provider.data_collection).toBe('deny');expect(body.plugins).toEqual([{id:'web',enabled:false}]);
  });
  it('does not transmit a cloud credential to Ollama',async()=>{

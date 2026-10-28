@@ -1,3 +1,4 @@
+import { validVoiceId } from './voice-options';
 import { validDraft } from "./chatbot-draft.controller";
 import { modelCatalog } from "./model-catalog";
 import { formatDateTimeBR } from "../common/date-format";
@@ -196,8 +197,9 @@ export class AssistantController {
       const v = value as Record<string, unknown>;
       if (typeof v.provider !== "string" || !/^[a-z0-9-]{2,40}$/.test(v.provider) || typeof v.model !== "string" || !v.model.trim() || v.model.length > 180 || (v.endpoint !== undefined && (typeof v.endpoint !== "string" || v.endpoint.length > 300))) throw new BadRequestException("Seleção de modelo inválida");
       if (v.endpoint && !/^https:\/\//.test(v.endpoint as string) && !/^http:\/\/localhost(?::\d+)?(?:\/|$)/.test(v.endpoint as string)) throw new BadRequestException("Endpoint deve usar HTTPS ou localhost");
+      if(voice&&v.voice!==undefined&&!validVoiceId(v.voice))throw new BadRequestException("Identificador de voz inválido");
       if (!voice && !["Econômico", "Equilíbrio", "Inteligente"].includes(String(v.tier))) throw new BadRequestException("Perfil inválido");
-      return { provider: v.provider, model: v.model.trim(), ...(voice ? {} : { tier: v.tier }), ...(v.endpoint ? { endpoint: v.endpoint } : {}), ...(voice && typeof v.voice === "string" && /^[a-z]{2,20}$/.test(v.voice) ? {voice:v.voice} : {}) } as ModelSelection;
+      return { provider: v.provider, model: v.model.trim(), ...(voice ? {} : { tier: v.tier }), ...(v.endpoint ? { endpoint: v.endpoint } : {}), ...(voice && validVoiceId(v.voice) ? {voice:v.voice} : {}) } as ModelSelection;
     };
     const strings = (v: unknown, max = 40) => { if (v === undefined) return []; if (!Array.isArray(v) || v.length > max || v.some(x => typeof x !== "string" || x.length > 300)) throw new BadRequestException("Lista inválida"); return v.map((x: string) => x.trim()).filter(Boolean); };
     const longText = (v: unknown) => { if (v === undefined) return ""; if (typeof v !== "string" || v.length > 6000) throw new BadRequestException("Texto inválido"); return v; };

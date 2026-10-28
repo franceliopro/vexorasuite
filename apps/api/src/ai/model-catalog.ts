@@ -1,8 +1,10 @@
+import { installedVoiceOptions, VoiceOption } from './voice-options';
 import { providerApiKey } from './provider-credentials';
 import { remoteProviders, llmProviders, providerHeaders } from './llm-providers';
 import { localServiceUrl } from './local-services';
 import { rememberModelPrices } from './model-prices';
 export async function modelCatalog(integrations:unknown,tenantId:string){
+ const voiceOptions:VoiceOption[]=[];
  const models:any[]=[],services:{provider:string;available:boolean;message?:string;partial?:boolean}[]=[];
  const targets=[...llmProviders,'local-stt','local-tts'];
  await Promise.all(targets.map(async provider=>{
@@ -32,6 +34,7 @@ export async function modelCatalog(integrations:unknown,tenantId:string){
      // Text-only editor: omit known non-chat OpenAI models, retain manual entry for custom IDs.
      if(provider==='openai'&&(!/^(gpt-|chatgpt-|o[1-9]|ft:)/.test(id)||/audio|realtime|transcribe|tts|image|search|codex/.test(id)))continue;
      if(item.lifecycle==='retired')continue;
+     if(provider==='local-tts')voiceOptions.push(...installedVoiceOptions(id,item.voices));
      const size=Number(item.size||0);
      models.push({provider,id,name:String(item.display_name||item.name||id),installed:local,
       tier:provider==='ollama'?(size<=3e9?'Econômico':size<=6e9?'Equilíbrio':'Inteligente'):undefined,
@@ -48,5 +51,5 @@ export async function modelCatalog(integrations:unknown,tenantId:string){
    }
   }catch{services.push({provider,available:false,message:'Não foi possível consultar o catálogo. Verifique a chave e a disponibilidade do serviço.'});}
  }));
- return {providers:llmProviders,voices:{stt:['local','openai','browser'],tts:['local','openai','browser']},models,services,live:services.some(s=>s.available)};
+ return {providers:llmProviders,voices:{stt:['local','openai','browser'],tts:['local','openai','browser']},models,voiceOptions,services,live:services.some(s=>s.available)};
 }

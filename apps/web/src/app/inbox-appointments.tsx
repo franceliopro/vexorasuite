@@ -1,4 +1,5 @@
 "use client";
+import { formatDateBR, formatDateTimeBR, formatTimeBR } from "../lib/date-format";
 import {useEffect,useRef,useState} from 'react';
 type Account={id:string;email:string};
 type Calendar={id:string;summary:string;accessRole?:string};
@@ -42,7 +43,7 @@ export function InboxAppointments({contact,onConfirm}:{contact:{id:string;name:s
  <label>Agenda<select disabled={busy} value={calendar} onChange={e=>setCalendar(e.target.value)}>{calendars.map(c=><option key={c.id} value={c.id}>{c.summary}</option>)}</select></label>
  <label>Consultar dia<input type="date" required value={day} disabled={busy} onChange={e=>{setDay(e.target.value);setSaved(null)}}/></label>
  <h3>Compromissos do dia</h3>{loading?<p>Consultando…</p>:events.length?<ul>{events.map(e=><li key={e.id}>{display(e.start?.dateTime)}{e.end?.dateTime?' – '+display(e.end.dateTime):''} · {e.summary||'Compromisso'}</li>)}</ul>:calendar&&!error?<p>Nenhum compromisso encontrado nesta agenda neste dia.</p>:null}
- {saved?<section className="content-card"><strong>Agendamento confirmado na agenda</strong><p>{saved.title} · {new Date(saved.start).toLocaleString('pt-BR')}</p><button type="button" className="primary-button" onClick={()=>onConfirm('Olá, '+contact.name+'! Seu agendamento de '+saved.title+' está confirmado para '+new Date(saved.start).toLocaleString('pt-BR')+' até '+new Date(saved.end).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.')}>Preparar confirmação na conversa</button><small>Você revisa o texto e clica em Enviar.</small><button type="button" className="text-button" onClick={()=>setSaved(null)}>Novo agendamento</button></section>:<>
+ {saved?<section className="content-card"><strong>Agendamento confirmado na agenda</strong><p>{saved.title} · {formatDateTimeBR(saved.start)}</p><button type="button" className="primary-button" onClick={()=>onConfirm('Olá, '+contact.name+'! Seu agendamento de '+saved.title+' está confirmado para '+new Date(saved.start).toLocaleString('pt-BR')+' até '+formatTimeBR(saved.end)+'.')}>Preparar confirmação na conversa</button><small>Você revisa o texto e clica em Enviar.</small><button type="button" className="text-button" onClick={()=>setSaved(null)}>Novo agendamento</button></section>:<>
  <label>Título<input maxLength={200} value={title} disabled={busy} onChange={e=>setTitle(e.target.value)}/></label>
  <div className="inbox-appointment-times"><label>Início<input type="time" value={start} disabled={busy} onChange={e=>setStart(e.target.value)}/></label><label>Término<input type="time" value={end} disabled={busy} onChange={e=>setEnd(e.target.value)}/></label></div>
  <button type="button" className="primary-button" disabled={busy||loading||!calendar||!writable} onClick={()=>void save()}>{busy?'Salvando…':'Confirmar agendamento'}</button>

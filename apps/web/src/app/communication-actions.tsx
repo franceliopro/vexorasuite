@@ -38,10 +38,10 @@ export function CommunicationActions({ contactId }: { contactId: string }) {
   }
   return (
     <details className="workspace-disclosure">
-      <summary>SMS e ligação</summary>
-      {!status?.sms.configured && !status?.voice.configured ? (
+      <summary>SMS</summary>
+      {!status?.sms.configured ? (
         <p>
-          Para habilitar, conecte uma rota SMS ou um ramal de telefonia da
+          Para habilitar, conecte uma rota SMS da
           empresa em Canais e integrações.
         </p>
       ) : (
@@ -62,13 +62,7 @@ export function CommunicationActions({ contactId }: { contactId: string }) {
           >
             Enviar SMS
           </button>
-          <button
-            className="secondary-button"
-            disabled={busy || !status?.voice.configured}
-            onClick={() => void act("call")}
-          >
-            Ligar pelo meu ramal
-          </button>
+
         </>
       )}
       {notice && <p role="status">{notice}</p>}

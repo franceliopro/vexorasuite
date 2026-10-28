@@ -35,7 +35,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
     try {
       const config = settings(s);
       if (['input.text','input.cpf'].includes(s.kind||'') && !/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '')) errors.push(`${s.id}: informe a variável de entrada`);
-      if ((s.action==='crm.stage.move'||s.kind==='crm.stage.move') && (!/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.pipelineId || '') || !['new','qualification','proposal'].includes(config.stage || ''))) errors.push(s.id+': selecione pipeline e etapa válidos');
+      if ((s.action==='crm.stage.move'||s.kind==='crm.stage.move') && (!/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.pipelineId || '') || !/^[-\\w]{1,80}$/.test(config.stage || ''))) errors.push(s.id+': selecione pipeline e etapa válidos');
       if ((s.action==='crm.finalize'||s.kind==='crm.finalize') && (!['WON','LOST'].includes(config.outcome||'') || (config.outcome==='LOST'&&!['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade'].includes(config.reason||'')))) errors.push(s.id+': informe o resultado comercial e um motivo válido quando for perda');
       if (s.kind==='department.route'&&!config.departmentKey) errors.push(s.id+': selecione o departamento de destino');
       if (config.userId && !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.userId)) errors.push(`${s.id}: atendente inválido`);

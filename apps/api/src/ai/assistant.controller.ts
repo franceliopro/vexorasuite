@@ -10,18 +10,20 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { Prisma } from "@prisma/client";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
+import { normalizeAssistantPhone } from "../operations/assistant-phone-access";
 
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
 type VoiceSelection = { provider: string; model: string; endpoint?: string; voice?: string };
-type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
-type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; dailyAiLimit?: number; fallbackModels?: ModelSelection[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
-const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [] };
+type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; personalAssistant?: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
+type KnowledgeDocument = { id: string; name: string; content: string };
+type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; allowedPhones?: string[]; companyRules?: string; companyKnowledge?: string; knowledgeDocuments?: KnowledgeDocument[]; dailyAiLimit?: number; fallbackModels?: ModelSelection[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
+const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [], allowedPhones: [], companyRules: "", companyKnowledge: "", knowledgeDocuments: [] };
 function parseConfig(value: unknown): Config {
   if (!value || typeof value !== "object" || Array.isArray(value)) return initial;
   const item = (value as Record<string, unknown>).assistant;
   if (!item || typeof item !== "object" || Array.isArray(item)) return initial;
   const cfg = item as Partial<Config>;
-  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
+  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
 }
 
 @Controller("assistant")
@@ -170,13 +172,25 @@ export class AssistantController {
     const longText = (v: unknown) => { if (v === undefined) return ""; if (typeof v !== "string" || v.length > 6000) throw new BadRequestException("Texto inválido"); return v; };
     const agents = input.agents.map(a => {
       if (!a || typeof a.id !== "string" || !a.id.trim() || a.id.length > 80 || typeof a.name !== "string" || !a.name.trim() || a.name.length > 80 || typeof a.role !== "string" || a.role.length > 120 || !["Econômico", "Equilíbrio", "Inteligente"].includes(a.tier) || typeof a.enabled !== "boolean" || typeof a.instructions !== "string" || a.instructions.length > 6000) throw new BadRequestException("Agente inválido");
-      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
+      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, personalAssistant: a.personalAssistant === true, instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
     });
     if (new Set(agents.map(agent=>agent.id)).size !== agents.length) throw new BadRequestException("IDs de agentes duplicados");
+    if (agents.filter(agent => agent.personalAssistant).length > 1) throw new BadRequestException("Selecione somente um agente como Assistente Pessoal");
     if (input.fallbackModels !== undefined && (!Array.isArray(input.fallbackModels) || input.fallbackModels.length > 2)) throw new BadRequestException("Use no máximo dois modelos de contingência");
     if (input.dailyAiLimit !== undefined && (!Number.isInteger(input.dailyAiLimit) || input.dailyAiLimit < 0 || input.dailyAiLimit > 10000)) throw new BadRequestException("Limite diário de IA deve estar entre 0 e 10 mil");
     const fallbackModels = (input.fallbackModels || []).map(v => selection(v) as ModelSelection);
-    const config = { dailyAiLimit: input.dailyAiLimit ?? 100, fallbackModels, name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
+    if (input.allowedPhones !== undefined && (!Array.isArray(input.allowedPhones) || input.allowedPhones.length > 50)) throw new BadRequestException("Informe até 50 celulares autorizados");
+    const allowedPhones = (input.allowedPhones || []).map(value => { const phone = normalizeAssistantPhone(value); if (!phone) throw new BadRequestException("Celular inválido. Use o código do país e DDD."); return phone; });
+    if (new Set(allowedPhones).size !== allowedPhones.length) throw new BadRequestException("Remova os celulares repetidos");
+    const companyRules = input.companyRules === undefined ? "" : longText(input.companyRules).slice(0, 4000);
+    const companyKnowledge = input.companyKnowledge === undefined ? "" : (typeof input.companyKnowledge === "string" && input.companyKnowledge.length <= 30000 ? input.companyKnowledge : (() => { throw new BadRequestException("As informações da empresa excederam 30 mil caracteres"); })());
+    if (input.knowledgeDocuments !== undefined && (!Array.isArray(input.knowledgeDocuments) || input.knowledgeDocuments.length > 10)) throw new BadRequestException("Envie até 10 documentos de texto");
+    const knowledgeDocuments = (input.knowledgeDocuments || []).map(doc => {
+      if (!doc || typeof doc.id !== "string" || !/^[a-zA-Z0-9-]{1,80}$/.test(doc.id) || typeof doc.name !== "string" || !doc.name.trim() || doc.name.length > 180 || typeof doc.content !== "string" || !doc.content.trim() || doc.content.length > 8000) throw new BadRequestException("Documento de conhecimento inválido ou acima do limite");
+      return { id: doc.id, name: doc.name.trim(), content: doc.content.trim() };
+    });
+    if (new Set(knowledgeDocuments.map(doc => doc.id)).size !== knowledgeDocuments.length || knowledgeDocuments.reduce((total, doc) => total + doc.content.length, 0) > 40000) throw new BadRequestException("Revise documentos repetidos ou acima do limite total");
+    const config = { dailyAiLimit: input.dailyAiLimit ?? 100, fallbackModels, name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, allowedPhones, companyRules, companyKnowledge, knowledgeDocuments, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
     // Transaction locks tenant row to avoid losing concurrent updates to integrations.
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;

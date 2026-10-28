@@ -41,7 +41,9 @@ export function ChatbotWorkspace({tenantId}:{tenantId:string}){
  const [showLinks,setShowLinks]=useState(true);
  const [destinations,setDestinations]=useState<{departments:{id:string;key:string;name:string;routingCategory?:string;members:string[]}[];agents:{id:string;name:string}[]}>({departments:[],agents:[]});
  useEffect(()=>{const refresh=()=>{void fetch('/api/backend/chatbot/runtime/destinations',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(setDestinations).catch(()=>setNotice('Não foi possível carregar os destinos de transferência.'))};refresh();const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);window.addEventListener('vexora:team-updated',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('vexora:team-updated',refresh)}},[]);
- const [crmPipelines,setCrmPipelines]=useState<{id:string;name:string;stages:{id:string;label:string}[]}[]>([]);\n useEffect(()=>{let live=true;fetch('/api/backend/crm/pipelines',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{if(live)setCrmPipelines(Array.isArray(data?.pipelines)?data.pipelines:[])}).catch(()=>{});return()=>{live=false}},[]);\n const [channels,setChannels]=useState<Channel[]>([]);
+ const [crmPipelines,setCrmPipelines]=useState<{id:string;name:string;stages:{id:string;label:string}[]}[]>([]);
+ useEffect(()=>{let live=true;fetch('/api/backend/crm/pipelines',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{if(live)setCrmPipelines(Array.isArray(data?.pipelines)?data.pipelines:[])}).catch(()=>{});return()=>{live=false}},[]);
+ const [channels,setChannels]=useState<Channel[]>([]);
  const [channelNotice,setChannelNotice]=useState("");
  const [savingRemote,setSavingRemote]=useState(false);
  const [ready,setReady]=useState(false),[loadError,setLoadError]=useState(""),[loadAttempt,setLoadAttempt]=useState(0),[lastSaved,setLastSaved]=useState(""),[savedAt,setSavedAt]=useState("");

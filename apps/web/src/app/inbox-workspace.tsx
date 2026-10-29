@@ -327,6 +327,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const source = new EventSource("/api/backend/events");
     const refresh = () => { void loadConversations(); void loadQueueCounts(); void loadChannels(); if (selectedRef.current) void loadMessages(selectedRef.current); };
     ["message.received", "message.sent", "message.failed", "message.status", "message.queued", "conversation.updated", "conversation.assigned", "conversation.created", "contact.updated", "contact.created", "contact.stage_changed", "channel.status", "channel.created"].forEach((name) => source.addEventListener(name, refresh));
+    source.addEventListener("team.updated",()=>{void loadAssignees();void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(()=>{});refresh();});
     // EventSource reconnects automatically. Keep the interface quiet; the 5-second polling fallback keeps conversations fresh while SSE recovers.
     source.onerror = () => { /* transient realtime interruptions are handled silently */ };
     return () => source.close();

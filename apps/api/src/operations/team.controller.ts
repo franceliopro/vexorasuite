@@ -1,3 +1,4 @@
+import {attendantName,knownByValue} from "./attendant-name";
 import { MODULES,moduleSelection,effectiveModules,patternModules } from "../auth/module-policy";
 import {
   BadRequestException,
@@ -34,6 +35,7 @@ export class TeamController {
     const rows = await this.prisma.membership.findMany({
       where: { tenantId: req.user.tenantId },
       select: {
+        knownBy: true,
         role: true,
         modules: true,
         deniedModules:true,
@@ -48,6 +50,7 @@ export class TeamController {
     const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
     return rows.map((r) => ({
       ...r.user,
+      fullName:r.user.name,knownBy:r.knownBy,name:attendantName({name:r.user.name,knownBy:r.knownBy}),
       role: r.role,
       modules: effectiveModules(r.role,r.modules,members.filter(m=>m.userId===r.user.id).map(m=>m.department),patternModules(tenant.integrations,r.user.id,members.filter(m=>m.userId===r.user.id).map(m=>m.departmentId)),r.deniedModules),
       deniedModules:r.deniedModules,
@@ -59,6 +62,7 @@ export class TeamController {
   }
   @Post() async create(@Req() req: AuthenticatedRequest, @Body() input: any) {
     this.admin(req);
+    const knownBy=knownByValue(input.knownBy);
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const email =
       typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
@@ -124,7 +128,7 @@ export class TeamController {
             tenantId: req.user.tenantId,
             userId: user.id,
             role,
-            modules,deniedModules,
+            modules,deniedModules,knownBy,
           },
         });
         if (ids.length)
@@ -155,8 +159,19 @@ export class TeamController {
       throw e;
     }
   }
- @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);let modules:string[],deniedModules:string[];try{modules=moduleSelection(input.modules||[]);deniedModules=moduleSelection(input.deniedModules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});if(member?.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('O acesso da administração Véxora não pode ser alterado por uma empresa.');if(member&&!req.user.isPlatformAdmin){if(member.role!=='AGENT')throw new ForbiddenException('Somente a administração da Véxora altera acessos administrativos.');const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException('Você não pode conceder módulos que não possui.');deniedModules=[...new Set([...member.deniedModules,...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules,deniedModules}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,deniedModules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
+ @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);const knownBy=input.knownBy===undefined?undefined:knownByValue(input.knownBy);let modules:string[],deniedModules:string[];try{modules=moduleSelection(input.modules||[]);deniedModules=moduleSelection(input.deniedModules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});if(member?.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('O acesso da administração Véxora não pode ser alterado por uma empresa.');if(member&&!req.user.isPlatformAdmin){if(member.role!=='AGENT')throw new ForbiddenException('Somente a administração da Véxora altera acessos administrativos.');const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException('Você não pode conceder módulos que não possui.');deniedModules=[...new Set([...member.deniedModules,...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules,deniedModules,...(knownBy===undefined?{}:{knownBy})}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,deniedModules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
 
+ @Patch(':id/identity') async identity(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:{knownBy?:unknown}){
+  this.admin(req);const knownBy=knownByValue(input.knownBy);
+  await this.prisma.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;
+   const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});
+   if(!member)throw new BadRequestException("Atendente não encontrado nesta empresa.");
+   if(member.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException("A identidade da administração Véxora não pode ser alterada por outra empresa.");
+   await tx.membership.update({where:{id:member.id},data:{knownBy}});
+   await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:"team.identity.updated",entityType:"user",entityId:id,details:{knownBy}}});
+  });this.events.publish(req.user.tenantId,"team.updated",{id});return {updated:true};
+ }
  @Post(':id/reset-password') async resetPassword(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
   if(!req.user.isPlatformAdmin)throw new ForbiddenException('Somente a administração da Véxora pode redefinir a senha.');
   const passwordHash=await hash('senha123',12);

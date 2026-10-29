@@ -1,3 +1,4 @@
+import {inboxRouting} from "./inbox-routing";
 import {selectPublication,scopedPresetInstructions,publicationKey,RuntimeScope} from './runtime-scope';
 import { searxngSearch } from "../ai/local-services";
 import { documentDigits, isDocumentField } from "../common/documents";
@@ -49,13 +50,25 @@ export class IntelligenceRuntimeService {
       
       const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: channel.tenantId }, select: { name: true, integrations: true } });
       const root=object(tenant.integrations);
+      const entry=inboxRouting(channel.settings);
+      if(entry.mode==="HUMAN"){
+        const department=entry.departmentId?await tx.department.findFirst({where:{id:entry.departmentId,tenantId:channel.tenantId,isActive:true},select:{id:true}}):null;
+        await tx.conversation.update({where:{id:conversation.id},data:{handlingMode:"HUMAN",departmentId:conversation.departmentId||department?.id||null}});
+        return {messages:[],handled:true,handoff:false,assigned:true};
+      }
+      if(entry.mode==="AUTOMATION"&&!conversation.departmentId&&!conversation.assigneeId&&entry.departmentId){
+        if(!await tx.department.findFirst({where:{id:entry.departmentId,tenantId:channel.tenantId,isActive:true},select:{id:true}}))return {messages:[],handled:true,handoff:false};
+        conversation.departmentId=entry.departmentId;
+        await tx.conversation.update({where:{id:conversation.id},data:{departmentId:entry.departmentId}});
+      }
       let runtimeScope:RuntimeScope={departmentId:conversation.departmentId||null,userId:conversation.assigneeId||null};
       const selection=selectPublication(root,runtimeScope);
-      if(!selection)return null;
+      if(!selection)return entry.mode==="AUTOMATION"?{messages:[],handled:true,handoff:false}:null;
+      if(entry.mode==="AUTOMATION"&&!conversation.assigneeId&&(conversation.departmentId||null)===entry.departmentId&&selection.key!==publicationKey({departmentId:entry.departmentId}))return {messages:[],handled:true,handoff:false};
       let {key:scopeKey,publication:published}=selection;
       if(conversation.assigneeId&&scopeKey==='default')return null;
       if(scopeKey!=='default'&&!await this.validContext(tx,channel.tenantId,runtimeScope))return {messages:[],handled:true,handoff:false};
-      if (!published.flow || !published.flow.channelIds?.includes(channel.id)) return null;
+      if (!published.flow || !published.flow.channelIds?.includes(channel.id)) return entry.mode==="AUTOMATION"?{messages:[],handled:true,handoff:false}:null;
       if (!published.active) return { messages: [], handled: true, handoff: false };
       const processed = await tx.auditLog.findFirst({ where: { tenantId: channel.tenantId, action: 'engine.processed', entityId: inbound.id } });
       if (processed) {
@@ -394,7 +407,7 @@ export class IntelligenceRuntimeService {
       }
       await tx.conversation.update({ where: { id: conversation.id }, data: { botState: {...object(state),scopeKey,runtimeScope}, ...(human ? { handlingMode: 'HUMAN', assigneeId, departmentId, status: 'OPEN' } : skills.includes('department.route')?{departmentId,assigneeId:null}:{}) } });
       const queued: Message[] = [];
-      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, scopeKey, runtimeScope, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null } } }));
+      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, inboxRoutingRevision:entry.revision, scopeKey, runtimeScope, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null } } }));
       await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
     }, { timeout: 120000 });
@@ -415,7 +428,7 @@ export class IntelligenceRuntimeService {
       const message = await tx.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId, conversationId, status: 'QUEUED' } });
       if (!message || object(message.metadata).deliveryState === 'SENDING') return false;
       await tx.message.update({ where: { id: messageId }, data: { metadata: { ...object(message.metadata), deliveryState: 'SENDING', deliveryClaimedAt: new Date().toISOString() } } });
-      return { hasRuntimeScope:!!object(message.metadata).runtimeScope, scopeKey:object(message.metadata).scopeKey||'default',runtimeScope:object(object(message.metadata).runtimeScope) as RuntimeScope,revision: object(message.metadata).revision, handoffAssigneeId: object(message.metadata).handoffAssigneeId };
+      return { inboxRoutingRevision:object(message.metadata).inboxRoutingRevision||null, hasRuntimeScope:!!object(message.metadata).runtimeScope, scopeKey:object(message.metadata).scopeKey||'default',runtimeScope:object(object(message.metadata).runtimeScope) as RuntimeScope,revision: object(message.metadata).revision, handoffAssigneeId: object(message.metadata).handoffAssigneeId };
     });
     if (!claimed) return;
     this.events.publish(channel.tenantId, 'message.queued', { conversationId, message: { id: messageId, content, direction: 'OUTBOUND', status: 'QUEUED' } });
@@ -427,6 +440,7 @@ export class IntelligenceRuntimeService {
       const currentPublication=claimed.scopeKey==='default'?object(deliveryRoot.intelligencePublished):object(object(deliveryRoot.intelligencePublications)[claimed.scopeKey]);
       if(claimed.scopeKey!=='default'&&!await this.validContext(this.prisma,channel.tenantId,claimed.runtimeScope))throw new Error('Context no longer available');
       if (!currentChannel || currentChannel.provider !== channel.provider || !currentPublication.active || currentPublication.revision !== claimed.revision || !currentPublication.flow?.channelIds?.includes(channel.id)) throw new Error('Engine or channel no longer authorized');
+      if(inboxRouting(currentChannel.settings).revision!==claimed.inboxRoutingRevision||inboxRouting(currentChannel.settings).mode==="HUMAN")throw new Error("Inbox routing changed");
       channel = currentChannel;
       const conversation = await this.prisma.conversation.findFirstOrThrow({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
       if (!handoff&&claimed.hasRuntimeScope&&((conversation.departmentId||null)!==(claimed.runtimeScope.departmentId||null)||(conversation.assigneeId||null)!==(claimed.runtimeScope.userId||null)||selectPublication(deliveryRoot,{departmentId:conversation.departmentId,userId:conversation.assigneeId})?.key!==claimed.scopeKey))throw new Error('Context changed');

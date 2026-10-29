@@ -13,6 +13,7 @@ async function api<T>(url:string, init?:RequestInit):Promise<T>{ const response=
 function platformName(platform:string){return platformNames[platform.toLowerCase()]||platform;}
 function platformColor(platform:string){return platformColors[platform.toLowerCase()]||"#6258DF";}
 function statusText(status?:string){const s=(status||"").toUpperCase();if(["CONNECTED","ACTIVE","HEALTHY"].includes(s))return "Conectada";if(["ERROR","FAILED","DISCONNECTED","REVOKED"].includes(s))return "Precisa de atenção";if(["CONNECTING","PENDING"].includes(s))return "Em validação";if(s==="UNKNOWN")return "Conexão não confirmada";return status||"Registrada";}
+function isZernioChannel(channel:Channel){return channel.provider.toUpperCase()==="ZERNIO";}
 export function ChannelsIntegrations(){
  const [diagnostic,setDiagnostic]=useState<Diagnostic|null>(null);
  const [channels,setChannels]=useState<Channel[]>([]);
@@ -38,7 +39,7 @@ export function ChannelsIntegrations(){
      const existing=await api<Channel[]>("/api/backend/channels");
      setInboxRevision(v=>v+1);
      setDiagnostic(diag);setChannels(existing);
-     if(showFeedback)setNotice(diag.message || (diag.authenticated?"Conexões desta empresa atualizadas.":"A configuração da Zernio precisa de atenção."));
+     if(showFeedback)setNotice(diag.authenticated?"Conexões desta empresa atualizadas.":"A integração Zernio ainda não está pronta para novas conexões.");
    }catch(e){setDiagnostic(null);setChannels([]);setError(e instanceof Error?e.message:"Não foi possível verificar a integração.");}
    finally{setLoading(false);refreshing.current=false;}
  },[]);
@@ -56,7 +57,8 @@ export function ChannelsIntegrations(){
    try{const result=await api<{authorizationUrl:string}>("/api/backend/channels/zernio/oauth/start/"+platform,{method:"POST"});window.location.assign(result.authorizationUrl);}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização OAuth.");setBusy(false);}
  }
- const linkedCount=channels.filter(c=>c.provider==="ZERNIO").length;
+ const linkedChannels=channels.filter(isZernioChannel);
+ const linkedCount=linkedChannels.length;
  return <section className="channels-page">
    <header className="channels-page-heading"><div><h1>Canais e integrações</h1></div></header>
    <InboxesManagement refreshKey={inboxRevision}/>
@@ -69,13 +71,13 @@ export function ChannelsIntegrations(){
      {!googleConnections.length?<details className="channels-google-setup"><summary>Configuração técnica do Google</summary><p>As credenciais da aplicação são configuradas na API. {googleConfig?.configured?"Credenciais detectadas.":"Credenciais não detectadas."}</p><p>Retorno OAuth: <code>{googleConfig?.callbackUrl||"Não configurado"}</code></p>{!googleConfig?.encryptionConfigured?<p>Configure GOOGLE_TOKEN_ENCRYPTION_KEY no servidor.</p>:null}</details>:null}
    </section>
    <section className="content-card channels-provider-card">
-     <div className="channels-section-heading"><span className="channels-provider-mark">Z</span><div><h2>Zernio</h2><p>{loading?"Atualizando perfil desta empresa…":diagnostic?.authenticated?"Perfil desta empresa · "+(diagnostic.profileConfigured?"conectado":"pronto para OAuth"):diagnostic?.message||"A integração central precisa de atenção"}</p></div><button type="button" className="secondary-button" onClick={()=>void refresh(true)} disabled={loading}><RefreshCw size={15}/> Atualizar contas</button></div>
-     {!loading&&!diagnostic?.authenticated?<p className="channels-form-note"><AlertCircle size={16}/>{diagnostic?.message||"Confira a configuração central da Zernio."}</p>:null}
+     <div className="channels-section-heading"><span className="channels-provider-mark">Z</span><div><h2>Zernio</h2><p>{loading?"Atualizando perfil desta empresa…":diagnostic?.authenticated?"Perfil desta empresa · "+(diagnostic.profileConfigured?"conectado":"pronto para OAuth"):"Configure a integração Zernio para esta empresa"}</p></div><button type="button" className="secondary-button" onClick={()=>void refresh(true)} disabled={loading}><RefreshCw size={15}/> Atualizar contas</button></div>
+     {!loading&&!diagnostic?.authenticated?<p className="channels-form-note"><AlertCircle size={16}/>Configure <code>ZERNIO_API_KEY</code> na API para habilitar novas conexões.</p>:null}
      {diagnostic?.authenticated?<details className="channels-google-setup"><summary>Configuração do webhook único da Véxora</summary><p>Configure uma única vez na Zernio o endereço central. Os eventos serão separados pelo perfil e pela conta de cada empresa.</p><p>Endereço: <code>{diagnostic.teamWebhookUrl||"Configure API_PUBLIC_URL no servidor."}</code></p><p>{diagnostic.webhookSecretConfigured?"Segredo do webhook configurado no servidor.":"Configure ZERNIO_WEBHOOK_SECRET no servidor e use o mesmo segredo na Zernio."}</p><p>Ative os eventos account.connected, account.disconnected e message.received.</p></details>:null}
-     {diagnostic?.authenticated?<div className="content-card channels-account-form-card"><div className="channels-section-heading"><span className="channels-heading-icon"><Plus size={18}/></span><div><h2>Conectar uma rede desta empresa</h2><p>O cliente autoriza a conta por OAuth. A conexão fica no perfil Zernio exclusivo desta empresa.</p></div></div><div className="channels-google-actions">{(["instagram","facebook","whatsapp"] as const).map(platform=><button key={platform} type="button" className="secondary-button" disabled={busy} onClick={()=>void connectSocial(platform)}>{busy?"Abrindo autorização…":"Conectar "+platformName(platform)}</button>)}</div></div>:null}
+     <div className="content-card channels-account-form-card"><div className="channels-section-heading"><span className="channels-heading-icon"><Plus size={18}/></span><div><h2>Adicionar uma conta nesta empresa</h2><p>Escolha uma rede e autorize a conta por OAuth. Ela ficará vinculada somente a esta empresa.</p></div></div>{diagnostic?.authenticated?<div className="channels-google-actions">{(["instagram","facebook","whatsapp"] as const).map(platform=><button key={platform} type="button" className="secondary-button" disabled={busy} onClick={()=>void connectSocial(platform)}>{"Conectar "+platformName(platform)}</button>)}</div>:<p className="channels-form-note">As opções ficarão disponíveis assim que a integração central estiver configurada.</p>}</div>
    </section>
      <section className="content-card channels-connected-card"><div className="channels-section-heading"><span className="channels-heading-icon"><Activity size={18}/></span><div><h3>Contas vinculadas a esta empresa</h3><p>As contas aqui pertencem somente ao perfil desta empresa na Zernio.</p></div><span className="channels-count">{linkedCount}</span></div>
-       {linkedCount?<div className="channels-connected-list">{channels.filter(c=>c.provider==="ZERNIO").map(c=><article className="channels-connected-row" key={c.id}><span className="channels-platform-icon" style={{background:platformColor(c.platform||"social")}}>{platformName(c.platform||"Rede social").slice(0,1).toUpperCase()}</span><div className="channels-connected-main"><strong>{c.username?"@"+c.username.replace(/^@/,""):c.name}</strong><p>{platformName(c.platform||"Rede social")} · {statusText(c.status)} · Histórico e inbox desta empresa</p></div><span className={"channels-connection-pill "+(c.status==="CONNECTED"?"good":"attention")}><span/> {statusText(c.status)}</span><ChevronRight size={16} className="channels-row-chevron"/></article>)}</div>:<div className="channels-empty-state"><span><Unplug size={22}/></span><strong>Nenhuma conta conectada nesta empresa</strong><p>Use as opções de OAuth acima para conectar Instagram, Facebook ou WhatsApp. Cada empresa mantém suas próprias contas.</p></div>}
+       {linkedCount?<div className="channels-connected-list">{linkedChannels.map(c=><article className="channels-connected-row" key={c.id}><span className="channels-platform-icon" style={{background:platformColor(c.platform||"social")}}>{platformName(c.platform||"Rede social").slice(0,1).toUpperCase()}</span><div className="channels-connected-main"><strong>{c.username?"@"+c.username.replace(/^@/,""):c.name}</strong><p>{platformName(c.platform||"Rede social")} · {statusText(c.status)} · Histórico e inbox desta empresa</p></div><span className={"channels-connection-pill "+(c.status==="CONNECTED"?"good":"attention")}><span/> {statusText(c.status)}</span><ChevronRight size={16} className="channels-row-chevron"/></article>)}</div>:<div className="channels-empty-state"><span><Unplug size={22}/></span><strong>Nenhuma conta conectada nesta empresa</strong><p>Use as opções de OAuth acima para conectar Instagram, Facebook ou WhatsApp. Cada empresa mantém suas próprias contas.</p></div>}
      </section>
    </section>;
 }

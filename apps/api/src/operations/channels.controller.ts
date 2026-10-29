@@ -57,6 +57,7 @@ export class ChannelConnectionsController {
   }
 
   @Get("zernio/oauth/callback")
+  @UseGuards()
   async finishZernioOAuth(@Query() query: Record<string,string>, @Res() response: Response) {
     const appBase=(process.env.WEB_PUBLIC_URL||"").replace(/\/$/,"");
     const redirect=(status:string)=>response.redirect(303,(appBase||"https://app.vexorasuite.com.br")+"/?module=Canais+e+integra%C3%A7%C3%B5es&zernio="+encodeURIComponent(status));
@@ -78,7 +79,7 @@ export class ChannelConnectionsController {
     if (!profile || profile.profileId!==attempt.profileId) return redirect("profile-mismatch");
     if(query.error) return redirect("denied");
     const connected=String(query.connected||"").toLowerCase(), callbackProfile=String(query.profileId||""),accountId=String(query.accountId||"");
-    if (connected!==attempt.platform || callbackProfile!==profile.profileId || !accountId || accountId.length>200) return redirect("invalid");
+    if (connected!==attempt.platform || (callbackProfile && callbackProfile!==profile.profileId) || !accountId || accountId.length>200) return redirect("invalid");
     try {
       const list=await this.zernio.request<unknown>("/accounts?profileId="+encodeURIComponent(profile.profileId));
       const accounts=Array.isArray(list)?list:list&&typeof list==="object"?(Array.isArray((list as any).accounts)?(list as any).accounts:Array.isArray((list as any).data)?(list as any).data:[]):null;
@@ -158,8 +159,8 @@ export class ChannelConnectionsController {
       const raw = Array.isArray(response) ? response : response && typeof response === "object" ?
         (Array.isArray((response as any).accounts) ? (response as any).accounts : Array.isArray((response as any).data) ? (response as any).data : []) : null;
       if (!raw) throw new Error("Invalid Zernio profile account response");
-      const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
-      if (accounts.some((account: any)=>!account.accountId||!account.platform)) throw new Error("Invalid account entry");
+      const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
+      if (accounts.some((account: any)=>!account.accountId||!account.platform||account.profileId!==profile.profileId)) throw new Error("Zernio returned an account outside the company profile.");
       return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
     } catch {
       return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"Não foi possível validar o perfil de redes sociais desta empresa na Zernio." };
@@ -221,7 +222,7 @@ export class ChannelConnectionsController {
     if (!profile) throw new BadRequestException("Conecte esta conta pelas opções OAuth da empresa.");
     const response = await this.zernio.request<unknown>("/accounts?profileId="+encodeURIComponent(profile.profileId));
     const listed = Array.isArray(response) ? response : response && typeof response==="object" ? (Array.isArray((response as any).accounts)?(response as any).accounts:Array.isArray((response as any).data)?(response as any).data:[]) : [];
-    const owned = listed.find((item:any)=>String(item.accountId??item.id??item._id??"")===accountId && String(item.platform||"").toLowerCase()===platform);
+    const owned = listed.find((item:any)=>String(item.accountId??item.id??item._id??"")===accountId && String(item.platform||"").toLowerCase()===platform && String(item.profileId||"")===profile.profileId);
     if (!owned || String(owned.profileId||profile.profileId)!==profile.profileId) throw new ForbiddenException("Esta conta não pertence ao perfil Zernio desta empresa. Use a autorização OAuth da empresa.");
     const sessionName="zn-"+request.user.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex");
     const settings={platform,accountId,profileId:profile.profileId,username:socialUsername(owned)||"",profileName:typeof owned.profileName==="string"?owned.profileName:""};

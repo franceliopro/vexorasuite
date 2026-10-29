@@ -111,6 +111,7 @@ try{
  await page.getByRole("button",{name:"Usar no rascunho",exact:true}).waitFor();
  await page.screenshot({path:"artifacts/copilot/assistente-escrita-mobile.png",fullPage:false,animations:"disabled"});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"Horizontal overflow on mobile");
+ inboxResponse={departments:[],inboxes:[{...inboxBase,id:"old-instagram",name:"Instagram antigo",platform:"instagram",identity:"empresa.antiga",accountId:"old-account",status:"DISCONNECTED",flow:null,blockers:["A conexão não está confirmada como conectada."]}]};
  await page.goto("http://127.0.0.1:3100/?module=Canais+e+integra%C3%A7%C3%B5es");
  await page.getByRole("heading",{name:"Novas contas detectadas",exact:true}).waitFor();
  await page.getByText("Instagram · @empresa.nova",{exact:true}).waitFor();
@@ -120,6 +121,7 @@ try{
  assert.equal(await page.getByRole("button",{name:"Vincular Facebook",exact:true}).count(),1);
  await page.getByRole("button",{name:"Atualizar contas",exact:true}).click();
  await page.getByText(/Contas atualizadas. Novas contas detectadas/).waitFor();
+ assert((await page.getByRole("region",{name:"Gestão das inbox",exact:true}).innerText()).includes("Conexão requer atenção"));
  assert(socialSyncCalls>=2,"Refreshing must reconcile provider accounts again");
  assert.equal(sentMessages,0);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"Social discovery must fit mobile");

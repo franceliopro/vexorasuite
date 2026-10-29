@@ -3419,3 +3419,9 @@ input[type="color"].profile-tag-inline-color {
 .handoff-context{display:block;padding:8px 12px;font-size:13px}
 .internal-note-label{display:block;font-size:11px;color:var(--ink);margin-bottom:5px}
 .message-line.internal .message-bubble{border:1px solid #b78728;background:rgba(183,135,40,.12)}
+
+.internal-mentions{display:flex;flex-direction:column;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.internal-mentions button{text-align:left;background:var(--card);color:var(--ink);padding:6px;border:0}
+.internal-mentions button.active{background:var(--primary-soft)}
+.internal-mention-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.internal-mention-chips button{border:1px solid var(--line);border-radius:12px;background:var(--primary-soft);color:var(--ink);padding:4px 8px}

@@ -28,7 +28,7 @@ export class EventsController{
     if(!allowed.includes('CRM')||typeof event.data.pipelineId!=='string'||!crmIds.length)return null;
     const visible=await this.prisma.crmPipeline.findFirst({where:{id:event.data.pipelineId,tenantId:req.user.tenantId,enabled:true,departmentId:{in:crmIds},department:{isActive:true,modules:{has:'CRM'}}},select:{id:true}});
     if(!visible)return null;
-   }else if(!allowed.includes('INBOX')||!['channel.status','channel.created'].includes(event.type))return null;
+   }else if(!allowed.includes('INBOX')||!['channel.status','channel.created','team.updated'].includes(event.type))return null;
    return {type:event.type,data:event.data};
   }),filter((event):event is {type:string;data:Record<string,unknown>}=>event!==null));
  }

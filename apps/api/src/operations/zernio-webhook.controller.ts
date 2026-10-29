@@ -1,3 +1,5 @@
+import { socialUsername } from "./social-identity";
+import { randomBytes } from "node:crypto";
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post, RawBodyRequest, Req } from "@nestjs/common";
 import type { Request } from "express";

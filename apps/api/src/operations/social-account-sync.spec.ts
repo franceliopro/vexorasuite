@@ -2,8 +2,8 @@ import {ChannelConnectionsController} from "./channels.controller";
 function setup(){
  const row:any={id:"channel",tenantId:"tenant",provider:"ZERNIO",isActive:true,status:"CONNECTED",name:"Old",settings:{platform:"instagram",accountId:"old",username:"old",webhookSecret:"private",webhookVerifiedAt:"verified",inboxRouting:{mode:"HUMAN",revision:"r1"}}};
  const tx:any={$queryRaw:jest.fn(),channelConnection:{findMany:jest.fn().mockResolvedValue([row]),findFirst:jest.fn(async()=>row),update:jest.fn(async({data}:any)=>{Object.assign(row,data);return row;})}};
- const prisma:any={...tx,$transaction:jest.fn((fn:any)=>fn(tx))};
- const zernio:any={request:jest.fn(async(path:string)=>path==="/auth/verify"?{valid:true}:{accounts:[{id:"old",platform:"instagram",username:"newhandle",name:"New name",status:"ACTIVE"},{id:"new-facebook",platform:"facebook",username:"business",status:"ACTIVE"}]})};
+ const prisma:any={...tx,tenant:{findFirst:jest.fn().mockResolvedValue({kind:"COMPANY"})},zernioProfile:{findUnique:jest.fn().mockResolvedValue({tenantId:"tenant",profileId:"profile",externalId:"vexora-tenant-tenant"})},$transaction:jest.fn((fn:any)=>fn(tx))};
+ const zernio:any={request:jest.fn(async(path:string)=>path==="/auth/verify"?{valid:true}:{accounts:[{id:"old",profileId:"profile",platform:"instagram",username:"newhandle",name:"New name",status:"ACTIVE"},{id:"new-facebook",profileId:"profile",platform:"facebook",username:"business",status:"ACTIVE"}]})};
  const events:any={publish:jest.fn()},req:any={user:{tenantId:"tenant",sub:"owner",role:"OWNER"}};
  return {row,tx,prisma,zernio,events,req,controller:new ChannelConnectionsController(prisma,{} as any,events,zernio)};
 }
@@ -19,7 +19,7 @@ describe("social account reconciliation",()=>{
   expect(x.tx.channelConnection.update).toHaveBeenCalledTimes(1);expect(JSON.stringify(result)).not.toContain("private");
  });
  it("detects a replacement and Facebook without reassigning the old inbox or its conversations",async()=>{
-  const x=setup();x.zernio.request.mockImplementation(async(p:string)=>p==="/auth/verify"?{valid:true}:{accounts:[{id:"replacement",platform:"instagram",username:"new",status:"ACTIVE"},{id:"fb",platform:"facebook",status:"ACTIVE"}]});
+  const x=setup();x.zernio.request.mockImplementation(async(p:string)=>p==="/auth/verify"?{valid:true}:{accounts:[{id:"replacement",profileId:"profile",platform:"instagram",username:"new",status:"ACTIVE"},{id:"fb",profileId:"profile",platform:"facebook",status:"ACTIVE"}]});
   const result=await x.controller.syncZernio(x.req);expect(result.accounts).toHaveLength(2);
   expect(x.row).toMatchObject({status:"DISCONNECTED",lastError:"ZERNIO_ACCOUNT_MISSING",settings:{accountId:"old",inboxRouting:{revision:"r1"}}});
   expect(x.row.isActive).toBe(true);

@@ -8,6 +8,6 @@ A transferência aceita um contexto opcional e grava o novo responsável/departa
 
 Quando o setor usa outro número, o atendente pode informar esse WhatsApp na transferência e preparar uma mensagem com link wa.me para revisar e enviar pelo campo público. Essa ação não envia automaticamente, não troca o canal da conversa e não inicia outra conversa com o cliente. O telefone é informado pelo operador; não há associação automática entre número e departamento nesta entrega.
 
-Este chat é vinculado ao atendimento: não é um mensageiro independente entre funcionários nem amplia acesso por menção. Convites existentes e transferências continuam controlando quem acompanha o atendimento.
+Este chat é vinculado ao atendimento: não é um mensageiro independente entre funcionários As menções @ oferecem uma lista de atendentes e mostram quem será incluído antes do envio. Ao enviar, o servidor valida IDs, vínculo ativo na mesma empresa e acesso atual do autor; grava os participantes INVITED, a nota e a auditoria na mesma transação. A pessoa passa a ver o atendimento em Participando, sem trocar o responsável. Menções não concedem acesso ao módulo e são recusadas enquanto o atendimento está em BOT.
 
 Validação: testes de privacidade (nenhuma chamada externa), autoria/auditoria, autorização por empresa/atribuição, conversas arquivadas/excluídas, contexto inválido e persistência transacional da transferência. Executar CI de API/web antes de mesclar. Implantação e envio real a clientes não são comprovados apenas por estes testes.

@@ -1,7 +1,7 @@
 "use client";
 import {InboxesManagement} from "./inboxes-management";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, Plus, RefreshCw, ShieldCheck, Unplug, Info, Copy } from "lucide-react";
 
 type SocialAccount = { accountId: string; platform: string; username?: string; name?: string; status?: string; profileName?: string };
@@ -18,6 +18,8 @@ export function ChannelsIntegrations(){
  const [diagnostic,setDiagnostic]=useState<Diagnostic|null>(null);
  const [channels,setChannels]=useState<Channel[]>([]);
  const [loading,setLoading]=useState(true);
+ const [inboxRevision,setInboxRevision]=useState(0);
+ const refreshing=useRef(false);
  const [googleConfig,setGoogleConfig]=useState<{configured:boolean;encryptionConfigured?:boolean;status:string;callbackUrl:string|null}|null>(null);
  const [googleConnections,setGoogleConnections]=useState<{id:string;email:string;scopes:string;disabledServices:string[];renewable:boolean}[]>([]);
  const [googleBusy,setGoogleBusy]=useState(false);
@@ -25,7 +27,7 @@ export function ChannelsIntegrations(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
 
- const [selectedAccount,setSelectedAccount]=useState("");
+
  
  
  const [busy,setBusy]=useState(false);
@@ -33,17 +35,18 @@ export function ChannelsIntegrations(){
  const [secretVisible,setSecretVisible]=useState(false);
  const [copied,setCopied]=useState(false);
  const refresh=useCallback(async(showFeedback=false)=>{
-   setLoading(true); if(showFeedback)setError("");
+   if(refreshing.current)return;refreshing.current=true;
+   setLoading(true);setError("");
    try{
-     const [diag,existing]=await Promise.all([
-       api<Diagnostic>("/api/backend/channels/zernio/diagnostics"),
-       api<Channel[]>("/api/backend/channels")
-     ]);
+     const diag=await api<Diagnostic>("/api/backend/channels/zernio/sync",{method:"POST"});
+     const existing=await api<Channel[]>("/api/backend/channels");
+     setInboxRevision(v=>v+1);
      setDiagnostic(diag);setChannels(existing);
-     if(showFeedback)setNotice(diag.message || (diag.authenticated?"Chave Zernio validada. A entrega de mensagens depende da configuração do webhook de cada conta.":"A configuração da Zernio precisa de atenção."));
+     if(showFeedback)setNotice(diag.message || (diag.authenticated?"Contas atualizadas. Novas contas detectadas aparecem abaixo para vínculo; contas removidas mantêm o histórico.":"A configuração da Zernio precisa de atenção."));
    }catch(e){setDiagnostic(null);setChannels([]);setError(e instanceof Error?e.message:"Não foi possível verificar a integração.");}
-   finally{setLoading(false);}
+   finally{setLoading(false);refreshing.current=false;}
  },[]);
+ useEffect(()=>{const update=()=>{if(document.visibilityState==="visible")void refresh();};window.addEventListener("focus",update);const timer=window.setInterval(update,60000);return()=>{window.removeEventListener("focus",update);window.clearInterval(timer);};},[refresh]);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const result=params.get("google");if(result==="connected")setNotice("Conta Google autorizada com sucesso. A conexão está disponível nesta empresa.");else if(result)setError("A autorização Google não foi concluída ("+result+"). Tente conectar novamente.");if(result){const url=new URL(window.location.href);url.searchParams.delete("google");window.history.replaceState(window.history.state,"",url.pathname+url.search+url.hash);}},[]);
  useEffect(()=>{void refresh();void api<{configured:boolean;encryptionConfigured:boolean;status:string;callbackUrl:string|null}>("/api/backend/integrations/google/config").then(setGoogleConfig).catch(()=>setGoogleConfig(null));void api<{id:string;email:string;scopes:string;disabledServices:string[];renewable:boolean}[]>("/api/backend/integrations/google/connections").then(setGoogleConnections).catch(()=>{});},[refresh]);
  async function connectGoogle(service:"calendar"|"drive"){setGoogleBusy(true);setError("");try{const result=await api<{authorizationUrl:string}>("/api/backend/integrations/google/start/"+service,{method:"POST"});window.location.assign(result.authorizationUrl);}catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização Google.");setGoogleBusy(false);}}
@@ -51,10 +54,9 @@ export function ChannelsIntegrations(){
  async function forgetGoogle(id:string){setGoogleBusy(true);try{await api('/api/backend/integrations/google/connections/'+id+'/forget',{method:'DELETE'});setGoogleConnections(rows=>rows.filter(a=>a.id!==id));setNotice('Conta desconectada removida da lista.')}catch(e){setError(e instanceof Error?e.message:'Falha ao remover')}finally{setGoogleBusy(false)}}
  async function forgetGoogleService(id:string,service:string){setGoogleBusy(true);try{await api('/api/backend/integrations/google/connections/'+id+'/services/'+service+'/forget',{method:'DELETE'});setGoogleConnections(rows=>rows.map(a=>a.id===id?{...a,disabledServices:[...a.disabledServices,'hidden:'+service]}:a));setNotice('Serviço desconectado removido da lista.')}catch(e){setError(e instanceof Error?e.message:'Falha ao remover')}finally{setGoogleBusy(false)}}
  const socialAccounts=useMemo(()=>diagnostic?.accounts||[],[diagnostic]);
- const chosen=socialAccounts.find(a=>a.accountId===selectedAccount);
- useEffect(()=>{if(chosen){}},[selectedAccount]);
- async function connectAccount(event:React.FormEvent){event.preventDefault();const accountId=(chosen?.accountId||"").trim();const accountName=chosen?.name||chosen?.username||(chosen?platformName(chosen.platform):"");if(!accountId||!accountName){setError("Selecione uma conta disponível na Zernio.");return;}setBusy(true);setError("");setNotice("");setSetup(null);setSecretVisible(false);
-   try{const result=await api<Setup>("/api/backend/channels/zernio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:accountName,username:chosen?.username,profileName:chosen?.profileName,platform:chosen?.platform==="twitter"?"x":chosen?.platform,accountId})});setSetup(result);setSecretVisible(true);setChannels(await api<Channel[]>("/api/backend/channels"));setNotice("Conta vinculada. Configure o webhook desta conta usando os dados abaixo.");setSelectedAccount("");}
+
+ async function connectAccount(chosen:SocialAccount){const accountId=chosen.accountId.trim();const accountName=chosen?.name||chosen?.username||(chosen?platformName(chosen.platform):"");if(!accountId||!accountName){setError("Selecione uma conta disponível na Zernio.");return;}setBusy(true);setError("");setNotice("");setSetup(null);setSecretVisible(false);
+   try{const result=await api<Setup>("/api/backend/channels/zernio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:accountName,username:chosen?.username,profileName:chosen?.profileName,platform:chosen?.platform==="twitter"?"x":chosen?.platform,accountId})});setSetup(result);setSecretVisible(true);setChannels(await api<Channel[]>("/api/backend/channels"));setInboxRevision(v=>v+1);setNotice("Conta vinculada. Configure o webhook desta conta usando os dados abaixo.");}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível vincular a conta.");}finally{setBusy(false);}
  }
  const linkedIds=new Set(channels.filter(c=>c.provider==="ZERNIO").map(c=>c.accountId).filter(Boolean));
@@ -62,7 +64,7 @@ export function ChannelsIntegrations(){
  async function copyWebhook(){if(!setup)return;try{await navigator.clipboard.writeText("URL: "+(setup.webhookUrl||"")+"\nSegredo de assinatura: "+setup.webhookSecret);setCopied(true);}catch{setError("O navegador bloqueou a cópia. Selecione e copie os dados manualmente.");}}
  return <section className="channels-page">
    <header className="channels-page-heading"><div><h1>Canais e integrações</h1></div></header>
-   <InboxesManagement/>
+   <InboxesManagement refreshKey={inboxRevision}/>
    {error?<div className="channels-alert error" role="alert"><AlertCircle size={17}/><span>{error}</span><button type="button" onClick={()=>setError("")} aria-label="Fechar aviso">×</button></div>:null}
    {notice?<div className="channels-alert success" role="status"><CheckCircle2 size={17}/><span>{notice}</span><button type="button" onClick={()=>setNotice("")} aria-label="Fechar aviso">×</button></div>:null}
    <section className="content-card channels-provider-card">
@@ -72,14 +74,11 @@ export function ChannelsIntegrations(){
      {!googleConnections.length?<details className="channels-google-setup"><summary>Configuração técnica do Google</summary><p>As credenciais da aplicação são configuradas na API. {googleConfig?.configured?"Credenciais detectadas.":"Credenciais não detectadas."}</p><p>Retorno OAuth: <code>{googleConfig?.callbackUrl||"Não configurado"}</code></p>{!googleConfig?.encryptionConfigured?<p>Configure GOOGLE_TOKEN_ENCRYPTION_KEY no servidor.</p>:null}</details>:null}
    </section>
    <section className="content-card channels-provider-card">
-     <div className="channels-section-heading"><span className="channels-provider-mark">Z</span><div><h2>Zernio</h2><p>{loading?"Verificando conexão…":diagnostic?.authenticated?"API autenticada":diagnostic?.message||"Conexão não validada"}</p></div><button type="button" className="secondary-button" onClick={()=>void refresh(true)} disabled={loading}><RefreshCw size={15}/> Verificar</button></div>
+     <div className="channels-section-heading"><span className="channels-provider-mark">Z</span><div><h2>Zernio</h2><p>{loading?"Verificando conexão…":diagnostic?.authenticated?"API autenticada":diagnostic?.message||"Conexão não validada"}</p></div><button type="button" className="secondary-button" onClick={()=>void refresh(true)} disabled={loading}><RefreshCw size={15}/> Atualizar contas</button></div>
      {!loading&&!diagnostic?.authenticated?<p className="channels-form-note"><AlertCircle size={16}/> {diagnostic?.message||"Confira a configuração da API no servidor."}</p>:null}
    {diagnostic?.authenticated&&socialAccounts.some(a=>!linkedIds.has(a.accountId))?<section className="content-card channels-account-form-card">
-     <div className="channels-section-heading"><span className="channels-heading-icon"><Plus size={18}/></span><div><h2>Adicionar conta</h2><p>Escolha uma conta já autorizada na Zernio.</p></div></div>
-     <form className="channels-form" onSubmit={connectAccount}>
-       <label><span>Conta social</span><select value={selectedAccount} onChange={e=>setSelectedAccount(e.target.value)} required><option value="">Selecione uma conta…</option>{socialAccounts.filter(a=>!linkedIds.has(a.accountId)&&["instagram","facebook","messenger","whatsapp","tiktok","linkedin","youtube","threads","pinterest","x","twitter"].includes(a.platform.toLowerCase())).map(a=><option key={a.accountId} value={a.accountId}>{platformName(a.platform)} · {a.username||a.name||a.accountId}</option>)}</select></label>
-       <button type="submit" className="primary-button channels-submit" disabled={busy||!chosen}>{busy?"Vinculando…":"Vincular conta"}</button>
-     </form>
+     <div className="channels-section-heading"><span className="channels-heading-icon"><Plus size={18}/></span><div><h2>Novas contas detectadas</h2><p>Contas autorizadas na Zernio que ainda não têm uma inbox nesta empresa.</p></div></div>
+     <div className="channels-connected-list">{socialAccounts.filter(a=>!linkedIds.has(a.accountId)&&["instagram","facebook","messenger","whatsapp","tiktok","linkedin","youtube","threads","pinterest","x","twitter"].includes(a.platform.toLowerCase())).map(account=><article className="channels-connected-row" key={account.accountId}><div className="channels-connected-main"><strong>{platformName(account.platform)} · {account.username?"@"+account.username.replace(/^@/,""):account.name||account.accountId}</strong><p>Detectada · ainda não vinculada à empresa</p></div><button type="button" className="secondary-button" disabled={busy} onClick={()=>void connectAccount(account)}>Vincular {platformName(account.platform)}</button></article>)}</div>
    </section>:null}
    {setup?<section className="content-card channels-webhook-card"><div className="channels-section-heading"><span className="channels-heading-icon"><ShieldCheck size={18}/></span><div><h2>Configurar webhook desta conta</h2><p>O segredo abaixo é o segredo de assinatura do webhook, não a chave geral da API.</p></div><span className="channels-once-badge">Exibido uma vez</span></div>
       <div className="channels-webhook-fields"><div><label>URL de webhook</label><code>{setup.webhookUrl||"Defina API_PUBLIC_URL no servidor e atualize a integração."}</code></div><div><label>Segredo de assinatura</label><div className="channels-secret-line"><code>{secretVisible?setup.webhookSecret:"••••••••••••••••••••••••••••••••"}</code><button type="button" className="secondary-button" onClick={()=>setSecretVisible(v=>!v)}>{secretVisible?"Ocultar":"Mostrar"}</button></div></div></div>
@@ -88,7 +87,7 @@ export function ChannelsIntegrations(){
       <p className="channels-webhook-instructions">{setup.webhookSetup}</p>
    </section>:null}
    <section className="content-card channels-connected-card"><div className="channels-section-heading"><span className="channels-heading-icon"><Activity size={18}/></span><div><h3>Contas vinculadas</h3><p>Estado atual das conexões registradas nesta empresa.</p></div><span className="channels-count">{linkedCount}</span></div>
-     {channels.filter(c=>c.provider==="ZERNIO").length?<div className="channels-connected-list">{channels.filter(c=>c.provider==="ZERNIO").map(stored=>{const live=socialAccounts.find(a=>a.accountId===stored.accountId);const c={...stored,username:live?.username||stored.username};return <article className="channels-connected-row" key={c.id}><span className="channels-platform-icon" style={{background:platformColor(c.platform||"social")}}>{(c.platform||"").toLowerCase()==="instagram"?<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="white" strokeWidth="2" aria-label="Instagram"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6.5" r="1" fill="white" stroke="none"/></svg>:(platformName(c.platform||"Rede social").slice(0,1)).toUpperCase()}</span><div className="channels-connected-main"><strong>{c.username?"@"+c.username.replace(/^@/,""):"Login não informado pela Zernio"}</strong><p>Conta: {c.name} · {c.accountId||"ID protegido"} · {c.webhookVerifiedAt?"Webhook verificado · ":""}{statusText(c.status)}</p></div><span className={"channels-connection-pill "+(c.status==="CONNECTED"?"good":"attention")}><span/> {statusText(c.status)}</span><ChevronRight size={16} className="channels-row-chevron"/></article>})}</div>:<div className="channels-empty-state"><span><Unplug size={22}/></span><strong>Nenhuma conta vinculada ainda</strong><p>Depois de validar a configuração, as contas aparecerão aqui com seu estado de conexão.</p><button type="button" className="secondary-button" onClick={()=>document.querySelector(".channels-account-form-card")?.scrollIntoView({behavior:"smooth",block:"center"})}>Vincular primeira conta <ChevronRight size={15}/></button></div>}
+     {channels.filter(c=>c.provider==="ZERNIO").length?<div className="channels-connected-list">{channels.filter(c=>c.provider==="ZERNIO").map(stored=>{const live=socialAccounts.find(a=>a.accountId===stored.accountId);const c=stored;return <article className="channels-connected-row" key={c.id}><span className="channels-platform-icon" style={{background:platformColor(c.platform||"social")}}>{(c.platform||"").toLowerCase()==="instagram"?<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="white" strokeWidth="2" aria-label="Instagram"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6.5" r="1" fill="white" stroke="none"/></svg>:(platformName(c.platform||"Rede social").slice(0,1)).toUpperCase()}</span><div className="channels-connected-main"><strong>{c.username?"@"+c.username.replace(/^@/,""):"Login não informado pela Zernio"}</strong><p>Conta: {c.name} · {c.accountId||"ID protegido"} · {c.webhookVerifiedAt?"Webhook verificado · ":""}{c.lastError==="ZERNIO_ACCOUNT_MISSING"?"Conta removida na Zernio · histórico preservado":statusText(c.status)}</p></div><span className={"channels-connection-pill "+(c.status==="CONNECTED"?"good":"attention")}><span/> {statusText(c.status)}</span><ChevronRight size={16} className="channels-row-chevron"/></article>})}</div>:<div className="channels-empty-state"><span><Unplug size={22}/></span><strong>Nenhuma conta vinculada ainda</strong><p>Depois de validar a configuração, as contas aparecerão aqui com seu estado de conexão.</p><button type="button" className="secondary-button" onClick={()=>document.querySelector(".channels-account-form-card")?.scrollIntoView({behavior:"smooth",block:"center"})}>Vincular primeira conta <ChevronRight size={15}/></button></div>}
    </section>
    </section>
 

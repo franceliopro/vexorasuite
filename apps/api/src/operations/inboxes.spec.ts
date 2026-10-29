@@ -17,7 +17,7 @@ describe("inbox management",()=>{
   const x=setup();x.req.user.role="AGENT";await expect(x.controller.list(x.req)).rejects.toThrow("administradores");expect(x.tx.channelConnection.findMany).not.toHaveBeenCalled();
  });
  it("reports a connected account lacking any publication honestly",async()=>{
-  const x=setup();delete x.root.intelligencePublished;const data=await x.controller.list(x.req);expect(data.inboxes[0].blockers).toContain("Não há fluxo publicado para a entrada desta inbox.");
+  const x=setup();delete x.root.intelligencePublished;const data=await x.controller.list(x.req);expect(data.inboxes[0]!.blockers).toContain("Não há fluxo publicado para a entrada desta inbox.");
  });
  it("does not configure a channel belonging to another tenant",async()=>{
   const x=setup();x.tx.channelConnection.findFirst.mockResolvedValue(null);await expect(x.controller.configure(x.req,id,{mode:"HUMAN",expectedRevision:null})).rejects.toThrow("indisponível");expect(x.tx.channelConnection.update).not.toHaveBeenCalled();

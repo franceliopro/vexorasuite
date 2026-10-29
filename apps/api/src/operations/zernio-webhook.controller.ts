@@ -1,3 +1,5 @@
+import { socialUsername } from "./social-identity";
+import { randomBytes } from "node:crypto";
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post, RawBodyRequest, Req } from "@nestjs/common";
 import type { Request } from "express";
@@ -13,6 +15,57 @@ export class ZernioWebhookController {
 
   constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly zernio: ZernioService, private readonly engine: IntelligenceRuntimeService) {}
 
+
+  @Post("team")
+  async receiveTeam(@Req() request: RawBodyRequest<Request>) {
+    const secret = process.env.ZERNIO_WEBHOOK_SECRET || "";
+    if (!this.zernio.verifyWebhook(request.rawBody, request.headers["x-zernio-signature"] as string | undefined, secret)) {
+      this.logger.warn("Webhook central Zernio recusado: assinatura inválida.");
+      throw new ForbiddenException("Assinatura do webhook central inválida.");
+    }
+    const body = request.body && typeof request.body === "object" ? request.body as JsonObject : {};
+    if (body.test) return { ok: true, test: true };
+    const event = typeof body.event === "string" ? body.event : "";
+    const account = body.account && typeof body.account === "object" ? body.account as JsonObject : {};
+    const accountId = String(account.accountId || account.id || body.accountId || "");
+    const profileId = String(account.profileId || body.profileId || "");
+    if (!accountId) return { ok: true, ignored: true };
+    if (event === "account.connected" || event === "account.disconnected") {
+      if (!profileId) return { ok: true, ignored: true };
+      const profile = await this.prisma.zernioProfile.findUnique({ where: { profileId }, select: { tenantId: true, profileId: true } });
+      if (!profile) return { ok: true, ignored: true };
+      if (event === "account.disconnected") {
+        const channel = await this.prisma.channelConnection.findFirst({ where: { tenantId: profile.tenantId, provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: accountId } } });
+        const settings = channel?.settings && typeof channel.settings === "object" && !Array.isArray(channel.settings) ? channel.settings as JsonObject : {};
+        if (channel && settings.profileId === profileId) {
+          await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "DISCONNECTED", lastError: "ZERNIO_ACCOUNT_DISCONNECTED" } });
+          this.events.publish(profile.tenantId, "channel.status", { id: channel.id, status: "DISCONNECTED" });
+        }
+        return { ok: true, accepted: !!channel };
+      }
+      const platform = String(account.platform || "").toLowerCase();
+      if (!platform) return { ok: true, ignored: true };
+      const identity = { platform, accountId, profileId, username: socialUsername(account) || "", profileName: typeof account.profileName === "string" ? account.profileName : "" };
+      const channel = await this.prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${accountId}, 0))`;
+        const owner = await tx.channelConnection.findFirst({ where: { provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: accountId } } });
+        if (owner && owner.tenantId !== profile.tenantId) throw new ForbiddenException("A conta já pertence a outra empresa.");
+        const existing = await tx.channelConnection.findFirst({ where: { tenantId: profile.tenantId, provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: accountId } } });
+        if (existing) return tx.channelConnection.update({ where: { id: existing.id }, data: { status: "CONNECTING", lastError: null, settings: { ...(existing.settings as JsonObject || {}), ...identity } } });
+        return tx.channelConnection.create({ data: { tenantId: profile.tenantId, provider: "ZERNIO", name: String(account.name || account.username || platform).slice(0, 100), sessionName: "zn-" + profile.tenantId.replace(/-/g, "").slice(0, 10) + "-" + randomBytes(5).toString("hex"), status: "CONNECTING", settings: identity } });
+      });
+      this.events.publish(profile.tenantId, "channel.updated", { id: channel.id, provider: "ZERNIO", status: channel.status });
+      return { ok: true, accepted: true };
+    }
+    const channel = await this.prisma.channelConnection.findFirst({ where: { provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: accountId } } });
+    if (!channel) return { ok: true, ignored: true };
+    const settings = channel.settings && typeof channel.settings === "object" && !Array.isArray(channel.settings) ? channel.settings as JsonObject : {};
+    if (["ZERNIO_ACCOUNT_MISSING", "ZERNIO_ACCOUNT_CHANGED", "ZERNIO_ACCOUNT_DISCONNECTED"].includes(channel.lastError || "")) return { ok: true, ignored: true };
+    const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: channel.tenantId } });
+    if (!profile || settings.profileId !== profile.profileId || (profileId && profileId !== profile.profileId)) return { ok: true, ignored: true };
+    return this.processEvent(channel, { ...body, account: { ...account, accountId } });
+  }
+
   @Post(":channelId")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Req() request: RawBodyRequest<Request>) {
     const channel = await this.prisma.channelConnection.findFirst({ where: { id: channelId, provider: "ZERNIO", isActive: true } });
@@ -22,10 +75,13 @@ export class ZernioWebhookController {
       this.logger.warn("Webhook Zernio recusado: assinatura inválida.");
       throw new ForbiddenException("Assinatura do webhook inválida.");
     }
+    if (["ZERNIO_ACCOUNT_MISSING", "ZERNIO_ACCOUNT_CHANGED", "ZERNIO_ACCOUNT_DISCONNECTED"].includes(channel.lastError || "")) return { ok: true, ignored: true };
+    return this.processEvent(channel, request.body && typeof request.body === "object" ? request.body as JsonObject : {});
+  }
 
-    if (["ZERNIO_ACCOUNT_MISSING","ZERNIO_ACCOUNT_CHANGED","ZERNIO_ACCOUNT_DISCONNECTED"].includes(channel.lastError||"")) return { ok:true, ignored:true };
+  private async processEvent(channel: any, body: JsonObject) {
+    const settings = channel.settings && typeof channel.settings === "object" && !Array.isArray(channel.settings) ? channel.settings as JsonObject : {};
 
-    const body = request.body && typeof request.body === "object" ? request.body as JsonObject : {};
     if (body.test) {
       const updatedSettings = { ...settings, webhookVerifiedAt: new Date().toISOString() };
       await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { settings: updatedSettings } });
@@ -96,4 +152,3 @@ export class ZernioWebhookController {
     return { ok: true, accepted: true, type: normalizedType };
   }
 }
-

@@ -64,6 +64,8 @@ try{
  assert((await inboxCard("WhatsApp principal QA").innerText()).includes("Ativa para este agente"));
  assert((await inboxCard("Instagram QA").innerText()).includes("Não vinculada a este agente"));
  assert((await inboxCard("WhatsApp pausado QA").innerText()).includes("Vinculada · requer atenção"));
+ assert(!(await inboxCard("Instagram QA").innerText()).includes("Vínculo configurado."));
+ assert(!(await inboxCard("WhatsApp pausado QA").innerText()).includes("Vínculo configurado."));
  assert.equal(await page.getByText("Canais habilitados",{exact:true}).count(),0);
  await page.screenshot({path:"artifacts/copilot/inbox-reais-desktop.png",fullPage:true,animations:"disabled"});
  await page.setViewportSize({width:390,height:844});

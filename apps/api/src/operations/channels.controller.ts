@@ -158,8 +158,15 @@ export class ChannelConnectionsController {
       if (verification.valid !== true) throw new BadGatewayException("A Zernio não confirmou a chave central.");
       if (!profile) return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, accountCount:0, accounts:[], profileConfigured:false, checkedAt:new Date().toISOString(), message:"O perfil desta empresa será criado ao iniciar a primeira conexão OAuth." };
       const response = await this.zernio.request<unknown>("/accounts?profileId=" + encodeURIComponent(profile.profileId));
-      const raw = Array.isArray(response) ? response : response && typeof response === "object" ?
-        (Array.isArray((response as any).accounts) ? (response as any).accounts : Array.isArray((response as any).data) ? (response as any).data : []) : null;
+      const raw: unknown[] = (() => {
+        if (Array.isArray(response)) return response;
+        if (!response || typeof response !== "object") throw new Error("Invalid Zernio profile account response");
+        const payload = response as Record<string, any>;
+        if (Array.isArray(payload.accounts)) return payload.accounts;
+        if (Array.isArray(payload.data)) return payload.data;
+        if (payload.data && typeof payload.data === "object" && Array.isArray(payload.data.accounts)) return payload.data.accounts;
+        throw new Error("Invalid Zernio profile account response");
+      })();
       if (!raw) throw new Error("Invalid Zernio profile account response");
       const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
       if (accounts.some((account: any)=>!account.accountId||!account.platform||account.profileId!==profile.profileId)) throw new Error("Zernio returned an account outside the company profile.");

@@ -11,3 +11,11 @@ Quando o setor usa outro número, o atendente pode informar esse WhatsApp na tra
 Este chat é vinculado ao atendimento: não é um mensageiro independente entre funcionários As menções @ oferecem uma lista de atendentes e mostram quem será incluído antes do envio. Ao enviar, o servidor valida IDs, vínculo ativo na mesma empresa e acesso atual do autor; grava os participantes INVITED, a nota e a auditoria na mesma transação. A pessoa passa a ver o atendimento em Participando, sem trocar o responsável. Menções não concedem acesso ao módulo e são recusadas enquanto o atendimento está em BOT.
 
 Validação: testes de privacidade (nenhuma chamada externa), autoria/auditoria, autorização por empresa/atribuição, conversas arquivadas/excluídas, contexto inválido e persistência transacional da transferência. Executar CI de API/web antes de mesclar. Implantação e envio real a clientes não são comprovados apenas por estes testes.
+
+## Menções e identidade da equipe
+
+Cada menção cria um recibo persistente por usuário, empresa, mensagem e conversa. O ícone @ no topo da aplicação lista as menções e conta as não lidas; um aviso na tela oferece abrir o atendimento com o chat interno aberto. Eventos atualizam o painel e há consulta periódica como contingência. Ao abrir, o recibo é marcado como lido. O servidor filtra novamente os atendimentos acessíveis; perder o acesso remove a menção da lista. A entrega de push ao sistema operacional não faz parte deste aviso dentro da aplicação.
+
+O cadastro de atendentes inclui Conhecido por, editável também na lista. O valor fica no vínculo da empresa (Membership), preservando o nome completo da conta e permitindo identidades independentes em empresas distintas. O nome de atendimento é utilizado na sessão, equipe, seleção de atendentes, responsável da conversa, autoria das novas mensagens e notas, e na variável {{atendente}} tanto nas respostas rápidas quanto no motor. O cabeçalho e as mensagens mostram o nome e o departamento em negrito menor. Autoria/departamento são preservados nas novas mensagens para não reescrever o histórico ao transferir.
+
+A migração adiciona memberships.known_by e internal_mentions com índices por destinatário/empresa e unicidade por mensagem/destinatário. Nenhum canal externo é chamado para notificações de menção na tela.

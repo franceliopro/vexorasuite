@@ -66,7 +66,7 @@ export class ChannelConnectionsController {
       })();
       const accounts = raw.map((item) => {
         const account = item && typeof item === "object" ? item as Record<string, unknown> : {};
-        return {
+        const normalized = {
           accountId: String(account.accountId ?? account.id ?? account._id ?? ""),
           platform: String(account.platform ?? ""),
           username: socialUsername(account),
@@ -74,7 +74,9 @@ export class ChannelConnectionsController {
           status: typeof account.status === "string" ? account.status : typeof account.isActive === "boolean" ? account.isActive ? "ACTIVE" : "DISCONNECTED" : undefined,
           profileName: typeof account.profileName === "string" ? account.profileName : undefined,
         };
-      }).filter((account) => account.accountId && account.platform);
+        if(!normalized.accountId||!normalized.platform)throw new Error("Invalid account entry");
+        return normalized;
+      });
       return { configured, publicUrlConfigured, authenticated: true, accountCount: accounts.length, accounts, checkedAt: new Date().toISOString() };
     } catch (error) {
       const status = error instanceof BadGatewayException ? (error.getResponse() as { providerStatus?: number })?.providerStatus : undefined;

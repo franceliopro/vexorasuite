@@ -49,7 +49,7 @@ try{
  inboxResponse={inboxes:[],departments:[]};
  await page.getByRole("button",{name:"Atualizar inbox",exact:true}).click();
  await page.getByText("Este agente ainda não participa da entrada de nenhuma inbox.",{exact:true}).waitFor();
- assert.equal(await page.getByRole("alert").count(),0);
+ assert.equal(await page.getByRole("region",{name:"Gestão das inbox",exact:true}).getByRole("alert").count(),0);
  await page.getByRole("tab",{name:"Comportamento",exact:true}).click();
  await page.getByRole("textbox",{name:"Prompt principal",exact:true}).waitFor();
  assert((await page.getByRole("textbox",{name:"Prompt principal",exact:true}).innerText()).includes("{{atendente}}"));

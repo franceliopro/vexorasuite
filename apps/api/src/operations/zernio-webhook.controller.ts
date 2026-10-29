@@ -23,6 +23,8 @@ export class ZernioWebhookController {
       throw new ForbiddenException("Assinatura do webhook inválida.");
     }
 
+    if (["ZERNIO_ACCOUNT_MISSING","ZERNIO_ACCOUNT_CHANGED","ZERNIO_ACCOUNT_DISCONNECTED"].includes(channel.lastError||"")) return { ok:true, ignored:true };
+
     const body = request.body && typeof request.body === "object" ? request.body as JsonObject : {};
     if (body.test) {
       const updatedSettings = { ...settings, webhookVerifiedAt: new Date().toISOString() };

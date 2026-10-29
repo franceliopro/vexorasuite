@@ -8,10 +8,10 @@ type Data={inboxes:Row[];departments:{id:string;name:string}[]};
 const platform=(p:string)=>(({whatsapp:"WhatsApp",instagram:"Instagram",facebook:"Facebook",messenger:"Messenger"} as Record<string,string>)[p.toLowerCase()]||p);
 const date=(v:string|null)=>v?new Date(v).toLocaleString("pt-BR"):"Ainda não registrado";
 async function api<T>(path:string,init?:RequestInit):Promise<T>{const r=await fetch("/api/backend/channels/"+path,{cache:"no-store",...init});const d=await r.json();if(!r.ok)throw Error(Array.isArray(d.message)?d.message.join(" "):d.message||"Não foi possível consultar as inbox.");return d;}
-export function InboxesManagement({agentId,compact=false}:{agentId?:string;compact?:boolean}){
+export function InboxesManagement({agentId,compact=false,refreshKey=0}:{agentId?:string;compact?:boolean;refreshKey?:number}){
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(""),[loading,setLoading]=useState(false),[selected,setSelected]=useState<Row|null>(null),[draft,setDraft]=useState<Routing>({mode:"INHERIT",departmentId:null,revision:null}),[saving,setSaving]=useState(false),[notice,setNotice]=useState("");
  const refresh=useCallback(async()=>{setLoading(true);setError("");try{const next=await api<Data>("inboxes");if(!next||!Array.isArray(next.inboxes)||!Array.isArray(next.departments))throw Error("Não foi possível carregar as inbox. Tente atualizar.");setData(next);}catch(e){setError(e instanceof Error?e.message:"Falha ao consultar as inbox.");}finally{setLoading(false);}},[]);
- useEffect(()=>{void refresh();},[refresh]);
+ useEffect(()=>{void refresh();},[refresh,refreshKey]);
  const rows=data?.inboxes||[];
  const linked=(row:Row)=>!!agentId&&!!row.flow?.agents.some(a=>a.id===agentId);
  const active=(row:Row)=>linked(row)&&row.status==="CONNECTED"&&row.routing.mode!=="HUMAN"&&!!row.flow?.active&&!!row.flow.includesInbox&&!row.blockers.length&&!!row.flow.agents.find(a=>a.id===agentId)?.enabled;

@@ -57,16 +57,16 @@ export class ChannelConnectionsController {
       const response = await this.zernio.request<unknown>("/accounts");
       const raw: unknown[] = (() => {
         if (Array.isArray(response)) return response;
-        if (!response || typeof response !== "object") return [];
+        if (!response || typeof response !== "object") throw new Error("Invalid accounts response");
         const payload = response as Record<string, unknown>;
         if (Array.isArray(payload.data)) return payload.data;
         if (Array.isArray(payload.accounts)) return payload.accounts;
         if (payload.data && typeof payload.data === "object" && Array.isArray((payload.data as Record<string, unknown>).accounts)) return (payload.data as { accounts: unknown[] }).accounts;
-        return [];
+        throw new Error("Invalid accounts response");
       })();
       const accounts = raw.map((item) => {
         const account = item && typeof item === "object" ? item as Record<string, unknown> : {};
-        return {
+        const normalized = {
           accountId: String(account.accountId ?? account.id ?? account._id ?? ""),
           platform: String(account.platform ?? ""),
           username: socialUsername(account),
@@ -74,12 +74,48 @@ export class ChannelConnectionsController {
           status: typeof account.status === "string" ? account.status : typeof account.isActive === "boolean" ? account.isActive ? "ACTIVE" : "DISCONNECTED" : undefined,
           profileName: typeof account.profileName === "string" ? account.profileName : undefined,
         };
-      }).filter((account) => account.accountId && account.platform);
+        if(!normalized.accountId||!normalized.platform)throw new Error("Invalid account entry");
+        return normalized;
+      });
       return { configured, publicUrlConfigured, authenticated: true, accountCount: accounts.length, accounts, checkedAt: new Date().toISOString() };
     } catch (error) {
       const status = error instanceof BadGatewayException ? (error.getResponse() as { providerStatus?: number })?.providerStatus : undefined;
       return { configured, publicUrlConfigured, authenticated: true, accountCount: 0, accounts: [], checkedAt: new Date().toISOString(), message: "Chave Zernio válida, mas a listagem de contas falhou. Confira as permissões de leitura das contas.", diagnosticStage: "accounts", ...(status ? { providerStatus: status } : {}) };
     }
+  }
+
+  @Post("zernio/sync")
+  async syncZernio(@Req() request: AuthenticatedRequest) {
+    const startedAt=new Date().toISOString();
+    const diagnostic=await this.zernioDiagnostics(request);
+    if(!diagnostic.authenticated||"diagnosticStage" in diagnostic)return {...diagnostic,synchronized:false};
+    const accounts=diagnostic.accounts;
+    if(new Set(accounts.map(a=>a.accountId)).size!==accounts.length)throw new BadGatewayException("A listagem de contas está ambígua. Tente atualizar.");
+    const tenantId=request.user.tenantId;
+    await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id=${tenantId}::uuid FOR UPDATE`;
+      const rows=await tx.channelConnection.findMany({where:{tenantId,provider:"ZERNIO",isActive:true},orderBy:{id:"asc"}});
+      for(const channel of rows){
+        await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid AND tenant_id=${tenantId}::uuid FOR UPDATE`;
+        const row=await tx.channelConnection.findFirst({where:{id:channel.id,tenantId,provider:"ZERNIO",isActive:true}});
+        if(!row)continue;
+        const settings=row.settings&&typeof row.settings==="object"&&!Array.isArray(row.settings)?row.settings as Record<string,any>:{};
+        if(typeof settings.socialSyncStartedAt==="string"&&settings.socialSyncStartedAt>=startedAt)continue;
+        const account=accounts.find(a=>a.accountId===settings.accountId);
+        const changed=!!account&&account.platform.toLowerCase()!==String(settings.platform||"").toLowerCase();
+        const providerStatus=String(account?.status||"UNKNOWN").toUpperCase();
+        const unavailable=!account||changed;
+        const status=unavailable?"DISCONNECTED":["ACTIVE","CONNECTED","HEALTHY"].includes(providerStatus)?settings.webhookVerifiedAt?"CONNECTED":"CONNECTING":["DISCONNECTED","REVOKED","ERROR","FAILED","INACTIVE"].includes(providerStatus)?"DISCONNECTED":"UNKNOWN";
+        await tx.channelConnection.update({where:{id:row.id},data:{
+          status,lastError:!account?"ZERNIO_ACCOUNT_MISSING":changed?"ZERNIO_ACCOUNT_CHANGED":status==="DISCONNECTED"?"ZERNIO_ACCOUNT_DISCONNECTED":null,
+          ...(!unavailable&&account?.name?{name:account.name.slice(0,100)}:{}),
+          settings:{...settings,socialSyncStartedAt:startedAt,healthCheckedAt:diagnostic.checkedAt,healthProviderStatus:!account?"MISSING":changed?"CHANGED":providerStatus,
+            ...(!unavailable?{username:account.username||"",profileName:account.profileName||"",identityCheckedAt:diagnostic.checkedAt}:{})}
+        }});
+      }
+    });
+    this.events.publish(tenantId,"channel.updated",{provider:"ZERNIO"});
+    return {...diagnostic,synchronized:true};
   }
 
   @Post("waha")

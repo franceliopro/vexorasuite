@@ -1,0 +1,23 @@
+import {ConversationsController} from "./conversations.controller";
+describe("private conversation collaboration",()=>{
+ const req:any={user:{tenantId:"tenant",sub:"author",role:"OWNER"}};
+ function setup(){
+  const tx:any={$queryRaw:jest.fn(),conversation:{findFirst:jest.fn().mockResolvedValue({id:"conversation",status:"OPEN",handlingMode:"HUMAN"}),update:jest.fn().mockResolvedValue({id:"conversation",status:"OPEN",department:{name:"Financeiro"},assignee:{name:"Ana"}})},message:{create:jest.fn().mockImplementation(async({data}:any)=>({id:"note",...data}))},auditLog:{create:jest.fn()}};
+  const prisma:any={...tx,$transaction:jest.fn((fn:any)=>fn(tx)),user:{findUnique:jest.fn().mockResolvedValue({name:"João"})},departmentMember:{findMany:jest.fn().mockResolvedValue([])}};
+  const events:any={publish:jest.fn()},waha:any={sendText:jest.fn()},zernio:any={request:jest.fn()};
+  return {tx,prisma,events,waha,zernio,controller:new ConversationsController(prisma,events,waha,zernio)};
+ }
+ it("stores notes internally with author and audit without invoking an external provider",async()=>{
+  const x=setup();const note=await x.controller.addInternalNote(req,"conversation",{content:" Contexto reservado "});
+  expect(note).toMatchObject({tenantId:"tenant",conversationId:"conversation",direction:"INTERNAL",status:"SENT",content:"Contexto reservado",senderName:"João",metadata:{authorId:"author",kind:"private_note"}});
+  expect(x.waha.sendText).not.toHaveBeenCalled();expect(x.zernio.request).not.toHaveBeenCalled();
+  expect(x.tx.auditLog.create).toHaveBeenCalled();expect(x.events.publish).toHaveBeenCalledWith("tenant","conversation.updated",{id:"conversation",internalNote:true});
+ });
+ it("rejects missing, blank, oversized and non-text notes",async()=>{const x=setup();for(const content of [undefined," ","x".repeat(4001),42])await expect(x.controller.addInternalNote(req,"conversation",{content})).rejects.toThrow();expect(x.tx.message.create).not.toHaveBeenCalled();});
+ it("checks current tenant and conversation access under the lock",async()=>{const x=setup();x.tx.conversation.findFirst.mockResolvedValue(null);await expect(x.controller.addInternalNote(req,"foreign",{content:"private"})).rejects.toThrow();expect(x.tx.conversation.findFirst).toHaveBeenCalledWith({where:{id:"foreign",tenantId:"tenant"}});expect(x.tx.message.create).not.toHaveBeenCalled();});
+ it("applies human assignment visibility for regular attendants",async()=>{const x=setup();await x.controller.addInternalNote({user:{...req.user,role:"AGENT"}} as any,"conversation",{content:"private"});const where=x.tx.conversation.findFirst.mock.calls[0][0].where;expect(where.handlingMode).toBe("HUMAN");expect(where.OR).toContainEqual({assigneeId:"author"});});
+ it("rejects notes on archived or deleted conversations",async()=>{for(const state of [{archivedAt:new Date()},{deletedAt:new Date()}]){const x=setup();x.tx.conversation.findFirst.mockResolvedValue({status:"OPEN",...state});await expect(x.controller.addInternalNote(req,"conversation",{content:"private"})).rejects.toThrow();expect(x.tx.message.create).not.toHaveBeenCalled();}});
+ it("persists handoff and private context together before notifying the destination",async()=>{const x=setup();await x.controller.handoff(req,"conversation",{note:"Cliente aguarda retorno"});expect(x.tx.conversation.update).toHaveBeenCalled();expect(x.tx.message.create.mock.calls[0][0].data).toMatchObject({direction:"INTERNAL",content:"Transferência para Financeiro · Ana\n\nCliente aguarda retorno",metadata:{kind:"handoff_context"}});expect(x.events.publish).toHaveBeenCalled();expect(x.waha.sendText).not.toHaveBeenCalled();});
+ it("does not transfer when context is invalid",async()=>{const x=setup();await expect(x.controller.handoff(req,"conversation",{note:42})).rejects.toThrow();expect(x.tx.conversation.update).not.toHaveBeenCalled();});
+ it("returns the most recent internal notes in chronological order within the tenant",async()=>{const x=setup();x.prisma.message.findMany=jest.fn().mockResolvedValue([{id:"new"},{id:"old"}]);expect(await x.controller.internalNotes(req,"conversation")).toEqual([{id:"old"},{id:"new"}]);expect(x.prisma.message.findMany.mock.calls[0][0].where).toEqual({tenantId:"tenant",conversationId:"conversation",direction:"INTERNAL"});});
+});

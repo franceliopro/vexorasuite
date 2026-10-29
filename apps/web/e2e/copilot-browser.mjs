@@ -9,6 +9,7 @@ let diagnostics="";server.stdout.on("data",chunk=>{diagnostics+=chunk});server.s
 let browser;
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",userId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",tenantId="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 let sentMessages=0;
+let inboxResponse={};
 const incoming={id:"dddddddd-dddd-4ddd-8ddd-dddddddddddd",content:"Hello, can you help me with my order?",contentType:"text",direction:"INBOUND",status:"RECEIVED",occurredAt:new Date().toISOString()};
 const config={name:"Véxora",wakeWord:"Olá Véxora",enabled:true,dailyAiLimit:100,agents:[{id:"agent-qa",name:"Agente de atendimento",role:"Atendimento",tier:"Econômico",enabled:true,personalAssistant:false,instructions:"## Guia de Introdução\n\nBem-vindo à **{{empresa}}**. Você fala com {{atendente}}.\n\n- Confirme as informações antes de orientar.\n- Encaminhe quando faltar contexto.",behavior:{rules:"Faça uma pergunta por vez.",prohibitions:"Não invente preços."},profile:{tone:"Cordial e objetivo",channels:[]}}],stt:{provider:"browser",model:"browser"},tts:{provider:"browser",model:"browser"},llm:{provider:"ollama",model:"qa-local",tier:"Econômico"},companyRules:"Use as informações aprovadas.",companyKnowledge:"Atendemos de segunda a sexta.",knowledgeDocuments:[]};
 async function fixtures(page){
@@ -28,6 +29,7 @@ async function fixtures(page){
   else if(path==="/conversations/quick-reply-settings")data={};
   else if(path==="/conversations/assignees")data=[{id:userId,name:"Tonico",email:"qa@example.test"}];
   else if(path==="/channels")data=[];
+  else if(path==="/channels/inboxes")data=inboxResponse;
   else if(path==="/departments")data=[{id:"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",name:"Financeiro Link",key:"finance",isActive:true,keywords:[]}];
   else if(path==="/conversations")data=[{id,status:"OPEN",handlingMode:"HUMAN",contact:{id:"ffffffff-ffff-4fff-8fff-ffffffffffff",name:"Alex Morgan",phone:"15550001234",metadata:{}},channel:"WHATSAPP",assignee:{id:userId,name:"Tonico"},department:{id:"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",name:"Financeiro Link"},messages:[incoming]}];
   else if(path==="/conversations/"+id+"/messages"){if(request.method()==="POST")sentMessages++;data=[incoming];}
@@ -43,6 +45,11 @@ try{
  browser=await chromium.launch({headless:true});await mkdir("artifacts/copilot",{recursive:true});
  const page=await browser.newPage({viewport:{width:1440,height:1000}});await fixtures(page);
  await page.goto("http://127.0.0.1:3100/?module=Agentes+de+IA");
+ await page.getByRole("alert").filter({hasText:"Não foi possível carregar as inbox. Tente atualizar."}).waitFor();
+ inboxResponse={inboxes:[],departments:[]};
+ await page.getByRole("button",{name:"Atualizar inbox",exact:true}).click();
+ await page.getByText("Este agente ainda não participa da entrada de nenhuma inbox.",{exact:true}).waitFor();
+ assert.equal(await page.getByRole("alert").count(),0);
  await page.getByRole("tab",{name:"Comportamento",exact:true}).click();
  await page.getByRole("textbox",{name:"Prompt principal",exact:true}).waitFor();
  assert((await page.getByRole("textbox",{name:"Prompt principal",exact:true}).innerText()).includes("{{atendente}}"));

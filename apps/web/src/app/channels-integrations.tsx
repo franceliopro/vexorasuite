@@ -4,7 +4,7 @@ import {InboxesManagement} from "./inboxes-management";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, Plus, RefreshCw, Unplug } from "lucide-react";
 
-type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; authenticated: boolean; profileConfigured?:boolean; accountCount: number; accounts: {accountId:string;platform:string;username?:string;name?:string;status?:string;profileName?:string}[]; checkedAt: string; message?: string; diagnosticStage?: string; providerStatus?: number };
+type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; webhookSecretConfigured?:boolean; teamWebhookUrl?:string|null; authenticated: boolean; profileConfigured?:boolean; accountCount: number; accounts: {accountId:string;platform:string;username?:string;name?:string;status?:string;profileName?:string}[]; checkedAt: string; message?: string; diagnosticStage?: string; providerStatus?: number };
 type Channel = { id: string; name: string; provider: string; status: string; platform?: string; accountId?: string; username?: string; profileName?: string; lastError?: string | null; webhookVerifiedAt?: string; createdAt?: string };
 
 const platformNames: Record<string,string> = { instagram:"Instagram", facebook:"Facebook", messenger:"Messenger", whatsapp:"WhatsApp", tiktok:"TikTok", linkedin:"LinkedIn", youtube:"YouTube", threads:"Threads", pinterest:"Pinterest", x:"X", twitter:"X", reddit:"Reddit", bluesky:"Bluesky", telegram:"Telegram", discord:"Discord", snapchat:"Snapchat", googlebusiness:"Google Business" };

@@ -67,6 +67,11 @@ try{
  await page.setViewportSize({width:390,height:844});
  await page.locator(".inbox-conversation").first().click();
  await page.screenshot({path:"artifacts/copilot/conversa-mobile.png",fullPage:false,animations:"disabled"});
+ const draftBox=await page.getByRole("textbox",{name:"Mensagem",exact:true}).boundingBox();
+ const navigationBox=await page.getByRole("navigation",{name:"Navegação principal no celular"}).boundingBox();
+ const composerBox=await page.locator(".composer-shell").boundingBox();
+ assert(draftBox.width>250,"Mobile draft must have readable full width");
+ assert(composerBox.y+composerBox.height<=navigationBox.y+1,"Composer must stay above mobile navigation");
  await page.getByRole("button",{name:"Assistente de escrita",exact:true}).click();
  await page.getByRole("button",{name:"Gerar versão",exact:true}).click();
  await page.getByRole("button",{name:"Usar no rascunho",exact:true}).waitFor();

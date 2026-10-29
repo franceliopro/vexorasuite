@@ -1,4 +1,5 @@
 "use client";
+import {InboxesManagement} from "./inboxes-management";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, Plus, RefreshCw, ShieldCheck, Unplug, Info, Copy } from "lucide-react";
@@ -61,6 +62,7 @@ export function ChannelsIntegrations(){
  async function copyWebhook(){if(!setup)return;try{await navigator.clipboard.writeText("URL: "+(setup.webhookUrl||"")+"\nSegredo de assinatura: "+setup.webhookSecret);setCopied(true);}catch{setError("O navegador bloqueou a cópia. Selecione e copie os dados manualmente.");}}
  return <section className="channels-page">
    <header className="channels-page-heading"><div><h1>Canais e integrações</h1></div></header>
+   <InboxesManagement/>
    {error?<div className="channels-alert error" role="alert"><AlertCircle size={17}/><span>{error}</span><button type="button" onClick={()=>setError("")} aria-label="Fechar aviso">×</button></div>:null}
    {notice?<div className="channels-alert success" role="status"><CheckCircle2 size={17}/><span>{notice}</span><button type="button" onClick={()=>setNotice("")} aria-label="Fechar aviso">×</button></div>:null}
    <section className="content-card channels-provider-card">

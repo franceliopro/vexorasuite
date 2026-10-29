@@ -279,7 +279,7 @@ export class ConversationsController {
   async handoff(
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() input: { departmentId?: unknown; assigneeId?: unknown },
+    @Body() input: { departmentId?: unknown; assigneeId?: unknown; note?: unknown },
     @Query("view") view = "new",
   ) {
     await this.assertCanAccess(request, id, view);
@@ -302,10 +302,22 @@ export class ConversationsController {
       }
     }
     if(departmentId&&assigneeId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
-    const updated = await this.prisma.conversation.update({
-      where: { id },
-      data: { handlingMode: "HUMAN", departmentId, assigneeId, status: "OPEN" },
-      include: { assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } } },
+    const note = this.internalNoteText(input.note, true);
+    const access = await this.accessWhere(request, view);
+    const author = await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});
+    const updated = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
+      const current = await tx.conversation.findFirst({where:{id,tenantId,...access} as any});
+      if(!current)throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
+      if(current.deletedAt||current.archivedAt||!["OPEN","PENDING"].includes(current.status))throw new BadRequestException("Reabra ou restaure a conversa antes de transferir.");
+      const next = await tx.conversation.update({
+        where:{id},data:{handlingMode:"HUMAN",departmentId,assigneeId,status:"OPEN"},
+        include:{assignee:{select:{id:true,name:true}},department:{select:{id:true,key:true,name:true}}}
+      });
+      const destination=[next.department?.name,next.assignee?.name].filter(Boolean).join(" · ")||"Fila geral";
+      await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content:"Transferência para "+destination+(note?"\n\n"+note:""),contentType:"text",senderName:author?.name||"Atendente",metadata:{kind:"handoff_context",authorId:request.user.sub,departmentId,assigneeId}}});
+      await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.handoff",entityType:"conversation",entityId:id,details:{departmentId,assigneeId,hasNote:!!note}}});
+      return next;
     });
     this.events.publish(tenantId, "conversation.updated", { id, handlingMode: "HUMAN", departmentId, assigneeId, status: updated.status });
     if(departmentId||assigneeId)this.events.publish(tenantId,"conversation.assigned",{id});
@@ -335,6 +347,39 @@ export class ConversationsController {
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     return this.prisma.message.findMany({ where: { conversationId: conversation.id, tenantId: request.user.tenantId }, orderBy: { occurredAt: "asc" }, take: 500 });
+  }
+
+  private internalNoteText(value: unknown, optional = false): string {
+    if(optional && value === undefined)return "";
+    if(typeof value!=="string"||value.trim().length>4000||(!optional&&!value.trim()))throw new BadRequestException("Escreva uma nota interna de até 4.000 caracteres.");
+    return value.trim();
+  }
+
+  @Get(":id/internal-notes")
+  async internalNotes(@Req() request:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string,@Query("view") view="new"){
+    await this.assertCanAccess(request,id,view);
+    const rows=await this.prisma.message.findMany({where:{tenantId:request.user.tenantId,conversationId:id,direction:"INTERNAL"},orderBy:[{occurredAt:"desc"},{id:"desc"}],take:100});
+    return rows.reverse();
+  }
+
+  @Post(":id/internal-notes")
+  async addInternalNote(@Req() request:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string,@Body() input:{content?:unknown},@Query("view") view="new"){
+    const content=this.internalNoteText(input.content);
+    const tenantId=request.user.tenantId;
+    const access=await this.accessWhere(request,view);
+    const author=await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});
+    const note=await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
+      const conversation=await tx.conversation.findFirst({where:{id,tenantId,...access} as any});
+      if(!conversation)throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
+      if(conversation.deletedAt||conversation.archivedAt)throw new BadRequestException("Restaure a conversa para escrever no chat interno.");
+      const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:author?.name||"Atendente",metadata:{kind:"private_note",authorId:request.user.sub}}});
+      await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.internal_note",entityType:"conversation",entityId:id,details:{messageId:message.id}}});
+      return message;
+    });
+    // No customer-channel adapter or external delivery queue is used for private notes.
+    this.events.publish(tenantId,"conversation.updated",{id,internalNote:true});
+    return note;
   }
 
   @Post(":id/messages")

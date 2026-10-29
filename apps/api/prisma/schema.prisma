@@ -89,13 +89,14 @@ model Tenant {
   serviceProtocols ServiceProtocol[]
   googleConnections GoogleConnection[]
   googleOAuthAttempts GoogleOAuthAttempt[]
+  zernioProfiles ZernioProfile[]
+  zernioOAuthAttempts ZernioOAuthAttempt[]
   workTasks WorkTask[]
   calendarAssignments CalendarAssignment[]
   creativeReferences CreativeReference[]
   integrations Json @default("{}")
 
   @@map("tenants")
-}
 
 
 
@@ -380,6 +381,32 @@ model GoogleConnection {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@unique([tenantId, googleAccountId])
   @@map("google_connections")
+}
+
+
+model ZernioProfile {
+  tenantId String @id @db.Uuid @map("tenant_id")
+  profileId String @unique @map("profile_id")
+  externalId String @unique @map("external_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  oauthAttempts ZernioOAuthAttempt[]
+  @@map("zernio_profiles")
+}
+
+model ZernioOAuthAttempt {
+  stateHash String @id @map("state_hash")
+  tenantId String @db.Uuid @map("tenant_id")
+  userId String @db.Uuid @map("user_id")
+  profileId String @map("profile_id")
+  platform String
+  expiresAt DateTime @map("expires_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile ZernioProfile @relation(fields: [profileId], references: [profileId], onDelete: Cascade)
+  @@index([expiresAt])
+  @@index([profileId])
+  @@map("zernio_oauth_attempts")
 }
 
 model WorkTask {

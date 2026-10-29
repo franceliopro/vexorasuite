@@ -128,7 +128,7 @@ export class AuthService {
       accessToken,
       tokenType: "Bearer",
       expiresIn: 28800,
-      user: { id: user.id, name: user.name, email: user.email,isPlatformAdmin:user.isPlatformAdmin,mustChangePassword:user.mustChangePassword },
+      user: { id: user.id, name: membership.knownBy?.trim()||user.name, email: user.email,isPlatformAdmin:user.isPlatformAdmin,mustChangePassword:user.mustChangePassword },
       tenant: { id: membership.tenant.id, name: membership.tenant.name, slug: membership.tenant.slug,kind:membership.tenant.kind },
       role: membership.role,
     };
@@ -144,7 +144,7 @@ export class AuthService {
     const member=await this.prisma.membership.findFirst({where:{userId,tenantId,...(ownerOnly?{role:'OWNER' as const}:{}),user:{isActive:true},tenant:{status:'ACTIVE'}},include:{user:{select:{id:true,name:true,email:true,isPlatformAdmin:true,mustChangePassword:true,authVersion:true}},tenant:{select:{id:true,name:true,slug:true,kind:true}}}});
     if(!member||member.tenant.kind==='PLATFORM'&&!member.user.isPlatformAdmin)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
     const {authVersion,...user}=member.user;
-    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:28800,user,tenant:member.tenant,role:member.role};
+    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:28800,user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
   }
   async changePassword(userId:string,tenantId:string,input:any){
     if(typeof input?.currentPassword!=='string'||typeof input?.newPassword!=='string'||input.newPassword.length<12||input.newPassword.length>128||input.newPassword===input.currentPassword)throw new BadRequestException('Escolha uma nova senha de 12 a 128 caracteres, diferente da temporária.');

@@ -104,6 +104,17 @@ jobs:
         run: pnpm --filter @vexorasuite/web typecheck
       - name: Web build
         run: pnpm --filter @vexorasuite/web build
+      - name: Install browser for interface checks
+        run: pnpm --filter @vexorasuite/web exec playwright install --with-deps chromium
+      - name: Copilot and rich editor browser checks
+        run: pnpm --filter @vexorasuite/web exec node e2e/copilot-browser.mjs
+      - name: Interface screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: copilot-interface
+          path: apps/web/artifacts/copilot
+          if-no-files-found: ignore
 
 
   containers:

@@ -333,6 +333,8 @@ export class ConversationsController {
         where:{id},data:{handlingMode:"HUMAN",departmentId,assigneeId,status:"OPEN"},
         include:{assignee:{select:{id:true,name:true}},department:{select:{id:true,key:true,name:true}}}
       });
+      const targetIdentity=assigneeId?await tx.membership.findFirst({where:{tenantId,userId:assigneeId},select:{knownBy:true}}):null;
+      if(next.assignee)next.assignee.name=attendantName({name:next.assignee.name,knownBy:targetIdentity?.knownBy});
       const sourceDepartment=current.departmentId?await tx.department.findFirst({where:{id:current.departmentId,tenantId},select:{name:true}}):null;
       const destination=[next.department?.name,next.assignee?.name].filter(Boolean).join(" · ")||"Fila geral";
       await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content:"Transferência para "+destination+(note?"\n\n"+note:""),contentType:"text",senderName:authorName,metadata:{departmentName:sourceDepartment?.name||"",kind:"handoff_context",authorId:request.user.sub,departmentId,assigneeId}}});

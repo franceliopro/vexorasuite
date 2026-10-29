@@ -152,7 +152,14 @@ export class WahaService {
     const providerStatus = payload.status || "UNKNOWN";
     const status = ({ WORKING: "CONNECTED", SCAN_QR_CODE: "QR", STARTING: "CONNECTING", STOPPED: "DISCONNECTED", FAILED: "ERROR" } as Record<string, string>)[providerStatus] || "UNKNOWN";
     const meId = typeof payload.me?.id === "string" ? payload.me.id : payload.me?.id?._serialized;
-    await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status, lastError: status === "ERROR" ? "WAHA_SESSION_FAILED" : null } });
+    await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid AND tenant_id=${channel.tenantId}::uuid FOR UPDATE`;
+      const current=await tx.channelConnection.findFirst({where:{id:channel.id,tenantId:channel.tenantId}});
+      if(!current?.isActive)return;
+      const settings=current.settings&&typeof current.settings==="object"&&!Array.isArray(current.settings)?current.settings:{};
+      const phone=meId?.split("@")[0];
+      await tx.channelConnection.update({where:{id:channel.id},data:{status,lastError:status==="ERROR"?"WAHA_SESSION_FAILED":null,...(status==="CONNECTED"&&phone&&/^\d{8,18}$/.test(phone)?{settings:{...settings,accountPhone:phone,accountName:payload.me?.pushName||payload.me?.name||null,identityCheckedAt:new Date().toISOString()}}:{})}});
+    });
     return { status, providerStatus, accountName: payload.me?.pushName || payload.me?.name || null, phone: meId?.split("@")[0] || null };
   }
 

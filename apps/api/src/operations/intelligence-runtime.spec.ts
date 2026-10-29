@@ -163,3 +163,39 @@ describe('department and attendant publications in the message engine',()=>{
  });
 });
 
+
+describe("inbox entry routing",()=>{
+ it("routes unassigned bot traffic into the inbox department before choosing its flow",async()=>{
+  const x=setup();x.channel.settings={inboxRouting:{mode:"AUTOMATION",departmentId:"support",revision:"inbox1"}};
+  x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:"Empresa",integrations:{intelligencePublications:{"department:support":x.published}}});
+  await x.service.receive(x.channel,"conversation","inbound");
+  expect(x.conversation.departmentId).toBe("support");
+  expect(x.tx.message.create.mock.calls[0][0].data.metadata).toMatchObject({scopeKey:"department:support",inboxRoutingRevision:"inbox1"});
+ });
+ it("puts bot traffic into human ownership without invoking a model or sending",async()=>{
+  const x=setup();x.channel.settings={inboxRouting:{mode:"HUMAN",departmentId:"support",revision:"inbox1"}};
+  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);
+  expect(x.tx.conversation.update).toHaveBeenCalledWith(expect.objectContaining({data:{handlingMode:"HUMAN",departmentId:"support"}}));
+  expect(x.waha.sendText).not.toHaveBeenCalled();expect(x.events.publish).toHaveBeenCalledWith("tenant","conversation.assigned",{id:"conversation"});
+ });
+ it("preserves existing human assignment when the inbox is automated",async()=>{
+  const x=setup({handlingMode:"HUMAN",departmentId:"other",assigneeId:"attendant"});x.channel.settings={inboxRouting:{mode:"AUTOMATION",departmentId:"support"}};
+  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(false);expect(x.tx.conversation.update).not.toHaveBeenCalled();
+ });
+ it("never replaces a current departmental context with the inbox default",async()=>{
+  const x=setup({departmentId:"other"});x.channel.settings={inboxRouting:{mode:"AUTOMATION",departmentId:"support"}};
+  await x.service.receive(x.channel,"conversation","inbound");expect(x.conversation.departmentId).toBe("other");
+ });
+ it("does not fall back to the company flow when an explicitly bound department loses its publication",async()=>{
+  const x=setup();x.channel.settings={inboxRouting:{mode:"AUTOMATION",departmentId:"support"}};
+  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);expect(x.tx.message.create).not.toHaveBeenCalled();
+ });
+ it("does not use the legacy bot for an explicitly automated inbox missing a publication",async()=>{
+  const x=setup();x.channel.settings={inboxRouting:{mode:"AUTOMATION"}};x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:"Empresa",integrations:{}});
+  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);expect(x.waha.sendText).not.toHaveBeenCalled();
+ });
+ it("cancels queued output when inbox routing changed during generation",async()=>{
+  const x=setup();x.prisma.channelConnection.findFirst.mockResolvedValue({id:"channel",tenantId:"tenant",provider:"WAHA",isActive:true,settings:{inboxRouting:{mode:"HUMAN",revision:"changed"}}});
+  await x.service.receive(x.channel,"conversation","inbound");expect(x.waha.sendText).not.toHaveBeenCalled();
+ });
+});

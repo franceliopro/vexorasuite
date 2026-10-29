@@ -8,7 +8,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
   const [rows, setRows] = useState<any[]>([]),
     [departments, setDepartments] = useState<any[]>([]),
     [form, setForm] = useState({
-      name: "",
+      name: "",knownBy:"",
       email: "",
       password: "senha123",
       role:"AGENT",deniedModules:[] as string[],
@@ -42,7 +42,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
         </div>
         <button
           className="primary-button"
-          onClick={() => {setEditingId('');setForm({name:'',email:'',password:'senha123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
+          onClick={() => {setEditingId('');setForm({name:'',knownBy:'',email:'',password:'senha123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
         >
           {editing ? "Fechar cadastro" : "+ Cadastrar atendente"}
         </button>
@@ -84,7 +84,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   const d = await r.json();
                   if (!r.ok) throw Error(d.message);
                   setForm({
-                    name: "",
+                    name: "",knownBy:"",
                     email: "",
                     password: "senha123",
       role:"AGENT",deniedModules:[] as string[],
@@ -117,6 +117,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   }
                 />
               </label>
+              <label>Conhecido por<input maxLength={80} value={form.knownBy} onChange={e=>setForm(v=>({...v,knownBy:e.target.value}))} placeholder="Ex.: Tonico"/><small>Nome exibido na empresa, nas menções e em {"{{atendente}}"}. Se vazio, usa o nome cadastrado.</small></label>
               <label>
                 E-mail de acesso
                 <input
@@ -212,7 +213,8 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                       .join(", ") || "Sem setor definido"}
                   </small>
                 </div>
-{r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.name,email:r.email,password:'senha123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}
+<label className="team-known-by">Conhecido por<input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
+{r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'senha123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}
               {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice('Senha de '+r.name+' redefinida para senha123. A troca será obrigatória no próximo acesso.');await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               </article>
             ))}

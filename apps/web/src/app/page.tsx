@@ -3,6 +3,7 @@ import { formatDateTimeBR } from "../lib/date-format";
 import {PresentationHome} from "./presentation-home";
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
+import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { brandTextColor } from "../lib/tenant-cache";
@@ -129,6 +130,7 @@ export default function HomePage() {
   }, []);
 
   const refreshProfile=async()=>{const r=await fetch('/api/backend/auth/me',{cache:'no-store'});if(r.ok)setSession(await r.json());};
+  useEffect(()=>{const refresh=()=>{void refreshProfile();};window.addEventListener("vexora:team-updated",refresh);return()=>window.removeEventListener("vexora:team-updated",refresh);},[]);
   useEffect(()=>{if(!session||session.user.mustChangePassword)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
   const [active, setActive] = useState("");
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
@@ -276,6 +278,7 @@ export default function HomePage() {
           <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">☰</button>
           <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className="crumb-slash">/</span><strong>{active}</strong></>}</div>
           <div className="topbar-actions">
+            {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}

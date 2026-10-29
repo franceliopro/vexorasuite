@@ -82,14 +82,14 @@ export class IntelligenceRuntimeService {
       const stages: any[]=Array.isArray(pipeline?.stages)?pipeline.stages as any[]:[];
       const stage=stages.find((item:any)=>item?.id===stageId)||null;
       const department=conversation.departmentId?await tx.department.findFirst({where:{id:conversation.departmentId,tenantId:channel.tenantId,isActive:true},select:{name:true}}):null;
-      const assignee=conversation.assigneeId?await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId:conversation.assigneeId,user:{isActive:true}},select:{user:{select:{name:true}}}}):null;
+      const assignee=conversation.assigneeId?await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId:conversation.assigneeId,user:{isActive:true}},select:{knownBy:true,user:{select:{name:true}}}}):null;
       variables.telefone=conversation.contact.phone||'';
       variables.email=conversation.contact.email||'';
       variables.origem=typeof profile.source==='string'?profile.source:'';
       variables.pipeline=pipeline?.name||'';
       variables.etapa=typeof stage?.label==='string'?stage.label:typeof stage?.name==='string'?stage.name:stageId;
       variables.time=department?.name||'';
-      variables.atendente=assignee?.user?.name||'';
+      variables.atendente=assignee?.knownBy?.trim()||assignee?.user?.name||'';
       const currentHour=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'}).format(new Date()));
       variables.saudacao=currentHour<6?'Olá, boa madrugada!':currentHour<12?'Bom dia!':currentHour<18?'Boa tarde!':'Boa noite!';
       variables.despedida=currentHour<6?'Tenha uma ótima madrugada!':currentHour<12?'Tenha um ótimo dia!':currentHour<18?'Tenha uma ótima tarde!':'Tenha uma ótima noite!';
@@ -111,13 +111,13 @@ export class IntelligenceRuntimeService {
       let model: string | null = null;
       const handoff = async (key?: string,userId?:string) => {
         let department = key ? await tx.department.findFirst({ where: { tenantId: channel.tenantId, key, isActive: true } }) : null;
-        let target = userId ? await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId,user:{isActive:true}},select:{userId:true,user:{select:{name:true}}}}) : null;
+        let target = userId ? await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId,user:{isActive:true}},select:{userId:true,knownBy:true,user:{select:{name:true}}}}) : null;
         const belongs = target&&department ? await tx.departmentMember.findFirst({where:{tenantId:channel.tenantId,departmentId:department.id,userId:target.userId},select:{id:true}}) : true;
         if((key&&!department)||(userId&&(!target||!belongs))){reason='handoff_target_unavailable';department=null;target=null;}
         human = true; departmentId = department?.id ?? null; assigneeId=target?.userId??null;
         state = { flow: 'INTELLIGENCE', revision: published.revision, completed: true, variables };
         skills.push('human.handoff');
-        messages.push(target ? 'Encaminhei sua conversa para '+target.user.name+(department?', do time '+department.name:'')+'.' : department ? 'Encaminhei sua conversa para o time '+department.name+'. Um atendente continuará por aqui.' : reason==='handoff_target_unavailable'?'O destino configurado está indisponível. Encaminhei sua conversa para a fila geral de atendimento humano.':'Encaminhei sua conversa para a fila geral de atendimento humano.');
+        messages.push(target ? 'Encaminhei sua conversa para '+(target.knownBy?.trim()||target.user.name)+(department?', do time '+department.name:'')+'.' : department ? 'Encaminhei sua conversa para o time '+department.name+'. Um atendente continuará por aqui.' : reason==='handoff_target_unavailable'?'O destino configurado está indisponível. Encaminhei sua conversa para a fila geral de atendimento humano.':'Encaminhei sua conversa para a fila geral de atendimento humano.');
       };
       const humanRequest = /^(atendente|humano|falar com atendente|falar com humano)$/i.test(normalize(inbound.content));
       if (humanRequest) { reason = 'explicit_human_request'; await handoff(); }

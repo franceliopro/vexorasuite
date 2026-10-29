@@ -3406,3 +3406,35 @@ input[type="color"].profile-tag-inline-color {
 .ai-model-picker details{font-size:12px;color:var(--muted)}
 .ai-model-picker summary{cursor:pointer}
 @media(max-width:1000px){.ai-admin-grid,.ai-agent-layout{grid-template-columns:minmax(0,1fr)}.ai-admin-grid>:first-child{width:100%;max-width:none;min-width:0;resize:none}}
+
+/* Private collaboration stays visually distinct from customer replies. */
+.inbox-internal-chat{flex:0 0 auto;max-height:48dvh;overflow:auto;padding:12px;border:1px solid #b78728;border-radius:10px;background:var(--card);margin:8px 12px}
+.inbox-internal-chat header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.inbox-internal-chat small,.handoff-context small{display:block;font-size:12px;opacity:.8;margin:4px 0}
+.inbox-internal-history{max-height:20dvh;overflow:auto;margin:8px 0}
+.inbox-internal-history article{padding:8px;border-bottom:1px solid var(--line)}
+.inbox-internal-history time{font-size:11px;display:block;opacity:.7}
+.inbox-internal-history p{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0}
+.inbox-internal-chat textarea,.handoff-context textarea,.handoff-context input{display:block;box-sizing:border-box;width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:inherit;resize:vertical}
+.handoff-context{display:block;padding:8px 12px;font-size:13px}
+.internal-note-label{display:block;font-size:11px;color:var(--ink);margin-bottom:5px}
+.message-line.internal .message-bubble{border:1px solid #b78728;background:rgba(183,135,40,.12)}
+
+.internal-mentions{display:flex;flex-direction:column;max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.internal-mentions button{text-align:left;background:var(--card);color:var(--ink);padding:6px;border:0}
+.internal-mentions button.active{background:var(--primary-soft)}
+.internal-mention-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.internal-mention-chips button{border:1px solid var(--line);border-radius:12px;background:var(--primary-soft);color:var(--ink);padding:4px 8px}
+
+.attendant-identity{display:block;font-size:11px;font-weight:700;line-height:1.4;margin:3px 0;color:var(--ink)}
+.mention-notifications{position:relative}
+.mention-count{position:absolute;right:-6px;top:-6px;background:var(--primary);color:white;border-radius:12px;font-size:10px;padding:1px 4px}
+.mention-panel,.mention-toast{position:absolute;right:0;top:42px;width:min(340px,calc(100vw - 24px));padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);box-shadow:var(--shadow);z-index:160}
+.mention-panel{max-height:65dvh;overflow:auto}
+.mention-panel header{display:flex;justify-content:space-between}
+.mention-panel article{padding:10px 0;border-bottom:1px solid var(--line)}
+.mention-panel strong,.mention-toast strong{display:block;font-size:12px;font-weight:700}
+.mention-panel small{display:block;color:var(--muted);font-size:11px}
+.mention-panel button,.mention-toast button{background:var(--primary-soft);color:var(--ink);border:1px solid var(--line);padding:5px 8px;border-radius:6px;margin:3px}
+.mention-toast{position:fixed;right:16px;top:78px}
+.team-known-by{font-size:12px;display:flex;flex-direction:column;gap:4px}

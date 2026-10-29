@@ -88,7 +88,7 @@ export class ChannelConnectionsController {
   async syncZernio(@Req() request: AuthenticatedRequest) {
     const startedAt=new Date().toISOString();
     const diagnostic=await this.zernioDiagnostics(request);
-    if(!diagnostic.authenticated||diagnostic.diagnosticStage)return {...diagnostic,synchronized:false};
+    if(!diagnostic.authenticated||"diagnosticStage" in diagnostic)return {...diagnostic,synchronized:false};
     const accounts=diagnostic.accounts;
     if(new Set(accounts.map(a=>a.accountId)).size!==accounts.length)throw new BadGatewayException("A listagem de contas está ambígua. Tente atualizar.");
     const tenantId=request.user.tenantId;

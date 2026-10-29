@@ -8,6 +8,9 @@ function setup(){
  return {row,tx,prisma,zernio,events,req,controller:new ChannelConnectionsController(prisma,{} as any,events,zernio)};
 }
 describe("social account reconciliation",()=>{
+ const originalKey=process.env.ZERNIO_API_KEY;
+ beforeEach(()=>{process.env.ZERNIO_API_KEY="test-only";});
+ afterEach(()=>{if(originalKey===undefined)delete process.env.ZERNIO_API_KEY;else process.env.ZERNIO_API_KEY=originalKey;});
  it("updates the same provider account without losing routing, secrets or its channel ID",async()=>{
   const x=setup();const result=await x.controller.syncZernio(x.req);
   expect(result.synchronized).toBe(true);expect(result.accounts).toHaveLength(2);

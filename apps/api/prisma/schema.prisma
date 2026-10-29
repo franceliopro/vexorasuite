@@ -97,10 +97,7 @@ model Tenant {
   integrations Json @default("{}")
 
   @@map("tenants")
-
-
-
-
+}
 
 model User {
   pushSubscriptions PushSubscription[]

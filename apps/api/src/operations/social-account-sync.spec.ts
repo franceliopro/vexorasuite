@@ -33,7 +33,7 @@ describe("social account reconciliation",()=>{
   expect((await x.controller.syncZernio(x.req)).synchronized).toBe(false);expect(x.tx.channelConnection.update).not.toHaveBeenCalled();
  });
  it("clears a stale handle and never confirms messaging solely from provider account availability",async()=>{
-  const x=setup();delete x.row.settings.webhookVerifiedAt;x.zernio.request.mockImplementation(async(p:string)=>p==="/auth/verify"?{valid:true}:{accounts:[{id:"old",platform:"instagram",status:"ACTIVE"}]});
+  const x=setup();delete x.row.settings.webhookVerifiedAt;x.zernio.request.mockImplementation(async(p:string)=>p==="/auth/verify"?{valid:true}:{accounts:[{id:"old",profileId:"profile",platform:"instagram",status:"ACTIVE"}]});
   await x.controller.syncZernio(x.req);expect(x.row.settings.username).toBe("");expect(x.row.status).toBe("CONNECTING");
  });
  it("does not overwrite a newer reconciliation snapshot",async()=>{

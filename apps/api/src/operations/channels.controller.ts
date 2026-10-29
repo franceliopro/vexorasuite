@@ -151,12 +151,12 @@ export class ChannelConnectionsController {
     const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: request.user.tenantId } });
     const configured = Boolean(process.env.ZERNIO_API_KEY?.trim());
     const webhookSecretConfigured=Boolean(process.env.ZERNIO_WEBHOOK_SECRET?.trim());
-    const teamWebhookUrl=process.env.API_PUBLIC_URL?.trim()?process.env.API_PUBLIC_URL.trim().replace(/\\/$/,"")+"/api/webhooks/zernio/team":null;
+    const teamWebhookUrl=process.env.API_PUBLIC_URL?.trim()?process.env.API_PUBLIC_URL.trim().replace(/\/$/,"")+"/api/webhooks/zernio/team":null;
     if (!configured) return { configured:false, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"A integração Zernio ainda não foi configurada no servidor." };
     try {
       const verification = await this.zernio.request<{ valid?: boolean }>("/auth/verify");
       if (verification.valid !== true) throw new BadGatewayException("A Zernio não confirmou a chave central.");
-      if (!profile) return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:true, accountCount:0, accounts:[], profileConfigured:false, checkedAt:new Date().toISOString(), message:"O perfil desta empresa será criado ao iniciar a primeira conexão OAuth." };
+      if (!profile) return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, accountCount:0, accounts:[], profileConfigured:false, checkedAt:new Date().toISOString(), message:"O perfil desta empresa será criado ao iniciar a primeira conexão OAuth." };
       const response = await this.zernio.request<unknown>("/accounts?profileId=" + encodeURIComponent(profile.profileId));
       const raw = Array.isArray(response) ? response : response && typeof response === "object" ?
         (Array.isArray((response as any).accounts) ? (response as any).accounts : Array.isArray((response as any).data) ? (response as any).data : []) : null;

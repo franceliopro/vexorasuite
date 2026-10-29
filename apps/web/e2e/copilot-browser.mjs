@@ -65,6 +65,8 @@ try{
  assert((await page.getByRole("textbox",{name:"Mensagem",exact:true}).inputValue()).includes("número, por favor"));
  assert.equal(sentMessages,0);
  await page.setViewportSize({width:390,height:844});
+ await page.locator(".inbox-conversation").first().click();
+ await page.screenshot({path:"artifacts/copilot/conversa-mobile.png",fullPage:false});
  await page.getByRole("button",{name:"Assistente de escrita",exact:true}).click();
  await page.getByRole("button",{name:"Gerar versão",exact:true}).click();
  await page.getByRole("button",{name:"Usar no rascunho",exact:true}).waitFor();

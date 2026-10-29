@@ -58,7 +58,7 @@ export class ChannelConnectionsController {
 
   @Get("zernio/oauth/callback")
   async finishZernioOAuth(@Query() query: Record<string,string>, @Res() response: Response) {
-    const appBase=(process.env.NEXT_PUBLIC_APP_URL||"").replace(/\/$/,"");
+    const appBase=(process.env.WEB_PUBLIC_URL||"").replace(/\/$/,"");
     const redirect=(status:string)=>response.redirect(303,(appBase||"https://app.vexorasuite.com.br")+"/?module=Canais+e+integra%C3%A7%C3%B5es&zernio="+encodeURIComponent(status));
     const attemptValue=typeof query.attempt==="string"?query.attempt:"";
     if (!attemptValue || attemptValue.length>200) return redirect("invalid");
@@ -72,8 +72,8 @@ export class ChannelConnectionsController {
     const claimed=await this.prisma.zernioOAuthAttempt.deleteMany({where:{stateHash:hash,expiresAt:{gt:now}}});
     if (!claimed.count) return redirect("expired");
     const tenant=await this.prisma.tenant.findFirst({where:{id:attempt.tenantId,status:"ACTIVE"},select:{name:true,kind:true}});
-    const membership=await this.prisma.membership.findFirst({where:{tenantId:attempt.tenantId,userId:attempt.userId,tenant:{status:"ACTIVE"},user:{isActive:true},role:{in:["OWNER","ADMIN","MANAGER"]},deniedModules:{not:{has:"CHANNELS"}}},select:{id:true}});
-    if (!tenant || tenant.kind==="PLATFORM" || !membership) return redirect("unauthorized");
+    const membership=await this.prisma.membership.findFirst({where:{tenantId:attempt.tenantId,userId:attempt.userId,tenant:{status:"ACTIVE"},user:{isActive:true},role:{in:["OWNER","ADMIN","MANAGER"]}},select:{id:true,deniedModules:true}});
+    if (!tenant || tenant.kind==="PLATFORM" || !membership || membership.deniedModules.includes("CHANNELS")) return redirect("unauthorized");
     const profile=await this.prisma.zernioProfile.findUnique({where:{tenantId:attempt.tenantId}});
     if (!profile || profile.profileId!==attempt.profileId) return redirect("profile-mismatch");
     if(query.error) return redirect("denied");
@@ -89,6 +89,7 @@ export class ChannelConnectionsController {
       if(existing&&existing.tenantId!==attempt.tenantId) return redirect("already-assigned");
       const settings={platform:attempt.platform,accountId,profileId:profile.profileId,username:socialUsername(providerAccount)||"",profileName:typeof providerAccount.profileName==="string"?providerAccount.profileName:"",oauthConnectedAt:new Date().toISOString()};
       const saved=await this.prisma.$transaction(async tx=>{
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${accountId}, 0))`;
         await tx.$queryRaw`SELECT id FROM tenants WHERE id=${attempt.tenantId}::uuid FOR UPDATE`;
         const current=await tx.channelConnection.findFirst({where:{provider:"ZERNIO",isActive:true,settings:{path:["accountId"],equals:accountId}});
         if(current&&current.tenantId!==attempt.tenantId) throw new ForbiddenException("Esta conta social pertence a outra empresa.");
@@ -105,35 +106,30 @@ export class ChannelConnectionsController {
   private async resolveZernioProfile(tenantId: string, tenantName: string): Promise<string> {
     this.zernio.assertConfigured();
     const externalId = "vexora-tenant-" + tenantId;
+    const profileName = "vexora-" + tenantId;
     const stored = await this.prisma.zernioProfile.findUnique({ where: { tenantId } });
     if (stored) {
       if (stored.externalId !== externalId) throw new BadGatewayException("Perfil Zernio da empresa inconsistente.");
       return stored.profileId;
     }
-    let profilesResponse: unknown;
-    try { profilesResponse = await this.zernio.request<unknown>("/profiles?externalId=" + encodeURIComponent(externalId)); }
-    catch (error) {
-      const status = error instanceof BadGatewayException ? (error.getResponse() as { providerStatus?: number })?.providerStatus : undefined;
-      if (status !== 404) throw error;
-      profilesResponse = [];
-    }
     const parseProfiles = (value: unknown): Record<string, unknown>[] => {
       const raw = Array.isArray(value) ? value : value && typeof value === "object" ?
-        (Array.isArray((value as any).profiles) ? (value as any).profiles : Array.isArray((value as any).data) ? (value as any).data : []) : [];
+        (Array.isArray((value as any).profiles) ? (value as any).profiles : Array.isArray((value as any).data?.profiles) ? (value as any).data.profiles : Array.isArray((value as any).data) ? (value as any).data : []) : [];
       return raw.filter((x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x));
     };
-    let profiles = parseProfiles(profilesResponse);
-    if (!profiles.length) {
+    const list = async () => parseProfiles(await this.zernio.request<unknown>("/profiles"));
+    let profiles = await list();
+    let match = profiles.filter(x => String(x.name || "") === profileName);
+    if (!match.length) {
       try {
-        await this.zernio.request("/profiles", { method: "POST", body: { name: tenantName.slice(0, 80), externalId }, idempotencyKey: "vexora-zernio-profile-" + tenantId });
+        await this.zernio.request("/profiles", { method: "POST", body: { name: profileName, description: tenantName.slice(0, 500) } });
       } catch (error) {
         const providerStatus = error instanceof BadGatewayException ? (error.getResponse() as { providerStatus?: number })?.providerStatus : undefined;
         if (providerStatus !== 409) throw error;
       }
-      const recovered = await this.zernio.request<unknown>("/profiles?externalId=" + encodeURIComponent(externalId));
-      profiles = parseProfiles(recovered);
+      profiles = await list();
+      match = profiles.filter(x => String(x.name || "") === profileName);
     }
-    const match = profiles.filter(x => String(x.externalId || "") === externalId);
     const profileId = match.length === 1 ? String(match[0]?.id || match[0]?._id || "") : "";
     if (!profileId || match.length !== 1) throw new BadGatewayException("A Zernio não confirmou um perfil único para esta empresa.");
     try {
@@ -153,9 +149,7 @@ export class ChannelConnectionsController {
     if (!tenant || tenant.kind==="PLATFORM") throw new ForbiddenException("A Zernio multiempresa é gerenciada dentro do painel de cada empresa.");
     const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: request.user.tenantId } });
     const configured = Boolean(process.env.ZERNIO_API_KEY?.trim());
-    const webhookSecretConfigured=Boolean(process.env.ZERNIO_WEBHOOK_SECRET?.trim());
-    const teamWebhookUrl=process.env.API_PUBLIC_URL?.trim()?process.env.API_PUBLIC_URL.trim().replace(/\\/$/,"")+"/api/webhooks/zernio/team":null;
-    if (!configured) return { configured:false, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"A integração Zernio ainda não foi configurada no servidor." };
+    if (!configured) return { configured:false, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"A integração Zernio ainda não foi configurada no servidor." };
     try {
       const verification = await this.zernio.request<{ valid?: boolean }>("/auth/verify");
       if (verification.valid !== true) throw new BadGatewayException("A Zernio não confirmou a chave central.");
@@ -166,9 +160,9 @@ export class ChannelConnectionsController {
       if (!raw) throw new Error("Invalid Zernio profile account response");
       const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
       if (accounts.some((account: any)=>!account.accountId||!account.platform)) throw new Error("Invalid account entry");
-      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
+      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
     } catch {
-      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"Não foi possível validar o perfil de redes sociais desta empresa na Zernio." };
+      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"Não foi possível validar o perfil de redes sociais desta empresa na Zernio." };
     }
   }
 
@@ -232,6 +226,7 @@ export class ChannelConnectionsController {
     const sessionName="zn-"+request.user.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex");
     const settings={platform,accountId,profileId:profile.profileId,username:socialUsername(owned)||"",profileName:typeof owned.profileName==="string"?owned.profileName:""};
     const created=await this.prisma.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${accountId}, 0))`;
       await tx.$queryRaw`SELECT id FROM tenants WHERE id=${request.user.tenantId}::uuid FOR UPDATE`;
       const duplicate=await tx.channelConnection.findFirst({where:{provider:"ZERNIO",isActive:true,settings:{path:["accountId"],equals:accountId}}});
       if(duplicate && duplicate.tenantId!==request.user.tenantId) throw new ForbiddenException("Esta conta social pertence a outra empresa.");

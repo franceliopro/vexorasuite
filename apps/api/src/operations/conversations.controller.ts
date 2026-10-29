@@ -1,3 +1,4 @@
+import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
@@ -120,6 +121,21 @@ export class ConversationsController {
     return settings;
   }
 
+  @Get("mentions")
+  async mentions(@Req() request:AuthenticatedRequest){
+    const tenantId=request.user.tenantId;
+    const receipts=await this.prisma.internalMention.findMany({where:{tenantId,userId:request.user.sub},orderBy:{createdAt:"desc"},take:100});
+    const visible=await this.prisma.conversation.findMany({where:{tenantId,id:{in:receipts.map(r=>r.conversationId)},handlingMode:"HUMAN",deletedAt:null,archivedAt:null,...await this.accessWhere(request)},select:{id:true}});
+    const allowed=new Set(visible.map(c=>c.id));
+    const notes=await this.prisma.message.findMany({where:{tenantId,id:{in:receipts.filter(r=>allowed.has(r.conversationId)).map(r=>r.messageId)},direction:"INTERNAL"},select:{id:true,senderName:true,metadata:true}});
+    return receipts.filter(r=>allowed.has(r.conversationId)&&notes.some(n=>n.id===r.messageId)).map(r=>{const note=notes.find(n=>n.id===r.messageId)!;const metadata=note.metadata as Record<string,unknown>;return {...r,authorName:note.senderName||"Equipe",departmentName:typeof metadata?.departmentName==="string"?metadata.departmentName:""};});
+  }
+  @Post("mentions/:mentionId/read")
+  async readMention(@Req() request:AuthenticatedRequest,@Param("mentionId",ParseUUIDPipe) mentionId:string){
+    await this.prisma.internalMention.updateMany({where:{id:mentionId,tenantId:request.user.tenantId,userId:request.user.sub,readAt:null},data:{readAt:new Date()}});
+    return {read:true};
+  }
+
   @Get("counts")
   async counts(@Req() request: AuthenticatedRequest) {
     const tenantId=request.user.tenantId;
@@ -154,7 +170,8 @@ export class ConversationsController {
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });
-    return rows.filter((conversation) => !isFinalizedConversation(conversation.contact.metadata, conversation.id));
+    const aliases=await this.prisma.membership.findMany({where:{tenantId,userId:{in:rows.flatMap(row=>row.assigneeId?[row.assigneeId]:[])}},select:{userId:true,knownBy:true}});
+    return rows.filter((conversation) => !isFinalizedConversation(conversation.contact.metadata, conversation.id)).map(row=>({...row,assignee:row.assignee?{...row.assignee,name:attendantName({name:row.assignee.name,knownBy:aliases.find(a=>a.userId===row.assigneeId)?.knownBy})}:null}));
   }
 
   @Post()
@@ -213,7 +230,7 @@ export class ConversationsController {
       include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { createdAt: "asc" },
     });
-    return memberships.map(({ user }) => user).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    return memberships.map(({ user,knownBy }) => ({...user,name:attendantName({name:user.name,knownBy})})).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }
 
   @Post(":id/assume")
@@ -305,6 +322,8 @@ export class ConversationsController {
     const note = this.internalNoteText(input.note, true);
     const access = await this.accessWhere(request, view);
     const author = await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});
+    const authorMembership=await this.prisma.membership.findFirst({where:{tenantId,userId:request.user.sub},select:{knownBy:true}});
+    const authorName=attendantName({name:author?.name,knownBy:authorMembership?.knownBy});
     const updated = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
       const current = await tx.conversation.findFirst({where:{id,tenantId,...access} as any});
@@ -314,8 +333,9 @@ export class ConversationsController {
         where:{id},data:{handlingMode:"HUMAN",departmentId,assigneeId,status:"OPEN"},
         include:{assignee:{select:{id:true,name:true}},department:{select:{id:true,key:true,name:true}}}
       });
+      const sourceDepartment=current.departmentId?await tx.department.findFirst({where:{id:current.departmentId,tenantId},select:{name:true}}):null;
       const destination=[next.department?.name,next.assignee?.name].filter(Boolean).join(" · ")||"Fila geral";
-      await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content:"Transferência para "+destination+(note?"\n\n"+note:""),contentType:"text",senderName:author?.name||"Atendente",metadata:{kind:"handoff_context",authorId:request.user.sub,departmentId,assigneeId}}});
+      await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content:"Transferência para "+destination+(note?"\n\n"+note:""),contentType:"text",senderName:authorName,metadata:{departmentName:sourceDepartment?.name||"",kind:"handoff_context",authorId:request.user.sub,departmentId,assigneeId}}});
       await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.handoff",entityType:"conversation",entityId:id,details:{departmentId,assigneeId,hasNote:!!note}}});
       return next;
     });
@@ -371,6 +391,8 @@ export class ConversationsController {
     const tenantId=request.user.tenantId;
     const access=await this.accessWhere(request,view);
     const author=await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});
+    const authorMembership=await this.prisma.membership.findFirst({where:{tenantId,userId:request.user.sub},select:{knownBy:true}});
+    const authorName=attendantName({name:author?.name,knownBy:authorMembership?.knownBy});
     const note=await this.prisma.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
       const conversation=await tx.conversation.findFirst({where:{id,tenantId,...access} as any});
@@ -382,7 +404,9 @@ export class ConversationsController {
         if(!member)throw new BadRequestException("O atendente mencionado não está ativo nesta empresa.");
       }
       for(const userId of mentionedUserIds)await tx.conversationParticipant.upsert({where:{conversationId_userId:{conversationId:id,userId}},create:{tenantId,conversationId:id,userId,kind:"INVITED"},update:{kind:"INVITED"}});
-      const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:author?.name||"Atendente",metadata:{kind:"private_note",authorId:request.user.sub,mentionedUserIds}}});
+      const department=conversation.departmentId?await tx.department.findFirst({where:{id:conversation.departmentId,tenantId},select:{name:true}}):null;
+      const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:authorName,metadata:{departmentName:department?.name||"",kind:"private_note",authorId:request.user.sub,mentionedUserIds}}});
+      if(mentionedUserIds.length)await tx.internalMention.createMany({data:mentionedUserIds.map(userId=>({tenantId,conversationId:id,messageId:message.id,userId})),skipDuplicates:true});
       await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.internal_note",entityType:"conversation",entityId:id,details:{messageId:message.id,mentionedUserIds}}});
       return message;
     });
@@ -394,7 +418,7 @@ export class ConversationsController {
   @Post(":id/messages")
   async sendMessage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: SendMessageDto, @Query("view") view = "new") {
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request, view)) } as any, include: { contact: true, channelConnection: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId, ...(await this.accessWhere(request, view)) } as any, include: { contact: true, channelConnection: true,department:{select:{name:true}} } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (isFinalizedConversation(conversation.contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado. Consulte o histórico em Contatos.");
     if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
@@ -414,10 +438,12 @@ export class ConversationsController {
       : conversation.contact.phone ? `${conversation.contact.phone.replace(/\D/g, "")}@c.us` : conversation.contact.externalId);
     if (!chatId) throw new BadRequestException(isZernio ? "A conversa não possui um identificador externo para resposta." : "O contato não possui um identificador WhatsApp válido.");
     const user = await this.prisma.user.findUnique({ where: { id: request.user.sub }, select: { name: true } });
+    const senderMembership=await this.prisma.membership.findFirst({where:{tenantId,userId:request.user.sub},select:{knownBy:true}});
+    const senderName=attendantName({name:user?.name,knownBy:senderMembership?.knownBy});
     const content = input.content.trim();
     if (!content) throw new BadRequestException("Digite uma mensagem antes de enviar.");
 
-    const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: "text", senderName: user?.name || null, metadata: { provider: isZernio ? "ZERNIO" : "WAHA" } } });
+    const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: "text", senderName, metadata: {departmentName:conversation.department?.name||"", provider: isZernio ? "ZERNIO" : "WAHA" } } });
     this.events.publish(tenantId, "message.queued", { conversationId: conversation.id, message: { id: queued.id, direction: queued.direction, status: queued.status, content: queued.content } });
     let providerMessageId: string | null;
     try {

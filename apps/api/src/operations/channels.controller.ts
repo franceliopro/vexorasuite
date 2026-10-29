@@ -150,7 +150,9 @@ export class ChannelConnectionsController {
     if (!tenant || tenant.kind==="PLATFORM") throw new ForbiddenException("A Zernio multiempresa é gerenciada dentro do painel de cada empresa.");
     const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: request.user.tenantId } });
     const configured = Boolean(process.env.ZERNIO_API_KEY?.trim());
-    if (!configured) return { configured:false, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"A integração Zernio ainda não foi configurada no servidor." };
+    const webhookSecretConfigured=Boolean(process.env.ZERNIO_WEBHOOK_SECRET?.trim());
+    const teamWebhookUrl=process.env.API_PUBLIC_URL?.trim()?process.env.API_PUBLIC_URL.trim().replace(/\\/$/,"")+"/api/webhooks/zernio/team":null;
+    if (!configured) return { configured:false, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"A integração Zernio ainda não foi configurada no servidor." };
     try {
       const verification = await this.zernio.request<{ valid?: boolean }>("/auth/verify");
       if (verification.valid !== true) throw new BadGatewayException("A Zernio não confirmou a chave central.");
@@ -161,9 +163,9 @@ export class ChannelConnectionsController {
       if (!raw) throw new Error("Invalid Zernio profile account response");
       const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
       if (accounts.some((account: any)=>!account.accountId||!account.platform||account.profileId!==profile.profileId)) throw new Error("Zernio returned an account outside the company profile.");
-      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
+      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
     } catch {
-      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"Não foi possível validar o perfil de redes sociais desta empresa na Zernio." };
+      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"Não foi possível validar o perfil de redes sociais desta empresa na Zernio." };
     }
   }
 

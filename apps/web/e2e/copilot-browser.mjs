@@ -48,8 +48,29 @@ try{
  await page.getByRole("alert").filter({hasText:"Não foi possível carregar as inbox. Tente atualizar."}).waitFor();
  inboxResponse={inboxes:[],departments:[]};
  await page.getByRole("button",{name:"Atualizar inbox",exact:true}).click();
- await page.getByText("Este agente ainda não participa da entrada de nenhuma inbox.",{exact:true}).waitFor();
+ await page.getByText("Nenhuma inbox cadastrada nesta empresa.",{exact:true}).waitFor();
  assert.equal(await page.getByRole("region",{name:"Gestão das inbox",exact:true}).getByRole("alert").count(),0);
+ const inboxBase={status:"CONNECTED",identityCheckedAt:null,accountId:null,routing:{mode:"INHERIT",departmentId:null,revision:null},departmentName:null,blockers:[],lastInboundAt:null,lastConversationId:null,lastDecision:"Sem entrada",lastProcessing:null,lastDelivery:null};
+ const publishedFlow={name:"Atendimento QA",active:true,includesInbox:true,agents:[{id:"agent-qa",name:"Agente de atendimento",enabled:true}]};
+ inboxResponse={departments:[],inboxes:[
+  {...inboxBase,id:"wa-qa",name:"WhatsApp principal QA",platform:"whatsapp",identity:"15550001234",flow:publishedFlow},
+  {...inboxBase,id:"ig-qa",name:"Instagram QA",platform:"instagram",identity:"empresa.qa",flow:null},
+  {...inboxBase,id:"wa-paused",name:"WhatsApp pausado QA",platform:"whatsapp",identity:"15550005678",flow:{...publishedFlow,active:false}}
+ ]};
+ await page.getByRole("button",{name:"Atualizar inbox",exact:true}).click();
+ await page.getByText("+15550001234",{exact:true}).waitFor();
+ await page.getByText("@empresa.qa",{exact:true}).waitFor();
+ const inboxCard=name=>page.getByRole("article").filter({has:page.getByRole("heading",{name,exact:true})});
+ assert((await inboxCard("WhatsApp principal QA").innerText()).includes("Ativa para este agente"));
+ assert((await inboxCard("Instagram QA").innerText()).includes("Não vinculada a este agente"));
+ assert((await inboxCard("WhatsApp pausado QA").innerText()).includes("Vinculada · requer atenção"));
+ assert.equal(await page.getByText("Canais habilitados",{exact:true}).count(),0);
+ await page.screenshot({path:"artifacts/copilot/inbox-reais-desktop.png",fullPage:true,animations:"disabled"});
+ await page.setViewportSize({width:390,height:844});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"Inbox cards must fit mobile");
+ await page.screenshot({path:"artifacts/copilot/inbox-reais-mobile.png",fullPage:true,animations:"disabled"});
+ await page.setViewportSize({width:1440,height:1000});
+
  await page.getByRole("tab",{name:"Comportamento",exact:true}).click();
  await page.getByRole("textbox",{name:"Prompt principal",exact:true}).waitFor();
  assert((await page.getByRole("textbox",{name:"Prompt principal",exact:true}).innerText()).includes("{{atendente}}"));

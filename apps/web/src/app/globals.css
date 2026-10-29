@@ -3425,3 +3425,16 @@ input[type="color"].profile-tag-inline-color {
 .internal-mentions button.active{background:var(--primary-soft)}
 .internal-mention-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 .internal-mention-chips button{border:1px solid var(--line);border-radius:12px;background:var(--primary-soft);color:var(--ink);padding:4px 8px}
+
+.attendant-identity{display:block;font-size:11px;font-weight:700;line-height:1.4;margin:3px 0;color:var(--ink)}
+.mention-notifications{position:relative}
+.mention-count{position:absolute;right:-6px;top:-6px;background:var(--primary);color:white;border-radius:12px;font-size:10px;padding:1px 4px}
+.mention-panel,.mention-toast{position:absolute;right:0;top:42px;width:min(340px,calc(100vw - 24px));padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);box-shadow:var(--shadow);z-index:160}
+.mention-panel{max-height:65dvh;overflow:auto}
+.mention-panel header{display:flex;justify-content:space-between}
+.mention-panel article{padding:10px 0;border-bottom:1px solid var(--line)}
+.mention-panel strong,.mention-toast strong{display:block;font-size:12px;font-weight:700}
+.mention-panel small{display:block;color:var(--muted);font-size:11px}
+.mention-panel button,.mention-toast button{background:var(--primary-soft);color:var(--ink);border:1px solid var(--line);padding:5px 8px;border-radius:6px;margin:3px}
+.mention-toast{position:fixed;right:16px;top:78px}
+.team-known-by{font-size:12px;display:flex;flex-direction:column;gap:4px}

@@ -363,8 +363,11 @@ export class ConversationsController {
   }
 
   @Post(":id/internal-notes")
-  async addInternalNote(@Req() request:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string,@Body() input:{content?:unknown},@Query("view") view="new"){
+  async addInternalNote(@Req() request:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string,@Body() input:{content?:unknown;mentionedUserIds?:unknown},@Query("view") view="new"){
     const content=this.internalNoteText(input.content);
+    const rawMentions=input.mentionedUserIds??[];
+    if(!Array.isArray(rawMentions)||rawMentions.length>10||rawMentions.some(value=>typeof value!=="string"||!isUUID(value)))throw new BadRequestException("Selecione até dez atendentes nas sugestões de @.");
+    const mentionedUserIds=[...new Set(rawMentions as string[])];
     const tenantId=request.user.tenantId;
     const access=await this.accessWhere(request,view);
     const author=await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});
@@ -373,8 +376,14 @@ export class ConversationsController {
       const conversation=await tx.conversation.findFirst({where:{id,tenantId,...access} as any});
       if(!conversation)throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
       if(conversation.deletedAt||conversation.archivedAt)throw new BadRequestException("Restaure a conversa para escrever no chat interno.");
-      const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:author?.name||"Atendente",metadata:{kind:"private_note",authorId:request.user.sub}}});
-      await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.internal_note",entityType:"conversation",entityId:id,details:{messageId:message.id}}});
+      if(mentionedUserIds.length&&conversation.handlingMode!=="HUMAN")throw new BadRequestException("Assuma ou transfira para atendimento humano antes de mencionar alguém.");
+      for(const userId of mentionedUserIds){
+        const member=await tx.membership.findFirst({where:{tenantId,userId,user:{isActive:true}},select:{id:true}});
+        if(!member)throw new BadRequestException("O atendente mencionado não está ativo nesta empresa.");
+      }
+      for(const userId of mentionedUserIds)await tx.conversationParticipant.upsert({where:{conversationId_userId:{conversationId:id,userId}},create:{tenantId,conversationId:id,userId,kind:"INVITED"},update:{kind:"INVITED"}});
+      const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:author?.name||"Atendente",metadata:{kind:"private_note",authorId:request.user.sub,mentionedUserIds}}});
+      await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.internal_note",entityType:"conversation",entityId:id,details:{messageId:message.id,mentionedUserIds}}});
       return message;
     });
     // No customer-channel adapter or external delivery queue is used for private notes.

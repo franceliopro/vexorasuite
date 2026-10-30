@@ -24,11 +24,8 @@ export function SidebarProfile({
     <details className="sidebar-profile-menu">
       <summary className="profile-row" title="Meu perfil e equipe">
         <span className="profile-avatar">
-          {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt="Minha foto" />
-          ) : (
-            user.name.slice(0, 2).toUpperCase()
-          )}
+          {user.avatarUrl ? <img src={user.avatarUrl} alt="Minha foto" /> : user.name.slice(0, 2).toUpperCase()}
+          <ProfilePhotoEditor compact onUpdated={onUpdated} />
         </span>
         <span className="profile-copy">
           <strong>{user.name}</strong>
@@ -78,7 +75,6 @@ export function SidebarProfile({
             <button className="primary-button">Salvar perfil</button>
           </form>
         )}
-        <ProfilePhotoEditor onUpdated={onUpdated} />
         {canManage && (
           <button
             type="button"

@@ -133,17 +133,6 @@ export function DepartmentManager() {
             </select>
           </label>
           <label>
-            Plataforma ou serviço atendido
-            <input
-              maxLength={80}
-              placeholder="Ex.: Ceeb Vision, Link ou Rastreabem"
-              value={form.routingPlatform}
-              onChange={(e) =>
-                setForm((v) => ({ ...v, routingPlatform: e.target.value }))
-              }
-            />
-          </label>
-          <label>
             Palavras-chave · separadas por vírgula
             <input
               maxLength={3000}
@@ -197,7 +186,7 @@ export function DepartmentManager() {
             <strong>{d.name}</strong>
             <small>
               {d.isActive ? "Ativo" : "Desativado"}
-              {d.routingPlatform ? " · " + d.routingPlatform : ""}
+              
             </small>
             <small>
               {(d.modules || [])

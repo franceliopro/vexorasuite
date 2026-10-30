@@ -70,7 +70,7 @@ export function DepartmentManager() {
     }
   }
   return (
-    <section className="simple-workspace">
+    <section className="simple-workspace department-manager">
       <div className="workspace-section-heading">
         <h2>Setores da empresa</h2>
         <button className="primary-button" onClick={() => edit()}>
@@ -84,7 +84,7 @@ export function DepartmentManager() {
       {notice && <p role="status">{notice}</p>}
       {editing && (
         <form
-          className="workspace-surface ai-admin-fields"
+          className="workspace-surface department-form"
           onSubmit={(e) => {
             e.preventDefault();
             void save(

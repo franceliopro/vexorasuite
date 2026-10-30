@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { Prisma } from "@prisma/client";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { WahaService } from "./waha.service";
 import { EventsService } from "./events.service";
@@ -80,7 +81,7 @@ export class TestEnvironmentResetService {
       if (integrationRoot.assistant && typeof integrationRoot.assistant === "object" && !Array.isArray(integrationRoot.assistant)) {
         integrationRoot.assistant = { ...(integrationRoot.assistant as JsonObject), enabled: false };
       }
-      await tx.tenant.update({ where: { id: platform.id }, data: { integrations: integrationRoot } });
+      await tx.tenant.update({ where: { id: platform.id }, data: { integrations: integrationRoot as Prisma.InputJsonValue } });
       await tx.tenant.delete({ where: { id: client.id } });
       await tx.auditLog.create({
         data: {

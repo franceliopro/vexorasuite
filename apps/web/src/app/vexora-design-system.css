@@ -1449,3 +1449,21 @@ body { background: var(--surface-page); color: var(--text-primary); }
   min-width: 11000px;
   min-height: 11000px;
 }
+
+
+/* Pan space stays generous in both directions; the command above provides the small overview. */
+.chatbot-workspace .vx-flow-scroll {
+  overflow-x: scroll;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+.chatbot-workspace .vx-flow-board {
+  min-width: 20000px;
+  min-height: 12000px;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-board {
+  width: 20000px;
+  height: 12000px;
+  min-width: 20000px;
+  min-height: 12000px;
+}

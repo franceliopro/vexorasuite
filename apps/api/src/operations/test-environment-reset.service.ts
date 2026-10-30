@@ -40,11 +40,19 @@ export class TestEnvironmentResetService {
       throw new BadRequestException("Integração de reset inválida.");
     }
 
+    if (!request.user.isPlatformAdmin) throw new BadRequestException("O reset só pode ser executado pela administração da plataforma.");
     const platform = await this.prisma.tenant.findFirst({
-      where: { id: request.user.tenantId, kind: "PLATFORM", status: "ACTIVE" },
+      where: {
+        kind: "PLATFORM",
+        status: "ACTIVE",
+        OR: [
+          { id: request.user.tenantId },
+          { memberships: { some: { userId: request.user.sub, role: { in: ["OWNER", "ADMIN"] } } } },
+        ],
+      },
       select: { id: true, integrations: true },
     });
-    if (!platform || !request.user.isPlatformAdmin) throw new BadRequestException("O reset só pode ser executado pela administração da plataforma.");
+    if (!platform) throw new BadRequestException("Nenhum ambiente de plataforma ativo foi encontrado para este administrador.");
     const client = await this.prisma.tenant.findFirst({
       where: { slug: clientSlug, kind: "COMPANY", status: "ACTIVE" },
       select: { id: true, name: true, slug: true },

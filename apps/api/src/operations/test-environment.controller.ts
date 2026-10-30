@@ -14,7 +14,17 @@ export class TestEnvironmentController {
     clientSlug?: unknown;
     resetPlatformConversations?: unknown;
     disconnectProviders?: unknown;
+    deleteCompany?: unknown;
   }) {
     return this.resetService.reset(request, body);
+  }
+
+  @Post("platform-reset")
+  resetPlatform(@Req() request: AuthenticatedRequest, @Body() body: {
+    confirmation?: unknown;
+    disconnectProviders?: unknown;
+    deleteData?: unknown;
+  }) {
+    return this.resetService.resetPlatform(request, body);
   }
 }

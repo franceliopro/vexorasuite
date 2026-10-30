@@ -21,8 +21,7 @@ export class InboxesController{
    this.prisma.department.findMany({where:{tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:"asc"}})
   ]);
   const root=object(tenant.integrations),assistant=object(root.assistant);
-  const visibleChannels=tenant.kind==="PLATFORM"?channels.filter(channel=>channel.provider!=="ZERNIO"):channels;
-  const rows=await Promise.all(visibleChannels.map(async channel=>{
+  const rows=await Promise.all(channels.map(async channel=>{
    const config=object(channel.settings),routing=inboxRouting(config),scope={departmentId:routing.departmentId};
    const selection=selectPublication(root,scope),publication=selection?.publication;
    const [inbound,outbound]=await Promise.all([

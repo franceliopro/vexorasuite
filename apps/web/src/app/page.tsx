@@ -142,7 +142,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Gestão") setActive("Financeiro");
-    else if (requested === "Integrações (API)" || requested === "Canais e integrações") setActive("Configurações");
+    else if (requested === "Integrações (API)") setActive("Configurações");
     else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
     else if (requested && validModules.has(requested)) {

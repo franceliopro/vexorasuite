@@ -1467,3 +1467,16 @@ body { background: var(--surface-page); color: var(--text-primary); }
   min-width: 20000px;
   min-height: 12000px;
 }
+
+
+/* Normal mode: compact stage; fullscreen keeps its own viewport height. */
+.chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-shell {
+  height: min(44dvh, 480px) !important;
+  min-height: 340px;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-shell {
+    height: min(42dvh, 440px) !important;
+    min-height: 320px;
+  }
+}

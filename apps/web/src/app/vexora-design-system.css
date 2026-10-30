@@ -1315,3 +1315,31 @@ body { background: var(--surface-page); color: var(--text-primary); }
   align-items: center;
   gap: 8px;
 }
+
+
+/* Give the flow stage the dominant space: narrower utility rails, shorter viewport. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(170px, 16%) minmax(0, 1fr) minmax(220px, 20%) !important;
+  height: min(72dvh, 780px) !important;
+  min-height: 560px;
+}
+.chatbot-workspace .vx-flow-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.chatbot-workspace .vx-flow-stage-bar {
+  min-height: 46px;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(150px, 20%) minmax(0, 1fr) minmax(200px, 24%) !important;
+    height: min(70dvh, 720px) !important;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    height: 68dvh !important;
+    min-height: 460px;
+  }
+}

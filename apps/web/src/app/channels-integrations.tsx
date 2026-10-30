@@ -30,7 +30,8 @@ export function ChannelsIntegrations(){
  const [inboxDepartments,setInboxDepartments]=useState<{id:string;name:string}[]>([]);
  const [inboxAgents,setInboxAgents]=useState<{id:string;name:string;email?:string}[]>([]);
  const [inboxAiAgents,setInboxAiAgents]=useState<{id:string;name:string}[]>([]);
- const [inboxBusy,setInboxBusy]=useState(false);\n const [wahaName,setWahaName]=useState("");
+ const [inboxBusy,setInboxBusy]=useState(false);
+ const [wahaName,setWahaName]=useState("");
  const [editingInbox,setEditingInbox]=useState<string|null>(null);
  const [targetTypes,setTargetTypes]=useState<Record<string,string>>({});
  const [renameValues,setRenameValues]=useState<Record<string,string>>({});
@@ -86,7 +87,8 @@ export function ChannelsIntegrations(){
    catch(e){setError(e instanceof Error?e.message:"Não foi possível atualizar a inbox.");}
    finally{setInboxBusy(false);}
  }
- async function createWaha(){const name=wahaName.trim();if(!name){setError("Informe o nome da nova inbox.");return;}setInboxBusy(true);setError("");try{await api("/api/backend/channels/waha",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name})});setWahaName("");await loadInboxes();setNotice("Inbox WhatsApp criada. Leia o QR Code no atendimento para concluir a conexão.");}catch(e){setError(e instanceof Error?e.message:"Não foi possível criar a inbox WhatsApp.");}finally{setInboxBusy(false);}}\n async function connectSocial(platform:"instagram"|"facebook"|"whatsapp"){
+ async function createWaha(){const name=wahaName.trim();if(!name){setError("Informe o nome da nova inbox.");return;}setInboxBusy(true);setError("");try{await api("/api/backend/channels/waha",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name})});setWahaName("");await loadInboxes();setNotice("Inbox WhatsApp criada. Leia o QR Code no atendimento para concluir a conexão.");}catch(e){setError(e instanceof Error?e.message:"Não foi possível criar a inbox WhatsApp.");}finally{setInboxBusy(false);}}
+ async function connectSocial(platform:"instagram"|"facebook"|"whatsapp"){
    setBusy(true);setError("");setNotice("");
    try{const result=await api<{authorizationUrl:string}>("/api/backend/channels/zernio/oauth/start/"+platform,{method:"POST"});window.location.assign(result.authorizationUrl);}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização OAuth.");setBusy(false);}

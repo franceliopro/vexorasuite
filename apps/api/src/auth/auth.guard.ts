@@ -16,7 +16,8 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (Reflect.getMetadata(PUBLIC_ROUTE, context.getHandler()) === true) return true;
+    const handler = typeof (context as any).getHandler === "function" ? (context as any).getHandler() : undefined;
+    if (handler && Reflect.getMetadata(PUBLIC_ROUTE, handler) === true) return true;
     const request = context.switchToHttp().getRequest();
     const authorization = request.headers?.authorization;
     if (typeof authorization !== "string" || !authorization.startsWith("Bearer ")) {

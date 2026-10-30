@@ -90,7 +90,7 @@ try{
  await page.screenshot({path:"artifacts/copilot/traducao-desktop.png",fullPage:false,animations:"disabled"});
  await page.keyboard.press("Escape");
  await page.getByRole("textbox",{name:"Mensagem",exact:true}).fill("Pode me passar o pedido?");
- await page.getByRole("button",{name:"Assistente de escrita",exact:true}).click();
+ await page.getByRole("button",{name:"Melhorar mensagem",exact:true}).click();
  await page.getByRole("button",{name:"Gerar versão",exact:true}).click();
  await page.getByRole("button",{name:"Usar no rascunho",exact:true}).waitFor();
  await page.screenshot({path:"artifacts/copilot/assistente-escrita-desktop.png",fullPage:false,animations:"disabled"});

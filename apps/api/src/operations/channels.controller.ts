@@ -105,8 +105,8 @@ export class ChannelConnectionsController {
         await tx.$queryRaw`SELECT id FROM tenants WHERE id=${attempt.tenantId}::uuid FOR UPDATE`;
         const current=await tx.channelConnection.findFirst({where:{provider:"ZERNIO",isActive:true,settings:{path:["accountId"],equals:accountId}}});
         if(current&&current.tenantId!==attempt.tenantId) throw new ForbiddenException("Esta conta social pertence a outra empresa.");
-        if(current) return await tx.channelConnection.update({where:{id:current.id},data:{name:String(providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),status:"CONNECTING",lastError:null,settings:{...(current.settings&&typeof current.settings==="object"&&!Array.isArray(current.settings)?current.settings as Record<string,unknown>:{}),...settings}}});
-        return await tx.channelConnection.create({data:{tenantId:attempt.tenantId,provider:"ZERNIO",name:String(providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),sessionName:"zn-"+attempt.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex"),status:"CONNECTING",settings}});
+        if(current) return await tx.channelConnection.update({where:{id:current.id},data:{name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),status:"CONNECTING",lastError:null,settings:{...(current.settings&&typeof current.settings==="object"&&!Array.isArray(current.settings)?current.settings as Record<string,unknown>:{}),...settings}}});
+        return await tx.channelConnection.create({data:{tenantId:attempt.tenantId,provider:"ZERNIO",name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),sessionName:"zn-"+attempt.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex"),status:"CONNECTING",settings}});
       });
       this.events.publish(attempt.tenantId,"channel.updated",{id:saved.id,provider:"ZERNIO",status:"CONNECTING"});
       return redirect("connected");
@@ -179,7 +179,7 @@ export class ChannelConnectionsController {
         throw new Error("Invalid Zernio profile account response");
       })();
       if (!raw) throw new Error("Invalid Zernio profile account response");
-      const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
+      const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:typeof item.profileName==="string"?item.profileName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
       if (accounts.some((account: any)=>!account.accountId||!account.platform||account.profileId!==profile.profileId)) throw new Error("Zernio returned an account outside the company profile.");
       return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
     } catch (error) {

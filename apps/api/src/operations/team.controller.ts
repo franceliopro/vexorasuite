@@ -66,7 +66,7 @@ export class TeamController {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const email =
       typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-    const password=typeof input.password==="string"&&input.password?input.password:"senha123";
+    const password="Senha@123";
     const role=input.role==="OWNER"&&req.user.isPlatformAdmin?"OWNER":"AGENT";
     if(input.role&&input.role!==role)throw new ForbiddenException("Somente a administração da Véxora cadastra proprietários.");
     if (
@@ -78,7 +78,7 @@ export class TeamController {
       password.length > 128
     )
       throw new BadRequestException(
-        "Informe nome, e-mail e senha temporária de 8 a 128 caracteres.",
+        "Informe nome e e-mail válidos. A senha inicial será Senha@123 e deverá ser trocada no primeiro acesso.",
       );
     const ids = Array.isArray(input.departmentIds)
       ? ([...new Set(input.departmentIds)] as string[])
@@ -173,8 +173,8 @@ export class TeamController {
   });this.events.publish(req.user.tenantId,"team.updated",{id});return {updated:true};
  }
  @Post(':id/reset-password') async resetPassword(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
-  if(!req.user.isPlatformAdmin)throw new ForbiddenException('Somente a administração da Véxora pode redefinir a senha.');
-  const passwordHash=await hash('senha123',12);
+  if(!req.user.isPlatformAdmin&&!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException('Somente administradores podem redefinir senhas.');
+  const passwordHash=await hash('Senha@123',12);
   await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
    if(!await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true}}))throw new BadRequestException('Usuário não pertence a esta empresa.');

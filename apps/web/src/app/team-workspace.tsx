@@ -15,6 +15,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
       departmentIds: [] as string[],
       modules: [] as string[],
     }),
+    [photoFile, setPhotoFile] = useState<File | null>(null),
     [editing, setEditing] = useState(false),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");

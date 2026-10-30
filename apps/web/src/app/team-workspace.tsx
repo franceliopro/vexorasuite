@@ -121,6 +121,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 }
               }}
             >
+              <div className="team-form-grid">
               <label className="team-photo-field">
                 Foto do atendente
                 <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
@@ -204,6 +205,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               <button className="primary-button" disabled={busy}>
                 {editingId?"Salvar permissões":"Cadastrar"}
               </button>
+              </div>
             </form>
           )}
           <section className="workspace-surface">

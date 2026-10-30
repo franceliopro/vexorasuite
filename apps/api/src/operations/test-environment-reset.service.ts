@@ -10,6 +10,7 @@ type ResetBody = {
   clientSlug?: unknown;
   resetPlatformConversations?: unknown;
   disconnectProviders?: unknown;
+  deleteCompany?: unknown;
 };
 
 type JsonObject = Record<string, unknown>;
@@ -33,6 +34,7 @@ export class TestEnvironmentResetService {
     if (body.resetPlatformConversations !== true) {
       throw new BadRequestException("Confirme também a limpeza das conversas da Matriz.");
     }
+    const deleteCompany = body.deleteCompany === true;
     const rawProviders = body.disconnectProviders === undefined ? ["WAHA", "ZERNIO"] : body.disconnectProviders;
     if (!Array.isArray(rawProviders)) throw new BadRequestException("Selecione as integrações a desconectar.");
     const providers = [...new Set(rawProviders.map(value => String(value).toUpperCase()))];
@@ -60,7 +62,8 @@ export class TestEnvironmentResetService {
     if (!client) throw new NotFoundException("Empresa cliente não encontrada ou já removida.");
 
     const channels = await this.prisma.channelConnection.findMany({
-      where: { tenantId: { in: [platform.id, client.id] }, provider: { in: providers }, isActive: true },
+      // O reset da empresa cliente nunca consulta nem altera canais da plataforma.
+      where: { tenantId: client.id, provider: { in: providers }, isActive: true },
       select: { id: true, tenantId: true, provider: true, sessionName: true },
     });
     const wahaChannels = channels.filter(row => row.provider === "WAHA");
@@ -68,29 +71,30 @@ export class TestEnvironmentResetService {
     // Primeiro concluímos a limpeza transacional do banco. Desconectar o provedor
     // antes disso deixava o reset pela metade quando o gateway estava indisponível.
     const result = await this.prisma.$transaction(async tx => {
-      const platformConversations = await tx.conversation.findMany({ where: { tenantId: platform.id }, select: { id: true } });
-      const conversationIds = platformConversations.map(row => row.id);
+      const clientConversations = await tx.conversation.findMany({ where: { tenantId: client.id }, select: { id: true } });
+      const conversationIds = clientConversations.map(row => row.id);
       if (conversationIds.length) {
-        await tx.internalMention.deleteMany({ where: { tenantId: platform.id, conversationId: { in: conversationIds } } });
-        await tx.workflowRun.deleteMany({ where: { tenantId: platform.id, conversationId: { in: conversationIds } } });
-        await tx.payment.deleteMany({ where: { tenantId: platform.id, conversationId: { in: conversationIds } } });
-        await tx.serviceProtocol.deleteMany({ where: { tenantId: platform.id, conversationId: { in: conversationIds } } });
-        await tx.message.deleteMany({ where: { tenantId: platform.id, conversationId: { in: conversationIds } } });
-        await tx.conversationParticipant.deleteMany({ where: { tenantId: platform.id, conversationId: { in: conversationIds } } });
-        await tx.conversation.deleteMany({ where: { tenantId: platform.id, id: { in: conversationIds } } });
+        await tx.internalMention.deleteMany({ where: { tenantId: client.id, conversationId: { in: conversationIds } } });
+        await tx.workflowRun.deleteMany({ where: { tenantId: client.id, conversationId: { in: conversationIds } } });
+        await tx.payment.deleteMany({ where: { tenantId: client.id, conversationId: { in: conversationIds } } });
+        await tx.serviceProtocol.deleteMany({ where: { tenantId: client.id, conversationId: { in: conversationIds } } });
+        await tx.message.deleteMany({ where: { tenantId: client.id, conversationId: { in: conversationIds } } });
+        await tx.conversationParticipant.deleteMany({ where: { tenantId: client.id, conversationId: { in: conversationIds } } });
+        await tx.conversation.deleteMany({ where: { tenantId: client.id, id: { in: conversationIds } } });
       }
       await tx.channelConnection.updateMany({
-        where: { tenantId: platform.id, provider: { in: providers }, isActive: true },
+        where: { tenantId: client.id, provider: { in: providers }, isActive: true },
         data: { isActive: false, status: "DISCONNECTED", lastError: "TEST_ENVIRONMENT_RESET" },
       });
-      const integrationRoot = object(platform.integrations);
+      const clientTenant = await tx.tenant.findUniqueOrThrow({ where: { id: client.id }, select: { integrations: true } });
+      const integrationRoot = object(clientTenant.integrations);
       delete integrationRoot.intelligencePublished;
       delete integrationRoot.intelligencePublications;
       if (integrationRoot.assistant && typeof integrationRoot.assistant === "object" && !Array.isArray(integrationRoot.assistant)) {
         integrationRoot.assistant = { ...(integrationRoot.assistant as JsonObject), enabled: false };
       }
-      await tx.tenant.update({ where: { id: platform.id }, data: { integrations: integrationRoot as Prisma.InputJsonValue } });
-      await tx.tenant.delete({ where: { id: client.id } });
+      await tx.tenant.update({ where: { id: client.id }, data: { integrations: integrationRoot as Prisma.InputJsonValue } });
+      if (deleteCompany) await tx.tenant.delete({ where: { id: client.id } });
       await tx.auditLog.create({
         data: {
           tenantId: platform.id,
@@ -99,8 +103,9 @@ export class TestEnvironmentResetService {
           entityType: "tenant",
           entityId: client.id,
           details: {
-            removedClient: { id: client.id, name: client.name, slug: client.slug },
-            platformConversationsDeleted: conversationIds.length,
+            company: deleteCompany ? "removed" : "preserved",
+            client: { id: client.id, name: client.name, slug: client.slug },
+            clientConversationsDeleted: conversationIds.length,
             providers,
             hiddenAutomationDisabled: true,
           },
@@ -124,7 +129,7 @@ export class TestEnvironmentResetService {
       }
     }
 
-    this.events.publish(platform.id, "test.environment.reset", { clientSlug: client.slug, providers, conversationsDeleted: result.conversationsDeleted, providerResults });
-    return { ok: true, removedClient: { name: client.name, slug: client.slug }, ...result, providers, providerResults, hiddenAutomationDisabled: true };
+    this.events.publish(platform.id, "test.environment.reset", { clientSlug: client.slug, company: deleteCompany ? "removed" : "preserved", providers, conversationsDeleted: result.conversationsDeleted, providerResults });
+    return { ok: true, company: deleteCompany ? "removed" : "preserved", client: { name: client.name, slug: client.slug }, ...result, providers, providerResults, hiddenAutomationDisabled: true };
   }
 }

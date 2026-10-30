@@ -188,3 +188,30 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .channels-inbox-card,.channels-google-card{height:100%;box-sizing:border-box}
 .channels-inbox-create{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;margin:0 0 12px}
 .channels-inbox-create input{flex:1 1 240px;min-width:0}
+
+
+/* Administração: integrações ficam dentro de Configurações, separadas do cadastro da equipe. */
+.settings-integration-host{grid-column:1/-1;min-width:0}
+.settings-integration-host .channels-page{margin:0}
+.settings-workspace .settings-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}
+.settings-workspace .settings-tabs button{min-height:36px;padding:7px 13px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text-muted);font:inherit}
+.settings-workspace .settings-tabs button.active{background:color-mix(in srgb,var(--brand) 12%,var(--surface));border-color:color-mix(in srgb,var(--brand) 40%,var(--border));color:var(--text);font-weight:650}
+.team-workspace,.department-manager{display:grid;gap:16px}
+.team-workspace .creative-heading,.department-manager .workspace-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.team-form,.department-manager form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;padding:18px}
+.team-form>label,.department-manager form>label,.team-form>fieldset,.department-manager form>.module-choices,.team-form>p,.team-form>.workspace-actions,.department-manager form>p,.department-manager form>.workspace-actions{min-width:0}
+.team-form>label,.department-manager form>label{display:grid;gap:6px;align-content:start;font-weight:600}
+.team-form>label input,.team-form>label select,.department-manager form>label input,.department-manager form>label select{width:100%;box-sizing:border-box}
+.team-form>fieldset,.department-manager form>.module-choices{grid-column:1/-1}
+.team-form>p,.team-form>.workspace-actions,.department-manager form>p,.department-manager form>.workspace-actions{grid-column:1/-1}
+.team-photo-field{padding:12px;border:1px dashed var(--border);border-radius:10px;background:color-mix(in srgb,var(--surface) 90%,var(--brand))}
+.team-photo-field small,.team-form small,.department-manager small{color:var(--text-muted);font-weight:400}
+.team-workspace .workspace-surface{padding:0}
+.team-workspace .publication-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.team-workspace .publication-row:last-child{border-bottom:0}
+.team-user-summary{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.team-user-summary>div{display:grid;gap:3px;min-width:0}
+.team-user-summary strong,.team-user-summary small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team-user-summary .profile-avatar{width:42px;height:42px;display:grid;place-items:center;flex:0 0 42px;border-radius:50%;overflow:hidden;background:color-mix(in srgb,var(--brand) 14%,var(--surface));color:var(--brand);font-weight:700}
+.team-user-summary .profile-avatar img{width:100%;height:100%;object-fit:cover}
+@media (max-width:720px){.team-form,.department-manager form{grid-template-columns:1fr}.team-workspace .creative-heading,.department-manager .workspace-section-heading{align-items:stretch;flex-direction:column}.team-workspace .publication-row{align-items:flex-start;flex-wrap:wrap}.team-workspace .publication-row .team-user-summary{flex-basis:100%}}

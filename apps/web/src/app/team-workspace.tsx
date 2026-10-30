@@ -189,7 +189,9 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
           <section className="workspace-surface">
             {rows.map((r) => (
               <article className="publication-row" key={r.id}>
-                <div>
+                <div className="team-user-summary">
+                  <span className="profile-avatar">{r.avatarUrl?<img src={r.avatarUrl} alt={"Foto de "+r.name}/>:String(r.name||"?").slice(0,2).toUpperCase()}</span>
+                  <div>
                   <strong>{r.name}</strong>
                   <small>
                     {r.email} ·{" "}
@@ -210,6 +212,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                       .map((d) => d.name)
                       .join(", ") || "Sem setor definido"}
                   </small>
+                  </div>
                 </div>
 <label className="team-known-by">Conhecido por<input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
 {r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'Senha@123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}

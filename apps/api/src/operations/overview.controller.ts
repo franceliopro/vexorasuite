@@ -19,7 +19,7 @@ export class OverviewController {
    this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}),
    this.prisma.conversation.findMany({where:scope,orderBy:{updatedAt:'desc'},take:5,select:{id:true,status:true,updatedAt:true,contact:{select:{name:true}}}}),
   ]);
-  const root=tenant.integrations as Record<string,any>;const assistantEnabled=root?.assistant?.enabled===true;const agents=assistantEnabled&&Array.isArray(root?.assistant?.agents)?root.assistant.agents:[];
+  const root=tenant.integrations as Record<string,any>;const assistantEnabled=root?.assistant?.enabled!==false;const agents=assistantEnabled&&Array.isArray(root?.assistant?.agents)?root.assistant.agents:[];
   return {openConversations,completedConversations,contacts,activeAgents:agents.filter((a:any)=>a.enabled===true).length,recent,scope:admin?'tenant':'assigned_and_team',updatedAt:new Date().toISOString()};
  }
 }

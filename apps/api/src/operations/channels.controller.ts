@@ -1,5 +1,5 @@
 import { socialUsername } from "./social-identity";
-import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Query, Res, Post, Delete, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Query, Res, Post, Patch, Delete, Req, UseGuards } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import type { Response } from "express";
 import { AuthGuard } from "../auth/auth.guard";
@@ -32,6 +32,17 @@ export class ChannelConnectionsController {
         webhookVerifiedAt: typeof safeSettings.webhookVerifiedAt === "string" ? safeSettings.webhookVerifiedAt : undefined,
       } : {}) };
     });
+  }
+
+  @Patch(":id")
+  async rename(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() body: { name?: unknown }) {
+    if (!["OWNER","ADMIN"].includes(request.user.role)) throw new ForbiddenException("Somente administradores podem renomear inboxes.");
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (name.length < 2 || name.length > 100) throw new BadRequestException("Informe um nome de inbox entre 2 e 100 caracteres.");
+    const updated = await this.prisma.channelConnection.updateMany({ where: { id, tenantId: request.user.tenantId, isActive: true }, data: { name } });
+    if (!updated.count) throw new NotFoundException("Inbox não encontrada nesta empresa.");
+    this.events.publish(request.user.tenantId, "channel.updated", { id, name });
+    return { id, name };
   }
 
   @Post("zernio/oauth/start/:platform")

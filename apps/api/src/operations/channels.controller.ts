@@ -291,7 +291,11 @@ export class ChannelConnectionsController {
   @Post(":id/disconnect")
   async disconnect(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
     const channel = await this.findOwned(request.user.tenantId, id);
-    await this.waha.disconnect(channel);
+    if (channel.provider === "ZERNIO") {
+      await this.prisma.channelConnection.update({ where: { id }, data: { isActive: false, status: "DISCONNECTED", lastError: null } });
+    } else {
+      await this.waha.disconnect(channel);
+    }
     this.events.publish(request.user.tenantId, "channel.status", { id, status: "DISCONNECTED" });
     return { ok: true, status: "DISCONNECTED" };
   }
@@ -299,7 +303,11 @@ export class ChannelConnectionsController {
   @Delete(":id")
   async deleteSession(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
     const channel = await this.findOwned(request.user.tenantId, id);
-    await this.waha.deleteSession(channel);
+    if (channel.provider === "ZERNIO") {
+      await this.prisma.channelConnection.update({ where: { id }, data: { isActive: false, status: "DISCONNECTED", lastError: "DISCONNECTED_BY_ADMIN" } });
+    } else {
+      await this.waha.deleteSession(channel);
+    }
     this.events.publish(request.user.tenantId, "channel.status", { id, status: "DISCONNECTED", deleted: true });
     return { ok: true, status: "DISCONNECTED", deleted: true };
   }
@@ -363,7 +371,7 @@ export class ChannelConnectionsController {
   }
 
   private async findOwned(tenantId: string, id: string) {
-    const channel = await this.prisma.channelConnection.findFirst({ where: { id, tenantId, provider: "WAHA", isActive: true } });
+    const channel = await this.prisma.channelConnection.findFirst({ where: { id, tenantId, provider: { in: ["WAHA", "ZERNIO"] }, isActive: true } });
     if (!channel) throw new NotFoundException("Canal não encontrado nesta empresa.");
     return channel;
   }

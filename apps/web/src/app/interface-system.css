@@ -150,3 +150,10 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .sidebar-profile-menu .profile-avatar{position:relative}
 .nav-item,.nav-subitem{margin-block:1px!important;padding-block:6px!important}
 @media (max-width:760px){.conversation-tag{font-size:9px;padding-inline:5px}}
+
+
+.channels-platform-icon-large{width:34px!important;height:34px!important;display:grid!important;place-items:center;font-size:0!important;color:#fff}
+.channels-inbox-card .channels-platform-icon-large{width:30px!important;height:30px!important}
+.channels-google-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.channels-google-card{min-width:0;align-self:start}
+@media (max-width:700px){.channels-google-grid{grid-template-columns:1fr}}

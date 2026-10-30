@@ -13,6 +13,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { hash } from "bcryptjs";
 import sharp from "sharp";
 import { isUUID } from "class-validator";

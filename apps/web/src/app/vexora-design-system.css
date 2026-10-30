@@ -1480,3 +1480,11 @@ body { background: var(--surface-page); color: var(--text-primary); }
     min-height: 320px;
   }
 }
+
+
+/* Normal mode target height requested for the editing stage. */
+.chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-shell {
+  height: clamp(800px, calc(100dvh - 140px), 1000px) !important;
+  min-height: 800px;
+  max-height: 1000px;
+}

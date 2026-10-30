@@ -1343,3 +1343,34 @@ body { background: var(--surface-page); color: var(--text-primary); }
     min-height: 460px;
   }
 }
+
+
+/* The central editing area must be the widest region, not a tall narrow strip. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(140px, 11%) minmax(0, 78%) minmax(180px, 11%) !important;
+  height: min(64dvh, 700px) !important;
+  min-height: 480px;
+}
+.chatbot-workspace .vx-flow-stage {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+.chatbot-workspace .vx-flow-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(140px, 17%) minmax(0, 66%) minmax(180px, 17%) !important;
+    height: min(62dvh, 650px) !important;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(0, 1fr) !important;
+    height: 64dvh !important;
+  }
+}

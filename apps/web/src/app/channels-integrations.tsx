@@ -38,7 +38,7 @@ export function ChannelsIntegrations(){
  const [renameValues,setRenameValues]=useState<Record<string,string>>({});
  const loadInboxes=useCallback(async()=>{
    try{const result=await api<{inboxes:InboxRow[];departments:{id:string;name:string}[]}>("/api/backend/channels/inboxes");setInboxes(result.inboxes);setInboxDepartments(result.departments);const [agents,ai]=await Promise.all([api<{id:string;name:string;email?:string}[]>("/api/backend/conversations/assignees").catch(()=>[]),api<{agents?:{id:string;name:string}[]}>("/api/backend/assistant/config").catch(()=>({agents:[]}))]);setInboxAgents(agents);setInboxAiAgents(Array.isArray(ai.agents)?ai.agents:[]);}
-   catch(e){setError(e instanceof Error?e.message:"Não foi possível carregar as inboxes.");}
+   catch(e){setError(e instanceof Error?e.message:"Não foi possível carregar os canais.");}
  },[]);
 
  const [busy,setBusy]=useState(false);
@@ -68,23 +68,23 @@ export function ChannelsIntegrations(){
    }catch(e){setError(e instanceof Error?e.message:"Não foi possível reconectar a inbox.");}finally{setInboxBusy(false);}
  }
  async function disconnectInbox(inbox:InboxRow){
-   if(!window.confirm("Desconectar a inbox "+inbox.name+"? O histórico das conversas será preservado."))return;
-   setInboxBusy(true);setError("");try{await api("/api/backend/channels/"+encodeURIComponent(inbox.id)+"/disconnect",{method:"POST"});await loadInboxes();setNotice("Inbox desconectada. O histórico foi preservado.");}catch(e){setError(e instanceof Error?e.message:"Não foi possível desconectar a inbox.");}finally{setInboxBusy(false);}
+   if(!window.confirm("Desconectar o canal "+inbox.name+"? O histórico das conversas será preservado."))return;
+   setInboxBusy(true);setError("");try{await api("/api/backend/channels/"+encodeURIComponent(inbox.id)+"/disconnect",{method:"POST"});await loadInboxes();setNotice("Canal desconectado. O histórico foi preservado.");}catch(e){setError(e instanceof Error?e.message:"Não foi possível desconectar a inbox.");}finally{setInboxBusy(false);}
  }
  async function deleteInbox(inbox:InboxRow){
-   if(!window.confirm("Remover a inbox "+inbox.name+"? O histórico das conversas será preservado, mas a inbox deixará de aparecer."))return;
-   setInboxBusy(true);setError("");try{await api("/api/backend/channels/"+encodeURIComponent(inbox.id),{method:"DELETE"});setInboxes(rows=>rows.filter(row=>row.id!==inbox.id));setNotice("Inbox removida. O histórico foi preservado.");}catch(e){setError(e instanceof Error?e.message:"Não foi possível remover a inbox.");}finally{setInboxBusy(false);}
+   if(!window.confirm("Remover o canal "+inbox.name+"? O histórico das conversas será preservado, mas a canal deixará de aparecer."))return;
+   setInboxBusy(true);setError("");try{await api("/api/backend/channels/"+encodeURIComponent(inbox.id),{method:"DELETE"});setInboxes(rows=>rows.filter(row=>row.id!==inbox.id));setNotice("Canal removido. O histórico foi preservado.");}catch(e){setError(e instanceof Error?e.message:"Não foi possível remover a inbox.");}finally{setInboxBusy(false);}
  }
  async function renameInbox(id:string){
    const name=(renameValues[id]||"").trim();if(!name)return;
    setInboxBusy(true);setError("");
-   try{const updated=await api<{id:string;name:string}>("/api/backend/channels/"+encodeURIComponent(id),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({name})});setInboxes(rows=>rows.map(row=>row.id===id?{...row,name:updated.name}:row));setNotice("Nome da inbox atualizado.");}
+   try{const updated=await api<{id:string;name:string}>("/api/backend/channels/"+encodeURIComponent(id),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({name})});setInboxes(rows=>rows.map(row=>row.id===id?{...row,name:updated.name}:row));setNotice("Nome do canal atualizado.");}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível renomear a inbox.");}
    finally{setInboxBusy(false);}
  }
  async function saveInbox(id:string,mode:string,departmentId:string|null,targetType:string,targetId:string|null,revision?:string|null){
    setInboxBusy(true);setError("");
-   try{const updated=await api<InboxRow>("/api/backend/channels/"+encodeURIComponent(id)+"/inbox",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode,departmentId:departmentId||null,targetType,targetId:targetId||null,expectedRevision:revision??null})});setInboxes(rows=>rows.map(row=>row.id===id?updated:row));setEditingInbox(null);setNotice("Inbox atualizada.");}
+   try{const updated=await api<InboxRow>("/api/backend/channels/"+encodeURIComponent(id)+"/inbox",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode,departmentId:departmentId||null,targetType,targetId:targetId||null,expectedRevision:revision??null})});setInboxes(rows=>rows.map(row=>row.id===id?updated:row));setEditingInbox(null);setNotice("Canal atualizado.");}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível atualizar a inbox.");}
    finally{setInboxBusy(false);}
  }

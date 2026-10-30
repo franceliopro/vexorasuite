@@ -15,11 +15,11 @@ export class OverviewController {
   const [openConversations,completedConversations,contacts,tenant,recent]=await Promise.all([
    this.prisma.conversation.count({where:{...scope,archivedAt:null,status:{in:['OPEN','PENDING']}}}),
    this.prisma.conversation.count({where:{...scope,status:{in:['RESOLVED','CLOSED']}}}),
-   this.prisma.contact.count({where:{tenantId,...(!admin?{conversations:{some:{tenantId,...assignedConversationScope(tenantId,req.user.sub,teams.map(t=>t.departmentId))}}}:{})}}),
+   this.prisma.contact.count({where:{tenantId,conversations:{some:{tenantId,deletedAt:null,...(!admin?assignedConversationScope(tenantId,req.user.sub,teams.map(t=>t.departmentId)):{})}}}}),
    this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}),
    this.prisma.conversation.findMany({where:scope,orderBy:{updatedAt:'desc'},take:5,select:{id:true,status:true,updatedAt:true,contact:{select:{name:true}}}}),
   ]);
-  const root=tenant.integrations as Record<string,any>;const agents=Array.isArray(root?.assistant?.agents)?root.assistant.agents:[];
+  const root=tenant.integrations as Record<string,any>;const assistantEnabled=root?.assistant?.enabled!==false;const agents=assistantEnabled&&Array.isArray(root?.assistant?.agents)?root.assistant.agents:[];
   return {openConversations,completedConversations,contacts,activeAgents:agents.filter((a:any)=>a.enabled===true).length,recent,scope:admin?'tenant':'assigned_and_team',updatedAt:new Date().toISOString()};
  }
 }

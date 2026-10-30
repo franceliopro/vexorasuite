@@ -43,9 +43,18 @@ export class ZernioService {
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok || (payload && typeof payload === "object" && "success" in payload && payload.success === false) || (!options.allowPartialFailure && payload && typeof payload === "object" && "data" in payload && payload.data && typeof payload.data === "object" && "partialFailure" in payload.data && payload.data.partialFailure)) {
+      const provider = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
+      const providerError = provider.error && typeof provider.error === "object" ? provider.error as Record<string, unknown> : {};
+      const providerMessage = [provider.message, provider.error, providerError.message].find((value): value is string => typeof value === "string" && value.trim().length > 0);
+      const providerCode = [provider.code, providerError.code].find((value): value is string => typeof value === "string" && value.trim().length > 0);
+      const providerReason = [provider.reason, providerError.reason].find((value): value is string => typeof value === "string" && value.trim().length > 0);
+      const dashboardUrl = [provider.dashboard_url, provider.dashboardUrl, providerError.dashboard_url, providerError.dashboardUrl].find((value): value is string => typeof value === "string" && value.startsWith("https://"));
       throw new BadGatewayException({
-        message: "A Zernio não confirmou a operação. Confira a conta, as permissões e os requisitos da rede social.",
+        message: providerMessage || "A Zernio não confirmou a operação. Confira a conta, as permissões e os requisitos da rede social.",
         providerStatus: response.status,
+        providerCode,
+        providerReason,
+        dashboardUrl,
       });
     }
     return payload as T;

@@ -104,7 +104,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
     { label: "Marketing", icon: "megaphone", children: [{ label: "Criações" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Canais e integrações", icon: "share" }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const metrics = [
@@ -142,7 +142,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Gestão") setActive("Financeiro");
-    else if (requested === "Integrações (API)") setActive("Configurações");
+    else if (requested === "Integrações (API)" || requested === "Canais e integrações") setActive("Configurações");
     else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Relatórios" || requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
     else if (requested && validModules.has(requested)) {

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProfilePhotoEditor } from "./profile-photo-editor";
 export function SidebarProfile({
   user,
@@ -14,6 +14,13 @@ export function SidebarProfile({
 }) {
   const [profile, setProfile] = useState<any>(null),
     [notice, setNotice] = useState("");
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (event: MouseEvent) => { if(menuRef.current?.open && !menuRef.current.contains(event.target as Node)) menuRef.current.removeAttribute("open"); };
+    const escape = (event: KeyboardEvent) => { if(event.key==="Escape") menuRef.current?.removeAttribute("open"); };
+    document.addEventListener("mousedown",close); document.addEventListener("keydown",escape);
+    return () => { document.removeEventListener("mousedown",close); document.removeEventListener("keydown",escape); };
+  }, []);
   useEffect(() => {
     fetch("/api/backend/profile")
       .then((r) => (r.ok ? r.json() : null))
@@ -21,7 +28,7 @@ export function SidebarProfile({
       .catch(() => {});
   }, []);
   return (
-    <details className="sidebar-profile-menu">
+    <details ref={menuRef} className="sidebar-profile-menu">
       <summary className="profile-row" title="Meu perfil e equipe">
         <span className="profile-avatar">
           {user.avatarUrl ? <img src={user.avatarUrl} alt="Minha foto" /> : user.name.slice(0, 2).toUpperCase()}

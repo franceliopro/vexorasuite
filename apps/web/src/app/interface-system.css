@@ -179,3 +179,12 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .danger-button{color:#b91c1c;border-color:color-mix(in srgb,#dc2626 35%,var(--border))}
 
 .settings-button-row{display:flex;flex-wrap:wrap;gap:.65rem;align-items:center;margin-top:.75rem}
+
+/* Layout uniforme: cards da mesma linha ocupam a mesma faixa e expansões não deixam lacunas. */
+.settings-workspace .settings-grid{grid-auto-flow:row dense;align-items:stretch}
+.settings-workspace .settings-grid>*{display:flex;flex-direction:column;min-height:100%;height:100%}
+.settings-workspace .settings-grid>* .content-card,.settings-workspace .settings-grid>* .settings-card{height:100%;box-sizing:border-box}
+.channels-inbox-grid,.channels-google-grid{align-items:stretch}
+.channels-inbox-card,.channels-google-card{height:100%;box-sizing:border-box}
+.channels-inbox-create{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;margin:0 0 12px}
+.channels-inbox-create input{flex:1 1 240px;min-width:0}

@@ -147,11 +147,12 @@ export class ChannelConnectionsController {
   async zernioDiagnostics(@Req() request: AuthenticatedRequest) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem validar a integração Zernio.");
     const tenant=await this.prisma.tenant.findFirst({where:{id:request.user.tenantId,status:"ACTIVE"},select:{kind:true}});
-    if (!tenant || tenant.kind==="PLATFORM") throw new ForbiddenException("A Zernio multiempresa é gerenciada dentro do painel de cada empresa.");
-    const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: request.user.tenantId } });
+    if (!tenant) throw new ForbiddenException("Empresa ativa não encontrada.");
     const configured = Boolean(process.env.ZERNIO_API_KEY?.trim());
     const webhookSecretConfigured=Boolean(process.env.ZERNIO_WEBHOOK_SECRET?.trim());
     const teamWebhookUrl=process.env.API_PUBLIC_URL?.trim()?process.env.API_PUBLIC_URL.trim().replace(/\/$/,"")+"/api/webhooks/zernio/team":null;
+    if (tenant.kind==="PLATFORM") return { configured, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:false, tenantKind:"PLATFORM", checkedAt:new Date().toISOString() };
+    const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: request.user.tenantId } });
     if (!configured) return { configured:false, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"A integração Zernio ainda não foi configurada no servidor." };
     try {
       const verification = await this.zernio.request<{ valid?: boolean }>("/auth/verify");

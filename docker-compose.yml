@@ -33,7 +33,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://app.vexorasuite.com.br}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://app.vexorasuite.com.br}
-      WAHA_BASE_URL: ${WAHA_BASE_URL:-}
+      # A API fala com o serviço WAHA pela rede interna do Compose. No Dokploy, sobrescreva apenas se o WAHA estiver fora deste stack.\n      WAHA_BASE_URL: ${WAHA_BASE_URL:-http://waha:3000}
       WAHA_API_KEY: ${WAHA_API_KEY:-}
       ZERNIO_API_KEY: ${ZERNIO_API_KEY:-}
       ZERNIO_WEBHOOK_SECRET: ${ZERNIO_WEBHOOK_SECRET:-}

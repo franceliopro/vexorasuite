@@ -177,3 +177,5 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 
 .settings-danger-card{border-color:color-mix(in srgb,#dc2626 28%,var(--border));background:color-mix(in srgb,#fff 94%,#dc2626)}
 .danger-button{color:#b91c1c;border-color:color-mix(in srgb,#dc2626 35%,var(--border))}
+
+.settings-button-row{display:flex;flex-wrap:wrap;gap:.65rem;align-items:center;margin-top:.75rem}

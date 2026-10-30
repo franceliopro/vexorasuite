@@ -225,3 +225,7 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .channels-connection-form small{grid-column:1/-1;color:var(--text-secondary);font-size:11px}
 @media (max-width:760px){.channels-connection-form{grid-template-columns:1fr}.channels-connection-form small{grid-column:auto}}
 @media (min-width:1200px){.channels-inbox-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.channels-connection-shortcuts{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
+.channels-connection-shortcuts span{color:var(--text-secondary);font-size:11px}
+.channels-connection-shortcuts .text-button{padding:2px 5px;font-size:11px}

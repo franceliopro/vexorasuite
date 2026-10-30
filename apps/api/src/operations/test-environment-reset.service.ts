@@ -63,10 +63,10 @@ export class TestEnvironmentResetService {
       where: { tenantId: { in: [platform.id, client.id] }, provider: { in: providers }, isActive: true },
       select: { id: true, tenantId: true, provider: true, sessionName: true },
     });
-    for (const channel of channels.filter(row => row.provider === "WAHA")) {
-      await this.waha.deleteSession(channel as any);
-    }
+    const wahaChannels = channels.filter(row => row.provider === "WAHA");
 
+    // Primeiro concluímos a limpeza transacional do banco. Desconectar o provedor
+    // antes disso deixava o reset pela metade quando o gateway estava indisponível.
     const result = await this.prisma.$transaction(async tx => {
       const platformConversations = await tx.conversation.findMany({ where: { tenantId: platform.id }, select: { id: true } });
       const conversationIds = platformConversations.map(row => row.id);
@@ -109,7 +109,22 @@ export class TestEnvironmentResetService {
       return { conversationsDeleted: conversationIds.length };
     }, { timeout: 120000 });
 
-    this.events.publish(platform.id, "test.environment.reset", { clientSlug: client.slug, providers, conversationsDeleted: result.conversationsDeleted });
-    return { ok: true, removedClient: { name: client.name, slug: client.slug }, ...result, providers, hiddenAutomationDisabled: true };
+    const providerResults: { id: string; status: "DISCONNECTED" | "PENDING"; error?: string }[] = [];
+    for (const channel of wahaChannels) {
+      try {
+        await this.waha.deleteSession(channel as any);
+        providerResults.push({ id: channel.id, status: "DISCONNECTED" });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Gateway WAHA indisponível.";
+        await this.prisma.channelConnection.update({
+          where: { id: channel.id },
+          data: { isActive: false, status: "DISCONNECTED", lastError: "WAHA_RESET_PENDING" },
+        }).catch(() => undefined);
+        providerResults.push({ id: channel.id, status: "PENDING", error: message });
+      }
+    }
+
+    this.events.publish(platform.id, "test.environment.reset", { clientSlug: client.slug, providers, conversationsDeleted: result.conversationsDeleted, providerResults });
+    return { ok: true, removedClient: { name: client.name, slug: client.slug }, ...result, providers, providerResults, hiddenAutomationDisabled: true };
   }
 }

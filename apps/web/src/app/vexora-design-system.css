@@ -1093,3 +1093,144 @@ body { background: var(--surface-page); color: var(--text-primary); }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+
+/* Fluid workspace layout: cards adapt to the available canvas instead of forcing three/four columns. */
+.team-workspace .team-form {
+  display: grid;
+  gap: 18px;
+}
+.team-workspace .team-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.team-workspace .team-form-grid > fieldset,
+.team-workspace .team-form-grid > p,
+.team-workspace .team-form-grid > .primary-button {
+  grid-column: 1 / -1;
+}
+.team-workspace .team-form-grid > fieldset {
+  min-width: 0;
+}
+.team-workspace .publication-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(180px, .8fr) auto auto;
+  align-items: center;
+  gap: 14px;
+}
+.team-workspace .publication-row > div:first-child {
+  min-width: 0;
+}
+.team-workspace .team-known-by {
+  min-width: 0;
+}
+.team-workspace .team-known-by input {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 860px) {
+  .team-workspace .publication-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .team-workspace .team-known-by {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 560px) {
+  .team-workspace .publication-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .team-workspace .publication-row > .text-button {
+    justify-self: start;
+  }
+}
+
+/* Finance status cards are visual, fluid and readable at every width. */
+.finance-status-donuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+.finance-status-donut-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px 8px 10px;
+  border: 1px solid var(--line, #e3e7ef);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card, #fff) 92%, var(--primary, #6258df) 8%);
+  text-align: center;
+}
+.finance-status-donut {
+  display: grid;
+  place-items: center;
+  width: clamp(104px, 11vw, 142px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.finance-status-donut::before {
+  content: "";
+  position: absolute;
+}
+.finance-status-donut > span {
+  display: grid;
+  place-items: center;
+  width: 68%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--card, #fff);
+  color: var(--ink, #20243a);
+  font-size: clamp(20px, 2.1vw, 28px);
+  font-weight: 750;
+}
+.finance-status-donut > span small {
+  margin-left: 1px;
+  font-size: .42em;
+  opacity: .7;
+}
+.finance-status-donut-card > strong { font-size: 12px; }
+.finance-status-donut-card > b { font-size: 12px; color: var(--muted, #778197); }
+.finance-status-panel { min-width: 0; }
+
+/* Chatbot controls follow the same fluid proportions as the rest of the workspace. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(180px, 20%) minmax(0, 1fr) minmax(240px, 26%) !important;
+  height: min(86dvh, 960px) !important;
+}
+.chatbot-workspace .vx-flow-library,
+.chatbot-workspace .vx-flow-stage,
+.chatbot-workspace .vx-flow-inspector {
+  min-width: 0;
+}
+.chatbot-workspace .vx-flow-library,
+.chatbot-workspace .vx-flow-inspector {
+  overflow: auto;
+}
+.chatbot-workspace .vx-flow-toolbar,
+.chatbot-workspace .vx-flow-stage-bar,
+.chatbot-workspace .vx-flow-inspector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(160px, 24%) minmax(0, 1fr) minmax(220px, 30%) !important;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(0, 1fr) !important;
+    height: 72dvh !important;
+  }
+  .chatbot-workspace .vx-flow-library,
+  .chatbot-workspace .vx-flow-inspector {
+    display: none;
+  }
+}

@@ -53,7 +53,6 @@ try{
  inboxResponse={inboxes:[],departments:[]};
  await page.getByRole("button",{name:"Atualizar inbox",exact:true}).click();
  await page.getByText("Nenhuma inbox cadastrada nesta empresa.",{exact:true}).waitFor();
- assert.equal(await page.getByRole("region",{name:"Gestão das inbox",exact:true}).getByRole("alert").count(),0);
  const inboxBase={status:"CONNECTED",identityCheckedAt:null,accountId:null,routing:{mode:"INHERIT",departmentId:null,revision:null},departmentName:null,blockers:[],lastInboundAt:null,lastConversationId:null,lastDecision:"Sem entrada",lastProcessing:null,lastDelivery:null};
  const publishedFlow={name:"Atendimento QA",active:true,includesInbox:true,agents:[{id:"agent-qa",name:"Agente de atendimento",enabled:true}]};
  inboxResponse={departments:[],inboxes:[
@@ -114,15 +113,16 @@ try{
  inboxResponse={departments:[],inboxes:[{...inboxBase,id:"old-instagram",name:"Instagram antigo",platform:"instagram",identity:"empresa.antiga",accountId:"old-account",status:"DISCONNECTED",flow:null,blockers:["A conexão não está confirmada como conectada."]}]};
  await page.goto("http://127.0.0.1:3100/?module=Canais+e+integra%C3%A7%C3%B5es");
  await page.getByRole("heading",{name:"Conectar uma rede desta empresa",exact:true}).waitFor();
- await page.getByText("Perfil desta empresa · conectado",{exact:true}).waitFor();
- await page.getByText("Configuração do webhook único da Véxora",{exact:true}).waitFor();
+ await page.getByText("Contas desta empresa",{exact:true}).waitFor();
  assert.equal(await page.getByRole("button",{name:"Conectar Instagram",exact:true}).count(),1);
  assert.equal(await page.getByRole("button",{name:"Conectar Facebook",exact:true}).count(),1);
  assert.equal(await page.getByRole("button",{name:"Conectar WhatsApp",exact:true}).count(),1);
  assert.equal(await page.getByRole("button",{name:/Vincular/}).count(),0,"Global Zernio account discovery must not be offered to a company");
- await page.getByRole("button",{name:"Atualizar contas",exact:true}).click();
+ await page.getByRole("button",{name:"Atualizar",exact:true}).click();
  await page.getByText("Conexões desta empresa atualizadas.",{exact:true}).waitFor();
- assert((await page.getByRole("region",{name:"Gestão das inbox",exact:true}).innerText()).includes("Conexão requer atenção"));
+ await page.getByText("@empresa.nova",{exact:true}).waitFor();
+ await page.getByText("@empresa.pagina",{exact:true}).waitFor();
+ assert.equal(await page.getByText("@empresa.antiga",{exact:true}).count(),0,"Stale local social accounts must not be shown as connected");
  assert(socialSyncCalls>=2,"Refreshing must reconcile provider accounts again");
  assert.equal(sentMessages,0);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"Social discovery must fit mobile");

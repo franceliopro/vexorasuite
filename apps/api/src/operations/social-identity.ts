@@ -1,8 +1,23 @@
 export function socialUsername(account:Record<string,any>):string|undefined {
  const platform=String(account.platform||'').toLowerCase();
- const candidates=[account.username,account.platformUsername,account.userName,account.metadata?.username];
+ const metadata=account.metadata&&typeof account.metadata==='object'?account.metadata:{};
+ const profile=account.profile&&typeof account.profile==='object'?account.profile:{};
+ const candidates=[
+  account.username, account.platformUsername, account.userName, account.handle, account.slug,
+  account.accountUsername, account.instagramUsername, account.pageUsername,
+  metadata.username, metadata.handle, metadata.platformUsername,
+  profile.username, profile.handle
+ ];
  if(platform==='instagram'){
-  try{const url=new URL(account.profileUrl);if(['instagram.com','www.instagram.com'].includes(url.hostname)&&url.protocol==='https:'){const name=url.pathname.split('/').filter(Boolean)[0];if(name&&!['p','reel','reels','stories','explore'].includes(name))candidates.push(name);}}catch{}
+  for(const value of [account.profileUrl,account.url,account.link,profile.url]){
+   try{
+    const url=new URL(String(value||''));
+    if(['instagram.com','www.instagram.com'].includes(url.hostname)&&url.protocol==='https:'){
+     const name=url.pathname.split('/').filter(Boolean)[0];
+     if(name&&!['p','reel','reels','stories','explore'].includes(name))candidates.push(name);
+    }
+   }catch{}
+  }
  }
  return candidates.find(v=>typeof v==='string'&&(platform==='instagram'?/^[a-zA-Z0-9._]{1,30}$/:/^[\w.@+-]{1,100}$/).test(v.replace(/^@/,'')))?.replace(/^@/,'');
 }

@@ -68,4 +68,3 @@ export function ChannelsIntegrations(){
    </section>
  </section>;
 }
-}

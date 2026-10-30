@@ -3,6 +3,7 @@ import {NotificationSettings} from "./notification-settings";
 import {DepartmentResources} from "./department-resources";
 import {BusinessTemplates} from "./business-templates";
 import { GreetingSettings } from "./greeting-settings";
+import { ChannelsIntegrations } from "./channels-integrations";
 import { useEffect, useState } from "react";
 import { MessageSquare, Users, Wallet, Palette, Settings2, Upload, HardDrive, Image as ImageIcon, RotateCcw, Share2 } from "lucide-react";
 type Channel={id:string;name:string;status:string;provider?:string};

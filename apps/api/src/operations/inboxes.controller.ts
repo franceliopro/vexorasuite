@@ -48,10 +48,13 @@ export class InboxesController{
   return {inboxes:rows,departments};
  }
  @Post(":id/inbox")
- async configure(@Req() req:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string,@Body() body:{mode?:unknown;departmentId?:unknown;expectedRevision?:unknown}){
+ async configure(@Req() req:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string,@Body() body:{mode?:unknown;departmentId?:unknown;targetType?:unknown;targetId?:unknown;expectedRevision?:unknown}){
   this.authorize(req);
   if(!body||!["INHERIT","AUTOMATION","HUMAN"].includes(String(body.mode)))throw new BadRequestException("Escolha como esta inbox recebe novas conversas.");
   if(body.departmentId!=null&&(typeof body.departmentId!=="string"||!isUUID(body.departmentId)))throw new BadRequestException("Departamento inválido.");
+  const targetType=body.targetType===undefined?"DEPARTMENT":String(body.targetType);
+  if(!["DEPARTMENT","USER","AI","AUTOMATION"].includes(targetType))throw new BadRequestException("Destino inválido.");
+  if(body.targetId!=null&&(typeof body.targetId!=="string"||body.targetId.length>160))throw new BadRequestException("Identificador do destino inválido.");
   if(body.expectedRevision!==null&&typeof body.expectedRevision!=="string")throw new BadRequestException("Atualize a lista antes de salvar.");
   const tenantId=req.user.tenantId;
   return this.prisma.$transaction(async tx=>{
@@ -68,9 +71,9 @@ export class InboxesController{
     const root=object(tenant.integrations),key=publicationKey({departmentId}),selection=selectPublication(root,{departmentId});
     if(!selection||selection.key!==key||!selection.publication.active||!selection.publication.flow.channelIds?.includes(id))throw new BadRequestException("Publique e ative o fluxo deste destino incluindo esta inbox antes de vinculá-lo.");
    }
-   const routing={mode:body.mode as "INHERIT"|"AUTOMATION"|"HUMAN",departmentId,revision:randomUUID()};
+   const routing={mode:body.mode as "INHERIT"|"AUTOMATION"|"HUMAN",departmentId,targetType:targetType as "DEPARTMENT"|"USER"|"AI"|"AUTOMATION",targetId:typeof body.targetId==="string"?body.targetId:null,revision:randomUUID()};
    await tx.channelConnection.update({where:{id},data:{settings:{...config,inboxRouting:routing}}});
-   await tx.auditLog.create({data:{tenantId,userId:req.user.sub,action:"inbox.routing.updated",entityType:"channel",entityId:id,details:{mode:routing.mode,departmentId,revision:routing.revision}}});
+   await tx.auditLog.create({data:{tenantId,userId:req.user.sub,action:"inbox.routing.updated",entityType:"channel",entityId:id,details:{mode:routing.mode,departmentId,targetType:routing.targetType,targetId:routing.targetId,revision:routing.revision}}});
    return routing;
   });
  }

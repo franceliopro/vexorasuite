@@ -1,6 +1,9 @@
 import {assertProductRoute} from './product-scope';
 import {administrative,effectiveModules,routeModules,patternModules} from './module-policy';
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException, UnauthorizedException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, ForbiddenException, UnauthorizedException, SetMetadata } from "@nestjs/common";
+
+export const PUBLIC_ROUTE = "public_route";
+export const Public = () => SetMetadata(PUBLIC_ROUTE, true);
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthPayload } from "./auth.types";
@@ -13,6 +16,7 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (Reflect.getMetadata(PUBLIC_ROUTE, context.getHandler()) === true) return true;
     const request = context.switchToHttp().getRequest();
     const authorization = request.headers?.authorization;
     if (typeof authorization !== "string" || !authorization.startsWith("Bearer ")) {

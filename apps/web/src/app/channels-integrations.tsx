@@ -29,12 +29,6 @@ export function ChannelsIntegrations(){
    catch(e){setError(e instanceof Error?e.message:"Não foi possível carregar as inboxes.");}
  },[]);
 
- const [error,setError]=useState("");
- const [notice,setNotice]=useState("");
-
-
- 
- 
  const [busy,setBusy]=useState(false);
  const refresh=useCallback(async(showFeedback=false)=>{
    if(refreshing.current)return;refreshing.current=true;

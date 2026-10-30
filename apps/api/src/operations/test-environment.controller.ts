@@ -14,6 +14,7 @@ export class TestEnvironmentController {
     clientSlug?: unknown;
     resetPlatformConversations?: unknown;
     disconnectProviders?: unknown;
+    deleteCompany?: unknown;
   }) {
     return this.resetService.reset(request, body);
   }

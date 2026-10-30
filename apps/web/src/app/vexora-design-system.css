@@ -1396,3 +1396,14 @@ body { background: var(--surface-page); color: var(--text-primary); }
     min-height: 400px;
   }
 }
+
+
+/* Keep the approved height; give the center canvas more horizontal room. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(120px, 8%) minmax(0, 84%) minmax(150px, 8%) !important;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(120px, 12%) minmax(0, 76%) minmax(150px, 12%) !important;
+  }
+}

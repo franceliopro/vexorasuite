@@ -120,7 +120,7 @@ try{
  assert.equal(await page.getByRole("button",{name:"Conectar Facebook",exact:true}).count(),1);
  assert.equal(await page.getByRole("button",{name:"Conectar WhatsApp",exact:true}).count(),1);
  assert.equal(await page.getByRole("button",{name:/Vincular/}).count(),0,"Global Zernio account discovery must not be offered to a company");
- await page.getByRole("button",{name:"Atualizar contas",exact:true}).click();
+ await page.getByRole("button",{name:"Atualizar",exact:true}).click();
  await page.getByText("Conexões desta empresa atualizadas.",{exact:true}).waitFor();
  assert((await page.getByRole("region",{name:"Gestão das inbox",exact:true}).innerText()).includes("Conexão requer atenção"));
  assert(socialSyncCalls>=2,"Refreshing must reconcile provider accounts again");

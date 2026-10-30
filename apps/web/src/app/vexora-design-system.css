@@ -1421,3 +1421,31 @@ body { background: var(--surface-page); color: var(--text-primary); }
     grid-template-columns: minmax(120px, 12%) minmax(0, 88%) 0 !important;
   }
 }
+
+
+/* Fullscreen uses the entire viewport and keeps both board scroll axes available. */
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell {
+  flex: 1 1 auto;
+  width: 100%;
+  height: calc(100dvh - 64px) !important;
+  min-height: 0 !important;
+  resize: both;
+  overflow: hidden;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-board {
+  width: 11000px;
+  height: 11000px;
+  min-width: 11000px;
+  min-height: 11000px;
+}

@@ -111,3 +111,16 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 @media(max-width:760px){.company-dialog{padding:16px}.company-dialog :is(input,select){font-size:16px}.resource-fields{grid-template-columns:1fr}}
 
 .topbar-company-button{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:9px;padding:7px 10px;max-width:230px;min-width:0}.topbar-company-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.topbar-company-button svg{flex-shrink:0}@media(max-width:760px){.topbar-company-button{max-width:150px;font-size:11px;padding:6px}}
+
+/* Settings stay compact and independent: opening one card must not resize its neighbors. */
+.settings-workspace{min-width:0}
+.settings-workspace .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));align-items:start;gap:16px}
+.settings-workspace .settings-card,.settings-workspace .content-card{min-width:0;align-self:start;overflow:hidden}
+.settings-workspace .settings-card-heading{min-width:0;align-items:center}
+.settings-workspace .settings-card-heading h2{margin:0;font-size:16px!important}
+.settings-workspace .settings-card-heading p{display:none}
+.settings-workspace .settings-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.settings-workspace .settings-tabs button{min-height:36px;padding:7px 12px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-1);font-weight:600}
+.settings-workspace .settings-tabs button.active{background:var(--primary);color:var(--primary-contrast);border-color:var(--primary)}
+.settings-workspace .settings-field-grid,.settings-workspace .brand-field-grid,.settings-workspace .brand-upload-grid{min-width:0}
+@media (max-width:760px){.settings-workspace .settings-grid{grid-template-columns:1fr}.settings-workspace .settings-tabs{overflow:auto;flex-wrap:nowrap}.settings-workspace .settings-tabs button{white-space:nowrap}}

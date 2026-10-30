@@ -104,7 +104,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
     { label: "Marketing", icon: "megaphone", children: [{ label: "Criações" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Canais e integrações", icon: "share" }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const metrics = [
@@ -138,7 +138,7 @@ export default function HomePage() {
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
-    const validModules = new Set(["Atendentes",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
+    const validModules = new Set(["Atendentes","Canais e integrações",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Gestão") setActive("Financeiro");

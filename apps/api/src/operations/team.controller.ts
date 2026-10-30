@@ -10,8 +10,12 @@ import {
   Patch, Delete, Param, ParseUUIDPipe,
   Req,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { hash } from "bcryptjs";
+import sharp from "sharp";
 import { isUUID } from "class-validator";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -193,6 +197,21 @@ export class TeamController {
   this.events.publish(req.user.tenantId,'team.updated',{id});return {deactivated:true};
  }
 
+ @Post(':id/photo')
+ @UseInterceptors(FileInterceptor('file',{limits:{fileSize:2*1024*1024,files:1,fields:0}}))
+ async photo(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@UploadedFile() file?:{buffer:Buffer}){
+  this.admin(req);
+  if(!file?.buffer?.length)throw new BadRequestException('Envie uma imagem de até 2 MB.');
+  const member=await this.prisma.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});
+  if(!member)throw new BadRequestException('Usuário não encontrado nesta empresa.');
+  if(member.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('A foto da administração Véxora não pode ser alterada pela empresa.');
+  let buffer:Buffer;
+  try{buffer=await sharp(file.buffer,{limitInputPixels:16000000}).rotate().resize(160,160,{fit:'cover'}).webp({quality:85}).toBuffer();}
+  catch{throw new BadRequestException('Imagem inválida.');}
+  await this.prisma.user.update({where:{id},data:{avatarUrl:'data:image/webp;base64,'+buffer.toString('base64'),avatarSource:'UPLOAD',avatarCheckedAt:new Date()}});
+  this.events.publish(req.user.tenantId,'team.updated',{id});
+  return {updated:true};
+ }
  @Patch(':id/identity') async identity(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:{knownBy?:unknown}){
   this.admin(req);const knownBy=knownByValue(input.knownBy);
   await this.prisma.$transaction(async tx=>{

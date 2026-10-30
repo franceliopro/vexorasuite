@@ -74,38 +74,7 @@ export function SidebarProfile({
               E-mail
               <input value={user.email} readOnly />
             </label>
-            <label>
-              Telefone
-              <input
-                type="tel"
-                maxLength={30}
-                value={profile.phone || ""}
-                onChange={(e) =>
-                  setProfile((v: any) => ({ ...v, phone: e.target.value }))
-                }
-              />
-            </label>
-            <label>
-              Cargo
-              <input
-                maxLength={100}
-                value={profile.jobTitle || ""}
-                onChange={(e) =>
-                  setProfile((v: any) => ({ ...v, jobTitle: e.target.value }))
-                }
-              />
-            </label>
-            <label>
-              Sobre você
-              <textarea
-                maxLength={500}
-                rows={2}
-                value={profile.bio || ""}
-                onChange={(e) =>
-                  setProfile((v: any) => ({ ...v, bio: e.target.value }))
-                }
-              />
-            </label>
+            
             <button className="primary-button">Salvar perfil</button>
           </form>
         )}

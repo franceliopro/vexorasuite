@@ -1,6 +1,6 @@
 import {ForbiddenException} from '@nestjs/common';
 import {SEGMENTS} from '../operations/business-templates';
-import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { AuthenticatedRequest } from "./auth.types";
@@ -29,6 +29,15 @@ export class AuthController {
   }
 
   private owner(req:AuthenticatedRequest){if(req.user.role!=='OWNER')throw new ForbiddenException('Apenas a conta proprietária gerencia empresas.');}
+  @UseGuards(AuthGuard) @Get("users")
+  users(@Req() req:AuthenticatedRequest){return this.auth.listUsers(req.user.tenantId,req.user.role,req.user.isPlatformAdmin);}
+  @UseGuards(AuthGuard) @Post("users")
+  createUser(@Req() req:AuthenticatedRequest,@Body() body:any){return this.auth.createUser(req.user.tenantId,req.user.role,!!req.user.isPlatformAdmin,body);}
+  @UseGuards(AuthGuard) @Patch("users/me")
+  updateMyProfile(@Req() req:AuthenticatedRequest,@Body() body:any){return this.auth.updateUserProfile(req.user.sub,req.user.tenantId,body);}
+  @UseGuards(AuthGuard) @Patch("users/:id/reset-password")
+  resetUserPassword(@Req() req:AuthenticatedRequest,@Param("id") id:string){return this.auth.resetUserPassword(req.user.tenantId,req.user.role,req.user.isPlatformAdmin,id);}
+
   @UseGuards(AuthGuard) @Get('companies')
   async companies(@Req() req:AuthenticatedRequest){this.owner(req);const rows=await this.auth.companies(req.user.sub);return {companies:rows.map(r=>r.tenant),segments:SEGMENTS.map(s=>({id:s.id,name:s.name}))};}
   @UseGuards(AuthGuard) @Post('companies')

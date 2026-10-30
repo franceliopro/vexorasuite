@@ -1,12 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
-
-
 import "./mobile-app.css";
-
-
-import "./mobile-scroll.css";\nimport "./vexora-design-system.css";
+import "./mobile-scroll.css";
+import "./vexora-design-system.css";
 import "./home-presentation.css";
 import "./scrollbars.css";
 

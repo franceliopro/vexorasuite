@@ -31,7 +31,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
     void load().catch((e) => setNotice(e.message));
   }, []);
   return (
-    <section className="simple-workspace">
+    <section className="simple-workspace team-workspace">
       <header className="creative-heading">
         <div>
           <h1>Atendentes</h1>
@@ -42,7 +42,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
         </div>
         <button
           className="primary-button"
-          onClick={() => {setEditingId('');setForm({name:'',knownBy:'',email:'',password:'Senha@123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
+          onClick={() => {setEditingId('');setPhotoFile(null);setForm({name:'',knownBy:'',email:'',password:'Senha@123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
         >
           {editing ? "Fechar cadastro" : "+ Cadastrar atendente"}
         </button>
@@ -71,7 +71,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
           {notice && <p role="status">{notice}</p>}
           {editing && (
             <form
-              className="workspace-surface ai-admin-fields"
+              className="workspace-surface team-form"
               onSubmit={async (e) => {
                 e.preventDefault();
                 setBusy(true);
@@ -88,6 +88,14 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   });
                   const d = await r.json();
                   if (!r.ok) throw Error(d.message);
+                  const memberId = editingId || d.id;
+                  if (photoFile && memberId) {
+                    const photoBody = new FormData();
+                    photoBody.append("file", photoFile);
+                    const photoResponse = await fetch("/api/backend/team/" + memberId + "/photo", { method: "POST", body: photoBody });
+                    const photoData = await photoResponse.json().catch(() => ({}));
+                    if (!photoResponse.ok) throw Error(photoData.message || "Não foi possível salvar a foto.");
+                  }
                   setForm({
                     name: "",knownBy:"",
                     email: "",
@@ -97,6 +105,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                     modules: [],
                   });
                   setEditing(false);
+                  setPhotoFile(null);
                   await load();
                   window.dispatchEvent(new Event("vexora:team-updated"));
                   setNotice(editingId?"Permissões e setores atualizados.":"Atendente cadastrado e disponível nos fluxos.");setEditingId('');
@@ -111,6 +120,11 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 }
               }}
             >
+              <label className="team-photo-field">
+                Foto do atendente
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
+                <small>{photoFile ? photoFile.name : "Opcional · até 2 MB"}</small>
+              </label>
               <label>
                 Nome
                 <input

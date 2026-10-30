@@ -48,8 +48,6 @@ export function ChannelsIntegrations(){
    try{const result=await api<{authorizationUrl:string}>("/api/backend/channels/zernio/oauth/start/"+platform,{method:"POST"});window.location.assign(result.authorizationUrl);}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização OAuth.");setBusy(false);}
  }
- const linkedChannels=diagnostic?.authenticated?channels.filter(isZernioChannel):[];
- const linkedCount=linkedChannels.length;
  const linkedAccounts=diagnostic?.authenticated?diagnostic.accounts:[];
  return <section className="channels-page">
    {error?<div className="channels-alert error" role="alert"><AlertCircle size={17}/><span>Não foi possível atualizar as conexões agora.</span><button type="button" onClick={()=>setError("")} aria-label="Fechar aviso">×</button></div>:null}

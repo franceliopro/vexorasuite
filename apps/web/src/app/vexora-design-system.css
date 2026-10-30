@@ -1281,3 +1281,210 @@ body { background: var(--surface-page); color: var(--text-primary); }
   .channels-connection-form { grid-template-columns: minmax(0, 1fr); }
   .channels-connection-shortcuts { grid-column: auto; }
 }
+
+
+/* Chatbot canvas: a generous workspace with free movement and an explicit recenter action. */
+.chatbot-workspace .vx-flow-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+.chatbot-workspace .vx-flow-scroll:active { cursor: grabbing; }
+.chatbot-workspace .vx-flow-board {
+  min-width: 5200px;
+  min-height: 3600px;
+  position: relative;
+  isolation: isolate;
+}
+.chatbot-workspace .vx-flow-node,
+.chatbot-workspace .vx-flow-start-node {
+  touch-action: none;
+}
+.chatbot-workspace .vx-flow-node-head,
+.chatbot-workspace .vx-flow-start-node {
+  cursor: grab;
+}
+.chatbot-workspace .vx-flow-node-head:active,
+.chatbot-workspace .vx-flow-start-node:active {
+  cursor: grabbing;
+}
+.chatbot-workspace .vx-flow-stage-bar > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* Give the flow stage the dominant space: narrower utility rails, shorter viewport. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(170px, 16%) minmax(0, 1fr) minmax(220px, 20%) !important;
+  height: min(72dvh, 780px) !important;
+  min-height: 560px;
+}
+.chatbot-workspace .vx-flow-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.chatbot-workspace .vx-flow-stage-bar {
+  min-height: 46px;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(150px, 20%) minmax(0, 1fr) minmax(200px, 24%) !important;
+    height: min(70dvh, 720px) !important;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    height: 68dvh !important;
+    min-height: 460px;
+  }
+}
+
+
+/* The central editing area must be the widest region, not a tall narrow strip. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(140px, 11%) minmax(0, 78%) minmax(180px, 11%) !important;
+  height: min(64dvh, 700px) !important;
+  min-height: 480px;
+}
+.chatbot-workspace .vx-flow-stage {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+.chatbot-workspace .vx-flow-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(140px, 17%) minmax(0, 66%) minmax(180px, 17%) !important;
+    height: min(62dvh, 650px) !important;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(0, 1fr) !important;
+    height: 64dvh !important;
+  }
+}
+
+
+/* Final proportion: wide editing stage without an oversized vertical panel. */
+.chatbot-workspace .vx-flow-shell {
+  height: min(52dvh, 560px) !important;
+  min-height: 380px;
+}
+.chatbot-workspace .vx-flow-stage {
+  height: 100%;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    height: min(50dvh, 520px) !important;
+    min-height: 360px;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    height: 58dvh !important;
+    min-height: 400px;
+  }
+}
+
+
+/* Keep the approved height; give the center canvas more horizontal room. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: minmax(120px, 8%) minmax(0, 84%) minmax(150px, 8%) !important;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: minmax(120px, 12%) minmax(0, 76%) minmax(150px, 12%) !important;
+  }
+}
+
+
+/* When no block is selected, do not reserve a blank inspector column. */
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+  grid-template-columns: minmax(120px, 8%) minmax(0, 92%) 0 !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty .vx-flow-inspector {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+    grid-template-columns: minmax(120px, 12%) minmax(0, 88%) 0 !important;
+  }
+}
+
+
+/* Fullscreen uses the entire viewport and keeps both board scroll axes available. */
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell {
+  flex: 1 1 auto;
+  width: 100%;
+  height: calc(100dvh - 64px) !important;
+  min-height: 0 !important;
+  resize: both;
+  overflow: hidden;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-board {
+  width: 11000px;
+  height: 11000px;
+  min-width: 11000px;
+  min-height: 11000px;
+}
+
+
+/* Pan space stays generous in both directions; the command above provides the small overview. */
+.chatbot-workspace .vx-flow-scroll {
+  overflow-x: scroll;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+.chatbot-workspace .vx-flow-board {
+  min-width: 20000px;
+  min-height: 12000px;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-board {
+  width: 20000px;
+  height: 12000px;
+  min-width: 20000px;
+  min-height: 12000px;
+}
+
+
+/* Normal mode: compact stage; fullscreen keeps its own viewport height. */
+.chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-shell {
+  height: min(44dvh, 480px) !important;
+  min-height: 340px;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-shell {
+    height: min(42dvh, 440px) !important;
+    min-height: 320px;
+  }
+}
+
+
+/* Normal mode target height requested for the editing stage. */
+.chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-shell {
+  height: clamp(800px, calc(100dvh - 140px), 1000px) !important;
+  min-height: 800px;
+  max-height: 1000px;
+}

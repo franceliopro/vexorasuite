@@ -4,7 +4,7 @@ import {isUUID} from 'class-validator';
 import {randomUUID} from 'node:crypto';
 import {validDraft} from '../ai/chatbot-draft.controller';
 import {mutateTenantSetting} from '../prisma/tenant-settings';
-import {BadRequestException,Body,Controller,ForbiddenException,Get,Post,Param,Req,UseGuards} from '@nestjs/common';
+import {BadRequestException,Body,Controller,Delete,ForbiddenException,Get,Post,Param,Req,UseGuards} from '@nestjs/common';
 import {Prisma} from '@prisma/client';
 import {AuthGuard} from '../auth/auth.guard';
 import {AuthenticatedRequest} from '../auth/auth.types';
@@ -41,6 +41,11 @@ export class BusinessTemplatesController {
  return {...flows,[id]:{draft:body.draft,version:1}} as Prisma.InputJsonValue;
  });
  return {saved:true,id};
+ }
+ @Delete(':id') async remove(@Req() req:AuthenticatedRequest,@Param('id') id:string){
+ this.admin(req);if(!isUUID(id))throw new BadRequestException('Fluxo inválido.');
+ await mutateTenantSetting(this.prisma,req.user.tenantId,'businessFlows',current=>{const flows={...((current||{}) as Prisma.JsonObject)};if(!Object.hasOwn(flows,id))throw new BadRequestException('Fluxo não encontrado.');delete flows[id];return flows as Prisma.InputJsonValue;});
+ return {removed:true,id};
  }
  @Post('apply') async apply(@Req() req:AuthenticatedRequest,@Body() body:any){
  this.admin(req);

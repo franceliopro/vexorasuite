@@ -17,6 +17,8 @@ export function ChannelsIntegrations(){
  const [googleConfig,setGoogleConfig]=useState<{configured:boolean;encryptionConfigured?:boolean;status:string;callbackUrl:string|null}|null>(null);
  const [googleConnections,setGoogleConnections]=useState<{id:string;email:string;scopes:string;disabledServices:string[];renewable:boolean}[]>([]);
  const [googleBusy,setGoogleBusy]=useState(false);
+ const [error,setError]=useState("");
+ const [notice,setNotice]=useState("");
  type InboxRow = { id:string; name:string; provider:string; platform:string; status:string; identity?:string|null; departmentName?:string|null; routing:{mode:string;departmentId?:string|null;revision?:string|null}; };
  const [inboxes,setInboxes]=useState<InboxRow[]>([]);
  const [inboxDepartments,setInboxDepartments]=useState<{id:string;name:string}[]>([]);

@@ -1407,3 +1407,17 @@ body { background: var(--surface-page); color: var(--text-primary); }
     grid-template-columns: minmax(120px, 12%) minmax(0, 76%) minmax(150px, 12%) !important;
   }
 }
+
+
+/* When no block is selected, do not reserve a blank inspector column. */
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+  grid-template-columns: minmax(120px, 8%) minmax(0, 92%) 0 !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty .vx-flow-inspector {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+    grid-template-columns: minmax(120px, 12%) minmax(0, 88%) 0 !important;
+  }
+}

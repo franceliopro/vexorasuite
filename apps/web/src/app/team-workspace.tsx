@@ -10,7 +10,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
     [form, setForm] = useState({
       name: "",knownBy:"",
       email: "",
-      password: "senha123",
+      password: "Senha@123",
       role:"AGENT",deniedModules:[] as string[],
       departmentIds: [] as string[],
       modules: [] as string[],
@@ -42,7 +42,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
         </div>
         <button
           className="primary-button"
-          onClick={() => {setEditingId('');setForm({name:'',knownBy:'',email:'',password:'senha123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
+          onClick={() => {setEditingId('');setForm({name:'',knownBy:'',email:'',password:'Senha@123',role:'AGENT',deniedModules:[],departmentIds:[],modules:[]});setEditing(v=>!v)}}
         >
           {editing ? "Fechar cadastro" : "+ Cadastrar atendente"}
         </button>
@@ -86,7 +86,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   setForm({
                     name: "",knownBy:"",
                     email: "",
-                    password: "senha123",
+                    password: "Senha@123",
       role:"AGENT",deniedModules:[] as string[],
                     departmentIds: [],
                     modules: [],
@@ -136,16 +136,14 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   type="password"
                   disabled={!!editingId}
                   required={!editingId}
-                  minLength={8}
+                  minLength={10}
                   maxLength={128}
                   autoComplete="new-password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm((v) => ({ ...v, password: e.target.value }))
-                  }
+                  value="Senha@123"
+                  readOnly
                 />
               </label>
-              <p>A senha temporária deverá ser alterada antes do acesso aos módulos.</p>
+              <p>A senha inicial é Senha@123 e deverá ser alterada antes do acesso aos módulos.</p>
               {platformAdmin&&!editingId&&<label>Perfil<select value={form.role} onChange={e=>setForm(v=>({...v,role:e.target.value,modules:e.target.value==="OWNER"?Object.keys(moduleLabels):v.modules,deniedModules:[]}))}><option value="AGENT">Atendente</option><option value="OWNER">Proprietário da empresa</option></select></label>}
               <fieldset>
                 <legend>Setores</legend>
@@ -214,8 +212,8 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   </small>
                 </div>
 <label className="team-known-by">Conhecido por<input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
-{r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'senha123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}
-              {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice('Senha de '+r.name+' redefinida para senha123. A troca será obrigatória no próximo acesso.');await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
+{r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'Senha@123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}
+              {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice('Senha de '+r.name+' redefinida para Senha@123. A troca será obrigatória no próximo acesso.');await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               </article>
             ))}
           </section>

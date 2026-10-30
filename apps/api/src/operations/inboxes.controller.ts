@@ -16,7 +16,7 @@ export class InboxesController{
  async list(@Req() req:AuthenticatedRequest){
   this.authorize(req);const tenantId=req.user.tenantId;
   const [tenant,channels,departments]=await Promise.all([
-   this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}),
+   this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true,kind:true}}),
    this.prisma.channelConnection.findMany({where:{tenantId,isActive:true,provider:{in:["WAHA","ZERNIO"]}},orderBy:{createdAt:"asc"}}),
    this.prisma.department.findMany({where:{tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:"asc"}})
   ]);

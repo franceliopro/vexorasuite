@@ -41,7 +41,7 @@ export class ChannelConnectionsController {
     if (!["instagram","facebook","whatsapp"].includes(platform)) throw new BadRequestException("Rede social não suportada para OAuth.");
     this.zernio.assertConfigured();
     const tenant = await this.prisma.tenant.findFirst({where:{id:request.user.tenantId,status:"ACTIVE"},select:{id:true,name:true,kind:true}});
-    if (!tenant || tenant.kind==="PLATFORM") throw new ForbiddenException("A conexão deve ser iniciada no painel de uma empresa cliente.");
+    if (!tenant) throw new ForbiddenException("Empresa ativa não encontrada.");
     const profileId=await this.resolveZernioProfile(tenant.id,tenant.name);
     const apiBase=(process.env.API_PUBLIC_URL||"").replace(/\/$/,"");
     if (!apiBase.startsWith("https://")) throw new BadGatewayException("Configure API_PUBLIC_URL com HTTPS para OAuth.");
@@ -74,7 +74,7 @@ export class ChannelConnectionsController {
     if (!claimed.count) return redirect("expired");
     const tenant=await this.prisma.tenant.findFirst({where:{id:attempt.tenantId,status:"ACTIVE"},select:{name:true,kind:true}});
     const membership=await this.prisma.membership.findFirst({where:{tenantId:attempt.tenantId,userId:attempt.userId,tenant:{status:"ACTIVE"},user:{isActive:true},role:{in:["OWNER","ADMIN","MANAGER"]}},select:{id:true,deniedModules:true}});
-    if (!tenant || tenant.kind==="PLATFORM" || !membership || membership.deniedModules.includes("CHANNELS")) return redirect("unauthorized");
+    if (!tenant || !membership || membership.deniedModules.includes("CHANNELS")) return redirect("unauthorized");
     const profile=await this.prisma.zernioProfile.findUnique({where:{tenantId:attempt.tenantId}});
     if (!profile || profile.profileId!==attempt.profileId) return redirect("profile-mismatch");
     if(query.error) return redirect("denied");
@@ -147,7 +147,7 @@ export class ChannelConnectionsController {
   async zernioDiagnostics(@Req() request: AuthenticatedRequest) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem validar a integração Zernio.");
     const tenant=await this.prisma.tenant.findFirst({where:{id:request.user.tenantId,status:"ACTIVE"},select:{kind:true}});
-    if (!tenant || tenant.kind==="PLATFORM") throw new ForbiddenException("A Zernio multiempresa é gerenciada dentro do painel de cada empresa.");
+    if (!tenant) throw new ForbiddenException("Empresa ativa não encontrada.");
     const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: request.user.tenantId } });
     const configured = Boolean(process.env.ZERNIO_API_KEY?.trim());
     const webhookSecretConfigured=Boolean(process.env.ZERNIO_WEBHOOK_SECRET?.trim());

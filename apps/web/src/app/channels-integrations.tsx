@@ -4,7 +4,7 @@ import {InboxesManagement} from "./inboxes-management";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, AlertCircle, Check, CheckCircle2, ChevronRight, Plus, RefreshCw, Unplug } from "lucide-react";
 
-type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; webhookSecretConfigured?:boolean; teamWebhookUrl?:string|null; authenticated: boolean; profileConfigured?:boolean; accountCount: number; accounts: {accountId:string;platform:string;username?:string;name?:string;status?:string;profileName?:string}[]; checkedAt: string; message?: string; diagnosticStage?: string; providerStatus?: number };
+type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; webhookSecretConfigured?:boolean; teamWebhookUrl?:string|null; authenticated: boolean; profileConfigured?:boolean; accountCount: number; accounts: {accountId:string;platform:string;username?:string;name?:string;status?:string;profileName?:string}[]; checkedAt: string; message?: string; diagnosticStage?: string; providerStatus?: number; tenantKind?: "PLATFORM"|"COMPANY" };
 type Channel = { id: string; name: string; provider: string; status: string; platform?: string; accountId?: string; username?: string; profileName?: string; lastError?: string | null; webhookVerifiedAt?: string; createdAt?: string };
 
 const platformNames: Record<string,string> = { instagram:"Instagram", facebook:"Facebook", messenger:"Messenger", whatsapp:"WhatsApp", tiktok:"TikTok", linkedin:"LinkedIn", youtube:"YouTube", threads:"Threads", pinterest:"Pinterest", x:"X", twitter:"X", reddit:"Reddit", bluesky:"Bluesky", telegram:"Telegram", discord:"Discord", snapchat:"Snapchat", googlebusiness:"Google Business" };
@@ -57,7 +57,7 @@ export function ChannelsIntegrations(){
    try{const result=await api<{authorizationUrl:string}>("/api/backend/channels/zernio/oauth/start/"+platform,{method:"POST"});window.location.assign(result.authorizationUrl);}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização OAuth.");setBusy(false);}
  }
- const linkedChannels=channels.filter(isZernioChannel);
+ const linkedChannels=diagnostic?.authenticated?channels.filter(isZernioChannel):[];
  const linkedCount=linkedChannels.length;
  return <section className="channels-page">
    <header className="channels-page-heading"><div><h1>Canais e integrações</h1></div></header>

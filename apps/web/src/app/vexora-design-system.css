@@ -1281,3 +1281,37 @@ body { background: var(--surface-page); color: var(--text-primary); }
   .channels-connection-form { grid-template-columns: minmax(0, 1fr); }
   .channels-connection-shortcuts { grid-column: auto; }
 }
+
+
+/* Chatbot canvas: a generous workspace with free movement and an explicit recenter action. */
+.chatbot-workspace .vx-flow-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+.chatbot-workspace .vx-flow-scroll:active { cursor: grabbing; }
+.chatbot-workspace .vx-flow-board {
+  min-width: 5200px;
+  min-height: 3600px;
+  position: relative;
+  isolation: isolate;
+}
+.chatbot-workspace .vx-flow-node,
+.chatbot-workspace .vx-flow-start-node {
+  touch-action: none;
+}
+.chatbot-workspace .vx-flow-node-head,
+.chatbot-workspace .vx-flow-start-node {
+  cursor: grab;
+}
+.chatbot-workspace .vx-flow-node-head:active,
+.chatbot-workspace .vx-flow-start-node:active {
+  cursor: grabbing;
+}
+.chatbot-workspace .vx-flow-stage-bar > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

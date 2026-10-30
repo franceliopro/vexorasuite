@@ -39,7 +39,7 @@ export class TeamController {
         role: true,
         modules: true,
         deniedModules:true,
-        user: { select: { id: true, name: true, email: true, isActive: true,mustChangePassword:true } },
+        user: { select: { id: true, name: true, email: true, avatarUrl:true, isActive: true,mustChangePassword:true } },
       },
       orderBy: { user: { name: "asc" } },
     });

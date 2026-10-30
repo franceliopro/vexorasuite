@@ -174,3 +174,6 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .channels-inbox-actions .text-button{padding:2px 4px;font-size:11px}
 .channels-google-card{padding:14px!important}
 .channels-google-card .channels-section-heading{margin-bottom:10px}
+
+.settings-danger-card{border-color:color-mix(in srgb,#dc2626 28%,var(--border));background:color-mix(in srgb,#fff 94%,#dc2626)}
+.danger-button{color:#b91c1c;border-color:color-mix(in srgb,#dc2626 35%,var(--border))}

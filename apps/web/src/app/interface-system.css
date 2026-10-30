@@ -157,3 +157,20 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .channels-google-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .channels-google-card{min-width:0;align-self:start}
 @media (max-width:700px){.channels-google-grid{grid-template-columns:1fr}}
+
+
+/* Settings layout: short cards share a row; long forms get the full width. */
+.settings-workspace .settings-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));align-items:start;gap:16px}
+.settings-workspace .settings-grid>*{grid-column:span 4;min-width:0}
+.settings-workspace .settings-grid>.brand-settings-card,
+.settings-workspace .settings-grid>.settings-card:nth-last-child(1){grid-column:1/-1}
+.settings-workspace .settings-grid>.settings-card:has(.settings-create-department),
+.settings-workspace .settings-grid>.settings-card:has(.settings-members){grid-column:span 6}
+.settings-workspace .settings-grid>.settings-card:has(.settings-webhook-url){grid-column:1/-1}
+.settings-workspace .settings-grid .settings-card p{max-width:70ch}
+@media (max-width:900px){.settings-workspace .settings-grid>*{grid-column:span 6}.settings-workspace .settings-grid>.brand-settings-card,.settings-workspace .settings-grid>.settings-card:has(.settings-webhook-url){grid-column:1/-1}}
+@media (max-width:620px){.settings-workspace .settings-grid>*{grid-column:1/-1}}
+.channels-inbox-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.channels-inbox-actions .text-button{padding:2px 4px;font-size:11px}
+.channels-google-card{padding:14px!important}
+.channels-google-card .channels-section-heading{margin-bottom:10px}

@@ -44,6 +44,8 @@ import { ReportsController } from "./reports.controller";
 import { FinanceController } from "./finance.controller";
 import { ServiceProtocolsController } from "./service-protocols.controller";
 import { ServiceProtocolsService } from "./service-protocols.service";
+import { TestEnvironmentController } from "./test-environment.controller";
+import { TestEnvironmentResetService } from "./test-environment-reset.service";
 
 @Module({
   // AuthGuard is applied directly to controllers in this module. Register JwtModule

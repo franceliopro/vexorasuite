@@ -171,8 +171,24 @@ export class ChannelConnectionsController {
       const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
       if (accounts.some((account: any)=>!account.accountId||!account.platform||account.profileId!==profile.profileId)) throw new Error("Zernio returned an account outside the company profile.");
       return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
-    } catch {
-      return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:false, accountCount:0, accounts:[], profileConfigured:!!profile, checkedAt:new Date().toISOString(), message:"Não foi possível validar o perfil de redes sociais desta empresa na Zernio." };
+    } catch (error) {
+      const response = error instanceof BadGatewayException ? error.getResponse() as Record<string, unknown> : {};
+      return {
+        configured:true,
+        publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()),
+        webhookSecretConfigured,
+        teamWebhookUrl,
+        authenticated:false,
+        accountCount:0,
+        accounts:[],
+        profileConfigured:!!profile,
+        checkedAt:new Date().toISOString(),
+        message:typeof response.message === "string" ? response.message : "Não foi possível validar o perfil de redes sociais desta empresa na Zernio.",
+        providerStatus:typeof response.providerStatus === "number" ? response.providerStatus : undefined,
+        providerCode:typeof response.providerCode === "string" ? response.providerCode : undefined,
+        providerReason:typeof response.providerReason === "string" ? response.providerReason : undefined,
+        dashboardUrl:typeof response.dashboardUrl === "string" ? response.dashboardUrl : undefined,
+      };
     }
   }
 

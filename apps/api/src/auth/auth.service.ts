@@ -159,6 +159,52 @@ export class AuthService {
     });
     return this.memberSession(userId,tenantId,false);
   }
+  private assertUserAdministration(role:string,isPlatformAdmin?:boolean){if(!isPlatformAdmin&&!["OWNER","ADMIN"].includes(role))throw new ForbiddenException("Somente Administradores podem gerenciar usuários.");}
+  async listUsers(tenantId:string,role:string,isPlatformAdmin?:boolean){
+    this.assertUserAdministration(role,isPlatformAdmin);
+    const rows=await this.prisma.membership.findMany({where:{tenantId,user:{isActive:true}},orderBy:{user:{name:"asc"}},select:{role:true,knownBy:true,user:{select:{id:true,name:true,email:true,avatarUrl:true,isActive:true,mustChangePassword:true,createdAt:true}}}});
+    return rows.map(row=>({...row.user,displayName:row.knownBy.trim()||row.user.name,role:row.role}));
+  }
+  async createUser(tenantId:string,role:string,isPlatformAdmin:boolean|undefined,input:any){
+    this.assertUserAdministration(role,isPlatformAdmin);
+    const name=typeof input?.name==="string"?input.name.trim():"";
+    const email=typeof input?.email==="string"?input.email.trim().toLowerCase():"";
+    const memberRole=["ADMIN","MANAGER","AGENT"].includes(String(input?.role))?String(input.role):"AGENT";
+    if(name.length<2||name.length>120||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
+    const passwordHash=await hash("Senha@123",12);
+    try{
+      const created=await this.prisma.$transaction(async tx=>{
+        const user=await tx.user.create({data:{name,email,passwordHash,mustChangePassword:true}});
+        await tx.membership.create({data:{tenantId,userId:user.id,role:memberRole as MembershipRole,knownBy:name}});
+        return user;
+      });
+      return {id:created.id,name:created.name,email:created.email,role:memberRole,avatarUrl:created.avatarUrl,mustChangePassword:true,temporaryPassword:"Senha@123"};
+    }catch(error:any){if(error?.code==="P2002")throw new ConflictException("Já existe um usuário com este e-mail.");throw error;}
+  }
+  async updateUserProfile(userId:string,tenantId:string,input:any){
+    const name=typeof input?.name==="string"?input.name.trim():undefined;
+    const email=typeof input?.email==="string"?input.email.trim().toLowerCase():undefined;
+    const avatarUrl=input?.avatarUrl===null?"":typeof input?.avatarUrl==="string"?input.avatarUrl.trim():undefined;
+    if(name!==undefined&&(name.length<2||name.length>120))throw new BadRequestException("Informe um nome válido.");
+    if(email!==undefined&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe um e-mail válido.");
+    try{
+      const user=await this.prisma.$transaction(async tx=>{
+        const membership=await tx.membership.findUnique({where:{tenantId_userId:{tenantId,userId}},select:{id:true}});
+        if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
+        return tx.user.update({where:{id:userId},data:{...(name!==undefined?{name}:{}),...(email!==undefined?{email}:{}),...(avatarUrl!==undefined?{avatarUrl:avatarUrl||null,avatarSource:"profile"}:{})},select:{id:true,name:true,email:true,avatarUrl:true,mustChangePassword:true}});
+      });
+      return user;
+    }catch(error:any){if(error?.code==="P2002")throw new ConflictException("Já existe um usuário com este e-mail.");throw error;}
+  }
+  async resetUserPassword(actorTenantId:string,actorRole:string,actorPlatformAdmin:boolean|undefined,userId:string){
+    this.assertUserAdministration(actorRole,actorPlatformAdmin);
+    const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true}});
+    if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
+    const passwordHash=await hash("Senha@123",12);
+    await this.prisma.user.update({where:{id:userId},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
+    return {ok:true,temporaryPassword:"Senha@123"};
+  }
+
   async createCompany(userId:string,sourceTenantId:string,input:any){
     this.secret();
     if(typeof input?.name!=='string'||input.name.trim().length<2||input.name.trim().length>100||!SEGMENTS.some(s=>s.id===input.segmentId)||!isUUID(input.requestId||''))throw new BadRequestException('Informe nome, segmento e identificador da solicitação.');

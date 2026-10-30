@@ -28,13 +28,13 @@ async function main(){
   const request={user:{sub:platformUser,tenantId,role:'OWNER',isPlatformAdmin:true}};
   const ownerEmail=randomUUID()+'@example.test';
   const owner=await team.create(request,{name:'Client company owner',email:ownerEmail,role:'OWNER',modules:[],departmentIds:[]});users.push(owner.id);
-  const login=await auth.login({email:ownerEmail,password:'senha123',tenantSlug:company.slug});
+  const login=await auth.login({email:ownerEmail,password:'Senha@123',tenantSlug:company.slug});
   assert.equal(login.user.mustChangePassword,true);
   await assert.rejects(()=>allow(login.accessToken,'/api/contacts'),/senha temporária/);
   await allow(login.accessToken,'/api/auth/me');
   await assert.rejects(()=>auth.createCompany(owner.id,tenantId,{name:'Unauthorized company',segmentId:'music-school',requestId:randomUUID()}),/administração da Véxora/);
-  await assert.rejects(()=>team.resetPassword({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false}},owner.id),/administração da Véxora/);
-  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:'senha123',newPassword:'a-personal-test-password'});
+  await team.resetPassword({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false}},owner.id);
+  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:'Senha@123',newPassword:'a-personal-test-password'});
   assert.equal(changed.user.mustChangePassword,false);
   await assert.rejects(()=>allow(login.accessToken,'/api/auth/me'),/sessão foi encerrada/);
   await allow(changed.accessToken,'/api/contacts');
@@ -45,7 +45,7 @@ async function main(){
   await assert.rejects(()=>allow(forged,'/api/auth/me'),/revogado/);
   await team.resetPassword(request,owner.id);
   await assert.rejects(()=>allow(changed.accessToken,'/api/auth/me'),/sessão foi encerrada/);
-  const afterReset=await auth.login({email:ownerEmail,password:'senha123',tenantSlug:company.slug});
+  const afterReset=await auth.login({email:ownerEmail,password:'Senha@123',tenantSlug:company.slug});
   assert.equal(afterReset.user.mustChangePassword,true);
   await assert.rejects(()=>allow(afterReset.accessToken,'/api/wordpress/sites'),/senha temporária/);
 

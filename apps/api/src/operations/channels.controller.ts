@@ -2,7 +2,7 @@ import { socialUsername } from "./social-identity";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Query, Res, Post, Patch, Delete, Req, UseGuards } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import type { Response } from "express";
-import { AuthGuard } from "../auth/auth.guard";
+import { AuthGuard, Public } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
@@ -68,7 +68,7 @@ export class ChannelConnectionsController {
   }
 
   @Get("zernio/oauth/callback")
-  @UseGuards()
+  @Public()
   async finishZernioOAuth(@Query() query: Record<string,string>, @Res() response: Response) {
     const appBase=(process.env.WEB_PUBLIC_URL||"").replace(/\/$/,"");
     const redirect=(status:string)=>response.redirect(303,(appBase||"https://app.vexorasuite.com.br")+"/?module=Canais+e+integra%C3%A7%C3%B5es&zernio="+encodeURIComponent(status));

@@ -140,3 +140,13 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 @media (max-width:1180px){.channels-inbox-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:820px){.channels-inbox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.channels-inbox-grid{grid-template-columns:1fr}}
+
+
+/* Compact conversation labels and navigation rhythm. */
+.conversation-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.conversation-tag{padding:2px 6px;border:0!important;border-radius:999px;font-size:10px;line-height:1.2;font-weight:600}
+.sidebar-profile-menu .profile-photo-trigger{position:absolute;right:-3px;bottom:-3px;display:grid;place-items:center;width:20px;height:20px;border:2px solid var(--card,#fff);border-radius:50%;background:var(--primary);color:var(--primary-contrast);cursor:pointer}
+.sidebar-profile-menu .profile-photo-trigger input{display:none}
+.sidebar-profile-menu .profile-avatar{position:relative}
+.nav-item,.nav-subitem{margin-block:1px!important;padding-block:6px!important}
+@media (max-width:760px){.conversation-tag{font-size:9px;padding-inline:5px}}

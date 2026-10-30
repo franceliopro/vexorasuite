@@ -7,7 +7,7 @@ import {
   ForbiddenException,
   Get,
   Post,
-  Patch, Param, ParseUUIDPipe,
+  Patch, Delete, Param, ParseUUIDPipe,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -160,6 +160,38 @@ export class TeamController {
     }
   }
  @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);const knownBy=input.knownBy===undefined?undefined:knownByValue(input.knownBy);let modules:string[],deniedModules:string[];try{modules=moduleSelection(input.modules||[]);deniedModules=moduleSelection(input.deniedModules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});if(member?.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('O acesso da administração Véxora não pode ser alterado por uma empresa.');if(member&&!req.user.isPlatformAdmin){if(member.role!=='AGENT')throw new ForbiddenException('Somente a administração da Véxora altera acessos administrativos.');const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException('Você não pode conceder módulos que não possui.');deniedModules=[...new Set([...member.deniedModules,...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules,deniedModules,...(knownBy===undefined?{}:{knownBy})}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,deniedModules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
+
+ @Patch(':id/profile') async profile(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
+  this.admin(req);
+  const name=typeof input?.name==='string'?input.name.trim():'';
+  const email=typeof input?.email==='string'?input.email.trim().toLowerCase():'';
+  if(name.length<2||name.length>160||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException('Informe nome e e-mail válidos.');
+  await this.prisma.$transaction(async tx=>{
+    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
+    const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});
+    if(!member)throw new BadRequestException('Usuário não encontrado nesta empresa.');
+    if(member.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('Os dados da administração Véxora não podem ser alterados pela empresa.');
+    const conflict=await tx.user.findFirst({where:{email,id:{not:id}},select:{id:true}});
+    if(conflict)throw new BadRequestException('Este e-mail já pertence a outro usuário.');
+    await tx.user.update({where:{id},data:{name,email}});
+    await tx.membership.update({where:{id:member.id},data:{knownBy:typeof input.knownBy==='string'?input.knownBy.trim():member.knownBy}});
+    await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.profile.updated',entityType:'user',entityId:id,details:{name,email}}});
+  });
+  this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};
+ }
+ @Delete(':id') async remove(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
+  this.admin(req);
+  if(id===req.user.sub)throw new BadRequestException('Você não pode desativar o próprio acesso.');
+  await this.prisma.$transaction(async tx=>{
+    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
+    const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});
+    if(!member)throw new BadRequestException('Usuário não encontrado nesta empresa.');
+    if(member.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('A administração Véxora não pode ser desativada pela empresa.');
+    await tx.user.update({where:{id},data:{isActive:false,authVersion:{increment:1}}});
+    await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.user.deactivated',entityType:'user',entityId:id}});
+  });
+  this.events.publish(req.user.tenantId,'team.updated',{id});return {deactivated:true};
+ }
 
  @Patch(':id/identity') async identity(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:{knownBy?:unknown}){
   this.admin(req);const knownBy=knownByValue(input.knownBy);

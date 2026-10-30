@@ -76,6 +76,11 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 e.preventDefault();
                 setBusy(true);
                 try {
+                  if(editingId){
+                    const profileResponse=await fetch("/api/backend/team/"+editingId+"/profile",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({name:form.name,email:form.email,knownBy:form.knownBy})});
+                    const profileData=await profileResponse.json();
+                    if(!profileResponse.ok)throw Error(profileData.message||"Não foi possível atualizar o cadastro.");
+                  }
                   const r = await fetch("/api/backend/team"+(editingId?"/"+editingId+"/access":""), {
                     method: editingId?"PATCH":"POST",
                     headers: { "content-type": "application/json" },
@@ -111,7 +116,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 <input
                   required
                   maxLength={160}
-                  readOnly={!!editingId} value={form.name}
+                  value={form.name}
                   onChange={(e) =>
                     setForm((v) => ({ ...v, name: e.target.value }))
                   }
@@ -124,7 +129,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   type="email"
                   required
                   autoComplete="off"
-                  readOnly={!!editingId} value={form.email}
+                  value={form.email}
                   onChange={(e) =>
                     setForm((v) => ({ ...v, email: e.target.value }))
                   }
@@ -217,6 +222,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
 <label className="team-known-by">Conhecido por<input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
 {r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'Senha@123',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[]});setEditing(true)}}>Setores e permissões</button>}
               {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice('Senha de '+r.name+' redefinida para Senha@123. A troca será obrigatória no próximo acesso.');await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
+              {r.id!==undefined&&r.isActive&&r.id!==undefined&&<button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Desativar "+r.name+"? O histórico de conversas será preservado."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id,{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível desativar.");setNotice("Usuário desativado. O histórico foi preservado.");await load();}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível desativar.")}finally{setBusy(false)}}}>Desativar</button>}
               </article>
             ))}
           </section>

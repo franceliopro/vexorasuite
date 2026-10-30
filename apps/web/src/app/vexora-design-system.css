@@ -1374,3 +1374,25 @@ body { background: var(--surface-page); color: var(--text-primary); }
     height: 64dvh !important;
   }
 }
+
+
+/* Final proportion: wide editing stage without an oversized vertical panel. */
+.chatbot-workspace .vx-flow-shell {
+  height: min(52dvh, 560px) !important;
+  min-height: 380px;
+}
+.chatbot-workspace .vx-flow-stage {
+  height: 100%;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    height: min(50dvh, 520px) !important;
+    min-height: 360px;
+  }
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell {
+    height: 58dvh !important;
+    min-height: 400px;
+  }
+}

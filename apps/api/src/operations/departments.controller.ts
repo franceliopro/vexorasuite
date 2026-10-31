@@ -61,6 +61,8 @@ export class DepartmentsController {
         modules: true,
         routingCategory: true,
         routingPlatform: true,
+        routingStrategy: true,
+        maxOpenConversations: true,
         pipeline: {
           select: { id: true, name: true, template: true, enabled: true },
         },
@@ -106,6 +108,17 @@ export class DepartmentsController {
       )
         throw new BadRequestException("Finalidade inválida.");
       data.routingCategory = input.routingCategory;
+    }
+    if (input.routingStrategy !== undefined) {
+      if (!["ROUND_ROBIN", "LOAD_BALANCED"].includes(input.routingStrategy))
+        throw new BadRequestException("Estratégia de distribuição inválida.");
+      data.routingStrategy = input.routingStrategy;
+    }
+    if (input.maxOpenConversations !== undefined) {
+      const limit = Number(input.maxOpenConversations);
+      if (!Number.isInteger(limit) || limit < 0 || limit > 1000)
+        throw new BadRequestException("O limite de atendimentos deve estar entre 0 e 1.000.");
+      data.maxOpenConversations = limit;
     }
     if (input.keywords !== undefined) {
       if (

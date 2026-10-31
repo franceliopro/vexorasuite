@@ -2,7 +2,7 @@ import { validVoiceId } from './voice-options';
 import { validDraft } from "./chatbot-draft.controller";
 import { modelCatalog } from "./model-catalog";
 import { formatDateTimeBR } from "../common/date-format";
-import { tenantSkills } from "./product-skills";
+import { productSkills, tenantSkills } from "./product-skills";
 import { Optional } from "@nestjs/common";
 import { AssistantAutomationService } from "./assistant-automation.service";
 import { ReportExportService } from "./report-export.service";
@@ -44,7 +44,7 @@ export class AssistantController {
   async customSkills(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     const root = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
-    return { skills: tenantSkills(root), canEdit: ["OWNER","ADMIN","MANAGER"].includes(req.user.role) };
+    return { skills: tenantSkills(root), builtInIds: productSkills.map(skill => skill.id), canEdit: ["OWNER","ADMIN","MANAGER"].includes(req.user.role) };
   }
 
   @Put("custom-skills")

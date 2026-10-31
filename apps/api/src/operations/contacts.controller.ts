@@ -35,13 +35,15 @@ export class ContactsController {
   ) {}
 
   @Get()
-  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string,@Query("pipelineId") pipelineId?:string) {
+  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string, @Query("pipelineId") pipelineId?: string, @Query("customerOnly") customerOnly?: string) {
     const q = query?.trim();
-    if(pipelineId)await accessiblePipeline(this.prisma,request,pipelineId);else if(!administrative(request.user.role))throw new ForbiddenException('Selecione um CRM permitido.');
+    const onlyCustomers = customerOnly === "1" || customerOnly === "true";
+    if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
+    else if (!onlyCustomers && !administrative(request.user.role)) throw new ForbiddenException("Selecione um CRM permitido.");
     const contacts = await this.prisma.contact.findMany({
       where: {
         tenantId: request.user.tenantId,
-        ...(pipelineId?{pipelineId}:{}),
+        ...(pipelineId ? { pipelineId } : {}),
         ...(q ? {
           OR: [
             { name: { contains: q, mode: "insensitive" as const } },
@@ -51,9 +53,14 @@ export class ContactsController {
         } : {}),
       },
       orderBy: { updatedAt: "desc" },
-      take: 100,
+      ...(onlyCustomers ? {} : { take: 100 }),
     });
-    return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: contact.pipelineId ? (metadata.crmFinalization?null:typeof metadata.crmStage==='string'&&['new','qualification','proposal'].includes(metadata.crmStage)?metadata.crmStage:'new') : readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
+    const listed = onlyCustomers ? contacts.filter((contact) => {
+      const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
+      const asaas = metadata.asaas && typeof metadata.asaas === "object" && !Array.isArray(metadata.asaas) ? metadata.asaas as Record<string, unknown> : {};
+      return metadata.contactType === "CUSTOMER" || typeof asaas.customerId === "string";
+    }) : contacts;
+    return listed.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: contact.pipelineId ? (metadata.crmFinalization ? null : typeof metadata.crmStage === "string" && ["new", "qualification", "proposal"].includes(metadata.crmStage) ? metadata.crmStage : "new") : readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
   }
 
   @Patch(':id/pipeline') async movePipeline(@Req() request:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:{pipelineId?:string}){if(!administrative(request.user.role))throw new ForbiddenException('Somente a administração move contatos entre CRMs.');await contactPipelineAccess(this.prisma,request,id);const pipeline=await accessiblePipeline(this.prisma,request,input.pipelineId||'');return this.prisma.contact.update({where:{id},data:{pipelineId:pipeline.id}});}

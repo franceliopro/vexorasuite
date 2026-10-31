@@ -1,5 +1,6 @@
 import {inboundKind} from './inbound-kind';
 import {AudioTriageService} from './audio-triage.service';
+import { ConversationDistributionService } from './conversation-distribution.service';
 import {documentDigits} from '../common/documents';
 import { formatDateBR } from '../common/date-format';
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
@@ -14,7 +15,7 @@ import { AsaasService } from "./asaas.service";
 export class WahaWebhookController {
   private readonly logger = new Logger(WahaWebhookController.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly asaas: AsaasService, private readonly engine: IntelligenceRuntimeService,private readonly audio?:AudioTriageService) {}
+  constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService, private readonly asaas: AsaasService, private readonly engine: IntelligenceRuntimeService, private readonly distribution: ConversationDistributionService, private readonly audio?:AudioTriageService) {}
 
   @Post(":channelId/:token")
   async receive(@Param("channelId", ParseUUIDPipe) channelId: string, @Param("token") token: string, @Body() body: unknown) {
@@ -244,6 +245,7 @@ export class WahaWebhookController {
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
     const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+    if (destination?.id) await this.distribution.assign(channel.tenantId, conversationId, destination.id);
     this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: destination?.id ?? null, status: "OPEN" });
     const missing = !destination ? " Não encontrei uma fila ativa configurada; a conversa ficou na fila geral." : "";
     await this.sendBotReply(channel, chatId, conversationId, "Certo! Encaminhei sua conversa: " + label + "." + missing + " Um atendente continuará por aqui. 🙌");
@@ -289,6 +291,7 @@ export class WahaWebhookController {
       const menu = `Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n${options}\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.`;
       if (chosen) {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
+        await this.distribution.assign(channel.tenantId, conversationId, chosen.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, `Certo! Estou encaminhando sua conversa para **${chosen.name}**. Um atendente continuará o atendimento por aqui. 🙌`);
       } else if (isNewConversation || /\b(menu|ajuda|atendente|humano|opções|opcoes)\b/.test(normalized)) {
@@ -339,6 +342,7 @@ export class WahaWebhookController {
         if (message.toLocaleLowerCase("pt-BR").includes("confirmar o telefone")) {
           const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
           await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
+          if (finance?.id) await this.distribution.assign(channel.tenantId, conversationId, finance.id);
           this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
           await this.sendBotReply(channel, chatId, conversationId, "Por segurança, não consegui confirmar que este WhatsApp corresponde ao cadastro financeiro. Não vou exibir cobranças por aqui. Encaminhei a conversa para o Financeiro verificar sua identidade. 🙌");
           return true;
@@ -365,6 +369,7 @@ export class WahaWebhookController {
       } else if (/^1$/.test(normalized)) {
         const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
+          if (finance?.id) await this.distribution.assign(channel.tenantId, conversationId, finance.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, "Certo! Vou encaminhar sua conversa para o Financeiro. Um atendente continuará por aqui. 🙌");
       } else await this.sendBotReply(channel, chatId, conversationId, "Responda 1 para falar com o Financeiro ou 2 para consultar outro documento.");
@@ -420,6 +425,7 @@ export class WahaWebhookController {
       } catch {
         const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
+          if (finance?.id) await this.distribution.assign(channel.tenantId, conversationId, finance.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, "Não consegui obter os dados de pagamento agora. Encaminhei sua conversa para o Financeiro verificar. Um atendente continuará por aqui.");
       }

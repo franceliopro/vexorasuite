@@ -2354,3 +2354,75 @@ body { background: var(--surface-page); color: var(--text-primary); }
     height: 16px;
   }
 }
+
+
+/* Mobile audit: protect compact screens from crowded controls and dense grids. */
+@media (max-width: 760px) {
+  .page-content > *,
+  .page-content :is(section, article, aside, form, fieldset, .content-card, .workspace-surface, .settings-card) {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .page-content :is(h1, h2, h3, h4, p, strong, small, label, button, a) {
+    overflow-wrap: anywhere;
+  }
+
+  .topbar .breadcrumbs {
+    min-width: 0;
+    max-width: 42vw;
+  }
+  .topbar-company-button {
+    max-width: 120px;
+  }
+
+  .settings-workspace .settings-grid,
+  .settings-workspace .settings-grid > *,
+  .channels-inbox-grid,
+  .channels-google-grid,
+  .team-workspace .team-form,
+  .department-manager form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .team-workspace .team-form fieldset,
+  .team-workspace .team-form .module-permissions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workflow-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-list-row,
+  .workflow-run-row,
+  .marketing-draft-row,
+  .publication-row {
+    min-width: 0;
+  }
+
+  .workflow-list-row > div,
+  .workflow-run-row > div,
+  .marketing-draft-row > div,
+  .publication-row > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar-company-button {
+    max-width: 96px;
+  }
+  .topbar .breadcrumbs {
+    max-width: 34vw;
+  }
+  .team-workspace .team-form fieldset,
+  .team-workspace .team-form .module-permissions {
+    grid-template-columns: 1fr;
+  }
+  .marketing-network-grid {
+    grid-template-columns: 1fr;
+  }
+}

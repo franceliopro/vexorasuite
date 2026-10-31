@@ -1,562 +1,69 @@
 "use client";
-import { formatDateTimeBR } from "../lib/date-format";
-import { useEffect, useState } from "react";
-async function api(path = "", body?: unknown) {
-  const r = await fetch("/api/backend/workflows" + (path ? "/" + path : ""), {
-    cache: "no-store",
-    ...(body === undefined
-      ? {}
-      : {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body),
-        }),
-  });
-  const d = await r.json();
-  if (!r.ok) throw Error(d.message || "Não foi possível concluir.");
-  return d;
-}
-const statuses: Record<string, string> = {
-  WAITING: "Aguardando horário",
-  RUNNING: "Executando",
-  DONE: "Concluída",
-  PAUSED: "Pausada",
-  CANCELLED: "Cancelada",
-  REVIEW: "Precisa de revisão",
-};
-const triggers: Record<string, string> = {
-  SCHEDULE: "Horário agendado",
-  INBOX: "Nova conversa",
-  QUEUE: "Conversa aguardando em fila",
-  STAGE: "Etapa do CRM",
-};
-const workflowTemplates = [
-  { id: "proposal-followup", name: "Follow-up de proposta", trigger: "STAGE", stage: "proposal", steps: [{ type: "WAIT", text: "", minutes: 1440 }, { type: "TASK", text: "Revisar a proposta e entrar em contato com o cliente.", minutes: 0 }, { type: "WHATSAPP", text: "Olá, {{nome}}! Passando para saber se conseguiu avaliar nossa proposta. Posso ajudar em algo?", minutes: 0 }] },
-  { id: "no-reply", name: "Cliente sem resposta", trigger: "INBOX", stage: "proposal", steps: [{ type: "WAIT", text: "", minutes: 120 }, { type: "TASK", text: "Verificar a conversa e preparar um retorno.", minutes: 0 }, { type: "WAIT", text: "", minutes: 1440 }, { type: "WHATSAPP", text: "Olá, {{nome}}! Ficou alguma dúvida? Estou à disposição para ajudar.", minutes: 0 }] },
-  { id: "new-lead", name: "Primeiro retorno ao lead", trigger: "INBOX", stage: "new", steps: [{ type: "TASK", text: "Responder e qualificar o novo lead.", minutes: 0 }, { type: "WAIT", text: "", minutes: 1440 }] },
-] as const;
-type Step = { type: string; text: string; minutes: number };
-export function WorkflowsWorkspace() {
-  const [agents,setAgents]=useState<any[]>([]),[assigneeId,setAssigneeId]=useState("");
-  const [tab, setTab] = useState("routines"),
-    [data, setData] = useState<any>({ workflows: [], runs: [] }),
-    [channels, setChannels] = useState<any[]>([]),
-    [departments, setDepartments] = useState<any[]>([]),
-    [editing, setEditing] = useState(false),
-    [busy, setBusy] = useState(false),
-    [notice, setNotice] = useState("");
-  const [id, setId] = useState(""),
-    [name, setName] = useState(""),
-    [trigger, setTrigger] = useState("SCHEDULE"),
-    [timezone, setTimezone] = useState("America/Sao_Paulo"),
-    [localStart, setLocalStart] = useState(""),
-    [repeatDays, setRepeatDays] = useState(0),
-    [channelId, setChannelId] = useState(""),
-    [departmentId, setDepartmentId] = useState(""),
-    [stage, setStage] = useState("proposal"),
-    [stopOnReply, setStopOnReply] = useState(true),
-    [steps, setSteps] = useState<Step[]>([
-      { type: "TASK", text: "Fazer follow-up com o cliente", minutes: 0 },
-    ]);
-  async function load() {
-    setData(await api());
-  }
-  useEffect(() => {
-    void load().catch((e) => setNotice(e.message));
-    void fetch("/api/backend/team").then(r=>r.ok?r.json():[]).then(d=>setAgents(Array.isArray(d)?d:[])).catch(()=>{});
-    void Promise.all([
-      fetch("/api/backend/channels").then((r) => r.json()),
-      fetch("/api/backend/departments").then((r) => r.json()),
-    ])
-      .then(([c, d]) => {
-        setChannels(Array.isArray(c) ? c : []);
-        setDepartments(Array.isArray(d) ? d : []);
-      })
-      .catch(() => {});
-  }, []);
-  async function act(fn: () => Promise<void>) {
-    setBusy(true);
-    setNotice("");
-    try {
-      await fn();
-      await load();
-    } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Não foi possível concluir.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  function applyTemplate(templateId: string) {
-    const template = workflowTemplates.find(item => item.id === templateId);
-    if (!template) return;
-    setTrigger(template.trigger);
-    setStage(template.stage);
-    setSteps(template.steps.map(step => ({ ...step })));
-    setChannelId("");
-    setDepartmentId("");
-    setAssigneeId("");
-    setStopOnReply(true);
-  }
-  function edit(row?: any) {
-    setId(row?.id || "");
-    setName(row?.name || "");
-    setTrigger(row?.trigger || "SCHEDULE");
-    setTimezone(row?.timezone || "America/Sao_Paulo");
-    const instant = row?.nextRunAt
-      ? new Date(row.nextRunAt)
-      : new Date(Date.now() + 3600000);
-    const zone = row?.timezone || "America/Sao_Paulo";
-    const parts = Object.fromEntries(
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: zone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-      })
-        .formatToParts(instant)
-        .map((x) => [x.type, x.value]),
-    );
-    setLocalStart(
-      `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`,
-    );
-    setRepeatDays(row?.repeatDays || 0);
-    setSteps(
-      row?.steps || [
-        { type: "TASK", text: "Fazer follow-up com o cliente", minutes: 0 },
-      ],
-    );
-    setChannelId(row?.filters?.channelId || "");
-    setDepartmentId(row?.filters?.departmentId || "");
-    setAssigneeId(row?.filters?.assigneeId || "");
-    setStage(row?.filters?.stage || "proposal");
-    setStopOnReply(row?.filters?.stopOnReply !== false);
-    setEditing(true);
-  }
-  return (
-    <section className="simple-workspace workflows-workspace">
-      <header className="creative-heading">
-        <div>
-          <h1>Workflows</h1>
-          <p>Agende tarefas e organize sequências de relacionamento.</p>
-        </div>
-        {!editing && (
-          <button className="primary-button" onClick={() => edit()}>
-            + Nova rotina
-          </button>
-        )}
-      </header><details className="workspace-surface" style={{padding:12,marginBottom:12}}><summary>Como usar uma rotina? · Exemplo de follow-up</summary><p>Escolha o gatilho, filtre o canal e o departamento, depois ordene as ações. Exemplo: ao entrar em Proposta → esperar 60 minutos → criar uma tarefa para o atendente → adicionar uma etiqueta.</p><p>Use “parar quando o cliente responder” para evitar continuar uma sequência após o retorno. Mensagens de WhatsApp exigem canal autorizado e devem respeitar a janela de atendimento. Confira as execuções para distinguir o que foi agendado, concluído ou enviado para revisão.</p></details>
-      <div className="module-tabs" role="group" aria-label="Workflows">
-        {[
-          ["routines", "Rotinas"],
-          ["runs", "Execuções"],
-        ].map(([value, label]) => (
-          <button
-            key={value}
-            className={tab === value ? "active" : ""}
-            aria-pressed={tab === value}
-            onClick={() => {
-              setTab(value!);
-              setEditing(false);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {notice && <p role="status">{notice}</p>}
-      {editing ? (
-        <form
-          className="workspace-surface ai-admin-fields"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void act(async () => {
-              await api("", {
-                id: id || undefined,
-                name,
-                trigger,
-                timezone,
-                localStart,
-                repeatDays,
-                steps,
-                filters: {
-                  channelId: channelId || undefined,
-                  departmentId: departmentId || undefined,
-                  assigneeId: trigger==="QUEUE"?undefined:assigneeId||undefined,
-                  stage,
-                  stopOnReply,
-                },
-                enabled: false,
-              });
-              setEditing(false);
-              setNotice(
-                "Rotina salva como pausada. Revise e ative quando quiser.",
-              );
-            });
-          }}
-        >
-          <div className="workspace-section-heading">
-            <h2>{id ? "Editar rotina" : "Nova rotina"}</h2>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setEditing(false)}
-            >
-              Cancelar
-            </button>
-          </div>
-          <label>
-            Modelo inicial
-            <select defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
-              <option value="">Começar do zero</option>
-              {workflowTemplates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
-            </select>
-            <small>O modelo apenas preenche as etapas. Salve pausado e ative depois de revisar.</small>
-          </label>
-          <label>
-            Nome
-            <input
-              required
-              maxLength={180}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label>
-            Quando começar
-            <select
-              value={trigger}
-              onChange={(e) => {
-                setTrigger(e.target.value);
-                setSteps([
-                  {
-                    type: "TASK",
-                    text: "Fazer follow-up com o cliente",
-                    minutes: 0,
-                  },
-                ]);
-              }}
-            >
-              {Object.entries(triggers).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="workflow-schedule">
-            <label>
-              Fuso horário
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-              >
-                {[
-                  "America/Sao_Paulo",
-                  "America/Cuiaba",
-                  "America/Manaus",
-                  "America/Rio_Branco",
-                  "America/Noronha",
-                  "America/New_York",
-                  "Europe/Lisbon",
-                  "UTC",
-                ].map((v) => (
-                  <option key={v}>{v}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {trigger === "SCHEDULE"
-                ? "Primeira execução"
-                : "Começar a observar a partir de"}
-              <input
-                type="datetime-local"
-                required
-                value={localStart}
-                onChange={(e) => setLocalStart(e.target.value)}
-              />
-            </label>
-          </div>
-          {trigger === "SCHEDULE" ? (
-            <label>
-              Repetição
-              <select
-                value={repeatDays}
-                onChange={(e) => setRepeatDays(Number(e.target.value))}
-              >
-                <option value={0}>Uma vez</option>
-                <option value={1}>Todo dia</option>
-                <option value={7}>Toda semana</option>
-                <option value={30}>A cada 30 dias</option>
-              </select>
-            </label>
-          ) : (
-            <>
-              <label>
-                Canal
-                <select
-                  value={channelId}
-                  onChange={(e) => setChannelId(e.target.value)}
-                >
-                  <option value="">Todos os canais</option>
-                  {channels.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {trigger !== "SCHEDULE" && (
-                <label>
-                  Fila
-                  <select
-                    value={departmentId}
-                    onChange={(e) => {setDepartmentId(e.target.value);setAssigneeId("");}}
-                  >
-                    <option value="">Todos os departamentos</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {trigger!=="QUEUE"&&trigger!=="SCHEDULE"&&<label>Atendente<select value={assigneeId} onChange={e=>setAssigneeId(e.target.value)}><option value="">Todos os atendentes do contexto</option>{agents.filter(a=>!departmentId||a.departmentIds?.includes(departmentId)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}
-              {trigger === "STAGE" && (
-                <label>
-                  Etapa do CRM
-                  <select
-                    value={stage}
-                    onChange={(e) => setStage(e.target.value)}
-                  >
-                    <option value="new">Novo</option>
-                    <option value="qualification">Qualificação</option>
-                    <option value="proposal">Proposta</option>
-                  </select>
-                </label>
-              )}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={stopOnReply}
-                  onChange={(e) => setStopOnReply(e.target.checked)}
-                />{" "}
-                Parar a sequência quando o cliente responder
-              </label>
-              <small>
-                Cada conversa entra uma vez por rotina. Conversas encerradas,
-                arquivadas ou excluídas interrompem a sequência.
-              </small>
-            </>
-          )}
-          <h3>Etapas</h3>
-          {steps.map((s, i) => (
-            <fieldset key={i}>
-              <legend>Etapa {i + 1}</legend>
-              <label>
-                Ação
-                <select
-                  value={s.type}
-                  onChange={(e) =>
-                    setSteps((rows) =>
-                      rows.map((r, n) =>
-                        n === i ? { ...r, type: e.target.value } : r,
-                      ),
-                    )
-                  }
-                >
-                  <option value="WAIT">Esperar</option>
-                  <option value="TASK">Criar tarefa interna</option>
-                  {trigger !== "SCHEDULE" && (
-                    <>
-                      <option value="NOTE">Registrar nota</option>
-                      <option value="TAG">Adicionar etiqueta</option>
-                      <option value="WHATSAPP">
-                        Enviar mensagem no WhatsApp
-                      </option>
-                    </>
-                  )}
-                </select>
-              </label>
-              {s.type !== "WAIT" && (
-                <label>
-                  {s.type === "TAG" ? "Etiqueta" : "Conteúdo"}
-                  <textarea
-                    required
-                    rows={3}
-                    maxLength={2000}
-                    value={s.text}
-                    onChange={(e) =>
-                      setSteps((rows) =>
-                        rows.map((r, n) =>
-                          n === i ? { ...r, text: e.target.value } : r,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-              )}
-              {["WAIT", "TASK"].includes(s.type) && (
-                <label>
-                  {s.type === "WAIT"
-                    ? "Esperar por · minutos"
-                    : "Prazo da tarefa · minutos após executar"}
-                  <input
-                    type="number"
-                    min={s.type === "WAIT" ? 1 : 0}
-                    max={525600}
-                    value={s.minutes}
-                    onChange={(e) =>
-                      setSteps((rows) =>
-                        rows.map((r, n) =>
-                          n === i
-                            ? { ...r, minutes: Number(e.target.value) }
-                            : r,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-              )}
-              {s.type === "WHATSAPP" && (
-                <p>
-                  A mensagem vai para o WhatsApp da própria conversa, pela
-                  conexão ativa. Não envia por Instagram/Messenger. Use{" "}
-                  {"{{novo_nome}}"} para personalizar.
-                </p>
-              )}
-              <button
-                className="text-button"
-                type="button"
-                disabled={steps.length === 1}
-                onClick={() =>
-                  setSteps((rows) => rows.filter((_, n) => n !== i))
-                }
-              >
-                Remover etapa
-              </button>
-            </fieldset>
-          ))}
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={steps.length >= 20}
-            onClick={() =>
-              setSteps((rows) => [
-                ...rows,
-                { type: "WAIT", text: "", minutes: 60 },
-              ])
-            }
-          >
-            + Adicionar etapa
-          </button>
-          <button className="primary-button" disabled={busy}>
-            Salvar rotina pausada
-          </button>
-        </form>
-      ) : (
-        <>
-          {tab === "routines" && (
-            <section className="workspace-surface">
-              {!data.workflows.length && (
-                <div className="workspace-empty">
-                  <h2>Seu trabalho, no horário certo</h2>
-                  <p>
-                    Crie lembretes internos ou sequências para conversas e
-                    filas.
-                  </p>
-                </div>
-              )}
-              {data.workflows.map((w: any) => (
-                <article className="publication-row" key={w.id}>
-                  <div>
-                    <strong>{w.name}</strong>
-                    <small>
-                      {triggers[w.trigger]} · {w.timezone} ·{" "}
-                      {w.enabled ? "Ativa" : "Pausada"}
-                    </small>
-                  </div>
-                  <button
-                    className="secondary-button"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(async () => {
-                        await api(w.id + "/state", { enabled: !w.enabled });
-                      })
-                    }
-                  >
-                    {w.enabled ? "Pausar" : "Ativar"}
-                  </button>
-                  <button
-                    className="text-button"
-                    disabled={busy || w.enabled}
-                    onClick={() => edit(w)}
-                  >
-                    Editar
-                  </button>
-                </article>
-              ))}
-            </section>
-          )}
-          {tab === "runs" && (
-            <section className="workspace-surface">
-              <div className="workspace-section-heading">
-                <h2>Sequências recentes</h2>
-                <button
-                  className="secondary-button"
-                  disabled={busy}
-                  onClick={() => void act(load)}
-                >
-                  Atualizar
-                </button>
-              </div>
-              {data.runs.map((r: any) => (
-                <article className="publication-row" key={r.id}>
-                  <div>
-                    <strong>
-                      {data.workflows.find((w: any) => w.id === r.workflowId)
-                        ?.name || "Rotina"}
-                    </strong>
-                    <small>
-                      {statuses[r.status] || "Em acompanhamento"} · Etapa{" "}
-                      {r.position + 1}
-                    </small>
-                    {r.status === "WAITING" && (
-                      <small>
-                        Próximo horário:{" "}
-                        {formatDateTimeBR(r.nextRunAt)}
-                      </small>
-                    )}
-                    {r.error && (
-                      <p>
-                        Esta sequência precisa de revisão antes de continuar.
-                      </p>
-                    )}
-                  </div>
-                  {["WAITING", "PAUSED"].includes(r.status) && (
-                    <button
-                      className="secondary-button"
-                      disabled={busy}
-                      onClick={() =>
-                        void act(async () => {
-                          await api("runs/" + r.id + "/cancel", {});
-                        })
-                      }
-                    >
-                      Cancelar sequência
-                    </button>
-                  )}
-                </article>
-              ))}
-              {!data.runs.length && <p>Nenhuma sequência iniciada.</p>}
-            </section>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
+import {formatDateTimeBR} from "../lib/date-format";
+import {useEffect,useState} from "react";
 
+type Step={type:"WAIT"|"TASK"|"NOTE"|"TAG"|"WHATSAPP";text:string;minutes:number};
+type Row={id:string;name:string;trigger:string;timezone?:string;nextRunAt?:string;enabled?:boolean;repeatDays?:number;filters?:Record<string,any>;steps?:Step[]};
+type Item={value:string;label:string;hint:string};
+const triggers:Item[]=[
+ {value:"INBOX",label:"Nova conversa",hint:"Quando uma conversa entrar"},
+ {value:"MESSAGE",label:"Mensagem recebida",hint:"Quando o cliente responder"},
+ {value:"CONTACT",label:"Cliente criado ou atualizado",hint:"Quando os dados mudarem"},
+ {value:"PAYMENT",label:"Pagamento criado ou alterado",hint:"Quando a situação financeira mudar"},
+ {value:"STAGE",label:"Mudança de etapa do CRM",hint:"Quando mudar no pipeline"},
+ {value:"SCHEDULE",label:"Horário agendado",hint:"Começa em data e horário definidos"},
+];
+const conditions:Item[]=[
+ {value:"channelId",label:"Inbox",hint:"Filtra a conexão"},
+ {value:"departmentId",label:"Departamento",hint:"Filtra o departamento"},
+ {value:"assigneeId",label:"Atendente",hint:"Filtra o responsável"},
+ {value:"tag",label:"Etiqueta",hint:"Filtra uma etiqueta"},
+ {value:"stage",label:"Etapa",hint:"Filtra a etapa do CRM"},
+ {value:"conversationStatus",label:"Status da conversa",hint:"Aberta, pendente ou encerrada"},
+ {value:"customerField",label:"Dados do cliente",hint:"Nome, e-mail ou campo personalizado"},
+ {value:"financialStatus",label:"Situação financeira",hint:"Em aberto, pago ou vencido"},
+];
+const actions:Item[]=[
+ {value:"TASK",label:"Criar tarefa",hint:"Cria uma tarefa para o responsável"},
+ {value:"WHATSAPP",label:"Enviar mensagem",hint:"Envia pela conexão da conversa"},
+ {value:"NOTE",label:"Registrar nota",hint:"Adiciona uma nota interna"},
+ {value:"TAG",label:"Adicionar etiqueta",hint:"Marca o cliente"},
+];
+const templates=[
+ {id:"proposal",name:"Follow-up de proposta",description:"Acompanhe propostas sem perder o timing.",trigger:"STAGE",steps:[{type:"WAIT",text:"",minutes:120},{type:"TASK",text:"Revisar a proposta e entrar em contato.",minutes:0},{type:"WAIT",text:"",minutes:1440},{type:"WHATSAPP",text:"Olá, {{nome}}! Conseguiu avaliar nossa proposta?",minutes:0}] as Step[]},
+ {id:"no-reply",name:"Cliente sem resposta",description:"Faça retornos graduais e pare quando responder.",trigger:"INBOX",steps:[{type:"WAIT",text:"",minutes:120},{type:"TASK",text:"Verificar a conversa e preparar um retorno.",minutes:0},{type:"WAIT",text:"",minutes:1440},{type:"WHATSAPP",text:"Olá, {{nome}}! Ficou alguma dúvida?",minutes:0}] as Step[]},
+ {id:"overdue",name:"Cobrança em atraso",description:"Organize pagamentos vencidos.",trigger:"PAYMENT",steps:[{type:"TASK",text:"Conferir a situação financeira e fazer contato.",minutes:0},{type:"NOTE",text:"Cobrança em atraso encaminhada.",minutes:0}] as Step[]},
+ {id:"after-care",name:"Retorno pós-atendimento",description:"Crie uma tarefa depois do atendimento.",trigger:"INBOX",steps:[{type:"WAIT",text:"",minutes:1440},{type:"TASK",text:"Fazer o retorno pós-atendimento.",minutes:0}] as Step[]},
+ {id:"new-lead",name:"Novo lead",description:"Organize o primeiro contato.",trigger:"CONTACT",steps:[{type:"TASK",text:"Qualificar o novo lead.",minutes:0},{type:"TAG",text:"Novo lead",minutes:0}] as Step[]},
+ {id:"reactivation",name:"Reativação de cliente",description:"Retome contatos sem interação.",trigger:"SCHEDULE",steps:[{type:"WAIT",text:"",minutes:2880},{type:"TASK",text:"Selecionar clientes para reativação.",minutes:0},{type:"WHATSAPP",text:"Olá, {{nome}}! Podemos ajudar em algo?",minutes:0}] as Step[]},
+];
+async function api(path="",body?:unknown){const r=await fetch("/api/backend/workflows"+(path?"/"+path:""),{cache:"no-store",...(body===undefined?{}:{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||"Não foi possível concluir.");return d}
+export function WorkflowsWorkspace(){
+ const [data,setData]=useState<any>({workflows:[],runs:[]}),[tab,setTab]=useState("routines"),[editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState("");
+ const [channels,setChannels]=useState<any[]>([]),[departments,setDepartments]=useState<any[]>([]),[agents,setAgents]=useState<any[]>([]);
+ const [id,setId]=useState(""),[name,setName]=useState(""),[trigger,setTrigger]=useState("INBOX"),[timezone,setTimezone]=useState("America/Sao_Paulo"),[localStart,setLocalStart]=useState(""),[repeatDays,setRepeatDays]=useState(0),[steps,setSteps]=useState<Step[]>([{type:"TASK",text:"Fazer follow-up com o cliente",minutes:0}]),[filters,setFilters]=useState<Record<string,string>>({});
+ const [stopOnReply,setStopOnReply]=useState(true),[cancelClosed,setCancelClosed]=useState(true),[maxAttempts,setMaxAttempts]=useState(3),[retryFailed,setRetryFailed]=useState(true),[reviewUnsafe,setReviewUnsafe]=useState(true);
+ async function load(){setData(await api())}
+ useEffect(()=>{void load().catch(e=>setNotice(e.message));Promise.all([fetch("/api/backend/channels").then(r=>r.json()),fetch("/api/backend/departments").then(r=>r.json()),fetch("/api/backend/team").then(r=>r.json())]).then(([c,d,a])=>{setChannels(Array.isArray(c)?c:[]);setDepartments(Array.isArray(d)?d:[]);setAgents(Array.isArray(a)?a:[])}).catch(()=>{})},[]);
+ async function act(fn:()=>Promise<void>){setBusy(true);setNotice("");try{await fn();await load()}catch(e){setNotice(e instanceof Error?e.message:"Não foi possível concluir.")}finally{setBusy(false)}}
+ function reset(){setId("");setName("");setTrigger("INBOX");setTimezone("America/Sao_Paulo");setRepeatDays(0);setFilters({});setSteps([{type:"TASK",text:"Fazer follow-up com o cliente",minutes:0}]);setStopOnReply(true);setCancelClosed(true);setMaxAttempts(3);setRetryFailed(true);setReviewUnsafe(true);setLocalStart(new Date(Date.now()+3600000).toISOString().slice(0,16))}
+ function open(row?:Row){reset();if(row){setId(row.id||"");setName(row.name||"");setTrigger(row.filters?.workflowKind||row.trigger||"INBOX");setTimezone(row.timezone||"America/Sao_Paulo");setRepeatDays(row.repeatDays||0);setFilters({...row.filters});setSteps(row.steps?.length?row.steps:[{type:"TASK",text:"Fazer follow-up com o cliente",minutes:0}]);setStopOnReply(row.filters?.stopOnReply!==false);setCancelClosed(row.filters?.cancelClosed!==false);setMaxAttempts(Number(row.filters?.maxAttempts||3));setRetryFailed(row.filters?.retryFailed!==false);setReviewUnsafe(row.filters?.reviewUnsafe!==false);setLocalStart(row.nextRunAt?new Date(row.nextRunAt).toISOString().slice(0,16):"")}setEditing(true)}
+ function apply(key:string){const t=templates.find(x=>x.id===key);if(!t)return;setTrigger(t.trigger);setName(t.name);setSteps(t.steps.map(x=>({...x})));setLocalStart(new Date(Date.now()+3600000).toISOString().slice(0,16))}
+ function filter(key:string,value:string){setFilters(v=>{const n={...v};if(value)n[key]=value;else delete n[key];return n})}
+ function add(type:Step["type"]){setSteps(v=>[...v,{type,text:type==="WAIT"?"":"",minutes:type==="WAIT"?60:0}])}
+ function save(){return act(async()=>{const backendTrigger=["MESSAGE","CONTACT","PAYMENT"].includes(trigger)?"INBOX":trigger;await api("",{id:id||undefined,name:name.trim(),trigger:backendTrigger,timezone,localStart,repeatDays,steps,filters:{...filters,workflowKind:trigger,stopOnReply,cancelClosed,maxAttempts,retryFailed,reviewUnsafe},enabled:false});setEditing(false);setNotice("Workflow salvo como pausado.")})}
+ const triggerLabel=triggers.find(x=>x.value===trigger)?.label||trigger;
+ return <section className="simple-workspace workflows-workspace workflow-studio"><header className="creative-heading workflow-studio-heading"><div><span className="eyebrow">AUTOMAÇÕES</span><h1>Workflow Studio</h1><p>Monte sequências para acompanhar clientes e organizar a operação.</p></div>{!editing&&<button className="primary-button" onClick={()=>{reset();setEditing(true)}}>+ Novo workflow</button>}</header>
+ {!editing&&<section className="workflow-template-strip"><div className="workflow-section-title"><div><h2>Comece com um modelo</h2><p>Escolha uma rotina pronta ou crie do zero.</p></div></div><div className="workflow-template-grid">{templates.map(t=><button className="workflow-template-card" key={t.id} onClick={()=>{apply(t.id);setEditing(true)}}><strong>{t.name}</strong><small>{t.description}</small><span>{triggers.find(x=>x.value===t.trigger)?.label||t.trigger} · {t.steps.length} etapas</span></button>)}</div></section>}
+ <div className="module-tabs workflow-tabs"><button className={tab==="routines"?"active":""} onClick={()=>{setTab("routines");setEditing(false)}}>Meus workflows</button><button className={tab==="runs"?"active":""} onClick={()=>{setTab("runs");setEditing(false)}}>Histórico de execuções</button></div>{notice&&<p role="status" className="workflow-notice">{notice}</p>}
+ {editing?<form className="workflow-builder" onSubmit={e=>{e.preventDefault();void save()}}><header className="workflow-builder-header"><div><button type="button" className="text-button" onClick={()=>setEditing(false)}>← Voltar</button><h2>{id?"Editar workflow":"Novo workflow"}</h2><p>Configure o gatilho, as condições e a sequência.</p></div><div><button type="button" className="secondary-button" onClick={reset}>Limpar</button> <button className="primary-button" disabled={busy}>Salvar pausado</button></div></header>
+ <div className="workflow-builder-grid"><aside className="workflow-catalog"><div className="workflow-catalog-block"><h3>1 · Gatilho</h3>{triggers.map(x=><button type="button" className={trigger===x.value?"selected":""} key={x.value} onClick={()=>setTrigger(x.value)}><strong>{x.label}</strong><small>{x.hint}</small></button>)}</div><div className="workflow-catalog-block"><h3>2 · Condições</h3>{conditions.map(x=><button type="button" key={x.value} className={filters[x.value]?"selected":""} onClick={()=>document.getElementById("wf-"+x.value)?.scrollIntoView({behavior:"smooth",block:"center"})}><strong>{x.label}</strong><small>{x.hint}</small></button>)}</div><div className="workflow-catalog-block"><h3>3 · Ações</h3>{actions.map(x=><button type="button" key={x.value} onClick={()=>add(x.value as Step["type"])}><strong>{x.label}</strong><small>{x.hint}</small></button>)}</div></aside>
+ <main className="workflow-canvas"><label className="workflow-name-field"><span>Nome do workflow</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="Ex.: Follow-up de proposta"/></label><div className="workflow-node workflow-node-trigger"><span>GATILHO</span><strong>{triggerLabel}</strong><small>{triggers.find(x=>x.value===trigger)?.hint}</small></div>
+ <section className="workflow-panel"><header><div><span className="eyebrow">CONDIÇÕES</span><h3>Executar somente quando</h3></div><small>Deixe vazio para todos</small></header><div className="workflow-condition-grid"><label id="wf-channelId">Inbox<select value={filters.channelId||""} onChange={e=>filter("channelId",e.target.value)}><option value="">Todas</option>{channels.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label id="wf-departmentId">Departamento<select value={filters.departmentId||""} onChange={e=>filter("departmentId",e.target.value)}><option value="">Todos</option>{departments.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label id="wf-assigneeId">Atendente<select value={filters.assigneeId||""} onChange={e=>filter("assigneeId",e.target.value)}><option value="">Todos</option>{agents.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label id="wf-tag">Etiqueta<input value={filters.tag||""} onChange={e=>filter("tag",e.target.value)} placeholder="Ex.: proposta"/></label><label id="wf-stage">Etapa<select value={filters.stage||""} onChange={e=>filter("stage",e.target.value)}><option value="">Todas</option><option value="new">Novo</option><option value="qualification">Qualificação</option><option value="proposal">Proposta</option><option value="finalization">Finalização</option></select></label><label id="wf-conversationStatus">Status<select value={filters.conversationStatus||""} onChange={e=>filter("conversationStatus",e.target.value)}><option value="">Qualquer</option><option value="OPEN">Aberta</option><option value="PENDING">Pendente</option><option value="CLOSED">Encerrada</option></select></label><label id="wf-customerField">Dado do cliente<input value={filters.customerField||""} onChange={e=>filter("customerField",e.target.value)} placeholder="Ex.: origem = indicação"/></label><label id="wf-financialStatus">Situação financeira<select value={filters.financialStatus||""} onChange={e=>filter("financialStatus",e.target.value)}><option value="">Qualquer</option><option value="OPEN">Em aberto</option><option value="PAID">Pago</option><option value="OVERDUE">Vencido</option></select></label></div></section>
+ <section className="workflow-panel"><header><div><span className="eyebrow">SEQUÊNCIA</span><h3>O que acontece depois</h3></div><small>Na ordem em que deve acontecer</small></header>{steps.map((step,i)=><article className="workflow-step-card" key={i}><div className="workflow-step-index">{i+1}</div><div className="workflow-step-content"><label>Ação<select value={step.type} onChange={e=>setSteps(v=>v.map((x,n)=>n===i?{...x,type:e.target.value as Step["type"]}:x))}><option value="WAIT">Esperar</option><option value="TASK">Criar tarefa</option><option value="WHATSAPP">Enviar mensagem</option><option value="NOTE">Registrar nota</option><option value="TAG">Adicionar etiqueta</option></select></label>{step.type==="WAIT"?<div className="workflow-wait-grid"><label>Tempo<input type="number" min={1} max={525600} value={step.minutes||60} onChange={e=>setSteps(v=>v.map((x,n)=>n===i?{...x,minutes:Number(e.target.value)}:x))}/></label><label>Unidade<select defaultValue="minutes"><option value="minutes">Minutos</option><option value="hours">Horas</option><option value="days">Dias</option><option value="business-days">Dias úteis</option></select></label></div>:<label>{step.type==="TAG"?"Etiqueta":"Conteúdo"}<textarea required rows={2} value={step.text} onChange={e=>setSteps(v=>v.map((x,n)=>n===i?{...x,text:e.target.value}:x))} placeholder={step.type==="TASK"?"Descreva a tarefa":"Escreva o conteúdo..."}/></label>}<small>{actions.find(x=>x.value===step.type)?.hint||"Aguarda o próximo passo."}</small></div><button type="button" className="text-button" disabled={steps.length===1} onClick={()=>setSteps(v=>v.filter((_,n)=>n!==i))}>Remover</button></article>)}<button type="button" className="secondary-button" onClick={()=>add("WAIT")}>+ Adicionar etapa</button></section>
+ {trigger==="SCHEDULE"&&<section className="workflow-panel workflow-schedule-panel"><header><div><span className="eyebrow">HORÁRIO</span><h3>Quando iniciar</h3></div></header><div className="workflow-schedule-grid"><label>Fuso<select value={timezone} onChange={e=>setTimezone(e.target.value)}><option>America/Sao_Paulo</option><option>America/Cuiaba</option><option>UTC</option></select></label><label>Primeira execução<input type="datetime-local" required value={localStart} onChange={e=>setLocalStart(e.target.value)}/></label><label>Repetição<select value={repeatDays} onChange={e=>setRepeatDays(Number(e.target.value))}><option value={0}>Uma vez</option><option value={1}>Todo dia</option><option value={7}>Toda semana</option><option value={30}>A cada 30 dias</option></select></label></div></section>}</main>
+ <aside className="workflow-settings workflow-panel"><span className="eyebrow">CONTROLE</span><h3>Quando parar</h3><label><input type="checkbox" checked={stopOnReply} onChange={e=>setStopOnReply(e.target.checked)}/> Parar se o cliente responder</label><label><input type="checkbox" checked={cancelClosed} onChange={e=>setCancelClosed(e.target.checked)}/> Cancelar se a conversa for encerrada</label><label>Limite de tentativas<input type="number" min={1} max={20} value={maxAttempts} onChange={e=>setMaxAttempts(Number(e.target.value))}/></label><label><input type="checkbox" checked={retryFailed} onChange={e=>setRetryFailed(e.target.checked)}/> Tentar novamente quando falhar</label><label><input type="checkbox" checked={reviewUnsafe} onChange={e=>setReviewUnsafe(e.target.checked)}/> Enviar para revisão se não for seguro repetir</label><p className="workflow-control-note">Cada execução fica registrada no histórico.</p></aside></div></form>
+ :tab==="routines"?<section className="workspace-surface workflow-list"><header className="workflow-section-title"><div><span className="eyebrow">ATIVOS E PAUSADOS</span><h2>Seus workflows</h2></div><small>{data.workflows.length} salvos</small></header>{!data.workflows.length&&<div className="workspace-empty"><h2>Nenhum workflow criado</h2><p>Comece por um modelo acima ou monte sua própria sequência.</p></div>}{data.workflows.map((w:Row)=><article className="workflow-list-row" key={w.id}><div><strong>{w.name}</strong><small>{triggers.find(x=>x.value===w.filters?.workflowKind)?.label||w.trigger} · {w.enabled?"Ativo":"Pausado"} · {w.steps?.length||0} etapas</small></div><button className="secondary-button" disabled={busy} onClick={()=>void act(async()=>{await api((w.id||"")+"/state",{enabled:!w.enabled})})}>{w.enabled?"Pausar":"Ativar"}</button><button className="text-button" disabled={busy||w.enabled} onClick={()=>open(w)}>Editar</button></article>)}</section>
+ :<section className="workspace-surface workflow-runs"><header className="workflow-section-title"><div><span className="eyebrow">AUDITORIA</span><h2>Histórico de execuções</h2></div><button className="secondary-button" disabled={busy} onClick={()=>void act(load)}>Atualizar</button></header>{!data.runs.length&&<p>Nenhuma execução registrada.</p>}{data.runs.map((r:any)=><article className="workflow-run-row" key={r.id}><div><strong>{data.workflows.find((w:Row)=>w.id===r.workflowId)?.name||"Workflow"}</strong><small>{r.status} · etapa {Number(r.position)+1}{r.nextRunAt?" · "+formatDateTimeBR(r.nextRunAt):""}</small>{r.error&&<p>{r.error}</p>}</div>{["WAITING","PAUSED"].includes(r.status)&&<button className="secondary-button" disabled={busy} onClick={()=>void act(async()=>{await api("runs/"+r.id+"/cancel",{})})}>Cancelar</button>}</article>)}</section>}
+ </section>;
+}

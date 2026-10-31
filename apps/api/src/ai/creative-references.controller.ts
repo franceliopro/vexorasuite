@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { Body, CanActivate, Controller, Delete, ExecutionContext, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
@@ -25,5 +26,11 @@ export class CreativeReferencesController {
   async content(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Res() res:Response) {
     const {row,buffer}=await this.references.bytes(req,id);
     res.setHeader('Content-Type',row.mimeType);res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, no-store');res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(row.name)}`);res.send(buffer);
+  }
+  @Get(':id/thumbnail')
+  async thumbnail(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Res() res:Response) {
+    const {buffer}=await this.references.bytes(req,id);
+    const thumb=await sharp(buffer,{failOn:"none"}).resize({width:640,height:640,fit:"inside",withoutEnlargement:true}).webp({quality:78}).toBuffer();
+    res.setHeader('Content-Type','image/webp');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, max-age=300');res.send(thumb);
   }
 }

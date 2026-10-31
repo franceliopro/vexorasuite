@@ -2124,3 +2124,32 @@ body { background: var(--surface-page); color: var(--text-primary); }
   height: 100% !important;
   overflow: auto !important;
 }
+
+
+/* Keep utility actions compact and horizontal in every sidebar state. */
+.sidebar .sidebar-utilities,
+.sidebar.sidebar-collapsed .sidebar-utilities {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 4px;
+}
+.sidebar.sidebar-collapsed .sidebar-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 5px;
+}
+.sidebar.sidebar-collapsed .sidebar-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.sidebar .nav-item,
+.sidebar .nav-subitem {
+  margin-block: 0 !important;
+  padding-block: 5px !important;
+}
+@media (min-width: 761px) {
+  .sidebar .nav-item {
+    min-height: 40px;
+  }
+}

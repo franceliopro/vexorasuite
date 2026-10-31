@@ -2,7 +2,7 @@
 import {formatDateTimeBR} from "../lib/date-format";
 import {useEffect,useState} from "react";
 
-type Step={type:"WAIT"|"TASK"|"NOTE"|"TAG"|"WHATSAPP";text:string;minutes:number};
+type Step={type:"WAIT"|"TASK"|"NOTE"|"TAG"|"UNTAG"|"WHATSAPP"|"ASSIGN_DEPARTMENT"|"ASSIGN_AGENT"|"STAGE"|"PRIORITY"|"STATUS";text:string;minutes:number};
 type Row={id:string;name:string;trigger:string;timezone?:string;nextRunAt?:string;enabled?:boolean;repeatDays?:number;filters?:Record<string,any>;steps?:Step[]};
 type Item={value:string;label:string;hint:string};
 const triggers:Item[]=[
@@ -28,6 +28,12 @@ const actions:Item[]=[
  {value:"WHATSAPP",label:"Enviar mensagem",hint:"Envia pela conexão da conversa"},
  {value:"NOTE",label:"Registrar nota",hint:"Adiciona uma nota interna"},
  {value:"TAG",label:"Adicionar etiqueta",hint:"Marca o cliente"},
+ {value:"UNTAG",label:"Remover etiqueta",hint:"Retira uma etiqueta do cliente"},
+ {value:"ASSIGN_DEPARTMENT",label:"Atribuir departamento",hint:"Direciona a conversa para um departamento"},
+ {value:"ASSIGN_AGENT",label:"Atribuir atendente",hint:"Define o responsável pela conversa"},
+ {value:"STAGE",label:"Alterar etapa",hint:"Move o contato no CRM"},
+ {value:"PRIORITY",label:"Alterar prioridade",hint:"Define a urgência da conversa"},
+ {value:"STATUS",label:"Alterar status",hint:"Abre, pausa ou encerra a conversa"},
 ];
 const templates=[
  {id:"proposal",name:"Follow-up de proposta",description:"Acompanhe propostas sem perder o timing.",trigger:"STAGE",steps:[{type:"WAIT",text:"",minutes:120},{type:"TASK",text:"Revisar a proposta e entrar em contato.",minutes:0},{type:"WAIT",text:"",minutes:1440},{type:"WHATSAPP",text:"Olá, {{nome}}! Conseguiu avaliar nossa proposta?",minutes:0}] as Step[]},

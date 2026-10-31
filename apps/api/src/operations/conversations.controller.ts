@@ -13,6 +13,7 @@ import { CreateConversationDto } from "./dto/create-conversation.dto";
 import { SendMessageDto } from "./dto/send-message.dto";
 import { WahaService } from "./waha.service";
 import { ZernioService } from "./zernio.service";
+import { accessiblePipeline } from "./crm-pipelines.controller";
 
 
 function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
@@ -146,6 +147,24 @@ export class ConversationsController {
       return [view,await this.prisma.conversation.count({where:where as any})] as const;
     }));
     return Object.fromEntries(entries);
+  }
+
+  @Post(":id/crm")
+  async updateConversationCrm(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { pipelineId?: string; stageId?: string }) {
+    await this.assertCanAccess(request, id, "all-open");
+    const pipeline = await accessiblePipeline(this.prisma, request, input.pipelineId || "");
+    const stages = Array.isArray(pipeline.stages) ? pipeline.stages as Array<Record<string, unknown>> : [];
+    const stageId = typeof input.stageId === "string" && input.stageId.trim() ? input.stageId.trim() : String(stages[0]?.id || "new");
+    if (!stages.some((stage) => stage.id === stageId)) throw new BadRequestException("Etapa não pertence ao pipeline.");
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true, contactId: true } });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true } });
+    if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
+    const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
+    const updated = await this.prisma.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+    this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId });
+    return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId };
   }
 
   @Get("search")

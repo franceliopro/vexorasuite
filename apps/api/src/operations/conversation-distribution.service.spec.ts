@@ -4,6 +4,7 @@ describe("ConversationDistributionService", () => {
   it("selects the least-loaded active member and assigns the conversation", async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const tx = {
+      tenant: { findUnique: jest.fn().mockResolvedValue({ integrations: { distributionSettings: { enabled: true } } }) },
       department: { findFirst: jest.fn().mockResolvedValue({ id: "dept", routingStrategy: "LOAD_BALANCED", maxOpenConversations: 0, members: [{ userId: "b" }, { userId: "a" }] }) },
       conversation: { groupBy: jest.fn().mockResolvedValue([{ assigneeId: "a", _count: { _all: 2 } }, { assigneeId: "b", _count: { _all: 0 } }]), updateMany },
     };
@@ -15,6 +16,7 @@ describe("ConversationDistributionService", () => {
 
   it("does not assign when every member reached the configured limit", async () => {
     const tx = {
+      tenant: { findUnique: jest.fn().mockResolvedValue({ integrations: { distributionSettings: { enabled: true } } }) },
       department: { findFirst: jest.fn().mockResolvedValue({ id: "dept", routingStrategy: "ROUND_ROBIN", maxOpenConversations: 1, members: [{ userId: "a" }] }) },
       conversation: { groupBy: jest.fn().mockResolvedValue([{ assigneeId: "a", _count: { _all: 1 } }]), updateMany: jest.fn() },
     };

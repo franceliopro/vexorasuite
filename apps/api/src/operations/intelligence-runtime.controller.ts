@@ -37,7 +37,7 @@ export class IntelligenceRuntimeController {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     const published = object(object(tenant.integrations).intelligencePublished);
     const executions = await this.prisma.auditLog.findMany({ where: { tenantId: req.user.tenantId, action: 'engine.processed' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, createdAt: true, details: true } });
-    return { engine: 'Véxora Intelligence Engine', active: published.active === true, revision: published.revision || null, publishedAt: published.publishedAt || null, flowName: published.flow?.name || null, executableKinds, executableActions, executions, publications: Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,p]:[string,any])=>({key,scope:p.scope,active:p.active,revision:p.revision,flowName:p.flow?.name})), llmExecution: true };
+    return { engine: 'Véxora Intelligence Engine', active: published.source === 'ui' && published.active === true, revision: published.revision || null, publishedAt: published.publishedAt || null, flowName: published.flow?.name || null, executableKinds, executableActions, executions, publications: Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,p]:[string,any])=>({key,scope:p.scope,active:p.source === 'ui' && p.active === true,revision:p.revision,flowName:p.flow?.name})), llmExecution: true };
   }
   @Get('destinations')
   async destinations(@Req() req:AuthenticatedRequest){
@@ -77,7 +77,7 @@ export class IntelligenceRuntimeController {
           if(config.departmentKey&&!await tx.departmentMember.findFirst({where:{tenantId:req.user.tenantId,userId:config.userId,department:{key:config.departmentKey,isActive:true}},select:{id:true}}))throw new BadRequestException(`${step.title}: o atendente não pertence ao time selecionado`);
         }
       }
-      const publication = { revision: randomUUID(), active: true, publishedAt: new Date().toISOString(), flow, scope };
+      const publication = { revision: randomUUID(), active: true, source: 'ui' as const, publishedAt: new Date().toISOString(), flow, scope };
       await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: key==='default'?{...root,intelligencePublished:publication}:{...root,intelligencePublications:{...object(root.intelligencePublications),[key]:publication}} as Prisma.InputJsonValue } });
       await tx.auditLog.create({ data: { tenantId: req.user.tenantId, userId: req.user.sub, action: 'engine.published', entityType: 'chatbot', entityId: publication.revision, details: { channelIds: flow.channelIds!, name: flow.name,scope,key } } });
       return { active: true, revision: publication.revision, publishedAt: publication.publishedAt, scope,key };

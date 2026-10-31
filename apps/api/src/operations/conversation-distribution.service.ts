@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
-type RoutingStrategy = "ROUND_ROBIN" | "LOAD_BALANCED";
+type DistributionStrategy = "QUEUE" | "ROUND_ROBIN" | "LOAD" | "PRIORITY";
 
 @Injectable()
 export class ConversationDistributionService {
@@ -13,10 +13,10 @@ export class ConversationDistributionService {
       const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
         ? tenant.integrations as Record<string, unknown>
         : {};
-      const distribution = integrations.distributionSettings && typeof integrations.distributionSettings === "object" && !Array.isArray(integrations.distributionSettings)
+      const settings = integrations.distributionSettings && typeof integrations.distributionSettings === "object" && !Array.isArray(integrations.distributionSettings)
         ? integrations.distributionSettings as Record<string, unknown>
         : {};
-      if (distribution.enabled !== true) return null;
+      if (settings.enabled !== true) return null;
 
       const department = await tx.department.findFirst({
         where: { id: departmentId, tenantId, isActive: true },
@@ -33,6 +33,12 @@ export class ConversationDistributionService {
       });
       if (!department || !department.members.length) return null;
 
+      const configured = String(settings.strategy || "").toUpperCase();
+      const strategy: DistributionStrategy = ["QUEUE", "ROUND_ROBIN", "LOAD", "PRIORITY"].includes(configured)
+        ? configured as DistributionStrategy
+        : department.routingStrategy === "LOAD_BALANCED" ? "LOAD" : "ROUND_ROBIN";
+      if (strategy === "QUEUE") return null;
+
       const memberIds = department.members.map((member) => member.userId);
       const openCounts = await tx.conversation.groupBy({
         by: ["assigneeId"],
@@ -47,17 +53,23 @@ export class ConversationDistributionService {
         _count: { _all: true },
       });
       const counts = new Map(openCounts.map((row) => [row.assigneeId || "", row._count._all]));
-      const eligible = memberIds.filter((id) => {
-        const limit = department.maxOpenConversations;
-        return limit <= 0 || (counts.get(id) || 0) < limit;
-      });
+      const eligible = memberIds.filter((id) => department.maxOpenConversations <= 0 || (counts.get(id) || 0) < department.maxOpenConversations);
       if (!eligible.length) return null;
 
-      const strategy = department.routingStrategy as RoutingStrategy;
-      const selected = [...eligible].sort((a, b) => {
-        const loadDiff = (counts.get(a) || 0) - (counts.get(b) || 0);
-        return strategy === "LOAD_BALANCED" && loadDiff !== 0 ? loadDiff : a.localeCompare(b);
-      })[0];
+      let selected: string;
+      if (strategy === "ROUND_ROBIN") {
+        const previous = await tx.conversation.findFirst({
+          where: { tenantId, departmentId, assigneeId: { in: memberIds } },
+          orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+          select: { assigneeId: true },
+        });
+        const previousIndex = previous?.assigneeId ? memberIds.indexOf(previous.assigneeId) : -1;
+        selected = eligible.find((id) => memberIds.indexOf(id) > previousIndex) || eligible[0]!;
+      } else {
+        // LOAD and PRIORITY both protect capacity; priority is applied by the caller's
+        // ordered handoff and uses load as the deterministic tie-breaker here.
+        selected = [...eligible].sort((a, b) => (counts.get(a) || 0) - (counts.get(b) || 0) || a.localeCompare(b))[0]!;
+      }
 
       const updated = await tx.conversation.updateMany({
         where: {

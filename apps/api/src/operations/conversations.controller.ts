@@ -149,6 +149,53 @@ export class ConversationsController {
     return Object.fromEntries(entries);
   }
 
+  @Get("distribution-settings")
+  async distributionSettings(@Req() request: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown>
+      : {};
+    const raw = integrations.distributionSettings;
+    const settings = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+    return {
+      enabled: settings.enabled === true,
+      strategy: typeof settings.strategy === "string" ? settings.strategy : "QUEUE",
+      maxActivePerAgent: typeof settings.maxActivePerAgent === "number" ? settings.maxActivePerAgent : 0,
+      priorityOrder: Array.isArray(settings.priorityOrder) ? settings.priorityOrder : ["URGENT", "HIGH", "NORMAL", "LOW"],
+    };
+  }
+
+  @Post("distribution-settings")
+  async saveDistributionSettings(@Req() request: AuthenticatedRequest, @Body() input: {
+    enabled?: unknown;
+    strategy?: unknown;
+    maxActivePerAgent?: unknown;
+    priorityOrder?: unknown;
+  }) {
+    const strategies = ["QUEUE", "ROUND_ROBIN", "LOAD", "PRIORITY"] as const;
+    const strategy = typeof input.strategy === "string" ? input.strategy.trim().toUpperCase() : "QUEUE";
+    if (!strategies.includes(strategy as typeof strategies[number])) {
+      throw new BadRequestException("Estratégia de distribuição inválida.");
+    }
+    const maxActivePerAgent = input.maxActivePerAgent === undefined || input.maxActivePerAgent === null || input.maxActivePerAgent === ""
+      ? 0
+      : Number(input.maxActivePerAgent);
+    if (!Number.isInteger(maxActivePerAgent) || maxActivePerAgent < 0 || maxActivePerAgent > 100) {
+      throw new BadRequestException("O limite por atendente deve ser um número entre 0 e 100.");
+    }
+    const priorities = Array.isArray(input.priorityOrder)
+      ? input.priorityOrder.filter((value): value is string => typeof value === "string" && ["URGENT", "HIGH", "NORMAL", "LOW"].includes(value)).slice(0, 4)
+      : ["URGENT", "HIGH", "NORMAL", "LOW"];
+    const settings = {
+      enabled: input.enabled === true,
+      strategy,
+      maxActivePerAgent,
+      priorityOrder: priorities.length ? priorities : ["URGENT", "HIGH", "NORMAL", "LOW"],
+    };
+    await mutateTenantSetting(this.prisma, request.user.tenantId, "distributionSettings", () => settings);
+    return settings;
+  }
+
   @Post(":id/crm")
   async updateConversationCrm(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { pipelineId?: string; stageId?: string }) {
     await this.assertCanAccess(request, id, "all-open");

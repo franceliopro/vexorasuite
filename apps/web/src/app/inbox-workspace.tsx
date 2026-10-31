@@ -347,7 +347,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       window.removeEventListener("vexora:events-online", markOnline);
       window.removeEventListener("vexora:events-offline", markOffline);
     };
-  }, [loadConversations, loadQueueCounts, loadMessages, loadChannels]);
+  }, [loadConversations, loadQueueCounts, loadMessages, loadChannels, loadSupervision]);
   useEffect(() => {
     const source = new EventSource("/api/backend/events");
     source.onopen = () => window.dispatchEvent(new Event("vexora:events-online"));

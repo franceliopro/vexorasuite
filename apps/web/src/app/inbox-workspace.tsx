@@ -318,21 +318,36 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   }, [loadConversations, loadQueueCounts, loadChannels, loadAssignees]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
 
-  // Poll as a fallback: inbound messages must appear even if an SSE event is missed.
+  // SSE is the primary realtime path. Poll only while it is unavailable, when the tab is visible.
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    let realtimeOnline = false;
+    const refreshFallback = () => {
+      if (realtimeOnline || document.visibilityState !== "visible") return;
       void loadConversations(); void loadQueueCounts(); void loadChannels();
       if (selectedRef.current) void loadMessages(selectedRef.current);
-    }, 5000);
-    return () => window.clearInterval(timer);
+    };
+    const markOnline = () => { realtimeOnline = true; };
+    const markOffline = () => { realtimeOnline = false; };
+    const onVisibility = () => { if (document.visibilityState === "visible") refreshFallback(); };
+    window.addEventListener("vexora:events-online", markOnline);
+    window.addEventListener("vexora:events-offline", markOffline);
+    document.addEventListener("visibilitychange", onVisibility);
+    const timer = window.setInterval(refreshFallback, 15000);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("vexora:events-online", markOnline);
+      window.removeEventListener("vexora:events-offline", markOffline);
+    };
   }, [loadConversations, loadQueueCounts, loadMessages, loadChannels]);
   useEffect(() => {
     const source = new EventSource("/api/backend/events");
+    source.onopen = () => window.dispatchEvent(new Event("vexora:events-online"));
     const refresh = () => { void loadConversations(); void loadQueueCounts(); void loadChannels(); if (selectedRef.current) void loadMessages(selectedRef.current); };
     ["message.received", "message.sent", "message.failed", "message.status", "message.queued", "conversation.updated", "conversation.assigned", "conversation.created", "contact.updated", "contact.created", "contact.stage_changed", "channel.status", "channel.created"].forEach((name) => source.addEventListener(name, refresh));
     source.addEventListener("team.updated",()=>{void loadAssignees();void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(()=>{});refresh();});
     // EventSource reconnects automatically. Keep the interface quiet; the 5-second polling fallback keeps conversations fresh while SSE recovers.
-    source.onerror = () => { /* transient realtime interruptions are handled silently */ };
+    source.onerror = () => { window.dispatchEvent(new Event("vexora:events-offline")); };
     return () => source.close();
   }, [loadConversations, loadQueueCounts, loadChannels, loadMessages]);
 

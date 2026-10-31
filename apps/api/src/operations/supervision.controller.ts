@@ -1,19 +1,47 @@
-import { BadRequestException, Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Patch, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { mutateTenantSetting } from "../prisma/tenant-settings";
 
 @Controller("supervision")
 @UseGuards(AuthGuard)
 export class SupervisionController {
   constructor(private readonly prisma: PrismaService) {}
 
+  private ensureAdmin(request: AuthenticatedRequest) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role))
+      throw new BadRequestException("Somente a supervisão pode consultar este painel.");
+  }
+
+  private async configuredSla(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const settings = integrations.supervisionSettings && typeof integrations.supervisionSettings === "object" && !Array.isArray(integrations.supervisionSettings) ? integrations.supervisionSettings as Record<string, unknown> : {};
+    const value = Number(settings.slaMinutes);
+    return Number.isInteger(value) && value >= 1 && value <= 1440 ? value : 30;
+  }
+
+  @Get("settings")
+  async settings(@Req() request: AuthenticatedRequest) {
+    this.ensureAdmin(request);
+    return { slaMinutes: await this.configuredSla(request.user.tenantId) };
+  }
+
+  @Patch("settings")
+  async updateSettings(@Req() request: AuthenticatedRequest, @Body() input: { slaMinutes?: unknown }) {
+    this.ensureAdmin(request);
+    const slaMinutes = Number(input.slaMinutes);
+    if (!Number.isInteger(slaMinutes) || slaMinutes < 1 || slaMinutes > 1440)
+      throw new BadRequestException("O SLA deve estar entre 1 e 1.440 minutos.");
+    await mutateTenantSetting(this.prisma, request.user.tenantId, "supervisionSettings", () => ({ slaMinutes }));
+    return { slaMinutes };
+  }
+
   @Get("overview")
   async overview(@Req() request: AuthenticatedRequest, @Query("slaMinutes") slaMinutesInput?: string) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
-      throw new BadRequestException("Somente a supervisão pode consultar este painel.");
-    }
-    const slaMinutes = slaMinutesInput === undefined ? 30 : Number(slaMinutesInput);
+    this.ensureAdmin(request);
+    const slaMinutes = slaMinutesInput === undefined ? await this.configuredSla(request.user.tenantId) : Number(slaMinutesInput);
     if (!Number.isInteger(slaMinutes) || slaMinutes < 1 || slaMinutes > 1440) {
       throw new BadRequestException("O SLA deve estar entre 1 e 1.440 minutos.");
     }

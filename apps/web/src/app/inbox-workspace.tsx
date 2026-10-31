@@ -76,6 +76,7 @@ type SupervisionOverview = {
   totals: { open: number; pending: number; waiting: number; stale: number };
   oldestWaiting: { conversationId: string; contactName: string; createdAt: string } | null;
   byDepartment: Array<{ id: string; name: string; waiting: number; open: number; stale: number }>;
+  staleConversations: Array<{ id: string; contactName: string; assignee: string | null; department: string | null; updatedAt: string; status: string }>;
 };
 function avatarUrl(contact: Contact): string | null {
   const meta = contact.metadata || {};
@@ -141,6 +142,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   useEffect(()=>{let live=true;fetch("/api/backend/crm/pipelines",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{if(live)setQuickReplyPipelines(Array.isArray(data?.pipelines)?data.pipelines:[])}).catch(()=>{});return()=>{live=false}},[tenantId]);
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [supervision, setSupervision] = useState<SupervisionOverview | null>(null);
+  const [supervisionSla, setSupervisionSla] = useState(30);
   const [queueView, setQueueView] = useState("mine");
   const notificationFocus=useRef<string|null>(null),conversationRequest=useRef(0);
   useEffect(()=>{const id=new URLSearchParams(window.location.search).get("conversation");if(id&&/^[a-f0-9-]{36}$/i.test(id)){notificationFocus.current=id;setQueueView("all-open");setMobileThreadOpen(true)}},[]);
@@ -252,9 +254,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     try { setChannels(await api<Channel[]>("/api/backend/channels")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar canais."); }
   }, []);
-  const loadSupervision = useCallback(async () => {
+  const loadSupervision = useCallback(async (sla = supervisionSla) => {
     try {
-      const data = await api<Partial<SupervisionOverview>>("/api/backend/supervision/overview?slaMinutes=30");
+      const data = await api<Partial<SupervisionOverview>>("/api/backend/supervision/overview?slaMinutes=" + encodeURIComponent(String(sla)));
       if (
         data &&
         typeof data.slaMinutes === "number" &&
@@ -269,7 +271,16 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     } catch {
       // Supervisão é restrita a administradores; agentes seguem sem chamada ou aviso extra.
     }
-  }, []);
+  }, [supervisionSla]);
+  useEffect(() => {
+    void api<{ slaMinutes: number }>("/api/backend/supervision/settings").then((settings) => {
+      const sla = Number(settings.slaMinutes);
+      if (Number.isInteger(sla) && sla >= 1 && sla <= 1440) {
+        setSupervisionSla(sla);
+        void loadSupervision(sla);
+      }
+    }).catch(() => {});
+  }, [loadSupervision]);
   const loadMessages = useCallback(async (id: string) => {
     try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView)); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
@@ -656,7 +667,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
         </details>
       </nav>
       {supervision ? <section className="supervision-summary" aria-label="Supervisão operacional">
-        <div className="supervision-summary-heading"><strong>Supervisão</strong><small>SLA de {supervision.slaMinutes} min</small></div>
+        <div className="supervision-summary-heading"><strong>Supervisão</strong><label>SLA<select value={supervisionSla} onChange={async (event) => { const sla = Number(event.target.value); setSupervisionSla(sla); try { await api("/api/backend/supervision/settings", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slaMinutes: sla }) }); await loadSupervision(sla); } catch { setError("Não foi possível salvar o SLA."); } }}><option value={15}>15 min</option><option value={30}>30 min</option><option value={60}>1 hora</option><option value={120}>2 horas</option><option value={240}>4 horas</option></select></label></div>
         <div className="supervision-metrics">
           <span><strong>{supervision.totals.waiting}</strong><small>Aguardando</small></span>
           <span><strong>{supervision.totals.open}</strong><small>Abertas</small></span>
@@ -664,6 +675,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
           <span className={supervision.totals.stale ? "is-alert" : ""}><strong>{supervision.totals.stale}</strong><small>Fora do SLA</small></span>
         </div>
         {supervision.oldestWaiting ? <p className="supervision-oldest">Mais antiga: <strong>{supervision.oldestWaiting.contactName}</strong></p> : null}
+        <details className="supervision-details"><summary>Ver por departamento e conversas paradas</summary><div className="supervision-departments">{supervision.byDepartment.map((department) => <span key={department.id}><strong>{department.name}</strong><small>{department.waiting} aguardando · {department.open} abertas · {department.stale} fora do SLA</small></span>)}</div>{supervision.staleConversations.length ? <div className="supervision-stale-list">{supervision.staleConversations.slice(0, 8).map((conversation) => <button key={conversation.id} type="button" onClick={() => { notificationFocus.current = conversation.id; setQueueView("all-open"); setSelectedId(conversation.id); setMobileThreadOpen(true); void loadConversations(); }}><strong>{conversation.contactName}</strong><small>{conversation.department || "Sem departamento"} · {conversation.assignee || "Sem atendente"}</small></button>)}</div> : <small className="supervision-clear">Nenhuma conversa fora do SLA.</small>}</details>
       </section> : null}
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { notificationFocus.current=null;setSelectedId(item.id); setMobileThreadOpen(true); }}>

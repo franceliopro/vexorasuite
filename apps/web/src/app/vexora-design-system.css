@@ -2087,3 +2087,40 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .chatbot-workspace .vx-flow-board {
   z-index: 0;
 }
+
+
+/* Final fullscreen layout override: inspector state must not collapse the canvas column. */
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell,
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-inspector-empty,
+.chatbot-workspace:fullscreen .vx-flow-shell,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-inspector-empty {
+  display: grid !important;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(240px, 26%) !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-inspector-empty .vx-flow-inspector,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-inspector-empty .vx-flow-inspector {
+  display: none !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage,
+.chatbot-workspace:fullscreen .vx-flow-stage {
+  display: flex !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll,
+.chatbot-workspace:fullscreen .vx-flow-scroll {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: auto !important;
+}

@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useState,type FormEvent} from "react";
 
 type Draft={id:string;createdAt:string;details:{status:string;title:string;caption:string;channels:string[];mediaUrl?:string;plannedFor?:string}};
 const networks=[["instagram","Instagram"],["facebook","Facebook"],["linkedin","LinkedIn"],["google-business","Google Business"],["tiktok","TikTok"]];
@@ -13,8 +13,8 @@ export function ManualContentWorkspace(){
  useEffect(()=>{void load().catch(e=>setNotice(e.message))},[load]);
  function toggleNetwork(value:string){setChannels(v=>v.includes(value)?v.filter(x=>x!==value):[...v,value])}
  async function act(fn:()=>Promise<void>){setBusy(true);setNotice("");try{await fn()}catch(e){setNotice(e instanceof Error?e.message:"Não foi possível concluir.")}finally{setBusy(false)}}
- async function createManual(e:React.FormEvent){e.preventDefault();await act(async()=>{await api("marketing/manual-drafts",{title,caption,channels,mediaUrl,plannedFor});setTitle("");setCaption("");setMediaUrl("");setPlannedFor("");await load();setNotice("Rascunho manual salvo. Revise e marque como pronto quando quiser.")})}
- async function createAgent(e:React.FormEvent){e.preventDefault();await act(async()=>{const result=await api("marketing/drafts",{question,format,useBrandOnly:brandOnly,publish:false});setOpened(result.automation);setAgentCaption(result.automation?.carousel?.caption||"");setAgentDate("");setNotice("A Agente Marketing preparou um rascunho para revisão.")})}
+ async function createManual(e:FormEvent){e.preventDefault();await act(async()=>{await api("marketing/manual-drafts",{title,caption,channels,mediaUrl,plannedFor});setTitle("");setCaption("");setMediaUrl("");setPlannedFor("");await load();setNotice("Rascunho manual salvo. Revise e marque como pronto quando quiser.")})}
+ async function createAgent(e:FormEvent){e.preventDefault();await act(async()=>{const result=await api("marketing/drafts",{question,format,useBrandOnly:brandOnly,publish:false});setOpened(result.automation);setAgentCaption(result.automation?.carousel?.caption||"");setAgentDate("");setNotice("A Agente Marketing preparou um rascunho para revisão.")})}
  return <section className="simple-workspace marketing-creations-workspace"><header className="creative-heading"><div><span className="eyebrow">MARKETING</span><h1>Publicações e criações</h1><p>Prepare manualmente ou peça à Agente Marketing para pesquisar e criar.</p></div></header>
  <div className="module-tabs marketing-mode-tabs"><button className={mode==="manual"?"active":""} onClick={()=>setMode("manual")}>Publicar manualmente</button><button className={mode==="agent"?"active":""} onClick={()=>setMode("agent")}>Agente Marketing</button><button className={mode==="calendar"?"active":""} onClick={()=>setMode("calendar")}>Calendário editorial</button></div>
  {notice&&<p role="status" className="workflow-notice">{notice}</p>}

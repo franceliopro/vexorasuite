@@ -2303,3 +2303,40 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .checkbox-line{display:flex!important;flex-direction:row;align-items:center;gap:8px}
 .checkbox-line input{width:auto!important}
 @media (max-width:760px){.marketing-automation-form{padding:16px}.marketing-automation-note{font-size:.8rem}}
+
+
+/* Mobile navigation: larger touch targets and readable labels. */
+@media (max-width: 760px) {
+  .mobile-bottom-nav {
+    min-height: calc(72px + env(safe-area-inset-bottom));
+    padding-top: 4px;
+  }
+  .mobile-bottom-nav button {
+    min-height: 62px;
+    padding: 7px 10px;
+    gap: 4px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .mobile-bottom-nav button svg {
+    width: 22px;
+    height: 22px;
+  }
+  .sidebar .nav-item,
+  .sidebar .nav-subitem {
+    min-height: 50px;
+    padding-block: 10px !important;
+    font-size: 15px !important;
+  }
+  .sidebar .nav-glyph {
+    width: 24px;
+    height: 24px;
+  }
+  .sidebar .nav-glyph svg {
+    width: 21px;
+    height: 21px;
+  }
+  .page-content {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+}

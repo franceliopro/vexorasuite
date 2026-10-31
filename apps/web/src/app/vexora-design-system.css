@@ -1971,3 +1971,90 @@ body { background: var(--surface-page); color: var(--text-primary); }
     display: block !important;
   }
 }
+
+
+/* Sidebar navigation: groups expand on click; never use a hover flyout. */
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
+  .suite-app > .sidebar.sidebar-collapsed,
+  .suite-app > .sidebar.sidebar-collapsed:hover,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within {
+    width: 78px;
+    box-shadow: none;
+  }
+  .suite-app > .sidebar.sidebar-collapsed .brand,
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .suite-app > .sidebar.sidebar-collapsed .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed .switch-chevron,
+  .suite-app > .sidebar.sidebar-collapsed .nav-section,
+  .suite-app > .sidebar.sidebar-collapsed .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-collapsed .nav-accordion-chevron,
+  .suite-app > .sidebar.sidebar-collapsed .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed .help-arrow,
+  .suite-app > .sidebar.sidebar-collapsed .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed .profile-more {
+    display: none !important;
+  }
+  .suite-app > .sidebar.sidebar-collapsed .nav-item,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+    padding: 6px;
+    gap: 0;
+  }
+  .suite-app > .sidebar.sidebar-collapsed .nav-glyph,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-glyph,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-glyph {
+    width: 22px;
+    flex: 0 0 22px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed .nav-submenu,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-submenu,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-submenu {
+    position: static;
+    min-width: 0;
+    margin: 2px 0 6px;
+    padding: 2px 0 2px 8px;
+    border: 0;
+    border-left: 1px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+.sidebar .sidebar-utilities {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar .sidebar-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar .sidebar-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.sidebar .sidebar-help {
+  display: inline-flex;
+  align-items: center;
+}
+.sidebar .sidebar-help > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.sidebar .sidebar-help > summary::-webkit-details-marker {
+  display: none;
+}

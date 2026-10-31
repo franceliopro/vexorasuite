@@ -95,6 +95,8 @@ model Tenant {
   calendarAssignments CalendarAssignment[]
   creativeReferences CreativeReference[]
   publicApiTokens PublicApiToken[]
+  webhookSubscriptions WebhookSubscription[]
+  webhookDeliveries WebhookDelivery[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -594,6 +596,43 @@ model PublicApiToken {
   tenant Tenant @relation(fields:[tenantId], references:[id], onDelete:Cascade)
   @@index([tenantId, revokedAt])
   @@map("public_api_tokens")
+}
+
+model WebhookSubscription {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  name String
+  url String
+  secretCiphertext String @map("secret_ciphertext")
+  events String[] @default([])
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields:[tenantId], references:[id], onDelete:Cascade)
+  deliveries WebhookDelivery[]
+  @@index([tenantId, active])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  subscriptionId String @db.Uuid @map("subscription_id")
+  eventId String @db.Uuid @map("event_id")
+  eventType String @map("event_type")
+  payload Json
+  status String @default("PENDING")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
+  responseStatus Int? @map("response_status")
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields:[tenantId], references:[id], onDelete:Cascade)
+  subscription WebhookSubscription @relation(fields:[subscriptionId], references:[id], onDelete:Cascade)
+  @@unique([subscriptionId, eventId])
+  @@index([tenantId, status, nextAttemptAt])
+  @@map("webhook_deliveries")
 }
 
 model InternalMention {

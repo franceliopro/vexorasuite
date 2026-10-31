@@ -103,11 +103,26 @@ export class ContactsController {
   }
 
   @Get("profile-config")
-  async profileConfig(@Req() request: AuthenticatedRequest) {
+  async profileConfig(
+    @Req() request: AuthenticatedRequest,
+    @Query("pipelineId") pipelineId?: string,
+    @Query("stageId") stageId?: string,
+  ) {
+    if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
     const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
-    return { tags: Array.isArray(config.tags) ? config.tags : [], fields: Array.isArray(config.fields) ? config.fields : [] };
+    const fields = Array.isArray(config.fields) ? config.fields : [];
+    const scoped = pipelineId
+      ? fields.filter((raw) => {
+          if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+          const field = raw as Record<string, unknown>;
+          if (typeof field.pipelineId === "string" && field.pipelineId !== pipelineId) return false;
+          const stages = Array.isArray(field.stageIds) ? field.stageIds.filter((value): value is string => typeof value === "string") : [];
+          return !stages.length || !stageId || stages.includes(stageId);
+        })
+      : fields;
+    return { tags: Array.isArray(config.tags) ? config.tags : [], fields: scoped };
   }
 
   @Post("profile-config/tags")
@@ -134,21 +149,32 @@ export class ContactsController {
   }
 
   @Post("profile-config/fields")
-  async createProfileField(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; type?: unknown; options?: unknown }) {
+  async createProfileField(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; type?: unknown; options?: unknown; pipelineId?: unknown; stageIds?: unknown }) {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const type = typeof input.type === "string" ? input.type.toUpperCase() : "TEXT";
     const allowed = ["TEXT", "NUMBER", "DATE", "SELECT", "CHECKBOX"];
     const options = Array.isArray(input.options) ? input.options.filter((value): value is string => typeof value === "string").map(value => value.trim()).filter(Boolean).slice(0, 30) : [];
+    const pipelineId = typeof input.pipelineId === "string" && input.pipelineId.trim() ? input.pipelineId.trim() : null;
+    const stageIds = Array.isArray(input.stageIds) ? [...new Set(input.stageIds.filter((value): value is string => typeof value === "string" && /^[a-z0-9_-]{1,60}$/i.test(value)).map(value => value.trim()))].slice(0, 10) : [];
     if (!name || name.length > 80 || !allowed.includes(type) || (type === "SELECT" && options.length < 1)) throw new BadRequestException("Informe nome, tipo e opções válidas para o campo.");
+    if (pipelineId) {
+      if (!administrative(request.user.role)) throw new ForbiddenException("Somente administradores configuram campos por pipeline.");
+      const pipeline = await accessiblePipeline(this.prisma, request, pipelineId);
+      const stages: Array<Record<string, unknown>> = Array.isArray(pipeline.stages) ? (pipeline.stages as unknown[]).filter((value): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value)) : [];
+      const knownStages = new Set(stages.map(stage => typeof stage.id === "string" ? stage.id : "").filter(Boolean));
+      if (stageIds.some(stageId => !knownStages.has(stageId))) throw new BadRequestException("A etapa selecionada não pertence a este pipeline.");
+    } else if (stageIds.length) {
+      throw new BadRequestException("Selecione um pipeline antes de limitar o campo a etapas.");
+    }
     const key = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
     if (!key) throw new BadRequestException("O nome do campo precisa conter letras ou números.");
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
     const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
     const fields = Array.isArray(config.fields) ? config.fields as Array<Record<string, unknown>> : [];
-    if (fields.some(field => field.key === key)) throw new BadRequestException("Já existe um campo com esse nome. Escolha outro nome.");
+    if (fields.some(field => field.key === key && (typeof field.pipelineId === "string" ? field.pipelineId : null) === pipelineId && JSON.stringify(Array.isArray(field.stageIds) ? field.stageIds : []) === JSON.stringify(stageIds))) throw new BadRequestException("Já existe um campo com esse nome neste contexto.");
     if (fields.length >= 100) throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
-    const field = { id: randomUUID(), name, key, type, options: type === "SELECT" ? options : [], createdBy: request.user.sub, createdAt: new Date().toISOString() };
+    const field = { id: randomUUID(), name, key, type, options: type === "SELECT" ? options : [], pipelineId, stageIds, createdBy: request.user.sub, createdAt: new Date().toISOString() };
     await mutateTenantSetting(this.prisma,request.user.tenantId,"crmProfileConfig",current=>{
       const value=current&&typeof current==="object"&&!Array.isArray(current)?current as Record<string,any>:{};
       const latest=Array.isArray(value.fields)?value.fields:[];

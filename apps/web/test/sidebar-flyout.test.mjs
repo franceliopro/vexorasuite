@@ -10,8 +10,11 @@ test("sidebar starts collapsed and collapses after selecting navigation", () => 
   assert.match(page, /setSidebarCollapsed\(true\)/);
 });
 
-test("desktop sidebar flyout does not reflow the main workspace", () => {
+test("collapsed sidebar uses click navigation instead of hover flyouts", () => {
+  assert.match(page, /setSidebarCollapsed\(false\)/);
+  assert.doesNotMatch(page, /onPointerEnter=\{event=>\{if\(event\.pointerType==="mouse"\)setExpandedModules/);
   assert.match(design, /sidebar\.sidebar-collapsed:hover/);
-  assert.match(design, /width: 258px/);
-  assert.match(design, /position: fixed/);
+  assert.match(design, /width: 78px/);
+  assert.match(design, /position: static/);
+  assert.match(design, /sidebar-utilities/);
 });

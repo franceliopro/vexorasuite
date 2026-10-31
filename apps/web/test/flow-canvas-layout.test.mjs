@@ -18,6 +18,7 @@ test("fullscreen keeps the stage and scroll surface visible", () => {
   assert.match(design, /\.chatbot-workspace:fullscreen \.vx-flow-stage/);
   assert.match(design, /\.chatbot-workspace:fullscreen \.vx-flow-scroll/);
   assert.match(design, /\.chatbot-workspace:fullscreen \.vx-flow-board/);
-  assert.match(workspace, /document\.addEventListener\("fullscreenchange"/);
+  assert.match(workspace, /function toggleFullScreen\(\)\{setFullScreen\(value=>!value\)\}/);
+  assert.doesNotMatch(workspace, /requestFullscreen/);
   assert.doesNotMatch(workspace, /setFullScreen\(false\);setEditorOpen\(false\)/);
 });

@@ -155,7 +155,7 @@ export class AssistantController {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     const root = object(tenant.integrations);
     const config = parseConfig(tenant.integrations);
-    const publications = [root.intelligencePublished, ...Object.values(object(root.intelligencePublications))].filter((value) => value && typeof value === "object" as any).filter((value) => (value as any).active === true) as any[];
+    const publications = [root.intelligencePublished, ...Object.values(object(root.intelligencePublications))].filter((value) => value && typeof value === "object").filter((value) => (value as any).active === true) as any[];
     const agentVisibility = config.agents.map((agent) => {
       const activePublications = publications.filter((publication) => JSON.stringify(publication.flow || {}).includes('"agentId":"' + agent.id + '"'));
       return {

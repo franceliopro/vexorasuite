@@ -542,6 +542,7 @@ model WorkflowRun {
  conversationId String? @db.Uuid @map("conversation_id")
  status String @default("WAITING")
  position Int @default(0)
+ attempts Int @default(0)
  nextRunAt DateTime @map("next_run_at")
  error String?
  createdAt DateTime @default(now()) @map("created_at")

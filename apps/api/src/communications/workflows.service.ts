@@ -50,7 +50,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
       timezone = text(input.timezone, 100);
     const nextRunAt = localInstant(String(input.localStart || ""), timezone),
       steps = workflowSteps(input.steps);
-    if (!["SCHEDULE", "INBOX", "QUEUE", "STAGE"].includes(input.trigger))
+    if (!["SCHEDULE", "INBOX", "MESSAGE", "CONTACT", "PAYMENT", "QUEUE", "STAGE"].includes(input.trigger))
       throw new BadRequestException("Gatilho inválido.");
     const repeatDays = Number(input.repeatDays || 0);
     if (!Number.isInteger(repeatDays) || repeatDays < 0 || repeatDays > 365)
@@ -113,6 +113,10 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
         assigneeId: f.assigneeId || null,
         stage: f.stage || null,
         stopOnReply: f.stopOnReply !== false,
+        cancelClosed: f.cancelClosed !== false,
+        maxAttempts: Number.isInteger(Number(f.maxAttempts)) ? Math.max(1, Math.min(10, Number(f.maxAttempts))) : 3,
+        retryFailed: f.retryFailed !== false,
+        reviewUnsafe: f.reviewUnsafe !== false,
       },
     };
     if (input.id) {
@@ -266,6 +270,15 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
             ...(rule.trigger === "INBOX"
               ? { createdAt: { gte: rule.createdAt } }
               : {}),
+            ...(rule.trigger === "MESSAGE"
+              ? { messages: { some: { direction: "INBOUND", occurredAt: { gte: rule.createdAt } } } }
+              : {}),
+            ...(rule.trigger === "CONTACT"
+              ? { contact: { updatedAt: { gte: rule.createdAt } } }
+              : {}),
+            ...(rule.trigger === "PAYMENT"
+              ? { payments: { some: { updatedAt: { gte: rule.createdAt } } } }
+              : {}),
             ...(rule.trigger === "STAGE"
               ? {
                   contact: {
@@ -322,13 +335,35 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
           });
         });
         if (!claimed) break;
-        await this.execute(claimed).catch(async () => {
-          await this.prisma.workflowRun.updateMany({
-            where: { id: claimed.id, status: "RUNNING" },
+        await this.execute(claimed).catch(async (cause) => {
+          const current = await this.prisma.workflowRun.findUnique({
+            where: { id: claimed.id },
+            include: { workflow: true },
+          });
+          if (!current || current.status !== "RUNNING") return;
+          const filters = (current.workflow.filters || {}) as Record<string, unknown>;
+          const maxAttempts = Number.isInteger(Number(filters.maxAttempts))
+            ? Math.max(1, Math.min(10, Number(filters.maxAttempts)))
+            : 3;
+          const nextAttempts = current.attempts + 1;
+          if (filters.retryFailed !== false && nextAttempts < maxAttempts) {
+            await this.prisma.workflowRun.update({
+              where: { id: current.id },
+              data: {
+                attempts: nextAttempts,
+                status: "WAITING",
+                nextRunAt: new Date(Date.now() + 5 * 60_000),
+                error: cause instanceof Error ? cause.message.slice(0, 240) : "Falha temporária.",
+              },
+            });
+            return;
+          }
+          await this.prisma.workflowRun.update({
+            where: { id: current.id },
             data: {
-              status: "REVIEW",
-              error:
-                "A etapa precisa de revisão. Confira o contato e a conexão.",
+              attempts: nextAttempts,
+              status: filters.reviewUnsafe !== false ? "REVIEW" : "FAILED",
+              error: "A etapa falhou após as tentativas configuradas. Confira a conexão e o contato.",
             },
           });
         });
@@ -521,6 +556,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
       where: { id: run.id, status: "RUNNING" },
       data: {
         position: run.position + 1,
+        attempts: 0,
         status: run.position + 1 >= steps.length ? "DONE" : "WAITING",
         nextRunAt: new Date(
           Date.now() + (step.type === "WAIT" ? step.minutes * 60000 : 0),

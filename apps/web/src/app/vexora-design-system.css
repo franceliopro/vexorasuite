@@ -1717,3 +1717,11 @@ body { background: var(--surface-page); color: var(--text-primary); }
  .suite-app>.sidebar:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
 }
 
+
+/* Collapsed navigation: keep flyout submenus visible and reachable outside the icon rail. */
+.sidebar.sidebar-collapsed .side-nav {
+  overflow: visible !important;
+}
+.sidebar.sidebar-collapsed .nav-submenu {
+  left: calc(100% + 6px);
+}

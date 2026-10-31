@@ -166,7 +166,7 @@ export class ConversationsController {
     if (status && ["OPEN", "PENDING", "RESOLVED", "CLOSED"].includes(status.toUpperCase()) && !["new", "mine", "team", "others", "all-open", "completed", "archived", "trash"].includes(view)) where.status = status.toUpperCase();
     const rows = await this.prisma.conversation.findMany({
       where: where as any,
-      include: { contact: { select: { id: true, name: true, phone: true, email: true, externalId: true, metadata: true } }, assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 }, participants: { include: { user: { select: { id: true, name: true } } } } },
+      include: { contact: { select: { id: true, name: true, phone: true, email: true, externalId: true, metadata: true } }, assignee: { select: { id: true, name: true } }, department: { select: { id: true, key: true, name: true } }, messages: { orderBy: { occurredAt: "desc" }, take: 1 } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       take: 100,
     });

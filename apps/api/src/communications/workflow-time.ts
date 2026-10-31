@@ -50,7 +50,7 @@ export function workflowSteps(raw: unknown) {
   return raw.map((step: any) => {
     if (
       !step ||
-      !["WAIT", "TASK", "NOTE", "TAG", "WHATSAPP"].includes(step.type)
+      !["WAIT", "TASK", "NOTE", "TAG", "UNTAG", "WHATSAPP", "ASSIGN_DEPARTMENT", "ASSIGN_AGENT", "STAGE", "PRIORITY", "STATUS"].includes(step.type)
     )
       throw new BadRequestException("Etapa inválida.");
     const minutes = Number(step.minutes || 0);

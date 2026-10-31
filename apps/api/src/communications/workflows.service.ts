@@ -92,6 +92,22 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException(
         "Rotinas por horário permitem esperas e tarefas internas. Para mensagens, use um gatilho de conversa.",
       );
+    for (const step of steps) {
+      if (step.type === "ASSIGN_DEPARTMENT") {
+        if (!isUUID(step.text) || !await this.prisma.department.findFirst({ where: { id: step.text, tenantId: req.user.tenantId, isActive: true }, select: { id: true } }))
+          throw new BadRequestException("Departamento da ação não pertence à empresa.");
+      }
+      if (step.type === "ASSIGN_AGENT") {
+        if (!isUUID(step.text) || !await this.prisma.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: step.text, user: { isActive: true } }, select: { id: true } }))
+          throw new BadRequestException("Atendente da ação não pertence à empresa.");
+      }
+      if (step.type === "STAGE" && !["new", "qualification", "proposal", "finalization"].includes(step.text))
+        throw new BadRequestException("Etapa da ação inválida.");
+      if (step.type === "PRIORITY" && !["LOW", "NORMAL", "HIGH", "URGENT"].includes(step.text))
+        throw new BadRequestException("Prioridade da ação inválida.");
+      if (step.type === "STATUS" && !["OPEN", "PENDING", "RESOLVED", "CLOSED"].includes(step.text))
+        throw new BadRequestException("Status da ação inválido.");
+    }
     if (input.enabled !== undefined && typeof input.enabled !== "boolean")
       throw new BadRequestException("Estado inválido.");
     if(f.assigneeId){
@@ -408,12 +424,13 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
           include: { contact: true, channelConnection: true },
         })
       : null;
+    const workflowFilters = (rule.filters || {}) as Record<string, unknown>;
     if (
       run.conversationId &&
       (!conversation ||
         conversation.deletedAt ||
         conversation.archivedAt ||
-        ["CLOSED", "RESOLVED"].includes(conversation.status))
+        (workflowFilters.cancelClosed !== false && ["CLOSED", "RESOLVED"].includes(conversation.status)))
     )
       return this.prisma.workflowRun.update({
         where: { id: run.id },
@@ -524,33 +541,30 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
               metadata: { workflowRunId: run.id },
             },
           });
-        if (step.type === "TAG" && conversation) {
-          const contact = await lockedContact(
-            tx,
-            rule.tenantId,
-            conversation.contactId,
-          );
+        if (step.type === "TAG" || step.type === "UNTAG") {
+          if (!conversation) return;
+          const contact = await lockedContact(tx, rule.tenantId, conversation.contactId);
           const metadata = contactMetadata(contact.metadata);
           const tags = Array.isArray(metadata.tags) ? metadata.tags : [];
-          if (
-            !tags.some(
-              (tag: any) =>
-                (typeof tag === "string" ? tag : tag?.name) === content,
-            )
-          )
-            await tx.contact.update({
-              where: { id: contact.id },
-              data: {
-                metadata: {
-                  ...metadata,
-                  tags: [
-                    ...tags,
-                    { name: content.slice(0, 40), color: "#6258df" },
-                  ],
-                },
-              },
-            });
+          const matches = (tag: any) => (typeof tag === "string" ? tag : tag?.name) === content;
+          const nextTags = step.type === "TAG"
+            ? (tags.some(matches) ? tags : [...tags, { name: content.slice(0, 40), color: "#6258df" }])
+            : tags.filter((tag: any) => !matches(tag));
+          await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, tags: nextTags } } });
         }
+        if (conversation && step.type === "ASSIGN_DEPARTMENT")
+          await tx.conversation.update({ where: { id: conversation.id }, data: { departmentId: content } });
+        if (conversation && step.type === "ASSIGN_AGENT")
+          await tx.conversation.update({ where: { id: conversation.id }, data: { assigneeId: content, handlingMode: "HUMAN" } });
+        if (conversation && step.type === "STAGE") {
+          const contact = await lockedContact(tx, rule.tenantId, conversation.contactId);
+          const metadata = contactMetadata(contact.metadata);
+          await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, crmStage: content, crmFinalization: null } } });
+        }
+        if (conversation && step.type === "PRIORITY")
+          await tx.conversation.update({ where: { id: conversation.id }, data: { priority: content } });
+        if (conversation && step.type === "STATUS")
+          await tx.conversation.update({ where: { id: conversation.id }, data: { status: content as any } });
       });
     await this.prisma.workflowRun.updateMany({
       where: { id: run.id, status: "RUNNING" },

@@ -13,6 +13,37 @@ import { localInstant, repeatInstant, workflowSteps } from "./workflow-time";
 import { WahaService } from "../operations/waha.service";
 import { contactMetadata, lockedContact } from "../prisma/contact-metadata";
 import { text } from "./content";
+
+const WORKFLOW_CONVERSATION_STATUSES = ["OPEN", "PENDING", "RESOLVED", "CLOSED"] as const;
+const WORKFLOW_FINANCIAL_STATUSES = ["OPEN", "PENDING", "PAID", "OVERDUE", "CANCELLED"] as const;
+
+function parseCustomerField(value: unknown): { key: string; expected: string } | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const match = value.trim().match(/^([a-zA-Z0-9_.-]{1,80})\\s*=\\s*(.{1,200})$/);
+  return match ? { key: match[1]!, expected: match[2]!.trim() } : null;
+}
+
+function metadataValue(metadata: unknown, key: string): unknown {
+  return key.split(".").reduce<unknown>((current, segment) => {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+    return (current as Record<string, unknown>)[segment];
+  }, metadata);
+}
+
+function matchesWorkflowFilters(conversation: any, filters: Record<string, unknown>): boolean {
+  if (filters.tag) {
+    const tags = metadataValue(conversation.contact?.metadata, "tags");
+    if (!Array.isArray(tags) || !tags.some((tag) => String(tag).toLowerCase() === String(filters.tag).trim().toLowerCase())) return false;
+  }
+  const field = parseCustomerField(filters.customerField);
+  if (field && String(metadataValue(conversation.contact?.metadata, field.key) ?? "") !== field.expected) return false;
+  if (filters.financialStatus) {
+    const status = String(filters.financialStatus);
+    if (!conversation.payments?.some((payment: any) => String(payment.status).toUpperCase() === status)) return false;
+  }
+  if (filters.conversationStatus && conversation.status !== filters.conversationStatus) return false;
+  return true;
+}
 @Injectable()
 export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
   constructor(
@@ -85,6 +116,14 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
       !["new", "qualification", "proposal", "finalization"].includes(f.stage)
     )
       throw new BadRequestException("Etapa do CRM inválida.");
+    if (f.conversationStatus && !WORKFLOW_CONVERSATION_STATUSES.includes(f.conversationStatus))
+      throw new BadRequestException("Status da conversa inválido.");
+    if (f.financialStatus && !WORKFLOW_FINANCIAL_STATUSES.includes(f.financialStatus))
+      throw new BadRequestException("Situação financeira inválida.");
+    if (f.customerField && !parseCustomerField(f.customerField))
+      throw new BadRequestException("Dado do cliente inválido. Use o formato campo = valor.");
+    if (f.tag && (typeof f.tag !== "string" || f.tag.trim().length > 80))
+      throw new BadRequestException("Etiqueta inválida.");
     if (
       input.trigger === "SCHEDULE" &&
       steps.some((s) => s.type !== "TASK" && s.type !== "WAIT")
@@ -128,6 +167,10 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
         departmentId: f.departmentId || null,
         assigneeId: f.assigneeId || null,
         stage: f.stage || null,
+        tag: f.tag || null,
+        conversationStatus: f.conversationStatus || null,
+        customerField: f.customerField || null,
+        financialStatus: f.financialStatus || null,
         stopOnReply: f.stopOnReply !== false,
         cancelClosed: f.cancelClosed !== false,
         maxAttempts: Number.isInteger(Number(f.maxAttempts)) ? Math.max(1, Math.min(10, Number(f.maxAttempts))) : 3,
@@ -302,11 +345,14 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
                   },
                 }
               : {}),
+            ...(f.conversationStatus ? { status: f.conversationStatus } : {}),
+            ...(f.financialStatus ? { payments: { some: { status: f.financialStatus === "OPEN" ? "PENDING" : f.financialStatus } } } : {}),
           },
-          select: { id: true },
+          select: { id: true, status: true, contact: { select: { metadata: true } }, payments: { select: { status: true } } },
           take: 500,
         });
-        for (const c of conversations) {
+        const matchingConversations = conversations.filter((conversation) => matchesWorkflowFilters(conversation, f));
+        for (const c of matchingConversations) {
           await tx.workflowRun.upsert({
             where: {
               workflowId_eventKey: { workflowId: rule.id, eventKey: c.id },
@@ -421,7 +467,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
     const conversation = run.conversationId
       ? await this.prisma.conversation.findFirst({
           where: { id: run.conversationId, tenantId: rule.tenantId },
-          include: { contact: true, channelConnection: true },
+          include: { contact: true, channelConnection: true, payments: { select: { status: true } } },
         })
       : null;
     const workflowFilters = (rule.filters || {}) as Record<string, unknown>;
@@ -437,6 +483,8 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
         data: { status: "CANCELLED" },
       });
     const scope=(rule.filters||{}) as any;
+    if (conversation && !matchesWorkflowFilters(conversation, scope))
+      return this.prisma.workflowRun.update({ where: { id: run.id }, data: { status: "CANCELLED" } });
     if(conversation&&(scope.departmentId||scope.assigneeId)){
       const departmentOk=!scope.departmentId||(conversation.departmentId===scope.departmentId&&await this.prisma.department.findFirst({where:{id:scope.departmentId,tenantId:rule.tenantId,isActive:true},select:{id:true}}));
       const personOk=!scope.assigneeId||(conversation.assigneeId===scope.assigneeId&&await this.prisma.membership.findFirst({where:{tenantId:rule.tenantId,userId:scope.assigneeId,user:{isActive:true}},select:{id:true}})&&(!scope.departmentId||await this.prisma.departmentMember.findFirst({where:{tenantId:rule.tenantId,departmentId:scope.departmentId,userId:scope.assigneeId},select:{id:true}})));

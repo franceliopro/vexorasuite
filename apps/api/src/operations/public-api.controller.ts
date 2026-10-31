@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Delete, ForbiddenException, Get, Headers, Param, ParseUUIDPipe, Post, Req, UnauthorizedException, UseGuards, Body } from "@nestjs/common";
+import { BadRequestException, Controller, Delete, ForbiddenException, Get, Headers, Param, ParseUUIDPipe, Post, Req, UnauthorizedException, UseGuards, Body, Query } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -71,6 +71,21 @@ export class PublicApiController {
     return row;
   }
 
+  @Get("v1/openapi.json")
+  openapi() {
+    return {
+      openapi: "3.0.3",
+      info: { title: "Véxora Public API", version: "1.0.0" },
+      servers: [{ url: "/api" }],
+      security: [{ ApiKeyAuth: [] }],
+      components: { securitySchemes: { ApiKeyAuth: { type: "apiKey", in: "header", name: "x-vexora-api-key" } } },
+      paths: {
+        "/public-api/v1/health": { get: { summary: "Verifica o token e a disponibilidade da API", responses: { "200": { description: "OK" }, "401": { description: "Token inválido" } } } },
+        "/public-api/v1/conversations": { get: { summary: "Lista conversas ativas da empresa", parameters: [{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100 } }, { name: "before", in: "query", schema: { type: "string", format: "date-time" } }], responses: { "200": { description: "Conversas da empresa" }, "401": { description: "Token inválido" } } } },
+      },
+    };
+  }
+
   @Get("v1/health")
   async health(@Headers("x-vexora-api-key") key: string | undefined, @Headers("authorization") authorization: string | undefined) {
     await this.resolveToken(key || authorization);
@@ -81,10 +96,15 @@ export class PublicApiController {
   async conversations(
     @Headers("x-vexora-api-key") key: string | undefined,
     @Headers("authorization") authorization: string | undefined,
+    @Query("limit") rawLimit?: string,
+    @Query("before") before?: string,
   ) {
     const token = await this.resolveToken(key || authorization);
+    const limit = Math.max(1, Math.min(100, Number.parseInt(rawLimit || "100", 10) || 100));
+    const beforeDate = before ? new Date(before) : null;
+    if (before && (!beforeDate || Number.isNaN(beforeDate.getTime()))) throw new BadRequestException("Cursor inválido.");
     const rows = await this.prisma.conversation.findMany({
-      where: { tenantId: token.tenantId, deletedAt: null, archivedAt: null },
+      where: { tenantId: token.tenantId, deletedAt: null, archivedAt: null, ...(beforeDate ? { updatedAt: { lt: beforeDate } } : {}) },
       select: {
         id: true, status: true, priority: true, channel: true, subject: true,
         createdAt: true, updatedAt: true, lastMessageAt: true,
@@ -92,8 +112,8 @@ export class PublicApiController {
         channelConnection: { select: { id: true, name: true, provider: true, status: true } },
       },
       orderBy: { updatedAt: "desc" },
-      take: 100,
+      take: limit,
     });
-    return { conversations: rows, limit: 100 };
+    return { conversations: rows, limit, nextBefore: rows.length === limit ? rows[rows.length - 1]?.updatedAt ?? null : null };
   }
 }

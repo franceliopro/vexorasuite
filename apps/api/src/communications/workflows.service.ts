@@ -15,7 +15,7 @@ import { contactMetadata, lockedContact } from "../prisma/contact-metadata";
 import { text } from "./content";
 
 const WORKFLOW_CONVERSATION_STATUSES = ["OPEN", "PENDING", "RESOLVED", "CLOSED"] as const;
-const WORKFLOW_FINANCIAL_STATUSES = ["PENDING", "PAID", "OVERDUE", "CANCELLED"] as const;
+const WORKFLOW_FINANCIAL_STATUSES = ["OPEN", "PENDING", "PAID", "OVERDUE", "CANCELLED"] as const;
 
 function parseCustomerField(value: unknown): { key: string; expected: string } | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -346,7 +346,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
                 }
               : {}),
             ...(f.conversationStatus ? { status: f.conversationStatus } : {}),
-            ...(f.financialStatus ? { payments: { some: { status: f.financialStatus } } } : {}),
+            ...(f.financialStatus ? { payments: { some: { status: f.financialStatus === "OPEN" ? "PENDING" : f.financialStatus } } } : {}),
           },
           select: { id: true, status: true, contact: { select: { metadata: true } }, payments: { select: { status: true } } },
           take: 500,
@@ -467,7 +467,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
     const conversation = run.conversationId
       ? await this.prisma.conversation.findFirst({
           where: { id: run.conversationId, tenantId: rule.tenantId },
-          include: { contact: true, channelConnection: true },
+          include: { contact: true, channelConnection: true, payments: { select: { status: true } } },
         })
       : null;
     const workflowFilters = (rule.filters || {}) as Record<string, unknown>;

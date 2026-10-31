@@ -2278,3 +2278,17 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .workflow-list-row>div,.workflow-run-row>div{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}.workflow-list-row small,.workflow-run-row small{color:var(--muted,#667085);font-size:12px}.workflow-run-row p{margin:0;color:var(--danger,#b42318);font-size:12px}
 @media(max-width:1050px){.workflow-builder-grid{grid-template-columns:180px minmax(0,1fr)}.workflow-settings{grid-column:2;position:static}}
 @media(max-width:760px){.workflow-builder{padding:10px}.workflow-builder-header{flex-direction:column}.workflow-builder-grid{grid-template-columns:1fr}.workflow-catalog,.workflow-settings{position:static}.workflow-condition-grid,.workflow-schedule-grid{grid-template-columns:1fr}.workflow-step-card{grid-template-columns:24px minmax(0,1fr)}.workflow-step-card>.text-button{grid-column:2;justify-self:start}.workflow-template-grid{grid-template-columns:1fr 1fr}}
+
+/* Marketing Studio: manual publishing, assisted creation and editorial queue. */
+.marketing-creations-workspace{min-width:0}
+.marketing-mode-tabs{margin:14px 0}
+.marketing-creation-grid,.marketing-agent-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.8fr);gap:14px;align-items:start}
+.marketing-composer,.marketing-drafts,.marketing-agent-grid>.workspace-surface,.marketing-calendar-placeholder{min-width:0}
+.marketing-network-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.marketing-network-grid label{display:flex;align-items:center;gap:7px;padding:9px;border:1px solid var(--line,#dce0ea);border-radius:9px;background:var(--surface-1,#fff);font-size:12px;cursor:pointer}
+.marketing-network-grid label.selected{border-color:var(--primary,#6258df);background:var(--primary-soft,#f3f5ff)}
+.marketing-network-grid input{margin:0}
+.marketing-draft-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#dce0ea)}
+.marketing-draft-row>div{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}.marketing-draft-row small{color:var(--muted,#667085);font-size:12px}
+.marketing-calendar-placeholder{padding:20px}
+@media(max-width:760px){.marketing-creation-grid,.marketing-agent-grid{grid-template-columns:1fr}.marketing-network-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.marketing-draft-row{align-items:flex-start;flex-direction:column}}

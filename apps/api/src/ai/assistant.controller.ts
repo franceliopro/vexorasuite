@@ -44,7 +44,7 @@ export class AssistantController {
   async customSkills(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     const root = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
-    return { skills: tenantSkills(root), canEdit: ["OWNER","ADMIN","MANAGER"].includes(req.user.role) };
+    return { skills: tenantSkills(root), builtInIds: productSkills.map(skill => skill.id), canEdit: ["OWNER","ADMIN","MANAGER"].includes(req.user.role) };
   }
 
   @Put("custom-skills")

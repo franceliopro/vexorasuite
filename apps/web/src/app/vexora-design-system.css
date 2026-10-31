@@ -2340,3 +2340,17 @@ body { background: var(--surface-page); color: var(--text-primary); }
     padding-bottom: calc(88px + env(safe-area-inset-bottom));
   }
 }
+
+
+@media (max-width: 760px) {
+  .sidebar .sidebar-utilities .sidebar-icon {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    padding: 5px;
+  }
+  .sidebar .sidebar-utilities .sidebar-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+}

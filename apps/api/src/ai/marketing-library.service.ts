@@ -68,4 +68,25 @@ export class MarketingLibraryService {
   if(errors.length)throw new BadRequestException({message:'Algumas referências não puderam ser lidas. Corrija a biblioteca antes de publicar.',errors});
   if(!ids.length)throw new BadRequestException('A pasta não contém referências suportadas.');return {files:ids.length,updated,reused,usedAi:false};
  }
+ async automation(req:AuthenticatedRequest){
+  this.references.authorize(req);
+  const marketing=await this.config(req);
+  const automation=object(marketing.automation);
+  return {enabled:automation.enabled===true,mode:automation.mode==='ASSISTED'?'ASSISTED':'RULES_ONLY',cadence:['ON_NEW_FILE','DAILY','WEEKLY'].includes(String(automation.cadence))?automation.cadence:'ON_NEW_FILE',networks:Array.isArray(automation.networks)?automation.networks.filter((v:any)=>typeof v==='string').slice(0,8):[],publishMode:automation.publishMode==='READY_FOR_REVIEW'?'READY_FOR_REVIEW':'DRAFT_ONLY',captionTemplate:typeof automation.captionTemplate==='string'?automation.captionTemplate.slice(0,500):'',folderName:typeof marketing.folderName==='string'?marketing.folderName:'',accountEmail:typeof marketing.accountEmail==='string'?marketing.accountEmail:'' ,canAutoPublish:false};
+ }
+ async saveAutomation(req:AuthenticatedRequest,input:any){
+  this.references.authorize(req);
+  const marketing=await this.config(req);
+  if(!marketing.accountId||!marketing.folderId)throw new BadRequestException('Configure primeiro a pasta do Google Drive.');
+  const mode=input?.mode==='ASSISTED'?'ASSISTED':'RULES_ONLY';
+  const cadence=['ON_NEW_FILE','DAILY','WEEKLY'].includes(String(input?.cadence))?String(input.cadence):'ON_NEW_FILE';
+  const publishMode=input?.publishMode==='READY_FOR_REVIEW'?'READY_FOR_REVIEW':'DRAFT_ONLY';
+  const networks=Array.isArray(input?.networks)?input.networks.filter((v:any)=>['instagram','facebook','linkedin','google-business','tiktok'].includes(v)).slice(0,8):[];
+  if(!networks.length)throw new BadRequestException('Escolha pelo menos uma rede de destino.');
+  const captionTemplate=typeof input?.captionTemplate==='string'?input.captionTemplate.trim().slice(0,500):'';
+  return mutateTenantSetting(this.prisma,req.user.tenantId,'marketing',current=>{
+   const value=object(current);
+   return {...value,automation:{enabled:input?.enabled!==false,mode,cadence,networks,publishMode,captionTemplate,updatedAt:new Date().toISOString()}};
+  });
+ }
 }

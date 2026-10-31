@@ -534,7 +534,7 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 /* Consistent field proportions; native option popups retain platform accessibility. */
 .page-content select,.sidebar-profile-popover select{height:36px;min-height:36px;max-height:36px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:13px;line-height:1.35;box-sizing:border-box}
 .page-content select option{font-family:inherit;font-size:13px;font-weight:400;line-height:1.35;background:var(--card);color:var(--ink)}
-.sidebar{height:100dvh;max-height:100dvh;overflow:visible;display:flex;flex-direction:column}.sidebar-brand-row{flex-shrink:0}.sidebar .side-nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}.sidebar-bottom{position:relative;flex-shrink:0;margin-top:0;padding:8px 10px;display:flex;align-items:center;gap:6px}.sidebar-utilities{display:flex;align-items:center;gap:2px;flex-shrink:0}.sidebar-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:7px;background:transparent;color:inherit;cursor:pointer;list-style:none}.sidebar-icon::-webkit-details-marker{display:none}.sidebar-help>div{position:absolute;bottom:70px;left:8px;width:240px;max-width:85vw;background:var(--card);color:var(--ink);border:1px solid var(--line);padding:14px;border-radius:10px;box-shadow:0 12px 36px #0003;z-index:100}.sidebar-help p{font-size:13px}.sidebar-profile-menu{flex:1;min-width:0}.sidebar-profile-menu>.profile-row{cursor:pointer;list-style:none;padding:5px;gap:8px}.sidebar-profile-menu>.profile-row::-webkit-details-marker{display:none}.sidebar-profile-menu .profile-avatar{width:32px;height:32px;flex:0 0 32px}.sidebar-profile-menu .profile-copy{min-width:0}.sidebar-profile-menu .profile-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:115px;display:block}.sidebar-profile-popover{position:fixed;bottom:12px;left:264px;width:min(340px,calc(100vw - 28px));max-height:88dvh;overflow-y:auto;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 18px 50px #0004;z-index:1000}.sidebar-profile-popover h2{font-size:17px;margin:0 0 14px}.sidebar-profile-popover input,.sidebar-profile-popover textarea{width:100%;min-width:0;box-sizing:border-box;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface-1);color:inherit;font:inherit}.brand-mark.has-custom-logo,.brand-full-logo{background:transparent!important;box-shadow:none!important;border:0!important}.brand-mark.has-custom-logo{padding:0}.sidebar-collapsed .sidebar-utilities{flex-direction:column}.sidebar-collapsed .sidebar-bottom{flex-direction:column}.sidebar-collapsed .sidebar-profile-popover{left:80px}
+.sidebar{height:100dvh;max-height:100dvh;overflow:visible;display:flex;flex-direction:column}.sidebar-brand-row{flex-shrink:0}.sidebar .side-nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}.sidebar-bottom{position:relative;flex-shrink:0;margin-top:0;padding:8px 10px;display:flex;align-items:center;gap:6px}.sidebar-utilities{display:flex;align-items:center;gap:2px;flex-shrink:0}.sidebar-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:7px;background:transparent;color:inherit;cursor:pointer;list-style:none}.sidebar-icon::-webkit-details-marker{display:none}.sidebar-help>div{position:absolute;bottom:70px;left:8px;width:240px;max-width:85vw;background:var(--card);color:var(--ink);border:1px solid var(--line);padding:14px;border-radius:10px;box-shadow:0 12px 36px #0003;z-index:100}.sidebar-help p{font-size:13px}.sidebar-profile-menu{flex:1;min-width:0}.sidebar-profile-menu>.profile-row{cursor:pointer;list-style:none;padding:5px;gap:8px}.sidebar-profile-menu>.profile-row::-webkit-details-marker{display:none}.sidebar-profile-menu .profile-avatar{width:32px;height:32px;flex:0 0 32px}.sidebar-profile-menu .profile-copy{min-width:0}.sidebar-profile-menu .profile-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:115px;display:block}.sidebar-profile-popover{position:fixed;bottom:12px;left:264px;width:min(340px,calc(100vw - 28px));max-height:88dvh;overflow-y:auto;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);box-shadow:0 18px 50px #0004;z-index:1000}.sidebar-profile-popover h2{font-size:17px;margin:0 0 14px}.sidebar-profile-popover input,.sidebar-profile-popover textarea{width:100%;min-width:0;box-sizing:border-box;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface-1);color:inherit;font:inherit}.brand-mark.has-custom-logo,.brand-full-logo{background:transparent!important;box-shadow:none!important;border:0!important}.brand-mark.has-custom-logo{padding:0}.sidebar-compact .sidebar-utilities{flex-direction:column}.sidebar-compact .sidebar-bottom{flex-direction:column}.sidebar-compact .sidebar-profile-popover{left:80px}
 @media(max-width:760px){.crm-toolbar .crm-toolbar-search{flex:0 0 40px!important;width:100%;height:40px!important;min-height:40px!important;max-height:40px!important;align-self:stretch;margin:0!important;padding:0 10px!important}.crm-toolbar .crm-toolbar-search input{height:36px!important;min-height:36px!important;max-height:36px!important;line-height:1.25!important}.crm-toolbar{padding:0!important;gap:8px!important}.page-content select{height:42px!important;min-height:42px!important;max-height:42px!important;padding:7px 10px!important;font-size:16px!important;border-radius:7px!important}.page-content select option{font-size:16px}.sidebar-profile-popover{left:12px;bottom:78px}.sidebar .sidebar-bottom{gap:4px}.chatbot-workspace .vx-flow-start-node{max-width:calc(100vw - 56px);left:12px;white-space:normal}.chatbot-workspace .vx-flow-library{display:block!important;max-height:42dvh;overflow:auto}.chatbot-workspace .vx-left-collapsed .vx-flow-library{display:none!important}}
 :root[data-theme="dark"] .inbox-workspace,:root[data-theme="dark"] .inbox-thread{border-color:var(--line)!important;background-color:var(--card)!important;box-shadow:none!important}
 :root[data-theme="dark"] .inbox-workspace.inbox-full-screen{background:var(--card)!important;border:0!important;outline:0!important;padding:0!important;border-radius:0!important;box-shadow:none!important}
@@ -1545,10 +1545,10 @@ body { background: var(--surface-page); color: var(--text-primary); }
 }
 
 /* Collapsed main sidebar: submenu opens beside it and remains clickable. */
-.sidebar.sidebar-collapsed .nav-accordion {
+.sidebar.sidebar-compact .nav-accordion {
   position: relative;
 }
-.sidebar.sidebar-collapsed .nav-submenu {
+.sidebar.sidebar-compact .nav-submenu {
   position: absolute;
   z-index: 120;
   top: 0;
@@ -1563,15 +1563,15 @@ body { background: var(--surface-page); color: var(--text-primary); }
   background: var(--card, #fff);
   box-shadow: 0 14px 32px rgba(18, 22, 42, .16);
 }
-.sidebar.sidebar-collapsed .nav-subitem {
+.sidebar.sidebar-compact .nav-subitem {
   width: 100%;
   min-height: 36px;
   padding: 8px 10px;
   border-radius: 8px;
   text-align: left;
 }
-.sidebar.sidebar-collapsed .nav-subitem:hover,
-.sidebar.sidebar-collapsed .nav-subitem.active {
+.sidebar.sidebar-compact .nav-subitem:hover,
+.sidebar.sidebar-compact .nav-subitem.active {
   background: var(--primary-soft, #f0efff);
   color: var(--primary, #6258df);
 }
@@ -1599,7 +1599,7 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .presentation-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}.presentation-modes legend{font-weight:600;margin-bottom:10px}.presentation-modes label{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:9px;cursor:pointer}.presentation-modes label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}.presentation-modes input{flex-shrink:0}.presentation-modes span{display:flex;flex-direction:column;gap:3px}.presentation-modes small{font-size:11px;color:var(--muted)}.presentation-dialog footer{justify-content:flex-end}.presentation-dialog .settings-muted{font-size:12px;margin:0}
 @media(min-width:761px){
  .suite-app{--desktop-sidebar-width:258px}
- .suite-app:has(>.sidebar.sidebar-collapsed){--desktop-sidebar-width:78px}
+ .suite-app:has(>.sidebar.sidebar-compact){--desktop-sidebar-width:78px}
  .suite-app>.sidebar{position:fixed;inset:0 auto 0 0;width:var(--desktop-sidebar-width);height:100dvh;min-height:0;max-height:100dvh;overflow:visible;z-index:35;display:flex;flex-direction:column}
  .suite-app>.main-area{margin-left:var(--desktop-sidebar-width);width:calc(100% - var(--desktop-sidebar-width));max-width:calc(100% - var(--desktop-sidebar-width));min-width:0}
  .sidebar .side-nav{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent}
@@ -1719,10 +1719,10 @@ body { background: var(--surface-page); color: var(--text-primary); }
 
 
 /* Collapsed navigation: keep flyout submenus visible and reachable outside the icon rail. */
-.sidebar.sidebar-collapsed .side-nav {
+.sidebar.sidebar-compact .side-nav {
   overflow: visible !important;
 }
-.sidebar.sidebar-collapsed .nav-submenu {
+.sidebar.sidebar-compact .nav-submenu {
   left: calc(100% + 6px);
 }
 
@@ -1755,59 +1755,59 @@ body { background: var(--surface-page); color: var(--text-primary); }
 
 /* Desktop navigation flyout: collapsed by default, expands over the workspace without reflow. */
 @media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-collapsed {
+  .suite-app > .sidebar.sidebar-compact {
     width: 78px;
     transition: width .18s ease, box-shadow .18s ease;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within {
+  .suite-app > .sidebar.sidebar-compact:hover,
+  .suite-app > .sidebar.sidebar-compact:focus-within {
     width: 258px;
     box-shadow: 12px 0 34px rgba(17, 24, 39, .16);
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .brand,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand {
+  .suite-app > .sidebar.sidebar-compact:hover .brand,
+  .suite-app > .sidebar.sidebar-compact:focus-within .brand {
     justify-content: flex-start;
     padding: 0 10px;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .switch-chevron,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-section,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:hover .help-arrow,
-  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .profile-more,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .switch-chevron,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-section,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-arrow,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-more {
+  .suite-app > .sidebar.sidebar-compact:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .switch-chevron,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-section,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:hover .help-arrow,
+  .suite-app > .sidebar.sidebar-compact:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .profile-more,
+  .suite-app > .sidebar.sidebar-compact:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .switch-chevron,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-section,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:focus-within .help-arrow,
+  .suite-app > .sidebar.sidebar-compact:focus-within .profile-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .profile-more {
     display: initial;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item {
+  .suite-app > .sidebar.sidebar-compact:hover .nav-item,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item {
     width: 100%;
     min-height: 40px;
     justify-content: flex-start;
     padding-inline: 10px;
     gap: 10px;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-glyph,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-glyph {
+  .suite-app > .sidebar.sidebar-compact:hover .nav-glyph,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-glyph {
     width: 20px;
     flex: 0 0 20px;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-accordion-chevron,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-accordion-chevron {
+  .suite-app > .sidebar.sidebar-compact:hover .nav-accordion-chevron,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-accordion-chevron {
     display: block !important;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-submenu,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-submenu {
+  .suite-app > .sidebar.sidebar-compact:hover .nav-submenu,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-submenu {
     position: static;
     min-width: 0;
     margin: 2px 0 7px 37px;
@@ -1818,25 +1818,25 @@ body { background: var(--surface-page); color: var(--text-primary); }
     background: transparent;
     box-shadow: none;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .sidebar-collapse,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .sidebar-collapse {
+  .suite-app > .sidebar.sidebar-compact:hover .sidebar-collapse,
+  .suite-app > .sidebar.sidebar-compact:focus-within .sidebar-collapse {
     margin-left: auto;
   }
 }
 @media (max-width: 760px) {
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open {
+  .suite-app > .sidebar.sidebar-compact.sidebar-open {
     width: 270px;
     flex-basis: 270px;
   }
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .nav-section,
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .profile-copy {
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .brand-copy,
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .nav-section,
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .help-card > div,
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .profile-copy {
     display: initial;
   }
-  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .nav-item {
+  .suite-app > .sidebar.sidebar-compact.sidebar-open .nav-item {
     width: 100%;
     justify-content: flex-start;
     padding-inline: 10px;
@@ -1844,14 +1844,14 @@ body { background: var(--surface-page); color: var(--text-primary); }
 }
 
 @media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy {
+  .suite-app > .sidebar.sidebar-compact:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:focus-within .profile-copy {
     display: flex;
   }
 }
@@ -1975,48 +1975,48 @@ body { background: var(--surface-page); color: var(--text-primary); }
 
 /* Sidebar navigation: groups expand on click; never use a hover flyout. */
 @media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-collapsed,
-  .suite-app > .sidebar.sidebar-collapsed:hover,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within {
+  .suite-app > .sidebar.sidebar-compact,
+  .suite-app > .sidebar.sidebar-compact:hover,
+  .suite-app > .sidebar.sidebar-compact:focus-within {
     width: 78px;
     box-shadow: none;
   }
-  .suite-app > .sidebar.sidebar-collapsed .brand,
-  .suite-app > .sidebar.sidebar-collapsed:hover .brand,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand {
+  .suite-app > .sidebar.sidebar-compact .brand,
+  .suite-app > .sidebar.sidebar-compact:hover .brand,
+  .suite-app > .sidebar.sidebar-compact:focus-within .brand {
     justify-content: center;
     padding-inline: 0;
   }
-  .suite-app > .sidebar.sidebar-collapsed .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed .switch-chevron,
-  .suite-app > .sidebar.sidebar-collapsed .nav-section,
-  .suite-app > .sidebar.sidebar-collapsed .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-collapsed .nav-accordion-chevron,
-  .suite-app > .sidebar.sidebar-collapsed .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed .help-arrow,
-  .suite-app > .sidebar.sidebar-collapsed .profile-copy,
-  .suite-app > .sidebar.sidebar-collapsed .profile-more {
+  .suite-app > .sidebar.sidebar-compact .brand-copy,
+  .suite-app > .sidebar.sidebar-compact .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact .switch-chevron,
+  .suite-app > .sidebar.sidebar-compact .nav-section,
+  .suite-app > .sidebar.sidebar-compact .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-compact .nav-accordion-chevron,
+  .suite-app > .sidebar.sidebar-compact .help-card > div,
+  .suite-app > .sidebar.sidebar-compact .help-arrow,
+  .suite-app > .sidebar.sidebar-compact .profile-copy,
+  .suite-app > .sidebar.sidebar-compact .profile-more {
     display: none !important;
   }
-  .suite-app > .sidebar.sidebar-collapsed .nav-item,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item {
+  .suite-app > .sidebar.sidebar-compact .nav-item,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-item,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item {
     width: 100%;
     min-height: 42px;
     justify-content: center;
     padding: 6px;
     gap: 0;
   }
-  .suite-app > .sidebar.sidebar-collapsed .nav-glyph,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-glyph,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-glyph {
+  .suite-app > .sidebar.sidebar-compact .nav-glyph,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-glyph,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-glyph {
     width: 22px;
     flex: 0 0 22px;
   }
-  .suite-app > .sidebar.sidebar-collapsed .nav-submenu,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-submenu,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-submenu {
+  .suite-app > .sidebar.sidebar-compact .nav-submenu,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-submenu,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-submenu {
     position: static;
     min-width: 0;
     margin: 2px 0 6px;
@@ -2128,18 +2128,18 @@ body { background: var(--surface-page); color: var(--text-primary); }
 
 /* Keep utility actions compact and horizontal in every sidebar state. */
 .sidebar .sidebar-utilities,
-.sidebar.sidebar-collapsed .sidebar-utilities {
+.sidebar.sidebar-compact .sidebar-utilities {
   flex-direction: row !important;
   align-items: center;
   gap: 4px;
 }
-.sidebar.sidebar-collapsed .sidebar-icon {
+.sidebar.sidebar-compact .sidebar-icon {
   width: 34px;
   height: 34px;
   min-width: 34px;
   padding: 5px;
 }
-.sidebar.sidebar-collapsed .sidebar-icon svg {
+.sidebar.sidebar-compact .sidebar-icon svg {
   width: 20px;
   height: 20px;
 }
@@ -2157,50 +2157,50 @@ body { background: var(--surface-page); color: var(--text-primary); }
 
 /* Main sidebar expands on hover; submenu state remains controlled by click. */
 @media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-collapsed:hover,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within {
+  .suite-app > .sidebar.sidebar-compact:hover,
+  .suite-app > .sidebar.sidebar-compact:focus-within {
     width: 258px;
     box-shadow: 12px 0 34px rgba(17, 24, 39, .16);
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .brand,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand {
+  .suite-app > .sidebar.sidebar-compact:hover .brand,
+  .suite-app > .sidebar.sidebar-compact:focus-within .brand {
     justify-content: flex-start;
     padding-inline: 10px;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .switch-chevron,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-section,
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:hover .help-arrow,
-  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
-  .suite-app > .sidebar.sidebar-collapsed:hover .profile-more,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .switch-chevron,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-section,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-arrow,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-more {
+  .suite-app > .sidebar.sidebar-compact:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .switch-chevron,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-section,
+  .suite-app > .sidebar.sidebar-compact:hover .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:hover .help-arrow,
+  .suite-app > .sidebar.sidebar-compact:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-compact:hover .profile-more,
+  .suite-app > .sidebar.sidebar-compact:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .switch-chevron,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-section,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:focus-within .help-arrow,
+  .suite-app > .sidebar.sidebar-compact:focus-within .profile-copy,
+  .suite-app > .sidebar.sidebar-compact:focus-within .profile-more {
     display: initial !important;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div {
+  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div {
     display: flex !important;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item {
+  .suite-app > .sidebar.sidebar-compact:hover .nav-item,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item {
     width: 100%;
     min-height: 40px;
     justify-content: flex-start;
     padding-inline: 10px;
     gap: 10px;
   }
-  .suite-app > .sidebar.sidebar-collapsed:hover .nav-glyph,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-glyph {
+  .suite-app > .sidebar.sidebar-compact:hover .nav-glyph,
+  .suite-app > .sidebar.sidebar-compact:focus-within .nav-glyph {
     width: 22px;
     flex: 0 0 22px;
   }
@@ -2208,13 +2208,13 @@ body { background: var(--surface-page); color: var(--text-primary); }
 
 
 /* Utility actions: stacked in the compact rail, horizontal when the sidebar opens. */
-.sidebar.sidebar-collapsed .sidebar-utilities {
+.sidebar.sidebar-compact .sidebar-utilities {
   flex-direction: column !important;
   gap: 4px;
 }
 @media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-collapsed:hover .sidebar-utilities,
-  .suite-app > .sidebar.sidebar-collapsed:focus-within .sidebar-utilities {
+  .suite-app > .sidebar.sidebar-compact:hover .sidebar-utilities,
+  .suite-app > .sidebar.sidebar-compact:focus-within .sidebar-utilities {
     flex-direction: row !important;
     gap: 4px;
   }
@@ -2229,7 +2229,7 @@ body { background: var(--surface-page); color: var(--text-primary); }
     width: calc(100% - var(--desktop-sidebar-width) - var(--sidebar-content-gap));
     max-width: calc(100% - var(--desktop-sidebar-width) - var(--sidebar-content-gap));
   }
-  .suite-app:has(> .sidebar.sidebar-collapsed) > .main-area {
+  .suite-app:has(> .sidebar.sidebar-compact) > .main-area {
     --sidebar-content-gap: 12px;
   }
 }
@@ -2292,3 +2292,14 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .marketing-draft-row>div{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}.marketing-draft-row small{color:var(--muted,#667085);font-size:12px}
 .marketing-calendar-placeholder{padding:20px}
 @media(max-width:760px){.marketing-creation-grid,.marketing-agent-grid{grid-template-columns:1fr}.marketing-network-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.marketing-draft-row{align-items:flex-start;flex-direction:column}}
+
+
+.marketing-automation-form{max-width:920px}
+.marketing-automation-source{margin:0;color:var(--muted);font-size:.92rem}
+.marketing-automation-note{display:grid;gap:4px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--primary) 7%,var(--card));color:var(--muted);font-size:.86rem}
+.marketing-automation-note strong{color:var(--text)}
+.marketing-automation-help{font-size:.84rem;color:var(--muted)}
+.status-pill.muted{opacity:.65}
+.checkbox-line{display:flex!important;flex-direction:row;align-items:center;gap:8px}
+.checkbox-line input{width:auto!important}
+@media (max-width:760px){.marketing-automation-form{padding:16px}.marketing-automation-note{font-size:.8rem}}

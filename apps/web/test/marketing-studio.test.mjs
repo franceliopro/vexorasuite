@@ -9,7 +9,8 @@ const workspace=fs.readFileSync(path.join(root,"src/app/manual-content-workspace
 const design=fs.readFileSync(path.join(root,"src/app/vexora-design-system.css"),"utf8");
 
 test("marketing studio has manual, assisted and calendar paths",()=>{
-  for(const text of ["Publicar manualmente","Agente Marketing","Calendário editorial","Redes de destino","Google Drive","Salvar rascunho","Marcar como pronta"])assert.match(workspace,new RegExp(text));
+  for(const text of ["Publicar manualmente","Agente Marketing","Rotina da pasta","Calendário editorial","Redes de destino","Google Drive","Salvar rascunho","Marcar como pronta","Somente automação, sem IA","Usar Agente Marketing quando entrar arquivo novo"])assert.match(workspace,new RegExp(text));
   assert.match(design,/marketing-network-grid/);
   assert.match(design,/marketing-draft-row/);
+  assert.match(design,/marketing-automation-note/);
 });

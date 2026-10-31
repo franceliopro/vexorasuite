@@ -2,7 +2,7 @@ import { validVoiceId } from './voice-options';
 import { validDraft } from "./chatbot-draft.controller";
 import { modelCatalog } from "./model-catalog";
 import { formatDateTimeBR } from "../common/date-format";
-import { tenantSkills } from "./product-skills";
+import { productSkills, tenantSkills } from "./product-skills";
 import { Optional } from "@nestjs/common";
 import { AssistantAutomationService } from "./assistant-automation.service";
 import { ReportExportService } from "./report-export.service";

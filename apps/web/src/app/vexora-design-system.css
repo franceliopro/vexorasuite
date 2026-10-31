@@ -2219,3 +2219,17 @@ body { background: var(--surface-page); color: var(--text-primary); }
     gap: 4px;
   }
 }
+
+
+/* Give the compact sidebar a small breathing space without moving content on hover expansion. */
+@media (min-width: 761px) {
+  .suite-app > .main-area {
+    --sidebar-content-gap: 0px;
+    margin-left: calc(var(--desktop-sidebar-width) + var(--sidebar-content-gap));
+    width: calc(100% - var(--desktop-sidebar-width) - var(--sidebar-content-gap));
+    max-width: calc(100% - var(--desktop-sidebar-width) - var(--sidebar-content-gap));
+  }
+  .suite-app:has(> .sidebar.sidebar-collapsed) > .main-area {
+    --sidebar-content-gap: 12px;
+  }
+}

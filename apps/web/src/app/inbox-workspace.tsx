@@ -71,6 +71,12 @@ const EMOJI_GROUPS: Record<string, string[]> = emojiCatalog.reduce((groups, [emo
   return groups;
 }, {} as Record<string, string[]>);
 type Conversation = { id: string; status: string; createdAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; botState?: Record<string, unknown>; isOverdue?: boolean; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[] };
+type SupervisionOverview = {
+  slaMinutes: number;
+  totals: { open: number; pending: number; waiting: number; stale: number };
+  oldestWaiting: { conversationId: string; contactName: string; createdAt: string } | null;
+  byDepartment: Array<{ id: string; name: string; waiting: number; open: number; stale: number }>;
+};
 function avatarUrl(contact: Contact): string | null {
   const meta = contact.metadata || {};
   for (const key of ["avatarUrl", "profilePictureUrl", "photoUrl", "pictureUrl", "profileImage", "profilePicUrl", "profilePicture", "imageUrl", "photo", "avatar"]) {
@@ -134,6 +140,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [quickReplyPipelines,setQuickReplyPipelines]=useState<QuickReplyPipeline[]>([]);
   useEffect(()=>{let live=true;fetch("/api/backend/crm/pipelines",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{if(live)setQuickReplyPipelines(Array.isArray(data?.pipelines)?data.pipelines:[])}).catch(()=>{});return()=>{live=false}},[tenantId]);
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
+  const [supervision, setSupervision] = useState<SupervisionOverview | null>(null);
   const [queueView, setQueueView] = useState("mine");
   const notificationFocus=useRef<string|null>(null),conversationRequest=useRef(0);
   useEffect(()=>{const id=new URLSearchParams(window.location.search).get("conversation");if(id&&/^[a-f0-9-]{36}$/i.test(id)){notificationFocus.current=id;setQueueView("all-open");setMobileThreadOpen(true)}},[]);
@@ -245,6 +252,13 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     try { setChannels(await api<Channel[]>("/api/backend/channels")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar canais."); }
   }, []);
+  const loadSupervision = useCallback(async () => {
+    try {
+      setSupervision(await api<SupervisionOverview>("/api/backend/supervision/overview?slaMinutes=30"));
+    } catch {
+      // Supervisão é restrita a administradores; agentes seguem sem chamada ou aviso extra.
+    }
+  }, []);
   const loadMessages = useCallback(async (id: string) => {
     try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView)); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
@@ -306,10 +320,10 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [quickOpen, emojiOpen]);
-  useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels();
+  useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision();
     void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
     void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => {});
-  }, [loadConversations, loadQueueCounts, loadChannels]);
+  }, [loadConversations, loadQueueCounts, loadChannels, loadSupervision]);
   useEffect(() => { if (selectedId) void loadMessages(selectedId); else setMessages([]); }, [selectedId, loadMessages]);
 
   // SSE is the primary realtime path. Poll only while it is unavailable, when the tab is visible.
@@ -317,7 +331,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     let realtimeOnline = false;
     const refreshFallback = () => {
       if (realtimeOnline || document.visibilityState !== "visible") return;
-      void loadConversations(); void loadQueueCounts(); void loadChannels();
+      void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision();
       if (selectedRef.current) void loadMessages(selectedRef.current);
     };
     const markOnline = () => { realtimeOnline = true; };
@@ -337,7 +351,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   useEffect(() => {
     const source = new EventSource("/api/backend/events");
     source.onopen = () => window.dispatchEvent(new Event("vexora:events-online"));
-    const refresh = () => { void loadConversations(); void loadQueueCounts(); void loadChannels(); if (selectedRef.current) void loadMessages(selectedRef.current); };
+    const refresh = () => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision(); if (selectedRef.current) void loadMessages(selectedRef.current); };
     ["message.received", "message.sent", "message.failed", "message.status", "message.queued", "conversation.updated", "conversation.assigned", "conversation.created", "contact.updated", "contact.created", "contact.stage_changed", "channel.status", "channel.created"].forEach((name) => source.addEventListener(name, refresh));
     source.addEventListener("team.updated",()=>{void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(()=>{});refresh();});
     // EventSource reconnects automatically. Keep the interface quiet; the 5-second polling fallback keeps conversations fresh while SSE recovers.
@@ -630,6 +644,16 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
           <div className="inbox-queue-menu">{([{ id: "all-open", label: "Todos abertos" }, { id: "completed", label: "Concluídos" }, { id: "archived", label: "Arquivados" }, { id: "trash", label: "Lixeira" }] as const).map((item) => <button key={item.id} type="button" className={queueView === item.id ? "active" : ""} onClick={(event) => { setQueueView(item.id); event.currentTarget.closest("details")?.removeAttribute("open"); }}>{item.label}</button>)}</div>
         </details>
       </nav>
+      {supervision ? <section className="supervision-summary" aria-label="Supervisão operacional">
+        <div className="supervision-summary-heading"><strong>Supervisão</strong><small>SLA de {supervision.slaMinutes} min</small></div>
+        <div className="supervision-metrics">
+          <span><strong>{supervision.totals.waiting}</strong><small>Aguardando</small></span>
+          <span><strong>{supervision.totals.open}</strong><small>Abertas</small></span>
+          <span><strong>{supervision.totals.pending}</strong><small>Pausadas</small></span>
+          <span className={supervision.totals.stale ? "is-alert" : ""}><strong>{supervision.totals.stale}</strong><small>Fora do SLA</small></span>
+        </div>
+        {supervision.oldestWaiting ? <p className="supervision-oldest">Mais antiga: <strong>{supervision.oldestWaiting.contactName}</strong></p> : null}
+      </section> : null}
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { notificationFocus.current=null;setSelectedId(item.id); setMobileThreadOpen(true); }}>
           <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{contactDisplayName(item.contact,item.botState)}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))}/></span></span><small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:"#111827",borderColor:"transparent"}}>{tag.name}</span>)}</span> : null}{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>

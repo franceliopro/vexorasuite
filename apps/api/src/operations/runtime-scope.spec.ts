@@ -25,6 +25,6 @@ describe('runtime scope',()=>{
  });
  it('includes only this departments instructions and matching direct specialization',()=>{
  const context={businessPresets:{a:{departmentId:'link',agentInstructions:'Link only'},b:{departmentId:'tracking',agentInstructions:'Tracking only'},c:{userId:'ana',preset:'FINANCE',agentInstructions:'Ana finance'},d:{userId:'ana',preset:'SUPPORT',agentInstructions:'Ana support'},e:{userId:'bob',agentInstructions:'Bob'}}};
- expect(scopedPresetInstructions(context,{departmentId:'link',userId:'ana'},'FINANCE')).toBe('Link only\\nAna finance');
+ expect(scopedPresetInstructions(context,{departmentId:'link',userId:'ana'},'FINANCE')).toBe('Link only\nAna finance');
  });
 });

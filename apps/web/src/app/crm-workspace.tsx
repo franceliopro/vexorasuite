@@ -103,13 +103,15 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
   const lossReasons = ["Preço/Condição", "Sem interesse", "Sem retorno", "Concorrência", "Inatividade"];
 
   const loadContacts = useCallback(async (search: string) => {
-    if(!pipelineReady)return;
-    if(!pipelineId&&!isAdmin){setContacts([]);setLoading(false);return;}
+    if (!pipelineReady) return;
+    const customerMode = view === "customers";
+    if (!pipelineId && !isAdmin && !customerMode) { setContacts([]); setLoading(false); return; }
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams();
-      if(pipelineId)params.set("pipelineId",pipelineId);
+      if (pipelineId && !customerMode) params.set("pipelineId", pipelineId);
+      if (customerMode) params.set("customerOnly", "1");
       if (search.trim()) params.set("q", search.trim());
       setContacts(await api<Contact[]>("/api/backend/contacts" + (params.size ? "?" + params.toString() : "")));
     } catch (cause) {
@@ -117,7 +119,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     } finally {
       setLoading(false);
     }
-  }, [pipelineId,pipelineReady,isAdmin]);
+  }, [pipelineId, pipelineReady, isAdmin, view]);
 
   useEffect(() => { void loadContacts(initialSearch);if(initialSearch){setQuery(initialSearch);setView("contacts")} void api<{fields:CrmFieldDefinition[]}>("/api/backend/contacts/profile-config").then(v=>setFieldDefinitions(v.fields||[])).catch(()=>{}); if(!initialSearch&&new URLSearchParams(window.location.search).get("crmTab")==="reports") setView("reports"); }, [loadContacts,initialSearch]);
 

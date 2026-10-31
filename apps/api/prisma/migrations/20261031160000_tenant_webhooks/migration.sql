@@ -3,7 +3,7 @@ CREATE TABLE "webhook_subscriptions" (
   "tenant_id" UUID NOT NULL,
   "name" TEXT NOT NULL,
   "url" TEXT NOT NULL,
-  "secret_hash" TEXT NOT NULL,
+  "secret_ciphertext" TEXT NOT NULL,
   "events" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
   "active" BOOLEAN NOT NULL DEFAULT true,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -1,9 +1,9 @@
 import {publicationKey,selectPublication,scopedPresetInstructions} from './runtime-scope';
 describe('runtime scope',()=>{
  const flow:any={name:'Flow'};
- const p=(revision:string,active=true)=>({revision,active,flow});
+ const p=(revision:string,active=true,source:'ui'|undefined='ui')=>({revision,active,source,flow});
  const root={intelligencePublished:p('default'),intelligencePublications:{'department:link':p('link'),'department:tracking':p('tracking'),'user:ana:department:link':p('ana-link')}};
- it('selects the attendants direct configuration only in the selected department',()=>{
+ it('ignores legacy publications without an explicit UI source',()=>{\n expect(selectPublication({intelligencePublished:{revision:'legacy',active:true,flow}},{})).toBeNull();\n});\n it('selects the attendants direct configuration only in the selected department',()=>{
  expect(selectPublication(root,{departmentId:'link',userId:'ana'})?.publication.revision).toBe('ana-link');
  expect(selectPublication(root,{departmentId:'tracking',userId:'ana'})?.publication.revision).toBe('tracking');
  });

@@ -3600,3 +3600,11 @@ input[type="color"].profile-tag-inline-color {
     grid-template-columns: 210px minmax(0, 1fr) 190px !important;
   }
 }
+
+/* Keep the flow toolbar visually attached to the canvas. */
+.chatbot-workspace .vx-flow-command-menu {
+  margin-bottom: 4px !important;
+}
+.chatbot-workspace .vx-flow-shell {
+  margin-top: 4px !important;
+}

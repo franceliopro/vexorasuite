@@ -166,7 +166,7 @@ export default function HomePage() {
   useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível atualizar os indicadores.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   useEffect(() => {
@@ -254,13 +254,13 @@ export default function HomePage() {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
-                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
+                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false); setSidebarCollapsed(true);
                       }
                     }}>
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}>{child.label}</button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu">{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}>{child.label}</button>)}</div> : null}
                 </div>;
               })}
             </div>;

@@ -42,9 +42,13 @@ export class MarketingController{
   const caption=typeof input?.caption==='string'?input.caption.trim():'';
   const channels=Array.isArray(input?.channels)?input.channels.filter((v:any)=>typeof v==='string'&&v.length<=40).slice(0,12):[];
   const plannedFor=typeof input?.plannedFor==='string'?input.plannedFor:'';
-  if(!title||title.length>180||!caption||caption.length>4000||!channels.length||plannedFor&&(!/^\d{4}-\d{2}-\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor))))throw new BadRequestException('Preencha título, legenda, redes e data válida.');
+  const mediaSource=input?.mediaSource==='google-drive'?'google-drive':'';
+  const mediaFileId=typeof input?.mediaFileId==='string'?input.mediaFileId.trim().slice(0,200):'';
+  const mediaAccountId=typeof input?.mediaAccountId==='string'?input.mediaAccountId.trim().slice(0,80):'';
+  const mediaName=typeof input?.mediaName==='string'?input.mediaName.trim().slice(0,180):'';
+  if(!title||title.length>180||!caption||caption.length>4000||!channels.length||plannedFor&&(!/^\d{4}-\d{2}-\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor)))||mediaSource==='google-drive'&&(!mediaFileId||!mediaAccountId))throw new BadRequestException('Preencha título, legenda, redes e data válida.');
   const id=randomUUID();
-  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.manual-draft',entityType:'publication',entityId:id,details:{status:'DRAFT',title,caption,channels,mediaUrl:typeof input.mediaUrl==='string'?input.mediaUrl.slice(0,1000):'',plannedFor}}});
+  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.manual-draft',entityType:'publication',entityId:id,details:{status:'DRAFT',title,caption,channels,mediaUrl:typeof input.mediaUrl==='string'?input.mediaUrl.slice(0,1000):'',mediaSource,mediaFileId,mediaAccountId,mediaName,plannedFor}}});
   return {id,status:'DRAFT'};
  }
  @Patch('manual-drafts/:id') async manualUpdate(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){

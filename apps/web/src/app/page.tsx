@@ -147,8 +147,8 @@ export default function HomePage() {
     else if (requested && validModules.has(requested)) {
       preloadWorkspace(requested);
       setActive(requested);
-      const parent = navigation.flatMap((group) => group.items).find((item) => item.children?.some((child) => child.label === requested));
-      if (parent) setExpandedModules([parent.label]);
+      const parentLabel = navigation.flatMap((group) => group.items).find((item) => item.children?.some((child) => child.label === requested))?.label;
+      if (parentLabel) setExpandedModules([parentLabel]);
     }
     setNavigationReady(true);
   }, []);

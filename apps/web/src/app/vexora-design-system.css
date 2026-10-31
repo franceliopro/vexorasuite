@@ -2303,3 +2303,126 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .checkbox-line{display:flex!important;flex-direction:row;align-items:center;gap:8px}
 .checkbox-line input{width:auto!important}
 @media (max-width:760px){.marketing-automation-form{padding:16px}.marketing-automation-note{font-size:.8rem}}
+
+
+/* Mobile navigation: larger touch targets and readable labels. */
+@media (max-width: 760px) {
+  .mobile-bottom-nav {
+    min-height: calc(72px + env(safe-area-inset-bottom));
+    padding-top: 4px;
+  }
+  .mobile-bottom-nav button {
+    min-height: 62px;
+    padding: 7px 10px;
+    gap: 4px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .mobile-bottom-nav button svg {
+    width: 22px;
+    height: 22px;
+  }
+  .sidebar .nav-item,
+  .sidebar .nav-subitem {
+    min-height: 50px;
+    padding-block: 10px !important;
+    font-size: 15px !important;
+  }
+  .sidebar .nav-glyph {
+    width: 24px;
+    height: 24px;
+  }
+  .sidebar .nav-glyph svg {
+    width: 21px;
+    height: 21px;
+  }
+  .page-content {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+}
+
+
+@media (max-width: 760px) {
+  .sidebar .sidebar-utilities .sidebar-icon {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    padding: 5px;
+  }
+  .sidebar .sidebar-utilities .sidebar-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+
+/* Mobile audit: protect compact screens from crowded controls and dense grids. */
+@media (max-width: 760px) {
+  .page-content > *,
+  .page-content :is(section, article, aside, form, fieldset, .content-card, .workspace-surface, .settings-card) {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .page-content :is(h1, h2, h3, h4, p, strong, small, label, button, a) {
+    overflow-wrap: anywhere;
+  }
+
+  .topbar .breadcrumbs {
+    min-width: 0;
+    max-width: 42vw;
+  }
+  .topbar-company-button {
+    max-width: 120px;
+  }
+
+  .settings-workspace .settings-grid,
+  .settings-workspace .settings-grid > *,
+  .channels-inbox-grid,
+  .channels-google-grid,
+  .team-workspace .team-form,
+  .department-manager form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .team-workspace .team-form fieldset,
+  .team-workspace .team-form .module-permissions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workflow-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-list-row,
+  .workflow-run-row,
+  .marketing-draft-row,
+  .publication-row {
+    min-width: 0;
+  }
+
+  .workflow-list-row > div,
+  .workflow-run-row > div,
+  .marketing-draft-row > div,
+  .publication-row > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar-company-button {
+    max-width: 96px;
+  }
+  .topbar .breadcrumbs {
+    max-width: 34vw;
+  }
+  .team-workspace .team-form fieldset,
+  .team-workspace .team-form .module-permissions {
+    grid-template-columns: 1fr;
+  }
+  .marketing-network-grid {
+    grid-template-columns: 1fr;
+  }
+}

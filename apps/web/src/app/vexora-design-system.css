@@ -1855,3 +1855,119 @@ body { background: var(--surface-page); color: var(--text-primary); }
     display: flex;
   }
 }
+
+
+/* Flow Studio: keep the library rail as wide as a flow node and preserve a usable canvas in fullscreen. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: 260px minmax(0, 1fr) minmax(240px, 26%) !important;
+}
+.chatbot-workspace .vx-flow-library {
+  width: 260px;
+  min-width: 260px;
+  box-sizing: border-box;
+}
+.chatbot-workspace .vx-flow-library button:not(.vx-panel-handle) {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #dce0ea);
+  border-radius: 10px;
+  background: var(--card, #fff);
+  color: var(--text-primary, #202638);
+  font: 600 12px/1.25 var(--font-ui, inherit);
+  box-shadow: 0 1px 2px rgba(20, 26, 48, .04);
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+.chatbot-workspace .vx-flow-library button:not(.vx-panel-handle):hover {
+  border-color: var(--primary, #6e8df7);
+  background: var(--primary-soft, #f1f4ff);
+  color: var(--primary-strong, #4669dc);
+}
+.chatbot-workspace .vx-flow-library button:not(.vx-panel-handle):active {
+  transform: translateY(1px);
+}
+.chatbot-workspace .vx-flow-library .vx-panel-handle {
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 7px;
+  border: 1px solid var(--line, #dce0ea);
+  border-radius: 10px;
+  background: var(--card, #fff);
+  color: var(--text-secondary, #667085);
+}
+.chatbot-workspace.vx-flow-fullscreen,
+.chatbot-workspace:fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell,
+.chatbot-workspace:fullscreen .vx-flow-shell {
+  display: grid !important;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(240px, 26%) !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage,
+.chatbot-workspace:fullscreen .vx-flow-stage {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll,
+.chatbot-workspace:fullscreen .vx-flow-scroll {
+  display: block !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-board,
+.chatbot-workspace:fullscreen .vx-flow-board {
+  min-width: 11000px !important;
+  min-height: 7000px !important;
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell,
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell,
+  .chatbot-workspace:fullscreen .vx-flow-shell {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .chatbot-workspace .vx-flow-library {
+    width: auto;
+    min-width: 0;
+  }
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-library,
+  .chatbot-workspace:fullscreen .vx-flow-library {
+    display: block !important;
+  }
+}

@@ -11,3 +11,10 @@ test("inbox uses SSE as primary realtime path", () => {
   assert.match(source, /setInterval\(refreshFallback, 15000\)/);
   assert.doesNotMatch(source, /setInterval\(\(\)\s*=>\s*\{\s*void loadConversations\(\)/);
 });
+
+const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", import.meta.url), "utf8");
+test("chatbot flow serialization is memoized", () => {
+  assert.match(chatbot, /useMemo/);
+  assert.match(chatbot, /useMemo\(\(\) => JSON\.stringify\(flow\), \[flow\]\)/);
+  assert.doesNotMatch(chatbot, /useEffect\(\(\)=>\{if\(!ready\|\|JSON\.stringify\(flow\)/);
+});

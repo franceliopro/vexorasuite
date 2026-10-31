@@ -2153,3 +2153,55 @@ body { background: var(--surface-page); color: var(--text-primary); }
     min-height: 40px;
   }
 }
+
+
+/* Main sidebar expands on hover; submenu state remains controlled by click. */
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
+  .suite-app > .sidebar.sidebar-collapsed:hover,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within {
+    width: 258px;
+    box-shadow: 12px 0 34px rgba(17, 24, 39, .16);
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand {
+    justify-content: flex-start;
+    padding-inline: 10px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .switch-chevron,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-section,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-arrow,
+  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .profile-more,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .switch-chevron,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-section,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-arrow,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-more {
+    display: initial !important;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div {
+    display: flex !important;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item {
+    width: 100%;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding-inline: 10px;
+    gap: 10px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-glyph,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-glyph {
+    width: 22px;
+    flex: 0 0 22px;
+  }
+}

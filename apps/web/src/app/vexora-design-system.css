@@ -1842,3 +1842,16 @@ body { background: var(--surface-page); color: var(--text-primary); }
     padding-inline: 10px;
   }
 }
+
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy {
+    display: flex;
+  }
+}

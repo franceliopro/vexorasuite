@@ -14,7 +14,7 @@ test("collapsed sidebar uses click navigation instead of hover flyouts", () => {
   assert.match(page, /setSidebarCollapsed\(false\)/);
   assert.doesNotMatch(page, /onPointerEnter=\{event=>\{if\(event\.pointerType==="mouse"\)setExpandedModules/);
   assert.match(design, /sidebar\.sidebar-collapsed:hover/);
-  assert.match(design, /width: 78px/);
+  assert.match(design, /width: 258px/);
   assert.match(design, /position: static/);
   assert.match(design, /sidebar-utilities/);
 });

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 
 function key() {
   return createHash("sha256").update(process.env.WEBHOOK_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET || "development-webhook-key").digest();
@@ -23,5 +23,5 @@ export function generateWebhookSecret() {
 }
 
 export function signWebhookPayload(secret: string, payload: string) {
-  return createHash("sha256").update(secret + ":" + payload).digest("hex");
+  return createHmac("sha256", secret).update(payload).digest("hex");
 }

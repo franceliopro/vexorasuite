@@ -3518,3 +3518,85 @@ input[type="color"].profile-tag-inline-color {
 /* Physical inboxes: one entry per real number or social account. */
 .vx-inboxes{padding:24px}.vx-inboxes-heading{display:flex;gap:14px;align-items:center;margin-bottom:22px}.vx-inboxes-heading>div{flex:1;min-width:0}.vx-inboxes-heading h2{margin:0;font-size:19px}.vx-inboxes-heading p{margin:6px 0 0;color:var(--muted)}.vx-inboxes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}.vx-inbox-card{min-width:0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:0 4px 14px #17183205}.vx-inbox-card>header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.vx-inbox-platform{font-weight:750;font-size:12px;color:var(--primary)}.vx-inbox-state{padding:5px 8px;border-radius:7px;background:#fff5df;color:#80590c;font-size:11px}.vx-inbox-state.good{background:#e7f8f1;color:#087950}.vx-inbox-card h3{margin:10px 0 3px;font-size:15px}.vx-inbox-identity{margin:0 0 4px;font-size:16px;font-weight:700;overflow-wrap:anywhere}.vx-inbox-card>small{font-size:10px;color:var(--muted);overflow-wrap:anywhere}.vx-inbox-card dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:12px 0}.vx-inbox-card dl>div{display:grid;gap:4px}.vx-inbox-card dt{font-size:11px;color:var(--muted)}.vx-inbox-card dd{margin:0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.vx-inbox-diagnostic{display:flex;align-items:flex-start;gap:8px;padding:9px;border:1px solid #87d8bc;border-radius:10px;color:#087950;font-size:12px;line-height:1.5}.vx-inbox-diagnostic svg{flex:none;margin-top:2px}.vx-inbox-diagnostic.attention{border-color:#ead19a;background:#fffaf0;color:#765310}.vx-inbox-diagnostic ul{margin:0;padding-left:15px}.vx-inbox-card details{margin-top:10px;font-size:11px}.vx-inbox-card summary{cursor:pointer;font-weight:650}.vx-inbox-card footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap}.vx-inbox-card a,.vx-inboxes-empty a{color:var(--primary);font-size:12px}.vx-inbox-form{display:grid;gap:18px}.vx-inbox-form label{display:grid;gap:8px;font-size:13px;font-weight:650}.vx-inbox-form select{width:100%;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}.vx-inbox-form p{font-size:13px;line-height:1.6;color:var(--muted)}.vx-inboxes-error{color:#a23030}.vx-inboxes-empty{display:grid;justify-items:start;gap:12px;padding:20px;color:var(--muted)}.vx-inboxes-compact{margin:18px 0;padding:14px}.vx-inboxes-compact .vx-inboxes-heading h2{font-size:15px}{display:flex}.vx-inboxes-compact .vx-inboxes-heading p{font-size:12px}
 @media(max-width:760px){.vx-inboxes{padding:16px}.vx-inboxes-heading{align-items:flex-start;gap:9px}.vx-inbox-card{padding:16px}.vx-inboxes-heading h2{font-size:17px}.vx-inbox-card footer .secondary-button{min-height:40px}.vx-inbox-form select{font-size:16px}}
+
+
+/* Final Chatbot canvas layout overrides. Keep these in the global layer so they win over legacy canvas rules. */
+.chatbot-workspace .vx-flow-shell {
+  grid-template-columns: 220px minmax(0, 1fr) 220px !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed {
+  grid-template-columns: 38px minmax(0, 1fr) 220px !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-right-collapsed {
+  grid-template-columns: 220px minmax(0, 1fr) 38px !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed,
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+  grid-template-columns: 38px minmax(0, 1fr) 0 !important;
+}
+.chatbot-workspace .vx-flow-command-menu {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #dce0ea);
+  border-radius: 12px;
+  background: var(--card, #fff);
+}
+.chatbot-workspace .vx-flow-command-menu > button:first-of-type {
+  margin-left: 0 !important;
+}
+.chatbot-workspace .vx-flow-command-menu button,
+.chatbot-workspace .vx-flow-stage-bar button,
+.chatbot-workspace .vx-flow-stage-foot button,
+.chatbot-workspace .vx-flow-library > button,
+.chatbot-workspace .vx-flow-inspector button,
+.chatbot-workspace .vx-flow-node-quick-actions button {
+  border: 1px solid var(--line, #dce0ea);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card, #fff) 94%, var(--primary, #6756d9));
+  color: var(--text, #202638);
+  box-shadow: none;
+}
+.chatbot-workspace .vx-flow-command-menu button:hover,
+.chatbot-workspace .vx-flow-stage-bar button:hover,
+.chatbot-workspace .vx-flow-library > button:hover {
+  border-color: color-mix(in srgb, var(--primary, #6756d9) 40%, var(--line, #dce0ea));
+  background: color-mix(in srgb, var(--primary, #6756d9) 10%, var(--card, #fff));
+}
+.chatbot-workspace.vx-flow-fullscreen,
+.chatbot-workspace:fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+  background: var(--card, #fff);
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell,
+.chatbot-workspace:fullscreen .vx-flow-shell {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: calc(100dvh - 80px) !important;
+  min-height: 0 !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage,
+.chatbot-workspace:fullscreen .vx-flow-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+@media (max-width: 1050px) {
+  .chatbot-workspace .vx-flow-shell {
+    grid-template-columns: 210px minmax(0, 1fr) 190px !important;
+  }
+}

@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState,type FormEvent} from "react";
 
 type Draft={id:string;createdAt:string;details:{status:string;title:string;caption:string;channels:string[];mediaUrl?:string;plannedFor?:string}};
 type Automation={enabled:boolean;mode:"RULES_ONLY"|"ASSISTED";cadence:"ON_NEW_FILE"|"DAILY"|"WEEKLY";networks:string[];publishMode:"DRAFT_ONLY"|"READY_FOR_REVIEW";captionTemplate:string;folderName:string;accountEmail:string;canAutoPublish:boolean};
-const networks=[["instagram","Instagram"],["facebook","Facebook"],["linkedin","LinkedIn"],["google-business","Google Business"],["tiktok","TikTok"]];
+const networks:ReadonlyArray<[string,string]>=[["instagram","Instagram"],["facebook","Facebook"],["linkedin","LinkedIn"],["google-business","Google Business"],["tiktok","TikTok"]];
 async function api(path:string,body?:unknown,method="POST"){const r=await fetch("/api/backend/"+path,body===undefined?{cache:"no-store"}:{method,headers:{"content-type":"application/json"},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(typeof d.message==="string"?d.message:"Não foi possível concluir.");return d}
 const defaultAutomation:Automation={enabled:false,mode:"RULES_ONLY",cadence:"ON_NEW_FILE",networks:["instagram","facebook"],publishMode:"DRAFT_ONLY",captionTemplate:"",folderName:"",accountEmail:"",canAutoPublish:false};
 export function ManualContentWorkspace(){

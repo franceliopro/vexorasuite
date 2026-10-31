@@ -30,6 +30,11 @@ const triggers: Record<string, string> = {
   QUEUE: "Conversa aguardando em fila",
   STAGE: "Etapa do CRM",
 };
+const workflowTemplates = [
+  { id: "proposal-followup", name: "Follow-up de proposta", trigger: "STAGE", stage: "proposal", steps: [{ type: "WAIT", text: "", minutes: 1440 }, { type: "TASK", text: "Revisar a proposta e entrar em contato com o cliente.", minutes: 0 }, { type: "WHATSAPP", text: "Olá, {{nome}}! Passando para saber se conseguiu avaliar nossa proposta. Posso ajudar em algo?", minutes: 0 }] },
+  { id: "no-reply", name: "Cliente sem resposta", trigger: "INBOX", stage: "proposal", steps: [{ type: "WAIT", text: "", minutes: 120 }, { type: "TASK", text: "Verificar a conversa e preparar um retorno.", minutes: 0 }, { type: "WAIT", text: "", minutes: 1440 }, { type: "WHATSAPP", text: "Olá, {{nome}}! Ficou alguma dúvida? Estou à disposição para ajudar.", minutes: 0 }] },
+  { id: "new-lead", name: "Primeiro retorno ao lead", trigger: "INBOX", stage: "new", steps: [{ type: "TASK", text: "Responder e qualificar o novo lead.", minutes: 0 }, { type: "WAIT", text: "", minutes: 1440 }] },
+] as const;
 type Step = { type: string; text: string; minutes: number };
 export function WorkflowsWorkspace() {
   const [agents,setAgents]=useState<any[]>([]),[assigneeId,setAssigneeId]=useState("");
@@ -80,6 +85,17 @@ export function WorkflowsWorkspace() {
     } finally {
       setBusy(false);
     }
+  }
+  function applyTemplate(templateId: string) {
+    const template = workflowTemplates.find(item => item.id === templateId);
+    if (!template) return;
+    setTrigger(template.trigger);
+    setStage(template.stage);
+    setSteps(template.steps.map(step => ({ ...step })));
+    setChannelId("");
+    setDepartmentId("");
+    setAssigneeId("");
+    setStopOnReply(true);
   }
   function edit(row?: any) {
     setId(row?.id || "");
@@ -191,6 +207,14 @@ export function WorkflowsWorkspace() {
               Cancelar
             </button>
           </div>
+          <label>
+            Modelo inicial
+            <select defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
+              <option value="">Começar do zero</option>
+              {workflowTemplates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
+            </select>
+            <small>O modelo apenas preenche as etapas. Salve pausado e ative depois de revisar.</small>
+          </label>
           <label>
             Nome
             <input

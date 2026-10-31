@@ -1,7 +1,7 @@
 import {InboxesController} from "./inboxes.controller";
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",departmentId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 function setup(){
- const publication={active:true,revision:"flow1",flow:{name:"Entrada",steps:[{id:"menu",kind:"agent",config:'{"agentId":"customer"}'}],channelIds:[id],triggers:[{kind:"message"}]}};
+ const publication={active:true,source:"ui",revision:"flow1",flow:{name:"Entrada",steps:[{id:"menu",kind:"agent",config:'{"agentId":"customer"}'}],channelIds:[id],triggers:[{kind:"message"}]}};
  const root:any={assistant:{enabled:true,agents:[{id:"customer",name:"Atendimento",enabled:true}]},intelligencePublished:publication};
  const channel:any={id,tenantId:"tenant",isActive:true,provider:"WAHA",status:"CONNECTED",name:"Principal",settings:{accountPhone:"5566996361707",webhookSecret:"private"}};
  const tx:any={$queryRaw:jest.fn(),channelConnection:{findFirst:jest.fn().mockResolvedValue(channel),findMany:jest.fn().mockResolvedValue([channel]),update:jest.fn()},tenant:{findUniqueOrThrow:jest.fn().mockImplementation(async()=>({integrations:root}))},department:{findFirst:jest.fn().mockResolvedValue({id:departmentId}),findMany:jest.fn().mockResolvedValue([{id:departmentId,name:"Financeiro"}])},message:{findFirst:jest.fn().mockResolvedValue(null)},auditLog:{findFirst:jest.fn().mockResolvedValue(null),create:jest.fn()}};

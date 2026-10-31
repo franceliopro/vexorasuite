@@ -2058,3 +2058,32 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .sidebar .sidebar-help > summary::-webkit-details-marker {
   display: none;
 }
+
+
+/* Keep the editable board inside the stage viewport; nodes must never paint over the side rails. */
+.chatbot-workspace .vx-flow-shell {
+  min-width: 0;
+  overflow: hidden !important;
+}
+.chatbot-workspace .vx-flow-library,
+.chatbot-workspace .vx-flow-inspector {
+  position: relative;
+  z-index: 2;
+}
+.chatbot-workspace .vx-flow-stage {
+  position: relative;
+  z-index: 0;
+  overflow: hidden !important;
+  isolation: isolate;
+  contain: paint;
+}
+.chatbot-workspace .vx-flow-scroll {
+  position: relative;
+  z-index: 0;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  clip-path: inset(0);
+}
+.chatbot-workspace .vx-flow-board {
+  z-index: 0;
+}

@@ -1580,3 +1580,140 @@ body { background: var(--surface-page); color: var(--text-primary); }
     grid-template-columns: 205px minmax(0, 1fr) 170px !important;
   }
 }
+
+
+/* Consolidated responsive, presentation and scrollbar primitives. */
+
+/* Presentation occupies only the workspace; operational pages retain document scrolling. */
+.main-area > .page-content.presentation-page{max-width:none;width:100%;margin:0;padding:0!important;flex:1;display:flex;min-height:0}
+.home-presentation{position:relative;flex:1;width:100%;min-width:0;min-height:calc(100dvh - 70px);overflow:hidden;isolation:isolate;background:var(--page);touch-action:manipulation}
+.presentation-wallpaper{position:absolute;inset:0;background-position:center;background-repeat:no-repeat;pointer-events:none}
+.presentation-mode-contain{background-size:contain}.presentation-mode-cover{background-size:cover}.presentation-mode-center{background-size:auto}.presentation-mode-stretch{background-size:100% 100%}.presentation-mode-zoom{background-size:cover;transform:scale(1.25)}.presentation-mode-tile{background-repeat:repeat;background-size:auto}
+.presentation-add{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 30px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);background:color-mix(in srgb,var(--card) 70%,transparent);max-width:85%;font-size:14px}
+.presentation-keyboard-edit{position:absolute;top:12px;left:12px;opacity:0;pointer-events:none}.presentation-keyboard-edit:focus-visible{opacity:1;pointer-events:auto;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:8px}
+.presentation-state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px}
+.presentation-backdrop{position:fixed;inset:0;z-index:1000;background:#080d2080;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.presentation-dialog{width:min(700px,100%);max-height:calc(100dvh - 40px);overflow:auto;overscroll-behavior:contain;padding:24px;display:flex;flex-direction:column;gap:16px}
+.presentation-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:16px}.presentation-dialog h2{margin:0}.presentation-dialog .module-tabs button{display:flex;align-items:center;gap:8px}.presentation-dialog .workspace-actions{display:flex;gap:12px;flex-wrap:wrap}.presentation-dialog .workspace-actions button{display:flex;align-items:center;gap:7px}
+.presentation-preview{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--line);border-radius:10px;background:var(--page);display:grid;place-items:center;align-self:center;flex-shrink:0}.presentation-preview-desktop{width:100%;aspect-ratio:16/9;max-height:270px}.presentation-preview-mobile{height:270px;aspect-ratio:9/16;max-width:100%}
+.presentation-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}.presentation-modes legend{font-weight:600;margin-bottom:10px}.presentation-modes label{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:9px;cursor:pointer}.presentation-modes label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}.presentation-modes input{flex-shrink:0}.presentation-modes span{display:flex;flex-direction:column;gap:3px}.presentation-modes small{font-size:11px;color:var(--muted)}.presentation-dialog footer{justify-content:flex-end}.presentation-dialog .settings-muted{font-size:12px;margin:0}
+@media(min-width:761px){
+ .suite-app{--desktop-sidebar-width:258px}
+ .suite-app:has(>.sidebar.sidebar-collapsed){--desktop-sidebar-width:78px}
+ .suite-app>.sidebar{position:fixed;inset:0 auto 0 0;width:var(--desktop-sidebar-width);height:100dvh;min-height:0;max-height:100dvh;overflow:visible;z-index:35;display:flex;flex-direction:column}
+ .suite-app>.main-area{margin-left:var(--desktop-sidebar-width);width:calc(100% - var(--desktop-sidebar-width));max-width:calc(100% - var(--desktop-sidebar-width));min-width:0}
+ .sidebar .side-nav{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--scrollbar-thumb) transparent}
+ .sidebar .side-nav::-webkit-scrollbar{width:6px}.sidebar .side-nav::-webkit-scrollbar-track{background:transparent}.sidebar .side-nav::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:0;border:0;box-shadow:none}
+ .sidebar .nav-submenu{overflow:visible;max-height:none}
+ .sidebar .sidebar-bottom{margin-top:0;flex-shrink:0}
+ .sidebar .nav-glyph,.sidebar .nav-item,.sidebar .sidebar-brand-row{flex-shrink:0}
+}
+@media(min-width:761px) and (max-width:1120px){.suite-app{--desktop-sidebar-width:230px}}
+.presentation-color{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:600}.presentation-color input[type=color]{width:48px;height:36px;min-height:36px;padding:2px;border:1px solid var(--line);border-radius:7px;background:var(--card);cursor:pointer}.presentation-color span{font-size:12px;color:var(--muted);font-weight:400}
+@media(max-width:760px){.main-area:has(.home-presentation){padding-bottom:calc(74px + env(safe-area-inset-bottom))}.main-area>.page-content.presentation-page{padding:0!important;max-height:none;overflow:visible}.home-presentation{min-height:calc(100dvh - 58px - 74px - env(safe-area-inset-bottom))}.presentation-backdrop{padding:10px}.presentation-dialog{padding:18px;max-height:calc(100dvh - 20px);border-radius:14px}.presentation-modes label{padding:8px}.presentation-modes small{font-size:10px}.presentation-preview-mobile{height:220px}.presentation-dialog .workspace-actions button{min-height:44px}.presentation-add{padding:20px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.home-presentation *{transition:none}}
+
+/* Submenus expand in the navigation flow, without independent scroll regions. */
+.sidebar .nav-accordion,.sidebar .nav-submenu{overflow:visible;max-height:none;flex-shrink:0}
+.sidebar .side-nav:has(.nav-accordion.expanded){scrollbar-width:none}
+.sidebar .side-nav:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none;width:0;height:0}
+/* The mobile drawer owns scrolling; keep expanded navigation equally unobtrusive. */
+@media(max-width:760px){
+ .suite-app>.sidebar:has(.nav-accordion.expanded){scrollbar-width:none}
+ .suite-app>.sidebar:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none;width:0;height:0}
+}
+
+/* Native file controls must stay hidden even when shared form styles set display. */
+.home-presentation .presentation-file-input{display:none!important}
+@media(min-width:761px) and (hover:hover) and (pointer:fine){
+ .suite-app.home-mode .main-area>.topbar{position:fixed;top:0;left:var(--desktop-sidebar-width);right:0;z-index:50;transform:translateY(calc(-100% + 8px));opacity:0;transition:transform .18s ease,opacity .18s ease}
+ .suite-app.home-mode .main-area>.topbar:hover,
+ .suite-app.home-mode .main-area>.topbar:focus-within,
+ .suite-app.home-mode .main-area>.topbar:has([aria-expanded=true]){transform:translateY(0);opacity:1}
+ .suite-app.home-mode .home-presentation{min-height:100dvh}
+}
+@media(prefers-reduced-motion:reduce){.suite-app.home-mode .main-area>.topbar{transition:none}}
+
+
+.pwa-controls{position:relative;display:flex;align-items:center}.pwa-panel{position:absolute;z-index:1100;top:calc(100% + 12px);right:0;width:320px;max-width:calc(100vw - 24px);padding:16px;background:var(--card,#fff);color:var(--ink,#172034);border:1px solid var(--line,#dce0ea);border-radius:16px;box-shadow:0 16px 45px #0003;font-size:13px;line-height:1.5}.pwa-panel header{display:flex;justify-content:space-between;gap:12px;align-items:center}.pwa-panel header button{border:0;background:transparent;color:inherit;padding:6px}.pwa-panel p{margin:12px 0;color:var(--muted,#667085)}.pwa-panel-actions{display:flex;flex-wrap:wrap;gap:8px}.pwa-panel-actions button{border:1px solid var(--line,#dce0ea);padding:10px 12px;border-radius:10px;background:var(--card,#fff);color:inherit;cursor:pointer}.pwa-offline{position:fixed;top:64px;right:12px;z-index:1101;padding:7px 12px;background:#4c3508;color:#fff;border-radius:8px;font-size:12px}.pwa-panel .secondary-button{margin-top:12px}
+@media(max-width:760px){
+ html,body{min-width:0;width:100%;overscroll-behavior-y:none}body{min-height:100dvh}.app-shell,.main-area,.page-content{min-width:0;max-width:100%}
+ .topbar{padding-top:env(safe-area-inset-top);height:calc(58px + env(safe-area-inset-top));min-height:calc(58px + env(safe-area-inset-top));gap:5px}.topbar-actions{gap:2px;min-width:0}.topbar .icon-button,.topbar .mobile-menu,.topbar .ai-assistant-trigger,.topbar .logout-button{min-height:44px;min-width:40px;display:flex;align-items:center;justify-content:center;padding:7px}.topbar .workspace-info-wrap{display:none}
+ .mobile-bottom-nav{padding-bottom:env(safe-area-inset-bottom);min-height:calc(60px + env(safe-area-inset-bottom));bottom:0}.mobile-bottom-nav button{min-height:52px;font-size:11px}.page-content{padding-bottom:calc(76px + env(safe-area-inset-bottom))}.mobile-sidebar-backdrop{touch-action:none}.sidebar{padding-top:env(safe-area-inset-top);padding-bottom:calc(70px + env(safe-area-inset-bottom));max-height:100dvh;overflow-y:auto}
+ input:not([type=checkbox]):not([type=radio]):not([type=color]),textarea,select{font-size:16px!important}button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}button{touch-action:manipulation}button:focus-visible,a:focus-visible{outline:2px solid var(--primary,#6057df);outline-offset:2px}
+ .pwa-panel{position:fixed;top:calc(64px + env(safe-area-inset-top));right:8px;width:340px;max-height:calc(100dvh - 150px);overflow:auto}.pwa-panel-actions button,.pwa-panel header button{min-height:44px}
+ .chatbot-workspace .vx-flow-mini-toolbar{display:flex;flex-wrap:wrap;gap:6px}.chatbot-workspace .vx-flow-mini-toolbar>span{font-size:11px}.chatbot-workspace .vx-flow-mini-toolbar button{min-height:40px;font-size:12px;padding:7px 10px}.chatbot-workspace .vx-flow-shell{min-width:0}.chatbot-workspace .vx-flow-library{max-height:230px}.chatbot-workspace .vx-flow-library-search{min-height:40px}.chatbot-workspace .vx-flow-library .vx-flow-panel-title{padding-bottom:4px}.chatbot-workspace .vx-flow-palette-grid button{min-height:42px;font-size:12px}.chatbot-workspace .vx-flow-stage{height:55dvh;min-height:320px}.chatbot-workspace .vx-flow-stage-bar button{min-height:40px}.chatbot-workspace .vx-flow-board{touch-action:none}.chatbot-workspace.vx-flow-editing .vx-flow-inspector,.chatbot-workspace.vx-flow-testing .vx-flow-inspector{bottom:calc(66px + env(safe-area-inset-bottom));top:auto;max-height:70dvh;overflow:hidden;display:flex;flex-direction:column}.chatbot-workspace .vx-flow-inspector-body{min-height:0;overflow:auto}.chatbot-workspace .vx-flow-inspector .vx-flow-panel-title{flex:none}.chatbot-workspace .vx-flow-inspector label{font-size:13px}.chatbot-workspace .vx-flow-inspector select,.chatbot-workspace .vx-flow-inspector input{min-height:42px}
+ .creative-workspace .creative-fields{display:flex;flex-direction:column;align-items:stretch}.creative-workspace .creative-fields>*{min-width:0;width:100%}.creative-workspace input,.creative-workspace select,.creative-workspace textarea{max-width:100%;box-sizing:border-box}.creative-workspace .creative-upload{padding:13px}.creative-workspace .creative-fields button{min-height:44px}.creative-workspace .module-tabs{max-width:100%;overflow-x:auto;flex-wrap:nowrap;white-space:nowrap}.creative-workspace .module-tabs button{min-height:44px;flex:none}
+ .inbox-workspace.mobile-thread-open .inbox-thread{height:calc(100dvh - 58px - 62px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:0}.inbox-workspace .inbox-composer textarea{font-size:16px!important}.inbox-workspace .inbox-quick-dialog input{font-size:16px!important}.inbox-workspace .inbox-quick-dialog .inbox-finance-lookup button{min-height:40px}.inbox-workspace .inbox-quick-dialog>header button{min-width:40px;min-height:40px}
+}
+@media(max-width:480px){.topbar .search-box{display:none}.topbar .breadcrumbs{font-size:12px;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.topbar .ai-assistant-trigger span{display:none}.topbar .logout-button{font-size:11px}.chatbot-workspace .vx-flow-page-title h1{font-size:20px}.chatbot-workspace .vx-flow-page-title p{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+@media(min-width:761px) and (max-width:1100px){.topbar{gap:8px;padding-left:12px;padding-right:12px}.topbar .search-box,.topbar .workspace-info-wrap{display:none}.topbar .ai-assistant-trigger span{display:none}.topbar .breadcrumbs{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.topbar-actions{gap:6px;flex-shrink:0;min-width:0}.topbar .icon-button,.topbar .ai-assistant-trigger,.topbar .logout-button{min-width:40px;min-height:44px;padding:7px;display:flex;align-items:center;justify-content:center}}
+
+
+/* Let the document own ordinary mobile pages; keep inbox and canvas scrolling local. */
+@media (max-width: 760px) {
+  html {
+    height: auto;
+    overflow-x: clip;
+    overflow-y: auto;
+  }
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+  .suite-app {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+  .suite-app > .main-area:not(:has(.inbox-workspace)) {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+  }
+  .main-area:not(:has(.inbox-workspace)) > .page-content {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .chatbot-workspace:not(.vx-flow-fullscreen) .vx-flow-scroll {
+    overscroll-behavior-y: auto;
+  }
+  /* A tall toolbar must not consume the entire fullscreen editor on small phones. */
+  .chatbot-workspace.vx-flow-fullscreen {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell {
+    flex: 0 0 65dvh;
+    min-height: 320px;
+  }
+}
+
+
+/* One thin, flat treatment for page, panel, editor and form scrolling. */
+:root{--scrollbar-thumb:#3f434b}
+:root[data-theme="light"],:root[data-theme="hybrid"]{--scrollbar-thumb:#3f434b}
+:root[data-theme="dark"]{--scrollbar-thumb:#fff}
+:root[data-theme="hybrid"] .sidebar{--scrollbar-thumb:#fff}
+*{scrollbar-width:thin!important;scrollbar-color:var(--scrollbar-thumb) transparent!important}
+*::-webkit-scrollbar{width:5px!important;height:5px!important;background:transparent!important}
+*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent!important;border:0!important;box-shadow:none!important}
+*::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb)!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+*::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important}
+
+/* Expanded navigation is the intentional exception to the global scrollbar rule. */
+.sidebar .side-nav:has(.nav-accordion.expanded){scrollbar-width:none!important}
+.sidebar .side-nav:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+@media(max-width:760px){
+ .suite-app>.sidebar:has(.nav-accordion.expanded){scrollbar-width:none!important}
+ .suite-app>.sidebar:has(.nav-accordion.expanded)::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+}
+

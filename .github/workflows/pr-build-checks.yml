@@ -1,0 +1,45 @@
+name: PR build checks
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-build-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build and type-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Type-check all packages
+        run: pnpm run typecheck

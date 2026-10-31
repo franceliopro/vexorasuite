@@ -9,6 +9,15 @@ export class ConversationDistributionService {
 
   async assign(tenantId: string, conversationId: string, departmentId: string) {
     return this.prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+      const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+        ? tenant.integrations as Record<string, unknown>
+        : {};
+      const distribution = integrations.distributionSettings && typeof integrations.distributionSettings === "object" && !Array.isArray(integrations.distributionSettings)
+        ? integrations.distributionSettings as Record<string, unknown>
+        : {};
+      if (distribution.enabled !== true) return null;
+
       const department = await tx.department.findFirst({
         where: { id: departmentId, tenantId, isActive: true },
         select: {

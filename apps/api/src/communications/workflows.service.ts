@@ -424,12 +424,13 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
           include: { contact: true, channelConnection: true },
         })
       : null;
+    const workflowFilters = (rule.filters || {}) as Record<string, unknown>;
     if (
       run.conversationId &&
       (!conversation ||
         conversation.deletedAt ||
         conversation.archivedAt ||
-        ["CLOSED", "RESOLVED"].includes(conversation.status))
+        (workflowFilters.cancelClosed !== false && ["CLOSED", "RESOLVED"].includes(conversation.status)))
     )
       return this.prisma.workflowRun.update({
         where: { id: run.id },

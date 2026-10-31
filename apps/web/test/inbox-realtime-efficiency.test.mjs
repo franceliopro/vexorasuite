@@ -24,3 +24,7 @@ test("inbox list does not load unused participant graphs", () => {
   assert.match(conversations, /const rows = await this\.prisma\.conversation\.findMany/);
   assert.doesNotMatch(conversations, /messages: \{[\s\S]*participants: \{ include:/);
 });
+
+test("inbox does not keep a duplicate assignee loader", () => {
+  assert.doesNotMatch(source, /setAssignees|loadAssignees/);
+});

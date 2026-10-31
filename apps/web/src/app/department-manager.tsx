@@ -8,6 +8,8 @@ const initial = {
   modules: [] as string[],
   routingCategory: "OTHER",
   routingPlatform: "",
+  routingStrategy: "ROUND_ROBIN",
+  maxOpenConversations: 0,
   crmTemplate: "GENERAL",
 };
 export function DepartmentManager() {
@@ -36,6 +38,8 @@ export function DepartmentManager() {
             modules: d.modules || [],
             routingCategory: d.routingCategory || "OTHER",
             routingPlatform: d.routingPlatform || "",
+            routingStrategy: d.routingStrategy || "ROUND_ROBIN",
+            maxOpenConversations: Number(d.maxOpenConversations || 0),
             crmTemplate: d.pipeline?.template || "GENERAL",
           }
         : initial,
@@ -146,6 +150,37 @@ export function DepartmentManager() {
             value={form.modules}
             onChange={(modules) => setForm((v) => ({ ...v, modules }))}
           />
+          <div className="department-routing-fields">
+            <label>
+              Distribuição de novas conversas
+              <select
+                value={form.routingStrategy}
+                onChange={(e) =>
+                  setForm((v) => ({ ...v, routingStrategy: e.target.value }))
+                }
+              >
+                <option value="ROUND_ROBIN">Rodízio entre os atendentes</option>
+                <option value="LOAD_BALANCED">Quem tem menos conversas</option>
+              </select>
+              <small>Escolha como a fila encaminha novos atendimentos. O limite 0 deixa sem limite.</small>
+            </label>
+            <label>
+              Limite de conversas abertas por atendente
+              <input
+                type="number"
+                min={0}
+                max={1000}
+                value={form.maxOpenConversations}
+                onChange={(e) =>
+                  setForm((v) => ({
+                    ...v,
+                    maxOpenConversations: Math.max(0, Math.min(1000, Number(e.target.value) || 0)),
+                  }))
+                }
+              />
+            </label>
+          </div>
+
           {form.modules.includes("CRM") && (
             <label>
               Modelo de pipeline

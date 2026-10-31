@@ -37,7 +37,10 @@ export class IntelligenceRuntimeController {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     const published = object(object(tenant.integrations).intelligencePublished);
     const executions = await this.prisma.auditLog.findMany({ where: { tenantId: req.user.tenantId, action: 'engine.processed' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, createdAt: true, details: true } });
-    return { engine: 'Véxora Intelligence Engine', active: published.source === 'ui' && published.active === true, revision: published.revision || null, publishedAt: published.publishedAt || null, flowName: published.flow?.name || null, executableKinds, executableActions, executions, publications: Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,p]:[string,any])=>({key,scope:p.scope,active:p.source === 'ui' && p.active === true,revision:p.revision,flowName:p.flow?.name})), llmExecution: true };
+    const publications=Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,p]:[string,any])=>({key,scope:p.scope,active:p.source === 'ui' && p.active === true,revision:p.revision,flowName:p.flow?.name}));
+    const defaultActive=published.source === 'ui' && published.active === true;
+    const active=defaultActive||publications.some(publication=>publication.active);
+    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, llmExecution: true };
   }
   @Get('destinations')
   async destinations(@Req() req:AuthenticatedRequest){

@@ -16,7 +16,7 @@ const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", impo
 test("chatbot flow serialization is memoized", () => {
   assert.match(chatbot, /useMemo/);
   assert.match(chatbot, /useMemo\(\(\) => JSON\.stringify\(flow\), \[flow\]\)/);
-  assert.doesNotMatch(chatbot, /useEffect\(\(\)=>\{if\(!ready\|\|JSON\.stringify\(flow\)/);
+  assert.doesNotMatch(chatbot, /if\(!ready\|\|JSON\.stringify\(flow\)===lastSaved/);
 });
 
 const conversations = fs.readFileSync(new URL("../../api/src/operations/conversations.controller.ts", import.meta.url), "utf8");

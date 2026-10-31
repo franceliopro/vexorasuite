@@ -151,6 +151,7 @@ export class ConversationsController {
 
   @Get("distribution-settings")
   async distributionSettings(@Req() request: AuthenticatedRequest) {
+    if (departmentId && !isUUID(departmentId)) throw new BadRequestException("Departamento inválido.");
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
       ? tenant.integrations as Record<string, unknown>

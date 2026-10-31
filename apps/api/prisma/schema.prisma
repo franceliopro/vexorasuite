@@ -94,6 +94,7 @@ model Tenant {
   workTasks WorkTask[]
   calendarAssignments CalendarAssignment[]
   creativeReferences CreativeReference[]
+  publicApiTokens PublicApiToken[]
   integrations Json @default("{}")
 
   @@map("tenants")
@@ -580,6 +581,19 @@ model HomePresentation {
  updatedAt DateTime @updatedAt @map("updated_at")
  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
  @@map("home_presentations")
+}
+
+model PublicApiToken {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  name String
+  tokenHash String @unique @map("token_hash")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant Tenant @relation(fields:[tenantId], references:[id], onDelete:Cascade)
+  @@index([tenantId, revokedAt])
+  @@map("public_api_tokens")
 }
 
 model InternalMention {

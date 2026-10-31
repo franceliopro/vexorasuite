@@ -1725,3 +1725,30 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .sidebar.sidebar-collapsed .nav-submenu {
   left: calc(100% + 6px);
 }
+
+/* Calendar controls stay compact when there is only one account/calendar. */
+.calendar-toolbar {
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.calendar-toolbar .calendar-layout-control {
+  flex: 0 0 auto;
+}
+.calendar-toolbar > select {
+  flex: 0 1 220px;
+  min-width: 150px;
+}
+.calendar-toolbar .calendar-month {
+  flex: 1 1 auto;
+  min-width: 170px;
+  justify-content: center;
+}
+@media (max-width: 900px) {
+  .calendar-toolbar {
+    flex-wrap: wrap;
+  }
+  .calendar-toolbar .calendar-month {
+    flex: 1 1 220px;
+  }
+}

@@ -5,9 +5,8 @@ type Skill = { id: string; name: string; description: string; instructions: stri
 type Capability = { id: string; name: string; category?: string; cost?: string; implemented?: boolean; permission?: string };
 
 function slug(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "").slice(0,  seventy());
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "").slice(0, 70);
 }
-function seventy() { return 70; }
 
 export function ProductSkillsEditor() {
   const [skills, setSkills] = useState<Skill[]>([]);

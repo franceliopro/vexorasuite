@@ -87,7 +87,7 @@ export class CrmPipelinesController {
       const label = typeof value.label === "string" ? value.label.trim().slice(0, 120) : "";
       const type = typeof value.type === "string" ? value.type.trim().toUpperCase() : "TEXT";
       const pipelineIds = Array.isArray(value.pipelineIds) ? value.pipelineIds.filter((id): id is string => typeof id === "string" && isUUID(id)).slice(0, 50) : [];
-      const options = Array.isArray(value.options) ? value.options.filter((item): item is string => typeof item === "string" && item.trim()).map((item) => item.trim().slice(0, 120)).slice(0, 50) : [];
+      const options = Array.isArray(value.options) ? value.options.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim().slice(0, 120)).slice(0, 50) : [];
       if (!id || !label || !allowedTypes.includes(type as typeof allowedTypes[number])) throw new BadRequestException("Cada campo precisa de id, nome e tipo válido.");
       if (type === "SELECT" && !options.length) throw new BadRequestException("Campos de seleção precisam de opções.");
       return { id, label, type, pipelineIds, options, enabled: value.enabled !== false };

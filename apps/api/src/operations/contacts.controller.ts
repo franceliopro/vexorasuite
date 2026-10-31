@@ -160,7 +160,7 @@ export class ContactsController {
     if (pipelineId) {
       if (!administrative(request.user.role)) throw new ForbiddenException("Somente administradores configuram campos por pipeline.");
       const pipeline = await accessiblePipeline(this.prisma, request, pipelineId);
-      const stages = Array.isArray(pipeline.stages) ? pipeline.stages.filter((value): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value)) : [];
+      const stages: Array<Record<string, unknown>> = Array.isArray(pipeline.stages) ? (pipeline.stages as unknown[]).filter((value): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value)) : [];
       const knownStages = new Set(stages.map(stage => typeof stage.id === "string" ? stage.id : "").filter(Boolean));
       if (stageIds.some(stageId => !knownStages.has(stageId))) throw new BadRequestException("A etapa selecionada não pertence a este pipeline.");
     } else if (stageIds.length) {

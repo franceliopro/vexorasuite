@@ -2292,3 +2292,14 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .marketing-draft-row>div{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}.marketing-draft-row small{color:var(--muted,#667085);font-size:12px}
 .marketing-calendar-placeholder{padding:20px}
 @media(max-width:760px){.marketing-creation-grid,.marketing-agent-grid{grid-template-columns:1fr}.marketing-network-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.marketing-draft-row{align-items:flex-start;flex-direction:column}}
+
+
+.marketing-automation-form{max-width:920px}
+.marketing-automation-source{margin:0;color:var(--muted);font-size:.92rem}
+.marketing-automation-note{display:grid;gap:4px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--primary) 7%,var(--card));color:var(--muted);font-size:.86rem}
+.marketing-automation-note strong{color:var(--text)}
+.marketing-automation-help{font-size:.84rem;color:var(--muted)}
+.status-pill.muted{opacity:.65}
+.checkbox-line{display:flex!important;flex-direction:row;align-items:center;gap:8px}
+.checkbox-line input{width:auto!important}
+@media (max-width:760px){.marketing-automation-form{padding:16px}.marketing-automation-note{font-size:.8rem}}

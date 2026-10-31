@@ -94,6 +94,7 @@ model Tenant {
   workTasks WorkTask[]
   calendarAssignments CalendarAssignment[]
   creativeReferences CreativeReference[]
+  publicApiTokens PublicApiToken[]
   integrations Json @default("{}")
 
   @@map("tenants")

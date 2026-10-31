@@ -40,7 +40,7 @@ export class MarketingController{
   const caption=typeof input?.caption==='string'?input.caption.trim():'';
   const channels=Array.isArray(input?.channels)?input.channels.filter((v:any)=>typeof v==='string'&&v.length<=40).slice(0,12):[];
   const plannedFor=typeof input?.plannedFor==='string'?input.plannedFor:'';
-  if(!title||title.length>180||!caption||caption.length>4000||!channels.length||plannedFor&&(!/^\\d{4}-\\d{2}-\\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor))))throw new BadRequestException('Preencha título, legenda, redes e data válida.');
+  if(!title||title.length>180||!caption||caption.length>4000||!channels.length||plannedFor&&(!/^\d{4}-\d{2}-\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor))))throw new BadRequestException('Preencha título, legenda, redes e data válida.');
   const id=randomUUID();
   await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.manual-draft',entityType:'publication',entityId:id,details:{status:'DRAFT',title,caption,channels,mediaUrl:typeof input.mediaUrl==='string'?input.mediaUrl.slice(0,1000):'',plannedFor}}});
   return {id,status:'DRAFT'};

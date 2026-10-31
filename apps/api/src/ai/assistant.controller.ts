@@ -153,16 +153,30 @@ export class AssistantController {
   @Get("engine/status")
   async engineStatus(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
+    const root = object(tenant.integrations);
     const config = parseConfig(tenant.integrations);
+    const publications = [root.intelligencePublished, ...Object.values(object(root.intelligencePublications))].filter((value) => value && typeof value === "object").filter((value) => (value as any).active === true) as any[];
+    const agentVisibility = config.agents.map((agent) => {
+      const activePublications = publications.filter((publication) => JSON.stringify(publication.flow || {}).includes('"agentId":"' + agent.id + '"'));
+      return {
+        id: agent.id,
+        name: agent.name,
+        enabled: agent.enabled === true,
+        visibleInInterface: true,
+        activeInPublishedFlow: activePublications.length > 0,
+        channels: [...new Set(activePublications.flatMap((publication) => Array.isArray(publication.flow?.channelIds) ? publication.flow.channelIds : []))],
+      };
+    });
     return {
       engine: "vexora-intelligence-v1",
       enabled: config.enabled,
-      executionMode: (tenant.integrations as any)?.intelligencePublished?.active ? "published_workflow" : "simulation",
-      automaticCustomerReplies: (tenant.integrations as any)?.intelligencePublished?.active === true,
-      workflowExecution: (tenant.integrations as any)?.intelligencePublished?.active === true,
+      executionMode: publications.length ? "published_workflow" : "simulation",
+      automaticCustomerReplies: publications.length > 0,
+      workflowExecution: publications.length > 0,
       workflowPersistence: true,
       agentCount: config.agents.length,
       enabledAgentCount: config.agents.filter(agent => agent.enabled).length,
+      agentVisibility,
       capabilities: {
         intentRouting: true,
         workflowDrafts: true,

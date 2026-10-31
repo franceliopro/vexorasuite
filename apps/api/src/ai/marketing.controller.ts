@@ -12,7 +12,7 @@ import {AssistantAutomationService} from './assistant-automation.service';
 export class MarketingController{
  constructor(private readonly library:MarketingLibraryService,private readonly automation:AssistantAutomationService,private readonly prisma:PrismaService){}
  @Get('library') config(@Req() req:AuthenticatedRequest){return this.library.config(req);}
- @Get('automation') automation(@Req() req:AuthenticatedRequest){return this.library.automation(req);}
+ @Get('automation') getAutomation(@Req() req:AuthenticatedRequest){return this.library.automation(req);}
  @Patch('automation') saveAutomation(@Req() req:AuthenticatedRequest,@Body() input:any){return this.library.saveAutomation(req,input);}
  @Post('library') save(@Req() req:AuthenticatedRequest,@Body() input:any){
   if(input?.autoPublish===true)throw new BadRequestException('A publicação automática foi retirada.');

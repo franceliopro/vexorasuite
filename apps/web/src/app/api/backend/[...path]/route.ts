@@ -37,7 +37,7 @@ async function proxyRequest(request: Request, context: Context) {
       ...(hasBody ? { body: await limitedRequestBody(request) } : {}),
       cache: "no-store",
     };
-    const isAiGeneration = pathValue==='assistant/ask'||pathValue==='assistant/engine/create-flow'||/^assistant\/agents\/[^/]+\/test$/.test(pathValue);
+    const isAiGeneration = pathValue==='assistant/ask'||pathValue==='assistant/engine/create-flow'||pathValue==='marketing/drafts'||/^assistant\/agents\/[^/]+\/test$/.test(pathValue);
     if (!isSse) init.signal = AbortSignal.timeout(isAiGeneration?200000:pathValue==='department-resources'?180000:pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000);
     upstream = await fetch(apiOrigin + "/api/" + pathValue + requestUrl.search, init);
   } catch (error) {

@@ -151,7 +151,6 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [internalDraft,setInternalDraft]=useState("");
   const [handoffAssignee, setHandoffAssignee] = useState("");
   const [inviteAssignee, setInviteAssignee] = useState("");
-  const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
   const [contactProfileExpanded, setContactProfileExpanded] = useState(true);
@@ -246,11 +245,6 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     try { setChannels(await api<Channel[]>("/api/backend/channels")); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar canais."); }
   }, []);
-  const loadAssignees = useCallback(async () => {
-    try { setAssignees(await api<Assignee[]>("/api/backend/conversations/assignees")); }
-    catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar atendentes."); }
-  }, []);
-
   const loadMessages = useCallback(async (id: string) => {
     try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView)); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }

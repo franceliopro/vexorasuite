@@ -248,10 +248,11 @@ export default function HomePage() {
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
-                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label} onPointerEnter={event=>{if(event.pointerType==="mouse")setExpandedModules(item.children?[item.label]:[])}} onFocusCapture={()=>{setExpandedModules(item.children?[item.label]:[])}}>
+                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label}>
                   <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {
+                        setSidebarCollapsed(false);
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
                         setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false); setSidebarCollapsed(true);

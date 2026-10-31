@@ -46,9 +46,12 @@ export class MarketingController{
   const mediaFileId=typeof input?.mediaFileId==='string'?input.mediaFileId.trim().slice(0,200):'';
   const mediaAccountId=typeof input?.mediaAccountId==='string'?input.mediaAccountId.trim().slice(0,80):'';
   const mediaName=typeof input?.mediaName==='string'?input.mediaName.trim().slice(0,180):'';
+  const rawMediaItems=Array.isArray(input?.mediaItems)?input.mediaItems.slice(0,10):[];
+  const mediaItems=rawMediaItems.filter((item:any)=>item&&typeof item==='object').map((item:any)=>({mediaSource:item.mediaSource==='google-drive'?'google-drive':'',mediaFileId:typeof item.mediaFileId==='string'?item.mediaFileId.trim().slice(0,200):'',mediaAccountId:typeof item.mediaAccountId==='string'?item.mediaAccountId.trim().slice(0,80):'',mediaName:typeof item.mediaName==='string'?item.mediaName.trim().slice(0,180):'',mediaUrl:typeof item.mediaUrl==='string'?item.mediaUrl.slice(0,1000):''})).filter((item:any)=>item.mediaUrl||item.mediaFileId);
+  if(mediaItems.some((item:any)=>item.mediaSource==='google-drive'&&(!item.mediaFileId||!item.mediaAccountId)))throw new BadRequestException('Um dos arquivos do Google Drive é inválido.');
   if(!title||title.length>180||!caption||caption.length>4000||!channels.length||plannedFor&&(!/^\d{4}-\d{2}-\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor)))||mediaSource==='google-drive'&&(!mediaFileId||!mediaAccountId))throw new BadRequestException('Preencha título, legenda, redes e data válida.');
   const id=randomUUID();
-  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.manual-draft',entityType:'publication',entityId:id,details:{status:'DRAFT',title,caption,channels,mediaUrl:typeof input.mediaUrl==='string'?input.mediaUrl.slice(0,1000):'',mediaSource,mediaFileId,mediaAccountId,mediaName,plannedFor}}});
+  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.manual-draft',entityType:'publication',entityId:id,details:{status:'DRAFT',title,caption,channels,mediaUrl:typeof input.mediaUrl==='string'?input.mediaUrl.slice(0,1000):'',mediaSource,mediaFileId,mediaAccountId,mediaName,mediaItems,plannedFor}}});
   return {id,status:'DRAFT'};
  }
  @Patch('manual-drafts/:id') async manualUpdate(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){

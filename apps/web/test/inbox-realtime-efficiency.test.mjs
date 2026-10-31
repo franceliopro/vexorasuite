@@ -18,3 +18,9 @@ test("chatbot flow serialization is memoized", () => {
   assert.match(chatbot, /useMemo\(\(\) => JSON\.stringify\(flow\), \[flow\]\)/);
   assert.doesNotMatch(chatbot, /useEffect\(\(\)=>\{if\(!ready\|\|JSON\.stringify\(flow\)/);
 });
+
+const conversations = fs.readFileSync(new URL("../../api/src/operations/conversations.controller.ts", import.meta.url), "utf8");
+test("inbox list does not load unused participant graphs", () => {
+  assert.match(conversations, /const rows = await this\.prisma\.conversation\.findMany/);
+  assert.doesNotMatch(conversations, /messages: \{[\s\S]*participants: \{ include:/);
+});

@@ -1,6 +1,6 @@
 import {RuntimeFlow} from '../ai/flow-runtime';
 export type RuntimeScope={departmentId?:string|null;userId?:string|null};
-export type ScopedPublication={revision:string;active:boolean;publishedAt:string;flow:RuntimeFlow;scope?:RuntimeScope};
+export type ScopedPublication={revision:string;active:boolean;publishedAt:string;flow:RuntimeFlow;scope?:RuntimeScope;source?:"ui"};
 const record=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};
 export function publicationKey(scope:RuntimeScope={}):string{
  if(scope.userId)return 'user:'+scope.userId+(scope.departmentId?':department:'+scope.departmentId:'');
@@ -12,7 +12,7 @@ export function selectPublication(root:Record<string,any>,scope:RuntimeScope){
  const keys=[...(scope.userId?[publicationKey(scope)]:[]),...(scope.departmentId?['department:'+scope.departmentId]:[]),'default'];
  for(const key of keys){
  const candidate=key==='default'?root.intelligencePublished:publications[key];
- if(candidate&&typeof candidate==='object'&&candidate.flow)return {key,publication:candidate as ScopedPublication};
+ if(candidate&&typeof candidate==='object'&&candidate.source==='ui'&&candidate.flow)return {key,publication:candidate as ScopedPublication};
  }
  return null;
 }

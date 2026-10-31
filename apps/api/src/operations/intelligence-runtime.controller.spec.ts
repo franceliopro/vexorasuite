@@ -9,10 +9,17 @@ describe('flow publication',()=>{
 describe('scoped publication',()=>{
  const departmentId='12345678-1234-4234-8234-123456789abc',userId='22345678-1234-4234-8234-123456789abc';
  function fixture(){
- let root:any={chatbotDraft:{name:'Financeiro Link',welcome:'Olá',channelIds:['channel'],triggers:[{kind:'message'}],steps:[{id:'menu',title:'Menu',message:'Escolha',options:[]}]},intelligencePublished:{revision:'default',active:true},intelligencePublications:{'department:other':{revision:'other',active:true}}};
+ let root:any={chatbotDraft:{name:'Financeiro Link',welcome:'Olá',channelIds:['channel'],triggers:[{kind:'message'}],steps:[{id:'menu',title:'Menu',message:'Escolha',options:[]}]},intelligencePublished:{revision:'default',active:true,source:'ui'},intelligencePublications:{'department:other':{revision:'other',active:true,source:'ui'}}};
  const tx:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations:root})),update:jest.fn(async({data}:any)=>{root=data.integrations})},department:{findFirst:jest.fn(async()=>({id:departmentId}))},membership:{findFirst:jest.fn(async()=>({id:'member'}))},departmentMember:{findFirst:jest.fn(async()=>({id:'link'}))},channelConnection:{findMany:jest.fn(async()=>[{id:'channel'}])},auditLog:{create:jest.fn()}};
  return {tx,root:()=>root,c:new IntelligenceRuntimeController({$transaction:(fn:any)=>fn(tx)} as any)};
  }
+ it('reports active when a scoped UI publication is active',async()=>{
+ const prisma:any={tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations:{intelligencePublished:{revision:'legacy',active:true},intelligencePublications:{'department:dept':{revision:'scoped',active:true,source:'ui',flow:{name:'Scoped'}}}}})},auditLog:{findMany:jest.fn().mockResolvedValue([])}};
+ const c=new IntelligenceRuntimeController(prisma);
+ const status=await c.status(req);
+ expect(status.active).toBe(true);
+ expect(status.publications).toEqual([{key:'department:dept',scope:undefined,active:true,revision:'scoped',flowName:'Scoped'}]);
+ });
  it('publishes and pauses one department without replacing other contexts',async()=>{
  const f=fixture();await f.c.publish(req,{departmentId});
  expect(f.root().intelligencePublished.revision).toBe('default');

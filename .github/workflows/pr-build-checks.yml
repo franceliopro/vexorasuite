@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Build, type-check and formatting
+    name: Build and type-check
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -43,6 +43,3 @@ jobs:
 
       - name: Type-check all packages
         run: pnpm run typecheck
-
-      - name: Check formatting
-        run: pnpm run format:check

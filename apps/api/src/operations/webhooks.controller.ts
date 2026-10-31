@@ -32,7 +32,7 @@ export class WebhooksController {
     if (typeof body?.url !== "string" || !/^https:\/\//i.test(body.url.trim()) || body.url.length > 500)
       throw new BadRequestException("Informe uma URL HTTPS válida para o webhook.");
     const name = typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 80) : "Webhook";
-    const events: string[] = Array.isArray(body.events) ? [...new Set(body.events.filter((value: unknown): value is string => typeof value === "string" && ALLOWED_EVENTS.includes(value)))] : [...ALLOWED_EVENTS];
+    const events: string[] = Array.isArray(body.events) ? Array.from(new Set(body.events.filter((value: unknown): value is string => typeof value === "string" && ALLOWED_EVENTS.includes(value)))) as string[] : [...ALLOWED_EVENTS];
     if (!events.length) throw new BadRequestException("Selecione pelo menos um evento.");
     const secret = generateWebhookSecret();
     const row = await this.prisma.webhookSubscription.create({

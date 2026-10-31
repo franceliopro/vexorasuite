@@ -3641,3 +3641,15 @@ input[type="color"].profile-tag-inline-color {
   .supervision-summary { margin-inline: 8px; }
   .supervision-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+
+.supervision-summary-heading label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted, #667085); font-size: 11px; }
+.supervision-summary-heading select { min-height: 28px; padding: 3px 7px; border: 1px solid var(--border-subtle, #e6e9f2); border-radius: 8px; background: var(--surface, #fff); color: inherit; font-size: 11px; }
+.supervision-details { margin-top: 9px; border-top: 1px solid var(--border-subtle, #e6e9f2); padding-top: 8px; }
+.supervision-details summary { cursor: pointer; color: var(--text-muted, #667085); font-size: 11px; }
+.supervision-departments, .supervision-stale-list { display: grid; gap: 5px; margin-top: 8px; }
+.supervision-departments span, .supervision-stale-list button { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: var(--surface, #fff); border: 1px solid var(--border-subtle, #e6e9f2); text-align: left; }
+.supervision-departments small, .supervision-stale-list small, .supervision-clear { color: var(--text-muted, #667085); font-size: 10px; }
+.supervision-stale-list button { width: 100%; cursor: pointer; color: inherit; font: inherit; }
+.supervision-stale-list button:hover { border-color: var(--accent, #7c3aed); }
+.supervision-clear { display: block; margin-top: 8px; }

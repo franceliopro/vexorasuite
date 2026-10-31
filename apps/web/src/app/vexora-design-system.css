@@ -2205,3 +2205,17 @@ body { background: var(--surface-page); color: var(--text-primary); }
     flex: 0 0 22px;
   }
 }
+
+
+/* Utility actions: stacked in the compact rail, horizontal when the sidebar opens. */
+.sidebar.sidebar-collapsed .sidebar-utilities {
+  flex-direction: column !important;
+  gap: 4px;
+}
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
+  .suite-app > .sidebar.sidebar-collapsed:hover .sidebar-utilities,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .sidebar-utilities {
+    flex-direction: row !important;
+    gap: 4px;
+  }
+}

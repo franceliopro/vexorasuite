@@ -254,7 +254,18 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   }, []);
   const loadSupervision = useCallback(async () => {
     try {
-      setSupervision(await api<SupervisionOverview>("/api/backend/supervision/overview?slaMinutes=30"));
+      const data = await api<Partial<SupervisionOverview>>("/api/backend/supervision/overview?slaMinutes=30");
+      if (
+        data &&
+        typeof data.slaMinutes === "number" &&
+        data.totals &&
+        typeof data.totals.waiting === "number" &&
+        typeof data.totals.open === "number" &&
+        typeof data.totals.pending === "number" &&
+        typeof data.totals.stale === "number"
+      ) {
+        setSupervision(data as SupervisionOverview);
+      }
     } catch {
       // Supervisão é restrita a administradores; agentes seguem sem chamada ou aviso extra.
     }

@@ -1752,3 +1752,106 @@ body { background: var(--surface-page); color: var(--text-primary); }
     flex: 1 1 220px;
   }
 }
+
+/* Desktop navigation flyout: collapsed by default, expands over the workspace without reflow. */
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
+  .suite-app > .sidebar.sidebar-collapsed {
+    width: 78px;
+    transition: width .18s ease, box-shadow .18s ease;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within {
+    width: 258px;
+    box-shadow: 12px 0 34px rgba(17, 24, 39, .16);
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand {
+    justify-content: flex-start;
+    padding: 0 10px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .switch-chevron,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-section,
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-arrow,
+  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .profile-more,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .switch-chevron,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-section,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-arrow,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-more {
+    display: initial;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-item,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-item {
+    width: 100%;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding-inline: 10px;
+    gap: 10px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-glyph,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-glyph {
+    width: 20px;
+    flex: 0 0 20px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-accordion-chevron,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-accordion-chevron {
+    display: block !important;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .nav-submenu,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .nav-submenu {
+    position: static;
+    min-width: 0;
+    margin: 2px 0 7px 37px;
+    padding: 3px 0 3px 10px;
+    border: 0;
+    border-left: 1px solid rgba(180,180,220,.2);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .suite-app > .sidebar.sidebar-collapsed:hover .sidebar-collapse,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .sidebar-collapse {
+    margin-left: auto;
+  }
+}
+@media (max-width: 760px) {
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open {
+    width: 270px;
+    flex-basis: 270px;
+  }
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .nav-section,
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .nav-item > span:not(.nav-glyph),
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .profile-copy {
+    display: initial;
+  }
+  .suite-app > .sidebar.sidebar-collapsed.sidebar-open .nav-item {
+    width: 100%;
+    justify-content: flex-start;
+    padding-inline: 10px;
+  }
+}
+
+@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
+  .suite-app > .sidebar.sidebar-collapsed:hover .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:hover .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:hover .profile-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .brand-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .workspace-copy,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .help-card > div,
+  .suite-app > .sidebar.sidebar-collapsed:focus-within .profile-copy {
+    display: flex;
+  }
+}

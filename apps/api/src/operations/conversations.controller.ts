@@ -2,7 +2,7 @@ import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
-import { BadGatewayException, BadRequestException, Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
@@ -212,6 +212,82 @@ export class ConversationsController {
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId });
     return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId };
+  }
+
+  @Get("supervision")
+  async supervision(@Req() request: AuthenticatedRequest, @Query("departmentId") departmentId?: string) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+      throw new ForbiddenException("A supervisão está disponível somente para administradores e gestores.");
+    }
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
+    const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations)
+      ? tenant.integrations as Record<string, unknown>
+      : {};
+    const rawSla = integrations.slaSettings;
+    const sla = rawSla && typeof rawSla === "object" && !Array.isArray(rawSla) ? rawSla as Record<string, unknown> : {};
+    const firstResponseMinutes = typeof sla.firstResponseMinutes === "number" && sla.firstResponseMinutes > 0 ? sla.firstResponseMinutes : 60;
+    const idleMinutes = typeof sla.idleMinutes === "number" && sla.idleMinutes > 0 ? sla.idleMinutes : 1440;
+    const rows = await this.prisma.conversation.findMany({
+      where: {
+        tenantId: request.user.tenantId,
+        status: { in: ["OPEN", "PENDING"] },
+        archivedAt: null,
+        deletedAt: null,
+        ...(departmentId ? { departmentId } : {}),
+      },
+      select: {
+        id: true,
+        status: true,
+        handlingMode: true,
+        assigneeId: true,
+        departmentId: true,
+        createdAt: true,
+        lastMessageAt: true,
+        department: { select: { id: true, name: true } },
+        messages: { orderBy: { occurredAt: "desc" }, take: 10, select: { direction: true, occurredAt: true } },
+      },
+      orderBy: { lastMessageAt: "asc" },
+      take: 500,
+    });
+    const now = Date.now();
+    const summary = rows.map((row) => {
+      const lastInbound = row.messages.find((message) => message.direction === "INBOUND");
+      const lastOutbound = row.messages.find((message) => message.direction === "OUTBOUND");
+      const waitingForResponse = Boolean(lastInbound && (!lastOutbound || lastInbound.occurredAt > lastOutbound.occurredAt));
+      const referenceAt = (waitingForResponse ? lastInbound?.occurredAt : row.lastMessageAt) || row.createdAt;
+      const ageMinutes = Math.max(0, Math.floor((now - referenceAt.getTime()) / 60000));
+      return {
+        id: row.id,
+        status: row.status,
+        handlingMode: row.handlingMode,
+        assigneeId: row.assigneeId,
+        department: row.department,
+        waitingForResponse,
+        ageMinutes,
+        firstResponseSlaBreached: waitingForResponse && !lastOutbound && ageMinutes >= firstResponseMinutes,
+        idleSlaBreached: ageMinutes >= idleMinutes,
+      };
+    });
+    const byDepartment = new Map<string, { id: string | null; name: string; total: number; waiting: number; breached: number }>();
+    for (const item of summary) {
+      const key = item.department?.id || "unassigned";
+      const current = byDepartment.get(key) || { id: item.department?.id || null, name: item.department?.name || "Sem departamento", total: 0, waiting: 0, breached: 0 };
+      current.total += 1;
+      if (item.waitingForResponse) current.waiting += 1;
+      if (item.firstResponseSlaBreached || item.idleSlaBreached) current.breached += 1;
+      byDepartment.set(key, current);
+    }
+    return {
+      thresholds: { firstResponseMinutes, idleMinutes },
+      totals: {
+        active: summary.length,
+        waiting: summary.filter((item) => item.waitingForResponse).length,
+        unassigned: summary.filter((item) => !item.assigneeId).length,
+        slaBreached: summary.filter((item) => item.firstResponseSlaBreached || item.idleSlaBreached).length,
+      },
+      byDepartment: [...byDepartment.values()].sort((a, b) => b.breached - a.breached || b.waiting - a.waiting),
+      conversations: summary.sort((a, b) => b.ageMinutes - a.ageMinutes).slice(0, 100),
+    };
   }
 
   @Get("search")

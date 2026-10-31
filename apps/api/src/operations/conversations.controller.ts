@@ -148,6 +148,21 @@ export class ConversationsController {
     return Object.fromEntries(entries);
   }
 
+  @Get("search")
+  async search(@Req() request: AuthenticatedRequest, @Query("q") rawQuery?: string, @Query("limit") rawLimit?: string) {
+    const query = typeof rawQuery === "string" ? rawQuery.trim() : "";
+    if (query.length < 2) throw new BadRequestException("Informe pelo menos 2 caracteres para buscar.");
+    if (query.length > 120) throw new BadRequestException("A busca deve ter no máximo 120 caracteres.");
+    const limit = Math.max(1, Math.min(50, Number.parseInt(rawLimit || "20", 10) || 20));
+    const tenantId = request.user.tenantId;
+    const rows = await this.prisma.conversation.findMany({
+      where: { tenantId, deletedAt: null, ...(await this.accessWhere(request, "all-open")), messages: { some: { content: { contains: query, mode: "insensitive" } } } },
+      select: { id: true, status: true, priority: true, channel: true, subject: true, updatedAt: true, contact: { select: { id: true, name: true, phone: true, email: true } }, department: { select: { id: true, name: true } }, messages: { where: { content: { contains: query, mode: "insensitive" } }, orderBy: { occurredAt: "desc" }, take: 5, select: { id: true, content: true, contentType: true, metadata: true, direction: true, occurredAt: true, senderName: true } } },
+      orderBy: { updatedAt: "desc" }, take: limit,
+    });
+    return { query, results: rows.map((row) => ({ ...row, messages: row.messages.map((message) => ({ ...message, media: message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata) ? (message.metadata as Record<string, unknown>).media ?? null : null })) })), limit };
+  }
+
   @Get()
   async list(@Req() request: AuthenticatedRequest, @Query("view") view = "new", @Query("status") status?: string, @Query("focus") focus?: string) {
     const tenantId = request.user.tenantId;

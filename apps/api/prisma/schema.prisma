@@ -603,7 +603,7 @@ model WebhookSubscription {
   tenantId String @db.Uuid @map("tenant_id")
   name String
   url String
-  secretHash String @map("secret_hash")
+  secretCiphertext String @map("secret_ciphertext")
   events String[] @default([])
   active Boolean @default(true)
   createdAt DateTime @default(now()) @map("created_at")

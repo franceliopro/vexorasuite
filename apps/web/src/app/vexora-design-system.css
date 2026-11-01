@@ -2341,3 +2341,60 @@ body { background: var(--surface-page); color: var(--text-primary); }
   .persistent-module-tabs{margin:10px 0 0;min-height:42px}
   .persistent-module-tabs button{min-height:32px;padding-inline:12px;font-size:11px}
 }
+
+/* Submenu panel hardening: never render labels directly over the workspace. */
+.sidebar.sidebar-compact .nav-submenu-panel{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:4px!important;
+  box-sizing:border-box!important;
+  min-height:0!important;
+  color:var(--sidebar-text,#f7f7ff);
+  background:var(--sidebar-deep,#10131B)!important;
+  border:1px solid var(--sidebar-border,#303847)!important;
+  border-radius:12px!important;
+  box-shadow:16px 18px 38px rgba(16,19,27,.28)!important;
+  isolation:isolate;
+}
+@media (min-width:761px){
+  .sidebar.sidebar-compact .nav-submenu-panel{
+    position:absolute!important;
+    top:0!important;
+    left:calc(100% + 10px)!important;
+    width:224px!important;
+    margin:0!important;
+    padding:8px!important;
+    z-index:120!important;
+  }
+}
+@media (max-width:760px){
+  .sidebar.sidebar-compact.sidebar-open .nav-submenu-panel{
+    position:static!important;
+    width:100%!important;
+    margin:4px 0 8px!important;
+    padding:6px!important;
+  }
+  .sidebar.sidebar-compact:not(.sidebar-open) .nav-submenu-panel{
+    position:absolute!important;
+    left:calc(100% + 8px)!important;
+    top:0!important;
+    width:224px!important;
+    margin:0!important;
+    padding:8px!important;
+    z-index:120!important;
+  }
+}
+.sidebar.sidebar-compact .nav-submenu-panel .nav-subitem{
+  display:flex!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  min-height:36px!important;
+  padding:8px 11px!important;
+  color:var(--sidebar-muted-text,#a6a6c2)!important;
+  border-radius:8px!important;
+}
+.sidebar.sidebar-compact .nav-submenu-panel .nav-subitem:hover,
+.sidebar.sidebar-compact .nav-submenu-panel .nav-subitem.active{
+  background:rgba(125,112,255,.18)!important;
+  color:#fff!important;
+}

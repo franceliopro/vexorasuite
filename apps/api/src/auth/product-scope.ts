@@ -14,7 +14,7 @@ export function assertSocialRequest(path:string,method:string){
  throw new ForbiddenException('Publicação automática e anúncios estão desativados nesta versão.');
 }
 export function assertDraftInput(value:any){
- if(!value||typeof value.question!=='string'||!value.question.trim()||value.question.length>2000||!['POST','CAROUSEL'].includes(value.format)
+ if(!value||typeof value.question!=='string'||!value.question.trim()||value.question.length>2000||!['POST','CAROUSEL','STORIES'].includes(value.format)
  ||value.publish===true||value.scheduledFor||value.narrate===true)
  throw new ForbiddenException('Crie uma arte ou carrossel para revisão manual. Vídeos e publicação automática foram retirados.');
 }

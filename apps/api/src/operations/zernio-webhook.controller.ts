@@ -45,7 +45,7 @@ export class ZernioWebhookController {
       }
       const platform = String(account.platform || "").toLowerCase();
       if (!platform) return { ok: true, ignored: true };
-      const identity = { platform, accountId, profileId, username: socialUsername(account) || "", profileName: typeof account.profileName === "string" ? account.profileName : "" };
+      const identity = { platform, accountId, profileId, username: socialUsername(account) || "", profileName: typeof account.profileName === "string" ? account.profileName : "", identityCheckedAt: new Date().toISOString() };
       const channel = await this.prisma.$transaction(async tx => {
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${accountId}, 0))`;
         const owner = await tx.channelConnection.findFirst({ where: { provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: accountId } } });

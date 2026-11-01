@@ -9,5 +9,5 @@ const design = fs.readFileSync(path.join(root, "src/app/vexora-design-system.css
 
 test("compact sidebar does not add a right margin before the main content", () => {
   assert.match(design, /margin-left:var\(--desktop-sidebar-width\)!important/);
-  assert.match(design, /width:calc\(100% - var\(--desktop-sidebar-width\))!important/);
+  assert.match(design, /width:calc\(100% - var\(--desktop-sidebar-width\)\)!important/);
 });

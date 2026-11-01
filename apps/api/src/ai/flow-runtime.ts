@@ -8,7 +8,7 @@ export type RuntimeFlow = {
   name: string; welcome: string; steps: RuntimeStep[]; channelIds?: string[];
   triggers?: { kind: 'message' | 'dm' | 'keyword'; keyword?: string }[];
 };
-export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition'];
+export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'contact.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition'];
 export const executableActions = ['human.handoff', 'asaas.payment.lookup', 'crm.stage.move', 'crm.finalize'];
 export function settings(step: RuntimeStep): Record<string, string> {
   if (!step.config?.trim()) return {};

@@ -3,6 +3,7 @@ import { formatDateTimeBR } from "../lib/date-format";
 import {PresentationHome} from "./presentation-home";
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
+import { SettingsCatalog } from "./settings-catalog";
 import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
@@ -177,6 +178,7 @@ export default function HomePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
+  const [settingsAdvanced, setSettingsAdvanced] = useState(false);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
     const closeOutside = (event: MouseEvent) => {
@@ -229,6 +231,7 @@ export default function HomePage() {
   const moduleVisible=(label:string)=>session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
+  useEffect(() => { if (active !== "Configurações") setSettingsAdvanced(false); }, [active]);
   const currentWorkspaceTab = workspaceTabKey(active);
   const presentationHome=active==="";
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
@@ -350,7 +353,7 @@ export default function HomePage() {
           ) : active === "Canais e integrações" ? (
             canConfigure ? <ChannelsIntegrations /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (
-            canConfigure ? <OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
+            canConfigure ? (settingsAdvanced ? <><button type="button" className="settings-back-link" onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></> : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} />) : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className="module-placeholder content-card">
               <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>

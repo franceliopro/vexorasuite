@@ -126,7 +126,7 @@ export class WahaWebhookController {
 
         const voiceEntry=conversation.handlingMode==='BOT'&&!isGroup&&(contentType==='audio'||(conversation.botState as any)?.flow==='VOICE_TRIAGE');
         if(voiceEntry&&(conversation.botState as any)?.flow!=='VOICE_TRIAGE'){await tx.conversation.update({where:{id:conversation.id},data:{botState:{flow:'VOICE_TRIAGE',previousState:conversation.botState||{}}}});}
-        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING',mediaUrl:typeof payload.media?.url==='string'?payload.media.url:null}:{}),provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null };
+        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });

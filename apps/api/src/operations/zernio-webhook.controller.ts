@@ -7,6 +7,15 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { ZernioService } from "./zernio.service";
 
+const zernioProfileId = (value: unknown): string => {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (value && typeof value === "object") {
+    const item = value as Record<string, unknown>;
+    return String(item.id ?? item._id ?? item.profileId ?? "");
+  }
+  return "";
+};
+
 type JsonObject = Record<string, any>;
 
 @Controller("webhooks/zernio")
@@ -28,7 +37,7 @@ export class ZernioWebhookController {
     const event = typeof body.event === "string" ? body.event : "";
     const account = body.account && typeof body.account === "object" ? body.account as JsonObject : {};
     const accountId = String(account.accountId || account.id || body.accountId || "");
-    const profileId = String(account.profileId || body.profileId || "");
+    const profileId = zernioProfileId(account.profileId || body.profileId);
     if (!accountId) return { ok: true, ignored: true };
     if (event === "account.connected" || event === "account.disconnected") {
       if (!profileId) return { ok: true, ignored: true };

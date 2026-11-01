@@ -233,7 +233,7 @@ services:
     image: devlikeapro/waha:latest
     restart: unless-stopped
     environment:
-      WAHA_API_KEY: ${WAHA_API_KEY:?Configure WAHA_API_KEY no Dokploy}
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
       WHATSAPP_DEFAULT_ENGINE: WEBJS
     expose:
       - "3000"

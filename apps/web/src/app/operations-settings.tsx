@@ -3,7 +3,6 @@ import {NotificationSettings} from "./notification-settings";
 import {BusinessTemplates} from "./business-templates";
 import { GreetingSettings } from "./greeting-settings";
 import { CustomFieldsSettings } from "./custom-fields-settings";
-import { ChannelsIntegrations } from "./channels-integrations";
 import { useEffect, useState } from "react";
 import { MessageSquare, Palette, Upload, Image as ImageIcon, RotateCcw } from "lucide-react";
 type Channel={id:string;name:string;status:string;provider?:string};

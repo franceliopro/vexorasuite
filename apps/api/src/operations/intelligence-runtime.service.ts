@@ -171,6 +171,27 @@ export class IntelligenceRuntimeService {
             if (!option && step.kind === 'agent') {
               // Agent conversation stays on this explicit node; choices and human requests take precedence.
             } else if (!option) {
+              // O Chatbot continua sendo a primeira camada. Quando o cliente abandona as opções
+              // e escreve uma frase completa, usamos somente a IA explicitamente vinculada a esta inbox.
+              const freeForm = inbound.content.trim().length > 8 && /\\s/.test(inbound.content.trim());
+              const configuredAgents = Array.isArray(object(root.assistant).agents) ? object(root.assistant).agents : [];
+              const fallbackAgent = freeForm ? configuredAgents.find((candidate: any) =>
+                candidate?.enabled === true &&
+                Array.isArray(candidate?.bindings?.inboxes) &&
+                candidate.bindings.inboxes.includes(channel.id) &&
+                candidate?.bindings?.mode !== 'specialist'
+              ) : null;
+              if (fallbackAgent) {
+                step = {
+                  id: '__fallback_agent__',
+                  title: 'IA após resposta livre',
+                  message: '',
+                  options: [],
+                  kind: 'agent',
+                  config: JSON.stringify({agentId: String(fallbackAgent.id)}),
+                };
+                continue;
+              }
               messages.push('Escolha uma das opções abaixo ou digite atendente.');
               messages.push(renderStep(step, variables));
               state = previous as Prisma.InputJsonValue;
@@ -330,6 +351,27 @@ export class IntelligenceRuntimeService {
             const departments = await tx.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
             const key = config.targetMode==='QUEUE'?undefined:config.departmentKey||candidates.find(k => departments.some(d => d.key === k));
             await handoff(key,config.targetMode==='QUEUE'?undefined:config.userId); step = undefined as unknown as RuntimeStep; break;
+          }
+          if (type === 'contact.lookup') {
+            const phoneCandidates = [conversation.contact.phone, conversation.contact.externalId?.split('@')[0]]
+              .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+              .map(value => value.trim());
+            const phoneWhere = phoneCandidates.flatMap(value => [{ phone: value }, { externalId: value }]);
+            const match = phoneWhere.length
+              ? await tx.contact.findFirst({ where: { tenantId: channel.tenantId, OR: phoneWhere }, orderBy: { updatedAt: 'desc' }, select: { id: true, name: true, phone: true, email: true, metadata: true } })
+              : null;
+            const displayName = match?.name || conversation.contact.name || 'seu cadastro';
+            if (match) {
+              variables.cliente_nome = displayName;
+              variables.cliente_telefone = match.phone || phoneCandidates[0] || '';
+              if (match.email) variables.cliente_email = match.email;
+              messages.push(`Encontramos este telefone associado ao cadastro de ${displayName}. Vamos continuar o atendimento.`);
+            } else {
+              messages.push('Não encontrei um cadastro para este telefone. Vamos continuar o atendimento normalmente.');
+            }
+            skills.push('contact.lookup');
+            step = findStep(step.transitions?.[step.options[0]!]);
+            continue;
           }
           if (type === 'asaas.payment.lookup') {
             // Only the WhatsApp adapter can establish financial identity through Asaas.openDebts.

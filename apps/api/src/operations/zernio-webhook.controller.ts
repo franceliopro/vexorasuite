@@ -45,7 +45,7 @@ export class ZernioWebhookController {
       }
       const platform = String(account.platform || "").toLowerCase();
       if (!platform) return { ok: true, ignored: true };
-      const identity = { platform, accountId, profileId, username: socialUsername(account) || "", profileName: typeof account.profileName === "string" ? account.profileName : "" };
+      const identity = { platform, accountId, profileId, username: socialUsername(account) || "", profileName: typeof account.profileName === "string" ? account.profileName : "", identityCheckedAt: new Date().toISOString() };
       const channel = await this.prisma.$transaction(async tx => {
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${accountId}, 0))`;
         const owner = await tx.channelConnection.findFirst({ where: { provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: accountId } } });
@@ -89,7 +89,7 @@ export class ZernioWebhookController {
       return { ok: true, test: true };
     }
     const event = typeof body.event === "string" ? body.event : "";
-    const accountId = String(body.account?.accountId || body.accountId || "");
+    const accountId = String(body.account?.accountId || body.accountId || settings.accountId || "");
     if (accountId !== String(settings.accountId || "")) return { ok: true, ignored: true };
     if (channel.status !== "CONNECTED" || !settings.webhookVerifiedAt) {
       await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "CONNECTED", lastError: null, settings: { ...settings, webhookVerifiedAt: settings.webhookVerifiedAt || new Date().toISOString() } } });
@@ -99,16 +99,16 @@ export class ZernioWebhookController {
     if (event === "message.received") {
       const message = body.message && typeof body.message === "object" ? body.message as JsonObject : {};
       const sender = message.sender || body.sender || {};
-      const externalConversationId = String(message.conversationId || body.conversation?.id || "");
-      const externalId = String(sender.phoneNumber || sender.id || "");
+      const externalConversationId = String(message.conversationId || message.conversation?.id || body.conversation?.id || body.conversationId || body.threadId || body.chatId || "");
+      const externalId = String(sender.phoneNumber || sender.id || sender.userId || sender.handle || sender.username || body.contact?.id || body.contact?.externalId || "");
       if (!externalConversationId || !externalId) return { ok: true, ignored: true };
-      const providerMessageId = String(message.platformMessageId || message.id || body.id || "");
+      const providerMessageId = String(message.platformMessageId || message.providerMessageId || message.id || body.messageId || body.providerMessageId || body.id || "");
       if (!providerMessageId) return { ok: true, ignored: true };
       const name = String(sender.name || sender.displayName || sender.fullName || sender.profileName || sender.username || externalId).trim().slice(0, 160);
       // Never use the business account handle as the customer identity.
       const accountHandles = [settings.username, settings.profileName, channel.name].filter(Boolean).map(v => String(v).replace(/^@/, "").toLowerCase());
       const customerName = accountHandles.includes(name.replace(/^@/, "").toLowerCase()) ? externalId : name;
-      const text = String(message.text || message.metadata?.postbackPayload || message.metadata?.interactiveId || "").slice(0, 20000);
+      const text = String(message.text || message.content || message.body || body.text || body.content || message.metadata?.postbackPayload || message.metadata?.interactiveId || "").slice(0, 20000);
       const platform = String(settings.platform || "SOCIAL").toUpperCase();
       try {
         const saved = await this.prisma.$transaction(async (tx) => {

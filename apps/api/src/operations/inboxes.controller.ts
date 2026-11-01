@@ -11,7 +11,7 @@ const object=(v:unknown):Record<string,any>=>v&&typeof v==="object"&&!Array.isAr
 @Controller("channels") @UseGuards(AuthGuard)
 export class InboxesController{
  constructor(private readonly prisma:PrismaService){}
- private authorize(req:AuthenticatedRequest){if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Somente administradores podem gerenciar as inbox.");}
+ private authorize(req:AuthenticatedRequest){if(!["OWNER","ADMIN","MANAGER"].includes(req.user.role))throw new ForbiddenException("Somente administradores podem gerenciar as inbox.");}
  @Get("inboxes")
  async list(@Req() req:AuthenticatedRequest){
   this.authorize(req);const tenantId=req.user.tenantId;

@@ -2262,9 +2262,9 @@ body { background: var(--surface-page); color: var(--text-primary); }
     flex-basis:68px!important;
   }
   .suite-app>.main-area{
-    margin-left:calc(var(--desktop-sidebar-width) + 12px)!important;
-    width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
-    max-width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
+    margin-left:var(--desktop-sidebar-width)!important;
+    width:calc(100% - var(--desktop-sidebar-width))!important;
+    max-width:calc(100% - var(--desktop-sidebar-width))!important;
   }
   .suite-app>.sidebar.sidebar-compact .brand{justify-content:center;padding:0;margin-bottom:22px}
   .suite-app>.sidebar.sidebar-compact .brand-copy,

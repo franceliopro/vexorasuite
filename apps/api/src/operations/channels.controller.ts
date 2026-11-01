@@ -224,7 +224,8 @@ export class ChannelConnectionsController {
         const changed = !!account && account.platform.toLowerCase()!==String(settings.platform||"").toLowerCase();
         const state = String(account?.status||"UNKNOWN").toUpperCase();
         const unavailable = !account || changed;
-        const status = unavailable ? "DISCONNECTED" : ["ACTIVE","CONNECTED","HEALTHY"].includes(state) ? "CONNECTED" : ["DISCONNECTED","REVOKED","ERROR","FAILED","INACTIVE"].includes(state) ? "DISCONNECTED" : "UNKNOWN";
+        const providerConfirmed = typeof settings.identityCheckedAt === "string" || typeof settings.webhookVerifiedAt === "string";
+        const status = unavailable ? "DISCONNECTED" : ["ACTIVE","CONNECTED","HEALTHY"].includes(state) ? providerConfirmed ? "CONNECTED" : "CONNECTING" : ["DISCONNECTED","REVOKED","ERROR","FAILED","INACTIVE"].includes(state) ? "DISCONNECTED" : "UNKNOWN";
         await tx.channelConnection.update({ where:{id:row.id}, data:{ status, lastError:!account?"ZERNIO_ACCOUNT_MISSING":changed?"ZERNIO_ACCOUNT_CHANGED":status==="DISCONNECTED"?"ZERNIO_ACCOUNT_DISCONNECTED":null,
           ...(!unavailable&&account?.name?{name:account.name.slice(0,100)}:{}), settings:{...settings,socialSyncStartedAt:startedAt,healthCheckedAt:diagnostic.checkedAt,healthProviderStatus:!account?"MISSING":changed?"CHANGED":state,
             ...(!unavailable?{username:account.username||"",profileName:account.profileName||"",identityCheckedAt:diagnostic.checkedAt}:{})} } });

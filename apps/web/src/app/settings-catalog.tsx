@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Building2,
   BriefcaseBusiness,
@@ -18,6 +19,7 @@ import {
   UsersRound,
   Variable,
   Workflow,
+  Search,
 } from "lucide-react";
 
 type CatalogProps = {

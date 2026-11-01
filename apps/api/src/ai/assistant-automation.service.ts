@@ -23,7 +23,7 @@ export function parseCarousel(text:string):Carousel|null {
 export const escapeXml=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
 function lines(value:string,width:number,max:number){const output:string[]=[];for(const word of value.split(/\s+/)){const last=output.length-1;if(last>=0&&output[last]!.length+word.length+1<=width)output[last]+=' '+word;else output.push(word);}return output.slice(0,max).map((s,i)=>i===max-1&&output.length>max?s.slice(0,-1)+'…':s);}
 export function slideSvg(carousel:Carousel,index:number,brand:string,company='Véxora',referencePalette:string[]=[],format:'POST'|'CAROUSEL'|'STORIES'='CAROUSEL'):string {
- const slide=carousel.slides[index];if(!slide)throw new BadRequestException('Lâmina inexistente');const height=format==='STORIES'?1920:format==='POST'?1440:1350;
+ const slide=carousel.slides[index];if(!slide)throw new BadRequestException('Lâmina inexistente');const height=format==='STORIES'?1920:1440;
  const color=/^#[\da-f]{6}$/i.test(brand)?brand:'#5865da';
  const secondary=referencePalette.find(c=>/^#[\da-f]{6}$/i.test(c))||color;
  const title=lines(slide.title,24,4),body=lines(slide.body,36,9);

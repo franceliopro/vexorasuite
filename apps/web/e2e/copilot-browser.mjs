@@ -97,10 +97,7 @@ try{
  const composerBox=await page.locator(".composer-shell").boundingBox();
  assert(draftBox.width>250,"Mobile draft must have readable full width");
  assert(composerBox.y+composerBox.height<=navigationBox.y+1,"Composer must stay above mobile navigation");
- await page.getByRole("button",{name:"Melhorar mensagem",exact:true}).click();
- await page.getByRole("button",{name:"Gerar versão",exact:true}).click();
- await page.getByRole("button",{name:"Usar no rascunho",exact:true}).waitFor();
- await page.screenshot({path:"artifacts/copilot/assistente-escrita-mobile.png",fullPage:false,animations:"disabled"});
+ await page.screenshot({path:"artifacts/copilot/conversa-sem-acoes-ia-mobile.png",fullPage:false,animations:"disabled"});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"Horizontal overflow on mobile");
  inboxResponse={departments:[],inboxes:[{...inboxBase,id:"old-instagram",name:"Instagram antigo",platform:"instagram",identity:"empresa.antiga",accountId:"old-account",status:"DISCONNECTED",flow:null,blockers:["A conexão não está confirmada como conectada."]}]};
  await page.goto("http://127.0.0.1:3100/?module=Canais+e+integra%C3%A7%C3%B5es");

@@ -3799,3 +3799,28 @@ input[type="color"].profile-tag-inline-color {
 .channels-asaas-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
 @media(max-width:1050px){.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.organization-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.settings-grid,.organization-settings-grid,.channels-asaas-grid,.channels-asaas-fields{grid-template-columns:minmax(0,1fr)}.settings-quarter-item,.settings-full-item,.organization-card-wide{grid-column:1/-1}}
+
+/* Conversation actions and compact contact tags */
+.message-context-menu{position:fixed;z-index:120000;display:flex;flex-direction:column;min-width:190px;padding:4px;border:1px solid var(--line,#dfe5f2);border-radius:10px;background:var(--surface,#fff);box-shadow:0 12px 30px rgba(18,32,62,.18)}
+.message-context-menu button{border:0;background:transparent;text-align:left;padding:9px 11px;border-radius:7px;color:var(--ink,#1f2a44);font:inherit;cursor:pointer}
+.message-context-menu button:hover{background:var(--surface-muted,#f1f4fb)}
+.message-deleted{font-style:italic;color:var(--muted,#76809a)}
+.contact-profile .profile-tags{gap:4px}
+.contact-profile .profile-tag{font-size:10px;line-height:1.15;min-height:20px;padding:3px 6px;border-radius:6px}
+.contact-profile .profile-tag-editable button{width:15px;height:15px;padding:0;border:0;background:transparent;color:inherit}
+.contact-profile .profile-tag-palette{display:none}
+
+/* Fullscreen chatbot canvas: keep the workspace visible and scrollable in both axes. */
+.chatbot-workspace.vx-flow-fullscreen{position:fixed!important;inset:0!important;z-index:100000!important;width:100vw!important;height:100dvh!important;display:flex!important;flex-direction:column!important;padding:12px!important;overflow:hidden!important;background:var(--page,#f7f8fc)!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{display:grid!important;grid-template-columns:235px minmax(0,1fr) 305px!important;flex:1 1 auto!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{display:flex!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll{flex:1 1 auto!important;min-width:0!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-board{min-width:20000px!important;min-height:14000px!important}
+.chatbot-workspace .vx-flow-scroll{overflow:auto!important;overscroll-behavior:contain!important}
+.chatbot-workspace .vx-flow-board{min-width:20000px;min-height:14000px}
+@media(max-width:760px){
+ .chatbot-workspace.vx-flow-fullscreen{padding:6px!important}
+ .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{display:block!important;overflow:auto!important}
+ .chatbot-workspace.vx-flow-fullscreen .vx-flow-library,.chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector{display:none!important}
+ .chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{height:calc(100dvh - 70px)!important}
+}

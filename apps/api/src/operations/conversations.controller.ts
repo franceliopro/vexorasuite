@@ -525,7 +525,59 @@ export class ConversationsController {
   async messages(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    return this.prisma.message.findMany({ where: { conversationId: conversation.id, tenantId: request.user.tenantId }, orderBy: { occurredAt: "asc" }, take: 500 });
+    const rows = await this.prisma.message.findMany({ where: { conversationId: conversation.id, tenantId: request.user.tenantId }, orderBy: { occurredAt: "asc" }, take: 500 });
+    return rows.flatMap((message) => {
+      const metadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
+        ? message.metadata as Record<string, unknown>
+        : {};
+      const hiddenFor = Array.isArray(metadata.deletedForUserIds) && metadata.deletedForUserIds.includes(request.user.sub);
+      if (hiddenFor) return [];
+      if (metadata.deletedForAll === true) {
+        return [{ ...message, content: "Mensagem apagada", metadata: { ...metadata, deleted: true } }];
+      }
+      return [message];
+    });
+  }
+
+  @Post(":id/messages/:messageId/delete")
+  async deleteMessage(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("messageId", ParseUUIDPipe) messageId: string,
+    @Body() input: { scope?: unknown },
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const scope = String(input?.scope || "ME").toUpperCase();
+    if (!["ME", "ALL"].includes(scope)) throw new BadRequestException("Tipo de exclusão inválido.");
+    const message = await this.prisma.message.findFirst({ where: { id: messageId, conversationId: id, tenantId: request.user.tenantId } });
+    if (!message) throw new NotFoundException("Mensagem não encontrada nesta conversa.");
+    if (scope === "ALL" && message.direction !== "OUTBOUND") throw new BadRequestException("Só mensagens enviadas podem ser apagadas para todos.");
+    const existing = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
+      ? message.metadata as Record<string, unknown>
+      : {};
+    const hiddenUsers = Array.isArray(existing.deletedForUserIds)
+      ? existing.deletedForUserIds.filter((value): value is string => typeof value === "string")
+      : [];
+    const next = {
+      ...existing,
+      ...(scope === "ALL"
+        ? { deletedForAll: true }
+        : { deletedForUserIds: [...new Set([...hiddenUsers, request.user.sub])] }),
+    };
+    const updated = await this.prisma.message.update({ where: { id: message.id }, data: { metadata: next } });
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId: request.user.tenantId,
+        userId: request.user.sub,
+        action: scope === "ALL" ? "conversation.message_deleted_for_all" : "conversation.message_deleted_for_me",
+        entityType: "message",
+        entityId: message.id,
+        details: { conversationId: id, scope },
+      },
+    });
+    this.events.publish(request.user.tenantId, "message.deleted", { conversationId: id, messageId: message.id, scope });
+    return { id: updated.id, scope, deleted: true };
   }
 
   private internalNoteText(value: unknown, optional = false): string {

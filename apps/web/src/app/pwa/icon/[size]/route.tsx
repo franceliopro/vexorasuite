@@ -40,5 +40,5 @@ function iconPng(size: number): Buffer {
 export async function GET(_request: Request, { params }: { params: Promise<{ size: string }> }) {
   const size = Number((await params).size);
   if (!ICON_SIZES.has(size)) return new Response(null, { status: 404 });
-  return new Response(iconPng(size), { status: 200, headers: { "content-type": "image/png", "cache-control": "public, max-age=86400, immutable" } });
+  return new Response(new Uint8Array(iconPng(size)), { status: 200, headers: { "content-type": "image/png", "cache-control": "public, max-age=86400, immutable" } });
 }

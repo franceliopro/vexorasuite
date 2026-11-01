@@ -299,7 +299,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        {!presentationHome && currentWorkspaceTab ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab].map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
+        {!presentationHome && currentWorkspaceTab ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={"page-content"+(presentationHome?" presentation-page":"")}>{!presentationHome&&<WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>}
           {isOverview ? <section className="page-heading">
             <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>

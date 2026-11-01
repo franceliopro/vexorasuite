@@ -78,6 +78,9 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
 ];
 
 export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: CatalogProps) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+  const filteredSections = sections.map((section) => ({ ...section, cards: section.cards.filter((card) => !normalizedQuery || `${section.title} ${card.title} ${card.description}`.toLocaleLowerCase("pt-BR").includes(normalizedQuery)) })).filter((section) => section.cards.length);
   const open = (card: CatalogCard) => {
     if (card.action === "companies") onCompanies();
     else if (card.action === "advanced") onAdvanced();
@@ -92,8 +95,13 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
           <h1 id="settings-catalog-title">Configurações</h1>
           <p className="page-subtitle">Tudo que você pode ajustar na Véxora, em um só lugar.</p>
         </div>
+        <label className="settings-catalog-search">
+          <Search size={16} aria-hidden="true" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar uma configuração…" aria-label="Buscar configurações" />
+          {query ? <button type="button" aria-label="Limpar busca" onClick={() => setQuery("")}>×</button> : null}
+        </label>
       </header>
-      {sections.map((section) => (
+      {filteredSections.length ? filteredSections.map((section) => (
         <section className="settings-catalog-section" key={section.title} aria-labelledby={"settings-section-" + section.title}>
           <h2 id={"settings-section-" + section.title}>{section.title}</h2>
           <div className="settings-catalog-grid">
@@ -109,7 +117,7 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
             })}
           </div>
         </section>
-      ))}
+      )) : <div className="settings-catalog-empty"><Search size={20} /><strong>Nenhuma configuração encontrada</strong><span>Tente buscar por conexão, usuário, Asaas, Waha, saudação ou automação.</span></div>}
       <p className="settings-catalog-note"><Settings2 size={15} /> Os ajustes avançados continuam disponíveis pelos cartões correspondentes.</p>
     </section>
   );

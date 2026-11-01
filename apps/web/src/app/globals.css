@@ -3834,11 +3834,13 @@ input[type="color"].profile-tag-inline-color {
 .ai-routing-item:hover{border-color:var(--primary,#6258df)}.ai-routing-item input{flex:none}.ai-routing-item span{display:grid;gap:2px;min-width:0}.ai-routing-item strong{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ai-routing-item small{color:var(--muted);font-size:10px}\n.ai-routing-network{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;font-size:12px;font-weight:800;line-height:1;flex:none}.network-instagram{background:#fce7f3;color:#d6249f}.network-facebook{background:#e8f0ff;color:#1877f2}.network-whatsapp{background:#e8faef;color:#16a34a}.network-telegram{background:#e7f5ff;color:#229ed9}.network-generic{background:#eef1f7;color:#667085}.ai-toggle-note{display:block;flex-basis:100%;margin-top:-6px}
 .ai-routing-list-single{grid-template-columns:1fr}\n@media(max-width:720px){.ai-routing-list{grid-template-columns:1fr}}
 /* Fullscreen is the editor only: no title, toolbar or page-level controls. */
+.chatbot-workspace.vx-flow-fullscreen{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;min-height:100vh;margin:0;padding:12px;background:var(--page,#f6f7fb);display:flex;flex-direction:column;overflow:hidden}
+
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title,
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-mini-toolbar,
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-command-menu,
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-field-help{display:none!important}
-.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{width:100%!important;height:100%!important;flex:1 1 auto!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{width:100%!important;height:100%!important;min-height:0!important;flex:1 1 auto!important;margin:0!important;border-radius:14px}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-library,
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector{height:100%!important;max-height:none!important}
 .chatbot-workspace.vx-flow-shell-left-collapsed .vx-flow-library,

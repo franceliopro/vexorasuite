@@ -96,16 +96,16 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
   return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} />;
 }
 
-type NavigationChild = { label: string };
+type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
-    { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
+    { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações" }] }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações", icon: "share" }] }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
@@ -273,7 +273,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}>{child.label}</button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;

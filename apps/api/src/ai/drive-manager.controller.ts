@@ -15,6 +15,8 @@ export class DriveManagerController {
  @Post(':accountId/upload')
  @UseInterceptors(FileInterceptor('file',{limits:{fileSize:20*1024*1024,files:1,fields:1}}))
  upload(@Req() req:AuthenticatedRequest,@Param('accountId',ParseUUIDPipe) accountId:string,@Body() input:any,@UploadedFile() file:any){return this.drive.upload(req,accountId,input?.parent||'root',file);}
+ @Get(':accountId/files/:id/content')
+ async content(@Req() req:AuthenticatedRequest,@Param('accountId',ParseUUIDPipe) accountId:string,@Param('id') id:string,@Res() res:Response){const file=await this.drive.download(req,accountId,id);res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition','inline; filename*=UTF-8'''+encodeURIComponent(file.name));res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, max-age=300');res.send(file.buffer);}
  @Get(':accountId/files/:id/download')
  async download(@Req() req:AuthenticatedRequest,@Param('accountId',ParseUUIDPipe) accountId:string,@Param('id') id:string,@Res() res:Response){const file=await this.drive.download(req,accountId,id);res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',"attachment; filename*=UTF-8''"+encodeURIComponent(file.name));res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, no-store');res.send(file.buffer);}
  @Get(':accountId/files/:id/thumbnail')

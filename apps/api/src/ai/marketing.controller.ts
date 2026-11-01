@@ -7,10 +7,11 @@ import {AuthenticatedRequest} from '../auth/auth.types';
 import {assertDraftInput} from '../auth/product-scope';
 import {MarketingLibraryService} from './marketing-library.service';
 import {AssistantAutomationService} from './assistant-automation.service';
+import {ZernioService} from '../operations/zernio.service';
 @Controller('marketing')
 @UseGuards(AuthGuard)
 export class MarketingController{
- constructor(private readonly library:MarketingLibraryService,private readonly automation:AssistantAutomationService,private readonly prisma:PrismaService){}
+ constructor(private readonly library:MarketingLibraryService,private readonly automation:AssistantAutomationService,private readonly prisma:PrismaService,private readonly zernio:ZernioService){}
  @Get('library') config(@Req() req:AuthenticatedRequest){return this.library.config(req);}
  @Get('automation') getAutomation(@Req() req:AuthenticatedRequest){return this.library.automation(req);}
  @Patch('automation') saveAutomation(@Req() req:AuthenticatedRequest,@Body() input:any){return this.library.saveAutomation(req,input);}

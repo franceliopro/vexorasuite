@@ -11,7 +11,7 @@ import {ZernioService} from '../operations/zernio.service';
 @Controller('marketing')
 @UseGuards(AuthGuard)
 export class MarketingController{
- constructor(private readonly library:MarketingLibraryService,private readonly automation:AssistantAutomationService,private readonly prisma:PrismaService,private readonly zernio:ZernioService){}
+ constructor(private readonly library:MarketingLibraryService,private readonly automation:AssistantAutomationService,private readonly prisma:PrismaService,private readonly zernio?:ZernioService){}
  @Get('library') config(@Req() req:AuthenticatedRequest){return this.library.config(req);}
  @Get('automation') getAutomation(@Req() req:AuthenticatedRequest){return this.library.automation(req);}
  @Patch('automation') saveAutomation(@Req() req:AuthenticatedRequest,@Body() input:any){return this.library.saveAutomation(req,input);}
@@ -71,6 +71,7 @@ export class MarketingController{
   if(platforms.length!==channelIds.length)throw new BadRequestException('Uma das contas escolhidas não é uma conta social Zernio válida.');
   const mediaItems=Array.isArray(details.mediaItems)?details.mediaItems.filter((item:any)=>item&&typeof item.mediaUrl==='string'&&/^https?:\/\//.test(item.mediaUrl)).slice(0,10).map((item:any)=>({type:item.mediaName?.toLowerCase().endsWith('.mp4')?'video':'image',url:item.mediaUrl})):undefined;
   const payload:any={content:String(details.caption||''),platforms,...(mediaItems?.length?{mediaItems}:{}),...(options.publishNow?{publishNow:true}:{scheduledFor:options.scheduledFor,timezone:'America/Sao_Paulo'})};
+  if(!this.zernio)throw new ServiceUnavailableException('Publicação social indisponível no momento.');
   const response=await this.zernio.request<any>('/posts',{method:'POST',body:payload,idempotencyKey:'marketing-'+id+'-'+(options.publishNow?'now':options.scheduledFor||'schedule')});
   const nextStatus=options.publishNow?'PUBLISHED':'SCHEDULED';
   await this.prisma.auditLog.update({where:{id:row.id},data:{details:{...details,status:nextStatus,publication:{requestedAt:new Date().toISOString(),publishNow:options.publishNow,scheduledFor:options.scheduledFor||null,response:response?.post||response}}}});

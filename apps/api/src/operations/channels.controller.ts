@@ -213,6 +213,36 @@ export class ChannelConnectionsController {
     const tenantId = request.user.tenantId;
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id=${tenantId}::uuid FOR UPDATE`;
+      // A conta pode ter sido conectada diretamente no Zernio, sem passar pelo OAuth da Véxora.
+      // Nesse caso, materializamos a conexão como inbox nesta empresa durante a sincronização.
+      for (const account of accounts) {
+        const existing = await tx.channelConnection.findFirst({
+          where: { tenantId, provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: account.accountId } },
+        });
+        if (existing) continue;
+        const username = String(account.username || "").replace(/^@/, "").trim();
+        const profileName = String(account.profileName || "").trim();
+        const friendlyName = username ? `@${username}` : String(account.name || profileName || account.platform).slice(0, 100);
+        await tx.channelConnection.create({
+          data: {
+            tenantId,
+            provider: "ZERNIO",
+            name: friendlyName,
+            sessionName: "zn-" + tenantId.replace(/-/g, "").slice(0, 10) + "-" + randomBytes(5).toString("hex"),
+            status: "CONNECTED",
+            settings: {
+              platform: account.platform.toLowerCase(),
+              accountId: account.accountId,
+              profileId: account.profileId || undefined,
+              username,
+              profileName,
+              identityCheckedAt: diagnostic.checkedAt,
+              healthCheckedAt: diagnostic.checkedAt,
+              healthProviderStatus: String(account.status || "CONNECTED").toUpperCase(),
+            },
+          },
+        });
+      }
       const rows = await tx.channelConnection.findMany({ where:{tenantId,provider:"ZERNIO",isActive:true}, orderBy:{id:"asc"} });
       for (const channel of rows) {
         await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid AND tenant_id=${tenantId}::uuid FOR UPDATE`;

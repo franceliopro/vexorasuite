@@ -3826,3 +3826,22 @@ input[type="color"].profile-tag-inline-color {
 }
 
 .inbox-audio-message{display:block;width:min(280px,100%);height:36px;margin:4px 0}
+
+/* Explicit AI routing and audit controls */
+.ai-routing-card{display:grid;gap:10px;margin:14px 0;padding:14px;border:1px solid var(--line,#e4e7f0);border-radius:12px;background:var(--surface,#fff)}
+.ai-routing-card h3{margin:0;font-size:13px}.ai-routing-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ai-routing-item{display:flex;align-items:center;gap:9px;min-width:0;padding:9px 10px;border:1px solid var(--line,#e4e7f0);border-radius:9px;background:var(--page,#fafbfe);cursor:pointer}
+.ai-routing-item:hover{border-color:var(--primary,#6258df)}.ai-routing-item input{flex:none}.ai-routing-item span{display:grid;gap:2px;min-width:0}.ai-routing-item strong{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ai-routing-item small{color:var(--muted);font-size:10px}
+@media(max-width:720px){.ai-routing-list{grid-template-columns:1fr}}
+/* Fullscreen is the editor only: no title, toolbar or page-level controls. */
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title,
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-mini-toolbar,
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-command-menu,
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-field-help{display:none!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{width:100%!important;height:100%!important;flex:1 1 auto!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-library,
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector{height:100%!important;max-height:none!important}
+.chatbot-workspace.vx-flow-shell-left-collapsed .vx-flow-library,
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed .vx-flow-library{width:38px!important;min-width:38px!important;padding:8px 4px!important;overflow:hidden!important}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed .vx-flow-library>*:not(.vx-panel-handle){display:none!important}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed .vx-panel-handle{display:grid!important;place-items:center!important;margin:auto!important}

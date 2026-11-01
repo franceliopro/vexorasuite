@@ -22,13 +22,13 @@ export function parseCarousel(text:string):Carousel|null {
 }
 export const escapeXml=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
 function lines(value:string,width:number,max:number){const output:string[]=[];for(const word of value.split(/\s+/)){const last=output.length-1;if(last>=0&&output[last]!.length+word.length+1<=width)output[last]+=' '+word;else output.push(word);}return output.slice(0,max).map((s,i)=>i===max-1&&output.length>max?s.slice(0,-1)+'…':s);}
-export function slideSvg(carousel:Carousel,index:number,brand:string,company='Véxora',referencePalette:string[]=[]):string {
- const slide=carousel.slides[index];if(!slide)throw new BadRequestException('Lâmina inexistente');
+export function slideSvg(carousel:Carousel,index:number,brand:string,company='Véxora',referencePalette:string[]=[],format:'POST'|'CAROUSEL'|'STORIES'='CAROUSEL'):string {
+ const slide=carousel.slides[index];if(!slide)throw new BadRequestException('Lâmina inexistente');const height=format==='STORIES'?1920:format==='POST'?1440:1350;
  const color=/^#[\da-f]{6}$/i.test(brand)?brand:'#5865da';
  const secondary=referencePalette.find(c=>/^#[\da-f]{6}$/i.test(c))||color;
  const title=lines(slide.title,24,4),body=lines(slide.body,36,9);
  const text=(values:string[],x:number,y:number,size:number,weight:number)=>values.map((v,i)=>`<text x="${x}" y="${y+i*size*1.3}" font-family="DejaVu Sans, sans-serif" font-size="${size}" font-weight="${weight}" fill="#ffffff">${escapeXml(v)}</text>`).join('');
- return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350"><rect width="1080" height="1350" fill="#191D28"/><circle cx="1010" cy="80" r="400" fill="${secondary}" opacity=".35"/><rect x="75" y="135" width="110" height="8" rx="4" fill="${color}"/><text x="75" y="100" font-family="sans-serif" font-size="24" fill="#c8cce0">${escapeXml(company.slice(0,40))} • ${index+1}/${carousel.slides.length}</text>${text(title,75,265,64,700)}${text(body,75,350+title.length*83,38,400)}<rect x="75" y="1195" width="930" height="2" fill="#536078"/><text x="75" y="1255" font-family="sans-serif" font-size="24" fill="#c8cce0">${index===carousel.slides.length-1?'CURTA · COMENTE · COMPARTILHE':'DESLIZE PARA CONTINUAR →'}</text></svg>`;
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${height}"><rect width="1080" height="${height}" fill="#191D28"/><circle cx="1010" cy="80" r="400" fill="${secondary}" opacity=".35"/><rect x="75" y="135" width="110" height="8" rx="4" fill="${color}"/><text x="75" y="100" font-family="sans-serif" font-size="24" fill="#c8cce0">${escapeXml(company.slice(0,40))} • ${index+1}/${carousel.slides.length}</text>${text(title,75,265,64,700)}${text(body,75,350+title.length*83,38,400)}<rect x="75" y="${height-155}" width="930" height="2" fill="#536078"/><text x="75" y="${height-95}" font-family="sans-serif" font-size="24" fill="#c8cce0">${index===carousel.slides.length-1?'CURTA · COMENTE · COMPARTILHE':'DESLIZE PARA CONTINUAR →'}</text></svg>`;
 }
 @Injectable()
 export class AssistantAutomationService {
@@ -62,7 +62,7 @@ export class AssistantAutomationService {
   const sources=await this.research(req,query);
   return {answer:sources.length?'Pesquisa concluída. Estas são as fontes encontradas; os trechos não substituem a leitura dos textos completos.':'Nenhum resultado encontrado.',sources,usedAi:false,tokensUsed:0};
  }
- async createCarousel(req:AuthenticatedRequest,question:string,options:{format?:'POST'|'CAROUSEL'|'VIDEO';draftOnly?:boolean;agentId?:string;useBrandOnly?:boolean;referenceScope?:{accountId:string;fileIds:string[]}}={}){
+ async createCarousel(req:AuthenticatedRequest,question:string,options:{format?:'POST'|'CAROUSEL'|'STORIES'|'VIDEO';draftOnly?:boolean;agentId?:string;useBrandOnly?:boolean;referenceScope?:{accountId:string;fileIds:string[]}}={}){
   this.authorize(req);
   if(options.format==='VIDEO')throw new ForbiddenException('Geração de vídeos retirada do escopo atual.');
   options={...options,draftOnly:true};
@@ -94,5 +94,5 @@ export class AssistantAutomationService {
  }
  async list(req:AuthenticatedRequest){this.authorize(req);const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'assistant.carousel',entityId:{not:null}},orderBy:{createdAt:'desc'},take:50,select:{entityId:true,details:true,createdAt:true}});return rows.map(row=>({id:row.entityId,title:obj(obj(row.details).carousel).title||'Criação',status:obj(row.details).status||'DRAFT',plannedFor:obj(obj(row.details).manualReview).plannedFor||null,createdAt:row.createdAt}));}
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const audit=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,entityId:id,action:'assistant.carousel'}});if(!audit)throw new NotFoundException('Automação não encontrada.');return audit;}
- async preview(req:AuthenticatedRequest,id:string,index:number){const record=await this.read(req,id);const data=obj(record.details);return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[]))).png().toBuffer();}
+ async preview(req:AuthenticatedRequest,id:string,index:number){const record=await this.read(req,id);const data=obj(record.details);return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[],data.format||'CAROUSEL'))).png().toBuffer();}
 }

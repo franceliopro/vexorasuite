@@ -70,7 +70,7 @@ import {
   UsersRound,
   Share2,
   Download, CircleHelp,
-  MoreHorizontal,
+  MoreHorizontal,\n  Image,
 } from "lucide-react";
 
 const iconMap = {
@@ -88,7 +88,7 @@ const iconMap = {
   "chart-no-axes-combined": Activity,
   sparkles: Sparkles,
   share: Share2,
-  more: MoreHorizontal,
+  more: MoreHorizontal,\n  image: Image,
 };
 
 function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {

@@ -54,6 +54,27 @@ export class MarketingController{
   await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.manual-draft',entityType:'publication',entityId:id,details:{status:'DRAFT',title,caption,channels,mediaUrl:typeof input.mediaUrl==='string'?input.mediaUrl.slice(0,1000):'',mediaSource,mediaFileId,mediaAccountId,mediaName,thumbnailUrl:typeof input?.thumbnailUrl==='string'?input.thumbnailUrl.slice(0,1000):'',mediaItems,plannedFor}}});
   return {id,status:'DRAFT'};
  }
+ @Post('manual-drafts/:id/publish') async publishNow(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){return this.publishDraft(req,id,{publishNow:true});}
+ @Post('manual-drafts/:id/schedule') async schedule(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){const plannedFor=typeof input?.plannedFor==='string'?input.plannedFor:'';if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor)))throw new BadRequestException('Informe uma data válida para agendar.');return this.publishDraft(req,id,{publishNow:false,scheduledFor:plannedFor+'T12:00:00-03:00'});}
+ private async publishDraft(req:AuthenticatedRequest,id:string,options:{publishNow:boolean;scheduledFor?:string}){
+  this.automation.authorize(req);
+  const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.manual-draft'}});
+  if(!row)throw new BadRequestException('Rascunho não encontrado.');
+  const details=(row.details&&typeof row.details==='object'&&!Array.isArray(row.details)?row.details:{}) as any;
+  if(['PUBLISHED','SCHEDULED'].includes(String(details.status)))throw new BadRequestException('Esta publicação já foi enviada.');
+  const channelIds=Array.isArray(details.channels)?details.channels.filter((v:any)=>typeof v==='string').slice(0,12):[];
+  if(!channelIds.length)throw new BadRequestException('Escolha ao menos uma conta de publicação.');
+  const channels=await this.prisma.channelConnection.findMany({where:{tenantId:req.user.tenantId,id:{in:channelIds},isActive:true},select:{id:true,provider:true,status:true,settings:true}});
+  const platforms=channels.map(channel=>{const settings=channel.settings&&typeof channel.settings==='object'&&!Array.isArray(channel.settings)?channel.settings as Record<string,unknown>:{};return {platform:typeof settings.platform==='string'?settings.platform:'',accountId:typeof settings.accountId==='string'?settings.accountId:''};}).filter(item=>item.platform&&item.accountId);
+  if(!platforms.length)throw new BadRequestException('As contas escolhidas ainda não estão prontas para publicar. Reconecte uma conta social.');
+  if(platforms.length!==channelIds.length)throw new BadRequestException('Uma das contas escolhidas não é uma conta social Zernio válida.');
+  const mediaItems=Array.isArray(details.mediaItems)?details.mediaItems.filter((item:any)=>item&&typeof item.mediaUrl==='string'&&/^https?:\\/\\//.test(item.mediaUrl)).slice(0,10).map((item:any)=>({type:item.mediaName?.toLowerCase().endsWith('.mp4')?'video':'image',url:item.mediaUrl})):undefined;
+  const payload:any={content:String(details.caption||''),platforms,...(mediaItems?.length?{mediaItems}:{}),...(options.publishNow?{publishNow:true}:{scheduledFor:options.scheduledFor,timezone:'America/Sao_Paulo'})};
+  const response=await this.zernio.request<any>('/posts',{method:'POST',body:payload,idempotencyKey:'marketing-'+id+'-'+(options.publishNow?'now':options.scheduledFor||'schedule')});
+  const nextStatus=options.publishNow?'PUBLISHED':'SCHEDULED';
+  await this.prisma.auditLog.update({where:{id:row.id},data:{details:{...details,status:nextStatus,publication:{requestedAt:new Date().toISOString(),publishNow:options.publishNow,scheduledFor:options.scheduledFor||null,response:response?.post||response}}}});
+  return {id,status:nextStatus,post:response?.post||response};
+ }
  @Patch('manual-drafts/:id') async manualUpdate(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
   this.automation.authorize(req);
   const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.manual-draft'}});

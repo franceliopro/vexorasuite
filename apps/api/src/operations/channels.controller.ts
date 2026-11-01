@@ -106,7 +106,7 @@ export class ChannelConnectionsController {
         const current=await tx.channelConnection.findFirst({where:{provider:"ZERNIO",isActive:true,settings:{path:["accountId"],equals:accountId}}});
         if(current&&current.tenantId!==attempt.tenantId) throw new ForbiddenException("Esta conta social pertence a outra empresa.");
         if(current) return await tx.channelConnection.update({where:{id:current.id},data:{name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),status:"CONNECTING",lastError:null,settings:{...(current.settings&&typeof current.settings==="object"&&!Array.isArray(current.settings)?current.settings as Record<string,unknown>:{}),...settings}}});
-        return await tx.channelConnection.create({data:{tenantId:attempt.tenantId,provider:"ZERNIO",name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),sessionName:"zn-"+attempt.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex"),status:"CONNECTING",settings}});
+        return await tx.channelConnection.create({data:{tenantId:attempt.tenantId,provider:"ZERNIO",name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),sessionName:"zn-"+attempt.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex"),status:"CONNECTED",settings:{...settings,identityCheckedAt:new Date().toISOString()}});
       });
       this.events.publish(attempt.tenantId,"channel.updated",{id:saved.id,provider:"ZERNIO",status:"CONNECTING"});
       return redirect("connected");
@@ -224,7 +224,7 @@ export class ChannelConnectionsController {
         const changed = !!account && account.platform.toLowerCase()!==String(settings.platform||"").toLowerCase();
         const state = String(account?.status||"UNKNOWN").toUpperCase();
         const unavailable = !account || changed;
-        const status = unavailable ? "DISCONNECTED" : ["ACTIVE","CONNECTED","HEALTHY"].includes(state) ? settings.webhookVerifiedAt ? "CONNECTED" : "CONNECTING" : ["DISCONNECTED","REVOKED","ERROR","FAILED","INACTIVE"].includes(state) ? "DISCONNECTED" : "UNKNOWN";
+        const status = unavailable ? "DISCONNECTED" : ["ACTIVE","CONNECTED","HEALTHY"].includes(state) ? "CONNECTED" : ["DISCONNECTED","REVOKED","ERROR","FAILED","INACTIVE"].includes(state) ? "DISCONNECTED" : "UNKNOWN";
         await tx.channelConnection.update({ where:{id:row.id}, data:{ status, lastError:!account?"ZERNIO_ACCOUNT_MISSING":changed?"ZERNIO_ACCOUNT_CHANGED":status==="DISCONNECTED"?"ZERNIO_ACCOUNT_DISCONNECTED":null,
           ...(!unavailable&&account?.name?{name:account.name.slice(0,100)}:{}), settings:{...settings,socialSyncStartedAt:startedAt,healthCheckedAt:diagnostic.checkedAt,healthProviderStatus:!account?"MISSING":changed?"CHANGED":state,
             ...(!unavailable?{username:account.username||"",profileName:account.profileName||"",identityCheckedAt:diagnostic.checkedAt}:{})} } });

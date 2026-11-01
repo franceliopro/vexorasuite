@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Building2,
+  Landmark,
   BriefcaseBusiness,
   CircleDollarSign,
   FileSliders,
@@ -44,7 +45,7 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
       { title: "Empresas e ambientes", description: "Crie, altere e troque entre empresas clientes.", icon: Building2, action: "companies", tone: "blue" },
       { title: "Usuários e atendentes", description: "Cadastre pessoas, acessos e perfis de atendimento.", icon: UsersRound, action: "module", target: "Atendentes", tone: "violet" },
       { title: "Departamentos e permissões", description: "Organize equipes e defina o que cada setor pode acessar.", icon: BriefcaseBusiness, action: "module", target: "Atendentes", tone: "indigo" },
-      { title: "Identidade visual", description: "Nome, logo, favicon e cores que aparecem no painel.", icon: Palette, action: "advanced", tone: "pink" },
+      { title: "Identidade visual", description: "Nome, logo, favicon e cores que aparecem no painel.", icon: Palette, action: "advanced", tone: "pink" },\n      { title: "Organização e LGPD", description: "Dados da empresa, retenção, encarregado e documentos.", icon: Landmark, action: "advanced", tone: "blue" },
     ],
   },
   {
@@ -55,7 +56,7 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
       { title: "WhatsApp · Waha", description: "Números do WhatsApp conectados por QR Code.", icon: MessageSquareText, action: "module", target: "Canais e integrações", tone: "teal" },
       { title: "Meta Oficial", description: "WhatsApp, Instagram e Messenger quando habilitados.", icon: PanelTop, action: "module", target: "Canais e integrações", tone: "blue" },
       { title: "Google Drive e Agenda", description: "Contas e calendários usados pela empresa.", icon: FileSliders, action: "module", target: "Canais e integrações", tone: "yellow" },
-      { title: "Asaas", description: "Credenciais, cobrança e sincronização financeira.", icon: CircleDollarSign, action: "module", target: "Financeiro", tone: "orange" },
+      { title: "Asaas", description: "Credenciais, cobrança e sincronização financeira.", icon: CircleDollarSign, action: "module", target: "Financeiro", tone: "orange" },\n      { title: "Planos e cobranças", description: "Planos da Véxora, assinaturas e regras de vencimento.", icon: CircleDollarSign, action: "module", target: "Financeiro", tone: "orange" },
     ],
   },
   {

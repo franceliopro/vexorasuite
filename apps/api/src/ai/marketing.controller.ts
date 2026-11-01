@@ -55,7 +55,7 @@ export class MarketingController{
   return {id,status:'DRAFT'};
  }
  @Post('manual-drafts/:id/publish') async publishNow(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){return this.publishDraft(req,id,{publishNow:true});}
- @Post('manual-drafts/:id/schedule') async schedule(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){const plannedFor=typeof input?.plannedFor==='string'?input.plannedFor:'';if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor)))throw new BadRequestException('Informe uma data válida para agendar.');return this.publishDraft(req,id,{publishNow:false,scheduledFor:plannedFor+'T12:00:00-03:00'});}
+ @Post('manual-drafts/:id/schedule') async schedule(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){const plannedFor=typeof input?.plannedFor==='string'?input.plannedFor:'';if(!/^\d{4}-\d{2}-\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor)))throw new BadRequestException('Informe uma data válida para agendar.');return this.publishDraft(req,id,{publishNow:false,scheduledFor:plannedFor+'T12:00:00-03:00'});}
  private async publishDraft(req:AuthenticatedRequest,id:string,options:{publishNow:boolean;scheduledFor?:string}){
   this.automation.authorize(req);
   const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.manual-draft'}});
@@ -68,7 +68,7 @@ export class MarketingController{
   const platforms=channels.map(channel=>{const settings=channel.settings&&typeof channel.settings==='object'&&!Array.isArray(channel.settings)?channel.settings as Record<string,unknown>:{};return {platform:typeof settings.platform==='string'?settings.platform:'',accountId:typeof settings.accountId==='string'?settings.accountId:''};}).filter(item=>item.platform&&item.accountId);
   if(!platforms.length)throw new BadRequestException('As contas escolhidas ainda não estão prontas para publicar. Reconecte uma conta social.');
   if(platforms.length!==channelIds.length)throw new BadRequestException('Uma das contas escolhidas não é uma conta social Zernio válida.');
-  const mediaItems=Array.isArray(details.mediaItems)?details.mediaItems.filter((item:any)=>item&&typeof item.mediaUrl==='string'&&/^https?:\\/\\//.test(item.mediaUrl)).slice(0,10).map((item:any)=>({type:item.mediaName?.toLowerCase().endsWith('.mp4')?'video':'image',url:item.mediaUrl})):undefined;
+  const mediaItems=Array.isArray(details.mediaItems)?details.mediaItems.filter((item:any)=>item&&typeof item.mediaUrl==='string'&&/^https?:\/\//.test(item.mediaUrl)).slice(0,10).map((item:any)=>({type:item.mediaName?.toLowerCase().endsWith('.mp4')?'video':'image',url:item.mediaUrl})):undefined;
   const payload:any={content:String(details.caption||''),platforms,...(mediaItems?.length?{mediaItems}:{}),...(options.publishNow?{publishNow:true}:{scheduledFor:options.scheduledFor,timezone:'America/Sao_Paulo'})};
   const response=await this.zernio.request<any>('/posts',{method:'POST',body:payload,idempotencyKey:'marketing-'+id+'-'+(options.publishNow?'now':options.scheduledFor||'schedule')});
   const nextStatus=options.publishNow?'PUBLISHED':'SCHEDULED';

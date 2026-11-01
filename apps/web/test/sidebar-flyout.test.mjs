@@ -10,9 +10,10 @@ test("sidebar starts collapsed and collapses after selecting navigation", () => 
   assert.match(page, /setSidebarCollapsed\(true\)/);
 });
 
-test("compact sidebar opens one click submenu panel without hover reflow", () => {
+test("workspace families use persistent tabs instead of nested sidebar flyouts", () => {
   assert.doesNotMatch(page, /setSidebarCollapsed\(false\)/);
-  assert.match(page, /setExpandedModules\(\(current\) => current\.includes\(item\.label\) \? \[\] : \[item\.label\]\)/);
+  assert.match(page, /persistent-module-tabs/);
+  assert.match(page, /workspaceTabs/);
   assert.doesNotMatch(design, /sidebar\.sidebar-compact:hover[\s\S]*width: 258px/);
   assert.match(design, /nav-submenu[\s\S]*position:absolute/);
   assert.match(design, /width:68px!important/);

@@ -104,8 +104,19 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
     { label: "Marketing", icon: "megaphone", children: [{ label: "Criações" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações" }] }, { label: "Configurações", icon: "settings" }] },
 ];
+
+const workspaceTabs: Record<string, { label: string; target: string }[]> = {
+  automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
+  marketing: [{ label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }],
+  connections: [{ label: "Conexões", target: "Canais e integrações" }],
+};
+const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de IA"].includes(value)
+  ? "automation"
+  : ["Criações", "Referências criativas", "Google Drive"].includes(value)
+    ? "marketing"
+    : value === "Canais e integrações" ? "connections" : null;
 
 const metrics = [
   { key:"openConversations",label: "Conversas abertas", value: "—", note: "Abertas e pendentes, conforme suas permissões", icon: "messages" },
@@ -147,8 +158,6 @@ export default function HomePage() {
     else if (requested && validModules.has(requested)) {
       preloadWorkspace(requested);
       setActive(requested);
-      const parentLabel = navigation.flatMap((group) => group.items).find((item) => item.children?.some((child) => child.label === requested))?.label;
-      if (parentLabel) setExpandedModules([parentLabel]);
     }
     setNavigationReady(true);
   }, []);
@@ -220,6 +229,7 @@ export default function HomePage() {
   const moduleVisible=(label:string)=>session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
+  const currentWorkspaceTab = workspaceTabKey(active);
   const presentationHome=active==="";
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
@@ -240,18 +250,18 @@ export default function HomePage() {
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => moduleVisible(item.label) && (!["Financeiro","Marketing"].includes(item.label) || canManage) && (!["Configurações","Canais e integrações","Automação"].includes(item.label) || canConfigure));
+            const visibleItems = group.items.filter((item) => moduleVisible(item.label) && (!["Financeiro","Marketing"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
+                const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Marketing" && workspaceTabKey(active) === "marketing") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
                 return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label}>
-                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive || familyActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
                     onClick={() => {
                       if (item.children) {
-                        // Submenus open in one adjacent panel; the compact sidebar never shifts the workspace.
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
                         setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false); setSidebarCollapsed(true);
@@ -289,6 +299,7 @@ export default function HomePage() {
           </div>
         </header>
 
+        {!presentationHome && currentWorkspaceTab ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={"page-content"+(presentationHome?" presentation-page":"")}>{!presentationHome&&<WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>}
           {isOverview ? <section className="page-heading">
             <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>

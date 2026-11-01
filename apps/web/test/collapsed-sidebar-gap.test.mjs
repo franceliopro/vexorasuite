@@ -7,7 +7,7 @@ import {fileURLToPath} from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const design = fs.readFileSync(path.join(root, "src/app/vexora-design-system.css"), "utf8");
 
-test("compact sidebar leaves a small gap before the main content", () => {
-  assert.match(design, /margin-left:calc\(var\(--desktop-sidebar-width\) \+ 12px\)!important/);
-  assert.match(design, /width:calc\(100% - var\(--desktop-sidebar-width\) - 12px\)!important/);
+test("compact sidebar does not add a right margin before the main content", () => {
+  assert.match(design, /margin-left:var\(--desktop-sidebar-width\)!important/);
+  assert.match(design, /width:calc\(100% - var\(--desktop-sidebar-width\)\)!important/);
 });

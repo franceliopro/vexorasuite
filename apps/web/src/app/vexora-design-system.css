@@ -2262,9 +2262,9 @@ body { background: var(--surface-page); color: var(--text-primary); }
     flex-basis:68px!important;
   }
   .suite-app>.main-area{
-    margin-left:calc(var(--desktop-sidebar-width) + 12px)!important;
-    width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
-    max-width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
+    margin-left:var(--desktop-sidebar-width)!important;
+    width:calc(100% - var(--desktop-sidebar-width))!important;
+    max-width:calc(100% - var(--desktop-sidebar-width))!important;
   }
   .suite-app>.sidebar.sidebar-compact .brand{justify-content:center;padding:0;margin-bottom:22px}
   .suite-app>.sidebar.sidebar-compact .brand-copy,
@@ -2303,4 +2303,41 @@ body { background: var(--surface-page); color: var(--text-primary); }
 @media (max-width:760px){
   .suite-app>.sidebar.sidebar-compact{width:270px!important;flex-basis:270px!important}
   .suite-app>.sidebar.sidebar-compact .nav-submenu{position:static;width:auto}
+}
+
+/* Persistent workspace tabs: one stable place for related functions. */
+.persistent-module-tabs{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-height:44px;
+  margin:18px 0 0;
+  padding:4px;
+  overflow-x:auto;
+  border:1px solid var(--border-subtle,#e5e8f1);
+  border-radius:12px;
+  background:var(--surface-1,#fff);
+}
+.persistent-module-tabs button{
+  flex:0 0 auto;
+  min-height:34px;
+  padding:0 14px;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:transparent;
+  color:var(--text-secondary,#626982);
+  font:600 12px/1 var(--font-ui,inherit);
+  white-space:nowrap;
+  cursor:pointer;
+  transition:background .16s ease,color .16s ease,border-color .16s ease;
+}
+.persistent-module-tabs button:hover{background:var(--surface-hover,#f0efff);color:var(--text-primary,#20243a)}
+.persistent-module-tabs button.active{
+  border-color:color-mix(in srgb,var(--primary,#6258df) 24%,transparent);
+  background:var(--surface-active,#e7e5ff);
+  color:var(--primary,#6258df);
+}
+@media(max-width:760px){
+  .persistent-module-tabs{margin:10px 0 0;min-height:42px}
+  .persistent-module-tabs button{min-height:32px;padding-inline:12px;font-size:11px}
 }

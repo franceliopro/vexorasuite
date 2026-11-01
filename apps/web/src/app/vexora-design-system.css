@@ -2426,3 +2426,64 @@ body { background: var(--surface-page); color: var(--text-primary); }
     grid-template-columns: 1fr;
   }
 }
+
+/* Canonical stable sidebar navigation.
+   The compact rail remains fixed; only an explicit toggle expands it.
+   Submenus are click-opened in a single adjacent panel and never reflow the page. */
+@media (min-width:761px){
+  .suite-app{--desktop-sidebar-width:258px}
+  .suite-app:has(>.sidebar.sidebar-compact){--desktop-sidebar-width:68px}
+  .suite-app>.sidebar{
+    width:var(--desktop-sidebar-width)!important;
+    flex:0 0 var(--desktop-sidebar-width)!important;
+    overflow:visible!important;
+    transition:width .18s ease,box-shadow .18s ease;
+  }
+  .suite-app>.sidebar.sidebar-compact{
+    padding:18px 8px 12px!important;
+    width:68px!important;
+    flex-basis:68px!important;
+  }
+  .suite-app>.main-area{
+    margin-left:calc(var(--desktop-sidebar-width) + 12px)!important;
+    width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
+    max-width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
+  }
+  .suite-app>.sidebar.sidebar-compact .brand{justify-content:center;padding:0;margin-bottom:22px}
+  .suite-app>.sidebar.sidebar-compact .brand-copy,
+  .suite-app>.sidebar.sidebar-compact .workspace-copy,
+  .suite-app>.sidebar.sidebar-compact .switch-chevron,
+  .suite-app>.sidebar.sidebar-compact .nav-section,
+  .suite-app>.sidebar.sidebar-compact .nav-item>span:not(.nav-glyph),
+  .suite-app>.sidebar.sidebar-compact .profile-copy,
+  .suite-app>.sidebar.sidebar-compact .profile-more,
+  .suite-app>.sidebar.sidebar-compact .help-card>div,
+  .suite-app>.sidebar.sidebar-compact .help-arrow{display:none!important}
+  .suite-app>.sidebar.sidebar-compact .workspace-switcher{justify-content:center;padding:8px 0;margin-bottom:20px}
+  .suite-app>.sidebar.sidebar-compact .nav-item{justify-content:center;gap:0;min-height:42px;padding:0}
+  .suite-app>.sidebar.sidebar-compact .nav-glyph{width:22px;font-size:20px}
+  .suite-app>.sidebar.sidebar-compact .nav-accordion{position:relative}
+  .suite-app>.sidebar.sidebar-compact .nav-accordion-chevron{display:none}
+  .suite-app>.sidebar.sidebar-compact .nav-submenu{
+    position:absolute;
+    z-index:90;
+    top:0;
+    left:calc(100% + 10px);
+    width:224px;
+    margin:0;
+    padding:8px;
+    border:1px solid #34334d;
+    border-radius:12px;
+    background:var(--sidebar-deep,#10131B);
+    box-shadow:16px 18px 38px #10131b40;
+  }
+  .suite-app>.sidebar.sidebar-compact .nav-subitem{min-height:36px;padding:8px 11px;font-size:11px}
+  .suite-app>.sidebar.sidebar-compact .sidebar-utilities{flex-direction:column!important;gap:4px}
+  .suite-app>.sidebar.sidebar-compact .sidebar-icon{width:36px;height:36px}
+  .suite-app>.sidebar.sidebar-compact:hover,
+  .suite-app>.sidebar.sidebar-compact:focus-within{width:68px!important;box-shadow:none}
+}
+@media (max-width:760px){
+  .suite-app>.sidebar.sidebar-compact{width:270px!important;flex-basis:270px!important}
+  .suite-app>.sidebar.sidebar-compact .nav-submenu{position:static;width:auto}
+}

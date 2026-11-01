@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AsaasSettings } from "./asaas-settings";
 import { AlertCircle, CheckCircle2, Plus, RefreshCw, Instagram, Facebook, MessageCircle, CalendarDays, HardDrive } from "lucide-react";
 
 type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; webhookSecretConfigured?:boolean; teamWebhookUrl?:string|null; authenticated: boolean; profileConfigured?:boolean; providerStatus?:number; providerCode?:string; providerReason?:string; dashboardUrl?:string; accountCount: number; accounts: {accountId:string;platform:string;username?:string;name?:string;status?:string;profileName?:string}[]; checkedAt: string; message?: string; diagnosticStage?: string; tenantKind?: "PLATFORM"|"COMPANY" };

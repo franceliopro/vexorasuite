@@ -3783,3 +3783,19 @@ input[type="color"].profile-tag-inline-color {
 
 
 .channels-waha-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(17,24,39,.58);padding:24px}.channels-waha-modal-card{width:min(420px,100%);border-radius:20px;background:var(--surface,#fff);padding:24px;box-shadow:0 24px 80px rgba(0,0,0,.24);text-align:center}.channels-waha-qr{display:block;width:min(280px,100%);aspect-ratio:1;margin:16px auto;border-radius:12px;background:#fff}.marketing-draft-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Settings layout: compact, predictable panels */
+.settings-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
+.settings-quarter-item{grid-column:span 1;min-width:0}
+.settings-full-item{grid-column:1/-1}
+.organization-settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 14px}
+.organization-card{min-width:0}
+.organization-card-wide{grid-column:span 1}
+.brand-color-picker{display:flex;align-items:center;gap:8px}
+.brand-color-picker input[type=color]{width:42px;height:38px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--card)}
+.brand-color-picker input[type=text],.brand-color-picker input:not([type]){flex:1}
+.channels-asaas-card{margin:0 0 14px}
+.channels-asaas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.channels-asaas-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+@media(max-width:1050px){.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.organization-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.settings-grid,.organization-settings-grid,.channels-asaas-grid,.channels-asaas-fields{grid-template-columns:minmax(0,1fr)}.settings-quarter-item,.settings-full-item,.organization-card-wide{grid-column:1/-1}}

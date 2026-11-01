@@ -199,6 +199,13 @@ export class IntelligenceRuntimeService {
           if (type === 'agent') {
             const assistant = object(object(tenant.integrations).assistant);
             const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a.id === config.agentId && a.enabled === true) : null;
+            const assignedInboxes = Array.isArray(agent?.bindings?.inboxes) ? agent.bindings.inboxes.filter((id: unknown): id is string => typeof id === "string") : [];
+            if (!agent || assignedInboxes.length === 0 || !assignedInboxes.includes(channel.id)) {
+              reason = "agent_not_assigned_to_inbox";
+              await handoff();
+              step = undefined;
+              break;
+            }
             const phone = conversation.contact.phone || conversation.contact.externalId?.split("@")[0] || "";
             if ((agent?.personalAssistant === true || String(agent?.id) === "1") && !isAuthorizedAssistantPhone(phone, assistant.allowedPhones)) {
               reason = "personal_assistant_phone_not_authorized";

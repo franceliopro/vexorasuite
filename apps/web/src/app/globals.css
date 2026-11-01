@@ -3840,10 +3840,9 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace.vx-flow-fullscreen{position:fixed;inset:0;z-index:99999;width:100vw;height:100vh;min-height:100vh;margin:0;padding:12px;background:var(--page,#f6f7fb);display:flex;flex-direction:column;overflow:hidden}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{position:absolute!important;inset:12px!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;display:grid!important;grid-template-columns:260px minmax(0,1fr) 280px!important;overflow:hidden!important}
 
-.chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title,
-.chatbot-workspace.vx-flow-fullscreen .vx-flow-mini-toolbar,
-.chatbot-workspace.vx-flow-fullscreen .vx-flow-command-menu,
-.chatbot-workspace.vx-flow-fullscreen .vx-flow-field-help{display:none!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title,.chatbot-workspace.vx-flow-fullscreen .vx-flow-field-help{display:none!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-mini-toolbar{display:flex!important;align-items:center;min-height:36px;padding:0 8px;position:relative;z-index:3}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-command-menu{display:flex!important;flex-wrap:wrap;align-items:center;gap:8px;position:relative;z-index:3;margin:0 0 8px;padding:8px;border:1px solid var(--line,#e2e6f0);border-radius:12px;background:var(--card,#fff);box-shadow:0 6px 18px rgba(28,39,75,.08)}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{width:100%!important;height:100%!important;min-height:0!important;flex:1 1 auto!important;margin:0!important;border-radius:14px}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-library,
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector{height:100%!important;max-height:none!important}

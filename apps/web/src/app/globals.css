@@ -3845,3 +3845,8 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-flow-shell.vx-left-collapsed .vx-flow-library{width:38px!important;min-width:38px!important;padding:8px 4px!important;overflow:hidden!important}
 .chatbot-workspace .vx-flow-shell.vx-left-collapsed .vx-flow-library>*:not(.vx-panel-handle){display:none!important}
 .chatbot-workspace .vx-flow-shell.vx-left-collapsed .vx-panel-handle{display:grid!important;place-items:center!important;margin:auto!important}
+
+/* Fullscreen must show the editor itself, never the saved-flow library below it. */
+.chatbot-workspace.vx-flow-fullscreen~.business-flow-library,
+.chatbot-workspace.vx-flow-fullscreen~details.business-flow-library{display:none!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{visibility:visible!important;opacity:1!important}

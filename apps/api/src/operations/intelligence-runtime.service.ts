@@ -68,7 +68,15 @@ export class IntelligenceRuntimeService {
       let {key:scopeKey,publication:published}=selection;
       if(conversation.assigneeId&&scopeKey==='default')return null;
       if(scopeKey!=='default'&&!await this.validContext(tx,channel.tenantId,runtimeScope))return {messages:[],handled:true,handoff:false};
-      if (!published.flow || !published.flow.channelIds?.includes(channel.id)) return entry.mode==="AUTOMATION"?{messages:[],handled:true,handoff:false}:null;
+      const explicitAgentInboxMatch = Array.isArray(published.flow?.steps) && published.flow.steps.some((step: any) => {
+        if (step?.kind !== "agent") return false;
+        let config: Record<string, any> = {};
+        try { config = typeof step.config === "string" ? JSON.parse(step.config || "{}") : object(step.config); } catch { config = {}; }
+        const agent = Array.isArray(root.assistant?.agents) ? root.assistant.agents.find((item: any) => item?.id === config.agentId && item?.enabled === true) : null;
+        return Array.isArray(agent?.bindings?.inboxes) && agent.bindings.inboxes.includes(channel.id);
+      });
+      const channelAllowed = Boolean(published.flow) && (published.flow.channelIds?.includes(channel.id) || (Array.isArray(published.flow.channelIds) && published.flow.channelIds.length === 0 && explicitAgentInboxMatch));
+      if (!channelAllowed) return entry.mode==="AUTOMATION"?{messages:[],handled:true,handoff:false}:null;
       if (!published.active) return { messages: [], handled: true, handoff: false };
       const processed = await tx.auditLog.findFirst({ where: { tenantId: channel.tenantId, action: 'engine.processed', entityId: inbound.id } });
       if (processed) {

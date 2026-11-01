@@ -7,9 +7,8 @@ import {fileURLToPath} from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const design = fs.readFileSync(path.join(root, "src/app/vexora-design-system.css"), "utf8");
 
-test("sidebar utility icons stay horizontal and compact", () => {
-  assert.match(design, /\.sidebar\.sidebar-compact \.sidebar-utilities[\s\S]*flex-direction: column !important/);
-  assert.match(design, /sidebar-compact:hover \.sidebar-utilities[\s\S]*flex-direction: row !important/);
-  assert.match(design, /\.sidebar\.sidebar-compact \.sidebar-icon svg[\s\S]*width: 20px/);
-  assert.match(design, /\.sidebar \.nav-item,[\s\S]*padding-block: 5px !important/);
+test("sidebar utility icons stay stacked and compact in the collapsed rail", () => {
+  assert.match(design, /sidebar\.sidebar-compact \.sidebar-utilities[\s\S]*flex-direction:column!important/);
+  assert.match(design, /sidebar\.sidebar-compact \.sidebar-icon[\s\S]*width:36px/);
+  assert.match(design, /sidebar\.sidebar-compact \.nav-item[\s\S]*min-height:42px/);
 });

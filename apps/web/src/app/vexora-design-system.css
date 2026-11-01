@@ -1753,110 +1753,6 @@ body { background: var(--surface-page); color: var(--text-primary); }
   }
 }
 
-/* Desktop navigation flyout: collapsed by default, expands over the workspace without reflow. */
-@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-compact {
-    width: 78px;
-    transition: width .18s ease, box-shadow .18s ease;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover,
-  .suite-app > .sidebar.sidebar-compact:focus-within {
-    width: 258px;
-    box-shadow: 12px 0 34px rgba(17, 24, 39, .16);
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .brand,
-  .suite-app > .sidebar.sidebar-compact:focus-within .brand {
-    justify-content: flex-start;
-    padding: 0 10px;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .brand-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .switch-chevron,
-  .suite-app > .sidebar.sidebar-compact:hover .nav-section,
-  .suite-app > .sidebar.sidebar-compact:hover .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:hover .help-arrow,
-  .suite-app > .sidebar.sidebar-compact:hover .profile-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .profile-more,
-  .suite-app > .sidebar.sidebar-compact:focus-within .brand-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .switch-chevron,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-section,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:focus-within .help-arrow,
-  .suite-app > .sidebar.sidebar-compact:focus-within .profile-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .profile-more {
-    display: initial;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .nav-item,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item {
-    width: 100%;
-    min-height: 40px;
-    justify-content: flex-start;
-    padding-inline: 10px;
-    gap: 10px;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .nav-glyph,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-glyph {
-    width: 20px;
-    flex: 0 0 20px;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .nav-accordion-chevron,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-accordion-chevron {
-    display: block !important;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .nav-submenu,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-submenu {
-    position: static;
-    min-width: 0;
-    margin: 2px 0 7px 37px;
-    padding: 3px 0 3px 10px;
-    border: 0;
-    border-left: 1px solid rgba(180,180,220,.2);
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .sidebar-collapse,
-  .suite-app > .sidebar.sidebar-compact:focus-within .sidebar-collapse {
-    margin-left: auto;
-  }
-}
-@media (max-width: 760px) {
-  .suite-app > .sidebar.sidebar-compact.sidebar-open {
-    width: 270px;
-    flex-basis: 270px;
-  }
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .brand-copy,
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .nav-section,
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .help-card > div,
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .profile-copy {
-    display: initial;
-  }
-  .suite-app > .sidebar.sidebar-compact.sidebar-open .nav-item {
-    width: 100%;
-    justify-content: flex-start;
-    padding-inline: 10px;
-  }
-}
-
-@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-compact:hover .brand-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:hover .profile-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .brand-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:focus-within .profile-copy {
-    display: flex;
-  }
-}
-
-
 /* Flow Studio: keep the library rail as wide as a flow node and preserve a usable canvas in fullscreen. */
 .chatbot-workspace .vx-flow-shell {
   grid-template-columns: 260px minmax(0, 1fr) minmax(240px, 26%) !important;
@@ -2155,85 +2051,6 @@ body { background: var(--surface-page); color: var(--text-primary); }
 }
 
 
-/* Main sidebar expands on hover; submenu state remains controlled by click. */
-@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-compact:hover,
-  .suite-app > .sidebar.sidebar-compact:focus-within {
-    width: 258px;
-    box-shadow: 12px 0 34px rgba(17, 24, 39, .16);
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .brand,
-  .suite-app > .sidebar.sidebar-compact:focus-within .brand {
-    justify-content: flex-start;
-    padding-inline: 10px;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .brand-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .switch-chevron,
-  .suite-app > .sidebar.sidebar-compact:hover .nav-section,
-  .suite-app > .sidebar.sidebar-compact:hover .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:hover .help-arrow,
-  .suite-app > .sidebar.sidebar-compact:hover .profile-copy,
-  .suite-app > .sidebar.sidebar-compact:hover .profile-more,
-  .suite-app > .sidebar.sidebar-compact:focus-within .brand-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .workspace-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .switch-chevron,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-section,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item > span:not(.nav-glyph),
-  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:focus-within .help-arrow,
-  .suite-app > .sidebar.sidebar-compact:focus-within .profile-copy,
-  .suite-app > .sidebar.sidebar-compact:focus-within .profile-more {
-    display: initial !important;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .help-card > div,
-  .suite-app > .sidebar.sidebar-compact:focus-within .help-card > div {
-    display: flex !important;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .nav-item,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-item {
-    width: 100%;
-    min-height: 40px;
-    justify-content: flex-start;
-    padding-inline: 10px;
-    gap: 10px;
-  }
-  .suite-app > .sidebar.sidebar-compact:hover .nav-glyph,
-  .suite-app > .sidebar.sidebar-compact:focus-within .nav-glyph {
-    width: 22px;
-    flex: 0 0 22px;
-  }
-}
-
-
-/* Utility actions: stacked in the compact rail, horizontal when the sidebar opens. */
-.sidebar.sidebar-compact .sidebar-utilities {
-  flex-direction: column !important;
-  gap: 4px;
-}
-@media (min-width: 761px) and (hover: hover) and (pointer: fine) {
-  .suite-app > .sidebar.sidebar-compact:hover .sidebar-utilities,
-  .suite-app > .sidebar.sidebar-compact:focus-within .sidebar-utilities {
-    flex-direction: row !important;
-    gap: 4px;
-  }
-}
-
-
-/* Give the compact sidebar a small breathing space without moving content on hover expansion. */
-@media (min-width: 761px) {
-  .suite-app > .main-area {
-    --sidebar-content-gap: 0px;
-    margin-left: calc(var(--desktop-sidebar-width) + var(--sidebar-content-gap));
-    width: calc(100% - var(--desktop-sidebar-width) - var(--sidebar-content-gap));
-    max-width: calc(100% - var(--desktop-sidebar-width) - var(--sidebar-content-gap));
-  }
-  .suite-app:has(> .sidebar.sidebar-compact) > .main-area {
-    --sidebar-content-gap: 12px;
-  }
-}
-
 /* Workflow Studio redesign: one visual language for triggers, conditions, actions and run control. */
 .workflow-studio{min-width:0}
 .workflow-studio-heading{align-items:flex-start}
@@ -2425,4 +2242,65 @@ body { background: var(--surface-page); color: var(--text-primary); }
   .marketing-network-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Canonical stable sidebar navigation.
+   The compact rail remains fixed; only an explicit toggle expands it.
+   Submenus are click-opened in a single adjacent panel and never reflow the page. */
+@media (min-width:761px){
+  .suite-app{--desktop-sidebar-width:258px}
+  .suite-app:has(>.sidebar.sidebar-compact){--desktop-sidebar-width:68px}
+  .suite-app>.sidebar{
+    width:var(--desktop-sidebar-width)!important;
+    flex:0 0 var(--desktop-sidebar-width)!important;
+    overflow:visible!important;
+    transition:width .18s ease,box-shadow .18s ease;
+  }
+  .suite-app>.sidebar.sidebar-compact{
+    padding:18px 8px 12px!important;
+    width:68px!important;
+    flex-basis:68px!important;
+  }
+  .suite-app>.main-area{
+    margin-left:calc(var(--desktop-sidebar-width) + 12px)!important;
+    width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
+    max-width:calc(100% - var(--desktop-sidebar-width) - 12px)!important;
+  }
+  .suite-app>.sidebar.sidebar-compact .brand{justify-content:center;padding:0;margin-bottom:22px}
+  .suite-app>.sidebar.sidebar-compact .brand-copy,
+  .suite-app>.sidebar.sidebar-compact .workspace-copy,
+  .suite-app>.sidebar.sidebar-compact .switch-chevron,
+  .suite-app>.sidebar.sidebar-compact .nav-section,
+  .suite-app>.sidebar.sidebar-compact .nav-item>span:not(.nav-glyph),
+  .suite-app>.sidebar.sidebar-compact .profile-copy,
+  .suite-app>.sidebar.sidebar-compact .profile-more,
+  .suite-app>.sidebar.sidebar-compact .help-card>div,
+  .suite-app>.sidebar.sidebar-compact .help-arrow{display:none!important}
+  .suite-app>.sidebar.sidebar-compact .workspace-switcher{justify-content:center;padding:8px 0;margin-bottom:20px}
+  .suite-app>.sidebar.sidebar-compact .nav-item{justify-content:center;gap:0;min-height:42px;padding:0}
+  .suite-app>.sidebar.sidebar-compact .nav-glyph{width:22px;font-size:20px}
+  .suite-app>.sidebar.sidebar-compact .nav-accordion{position:relative}
+  .suite-app>.sidebar.sidebar-compact .nav-accordion-chevron{display:none}
+  .suite-app>.sidebar.sidebar-compact .nav-submenu{
+    position:absolute;
+    z-index:90;
+    top:0;
+    left:calc(100% + 10px);
+    width:224px;
+    margin:0;
+    padding:8px;
+    border:1px solid #34334d;
+    border-radius:12px;
+    background:var(--sidebar-deep,#10131B);
+    box-shadow:16px 18px 38px #10131b40;
+  }
+  .suite-app>.sidebar.sidebar-compact .nav-subitem{min-height:36px;padding:8px 11px;font-size:11px}
+  .suite-app>.sidebar.sidebar-compact .sidebar-utilities{flex-direction:column!important;gap:4px}
+  .suite-app>.sidebar.sidebar-compact .sidebar-icon{width:36px;height:36px}
+  .suite-app>.sidebar.sidebar-compact:hover,
+  .suite-app>.sidebar.sidebar-compact:focus-within{width:68px!important;box-shadow:none}
+}
+@media (max-width:760px){
+  .suite-app>.sidebar.sidebar-compact{width:270px!important;flex-basis:270px!important}
+  .suite-app>.sidebar.sidebar-compact .nav-submenu{position:static;width:auto}
 }

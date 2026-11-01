@@ -10,11 +10,10 @@ test("sidebar starts collapsed and collapses after selecting navigation", () => 
   assert.match(page, /setSidebarCollapsed\(true\)/);
 });
 
-test("collapsed sidebar uses click navigation instead of hover flyouts", () => {
-  assert.match(page, /setSidebarCollapsed\(false\)/);
-  assert.doesNotMatch(page, /onPointerEnter=\{event=>\{if\(event\.pointerType==="mouse"\)setExpandedModules/);
-  assert.match(design, /sidebar\.sidebar-compact:hover/);
-  assert.match(design, /width: 258px/);
-  assert.match(design, /position: static/);
-  assert.match(design, /sidebar-utilities/);
+test("compact sidebar opens one click submenu panel without hover reflow", () => {
+  assert.doesNotMatch(page, /setSidebarCollapsed\(false\)/);
+  assert.match(page, /setExpandedModules\(\(current\) => current\.includes\(item\.label\) \? \[\] : \[item\.label\]\)/);
+  assert.doesNotMatch(design, /sidebar\.sidebar-compact:hover[\s\S]*width: 258px/);
+  assert.match(design, /nav-submenu[\s\S]*position:absolute/);
+  assert.match(design, /width:68px!important/);
 });

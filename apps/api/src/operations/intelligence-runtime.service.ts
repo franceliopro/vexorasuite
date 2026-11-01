@@ -173,7 +173,7 @@ export class IntelligenceRuntimeService {
             } else if (!option) {
               // O Chatbot continua sendo a primeira camada. Quando o cliente abandona as opções
               // e escreve uma frase completa, usamos somente a IA explicitamente vinculada a esta inbox.
-              const freeForm = inbound.content.trim().length > 8 && /\\s/.test(inbound.content.trim());
+              const freeForm = inbound.content.trim().length > 8 && /\s/.test(inbound.content.trim());
               const configuredAgents = Array.isArray(object(root.assistant).agents) ? object(root.assistant).agents : [];
               const fallbackAgent = freeForm ? configuredAgents.find((candidate: any) =>
                 candidate?.enabled === true &&

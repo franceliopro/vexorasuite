@@ -190,12 +190,12 @@ export class IntelligenceRuntimeService {
                   kind: 'agent',
                   config: JSON.stringify({agentId: String(fallbackAgent.id)}),
                 };
-                continue;
+              } else {
+                messages.push('Escolha uma das opções abaixo ou digite atendente.');
+                messages.push(renderStep(step, variables));
+                state = previous as Prisma.InputJsonValue;
+                step = undefined as unknown as RuntimeStep;
               }
-              messages.push('Escolha uma das opções abaixo ou digite atendente.');
-              messages.push(renderStep(step, variables));
-              state = previous as Prisma.InputJsonValue;
-              step = undefined as unknown as RuntimeStep;
             } else {
               const target = step.transitions?.[option!];
               if (step.id.startsWith('financeiro')) variables.setor = 'FINANCEIRO';

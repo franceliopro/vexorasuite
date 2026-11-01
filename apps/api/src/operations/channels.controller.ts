@@ -10,6 +10,15 @@ import { CreateWahaChannelDto } from "./dto/create-waha-channel.dto";
 import { WahaService } from "./waha.service";
 import { ZernioService } from "./zernio.service";
 
+const zernioProfileId = (value: unknown): string => {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (value && typeof value === "object") {
+    const item = value as Record<string, unknown>;
+    return String(item.id ?? item._id ?? item.profileId ?? "");
+  }
+  return "";
+};
+
 @Controller("channels")
 @UseGuards(AuthGuard)
 export class ChannelConnectionsController {
@@ -95,7 +104,7 @@ export class ChannelConnectionsController {
       const list=await this.zernio.request<unknown>("/accounts?profileId="+encodeURIComponent(profile.profileId));
       const accounts=Array.isArray(list)?list:list&&typeof list==="object"?(Array.isArray((list as any).accounts)?(list as any).accounts:Array.isArray((list as any).data)?(list as any).data:[]):null;
       if (!accounts) return redirect("pending");
-      const providerAccount=accounts.find((a:any)=>String(a.accountId||a.id||a._id||"")===accountId&&String(a.profileId||"")===profile.profileId&&String(a.platform||"").toLowerCase()===attempt.platform);
+      const providerAccount=accounts.find((a:any)=>String(a.accountId||a.id||a._id||"")===accountId&&zernioProfileId(a.profileId)===profile.profileId&&String(a.platform||"").toLowerCase()===attempt.platform);
       if(!providerAccount) return redirect("unverified");
       const existing=await this.prisma.channelConnection.findFirst({where:{provider:"ZERNIO",isActive:true,settings:{path:["accountId"],equals:accountId}}});
       if(existing&&existing.tenantId!==attempt.tenantId) return redirect("already-assigned");
@@ -179,7 +188,7 @@ export class ChannelConnectionsController {
         throw new Error("Invalid Zernio profile account response");
       })();
       if (!raw) throw new Error("Invalid Zernio profile account response");
-      const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:String(item.profileId??""), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:typeof item.profileName==="string"?item.profileName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
+      const accounts = raw.map((item: any) => ({ accountId:String(item.accountId??item.id??item._id??""), platform:String(item.platform??""), profileId:zernioProfileId(item.profileId), username:socialUsername(item), name:typeof item.name==="string"?item.name:typeof item.displayName==="string"?item.displayName:typeof item.profileName==="string"?item.profileName:undefined, status:typeof item.status==="string"?item.status:typeof item.isActive==="boolean"?item.isActive?"ACTIVE":"DISCONNECTED":undefined, profileName:typeof item.profileName==="string"?item.profileName:undefined }));
       if (accounts.some((account: any)=>!account.accountId||!account.platform||account.profileId!==profile.profileId)) throw new Error("Zernio returned an account outside the company profile.");
       return { configured:true, publicUrlConfigured:Boolean(process.env.API_PUBLIC_URL?.trim()), webhookSecretConfigured, teamWebhookUrl, authenticated:true, profileConfigured:true, accountCount:accounts.length, accounts, checkedAt:new Date().toISOString() };
     } catch (error) {
@@ -289,8 +298,8 @@ export class ChannelConnectionsController {
     if (!profile) throw new BadRequestException("Conecte esta conta pelas opções OAuth da empresa.");
     const response = await this.zernio.request<unknown>("/accounts?profileId="+encodeURIComponent(profile.profileId));
     const listed = Array.isArray(response) ? response : response && typeof response==="object" ? (Array.isArray((response as any).accounts)?(response as any).accounts:Array.isArray((response as any).data)?(response as any).data:[]) : [];
-    const owned = listed.find((item:any)=>String(item.accountId??item.id??item._id??"")===accountId && String(item.platform||"").toLowerCase()===platform && String(item.profileId||"")===profile.profileId);
-    if (!owned || String(owned.profileId||profile.profileId)!==profile.profileId) throw new ForbiddenException("Esta conta não pertence ao perfil Zernio desta empresa. Use a autorização OAuth da empresa.");
+    const owned = listed.find((item:any)=>String(item.accountId??item.id??item._id??"")===accountId && String(item.platform||"").toLowerCase()===platform && zernioProfileId(item.profileId)===profile.profileId);
+    if (!owned || zernioProfileId(owned.profileId||profile.profileId)!==profile.profileId) throw new ForbiddenException("Esta conta não pertence ao perfil Zernio desta empresa. Use a autorização OAuth da empresa.");
     const sessionName="zn-"+request.user.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex");
     const settings={platform,accountId,profileId:profile.profileId,username:socialUsername(owned)||"",profileName:typeof owned.profileName==="string"?owned.profileName:""};
     const created=await this.prisma.$transaction(async tx=>{

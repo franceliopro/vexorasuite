@@ -230,11 +230,13 @@ services:
 
 
   waha:
-    image: devlikeapro/waha:latest
+    image: ${WAHA_IMAGE:-devlikeapro/waha:gows}
     restart: unless-stopped
     environment:
       WAHA_API_KEY: ${WAHA_API_KEY:-}
-      WHATSAPP_DEFAULT_ENGINE: WEBJS
+      WHATSAPP_DEFAULT_ENGINE: ${WHATSAPP_DEFAULT_ENGINE:-GOWS}
+      WHATSAPP_FILES_LIFETIME: ${WHATSAPP_FILES_LIFETIME:-600}
+      WAHA_MEDIA_STORAGE: ${WAHA_MEDIA_STORAGE:-LOCAL}
     expose:
       - "3000"
     volumes:

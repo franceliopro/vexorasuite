@@ -3689,3 +3689,63 @@ input[type="color"].profile-tag-inline-color {
 /* Compact lightbox and explicit destination selection. */
 .marketing-preview-modal-card{max-height:calc(100vh - 200px)}.marketing-preview-modal-stage img{max-height:68vh}.marketing-agent-destinations{margin-top:12px}.marketing-agent-destinations .marketing-network-grid{margin-top:8px}
 @media(max-width:640px){.marketing-preview-modal-card{max-height:calc(100vh - 170px)}.marketing-preview-modal-stage img{max-height:64vh}}
+
+/* Stable navigation: compact by default, explicit expansion only, and one adjacent submenu panel. */
+@media (min-width: 761px){
+  .sidebar.sidebar-compact{
+    position:relative;
+    z-index:40;
+    width:68px;
+    flex:0 0 68px;
+    padding:18px 8px 12px;
+    overflow:visible;
+    transition:width .18s ease,flex-basis .18s ease;
+  }
+  .sidebar.sidebar-compact .brand{justify-content:center;padding:0;margin-bottom:22px}
+  .sidebar.sidebar-compact .brand-copy,
+  .sidebar.sidebar-compact .workspace-copy,
+  .sidebar.sidebar-compact .switch-chevron,
+  .sidebar.sidebar-compact .nav-section,
+  .sidebar.sidebar-compact .nav-item>span:not(.nav-glyph),
+  .sidebar.sidebar-compact .profile-copy,
+  .sidebar.sidebar-compact .profile-more,
+  .sidebar.sidebar-compact .help-card>div,
+  .sidebar.sidebar-compact .help-arrow{display:none}
+  .sidebar.sidebar-compact .workspace-switcher{justify-content:center;padding:8px 0;margin-bottom:20px}
+  .sidebar.sidebar-compact .side-nav{gap:14px}
+  .sidebar.sidebar-compact .nav-group{gap:5px}
+  .sidebar.sidebar-compact .nav-item{
+    justify-content:center;
+    gap:0;
+    min-height:42px;
+    padding:0;
+    border-radius:11px;
+  }
+  .sidebar.sidebar-compact .nav-item[aria-expanded="true"]{background:#6258df2d;color:#fff}
+  .sidebar.sidebar-compact .nav-glyph{width:22px;font-size:20px}
+  .sidebar.sidebar-compact .nav-accordion{position:relative}
+  .sidebar.sidebar-compact .nav-accordion-chevron{display:none}
+  .sidebar.sidebar-compact .nav-submenu{
+    position:absolute;
+    z-index:90;
+    top:0;
+    left:calc(100% + 10px);
+    width:224px;
+    margin:0;
+    padding:8px;
+    border:1px solid #34334d;
+    border-left:0;
+    border-radius:12px;
+    background:var(--sidebar-deep,#10131B);
+    box-shadow:16px 18px 38px #10131b40;
+  }
+  .sidebar.sidebar-compact .nav-subitem{min-height:36px;padding:8px 11px;font-size:11px}
+  .sidebar.sidebar-compact .sidebar-utilities{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .sidebar.sidebar-compact .sidebar-icon{width:36px;height:36px}
+  .sidebar.sidebar-compact .profile-row{justify-content:center;padding:14px 0 3px}
+  .sidebar.sidebar-compact .help-card{justify-content:center;padding:8px 0}
+}
+@media (max-width:760px){
+  .sidebar.sidebar-compact{width:270px;flex-basis:270px}
+  .sidebar.sidebar-compact .nav-submenu{position:static;width:auto}
+}

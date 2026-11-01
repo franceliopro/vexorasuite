@@ -11,8 +11,10 @@ export class WahaService {
 
   private config(): { baseUrl: string; apiKey: string } {
     const rawUrl = process.env.WAHA_BASE_URL?.trim();
-    const apiKey = process.env.WAHA_API_KEY?.trim();
-    if (!rawUrl || !apiKey) throw new ServiceUnavailableException("O gateway WAHA ainda não está configurado no ambiente da Véxora.");
+    const apiKey = process.env.WAHA_API_KEY?.trim() || "";
+    // Em uma rede privada do Compose, o WAHA pode operar sem chave. Quando houver
+    // WAHA_API_KEY configurada no Dokploy, ela continua sendo enviada normalmente.
+    if (!rawUrl) throw new ServiceUnavailableException("O gateway WAHA ainda não está configurado no ambiente da Véxora.");
     let url: URL;
     try { url = new URL(rawUrl); } catch { throw new ServiceUnavailableException("WAHA_BASE_URL não é uma URL válida."); }
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
@@ -26,7 +28,7 @@ export class WahaService {
   private async request(path: string, init: RequestInit = {}): Promise<Response> {
     const { baseUrl, apiKey } = this.config();
     const headers = new Headers(init.headers);
-    headers.set("X-Api-Key", apiKey);
+    if (apiKey) headers.set("X-Api-Key", apiKey);
     if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
     try {
       return await fetch(`${baseUrl}${path}`, { ...init, headers, cache: "no-store", signal: AbortSignal.timeout(10000) });

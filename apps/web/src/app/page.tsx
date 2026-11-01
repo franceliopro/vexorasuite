@@ -71,6 +71,7 @@ import {
   Share2,
   Download, CircleHelp,
   MoreHorizontal,
+  Image,
 } from "lucide-react";
 
 const iconMap = {
@@ -89,6 +90,7 @@ const iconMap = {
   sparkles: Sparkles,
   share: Share2,
   more: MoreHorizontal,
+  image: Image,
 };
 
 function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
@@ -96,16 +98,16 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
   return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} />;
 }
 
-type NavigationChild = { label: string };
+type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
-    { label: "Automação", icon: "workflow", children: [{ label: "Chatbots" }, { label: "Workflows" }, { label: "Agentes de IA" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações" }, { label: "Referências criativas" }, { label: "Google Drive" }] },
+    { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações" }] }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações", icon: "share" }] }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
@@ -273,7 +275,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}>{child.label}</button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -313,6 +315,11 @@ export default function HomePage() {
             <>
               {overviewError&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
                 {metrics.map((metric) => <article className="metric-card" key={metric.label}><div className="metric-top"><span>{metric.label}</span><span className="metric-icon"><Icon name={metric.icon} size={17} /></span></div><strong className="metric-value">{overview?overview[metric.key].toLocaleString("pt-BR"):metric.value}</strong><p>{metric.note}</p></article>)}
+              </section>
+              <section className="overview-insights" aria-label="Resumo visual da operação">
+                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Status da operação</h2><p>Distribuição dos atendimentos atuais</p></div></div><div className="donut-chart donut-open"><strong>{overview?.openConversations ?? "—"}</strong><small>abertas</small></div><div className="chart-legend"><span><i className="legend-dot open"/>Abertas</span><span><i className="legend-dot done"/>Finalizadas</span></div></article>
+                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Capacidade</h2><p>Contatos e agentes habilitados</p></div></div><div className="bar-chart"><div><span>Contatos</span><b><i style={{width: overview ? `${Math.min(100, Math.max(8, overview.contacts))}%` : "8%"}}/></b><strong>{overview?.contacts ?? "—"}</strong></div><div><span>Agentes</span><b><i className="bar-agents" style={{width: overview ? `${Math.min(100, Math.max(8, overview.activeAgents * 12))}%` : "8%"}}/></b><strong>{overview?.activeAgents ?? "—"}</strong></div></div></article>
+                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Atividade recente</h2><p>Volume finalizado e aberto</p></div></div><div className="mini-stat-row"><div><strong>{overview?.completedConversations ?? "—"}</strong><span>finalizados</span></div><div><strong>{overview?.openConversations ?? "—"}</strong><span>em andamento</span></div></div><button className="secondary-button" onClick={() => setActive("Atendimento")}>Abrir atendimento <span>→</span></button></article>
               </section>
               <section className="dashboard-grid">
                 <article className="content-card activity-card">

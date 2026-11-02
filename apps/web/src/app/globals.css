@@ -3444,3 +3444,7 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{display:flex!important;height:auto!important;min-height:0!important;min-width:0!important}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll{flex:1 1 auto!important;min-height:0!important;min-width:0!important}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector{position:absolute!important;z-index:40!important}
+
+/* SLA compacto em linha única. */
+.supervision-summary-heading>label{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:5px!important;white-space:nowrap!important;margin:0!important}
+.supervision-summary-heading>label select{width:76px!important;min-width:76px!important;height:28px!important;padding:3px 6px!important}

@@ -3394,3 +3394,26 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-flow-inspector-body label small{display:block;margin:2px 0 5px;font-size:11px;font-weight:400;color:var(--muted,#667085);line-height:1.45}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title{display:none}
 .profile-section-hint{margin-top:-4px!important}.protocol-history-item{flex-direction:column;align-items:stretch}.protocol-history-item>div{display:flex;justify-content:space-between;gap:8px}.protocol-history-item>span{color:#5145cd;font-size:10px}.protocol-history-item>small{color:#667085;font-size:10px}
+
+
+/* Ajustes de UX: conversas compactas e Flow Studio estável. */
+.supervision-summary{padding:7px 9px}
+.supervision-summary-heading{gap:6px}
+.supervision-summary-heading label{gap:4px;font-size:10px}
+.supervision-summary-heading select{width:82px;min-width:82px;height:28px;padding:3px 6px;font-size:10px}
+.supervision-metrics{gap:8px;margin-top:6px}
+.supervision-metrics span{min-width:0}
+.conversation-tag{font-weight:500!important}
+.profile-tag-editable{min-height:22px;padding:2px 5px 2px 7px;box-shadow:none}
+.profile-tag-editable input:not([type="color"]){font-weight:500}
+.profile-tag-palette,.profile-tag-inline-color{display:none!important}
+.chatbot-workspace.vx-flow-fullscreen{position:fixed!important;inset:0!important;z-index:99999!important;display:flex!important;flex-direction:column!important;width:100vw!important;height:100dvh!important;min-height:100dvh!important;max-width:none!important;margin:0!important;padding:10px!important;overflow:hidden!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-page-title{display:none!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-command-menu{flex:0 0 auto!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{display:grid!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;margin:0!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{height:100%!important;min-height:0!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll{min-height:0!important;overflow:auto!important}
+.chatbot-workspace .vx-flow-scroll{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--primary,#6756d9) 35%,transparent) transparent}
+.chatbot-workspace .vx-flow-scroll::-webkit-scrollbar{width:7px;height:7px}
+.chatbot-workspace .vx-flow-scroll::-webkit-scrollbar-track{background:transparent}
+.chatbot-workspace .vx-flow-scroll::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--primary,#6756d9) 35%,transparent);border-radius:999px}

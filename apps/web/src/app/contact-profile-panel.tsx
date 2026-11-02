@@ -73,17 +73,6 @@ export function ContactProfilePanel({
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
-  const [tagColor, setTagColor] = useState("#7c3aed");
-  const tagPalette = [
-    "#7c3aed",
-    "#2563eb",
-    "#0891b2",
-    "#059669",
-    "#ca8a04",
-    "#ea580c",
-    "#e11d48",
-    "#db2777",
-  ];
   const [notes, setNotes] = useState("");
   const [fields, setFields] = useState<Record<string, unknown>>({});
   const [tagCatalog, setTagCatalog] = useState<ProfileTagDef[]>([]);
@@ -190,7 +179,7 @@ export function ContactProfilePanel({
         definition = await request<ProfileTagDef>("/api/backend/contacts/profile-config/tags", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name, color: tagColor }),
+          body: JSON.stringify({ name, color: "#eeecff" }),
         });
         setTagCatalog((current) => [...current, definition!]);
       }
@@ -367,8 +356,8 @@ export function ContactProfilePanel({
                         key={index}
                         style={{
                           backgroundColor: tag.color,
-                          color: "#fff",
-                          borderColor: "color-mix(in srgb, " + tag.color + " 78%, #111827)",
+                          color: "#334155",
+                          borderColor: "color-mix(in srgb, " + tag.color + " 78%, #334155)",
                         }}
                       >
                         <input
@@ -379,19 +368,6 @@ export function ContactProfilePanel({
                             setTags((current) =>
                               current.map((v, i) =>
                                 i === index ? { ...v, name: e.target.value } : v,
-                              ),
-                            )
-                          }
-                        />
-                        <input
-                          className="profile-tag-inline-color"
-                          type="color"
-                          aria-label={"Cor da etiqueta " + tag.name}
-                          value={/^#[0-9a-fA-F]{6}$/.test(tag.color) ? tag.color : "#6258DF"}
-                          onChange={(e) =>
-                            setTags((current) =>
-                              current.map((v, i) =>
-                                i === index ? { ...v, color: e.target.value } : v,
                               ),
                             )
                           }
@@ -423,27 +399,6 @@ export function ContactProfilePanel({
                       <Plus size={14} />
                     </button>
                   </form>
-                  <div className="profile-tag-palette" aria-label="Escolha a cor da etiqueta">
-                    {tagPalette.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        aria-label={"Cor " + color}
-                        title={"Cor " + color}
-                        className={tagColor === color ? "selected" : ""}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setTagColor(color)}
-                      />
-                    ))}
-                    <label className="profile-custom-tag-color" title="Escolher outra cor">
-                      <input
-                        type="color"
-                        aria-label="Escolher cor personalizada"
-                        value={tagColor}
-                        onChange={(e) => setTagColor(e.target.value)}
-                      />
-                    </label>
-                  </div>
                 </section>
                 <section className="profile-section">
                   <strong>

@@ -19,7 +19,7 @@ export function driveFileId(value: unknown): string {
   return id;
 }
 export function referenceFields(input: ReferenceInput) {
-  if (input.purpose !== undefined && !['ALL','ART','CAROUSEL','VIDEO'].includes(input.purpose)) throw new BadRequestException('Finalidade inválida.');
+  if (input.purpose !== undefined && !['ALL','ART','CAROUSEL','VIDEO','BRANDING'].includes(input.purpose)) throw new BadRequestException('Finalidade inválida.');
   if (input.instructions !== undefined && (typeof input.instructions !== 'string' || input.instructions.length > 2000)) throw new BadRequestException('Use até 2 mil caracteres nas orientações.');
   if (input.enabled !== undefined && typeof input.enabled !== 'boolean') throw new BadRequestException('Estado inválido.');
   return { purpose: input.purpose || 'ALL', instructions: input.instructions?.trim() || '', enabled: input.enabled ?? true };

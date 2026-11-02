@@ -603,7 +603,55 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     try { const r=new C(); r.lang="pt-BR"; r.continuous=true; r.interimResults=true; r.onresult=(e:any)=>{const text=Array.from(e.results as ArrayLike<any>).slice(e.resultIndex).filter((x:any)=>x.isFinal).map((x:any)=>x[0].transcript).join(" ").trim();if(text)setDraft(v=>v?v.trimEnd()+" "+text:text)}; r.onerror=()=>{setListening(false);setError("Verifique a permissão de acesso ao microfone.")}; r.onend=()=>setListening(false); recognitionRef.current=r; r.start(); setListening(true); } catch { setError("Não foi possível iniciar o microfone. Confira as permissões do navegador."); }
   }
 
-  function fileKind(file: File): "image"|"video"|"audio"|"file" {\n    if (file.type.startsWith("image/")) return "image";\n    if (file.type.startsWith("video/")) return "video";\n    if (file.type.startsWith("audio/")) return "audio";\n    return "file";\n  }\n  async function fileBase64(file: File): Promise<string> {\n    const buffer = await file.arrayBuffer();\n    let binary = "";\n    const bytes = new Uint8Array(buffer);\n    for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));\n    return btoa(binary);\n  }\n  async function sendAttachmentFiles() {\n    if (!selectedId || !attachmentFiles.length || busy) return;\n    setBusy(true); setError("");\n    try {\n      for (const file of attachmentFiles) {\n        await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: fileKind(file), filename: file.name, mimetype: file.type || "application/octet-stream", data: await fileBase64(file) }) });\n      }\n      setAttachmentFiles([]); setQuickPanel(null);\n      await loadMessages(selectedId); await loadConversations();\n    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar os anexos."); } finally { setBusy(false); }\n  }\n  async function sendCurrentLocation() {\n    if (!selectedId || busy) return;\n    if (!navigator.geolocation) { setError("Este dispositivo não disponibilizou a localização."); return; }\n    setBusy(true); setError("");\n    try {\n      const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }));\n      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "location", latitude: position.coords.latitude, longitude: position.coords.longitude, title: "Minha localização" }) });\n      setQuickPanel(null); await loadMessages(selectedId); await loadConversations();\n    } catch (e) { setError(e instanceof Error ? "Não foi possível obter a localização." : "Não foi possível enviar a localização."); } finally { setBusy(false); }\n  }\n  async function sendCurrentContact() {\n    if (!selectedId || !selected?.contact || busy) return;\n    const contact = selected.contact;\n    const phone = contact.phone || "";\n    if (!phone) { setError("Este contato não possui telefone para compartilhar."); return; }\n    const vcard = ["BEGIN:VCARD","VERSION:3.0","FN:" + (contact.name || phone),"TEL;TYPE=CELL:" + phone,"EMAIL:" + (contact.email || ""),"END:VCARD"].join("\\n");\n    setBusy(true); setError("");\n    try {\n      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "contact", contactName: contact.name || phone, vcard }) });\n      setQuickPanel(null); await loadMessages(selectedId); await loadConversations();\n    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar o contato."); } finally { setBusy(false); }\n  }\n\n  async function sendMessage(event: FormEvent) {
+  function fileKind(file: File): "image"|"video"|"audio"|"file" {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    if (file.type.startsWith("audio/")) return "audio";
+    return "file";
+  }
+  async function fileBase64(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+    return btoa(binary);
+  }
+  async function sendAttachmentFiles() {
+    if (!selectedId || !attachmentFiles.length || busy) return;
+    setBusy(true); setError("");
+    try {
+      for (const file of attachmentFiles) {
+        await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: fileKind(file), filename: file.name, mimetype: file.type || "application/octet-stream", data: await fileBase64(file) }) });
+      }
+      setAttachmentFiles([]); setQuickPanel(null);
+      await loadMessages(selectedId); await loadConversations();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar os anexos."); } finally { setBusy(false); }
+  }
+  async function sendCurrentLocation() {
+    if (!selectedId || busy) return;
+    if (!navigator.geolocation) { setError("Este dispositivo não disponibilizou a localização."); return; }
+    setBusy(true); setError("");
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }));
+      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "location", latitude: position.coords.latitude, longitude: position.coords.longitude, title: "Minha localização" }) });
+      setQuickPanel(null); await loadMessages(selectedId); await loadConversations();
+    } catch (e) { setError(e instanceof Error ? "Não foi possível obter a localização." : "Não foi possível enviar a localização."); } finally { setBusy(false); }
+  }
+  async function sendCurrentContact() {
+    if (!selectedId || !selected?.contact || busy) return;
+    const contact = selected.contact;
+    const phone = contact.phone || "";
+    if (!phone) { setError("Este contato não possui telefone para compartilhar."); return; }
+    const vcard = ["BEGIN:VCARD","VERSION:3.0","FN:" + (contact.name || phone),"TEL;TYPE=CELL:" + phone,"EMAIL:" + (contact.email || ""),"END:VCARD"].join("\
+");
+    setBusy(true); setError("");
+    try {
+      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "contact", contactName: contact.name || phone, vcard }) });
+      setQuickPanel(null); await loadMessages(selectedId); await loadConversations();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar o contato."); } finally { setBusy(false); }
+  }
+
+  async function sendMessage(event: FormEvent) {
     event.preventDefault();
     if (!selectedId || !draft.trim() || busy) return;
     setBusy(true); setError("");

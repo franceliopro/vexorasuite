@@ -3417,3 +3417,5 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-flow-scroll::-webkit-scrollbar{width:7px;height:7px}
 .chatbot-workspace .vx-flow-scroll::-webkit-scrollbar-track{background:transparent}
 .chatbot-workspace .vx-flow-scroll::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--primary,#6756d9) 35%,transparent);border-radius:999px}
+
+.thread-protocol{display:block;margin-top:2px;font-size:10px;font-weight:500;color:var(--muted,#667085)}

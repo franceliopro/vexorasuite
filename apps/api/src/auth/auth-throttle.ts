@@ -1,9 +1,13 @@
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+﻿import { HttpException, HttpStatus, Injectable, Inject } from "@nestjs/common";
 
 interface Bucket {
   count: number;
   resetAt: number;
 }
+
+export const AUTH_MAX_ATTEMPTS = "AUTH_MAX_ATTEMPTS";
+export const AUTH_WINDOW_MINUTES = "AUTH_WINDOW_MINUTES";
+export const AUTH_NOW = "AUTH_NOW";
 
 /**
  * Brute-force protection for credential endpoints.
@@ -17,9 +21,9 @@ export class AuthThrottle {
   private readonly buckets = new Map<string, Bucket>();
 
   constructor(
-    private readonly maxAttempts = Number(process.env.AUTH_MAX_ATTEMPTS ?? 10),
-    private readonly windowMs = Number(process.env.AUTH_WINDOW_MINUTES ?? 15) * 60_000,
-    private readonly now: () => number = () => Date.now(),
+    @Inject(AUTH_MAX_ATTEMPTS) private readonly maxAttempts: number = 10,
+    @Inject(AUTH_WINDOW_MINUTES) private readonly windowMs: number = 15 * 60_000,
+    @Inject(AUTH_NOW) private readonly now: () => number = () => Date.now(),
   ) {}
 
   /** Throws when the key already exhausted its attempts inside the current window. */
@@ -33,7 +37,7 @@ export class AuthThrottle {
     if (bucket.count >= this.maxAttempts) {
       const minutes = Math.max(1, Math.ceil((bucket.resetAt - current) / 60_000));
       throw new HttpException(
-        `Muitas tentativas. Tente novamente em ${minutes} minuto(s).`,
+        Muitas tentativas. Tente novamente em  minuto(s).,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

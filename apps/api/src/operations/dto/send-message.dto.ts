@@ -1,8 +1,1 @@
-import { IsString, MaxLength, MinLength } from "class-validator";
-
-export class SendMessageDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(4000)
-  content!: string;
-}
+import { IsIn, IsOptional, IsString, MaxLength } from "class-validator";\n\nexport class SendMessageDto {\n  @IsOptional() @IsString() @MaxLength(4000)\n  content?: string;\n  @IsOptional() @IsIn(["text","image","video","audio","file","location","contact"])\n  kind?: "text"|"image"|"video"|"audio"|"file"|"location"|"contact";\n  @IsOptional() @IsString() @MaxLength(255) filename?: string;\n  @IsOptional() @IsString() @MaxLength(120) mimetype?: string;\n  @IsOptional() @IsString() @MaxLength(24000000) data?: string;\n  @IsOptional() @IsString() @MaxLength(4000) caption?: string;\n  @IsOptional() latitude?: number;\n  @IsOptional() longitude?: number;\n  @IsOptional() @IsString() @MaxLength(200) title?: string;\n  @IsOptional() @IsString() @MaxLength(500) address?: string;\n  @IsOptional() @IsString() @MaxLength(5000) vcard?: string;\n  @IsOptional() @IsString() @MaxLength(200) contactName?: string;\n}\n

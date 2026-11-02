@@ -5,7 +5,11 @@ import fs from "node:fs";
 const design=fs.readFileSync(new URL("../src/app/vexora-design-system.css",import.meta.url),"utf8");
 
 test("mobile navigation has larger touch targets while utilities stay compact",()=>{
-  assert.match(design,/\.mobile-bottom-nav button\s*\{[\s\S]*min-height: 62px/);
+  // The dock height is token driven now; the token itself must still keep a 62px touch target.
+  assert.match(design,/\.mobile-bottom-nav button\s*\{[\s\S]*min-height: var\(--mobile-nav-btn-h\)/);
+  assert.match(design,/\.mobile-bottom-nav\s*\{[\s\S]*min-height: var\(--mobile-nav-h\)/);
+  const tokens=fs.readFileSync(new URL("../src/app/globals.css",import.meta.url),"utf8");
+  assert.match(tokens,/--mobile-nav-btn-h:\s*62px/);
   assert.match(design,/\.mobile-bottom-nav button svg\s*\{[\s\S]*width: 22px/);
   assert.match(design,/\.sidebar \.nav-item,[\s\S]*min-height: 50px/);
   assert.match(design,/\.sidebar \.sidebar-utilities \.sidebar-icon svg\s*\{[\s\S]*width: 16px/);

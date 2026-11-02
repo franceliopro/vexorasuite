@@ -17,6 +17,7 @@ import { emojiCatalog } from "./emoji-catalog";
 type FinanceDebt={id:string;value:number;dueDate:string;status:string;description:string;invoiceUrl:string|null;bankSlipUrl:string|null};
 type Channel = { id: string; name: string; provider: string; status: string; lastError?: string | null; healthCheckedAt?: string | null };
 type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; pipelineId?:string|null; metadata?: Record<string, unknown> };
+type ServiceProtocol = { code: string; conversationId: string };
 type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string; senderName?:string|null; metadata?: Record<string, unknown> & {linkedConversationId?:string;departmentName?:string} };
 type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
@@ -43,6 +44,7 @@ const QUICK_REPLY_VARIABLES = [
   { token:"{{origem}}", label:"Origem", hint:"Origem do contato" },
   { token:"{{pipeline}}", label:"Pipeline", hint:"Pipeline atual do contato" },
   { token:"{{etapa}}", label:"Etapa", hint:"Etapa atual do contato" },
+  { token:"{{protocolo}}", label:"Protocolo", hint:"Número do atendimento" },
 ] as const;
 function greetingPeriod(date = new Date()): "dawn"|"morning"|"afternoon"|"evening" {
   const hour = date.getHours();
@@ -161,6 +163,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [handoffAssignee, setHandoffAssignee] = useState("");
   const [inviteAssignee, setInviteAssignee] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [serviceProtocol, setServiceProtocol] = useState<ServiceProtocol | null>(null);
   const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
   const [contactProfileExpanded, setContactProfileExpanded] = useState(true);
   const attachmentInputRef=useRef<HTMLInputElement|null>(null);
@@ -170,6 +173,15 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const quickResize=useRef<{x:number;y:number;width:number;height:number}|null>(null);
   const debtRequestVersion=useRef(0);
   useEffect(()=>{debtRequestVersion.current++;setDebtDocument("");setDebtResult(null);setDebtSelected([]);setFinanceRecipientConfirmed(false);setDebtLoading(false);setQuickPanel(null);},[selectedId]);
+  useEffect(() => {
+    let active = true;
+    setServiceProtocol(null);
+    if (!selectedId) return () => { active = false; };
+    void api<ServiceProtocol>("/api/backend/service-protocols/conversations/" + selectedId, { method: "POST" })
+      .then((protocol) => { if (active) setServiceProtocol(protocol); })
+      .catch(() => { if (active) setServiceProtocol(null); });
+    return () => { active = false; };
+  }, [selectedId]);
   const [quickPanel,setQuickPanel]=useState<"billing"|"appointments"|"attachments"|"help"|null>(null);
   const appointmentModalRef=useRef<HTMLElement|null>(null);
   useModalDialog(quickPanel==="appointments",appointmentModalRef,()=>setQuickPanel(null));
@@ -751,7 +763,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     <div className="inbox-thread content-card">
       {selected ? <>
         {copilotOpen&&<InboxCopilot key={selected.id+":"+(copilotMessage?.id||"draft")} conversationId={selected.id} view={queueView} draft={draft} message={copilotMessage?{id:copilotMessage.id,content:copilotMessage.content}:undefined} onUse={setDraft} onClose={()=>{setCopilotOpen(false);setCopilotMessage(null);}} onNote={()=>{void loadMessages(selected.id);}} onSend={async text=>{await api("/api/backend/conversations/"+selected.id+"/messages?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content:text})});setDraft("");await loadMessages(selected.id);await loadConversations();}}/>}
-        <header className="thread-heading"><button type="button" className="thread-icon-action" title={fullScreen?"Sair da tela cheia (Esc)":"Tela cheia"} aria-label={fullScreen?"Sair da tela cheia":"Tela cheia"} onClick={()=>setFullScreen(v=>!v)}>{fullScreen?"↙":"⛶"}</button><button type="button" className="mobile-inbox-back" aria-label="Voltar às conversas" onClick={() => setMobileThreadOpen(false)}><ArrowLeft size={18}/><span>Conversas</span></button><ContactAvatar contact={selected.contact}/><div className="thread-contact"><h2 title={selected.contact.name}>{contactDisplayName(selected.contact,selected.botState)}</h2>{selected.assignee&&<strong className="attendant-identity">{selected.assignee.name}{selected.department?" · "+selected.department.name:""}</strong>}</div><details className="thread-actions-menu"><summary className="thread-actions-trigger" aria-label="Ações da conversa" title="Ações da conversa"><MoreHorizontal size={21} aria-hidden="true"/></summary><div className="thread-actions">{!contactProfileExpanded ? <button type="button" className="thread-icon-action profile-restore-action" aria-label="Reabrir ficha do contato" title="Reabrir ficha do contato" onClick={()=>setContactProfileExpanded(true)}><UserRound size={18}/></button> : null}{!selected.assignee ? <button type="button" aria-label="Assumir conversa" className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
+        <header className="thread-heading"><button type="button" className="thread-icon-action" title={fullScreen?"Sair da tela cheia (Esc)":"Tela cheia"} aria-label={fullScreen?"Sair da tela cheia":"Tela cheia"} onClick={()=>setFullScreen(v=>!v)}>{fullScreen?"↙":"⛶"}</button><button type="button" className="mobile-inbox-back" aria-label="Voltar às conversas" onClick={() => setMobileThreadOpen(false)}><ArrowLeft size={18}/><span>Conversas</span></button><ContactAvatar contact={selected.contact}/><div className="thread-contact"><h2 title={selected.contact.name}>{contactDisplayName(selected.contact,selected.botState)}</h2>{selected.assignee&&<strong className="attendant-identity">{selected.assignee.name}{selected.department?" · "+selected.department.name:""}</strong>}{serviceProtocol?<small className="thread-protocol" title="Protocolo do atendimento">Protocolo {serviceProtocol.code}</small>:null}</div><details className="thread-actions-menu"><summary className="thread-actions-trigger" aria-label="Ações da conversa" title="Ações da conversa"><MoreHorizontal size={21} aria-hidden="true"/></summary><div className="thread-actions">{!contactProfileExpanded ? <button type="button" className="thread-icon-action profile-restore-action" aria-label="Reabrir ficha do contato" title="Reabrir ficha do contato" onClick={()=>setContactProfileExpanded(true)}><UserRound size={18}/></button> : null}{!selected.assignee ? <button type="button" aria-label="Assumir conversa" className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
           <details className="handoff-menu">
             <summary className="handoff-invite-trigger handoff-direct-trigger" title="Direcionar conversa">
               <ArrowRightLeft size={18} aria-hidden="true"/>

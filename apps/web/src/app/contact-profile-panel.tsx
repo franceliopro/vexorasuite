@@ -355,9 +355,9 @@ export function ContactProfilePanel({
                         className="profile-tag profile-tag-editable"
                         key={index}
                         style={{
-                          backgroundColor: tag.color,
+                          backgroundColor: "#f3f1ff",
                           color: "#334155",
-                          borderColor: "color-mix(in srgb, " + tag.color + " 78%, #334155)",
+                          borderColor: "#ddd8f3",
                         }}
                       >
                         <input

@@ -3419,3 +3419,15 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace .vx-flow-scroll::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--primary,#6756d9) 35%,transparent);border-radius:999px}
 
 .thread-protocol{display:block;margin-top:2px;font-size:10px;font-weight:500;color:var(--muted,#667085)}
+
+/* Supervisão recolhível e etiquetas compactas. */
+.supervision-summary-heading{display:flex;align-items:center;min-width:0}
+.supervision-toggle{border:0;background:transparent;color:var(--primary,#6756d9);font-size:10px;font-weight:600;padding:2px 4px;cursor:pointer}
+.supervision-summary.is-collapsed{padding-bottom:6px}
+.supervision-summary.is-collapsed>.supervision-summary-heading label{margin-left:auto}
+.supervision-summary.is-collapsed>.supervision-summary-heading~*{display:none}
+.profile-tag-editable{background:#f3f1ff!important;border:1px solid #ddd8f3!important;color:#334155!important;min-height:20px!important;max-height:24px!important;padding:1px 4px 1px 6px!important;font-size:11px!important;border-radius:7px!important}
+.profile-tag-editable input:not([type="color"]){font-size:11px!important;max-width:105px!important;padding:2px 3px!important;background:transparent!important;color:#334155!important}
+.profile-tag-editable button{width:16px!important;height:16px!important;padding:0!important}
+.crm-workspace,.crm-workspace *{scrollbar-width:none}
+.crm-workspace::-webkit-scrollbar,.crm-workspace *::-webkit-scrollbar{width:0;height:0}

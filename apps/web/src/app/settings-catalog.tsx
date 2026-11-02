@@ -21,6 +21,8 @@ import {
   Variable,
   Workflow,
   Search,
+  X,
+  ArrowUpRight,
 } from "lucide-react";
 
 type CatalogProps = {
@@ -103,7 +105,7 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
         <label className="settings-catalog-search">
           <Search size={16} aria-hidden="true" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar uma configuração…" aria-label="Buscar configurações" />
-          {query ? <button type="button" aria-label="Limpar busca" onClick={() => setQuery("")}>×</button> : null}
+          {query ? <button type="button" aria-label="Limpar busca" onClick={() => setQuery("")}><X size={16} aria-hidden="true" /></button> : null}
         </label>
       </header>
       {filteredSections.length ? filteredSections.map((section) => (
@@ -116,7 +118,7 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
                 <button type="button" className="settings-catalog-card" key={card.title} onClick={() => open(card)}>
                   <span className={"settings-catalog-icon " + (card.tone || "")}><Icon size={19} strokeWidth={1.8} /></span>
                   <span className="settings-catalog-copy"><strong>{card.title}</strong><small>{card.description}</small></span>
-                  <span className="settings-catalog-arrow" aria-hidden="true">↗</span>
+                  <span className="settings-catalog-arrow" aria-hidden="true"><ArrowUpRight size={15} aria-hidden="true" /></span>
                 </button>
               );
             })}

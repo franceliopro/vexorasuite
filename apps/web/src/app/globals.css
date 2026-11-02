@@ -3855,3 +3855,5 @@ input[type="color"].profile-tag-inline-color {
 .chatbot-workspace.vx-flow-fullscreen~.business-flow-library,
 .chatbot-workspace.vx-flow-fullscreen~details.business-flow-library{display:none!important}
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{visibility:visible!important;opacity:1!important}
+
+.vx-flow-variable-picker{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.vx-flow-variable-picker button{border:1px solid var(--line,#e3e7f1);border-radius:999px;background:var(--surface,#fff);color:var(--primary,#6258df);font-size:10px;padding:4px 7px;cursor:pointer}.vx-flow-variable-picker button:hover{background:var(--primary-soft,#f0efff);border-color:var(--primary,#6258df)}

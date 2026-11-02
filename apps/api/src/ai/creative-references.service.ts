@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { GoogleAccessService } from '../operations/google-access.service';
-const MIME = ['image/png','image/jpeg','image/webp','video/mp4','application/pdf'];
+const MIME = ['image/png','image/jpeg','image/webp','video/mp4','video/webm','video/quicktime','audio/mpeg','audio/ogg','audio/wav','audio/mp4','application/pdf'];
 const MAX_BYTES = 20 * 1024 * 1024;
 export type ReferenceInput = { accountId?: string; fileId?: string; purpose?: string; instructions?: string; enabled?: boolean };
 export function driveFileId(value: unknown): string {

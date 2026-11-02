@@ -30,7 +30,8 @@ export function ChatbotWorkspace({tenantId}:{tenantId:string}){
  useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if(!(event.ctrlKey||event.metaKey)||event.altKey)return;const target=event.target as HTMLElement|null;if(target?.closest("input,textarea,select"))return;if(event.key.toLowerCase()==="z"){event.preventDefault();if(event.shiftKey)redoFlow();else undoFlow();}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[flow]);
 
  const [visualMode,setVisualMode]=useState(true),[zoom,setZoom]=useState(100);
- const [simulationStep,setSimulationStep]=useState<string|null>(null);\n const [simulatorFullScreen,setSimulatorFullScreen]=useState(false);
+ const [simulationStep,setSimulationStep]=useState<string|null>(null);
+ const [simulatorFullScreen,setSimulatorFullScreen]=useState(false);
  const [connectFrom,setConnectFrom]=useState<string|null>(null);
  const [connectOption,setConnectOption]=useState("");
  const [moveMode,setMoveMode]=useState(true);

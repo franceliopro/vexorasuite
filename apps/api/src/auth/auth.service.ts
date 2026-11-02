@@ -1,3 +1,5 @@
+import { AuthThrottle } from "./auth-throttle";
+
 import {BadRequestException,ForbiddenException} from '@nestjs/common';
 import {isUUID} from 'class-validator';
 import {SEGMENTS} from '../operations/business-templates';
@@ -17,6 +19,8 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    // Optional so existing unit tests and scripted callers keep working.
+    private readonly throttle: AuthThrottle = new AuthThrottle(),
   ) {}
 
   private secret(): string {
@@ -34,6 +38,9 @@ export class AuthService {
   async register(input: RegisterDto) {
     this.secret();
     const email = input.email.trim().toLowerCase();
+    const throttleKey = `register:${email}`;
+    this.throttle.assertAllowed(throttleKey);
+    this.throttle.recordFailure(throttleKey);
     const passwordHash = await hash(input.password, 12);
     const baseSlug = input.tenantName
       .normalize("NFKD")
@@ -86,6 +93,8 @@ export class AuthService {
   async login(input: LoginDto) {
     this.secret();
     const email = input.email.trim().toLowerCase();
+    const throttleKey = `login:${input.tenantSlug.trim().toLowerCase()}:${email}`;
+    this.throttle.assertAllowed(throttleKey);
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
@@ -97,6 +106,7 @@ export class AuthService {
     });
 
     if (!user || !user.isActive || !(await compare(input.password, user.passwordHash))) {
+      this.throttle.recordFailure(throttleKey);
       throw new UnauthorizedException("E-mail ou senha inválidos.");
     }
 
@@ -105,6 +115,7 @@ export class AuthService {
     const prefixMatches = user.memberships.filter((item) => item.tenant.slug.startsWith(`${requestedSlug}-`));
     const matches = exactMatches.length ? exactMatches : prefixMatches;
     if (matches.length !== 1) {
+      this.throttle.recordFailure(throttleKey);
       throw new UnauthorizedException(
         matches.length > 1
           ? "Há mais de uma empresa com esse início de identificador. Informe o identificador completo."
@@ -113,8 +124,10 @@ export class AuthService {
     }
     const membership = matches[0];
     if (!membership || membership.tenant.status !== "ACTIVE") {
+      this.throttle.recordFailure(throttleKey);
       throw new UnauthorizedException("E-mail, senha ou identificador da empresa inválidos.");
     }
+    this.throttle.clear(throttleKey);
 
     const accessToken = await this.issueToken({
       sub: user.id,

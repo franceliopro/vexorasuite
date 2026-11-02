@@ -69,9 +69,16 @@ import {
   ListTodo,
   UsersRound,
   Share2,
-  Download, CircleHelp,
+  Download,
+  CircleHelp,
   MoreHorizontal,
   Image,
+  Menu,
+  Search,
+  Plus,
+  ArrowRight,
+  ArrowUpRight,
+  LayoutGrid,
 } from "lucide-react";
 
 const iconMap = {
@@ -290,14 +297,14 @@ export default function HomePage() {
 
       <main className="main-area">
         <header className="topbar">
-          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">☰</button>
+          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu"><Menu size={20} aria-hidden="true" /></button>
           <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className="crumb-slash">/</span><strong>{active}</strong></>}</div>
           <div className="topbar-actions">
             {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
-            <label className="search-box"><span>⌕</span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
+            <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
             <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
             <button className="logout-button" onClick={async () => { await disableDeviceNotifications().catch(()=>{}); await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
@@ -308,7 +315,7 @@ export default function HomePage() {
         <div className={"page-content"+(presentationHome?" presentation-page":"")}>{!presentationHome&&<WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>}
           {isOverview ? <section className="page-heading">
             <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>
-            <button className="primary-button" onClick={() => setActive("Atendimento")}><span>＋</span> Abrir atendimento</button>
+            <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
 
           {presentationHome?<PresentationHome key={session?.tenant.id}/>:!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p></section>:isOverview ? (
@@ -319,17 +326,17 @@ export default function HomePage() {
               <section className="overview-insights" aria-label="Resumo visual da operação">
                 <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Status da operação</h2><p>Distribuição dos atendimentos atuais</p></div></div><div className="donut-chart donut-open"><strong>{overview?.openConversations ?? "—"}</strong><small>abertas</small></div><div className="chart-legend"><span><i className="legend-dot open"/>Abertas</span><span><i className="legend-dot done"/>Finalizadas</span></div></article>
                 <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Capacidade</h2><p>Contatos e agentes habilitados</p></div></div><div className="bar-chart"><div><span>Contatos</span><b><i style={{width: overview ? `${Math.min(100, Math.max(8, overview.contacts))}%` : "8%"}}/></b><strong>{overview?.contacts ?? "—"}</strong></div><div><span>Agentes</span><b><i className="bar-agents" style={{width: overview ? `${Math.min(100, Math.max(8, overview.activeAgents * 12))}%` : "8%"}}/></b><strong>{overview?.activeAgents ?? "—"}</strong></div></div></article>
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Atividade recente</h2><p>Volume finalizado e aberto</p></div></div><div className="mini-stat-row"><div><strong>{overview?.completedConversations ?? "—"}</strong><span>finalizados</span></div><div><strong>{overview?.openConversations ?? "—"}</strong><span>em andamento</span></div></div><button className="secondary-button" onClick={() => setActive("Atendimento")}>Abrir atendimento <span>→</span></button></article>
+                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Atividade recente</h2><p>Volume finalizado e aberto</p></div></div><div className="mini-stat-row"><div><strong>{overview?.completedConversations ?? "—"}</strong><span>finalizados</span></div><div><strong>{overview?.openConversations ?? "—"}</strong><span>em andamento</span></div></div><button className="secondary-button" onClick={() => setActive("Atendimento")}>Abrir atendimento <ArrowRight size={15} aria-hidden="true" /></button></article>
               </section>
               <section className="dashboard-grid">
                 <article className="content-card activity-card">
-                  <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <span>→</span></button></div>
-                  {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span>◫</span><i>✳</i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <span>→</span></button></div>}
+                  <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>
+                  {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span><LayoutGrid size={26} aria-hidden="true" /></span><i><Sparkles size={13} aria-hidden="true" /></i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>}
                 </article>
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow">↗</span></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow"><ArrowUpRight size={15} aria-hidden="true" /></span></button>)}
                   </div>
                 </article>
               </section>

@@ -1,6 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Activity, AlertCircle, RefreshCcw, Wallet } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  RefreshCcw,
+  Wallet,
+  X,
+} from "lucide-react";
 type Dashboard = { source:string;partial:boolean;caveat:string;environment:string[];months:number;totals:{billed:number;paid:number;open:number;count:number};series:{month:string;billed:number;paid:number;open:number}[];outstandingContacts:number;collectionRate:number|null };
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateBR = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split("-").reverse().join("/") : value;
@@ -42,7 +48,7 @@ function PortfolioView(){
    <div className="finance-portfolio-pagination"><button type="button" disabled={!offset} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Anterior</button><button type="button" disabled={!data.hasMore} onClick={()=>setOffset(n=>n+50)}>Próxima</button></div>
   </>}
  {selected&&<div className="finance-collection-overlay" role="presentation" onClick={()=>setSelected(null)}><aside className="finance-collection-drawer" role="dialog" aria-modal="true" aria-label="Preparar cobrança" onClick={e=>e.stopPropagation()}>
-  <header><h2>Enviar cobrança existente</h2><button type="button" aria-label="Fechar" onClick={()=>setSelected(null)}>×</button></header>
+  <header><h2>Enviar cobrança existente</h2><button type="button" aria-label="Fechar" onClick={()=>setSelected(null)}><X size={16} aria-hidden="true" /></button></header>
   <p><strong>Cliente: {selected.customerName||"Não identificado"}</strong></p><p><strong>{currency(selected.value)}</strong> · Vencimento {dateBR(selected.dueDate)} · {statusBR[selected.status]||selected.status}</p>
   <label>Modelo de mensagem<select value={template} onChange={e=>{setTemplate(e.target.value);setCopied(false)}}><option value="friendly">Lembrete cordial</option><option value="due">Aviso de vencimento</option><option value="late">Cobrança após vencimento</option></select></label>
   <p>Mensagem preparada com os dados reais desta cobrança. Confira o destinatário antes de enviar.</p>

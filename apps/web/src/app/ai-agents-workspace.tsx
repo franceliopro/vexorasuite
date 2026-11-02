@@ -6,7 +6,15 @@ import {InboxesManagement} from "./inboxes-management";
 import { ProductSkillsEditor } from "./product-skills-editor";
 import { AiModelPicker, AiVoiceModelPicker, TtsVoicePicker, VoiceOption, llmLabels } from "./ai-model-picker";
 import { ProviderConnections } from "./provider-connections";
-import { Bot, Plus, Save, Trash2, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  Bot,
+  Plus,
+  Save,
+  Trash2,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 type KnowledgeDocument = { id: string; name: string; content: string };
 type BusinessSegment = { id: string; name: string; guidance: string };
@@ -351,7 +359,7 @@ export function PersonalAssistantPanel({ onClose }: { onClose: () => void }) {
     }catch(error){setVoiceStatus(error instanceof Error?error.message:"Falha ao gerar voz");}
   }
   return <aside className="ai-assistant-panel" aria-label="Assistente pessoal">
-    <div className="ai-assistant-head"><div><strong><Sparkles size={18}/> {name}</strong><small>{voiceStatus||"Texto ou ditado por clique"}</small></div><button type="button" aria-label="Fechar assistente" onClick={onClose}>×</button></div>
+    <div className="ai-assistant-head"><div><strong><Sparkles size={18}/> {name}</strong><small>{voiceStatus||"Texto ou ditado por clique"}</small></div><button type="button" aria-label="Fechar assistente" onClick={onClose}><X size={16} aria-hidden="true" /></button></div>
     <div className="ai-assistant-content"><p>Olá! Posso ajudar com relatórios, financeiro, agenda e operações utilizando consultas disponíveis, sem ativar IA automaticamente.</p>{requests.map((q,i) => <div key={i} className="ai-assistant-message"><strong>Você:</strong> {q.question}<p>{q.answer}</p><button type="button" className="secondary-button" onClick={()=>void speak(q.answer)}>Ouvir resposta · voz sintética</button>{q.attachments?.map(file=><a key={file.url} href={file.url} download className="secondary-button">{file.name}</a>)}{q.sources?.map(source=><p key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></p>)}{q.automation&&<CarouselPublication automation={q.automation}/>}</div>)}</div>
     <label>Agente<select value={activeAgent} onChange={e=>setActiveAgent(e.target.value)}><option value="">Assistente Véxora</option>{agentsAvailable.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
     {["openai","local"].includes(agentsAvailable.find(a=>a.id===activeAgent)?.stt?.provider||voiceProvider)&&<label>Transcrever áudio<input type="file" accept="audio/*,video/webm" disabled={busy} onChange={e=>{const file=e.target.files?.[0];if(file)void transcribe(file)}}/></label>}

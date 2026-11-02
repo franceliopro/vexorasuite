@@ -36,6 +36,9 @@ export function AiAgentsWorkspace() {
   const [fallbackModels,setFallbackModels]=useState<{provider:string;model:string;tier:string}[]>([]);
   const [allowedPhones,setAllowedPhones]=useState<string[]>([]);
   const [phoneDraft,setPhoneDraft]=useState("");
+  const [testAccessEnabled,setTestAccessEnabled]=useState(false);
+  const [testPhones,setTestPhones]=useState<string[]>([]);
+  const [testPhoneDraft,setTestPhoneDraft]=useState("");
   const [companyRules,setCompanyRules]=useState("");
   const [companyKnowledge,setCompanyKnowledge]=useState("");
   const [knowledgeDocuments,setKnowledgeDocuments]=useState<KnowledgeDocument[]>([]);

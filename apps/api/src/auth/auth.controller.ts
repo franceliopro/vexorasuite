@@ -29,6 +29,10 @@ export class AuthController {
   }
 
   private owner(req:AuthenticatedRequest){if(req.user.role!=='OWNER')throw new ForbiddenException('Apenas a conta proprietária gerencia empresas.');}
+  @UseGuards(AuthGuard) @Get("organization")
+  organization(@Req() req:AuthenticatedRequest){return this.auth.organization(req.user.tenantId);}
+  @UseGuards(AuthGuard) @Patch("organization")
+  updateOrganization(@Req() req:AuthenticatedRequest,@Body() body:any){return this.auth.updateOrganization(req.user.tenantId,req.user.role,body);}
   @UseGuards(AuthGuard) @Get("users")
   users(@Req() req:AuthenticatedRequest){return this.auth.listUsers(req.user.tenantId,req.user.role,req.user.isPlatformAdmin);}
   @UseGuards(AuthGuard) @Post("users")

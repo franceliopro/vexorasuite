@@ -3431,3 +3431,16 @@ input[type="color"].profile-tag-inline-color {
 .profile-tag-editable button{width:16px!important;height:16px!important;padding:0!important}
 .crm-workspace,.crm-workspace *{scrollbar-width:none}
 .crm-workspace::-webkit-scrollbar,.crm-workspace *::-webkit-scrollbar{width:0;height:0}
+
+/* Flow Studio: fullscreen real e controles consistentes. */
+.chatbot-workspace .vx-flow-command-menu{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 0;margin:0 0 8px}
+.chatbot-workspace .vx-flow-command-menu button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:6px 11px;border:1px solid var(--line,#d9deea);border-radius:9px;background:var(--card,#fff);color:var(--text,#202638);font-size:11px;font-weight:600;line-height:1;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+.chatbot-workspace .vx-flow-command-menu button:hover{border-color:var(--primary,#6756d9);background:color-mix(in srgb,var(--primary,#6756d9) 8%,var(--card,#fff));color:var(--primary,#6756d9)}
+.chatbot-workspace .vx-flow-command-menu button:active{transform:translateY(1px)}
+.chatbot-workspace .vx-flow-command-menu button.primary-button{background:var(--primary,#6756d9);border-color:var(--primary,#6756d9);color:#fff}
+.chatbot-workspace.vx-flow-fullscreen{position:fixed!important;inset:0!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:12px!important;background:var(--card,#fff)!important;overflow:hidden!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-command-menu{flex:0 0 auto!important;max-height:52px;overflow:auto}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell{display:grid!important;grid-template-rows:minmax(0,1fr)!important;grid-template-columns:235px minmax(0,1fr)!important;flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;overflow:hidden!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-stage{display:flex!important;height:auto!important;min-height:0!important;min-width:0!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-scroll{flex:1 1 auto!important;min-height:0!important;min-width:0!important}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector{position:absolute!important;z-index:40!important}

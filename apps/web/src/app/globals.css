@@ -1294,7 +1294,7 @@ button.primary-button:hover:not(:disabled) {
 .emoji-category-tabs button { flex: 0 0 auto; padding: 6px 8px; border: 1px solid #e7e9f2; border-radius: 7px; background: #fff; color: #70778d; font-size: 10px; }
 .emoji-category-tabs button.active { border-color: #d7d2ff; background: #f0efff; color: #5146d8; }
 .emoji-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
-.emoji-grid button { display: grid; place-items: center; min-width: 0; aspect-ratio: 1; border: 0; border-radius: 7px; background: transparent; font-size: 21px; }
+.emoji-grid button { display: grid; place-items: center; min-width: 0; aspect-ratio: 1; border: 0; border-radius: 7px; background: transparent; font-size: 21px; font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
 .emoji-grid button:hover { background: var(--primary-soft, #f0efff); }
 .composer-empty-hint { display: block; padding: 12px 3px; color: #8a91a4; font-size: 11px; }
 .quick-replies-popover { width: min(390px, calc(100vw - 38px)); }
@@ -1616,7 +1616,7 @@ button.primary-button:hover:not(:disabled) {
   .conversation-summary strong, .conversation-summary .contact-name { font-size: 14px; line-height: 1.35; }
   .conversation-summary small { font-size: 12px; line-height: 1.45; }
   .conversation-tags { gap: 5px; margin-top: 4px; }
-  .conversation-tag, .profile-tag { max-width: 100%; min-height: 24px; padding: 3px 9px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; font-weight: 750; line-height: 1.25; letter-spacing: .01em; }
+  .conversation-tag, .profile-tag { max-width: 100%; min-height: 24px; padding: 3px 9px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 1.25; letter-spacing: .01em; }
   .thread-heading { padding: 12px; gap: 9px; }
   .thread-contact h2 { font-size: 16px; }
   .thread-contact p { font-size: 12px; }
@@ -1634,7 +1634,7 @@ button.primary-button:hover:not(:disabled) {
   .composer-popover-heading strong { font-size: 16px; }
   .composer-popover :is(button, input, select, textarea) { font-size: 14px; }
   .composer-popover :is(input, select, textarea) { min-height: 44px; }
-  .emoji-grid button { min-width: 42px; min-height: 42px; font-size: 24px; }
+  .emoji-grid button { min-width: 42px; min-height: 42px; font-size: 24px; font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
   .finalization-backdrop { z-index: 180; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); align-items: center; }
   .finalization-dialog { width: 100%; max-width: 460px; max-height: 90dvh; overflow-y: auto; padding: 22px 18px; border-radius: 18px; }
   .finalization-dialog h2 { font-size: 21px; }

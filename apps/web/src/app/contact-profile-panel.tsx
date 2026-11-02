@@ -1,6 +1,6 @@
 "use client";
 
-import { contactDisplayName } from "../lib/contact-identity";
+import { contactDisplayName, readablePhone } from "../lib/contact-identity";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Clock3,
@@ -45,16 +45,6 @@ type ProfileFieldDef = {
   type: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "CHECKBOX";
   options: string[];
 };
-function readablePhone(phone?: string | null, externalId?: string | null): string {
-  const digits = (phone || externalId || "").replace(/\D/g, "");
-  if (digits.length === 13 && digits.startsWith("55"))
-    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
-  if (digits.length === 12 && digits.startsWith("55"))
-    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
-  if (digits.length >= 10)
-    return `+${digits.slice(0, -10)} (${digits.slice(-10, -8)}) ${digits.slice(-8, -4)}-${digits.slice(-4)}`;
-  return phone?.trim() || "Telefone não informado";
-}
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));

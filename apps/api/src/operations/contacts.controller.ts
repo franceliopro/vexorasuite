@@ -221,6 +221,36 @@ export class ContactsController {
     return { ...updated, crmStage: input.stage };
   }
 
+  @Post(":id/remove-pipeline")
+  async removeFromPipeline(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @Body() input: { pipelineId?: string },
+  ) {
+    const pipelineId = typeof input.pipelineId === "string" ? input.pipelineId.trim() : "";
+    if (!pipelineId) throw new BadRequestException("Pipeline inválido.");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const contact = await tx.contact.findFirst({ where: { id, tenantId: request.user.tenantId } });
+      if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
+      if (contact.pipelineId !== pipelineId) throw new BadRequestException("O contato mudou de pipeline. Atualize a tela e tente novamente.");
+      const metadata = contactMetadata(contact.metadata);
+      const nextMetadata: Prisma.InputJsonObject = {
+        ...metadata,
+        crmRemoved: {
+          pipelineId,
+          removedBy: request.user.sub,
+          removedAt: new Date().toISOString(),
+        },
+      };
+      return tx.contact.update({
+        where: { id: contact.id },
+        data: { pipelineId: null, metadata: nextMetadata },
+      });
+    });
+    this.events.publish(request.user.tenantId, "contact.removed_from_pipeline", { id: result.id, pipelineId });
+    return result;
+  }
+
 
   @Post(":id/finalize")
   async finalize(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { outcome?: string; reason?: string }) {

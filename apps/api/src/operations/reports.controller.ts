@@ -145,7 +145,11 @@ export class ReportsController {
       const leadOrigin = record(metadata.leadOrigin);
       const legacyOrigin = record(metadata.lead_origin);
       const value = String(leadOrigin.source || legacyOrigin.source || contact.source || "").trim();
-      if (!value || ["CRM", "ASAAS", "WHATSAPP", "WAHA"].includes(value.toUpperCase())) return "Não identificada";
+      if (!value || ["CRM", "ASAAS"].includes(value.toUpperCase())) {
+        const channel = String(contact.source || "").toUpperCase();
+        if (["WHATSAPP", "WAHA"].includes(channel)) return "WhatsApp (WAHA)";
+        return "Não identificada";
+      }
       return value;
     };
     const byOrigin = new Map<string, { name: string; total: number; won: number; lost: number; open: number; withCampaign: number }>();
@@ -185,7 +189,7 @@ export class ReportsController {
           createdAt: contact.createdAt,
         };
       }),
-      basis: "Origem exibida somente quando foi informada ou registrada. Contatos sem origem explícita permanecem como Não identificada; o canal de atendimento não é usado como origem de aquisição.",
+      basis: "A origem informada manualmente tem prioridade. Quando o cadastro veio diretamente do WhatsApp via WAHA, ele aparece como WhatsApp (WAHA); os demais contatos sem origem continuam como Não identificada.",
     };
   }
 }

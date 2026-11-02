@@ -4,11 +4,12 @@ import { PrismaModule } from "../prisma/prisma.module";
 import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
+import { AuthThrottle } from "./auth-throttle";
 
 @Module({
   imports: [JwtModule.register({}), PrismaModule],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard],
+  providers: [AuthService, AuthGuard, AuthThrottle],
   exports: [AuthGuard],
 })
 export class AuthModule {}

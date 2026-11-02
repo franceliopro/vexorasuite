@@ -110,6 +110,8 @@ export class ZernioWebhookController {
       const sender = message.sender || body.sender || {};
       const externalConversationId = String(message.conversationId || message.conversation?.id || body.conversation?.id || body.conversationId || body.threadId || body.chatId || "");
       const externalId = String(sender.phoneNumber || sender.id || sender.userId || sender.handle || sender.username || body.contact?.id || body.contact?.externalId || "");
+      const senderPhone = String(sender.phoneNumber || sender.phone || "").replace(/\D/g, "");
+      const phone = senderPhone.length >= 10 && senderPhone.length <= 15 ? senderPhone : null;
       if (!externalConversationId || !externalId) return { ok: true, ignored: true };
       const providerMessageId = String(message.platformMessageId || message.providerMessageId || message.id || body.messageId || body.providerMessageId || body.id || "");
       if (!providerMessageId) return { ok: true, ignored: true };
@@ -127,10 +129,10 @@ export class ZernioWebhookController {
           const avatar = sender.profile_pic || sender.profile_picture_url || sender.picture?.data?.url || (typeof sender.picture === "string" ? sender.picture : undefined) || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
           if (!contact) {
-            contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
+            contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, phone, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
           } else {
             const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as JsonObject : {};
-            contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...((customerName !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name: customerName } : {}) } });
+            contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...(phone && !contact.phone ? { phone } : {}), ...((customerName !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name: customerName } : {}) } });
           }
           let conversation = await tx.conversation.findFirst({ where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } }, orderBy: { updatedAt: "desc" } });
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });

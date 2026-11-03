@@ -7,13 +7,15 @@ import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { economicalProviders } from "../ai/economical-providers";
 import { isAuthorizedAssistantPhone } from "./assistant-phone-access";
 import { AiService } from "../ai/ai.service";
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { Prisma, ChannelConnection, Message } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from './events.service';
 import { WahaService } from './waha.service';
 import { ZernioService } from './zernio.service';
 import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables } from '../ai/flow-runtime';
+import { JobLeaseService } from '../common/job-lease.service';
+import { schedulersEnabled } from '../common/scheduler-mode';
 
 export const object = (v: unknown): Record<string, any> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, any> : {};
 
@@ -33,9 +35,109 @@ async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise
 export type PublishedFlow = { revision: string; active: boolean; publishedAt: string; flow: RuntimeFlow };
 
 @Injectable()
-export class IntelligenceRuntimeService {
+export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IntelligenceRuntimeService.name);
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService) {}
+  private timer?: ReturnType<typeof setInterval>;
+  private running = false;
+
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService) {}
+
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test' || !schedulersEnabled()) return;
+    this.timer = setInterval(() => void this.tick(), 2000);
+    this.timer.unref();
+  }
+
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  private async tick(): Promise<void> {
+    if (this.running) return;
+    this.running = true;
+    try {
+      if (this.leases && !(await this.leases.claim('intelligence-runtime', 5000))) return;
+      const candidates = await this.prisma.message.findMany({
+        where: {
+          direction: 'INBOUND',
+          OR: [
+            { metadata: { path: ['engineStatus'], equals: 'PENDING' } },
+            { metadata: { path: ['engineStatus'], equals: 'RUNNING' } },
+          ],
+          conversation: {
+            handlingMode: 'BOT',
+            assigneeId: null,
+            archivedAt: null,
+            deletedAt: null,
+            status: { in: ['OPEN', 'PENDING'] },
+          },
+        },
+        orderBy: { occurredAt: 'asc' },
+        take: 20,
+        include: { conversation: { include: { channelConnection: true } } },
+      });
+      for (const candidate of candidates) {
+        const metadata = object(candidate.metadata);
+        const runningAt = Date.parse(String(metadata.engineClaimedAt || ''));
+        const stale = metadata.engineStatus === 'RUNNING' && (!Number.isFinite(runningAt) || runningAt < Date.now() - 120000);
+        const retryAt = Date.parse(String(metadata.engineNextAttemptAt || ''));
+        if (metadata.engineStatus === 'RUNNING' && !stale) continue;
+        if (metadata.engineStatus === 'PENDING' && Number.isFinite(retryAt) && retryAt > Date.now()) continue;
+        const channel = candidate.conversation?.channelConnection;
+        if (!channel) {
+          await this.markEngineMessage(candidate.id, 'FAILED', 'Canal não encontrado.');
+          continue;
+        }
+        const claimed = await this.prisma.$transaction(async tx => {
+          await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${candidate.conversationId}::uuid AND tenant_id = ${candidate.tenantId}::uuid FOR UPDATE`;
+          const current = await tx.message.findFirst({ where: { id: candidate.id, tenantId: candidate.tenantId, direction: 'INBOUND' } });
+          if (!current) return false;
+          const currentMetadata = object(current.metadata);
+          const currentRunningAt = Date.parse(String(currentMetadata.engineClaimedAt || ''));
+          const currentStale = currentMetadata.engineStatus === 'RUNNING' && (!Number.isFinite(currentRunningAt) || currentRunningAt < Date.now() - 120000);
+          if (currentMetadata.engineStatus === 'RUNNING' && !currentStale) return false;
+          if (currentMetadata.engineStatus !== 'PENDING' && !currentStale) return false;
+          await tx.message.update({
+            where: { id: current.id },
+            data: { metadata: { ...currentMetadata, engineStatus: 'RUNNING', engineClaimedAt: new Date().toISOString(), engineNextAttemptAt: null } },
+          });
+          return true;
+        });
+        if (!claimed) continue;
+        try {
+          await this.receive(channel, candidate.conversationId, candidate.id);
+          await this.markEngineMessage(candidate.id, 'DONE');
+        } catch (error) {
+          const currentAttempts = Number(object(candidate.metadata).engineAttempts || 0) + 1;
+          const terminal = currentAttempts >= 5;
+          await this.markEngineMessage(candidate.id, terminal ? 'FAILED' : 'PENDING', error instanceof Error ? error.message : 'Falha no processamento.', currentAttempts);
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Fila de inteligência indisponível: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this.running = false;
+    }
+  }
+
+  private async markEngineMessage(id: string, status: 'DONE' | 'PENDING' | 'FAILED', error?: string, attempts?: number): Promise<void> {
+    const message = await this.prisma.message.findUnique({ where: { id }, select: { metadata: true } });
+    if (!message) return;
+    const current = object(message.metadata);
+    const nextAttempts = attempts ?? Number(current.engineAttempts || 0);
+    await this.prisma.message.update({
+      where: { id },
+      data: {
+        metadata: {
+          ...current,
+          engineStatus: status,
+          engineAttempts: nextAttempts,
+          ...(status === 'PENDING' ? { engineNextAttemptAt: new Date(Date.now() + Math.min(60000, 5000 * 2 ** Math.max(0, nextAttempts - 1))).toISOString() } : { engineNextAttemptAt: null }),
+          ...(error ? { engineLastError: error.slice(0, 240) } : {}),
+        },
+      },
+    });
+  }
 
   private async validContext(db:any,tenantId:string,scope:RuntimeScope){
     if(scope.departmentId&&!await db.department.findFirst({where:{id:scope.departmentId,tenantId,isActive:true},select:{id:true}}))return false;

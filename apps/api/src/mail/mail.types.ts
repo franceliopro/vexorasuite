@@ -17,6 +17,8 @@ export interface MailResult {
   delivered: boolean;
   transport: "smtp" | "log" | "off";
   reason?: string;
+  /** Actionable sentence for the operator, when the provider error has a known cause. */
+  hint?: string;
   providerId?: string;
   accepted?: string[];
 }
@@ -25,6 +27,6 @@ export interface MailTransport {
   readonly kind: "smtp" | "log" | "off";
   send(message: MailMessage): Promise<MailResult>;
   /** Real connection check, used by the diagnostics endpoint. */
-  verify?(): Promise<{ ok: boolean; detail?: string }>;
+  verify?(): Promise<{ ok: boolean; detail?: string; hint?: string }>;
   close?(): void;
 }

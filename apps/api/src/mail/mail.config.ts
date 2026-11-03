@@ -78,18 +78,57 @@ export interface MailSettings {
    * env is read at compose time), so the container receives an empty string.
    */
   blank: string[];
+  /** Variables filled with a documentation placeholder instead of a real value. */
+  placeholders: string[];
   warnings: string[];
 }
 
 type Env = Record<string, string | undefined>;
 
+/** A placeholder left in the panel ("<senha de app>") is not a credential. */
+const looksLikePlaceholder = (value: string): boolean =>
+  /^<.*>$/.test(value) || /\bsenha de app\b/i.test(value) || /\bsua senha\b/i.test(value) || value === "CHANGEME";
+
+/**
+ * Cleans a value copied from documentation.
+ *
+ * A documented example often carries an inline comment (`smtp.zoho.com   # ou smtp.titan.email`).
+ * Copying that whole line into an environment variable produces a host with spaces and a `#`, which
+ * fails at connection time with an error nobody reads. Secrets keep their `#`, because a password
+ * may legitimately contain one.
+ */
+export function cleanValue(raw: string, options: { secret?: boolean } = {}): string {
+  let value = raw.trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1).trim();
+  }
+  if (!options.secret) {
+    const comment = value.search(/\s#/);
+    if (comment > 0) value = value.slice(0, comment).trim();
+  }
+  return value;
+}
+
+/** Accepts `smtp.zoho.com`, `smtp://smtp.zoho.com`, `smtp.zoho.com:465` and `smtp.zoho.com/`. */
+export function parseHost(raw: string): { host: string; port?: number } {
+  let value = raw.toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/\/+$/, "");
+  const withPort = /^([^:\s]+):(\d{2,5})$/.exec(value);
+  if (withPort) return { host: withPort[1]!, port: Number(withPort[2]) };
+  value = value.split(/\s/)[0]!;
+  return { host: value };
+}
+
 const pick = (env: Env, field: MailField): { value: string; source: string } | undefined => {
   for (const name of FIELD_ALIASES[field]) {
     const raw = env[name];
-    if (typeof raw === "string" && raw.trim()) return { value: raw.trim(), source: name };
+    if (typeof raw !== "string") continue;
+    const value = cleanValue(raw, { secret: field === "password" });
+    // A value left as "<senha de app>" would otherwise be sent as a real credential.
+    if (value && !looksLikePlaceholder(value)) return { value, source: name };
   }
   return undefined;
 };
+
 
 const truthy = (value: string): boolean => ["1", "true", "yes", "on"].includes(value.toLowerCase());
 const falsy = (value: string): boolean => ["0", "false", "no", "off"].includes(value.toLowerCase());
@@ -126,7 +165,19 @@ export function resolveMailSettings(env: Env = process.env): MailSettings {
   const requested = (transport?.value || "").toLowerCase();
   if (transport) note("transport", transport.source);
   if (requested === "off") {
-    return { mode: "off", port: 587, secure: false, sources, missing: [], blank: [], warnings };
+    return { mode: "off", port: 587, secure: false, sources, missing: [], blank: [], placeholders: [], warnings };
+  }
+
+  const placeholders = Object.values(FIELD_ALIASES)
+    .flat()
+    .filter((name, index, all) => all.indexOf(name) === index)
+    .filter((name) => {
+      const raw = env[name];
+      if (typeof raw !== "string" || !raw.trim()) return false;
+      return looksLikePlaceholder(cleanValue(raw, { secret: name.includes("PASSWORD") }));
+    });
+  if (placeholders.length > 0) {
+    warnings.push(`${placeholders.join(", ")} continua com o texto de exemplo da documentação, não um valor real.`);
   }
 
   const serviceEntry = pick(env, "service");
@@ -146,14 +197,24 @@ export function resolveMailSettings(env: Env = process.env): MailSettings {
   const hostEntry = pick(env, "host");
   const preset = service ? SERVICE_DEFAULTS[service] : undefined;
   let host = hostEntry?.value;
-  if (hostEntry) note("host", hostEntry.source);
+  let hostPort: number | undefined;
+  if (hostEntry) {
+    note("host", hostEntry.source);
+    // Accepts what people actually paste: a scheme, a trailing slash or host:port.
+    const parsed = parseHost(hostEntry.value);
+    host = parsed.host;
+    hostPort = parsed.port;
+    if (parsed.host !== hostEntry.value) {
+      warnings.push(`MAIL_HOST normalizada de "${hostEntry.value}" para "${parsed.host}".`);
+    }
+  }
   if (!host && preset) {
     host = preset.host;
     sources.host = `padrão de ${service}`;
   }
 
   const portEntry = pick(env, "port");
-  let port = portEntry ? Number(portEntry.value) : undefined;
+  let port = portEntry ? Number(portEntry.value) : hostPort;
   if (portEntry) note("port", portEntry.source);
   if (!Number.isFinite(port) || (port as number) <= 0) port = preset?.port ?? 587;
 
@@ -200,9 +261,11 @@ export function resolveMailSettings(env: Env = process.env): MailSettings {
   if (userEntry && !password) missing.push("MAIL_PASSWORD");
   if (!userEntry && password) missing.push("MAIL_USER");
   if (service === "gmail" && !userEntry) missing.push("MAIL_USER");
-  if (service === "gmail" && from && userEntry && from.toLowerCase() !== userEntry.value.toLowerCase()) {
+  // Gmail and Zoho both send as the authenticated mailbox: a different From is rewritten or
+  // refused, so the address the customer sees would not be the one configured.
+  if ((service === "gmail" || service === "zoho") && from && userEntry && from.toLowerCase() !== userEntry.value.toLowerCase()) {
     warnings.push(
-      "No Gmail o remetente é reescrito para a conta autenticada: use MAIL_FROM igual a MAIL_USER para não perder o endereço.",
+      `No ${service === "gmail" ? "Gmail" : "Zoho"} o remetente é reescrito (ou recusado) quando difere da conta autenticada: use MAIL_FROM igual a MAIL_USER, ou verifique o domínio/alias no provedor.`,
     );
   }
 
@@ -235,6 +298,7 @@ export function resolveMailSettings(env: Env = process.env): MailSettings {
     sources,
     missing: deliverable ? [] : [...new Set(missing)],
     blank,
+    placeholders,
     warnings,
   };
 }
@@ -243,11 +307,17 @@ export function resolveMailSettings(env: Env = process.env): MailSettings {
 export function mailProblem(settings: MailSettings): string {
   if (settings.mode === "off") return "Envio de e-mail desativado neste ambiente (MAIL_TRANSPORT=off).";
   if (settings.mode === "smtp") return "SMTP configurado. Use POST /api/mail/verify para confirmar a conexão.";
+  if (settings.placeholders.length > 0) {
+    return `SMTP incompleto: ${settings.placeholders.join(", ")} ainda contém o texto de exemplo da documentação. Substitua pelo valor real.`;
+  }
   if (settings.missing.length > 0) {
     const blank = settings.blank.length > 0
       ? ` Atenção: ${settings.blank.join(", ")} existe(m) no ambiente mas vazio(s) — confira se foram definidas no escopo lido pelo docker-compose.`
       : "";
     return `SMTP incompleto: defina ${settings.missing.join(", ")}. Enquanto isso, e-mails são apenas registrados no log e reportados como não entregues.${blank}`;
+  }
+  if (settings.placeholders.length > 0) {
+    return `SMTP incompleto: ${settings.placeholders.join(", ")} ainda contém o texto de exemplo da documentação. Substitua pelo valor real.`;
   }
   return "Transporte de log ativo (MAIL_TRANSPORT=log): e-mails são registrados e reportados como não entregues.";
 }

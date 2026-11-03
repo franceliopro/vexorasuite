@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { MailService } from "./mail.service";
 import { MailTransport } from "./mail.types";
 
@@ -97,5 +98,34 @@ describe("MailService", () => {
     expect(status.configured).toBe(false);
     expect(status.missing).toContain("MAIL_PASSWORD");
     expect(status.note).toContain("MAIL_PASSWORD");
+  });
+
+  it("announces the effective transport at boot without leaking the secret", () => {
+    process.env.MAIL_HOST = "smtp.zoho.com";
+    process.env.MAIL_PORT = "465";
+    process.env.MAIL_USER = "nao-responda@vexorasuite.com.br";
+    process.env.MAIL_PASSWORD = "senha-secreta-do-smtp";
+    const log = jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+    try {
+      new MailService().onModuleInit();
+      const line = String(log.mock.calls.at(-1)?.[0] ?? "");
+      expect(line).toContain("smtp.zoho.com:465");
+      expect(line).toContain("(TLS)");
+      // Masked mailbox, never the password.
+      expect(line).toContain("na**********@vexorasuite.com.br");
+      expect(line).not.toContain("senha-secreta-do-smtp");
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("says in the log when nothing will be sent", () => {
+    const log = jest.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+    try {
+      new MailService().onModuleInit();
+      expect(String(log.mock.calls.at(-1)?.[0] ?? "")).toContain("somente log");
+    } finally {
+      log.mockRestore();
+    }
   });
 });

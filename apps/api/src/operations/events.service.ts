@@ -70,7 +70,7 @@ export class EventsService {
           ORDER BY occurred_at ASC
           LIMIT 100
         `;
-        if (rows.length) cursor = rows[rows.length - 1].occurred_at;
+        if (rows.length) cursor = rows[rows.length - 1]!.occurred_at;
         return rows;
       }),
       mergeMap((rows) => rows),

@@ -28,13 +28,15 @@ async function main(){
   const request={user:{sub:platformUser,tenantId,role:'OWNER',isPlatformAdmin:true}};
   const ownerEmail=randomUUID()+'@example.test';
   const owner=await team.create(request,{name:'Client company owner',email:ownerEmail,role:'OWNER',modules:[],departmentIds:[]});users.push(owner.id);
-  const login=await auth.login({email:ownerEmail,password:'Senha@123',tenantSlug:company.slug});
+  assert.match(owner.temporaryPassword,/^Vx![A-Za-z0-9_-]{32}$/);
+  const login=await auth.login({email:ownerEmail,password:owner.temporaryPassword,tenantSlug:company.slug});
   assert.equal(login.user.mustChangePassword,true);
   await assert.rejects(()=>allow(login.accessToken,'/api/contacts'),/senha temporária/);
   await allow(login.accessToken,'/api/auth/me');
   await assert.rejects(()=>auth.createCompany(owner.id,tenantId,{name:'Unauthorized company',segmentId:'music-school',requestId:randomUUID()}),/administração da Véxora/);
-  await team.resetPassword({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false}},owner.id);
-  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:'Senha@123',newPassword:'a-personal-test-password'});
+  const firstReset=await team.resetPassword({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false}},owner.id);
+  assert.match(firstReset.temporaryPassword,/^Vx![A-Za-z0-9_-]{32}$/);
+  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:firstReset.temporaryPassword,newPassword:'a-personal-test-password'});
   assert.equal(changed.user.mustChangePassword,false);
   await assert.rejects(()=>allow(login.accessToken,'/api/auth/me'),/sessão foi encerrada/);
   await allow(changed.accessToken,'/api/contacts');
@@ -43,9 +45,10 @@ async function main(){
   await assert.rejects(()=>team.access({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false,allowedModules:['SETTINGS']}},owner.id,{modules:[],departmentIds:[],deniedModules:[]}),/acessos administrativos/);
   const forged=await jwt.signAsync({sub:owner.id,tenantId:platformId,tenantSlug:'platform-'+platformId,role:'OWNER',isPlatformAdmin:true,sessionVersion:1},{secret:process.env.JWT_ACCESS_SECRET});
   await assert.rejects(()=>allow(forged,'/api/auth/me'),/revogado/);
-  await team.resetPassword(request,owner.id);
+  const secondReset=await team.resetPassword(request,owner.id);
+  assert.match(secondReset.temporaryPassword,/^Vx![A-Za-z0-9_-]{32}$/);
   await assert.rejects(()=>allow(changed.accessToken,'/api/auth/me'),/sessão foi encerrada/);
-  const afterReset=await auth.login({email:ownerEmail,password:'Senha@123',tenantSlug:company.slug});
+  const afterReset=await auth.login({email:ownerEmail,password:secondReset.temporaryPassword,tenantSlug:company.slug});
   assert.equal(afterReset.user.mustChangePassword,true);
   await assert.rejects(()=>allow(afterReset.accessToken,'/api/wordpress/sites'),/senha temporária/);
 
@@ -96,7 +99,7 @@ async function main(){
   assert.equal((await privateInbox.mentions(agent(b.id))).length,0);
   await assert.rejects(()=>privateInbox.internalNotes(agent(b.id),conversation.id),{name:'NotFoundException'});
   await privateInbox.handoff(agent(a.id),conversation.id,{departmentId:ceeb.id,assigneeId:b.id,note:'Cliente aguarda retorno do setor'});
-  const context=await db.message.findFirstOrThrow({where:{tenantId,conversationId:conversation.id,metadata:{path:['kind'],equals:'handoff_context'}}});
+  const context=await db.message.findFirstOrThrow({where:{tenantId,conversationId:conversation.id,metadata:{path:['kind'],equals:'handoff_context'}});
   assert.equal(context.direction,'INTERNAL');assert(context.content.includes('Cliente aguarda retorno do setor'));
   assert.equal((await db.conversation.findUniqueOrThrow({where:{id:conversation.id}})).assigneeId,b.id);
   console.log('Private note privacy, concurrent mentions, receipt ownership, revocation and company display names OK');

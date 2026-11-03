@@ -22,3 +22,18 @@ test("fullscreen keeps the stage and scroll surface visible", () => {
   assert.doesNotMatch(workspace, /requestFullscreen/);
   assert.doesNotMatch(workspace, /setFullScreen\(false\);setEditorOpen\(false\)/);
 });
+
+
+test("canonical Flow Studio layout keeps the stage visible and fullscreen uncluttered", () => {
+  assert.match(design, /\/\* Canonical Flow Studio layout\./);
+  assert.match(design, /--vx-flow-library-width: 260px/);
+  assert.match(design, /height: clamp\(800px, calc\(100dvh - 190px\), 1000px\) !important/);
+  assert.match(design, /\.chatbot-workspace\.vx-flow-fullscreen > :not\(\.vx-flow-shell\)/);
+  assert.match(design, /\.chatbot-workspace\.vx-flow-fullscreen \.vx-flow-shell[\s\S]*height: 100% !important/);
+  assert.match(design, /\.chatbot-workspace \.vx-left-collapsed \.vx-flow-library > :not\(\.vx-panel-handle\)/);
+});
+
+test("Flow Studio refreshes transfer destinations on meaningful events, not a fixed timer", () => {
+  assert.doesNotMatch(workspace, /setInterval\(refresh,30000\)/);
+  assert.match(workspace, /window\.addEventListener\('vexora:team-updated',refresh\)/);
+});

@@ -43,13 +43,35 @@ test("the app chrome heights come from tokens", () => {
   assert.doesNotMatch(globalsCss, /\.topbar\{height:\d+px/);
 });
 
-test("fonts are local and build without network access", () => {
+test("fonts are self-hosted and build without network access", () => {
   const layout = read("layout.tsx");
   assert.doesNotMatch(layout, /next\/font\/google/);
   assert.doesNotMatch(layout, /fonts\.googleapis\.com/);
   assert.doesNotMatch(globalsCss, /fonts\.googleapis\.com/);
-  assert.match(designSystemCss, /--font-ui:\s*ui-sans-serif/);
-  assert.match(designSystemCss, /--font-display:\s*ui-sans-serif/);
+  assert.doesNotMatch(globalsCss, /@import\s+url\(["']?https?:/);
+
+  // The brand faces must be declared from files we serve ourselves, not from a CDN.
+  for (const face of ["DM Sans", "Manrope"]) {
+    assert.match(
+      globalsCss,
+      new RegExp(`@font-face\\{font-family:'${face}';src:url\\('/fonts/[a-z-]+\\.woff2'\\)`),
+      `missing local @font-face for ${face}`,
+    );
+  }
+  assert.match(globalsCss, /font-display:swap/);
+
+  // The token ladder keeps the brand family first and the system stack as fallback.
+  assert.match(designSystemCss, /--font-ui:\s*"DM Sans",\s*ui-sans-serif/);
+  assert.match(designSystemCss, /--font-display:\s*"Manrope",\s*"DM Sans"/);
+
+  // The referenced files must exist in the repository, otherwise the container serves a 404.
+  const fontsDir = new URL("../public/fonts/", import.meta.url);
+  for (const file of ["dm-sans-latin.woff2", "manrope-latin.woff2"]) {
+    const font = fs.readFileSync(new URL(file, fontsDir));
+    assert.equal(font.subarray(0, 4).toString("latin1"), "wOF2", `${file} is not a woff2 file`);
+    assert.ok(font.length > 8000, `${file} looks truncated`);
+  }
+
   for (const file of tsxFiles) {
     assert.doesNotMatch(read(file), /fonts\.googleapis\.com/, `${file} still loads Google Fonts at runtime`);
   }

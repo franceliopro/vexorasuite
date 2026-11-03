@@ -1,3 +1,8 @@
+/* Self-hosted brand fonts. The files live in public/fonts and are copied into the runtime
+   image, so neither the browser nor the container build depends on a font CDN.
+   Both files are variable fonts, hence the weight ranges. */
+@font-face{font-family:'DM Sans';src:url('/fonts/dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Manrope';src:url('/fonts/manrope-latin.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
 :root{color-scheme:light;--page:#f7f8fc;--card:#fff;--ink:#20243a;--muted:#7c8299;--line:#e9ebf3;--primary:#6258df;--primary-soft:#f0efff;--sidebar:#191D28;--sidebar-deep:#10131B;--sidebar-muted:#9b9bb7;--green:#159b75;--shadow:0 3px 12px rgba(25,27,64,.035);--topbar-h:69px;--mobile-nav-btn-h:62px;--mobile-nav-h:calc(var(--mobile-nav-btn-h) + 8px + env(safe-area-inset-bottom));--page-gutter-y:31px}
 @media (max-width:760px){:root{--topbar-h:59px}}
 *{box-sizing:border-box}

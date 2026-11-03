@@ -64,6 +64,11 @@ services:
       GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
+      # Rate limit uses the shared Redis counter and reads the real client IP from the proxy.
+      RATE_LIMIT_AUTH_PER_MIN: ${RATE_LIMIT_AUTH_PER_MIN:-10}
+      RATE_LIMIT_READ_PER_MIN: ${RATE_LIMIT_READ_PER_MIN:-900}
+      RATE_LIMIT_WRITE_PER_MIN: ${RATE_LIMIT_WRITE_PER_MIN:-240}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
     expose:
       - "3001"
     depends_on:

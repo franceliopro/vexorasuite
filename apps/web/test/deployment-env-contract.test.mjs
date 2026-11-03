@@ -17,3 +17,11 @@ test("the deployment compose contract is represented in the environment example"
     assert.ok(documented.has(name), `compose variable is missing from .env.example: ${name}`);
   }
 });
+
+test("runtime settings are actually wired into the API and WAHA services", () => {
+  assert.match(compose, /RATE_LIMIT_ENABLED: \$\{RATE_LIMIT_ENABLED:-true\}/);
+  assert.match(compose, /RATE_LIMIT_AUTH_AUX_PER_MIN: \$\{RATE_LIMIT_AUTH_AUX_PER_MIN:-60\}/);
+  assert.match(compose, /RATE_LIMIT_UPLOAD_PER_MIN: \$\{RATE_LIMIT_UPLOAD_PER_MIN:-60\}/);
+  assert.match(compose, /image: \$\{WAHA_IMAGE:-devlikeapro\/waha:gows\}/);
+  assert.match(compose, /WHATSAPP_DEFAULT_ENGINE: \$\{WHATSAPP_DEFAULT_ENGINE:-GOWS\}/);
+});

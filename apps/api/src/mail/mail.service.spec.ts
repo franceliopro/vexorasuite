@@ -71,4 +71,31 @@ describe("MailService", () => {
       providerId: "<id>",
     });
   });
+
+  it("status points to the variable that supplied each value, without leaking secrets", () => {
+    process.env.MAIL_HOST = "smtp.zoho.com";
+    process.env.MAIL_USER = "nao-responda@vexorasuite.com.br";
+    process.env.MAIL_PASSWORD = "segredo";
+    const status = new MailService().status();
+    expect(status).toMatchObject({
+      transport: "smtp",
+      configured: true,
+      host: "smtp.zoho.com",
+      port: 587,
+      secure: false,
+      user: "na**********@vexorasuite.com.br",
+    });
+    expect(status.sources.host).toBe("MAIL_HOST");
+    // The sender defaults to the authenticated account instead of being silently empty.
+    expect(status.from).toBe("nao-responda@vexorasuite.com.br");
+    expect(JSON.stringify(status)).not.toContain("segredo");
+  });
+
+  it("status names the missing variable instead of a generic message", () => {
+    process.env.MAIL_USER = "vexorasuite@gmail.com";
+    const status = new MailService().status();
+    expect(status.configured).toBe(false);
+    expect(status.missing).toContain("MAIL_PASSWORD");
+    expect(status.note).toContain("MAIL_PASSWORD");
+  });
 });

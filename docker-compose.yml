@@ -71,6 +71,8 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-1}
       # Outgoing e-mail. Without MAIL_HOST the transport stays disabled (log only).
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-}
+      # gmail | zoho | titan | outlook — fills host/port/TLS from the provider preset.
+      MAIL_SERVICE: ${MAIL_SERVICE:-}
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_SECURE: ${MAIL_SECURE:-}

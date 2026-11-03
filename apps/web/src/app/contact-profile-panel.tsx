@@ -349,29 +349,18 @@ export function ContactProfilePanel({
                   <strong>
                     <Tag size={14} /> Etiquetas
                   </strong>
-                  <div className="profile-tags profile-tags-editable">
+                  <div className="profile-tags">
                     {tags.map((tag, index) => (
                       <span
-                        className="profile-tag profile-tag-editable"
+                        className="profile-tag"
                         key={index}
                         style={{
                           backgroundColor: tag.color,
-                          color: "#334155",
-                          borderColor: "color-mix(in srgb, " + tag.color + " 78%, #334155)",
+                          color: "#111827",
+                          borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)",
                         }}
                       >
-                        <input
-                          aria-label="Nome da etiqueta"
-                          value={tag.name}
-                          maxLength={40}
-                          onChange={(e) =>
-                            setTags((current) =>
-                              current.map((v, i) =>
-                                i === index ? { ...v, name: e.target.value } : v,
-                              ),
-                            )
-                          }
-                        />
+                        <span>{tag.name}</span>
                         <button
                           type="button"
                           aria-label={"Remover " + tag.name}

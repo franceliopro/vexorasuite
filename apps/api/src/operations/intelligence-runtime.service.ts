@@ -312,7 +312,7 @@ export class IntelligenceRuntimeService {
               const generated = await withTimeout(this.ai.generate([
                 { role: 'system', content: systemPrompt },
                 ...history.reverse().map(m => ({ role: (m.direction === 'INBOUND' ? 'user' : 'assistant') as 'user'|'assistant', content: m.content.slice(0,1000).replace(/\\b\\d[\\d.\\/-]{10,}\\d\\b/g, '[dado protegido]') })),
-              ], providers.map(p => ({ ...p, maxTokens: 700 })), 12000);
+              ], providers.map(p => ({ ...p, maxTokens: 700 }))), 12000);
               tokensUsed = generated.usage.totalTokens; model = generated.model;
               let parsedAgent:any=null;
               try { parsedAgent=JSON.parse(generated.text); } catch { /* Older providers may return plain text; never execute inferred actions from malformed output. */ }

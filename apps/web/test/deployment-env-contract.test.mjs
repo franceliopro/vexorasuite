@@ -18,6 +18,11 @@ test("the deployment compose contract is represented in the environment example"
   }
 });
 
+test("webhook encryption is required by every production worker", () => {
+  const required = /WEBHOOK_ENCRYPTION_KEY: \$\{WEBHOOK_ENCRYPTION_KEY:\?Configure WEBHOOK_ENCRYPTION_KEY no Dokploy\}/g;
+  assert.equal([...compose.matchAll(required)].length, 3);
+});
+
 test("runtime settings are actually wired into the API and WAHA services", () => {
   assert.match(compose, /RATE_LIMIT_ENABLED: \$\{RATE_LIMIT_ENABLED:-true\}/);
   assert.match(compose, /RATE_LIMIT_AUTH_AUX_PER_MIN: \$\{RATE_LIMIT_AUTH_AUX_PER_MIN:-60\}/);

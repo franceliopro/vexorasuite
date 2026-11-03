@@ -15,9 +15,9 @@ Plataforma SaaS modular e multiempresa, reconstruída em repositório e implanta
 - Monorepo TypeScript.
 - Web: Next.js + React.
 - API: NestJS, modular monolith e OpenAPI.
-- Banco: PostgreSQL + Drizzle ORM.
-- Jobs: Redis + BullMQ, em worker separado.
-- Realtime: WebSocket, persistência antes da publicação e recuperação após reconexão.
+- Banco: PostgreSQL + Prisma ORM.
+- Jobs: trabalhadores dedicados para webhooks e tarefas periódicas, com leases no PostgreSQL.
+- Realtime: eventos persistidos antes da publicação e recuperação após reconexão.
 - Integrações: adapters por provedor; WAHA inicialmente para WhatsApp.
 - Infraestrutura: Docker, CI, backups e observabilidade.
 

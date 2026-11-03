@@ -13,7 +13,7 @@ export function tagForeground(color: string): string {
     g = parseInt(normalized.slice(2, 4), 16);
     b = parseInt(normalized.slice(4, 6), 16);
   } else {
-    const rgb = value.match(/^rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)/i);
+    const rgb = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
     if (rgb) {
       r = Number(rgb[1]);
       g = Number(rgb[2]);

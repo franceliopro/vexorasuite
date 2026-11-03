@@ -74,6 +74,22 @@ services:
       retries: 3
       start_period: 20s
 
+  webhook-worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
+      WEBHOOK_WORKER_INTERVAL_MS: ${WEBHOOK_WORKER_INTERVAL_MS:-2000}
+      WEBHOOK_WORKER_BATCH_SIZE: ${WEBHOOK_WORKER_BATCH_SIZE:-25}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/webhook-worker.js"]
+
   ollama:
     profiles: ["local-ai"]
     image: ollama/ollama:latest

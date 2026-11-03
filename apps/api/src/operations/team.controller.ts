@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { hash } from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { isUUID } from "class-validator";
 import { AuthGuard } from "../auth/auth.guard";
@@ -72,7 +73,7 @@ export class TeamController {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const email =
       typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-    const password="Senha@123";
+    const password="Vx!"+randomBytes(24).toString("base64url");
     const role=input.role==="OWNER"&&req.user.isPlatformAdmin?"OWNER":"AGENT";
     if(input.role&&input.role!==role)throw new ForbiddenException("Somente a administração da Véxora cadastra proprietários.");
     if (
@@ -84,7 +85,7 @@ export class TeamController {
       password.length > 128
     )
       throw new BadRequestException(
-        "Informe nome e e-mail válidos. A senha inicial será Senha@123 e deverá ser trocada no primeiro acesso.",
+        "Informe nome e e-mail válidos. A senha inicial deverá ser trocada no primeiro acesso.",
       );
     const ids = Array.isArray(input.departmentIds)
       ? ([...new Set(input.departmentIds)] as string[])
@@ -158,7 +159,7 @@ export class TeamController {
         return user;
       });
       this.events.publish(req.user.tenantId, "team.updated", { id: user.id });
-      return user;
+      return { ...user, temporaryPassword: password, mustChangePassword: true };
     } catch (e) {
       if ((e as any).code === "P2002")
         throw new BadRequestException("Este e-mail já possui uma conta.");
@@ -227,7 +228,8 @@ export class TeamController {
  }
  @Post(':id/reset-password') async resetPassword(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
   if(!req.user.isPlatformAdmin&&!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException('Somente administradores podem redefinir senhas.');
-  const passwordHash=await hash('Senha@123',12);
+  const password='Vx!'+randomBytes(24).toString('base64url');
+  const passwordHash=await hash(password,12);
   await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
    if(!await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true}}))throw new BadRequestException('Usuário não pertence a esta empresa.');
@@ -236,7 +238,7 @@ export class TeamController {
    await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'user.password.reset',entityType:'user',entityId:id}});
   });
   this.events.publish(req.user.tenantId,'team.updated',{id});
-  return {reset:true,mustChangePassword:true};
+  return {reset:true,mustChangePassword:true,temporaryPassword:password};
  }
 
 }

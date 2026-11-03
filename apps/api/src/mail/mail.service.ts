@@ -1,5 +1,13 @@
 import { Injectable, Logger, Optional, OnModuleDestroy } from "@nestjs/common";
 import { MailMessage, MailResult, MailTransport } from "./mail.types";
+import {
+  MailField,
+  MailMode,
+  MailSettings,
+  mailProblem,
+  maskAddress,
+  resolveMailSettings,
+} from "./mail.config";
 import { SmtpMailTransport } from "./transports/smtp.transport";
 import { LogMailTransport } from "./transports/log.transport";
 import { OffMailTransport } from "./transports/off.transport";
@@ -7,10 +15,25 @@ import { OffMailTransport } from "./transports/off.transport";
 export interface MailStatus {
   transport: "smtp" | "log" | "off";
   configured: boolean;
-  from?: string;
+  mode: MailMode;
+  service?: string;
   host?: string;
+  port: number;
+  secure: boolean;
+  from?: string;
+  /** Masked: diagnostics never echo a full address or any secret. */
+  user?: string;
+  fromName?: string;
+  replyTo?: string;
+  /** Which variable supplied each value, so a wrong variable name is visible instead of silent. */
+  sources: Partial<Record<MailField, string>>;
+  missing: string[];
+  /** Present in the environment but empty — usually a variable created outside the compose scope. */
+  blank: string[];
+  warnings: string[];
   note: string;
 }
+
 
 /**
  * Single entry point for outgoing e-mail.
@@ -26,6 +49,7 @@ export interface MailStatus {
 export class MailService implements OnModuleDestroy {
   private readonly logger = new Logger(MailService.name);
   private channel?: MailTransport;
+  private resolvedSettings?: MailSettings;
 
   constructor(@Optional() private readonly injected?: MailTransport) {}
 
@@ -66,17 +90,32 @@ export class MailService implements OnModuleDestroy {
   }
 
   status(): MailStatus {
+    const settings = this.resolved;
     const transport = this.transport;
     return {
       transport: transport.kind,
       configured: transport.kind === "smtp",
-      from: process.env.MAIL_FROM?.trim() || undefined,
-      host: transport.kind === "smtp" ? process.env.MAIL_HOST?.trim() || undefined : undefined,
-      note:
-        transport.kind === "smtp"
-          ? "SMTP configurado. Use POST /api/mail/verify para confirmar a conexão."
-          : "Sem SMTP configurado: e-mails são apenas registrados no log e reportados como não entregues.",
+      mode: settings.mode,
+      service: settings.service,
+      host: settings.host,
+      port: settings.port,
+      secure: settings.secure,
+      from: settings.from,
+      user: maskAddress(settings.user),
+      fromName: settings.fromName,
+      replyTo: settings.replyTo,
+      sources: settings.sources,
+      missing: settings.missing,
+      blank: settings.blank,
+      warnings: settings.warnings,
+      note: mailProblem(settings),
     };
+  }
+
+  /** Resolved configuration, shared by the status endpoint and the `mail:check` CLI. */
+  get resolved(): MailSettings {
+    this.resolvedSettings ??= resolveMailSettings();
+    return this.resolvedSettings;
   }
 
   private get transport(): MailTransport {
@@ -86,30 +125,26 @@ export class MailService implements OnModuleDestroy {
   }
 
   private fromEnvironment(): MailTransport {
-    const mode = (process.env.MAIL_TRANSPORT || "").trim().toLowerCase();
-    if (mode === "off") return new OffMailTransport();
-    if (mode === "log") return new LogMailTransport();
-
-    const host = (process.env.MAIL_HOST || "").trim();
-    const from = (process.env.MAIL_FROM || "").trim();
-    if (!host || !from) {
-      if (mode === "smtp") {
-        this.logger.warn("MAIL_TRANSPORT=smtp sem MAIL_HOST e MAIL_FROM: o envio segue desativado.");
-      }
+    const settings = this.resolved;
+    if (settings.mode === "off") return new OffMailTransport();
+    if (settings.mode === "log") {
+      // Only warn when delivery was attempted and the variables are incomplete: a development
+      // process with no mail configured is not an incident, a production one is.
+      if (settings.missing.length > 0) this.logger.warn(mailProblem(settings));
       return new LogMailTransport();
     }
-
-    const port = Number(process.env.MAIL_PORT || 587);
-    const secure = process.env.MAIL_SECURE ? process.env.MAIL_SECURE === "true" : port === 465;
+    for (const warning of settings.warnings) this.logger.warn(warning);
     return new SmtpMailTransport({
-      host,
-      port,
-      secure,
-      user: process.env.MAIL_USER?.trim() || undefined,
-      password: process.env.MAIL_PASSWORD || undefined,
-      from,
-      fromName: process.env.MAIL_FROM_NAME?.trim() || undefined,
-      replyTo: process.env.MAIL_REPLY_TO?.trim() || undefined,
+      service: settings.service,
+      host: settings.host!,
+      port: settings.port,
+      secure: settings.secure,
+      user: settings.user,
+      password: settings.password,
+      from: settings.from!,
+      fromName: settings.fromName,
+      replyTo: settings.replyTo,
     });
   }
 }
+

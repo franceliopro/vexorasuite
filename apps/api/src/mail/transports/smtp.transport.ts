@@ -3,6 +3,8 @@ import { createTransport, type Transporter } from "nodemailer";
 import { MailMessage, MailResult, MailTransport } from "../mail.types";
 
 export interface SmtpConfig {
+  /** Provider preset understood by nodemailer (gmail, zoho, titan, ...). Host/port still apply. */
+  service?: string;
   host: string;
   port: number;
   secure: boolean;
@@ -27,6 +29,7 @@ export class SmtpMailTransport implements MailTransport {
 
   constructor(private readonly config: SmtpConfig) {
     this.transporter = createTransport({
+      ...(config.service ? { service: config.service } : {}),
       host: config.host,
       port: config.port,
       secure: config.secure,

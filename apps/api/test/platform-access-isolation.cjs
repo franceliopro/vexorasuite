@@ -99,7 +99,7 @@ async function main(){
   assert.equal((await privateInbox.mentions(agent(b.id))).length,0);
   await assert.rejects(()=>privateInbox.internalNotes(agent(b.id),conversation.id),{name:'NotFoundException'});
   await privateInbox.handoff(agent(a.id),conversation.id,{departmentId:ceeb.id,assigneeId:b.id,note:'Cliente aguarda retorno do setor'});
-  const context=await db.message.findFirstOrThrow({where:{tenantId,conversationId:conversation.id,metadata:{path:['kind'],equals:'handoff_context'}});
+  const context=await db.message.findFirstOrThrow({where:{tenantId,conversationId:conversation.id,metadata:{path:['kind'],equals:'handoff_context'}}});
   assert.equal(context.direction,'INTERNAL');assert(context.content.includes('Cliente aguarda retorno do setor'));
   assert.equal((await db.conversation.findUniqueOrThrow({where:{id:conversation.id}})).assigneeId,b.id);
   console.log('Private note privacy, concurrent mentions, receipt ownership, revocation and company display names OK');

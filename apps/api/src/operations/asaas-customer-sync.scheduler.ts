@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AsaasService } from "./asaas.service";
+import { schedulersEnabled } from "../common/scheduler-mode";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // A transaction-scoped advisory lock keeps the daily reconciliation single-flight
@@ -20,6 +21,7 @@ export class AsaasCustomerSyncScheduler implements OnModuleInit, OnModuleDestroy
   ) {}
 
   onModuleInit() {
+    if (!schedulersEnabled()) return;
     // Give the API a short startup window, then reconcile enabled tenants daily.
     this.startupTimer = setTimeout(() => {
       void this.run();

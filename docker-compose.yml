@@ -65,9 +65,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
       # Rate limit uses the shared Redis counter and reads the real client IP from the proxy.
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       RATE_LIMIT_AUTH_PER_MIN: ${RATE_LIMIT_AUTH_PER_MIN:-10}
+      RATE_LIMIT_AUTH_AUX_PER_MIN: ${RATE_LIMIT_AUTH_AUX_PER_MIN:-60}
       RATE_LIMIT_READ_PER_MIN: ${RATE_LIMIT_READ_PER_MIN:-900}
       RATE_LIMIT_WRITE_PER_MIN: ${RATE_LIMIT_WRITE_PER_MIN:-240}
+      RATE_LIMIT_UPLOAD_PER_MIN: ${RATE_LIMIT_UPLOAD_PER_MIN:-60}
       TRUST_PROXY: ${TRUST_PROXY:-1}
       # Short access token + long rotating refresh token (see docs/sessions.md).
       AUTH_ACCESS_TTL_SECONDS: ${AUTH_ACCESS_TTL_SECONDS:-1800}
@@ -304,11 +307,11 @@ services:
 
 
   waha:
-    image: devlikeapro/waha:gows
+    image: ${WAHA_IMAGE:-devlikeapro/waha:gows}
     restart: unless-stopped
     environment:
       WAHA_API_KEY: ${WAHA_API_KEY:-}
-      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WHATSAPP_DEFAULT_ENGINE: ${WHATSAPP_DEFAULT_ENGINE:-GOWS}
       WHATSAPP_FILES_LIFETIME: ${WHATSAPP_FILES_LIFETIME:-600}
       WAHA_MEDIA_STORAGE: ${WAHA_MEDIA_STORAGE:-LOCAL}
       # Sem este download, o webhook só informa que existe um anexo e a Véxora não

@@ -1,4 +1,5 @@
 "use client";
+import { tagForeground } from "../lib/tag-contrast";
 import { formatDateBR } from "../lib/date-format";
 import dynamic from "next/dynamic";
 const InboxAppointments=dynamic(()=>import("./inbox-appointments").then(m=>m.InboxAppointments));
@@ -146,16 +147,6 @@ function ContactAvatar({ contact, className = "conversation-avatar" }: { contact
   const [src,setSrc]=useState<string|null>(proxy);
   useEffect(()=>setSrc(proxy),[proxy,contact.metadata?.avatarUrl]);
   return <span className={className}>{src?<img key={src} src={src} alt={"Foto de "+contactDisplayName(contact)} loading="lazy" referrerPolicy="no-referrer" onError={()=>setSrc(current=>current===proxy?avatarUrl(contact):null)}/>:null}{!src&&<span className="avatar-fallback">{contactDisplayName(contact).slice(0,1).toUpperCase()}</span>}</span>;
-}
-
-function tagForeground(color: string): string {
-  const value = color.trim();
-  let r=238,g=236,b=255;
-  const hex=value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if(hex){const hexValue=hex[1] || "000000";const h=hexValue.length===3?hexValue.split("").map(x=>x+x).join(""):hexValue;r=parseInt(h.slice(0,2),16);g=parseInt(h.slice(2,4),16);b=parseInt(h.slice(4,6),16);}
-  else {const rgb=value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);if(rgb){r=Number(rgb[1]);g=Number(rgb[2]);b=Number(rgb[3]);}}
-  const linear=(n:number)=>{const c=n/255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)};
-  return 0.2126*linear(r)+0.7152*linear(g)+0.0722*linear(b)>0.179 ? "#171923" : "#ffffff";
 }
 
 function contactLabels(contact: Contact): Array<{name:string;color:string}> {

@@ -43,14 +43,13 @@ test("the app chrome heights come from tokens", () => {
   assert.doesNotMatch(globalsCss, /\.topbar\{height:\d+px/);
 });
 
-test("fonts are self-hosted through next/font", () => {
+test("fonts are local and build without network access", () => {
   const layout = read("layout.tsx");
-  assert.match(layout, /from "next\/font\/google"/);
-  assert.match(layout, /variable:\s*"--font-sans-src"/);
-  assert.match(layout, /variable:\s*"--font-display-src"/);
+  assert.doesNotMatch(layout, /next\/font\/google/);
+  assert.doesNotMatch(layout, /fonts\.googleapis\.com/);
   assert.doesNotMatch(globalsCss, /fonts\.googleapis\.com/);
-  assert.match(designSystemCss, /--font-ui:\s*var\(--font-sans-src\)/);
-  assert.match(designSystemCss, /--font-display:\s*var\(--font-display-src\)/);
+  assert.match(designSystemCss, /--font-ui:\s*ui-sans-serif/);
+  assert.match(designSystemCss, /--font-display:\s*ui-sans-serif/);
   for (const file of tsxFiles) {
     assert.doesNotMatch(read(file), /fonts\.googleapis\.com/, `${file} still loads Google Fonts at runtime`);
   }

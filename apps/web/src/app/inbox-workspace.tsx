@@ -223,6 +223,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   useModalDialog(quickPanel==="appointments",appointmentModalRef,()=>setQuickPanel(null));
   useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape"){setQuickPanel(null);setEmojiOpen(false);setQuickOpen(false);return;}if(!event.altKey||event.ctrlKey||event.shiftKey||event.repeat)return;const key=event.code;const panels:Record<string,"billing"|"appointments"|"attachments"|"help">={KeyF:"billing",KeyA:"appointments",KeyU:"attachments",Slash:"help"};if(key==="KeyP"){event.preventDefault();setContactProfileExpanded(v=>!v);}else if(key==="KeyE"){event.preventDefault();setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false);setQuickPanel(null);}else if(key==="KeyR"){event.preventDefault();setQuickOpen(v=>!v);setEmojiOpen(false);setQuickPanel(null);}else if(panels[key]){event.preventDefault();setQuickPanel(v=>v===panels[key]?null:panels[key] ?? null);setEmojiOpen(false);setQuickOpen(false);}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);},[]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [draft, setDraft] = useState("");
   const [messageMenu, setMessageMenu] = useState<{message: Message; x: number; y: number} | null>(null);
   useEffect(()=>{setInternalOpen(!!selectedId&&new URLSearchParams(window.location.search).get("internal")==="1");setInternalDraft("");setCopilotOpen(false);setCopilotMessage(null);setHandoffNote("");setHandoffPhone("");setHandoffDepartment("");setHandoffAssignee("");},[selectedId]);
@@ -330,9 +331,30 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     }).catch(() => {});
   }, [loadSupervision]);
   const loadMessages = useCallback(async (id: string) => {
-    try { setMessages(await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView)); }
-    catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
+    try {
+      const rows = await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView + "&limit=100");
+      setMessages(rows);
+      setHasOlderMessages(rows.length === 100);
+    } catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens."); }
   }, [queueView]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedId || !messages.length || !hasOlderMessages) return;
+    const thread = threadScrollRef.current;
+    const previousHeight = thread?.scrollHeight || 0;
+    const previousTop = thread?.scrollTop || 0;
+    try {
+      const oldest = messages[0]!;
+      const older = await api<Message[]>(
+        "/api/backend/conversations/" + selectedId + "/messages?view=" + queueView + "&limit=100&before=" + encodeURIComponent(oldest.id),
+      );
+      setMessages((current) => [...older, ...current]);
+      setHasOlderMessages(older.length === 100);
+      requestAnimationFrame(() => {
+        if (thread) thread.scrollTop = thread.scrollHeight - previousHeight + previousTop;
+      });
+    } catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar mensagens anteriores."); }
+  }, [hasOlderMessages, messages, queueView, selectedId]);
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => {
@@ -828,6 +850,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
         </div>{selected.status === "RESOLVED" ? <button type="button" aria-label="Reabrir conversa" className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={18} aria-hidden="true" /></button> : selected.status !== "CLOSED" ? <button type="button" aria-label="Finalizar atendimento" className="thread-action-button resolve" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento"><CheckCircle2 size={18} aria-hidden="true" /></button> : null}<div className="thread-rare-actions">{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action" aria-label="Restaurar" title="Restaurar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={16}/></button> : <><button type="button" className="thread-icon-action" aria-label="Arquivar" title="Arquivar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={16}/></button><button type="button" className="thread-icon-action danger-text" aria-label="Mover para lixeira" title="Mover para lixeira" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={16}/></button></>}</div></div></details></header>
         {selected.channel!=='WHATSAPP'&&<WhatsappBridge conversationId={selected.id} view={queueView} onOpen={id=>{notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}/>}
         {channels.filter(c=>c.provider==='WAHA'&&(c.status!=='CONNECTED'||!c.healthCheckedAt||Date.now()-Date.parse(c.healthCheckedAt)>90000)).map(c=><div className="channel-health-warning" role="alert" key={c.id}><strong>{c.name}: {c.status==='CONNECTED'?'verificação desatualizada':c.status==='UNKNOWN'?'conexão não verificada':'WhatsApp desconectado ou aguardando conexão'}</strong><span>{c.lastError||'Mensagens podem não ser recebidas nem respondidas.'} Última verificação: {c.healthCheckedAt?new Date(c.healthCheckedAt).toLocaleTimeString('pt-BR'):'ainda não realizada'}.</span><a href="/?module=Canais%20e%20integra%C3%A7%C3%B5es">Ver conexões</a></div>)}<div className="thread-messages" ref={threadScrollRef} onScroll={e=>{const el=e.currentTarget;threadPinnedRef.current=el.scrollHeight-el.scrollTop-el.clientHeight<110}}>
+          {hasOlderMessages&&<button type="button" className="text-button load-older-messages" onClick={()=>void loadOlderMessages()}>Carregar mensagens anteriores</button>}
           {messages.map((message) => <div key={message.id} className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : message.direction === "INTERNAL" ? "internal" : "")}><div className="message-bubble" onContextMenu={event=>{event.preventDefault();setMessageMenu({message,x:Math.min(event.clientX,window.innerWidth-220),y:Math.min(event.clientY,window.innerHeight-130)})}}>{message.direction==="OUTBOUND"&&message.senderName&&<strong className="attendant-identity">{message.senderName}{message.metadata?.departmentName?" · "+message.metadata.departmentName:""}</strong>}{message.direction==="INTERNAL"&&<strong className="internal-note-label">Interno · {message.senderName||"Equipe"}{message.metadata?.departmentName?" · "+message.metadata.departmentName:""} · não enviado ao cliente</strong>}{message.contentType==="audio"&&typeof message.metadata?.mediaUrl==="string"&&message.metadata.mediaUrl?<audio className="inbox-audio-message" controls preload="metadata" src={message.metadata.mediaUrl} aria-label="Áudio recebido"/>:<p className={message.metadata?.deleted===true?"message-deleted":undefined}>{message.content || "Anexo recebido (" + message.contentType + ")"}</p>}{message.direction==='INTERNAL'&&message.metadata?.linkedConversationId&&/^[a-f0-9-]{36}$/i.test(message.metadata.linkedConversationId)&&<button type="button" className="text-button" onClick={()=>{const id=message.metadata!.linkedConversationId!;notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}>Abrir conversa vinculada</button>}<small>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}{message.direction === "OUTBOUND" ? " · " + (message.status === "FAILED" ? "Falhou" : message.status === "QUEUED" ? "Enviando" : message.status === "READ" ? "Lida" : message.status === "DELIVERED" ? "Entregue" : "Enviada") : ""}</small>{messageMenu?.message.id===message.id&&<div className="message-context-menu" style={{left:messageMenu.x,top:messageMenu.y}} role="menu" onClick={event=>event.stopPropagation()}><button type="button" onClick={()=>void deleteMessage(message,"ME")}>Excluir para mim</button>{message.direction==="OUTBOUND"&&<button type="button" onClick={()=>void deleteMessage(message,"ALL")}>Excluir para todos</button>}</div>}</div></div>)}
           {!messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}
         </div>

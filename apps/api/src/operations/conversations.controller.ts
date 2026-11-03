@@ -522,11 +522,43 @@ export class ConversationsController {
   }
 
   @Get(":id/messages")
-  async messages(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+  async messages(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Query("view") view = "new",
+    @Query("limit") rawLimit?: string,
+    @Query("before") before?: string,
+  ) {
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    const rows = await this.prisma.message.findMany({ where: { conversationId: conversation.id, tenantId: request.user.tenantId }, orderBy: { occurredAt: "asc" }, take: 500 });
-    return rows.flatMap((message) => {
+
+    // Keep the response as an array for existing clients, but load only a bounded
+    // window. The optional message id cursor lets the UI prepend older pages.
+    const parsedLimit = Number.parseInt(rawLimit || "100", 10);
+    const limit = Number.isInteger(parsedLimit) ? Math.max(1, Math.min(100, parsedLimit)) : 100;
+    let cursor: { occurredAt: Date; id: string } | null = null;
+    if (before) {
+      cursor = await this.prisma.message.findFirst({
+        where: { id: before, conversationId: conversation.id, tenantId: request.user.tenantId },
+        select: { occurredAt: true, id: true },
+      });
+      if (!cursor) throw new BadRequestException("Cursor de mensagens inválido.");
+    }
+    const rows = await this.prisma.message.findMany({
+      where: {
+        conversationId: conversation.id,
+        tenantId: request.user.tenantId,
+        ...(cursor ? {
+          OR: [
+            { occurredAt: { lt: cursor.occurredAt } },
+            { occurredAt: cursor.occurredAt, id: { lt: cursor.id } },
+          ],
+        } : {}),
+      },
+      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+      take: limit,
+    });
+    return rows.reverse().flatMap((message) => {
       const metadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
         ? message.metadata as Record<string, unknown>
         : {};

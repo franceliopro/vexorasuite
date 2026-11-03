@@ -72,7 +72,10 @@ export class WahaWebhookController {
     const providerMessageId = this.providerMessageId(payload.id);
     if (!providerMessageId) return { ok: true, ignored: true };
 
-    const phone = !isGroup && chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
+    let phone = !isGroup && chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
+    // O WhatsApp pode entregar @lid em vez do número. Resolva somente aquele contato,
+    // preservando privacidade e evitando qualquer sincronização completa.
+    if (!phone && !isGroup) phone = await this.waha.resolveContactPhone(channel, chatId);
     const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
     const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
     const mimeType = String(payload.media?.mimetype || "");
@@ -126,7 +129,7 @@ export class WahaWebhookController {
 
         const voiceEntry=conversation.handlingMode==='BOT'&&!isGroup&&(contentType==='audio'||(conversation.botState as any)?.flow==='VOICE_TRIAGE');
         if(voiceEntry&&(conversation.botState as any)?.flow!=='VOICE_TRIAGE'){await tx.conversation.update({where:{id:conversation.id},data:{botState:{flow:'VOICE_TRIAGE',previousState:conversation.botState||{}}}});}
-        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null };
+        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });

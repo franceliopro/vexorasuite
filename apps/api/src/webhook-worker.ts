@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { decryptWebhookSecret, signWebhookPayload } from "./operations/webhook-crypto";
+import { assertWebhookTargetSafe, decryptWebhookSecret, signWebhookPayload } from "./operations/webhook-crypto";
 
 const prisma = new PrismaClient();
 const intervalMs = Math.max(1000, Number(process.env.WEBHOOK_WORKER_INTERVAL_MS || 2000));
@@ -58,6 +58,7 @@ async function processDelivery(id: string): Promise<void> {
 
   const nextAttempt = delivery.attempts + 1;
   try {
+    await assertWebhookTargetSafe(delivery.subscription.url);
     const response = await fetch(delivery.subscription.url, {
       method: "POST",
       headers: {

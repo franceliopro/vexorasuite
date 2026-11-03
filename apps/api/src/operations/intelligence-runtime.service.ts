@@ -110,7 +110,9 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         } catch (error) {
           const currentAttempts = Number(object(candidate.metadata).engineAttempts || 0) + 1;
           const terminal = currentAttempts >= 5;
-          await this.markEngineMessage(candidate.id, terminal ? 'FAILED' : 'PENDING', error instanceof Error ? error.message : 'Falha no processamento.', currentAttempts);
+          const failure = error instanceof Error ? error.message : 'Falha no processamento.';
+          await this.markEngineMessage(candidate.id, terminal ? 'FAILED' : 'PENDING', failure, currentAttempts);
+          this.logger.warn(`Intelligence ${terminal ? 'failed' : 'retry scheduled'} message=${candidate.id} tenant=${candidate.tenantId} attempt=${currentAttempts} reason=${failure.slice(0, 240)}`);
         }
       }
     } catch (error) {

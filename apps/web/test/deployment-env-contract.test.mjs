@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const root = new URL("../../", import.meta.url);
+const root = new URL("../../../", import.meta.url);
 const compose = fs.readFileSync(new URL("docker-compose.yml", root), "utf8");
 const envExample = fs.readFileSync(new URL(".env.example", root), "utf8");
 

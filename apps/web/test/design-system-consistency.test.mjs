@@ -97,6 +97,17 @@ test("inbox conversation tags use their computed contrast color", () => {
   assert.doesNotMatch(inbox, /backgroundColor:tag\.color,color:"#111827"/);
 });
 
+test("all contact tag surfaces use the shared contrast helper", () => {
+  const inbox = read("inbox-workspace.tsx");
+  const profile = read("contact-profile-panel.tsx");
+  const helper = fs.readFileSync(new URL("../src/lib/tag-contrast.ts", import.meta.url), "utf8");
+  assert.match(inbox, /tagForeground\(tag\.color\)/);
+  assert.match(profile, /tagForeground\(tag\.color\)/);
+  assert.match(helper, /export function tagForeground/);
+  assert.doesNotMatch(inbox, /color:\s*["']#111827["']/);
+  assert.doesNotMatch(profile, /color:\s*["']#111827["']/);
+});
+
 test("every icon-only control keeps an accessible name", () => {
   for (const file of tsxFiles) {
     const source = read(file);

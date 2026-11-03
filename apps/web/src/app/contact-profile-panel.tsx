@@ -1,6 +1,7 @@
 "use client";
 
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
+import { tagForeground } from "../lib/tag-contrast";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Clock3,
@@ -356,7 +357,7 @@ export function ContactProfilePanel({
                         key={index}
                         style={{
                           backgroundColor: tag.color,
-                          color: "#111827",
+                          color: tagForeground(tag.color),
                           borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)",
                         }}
                       >

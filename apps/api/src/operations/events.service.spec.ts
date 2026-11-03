@@ -59,4 +59,34 @@ describe("EventsService", () => {
     const payload = prisma.webhookDelivery.create.mock.calls[0][0].data;
     expect(payload).toMatchObject({ tenantId: "tenant-a", eventType: "conversation.created" });
   });
+  it("advances the replica cursor by timestamp and id", async () => {
+    jest.useFakeTimers();
+    try {
+      const occurredAt = new Date("2026-11-03T21:00:00.000Z");
+      const eventAt = (index: number) => ({
+        id: `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`,
+        type: "conversation.updated",
+        data: { index },
+        occurred_at: occurredAt,
+      });
+      const firstPage = Array.from({ length: 100 }, (_, index) => eventAt(index));
+      const secondPage = [eventAt(100)];
+      const prisma: any = {
+        $queryRaw: jest.fn().mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage),
+        webhookSubscription: { findMany: jest.fn().mockResolvedValue([]) },
+      };
+      const service = new EventsService(prisma);
+      const subscription = service.stream("tenant-a").subscribe();
+      await jest.advanceTimersByTimeAsync(2000);
+      await jest.advanceTimersByTimeAsync(2000);
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+      const secondCall = prisma.$queryRaw.mock.calls[1] as unknown[];
+      expect(secondCall.at(-1)).toBe(secondPage[0].id);
+      subscription.unsubscribe();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
 });

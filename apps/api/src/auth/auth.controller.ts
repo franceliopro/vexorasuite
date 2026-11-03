@@ -28,6 +28,12 @@ export class AuthController {
     return this.auth.login(input);
   }
 
+  @UseGuards(AuthGuard)
+  @Post("logout")
+  logout(@Req() req: AuthenticatedRequest) {
+    return this.auth.logout(req.user.sub);
+  }
+
   private owner(req:AuthenticatedRequest){if(req.user.role!=='OWNER')throw new ForbiddenException('Apenas a conta proprietária gerencia empresas.');}
   @UseGuards(AuthGuard) @Get("organization")
   organization(@Req() req:AuthenticatedRequest){return this.auth.organization(req.user.tenantId);}

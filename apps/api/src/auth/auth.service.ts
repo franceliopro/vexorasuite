@@ -1,6 +1,6 @@
 import { AuthThrottle } from "./auth-throttle";
 
-import {BadRequestException,ForbiddenException} from '@nestjs/common';
+import {BadRequestException,ForbiddenException,Optional} from '@nestjs/common';
 import {isUUID} from 'class-validator';
 import {SEGMENTS} from '../operations/business-templates';
 import {provisionCompany} from './company-blueprint';
@@ -8,11 +8,13 @@ import { ConflictException, Injectable, InternalServerErrorException, Unauthoriz
 import { JwtService } from "@nestjs/jwt";
 import { MembershipRole } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { AuthPayload } from "./auth.types";
+import { MailService } from "../mail/mail.service";
+import { renderEmail } from "../mail/mail.template";
 
 @Injectable()
 export class AuthService {
@@ -21,7 +23,95 @@ export class AuthService {
     private readonly jwt: JwtService,
     // Optional so existing unit tests and scripted callers keep working.
     private readonly throttle: AuthThrottle = new AuthThrottle(),
+    @Optional() private readonly mail?: MailService,
   ) {}
+
+  /** Link lifetime; short enough that a leaked mailbox does not stay useful. */
+  private get resetTtlMinutes(): number {
+    const configured = Number(process.env.PASSWORD_RESET_TTL_MINUTES || 30);
+    return Number.isFinite(configured) && configured >= 5 ? Math.min(120, configured) : 30;
+  }
+
+  /**
+   * Starts a password reset.
+   *
+   * The answer is always the same, whether or not the address exists: the endpoint cannot be used
+   * to discover which e-mails have an account. Delivery problems are logged by MailService and
+   * never reported here.
+   */
+  async requestPasswordReset(input: { email: string; tenantSlug?: string }): Promise<{ accepted: true }> {
+    this.secret();
+    const email = input.email.trim().toLowerCase();
+    const throttleKey = `reset:${email}`;
+    this.throttle.assertAllowed(throttleKey);
+    this.throttle.recordFailure(throttleKey);
+
+    const slug = input.tenantSlug?.trim().toLowerCase();
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        isActive: true,
+        ...(slug
+          ? { memberships: { some: { tenant: { slug, status: "ACTIVE" } } } }
+          : {}),
+      },
+      select: { id: true, email: true, name: true },
+    });
+    if (!user) return { accepted: true };
+
+    const token = randomBytes(32).toString("base64url");
+    const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
+    const expiresAt = new Date(Date.now() + this.resetTtlMinutes * 60_000);
+    await this.prisma.$transaction(async (tx) => {
+      // A new request invalidates every link issued before it.
+      await tx.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
+      await tx.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
+    });
+
+    const origin = (process.env.PUBLIC_APP_URL || process.env.WEB_PUBLIC_URL || "http://localhost:3000").replace(/\/+$/, "");
+    const link = `${origin}/?reset=${encodeURIComponent(token)}`;
+    const { html, text } = renderEmail({
+      title: "Redefinir sua senha",
+      intro: `Olá, ${user.name}. Recebemos um pedido para redefinir a senha da sua conta na Véxora Suite.`,
+      action: { label: "Criar nova senha", url: link },
+      footnote: `O link expira em ${this.resetTtlMinutes} minutos e só pode ser usado uma vez. Se não foi você, ignore esta mensagem: sua senha continua a mesma.`,
+    });
+    await this.mail?.send({ to: user.email, subject: "Véxora Suite — redefinição de senha", text, html });
+    return { accepted: true };
+  }
+
+  /**
+   * Completes a reset with a single-use token.
+   *
+   * The token is consumed inside the same transaction that writes the new password, and every
+   * session is invalidated through `authVersion`, so a stolen session cannot outlive the reset.
+   */
+  async resetPassword(input: { token: string; password: string }): Promise<{ reset: true }> {
+    this.secret();
+    const invalid = new BadRequestException("Este link de redefinição expirou ou já foi usado. Solicite outro.");
+    const tokenHash = createHash("sha256").update(input.token, "utf8").digest("hex");
+    const record = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: { select: { id: true, isActive: true } } },
+    });
+    if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now() || !record.user.isActive) throw invalid;
+
+    const passwordHash = await hash(input.password, 12);
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id: record.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      // Losing the race means another request already consumed this token.
+      if (claimed.count !== 1) throw invalid;
+      await tx.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: new Date() } });
+      await tx.user.update({
+        where: { id: record.userId },
+        data: { passwordHash, mustChangePassword: false, authVersion: { increment: 1 } },
+      });
+    });
+    return { reset: true };
+  }
 
   private secret(): string {
     const secret = process.env.JWT_ACCESS_SECRET;

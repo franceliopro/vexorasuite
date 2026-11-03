@@ -20,7 +20,7 @@ const int = (value: string | undefined, fallback: number): number => {
 export function policyFor(method: string, path: string, contentType = ""): RateLimitPolicy {
   const windowMs = RATE_LIMIT_WINDOW_MS;
   const normalised = path.replace(/^\/api(?=\/)/, "");
-  if (/^\/auth\/(login|register|change-password)$/.test(normalised)) {
+  if (/^\/auth\/(login|register|change-password|password\/forgot|password\/reset)$/.test(normalised)) {
     return { name: "auth", limit: int(process.env.RATE_LIMIT_AUTH_PER_MIN, 10), windowMs };
   }
   if (normalised.startsWith("/auth/")) {

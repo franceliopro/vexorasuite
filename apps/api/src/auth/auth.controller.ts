@@ -4,6 +4,8 @@ import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nest
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { AuthenticatedRequest } from "./auth.types";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { PrismaService } from "../prisma/prisma.service";
@@ -26,6 +28,16 @@ export class AuthController {
   @Post("login")
   login(@Body() input: LoginDto) {
     return this.auth.login(input);
+  }
+
+  @Post("password/forgot")
+  forgotPassword(@Body() input: ForgotPasswordDto) {
+    return this.auth.requestPasswordReset(input);
+  }
+
+  @Post("password/reset")
+  resetPassword(@Body() input: ResetPasswordDto) {
+    return this.auth.resetPassword(input);
   }
 
   @UseGuards(AuthGuard)

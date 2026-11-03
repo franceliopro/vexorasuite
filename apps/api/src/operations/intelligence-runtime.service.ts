@@ -110,7 +110,9 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         } catch (error) {
           const currentAttempts = Number(object(candidate.metadata).engineAttempts || 0) + 1;
           const terminal = currentAttempts >= 5;
-          await this.markEngineMessage(candidate.id, terminal ? 'FAILED' : 'PENDING', error instanceof Error ? error.message : 'Falha no processamento.', currentAttempts);
+          const failure = error instanceof Error ? error.message : 'Falha no processamento.';
+          await this.markEngineMessage(candidate.id, terminal ? 'FAILED' : 'PENDING', failure, currentAttempts);
+          this.logger.warn(`Intelligence ${terminal ? 'failed' : 'retry scheduled'} message=${candidate.id} tenant=${candidate.tenantId} attempt=${currentAttempts} reason=${failure.slice(0, 240)}`);
         }
       }
     } catch (error) {
@@ -643,10 +645,11 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const sent = await this.prisma.message.update({ where: { id: messageId }, data: { status: 'SENT', providerMessageId } });
       await this.prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: sent.occurredAt } });
       this.events.publish(channel.tenantId, 'message.sent', { conversationId, message: { ...sent, occurredAt: sent.occurredAt.toISOString() } });
-    } catch {
+    } catch (error) {
       await this.prisma.message.update({ where: { id: messageId }, data: { status: 'FAILED' } });
       this.events.publish(channel.tenantId, 'message.failed', { conversationId, message: { id: messageId, status: 'FAILED' } });
-      this.logger.warn(`Engine delivery failed: ${messageId}`);
+      const reason = error instanceof Error ? error.message : 'Falha desconhecida';
+      this.logger.warn(`Engine delivery failed message=${messageId} tenant=${channel.tenantId} conversation=${conversationId} provider=${channel.provider} reason=${reason.slice(0, 240)}`);
     }
   }
 }

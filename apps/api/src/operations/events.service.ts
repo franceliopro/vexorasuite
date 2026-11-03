@@ -103,7 +103,9 @@ export class EventsService {
     );
     if (!this.prisma) return local;
 
-    let cursor = new Date();
+    let cursorAt = new Date(0);
+    // Timestamp precision is not enough under bursts: the id breaks ties deterministically.
+    let cursorId = "00000000-0000-0000-0000-000000000000";
     const remote = interval(REPLICA_POLL_MS).pipe(
       // A transient database error must not close an open stream: the next tick retries.
       mergeMap(async () => {
@@ -111,11 +113,16 @@ export class EventsService {
           const rows = await this.prisma!.$queryRaw<PersistedEvent[]>`
             SELECT id, type, data, occurred_at
             FROM realtime_events
-            WHERE tenant_id = ${tenantId}::uuid AND occurred_at > ${cursor}
-            ORDER BY occurred_at ASC
+            WHERE tenant_id = ${tenantId}::uuid
+              AND (occurred_at, id) > (${cursorAt}, ${cursorId}::uuid)
+            ORDER BY occurred_at ASC, id ASC
             LIMIT 100
           `;
-          if (rows.length) cursor = rows[rows.length - 1]!.occurred_at;
+          if (rows.length) {
+            const last = rows[rows.length - 1]!;
+            cursorAt = last.occurred_at;
+            cursorId = last.id;
+          }
           return rows;
         } catch (error) {
           this.logger.warn(

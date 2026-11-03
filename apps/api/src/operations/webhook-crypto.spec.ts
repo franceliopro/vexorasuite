@@ -19,4 +19,20 @@ describe("webhook target security", () => {
     expect(encrypted).not.toContain("secret-value");
     expect(decryptWebhookSecret(encrypted)).toBe("secret-value");
   });
+  it("fails closed when production has no encryption key", () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousWebhookKey = process.env.WEBHOOK_ENCRYPTION_KEY;
+    const previousIntegrationKey = process.env.INTEGRATION_ENCRYPTION_KEY;
+    const previousJwt = process.env.JWT_ACCESS_SECRET;
+    process.env.NODE_ENV = "production";
+    delete process.env.WEBHOOK_ENCRYPTION_KEY;
+    delete process.env.INTEGRATION_ENCRYPTION_KEY;
+    delete process.env.JWT_ACCESS_SECRET;
+    expect(() => encryptWebhookSecret("secret-value")).toThrow("WEBHOOK_ENCRYPTION_KEY");
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousNodeEnv;
+    if (previousWebhookKey === undefined) delete process.env.WEBHOOK_ENCRYPTION_KEY; else process.env.WEBHOOK_ENCRYPTION_KEY = previousWebhookKey;
+    if (previousIntegrationKey === undefined) delete process.env.INTEGRATION_ENCRYPTION_KEY; else process.env.INTEGRATION_ENCRYPTION_KEY = previousIntegrationKey;
+    if (previousJwt === undefined) delete process.env.JWT_ACCESS_SECRET; else process.env.JWT_ACCESS_SECRET = previousJwt;
+  });
+
 });

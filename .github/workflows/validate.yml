@@ -78,6 +78,8 @@ jobs:
         run: pnpm --filter @vexorasuite/api exec prisma validate
       - name: Generate Prisma client
         run: pnpm --filter @vexorasuite/api exec prisma generate
+      - name: Lint API and web
+        run: pnpm lint
       - name: Retired marketing file cleanup regression
         run: pnpm --filter @vexorasuite/api exec node --test test/marketing-cleanup.test.cjs
       - name: Test

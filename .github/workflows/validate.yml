@@ -26,6 +26,7 @@ jobs:
       PGADMIN_DEFAULT_EMAIL: ci@example.test
       PGADMIN_DEFAULT_PASSWORD: ci-only-admin-password
       WAHA_API_KEY: ci-only-gateway-key
+      WEBHOOK_ENCRYPTION_KEY: ci-only-webhook-encryption-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4

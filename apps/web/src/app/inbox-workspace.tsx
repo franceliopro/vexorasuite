@@ -344,7 +344,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const previousHeight = thread?.scrollHeight || 0;
     const previousTop = thread?.scrollTop || 0;
     try {
-      const oldest = messages[0];
+      const oldest = messages[0]!;
       const older = await api<Message[]>(
         "/api/backend/conversations/" + selectedId + "/messages?view=" + queueView + "&limit=100&before=" + encodeURIComponent(oldest.id),
       );

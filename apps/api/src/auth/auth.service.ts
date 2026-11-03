@@ -407,7 +407,7 @@ export class AuthService {
     const name=typeof input?.name==="string"?input.name.trim():"";
     const email=typeof input?.email==="string"?input.email.trim().toLowerCase():"";
     const memberRole=["ADMIN","MANAGER","AGENT"].includes(String(input?.role))?String(input.role):"AGENT";
-    if(name.length<2||name.length>120||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
+    if(name.length<2||name.length>120||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
     const temporaryPassword=this.temporaryPassword();
     const passwordHash=await hash(temporaryPassword,12);
     try{
@@ -424,7 +424,7 @@ export class AuthService {
     const email=typeof input?.email==="string"?input.email.trim().toLowerCase():undefined;
     const avatarUrl=input?.avatarUrl===null?"":typeof input?.avatarUrl==="string"?input.avatarUrl.trim():undefined;
     if(name!==undefined&&(name.length<2||name.length>120))throw new BadRequestException("Informe um nome válido.");
-    if(email!==undefined&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe um e-mail válido.");
+    if(email!==undefined&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new BadRequestException("Informe um e-mail válido.");
     try{
       const user=await this.prisma.$transaction(async tx=>{
         const membership=await tx.membership.findUnique({where:{tenantId_userId:{tenantId,userId}},select:{id:true}});

@@ -311,6 +311,10 @@ services:
       WHATSAPP_DEFAULT_ENGINE: GOWS
       WHATSAPP_FILES_LIFETIME: ${WHATSAPP_FILES_LIFETIME:-600}
       WAHA_MEDIA_STORAGE: ${WAHA_MEDIA_STORAGE:-LOCAL}
+      # Sem este download, o webhook só informa que existe um anexo e a Véxora não
+      # consegue exibir imagem, áudio, vídeo ou documento. Os arquivos ainda expiram
+      # conforme WHATSAPP_FILES_LIFETIME e não representam sincronização de histórico.
+      WAHA_EVENTS_DOWNLOAD_MEDIA: ${WAHA_EVENTS_DOWNLOAD_MEDIA:-true}
       WAHA_GOWS_DEVICE_REQUIRE_FULL_SYNC: ${WAHA_GOWS_DEVICE_REQUIRE_FULL_SYNC:-false}
       WAHA_GOWS_DEVICE_HISTORY_SYNC_FULL_SYNC_DAYS_LIMIT: ${WAHA_GOWS_DEVICE_HISTORY_SYNC_FULL_SYNC_DAYS_LIMIT:-0}
       WAHA_GOWS_DEVICE_HISTORY_SYNC_RECENT_SYNC_DAYS_LIMIT: ${WAHA_GOWS_DEVICE_HISTORY_SYNC_RECENT_SYNC_DAYS_LIMIT:-0}

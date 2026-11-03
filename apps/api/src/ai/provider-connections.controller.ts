@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import { usageView, providerLimit } from "./provider-usage";
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Put, Req, UseGuards } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -9,6 +10,7 @@ import { aiRuntimeStatus } from './local-services';
 import { mutateTenantSetting } from '../prisma/tenant-settings';
 const object = (value: any): Record<string, any> => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
+@AuditCovered()
 @Controller('assistant/provider-connections')
 @UseGuards(AuthGuard)
 export class ProviderConnectionsController {

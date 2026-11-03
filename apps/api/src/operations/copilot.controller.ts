@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {BadRequestException,Body,Controller,ForbiddenException,NotFoundException,Param,ParseUUIDPipe,Post,Req,ServiceUnavailableException,UseGuards} from "@nestjs/common";
 import {isUUID} from "class-validator";
 import {AuthGuard} from "../auth/auth.guard";
@@ -15,6 +16,7 @@ const actions:Record<string,string>={
  suggest:"Prepare uma sugestão de resposta à última necessidade do cliente usando somente o contexto fornecido. Quando faltar informação, proponha uma pergunta. Não invente preços, políticas ou disponibilidade.",
  summarize:"Resuma o atendimento para passagem de contexto: necessidade do cliente, fatos confirmados, pendências e próximo passo sugerido. Separe fatos de sugestões. Não acrescente informação."
 };
+@AuditCovered()
 @Controller("conversations") @UseGuards(AuthGuard)
 export class CopilotController{
  constructor(private readonly prisma:PrismaService,private readonly ai:AiService){}

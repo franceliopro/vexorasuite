@@ -125,6 +125,7 @@ model User {
   assignedWorkTasks WorkTask[] @relation("WorkTaskAssignee")
   createdWorkTasks WorkTask[] @relation("WorkTaskCreator")
   passwordResetTokens PasswordResetToken[]
+  refreshTokens   RefreshToken[]
 
   @@map("users")
 }
@@ -661,4 +662,28 @@ model PasswordResetToken {
 
   @@index([userId, expiresAt])
   @@map("password_reset_tokens")
+}
+
+model RefreshToken {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid @map("user_id")
+  /// Session is bound to one company; the access token is reissued for it.
+  tenantId       String    @db.Uuid @map("tenant_id")
+  /// SHA-256 of the secret. The raw value only exists in the client cookie.
+  tokenHash      String    @unique @map("token_hash")
+  /// Rotation family: presenting a used token revokes every token in the same family.
+  familyId       String    @db.Uuid @map("family_id")
+  /// authVersion at issue time. A password change or logout bumps it and kills the row.
+  sessionVersion Int       @map("session_version")
+  expiresAt      DateTime  @map("expires_at")
+  usedAt         DateTime? @map("used_at")
+  revokedAt      DateTime? @map("revoked_at")
+  userAgent      String?   @map("user_agent")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  lastUsedAt     DateTime? @map("last_used_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([familyId])
+  @@map("refresh_tokens")
 }

@@ -82,7 +82,7 @@ describe("EventsService", () => {
 
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
       const secondCall = prisma.$queryRaw.mock.calls[1] as unknown[];
-      expect(secondCall.at(-1)).toBe(secondPage[0].id);
+      expect(secondCall.at(-1)).toBe(secondPage[0]!.id);
       subscription.unsubscribe();
     } finally {
       jest.useRealTimers();

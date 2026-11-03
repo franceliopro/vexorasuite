@@ -2,7 +2,11 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes }
 import { lookup } from "node:dns/promises";
 
 function key() {
-  return createHash("sha256").update(process.env.WEBHOOK_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET || "development-webhook-key").digest();
+  const configured = process.env.WEBHOOK_ENCRYPTION_KEY || process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET;
+  if (!configured && process.env.NODE_ENV === "production") {
+    throw new Error("WEBHOOK_ENCRYPTION_KEY must be configured in production.");
+  }
+  return createHash("sha256").update(configured || "development-webhook-key").digest();
 }
 
 function isPrivateAddress(address: string): boolean {

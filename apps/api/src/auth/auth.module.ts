@@ -5,6 +5,7 @@ import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { AuthThrottle } from "./auth-throttle";
+import { RefreshSessionService } from "./refresh-session.service";
 import { MailModule } from "../mail/mail.module";
 
 @Module({
@@ -12,6 +13,7 @@ import { MailModule } from "../mail/mail.module";
   controllers: [AuthController],
   providers: [
     AuthService,
+    RefreshSessionService,
     AuthGuard,
     {
       // AuthThrottle receives primitive runtime settings. Construct it explicitly

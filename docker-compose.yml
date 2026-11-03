@@ -69,6 +69,9 @@ services:
       RATE_LIMIT_READ_PER_MIN: ${RATE_LIMIT_READ_PER_MIN:-900}
       RATE_LIMIT_WRITE_PER_MIN: ${RATE_LIMIT_WRITE_PER_MIN:-240}
       TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Short access token + long rotating refresh token (see docs/sessions.md).
+      AUTH_ACCESS_TTL_SECONDS: ${AUTH_ACCESS_TTL_SECONDS:-1800}
+      AUTH_REFRESH_TTL_DAYS: ${AUTH_REFRESH_TTL_DAYS:-30}
       # Outgoing e-mail. Without MAIL_HOST the transport stays disabled (log only).
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-}
       # gmail | zoho | titan | outlook — fills host/port/TLS from the provider preset.

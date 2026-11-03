@@ -14,6 +14,7 @@ import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { AuthPayload } from "./auth.types";
 import { MailService } from "../mail/mail.service";
+import { RefreshSessionService, SessionReuseError } from "./refresh-session.service";
 import { renderEmail } from "../mail/mail.template";
 
 @Injectable()
@@ -24,7 +25,27 @@ export class AuthService {
     // Optional so existing unit tests and scripted callers keep working.
     private readonly throttle: AuthThrottle = new AuthThrottle(),
     @Optional() private readonly mail?: MailService,
+    @Optional() private readonly sessions?: RefreshSessionService,
   ) {}
+
+  /**
+   * Access token lifetime. Short on purpose: the refresh token keeps the session alive, so a leaked
+   * access token is worth minutes instead of hours.
+   */
+  get accessTtlSeconds(): number {
+    const configured = Number(process.env.AUTH_ACCESS_TTL_SECONDS || 1800);
+    return Number.isFinite(configured) && configured >= 300 ? Math.min(28800, Math.floor(configured)) : 1800;
+  }
+
+  /** Refresh token fields, omitted when the session service is not wired (unit tests). */
+  private async refreshFields(userId: string, tenantId: string, sessionVersion: number, userAgent?: string) {
+    if (!this.sessions) return {};
+    const issued = await this.sessions.issue({ userId, tenantId, sessionVersion, userAgent });
+    return {
+      refreshToken: issued.token,
+      refreshExpiresIn: Math.max(1, Math.floor((issued.expiresAt.getTime() - Date.now()) / 1000)),
+    };
+  }
 
   /** Link lifetime; short enough that a leaked mailbox does not stay useful. */
   private get resetTtlMinutes(): number {
@@ -122,10 +143,10 @@ export class AuthService {
   }
 
   private async issueToken(payload: AuthPayload): Promise<string> {
-    return this.jwt.signAsync(payload, { secret: this.secret(), expiresIn: "8h" });
+    return this.jwt.signAsync(payload, { secret: this.secret(), expiresIn: this.accessTtlSeconds });
   }
 
-  async register(input: RegisterDto) {
+  async register(input: RegisterDto, userAgent?: string) {
     this.secret();
     const email = input.email.trim().toLowerCase();
     const throttleKey = `register:${email}`;
@@ -167,7 +188,8 @@ export class AuthService {
       return {
         accessToken,
         tokenType: "Bearer",
-        expiresIn: 28800,
+        expiresIn: this.accessTtlSeconds,
+        ...(await this.refreshFields(result.user.id, result.tenant.id, result.user.authVersion, userAgent)),
         user: { id: result.user.id, name: result.user.name, email: result.user.email,isPlatformAdmin:result.user.isPlatformAdmin,mustChangePassword:result.user.mustChangePassword },
         tenant: { id: result.tenant.id, name: result.tenant.name, slug: result.tenant.slug,kind:result.tenant.kind },
         role: result.membership.role,
@@ -180,7 +202,7 @@ export class AuthService {
     }
   }
 
-  async login(input: LoginDto) {
+  async login(input: LoginDto, userAgent?: string) {
     this.secret();
     const email = input.email.trim().toLowerCase();
     const throttleKey = `login:${input.tenantSlug.trim().toLowerCase()}:${email}`;
@@ -230,7 +252,8 @@ export class AuthService {
     return {
       accessToken,
       tokenType: "Bearer",
-      expiresIn: 28800,
+      expiresIn: this.accessTtlSeconds,
+      ...(await this.refreshFields(user.id, membership.tenantId, user.authVersion, userAgent)),
       user: { id: user.id, name: membership.knownBy?.trim()||user.name, email: user.email,isPlatformAdmin:user.isPlatformAdmin,mustChangePassword:user.mustChangePassword },
       tenant: { id: membership.tenant.id, name: membership.tenant.name, slug: membership.tenant.slug,kind:membership.tenant.kind },
       role: membership.role,
@@ -248,19 +271,113 @@ export class AuthService {
       where: { id: userId },
       data: { authVersion: { increment: 1 } },
     });
+    // Rows are already unusable through sessionVersion, but leaving them behind would keep a usable
+    // secret in the database for the rest of its lifetime.
+    await this.sessions?.revokeAll(userId);
     return { ok: true };
+  }
+
+  /**
+   * Ends the session identified by the presented credential.
+   *
+   * The refresh token is tried first because it is the durable one — the access token is often
+   * already expired when someone clicks "sair" after a while. An unknown credential still returns
+   * `{ ok: true }`, so the endpoint cannot be used to probe which tokens exist.
+   */
+  async logoutFrom(input: { refreshToken?: string; accessToken?: string }) {
+    let userId: string | undefined;
+    if (input.refreshToken && this.sessions) {
+      const owner = await this.sessions.ownerOf(input.refreshToken);
+      if (owner) {
+        userId = owner.userId;
+        await this.sessions.revokeFamily(owner.familyId);
+      }
+    }
+    if (!userId && input.accessToken) {
+      try {
+        const payload = await this.jwt.verifyAsync<AuthPayload>(input.accessToken, { secret: this.secret() });
+        userId = payload.sub;
+      } catch {
+        // Expired or invalid: there is nothing to end, and the caller still gets a clean logout.
+      }
+    }
+    if (!userId) return { ok: true };
+    return this.logout(userId);
+  }
+
+  /**
+   * Exchanges a refresh token for a new session.
+   *
+   * The tenancy is re-read from the database on every exchange: a user removed from the company, a
+   * deactivated account or a platform tenant without a platform administrator must not be able to
+   * extend a session that the access token still describes.
+   */
+  async refresh(refreshToken: string, userAgent?: string) {
+    this.secret();
+    const sessions = this.sessions;
+    if (!sessions) throw new UnauthorizedException("Atualização de sessão indisponível.");
+
+    let rotated: Awaited<ReturnType<RefreshSessionService["rotate"]>>;
+    try {
+      rotated = await sessions.rotate(refreshToken, { userAgent });
+    } catch (error) {
+      if (error instanceof SessionReuseError) {
+        throw new UnauthorizedException("Sessão encerrada por segurança. Entre novamente.");
+      }
+      throw new UnauthorizedException("Sua sessão expirou. Entre novamente.");
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        userId: rotated.userId,
+        tenantId: rotated.tenantId,
+        tenant: { status: "ACTIVE" },
+        user: { isActive: true },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, isPlatformAdmin: true, mustChangePassword: true, authVersion: true } },
+        tenant: { select: { id: true, name: true, slug: true, kind: true } },
+      },
+    });
+    if (!membership) {
+      await sessions.revokeAll(rotated.userId);
+      throw new UnauthorizedException("Acesso à empresa revogado.");
+    }
+    if (membership.tenant.kind === "PLATFORM" && !membership.user.isPlatformAdmin) {
+      await sessions.revokeAll(rotated.userId);
+      throw new ForbiddenException("Este painel pertence à administração da Véxora.");
+    }
+
+    const { authVersion, ...user } = membership.user;
+    const accessToken = await this.issueToken({
+      sub: rotated.userId,
+      tenantId: membership.tenant.id,
+      tenantSlug: membership.tenant.slug,
+      role: membership.role,
+      sessionVersion: authVersion ?? 0,
+    });
+    return {
+      accessToken,
+      tokenType: "Bearer",
+      expiresIn: this.accessTtlSeconds,
+      refreshToken: rotated.refreshToken,
+      refreshExpiresIn: Math.max(1, Math.floor((rotated.refreshExpiresAt.getTime() - Date.now()) / 1000)),
+      user: { ...user, name: membership.knownBy?.trim() || user.name },
+      tenant: membership.tenant,
+      role: membership.role,
+    };
   }
 
   async companies(userId:string){
     return this.prisma.membership.findMany({where:{userId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}},select:{tenant:{select:{id:true,name:true,slug:true,kind:true}}},orderBy:{tenant:{name:'asc'}}});
   }
-  async companySession(userId:string,tenantId:unknown){return this.memberSession(userId,tenantId,true);}
-  private async memberSession(userId:string,tenantId:unknown,ownerOnly:boolean){
+  async companySession(userId:string,tenantId:unknown,userAgent?:string){return this.memberSession(userId,tenantId,true,userAgent);}
+  private async memberSession(userId:string,tenantId:unknown,ownerOnly:boolean,userAgent?:string){
     if(typeof tenantId!=='string'||!isUUID(tenantId))throw new BadRequestException('Selecione uma empresa válida.');
     const member=await this.prisma.membership.findFirst({where:{userId,tenantId,...(ownerOnly?{role:'OWNER' as const}:{}),user:{isActive:true},tenant:{status:'ACTIVE'}},include:{user:{select:{id:true,name:true,email:true,isPlatformAdmin:true,mustChangePassword:true,authVersion:true}},tenant:{select:{id:true,name:true,slug:true,kind:true}}}});
     if(!member||member.tenant.kind==='PLATFORM'&&!member.user.isPlatformAdmin)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
     const {authVersion,...user}=member.user;
-    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:28800,user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
+    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:this.accessTtlSeconds,...(await this.refreshFields(userId,member.tenant.id,authVersion??0,userAgent)),user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
   }
   async changePassword(userId:string,tenantId:string,input:any){
     if(typeof input?.currentPassword!=='string'||typeof input?.newPassword!=='string'||input.newPassword.length<12||input.newPassword.length>128||input.newPassword===input.currentPassword)throw new BadRequestException('Escolha uma nova senha de 12 a 128 caracteres, diferente da temporária.');

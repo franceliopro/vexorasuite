@@ -55,7 +55,10 @@ describe("SmtpMailTransport", () => {
     verify.mockResolvedValue(true);
     await expect(build().verify()).resolves.toEqual({ ok: true });
     verify.mockRejectedValue(new Error("EAUTH"));
-    await expect(build().verify()).resolves.toEqual({ ok: false, detail: "EAUTH" });
+    // The provider text is kept and an actionable hint is added next to it.
+    await expect(build().verify()).resolves.toMatchObject({ ok: false, detail: "EAUTH" });
+    const failure = await build().verify();
+    expect(failure.hint).toContain("senha de app");
   });
 
   it("never puts the password in the message envelope", async () => {

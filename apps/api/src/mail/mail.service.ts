@@ -1,4 +1,4 @@
-import { Injectable, Logger, Optional, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, Logger, Optional, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { MailMessage, MailResult, MailTransport } from "./mail.types";
 import {
   MailField,
@@ -30,6 +30,8 @@ export interface MailStatus {
   missing: string[];
   /** Present in the environment but empty — usually a variable created outside the compose scope. */
   blank: string[];
+  /** Variables still holding the documentation example instead of a real value. */
+  placeholders: string[];
   warnings: string[];
   note: string;
 }
@@ -46,10 +48,29 @@ export interface MailStatus {
  * - `MAIL_TRANSPORT=off` → nothing happens.
  */
 @Injectable()
-export class MailService implements OnModuleDestroy {
+export class MailService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MailService.name);
   private channel?: MailTransport;
   private resolvedSettings?: MailSettings;
+
+  /**
+   * Reports the effective transport once at boot.
+   *
+   * This is the only place an operator can see, from the deployment logs, whether the environment
+   * reached the process — without a shell, an API login or guessing. Secrets never appear here.
+   */
+  onModuleInit(): void {
+    const settings = this.resolved;
+    const user = maskAddress(settings.user);
+    if (settings.mode === "smtp") {
+      this.logger.log(
+        `E-mail: SMTP ${settings.host}:${settings.port}${settings.secure ? " (TLS)" : " (STARTTLS)"} como ${user} — remetente ${settings.from}.`,
+      );
+    } else {
+      this.logger.log(`E-mail: ${settings.mode === "off" ? "desativado" : "somente log (nada é enviado)"} — ${mailProblem(settings)}`);
+    }
+    for (const warning of settings.warnings) this.logger.warn(warning);
+  }
 
   constructor(@Optional() private readonly injected?: MailTransport) {}
 
@@ -73,7 +94,7 @@ export class MailService implements OnModuleDestroy {
   }
 
   /** Real SMTP handshake. Configuration alone is never reported as a working integration. */
-  async verify(): Promise<{ ok: boolean; transport: string; detail?: string }> {
+  async verify(): Promise<{ ok: boolean; transport: string; detail?: string; hint?: string }> {
     const transport = this.transport;
     if (!transport.verify) {
       return {
@@ -86,7 +107,7 @@ export class MailService implements OnModuleDestroy {
       };
     }
     const result = await transport.verify();
-    return { ok: result.ok, transport: transport.kind, detail: result.detail };
+    return { ok: result.ok, transport: transport.kind, detail: result.detail, hint: result.hint };
   }
 
   status(): MailStatus {
@@ -107,6 +128,7 @@ export class MailService implements OnModuleDestroy {
       sources: settings.sources,
       missing: settings.missing,
       blank: settings.blank,
+      placeholders: settings.placeholders,
       warnings: settings.warnings,
       note: mailProblem(settings),
     };

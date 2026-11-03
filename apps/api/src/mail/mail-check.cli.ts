@@ -59,6 +59,7 @@ async function main(): Promise<number> {
     sources: settings.sources,
     missing: settings.missing,
     blank: settings.blank,
+    placeholders: settings.placeholders,
     warnings: settings.warnings,
     note: mailProblem(settings),
   };
@@ -66,13 +67,14 @@ async function main(): Promise<number> {
   if (!options.json) {
     console.log("Configuração de e-mail resolvida do ambiente:\n");
     for (const [field, value] of Object.entries(summary)) {
-      if (field === "sources" || field === "missing" || field === "blank" || field === "warnings" || field === "note") continue;
+      if (["sources", "missing", "blank", "placeholders", "warnings", "note"].includes(field)) continue;
       if (value === undefined) continue;
       const source = (settings.sources as Record<string, string>)[field];
       console.log(`  ${field.padEnd(10)} ${String(value)}${source ? `   (de ${source})` : ""}`);
     }
     for (const warning of settings.warnings) console.log(`  aviso: ${warning}`);
     if (settings.blank.length > 0) console.log(`  vazias no ambiente: ${settings.blank.join(", ")}`);
+    if (settings.placeholders.length > 0) console.log(`  com texto de exemplo: ${settings.placeholders.join(", ")}`);
     if (settings.missing.length > 0) console.log(`  faltando: ${settings.missing.join(", ")}`);
     console.log(`\n  ${summary.note}\n`);
   }
@@ -102,6 +104,7 @@ async function main(): Promise<number> {
     }
     if (!handshake?.ok) {
       if (!options.json) console.log(`  motivo: ${handshake?.detail ?? "não informado"}`);
+      if (!options.json && handshake?.hint) console.log(`  o que fazer: ${handshake.hint}`);
       code = 3;
     }
 
@@ -125,6 +128,7 @@ async function main(): Promise<number> {
             ? `Envio aceito pelo servidor para ${result.accepted?.join(", ") ?? options.to} (id ${result.providerId ?? "n/d"}).`
             : `Envio NÃO aceito: ${result.reason ?? "motivo não informado"}.`,
         );
+        if (!result.delivered && result.hint) console.log(`  o que fazer: ${result.hint}`);
       }
       if (!result.delivered) code = 4;
     }

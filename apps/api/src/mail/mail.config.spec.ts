@@ -1,4 +1,4 @@
-import { mailProblem, maskAddress, resolveMailSettings } from "./mail.config";
+import { cleanValue, mailProblem, maskAddress, parseHost, resolveMailSettings } from "./mail.config";
 
 const GMAIL = {
   MAIL_USER: "vexorasuite@gmail.com",
@@ -102,6 +102,98 @@ describe("resolveMailSettings", () => {
     const settings = resolveMailSettings({ ...GMAIL, MAIL_PORT: "465", MAIL_SECURE: "false" });
     expect(settings.secure).toBe(false);
     expect(settings.warnings.join(" ")).toContain("MAIL_SECURE=false com porta 465");
+  });
+});
+
+describe("cleanValue", () => {
+  it("removes the inline comment that comes with a documented example", () => {
+    // The exact line from the docs, pasted whole into the panel.
+    expect(cleanValue("smtp.zoho.com        # ou smtp.titan.email / email-smtp.sa-east-1.amazonaws.com")).toBe("smtp.zoho.com");
+    expect(cleanValue("465   # porta TLS")).toBe("465");
+  });
+
+  it("strips surrounding quotes but keeps a # inside a secret", () => {
+    expect(cleanValue('"smtp.zoho.com"')).toBe("smtp.zoho.com");
+    expect(cleanValue("minha#senha", { secret: true })).toBe("minha#senha");
+  });
+});
+
+describe("parseHost", () => {
+  it("accepts what people actually paste", () => {
+    expect(parseHost("smtp.zoho.com")).toEqual({ host: "smtp.zoho.com", port: undefined });
+    expect(parseHost("smtp://smtp.zoho.com/")).toEqual({ host: "smtp.zoho.com", port: undefined });
+    expect(parseHost("SMTP.Zoho.com:465")).toEqual({ host: "smtp.zoho.com", port: 465 });
+    expect(parseHost("smtp.zoho.com qualquer coisa")).toEqual({ host: "smtp.zoho.com", port: undefined });
+  });
+});
+
+describe("resolveMailSettings with values copied from documentation", () => {
+  it("uses the Zoho preset and derives port and TLS", () => {
+    const settings = resolveMailSettings({
+      MAIL_SERVICE: "zoho",
+      MAIL_USER: "nao-responda@vexorasuite.com.br",
+      MAIL_PASSWORD: "senha-real-de-app",
+      MAIL_FROM: "nao-responda@vexorasuite.com.br",
+    });
+    expect(settings).toMatchObject({ mode: "smtp", host: "smtp.zoho.com", port: 465, secure: true });
+    expect(settings.missing).toEqual([]);
+    expect(settings.placeholders).toEqual([]);
+  });
+
+  it("survives an inline comment on the host and uses only the address", () => {
+    const settings = resolveMailSettings({
+      MAIL_HOST: "smtp.zoho.com   # ou smtp.titan.email",
+      MAIL_USER: "nao-responda@vexorasuite.com.br",
+      MAIL_PASSWORD: "segredo",
+      MAIL_FROM: "nao-responda@vexorasuite.com.br",
+    });
+    expect(settings.host).toBe("smtp.zoho.com");
+    expect(settings.mode).toBe("smtp");
+  });
+
+  it("normalizes a host written with a scheme", () => {
+    const settings = resolveMailSettings({
+      MAIL_HOST: "smtp://smtp.zoho.com/",
+      MAIL_USER: "nao-responda@vexorasuite.com.br",
+      MAIL_PASSWORD: "segredo",
+      MAIL_FROM: "nao-responda@vexorasuite.com.br",
+    });
+    expect(settings.host).toBe("smtp.zoho.com");
+    expect(settings.warnings.join(" ")).toContain("MAIL_HOST normalizada");
+  });
+
+  it("refuses to authenticate with the example text instead of a password", () => {
+    const settings = resolveMailSettings({
+      MAIL_HOST: "smtp.zoho.com",
+      MAIL_USER: "nao-responda@vexorasuite.com.br",
+      MAIL_PASSWORD: "<senha de app>",
+      MAIL_FROM: "nao-responda@vexorasuite.com.br",
+    });
+    expect(settings.mode).toBe("log");
+    expect(settings.placeholders).toEqual(["MAIL_PASSWORD"]);
+    expect(settings.missing).toContain("MAIL_PASSWORD");
+    expect(mailProblem(settings)).toContain("texto de exemplo");
+  });
+
+  it("takes the port from the host when it is written together", () => {
+    const settings = resolveMailSettings({
+      MAIL_HOST: "smtp.zoho.com:587",
+      MAIL_USER: "nao-responda@vexorasuite.com.br",
+      MAIL_PASSWORD: "segredo",
+      MAIL_FROM: "nao-responda@vexorasuite.com.br",
+    });
+    expect(settings.port).toBe(587);
+    expect(settings.secure).toBe(false);
+  });
+
+  it("warns when a Zoho sender is not the authenticated mailbox", () => {
+    const settings = resolveMailSettings({
+      MAIL_SERVICE: "zoho",
+      MAIL_USER: "nao-responda@vexorasuite.com.br",
+      MAIL_PASSWORD: "segredo",
+      MAIL_FROM: "contato@vexorasuite.com.br",
+    });
+    expect(settings.warnings.join(" ")).toContain("Zoho");
   });
 });
 

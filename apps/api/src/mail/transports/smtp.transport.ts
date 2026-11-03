@@ -1,6 +1,7 @@
 import { Logger } from "@nestjs/common";
 import { createTransport, type Transporter } from "nodemailer";
 import { MailMessage, MailResult, MailTransport } from "../mail.types";
+import { explainSmtpError } from "../mail.diagnostics";
 
 export interface SmtpConfig {
   /** Provider preset understood by nodemailer (gmail, zoho, titan, ...). Host/port still apply. */
@@ -65,16 +66,17 @@ export class SmtpMailTransport implements MailTransport {
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Falha ao enviar e-mail: ${reason}`);
-      return { delivered: false, transport: "smtp", reason: reason.slice(0, 240) };
+      return { delivered: false, transport: "smtp", reason: reason.slice(0, 240), hint: explainSmtpError(reason) };
     }
   }
 
-  async verify(): Promise<{ ok: boolean; detail?: string }> {
+  async verify(): Promise<{ ok: boolean; detail?: string; hint?: string }> {
     try {
       await this.transporter.verify();
       return { ok: true };
     } catch (error) {
-      return { ok: false, detail: (error instanceof Error ? error.message : String(error)).slice(0, 240) };
+      const detail = (error instanceof Error ? error.message : String(error)).slice(0, 240);
+      return { ok: false, detail, hint: explainSmtpError(detail) };
     }
   }
 

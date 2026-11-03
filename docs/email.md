@@ -79,8 +79,19 @@ MAIL_FROM_NAME=Vexora Suite
 
 > **O ponto que mais falha:** com `MAIL_HOST=smtp.gmail.com`, o `MAIL_FROM` **precisa ser igual ao
 > `MAIL_USER`**. Um endereço de domínio próprio (`nao-responda@vexorasuite.com.br`) só é aceito se ele
-> estiver verificado como alias no Google Workspace; fora disso o Gmail recusa com `550`. O sistema
-> detecta essa divergência e avisa no status, no log de boot e no `mail-check`.
+> estiver verificado como alias; fora disso o Gmail recusa com `550`. O sistema detecta essa divergência
+> e avisa no status, no log de boot e no `mail-check`.
+
+Se o remetente precisa ter a marca (`nao-responda@vexorasuite.com.br`), há dois caminhos — nenhum é
+configurável por variável de ambiente:
+
+1. **Gmail → Configurações → Contas → “Enviar e-mail como”**: adicionar o endereço, confirmar o código e
+   mantê-lo como alias da conta. A partir daí o Gmail aceita `MAIL_FROM` com esse endereço.
+2. **Google Workspace**: criar o endereço como alias do usuário (ou grupo) no domínio `vexorasuite.com.br`
+   e autenticar com essa conta.
+
+Sem um dos dois, o envio funciona **com `MAIL_FROM` = a conta Gmail**; com o endereço de domínio próprio,
+o Gmail responde `550`.
 
 Requisitos do Gmail, que não são configuráveis por código:
 

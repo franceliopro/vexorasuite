@@ -2399,3 +2399,44 @@ body { background: var(--surface-page); color: var(--text-primary); }
   background:rgba(125,112,255,.18)!important;
   color:#fff!important;
 }
+
+
+/* Canonical tag contract: the same data has the same compact appearance in the inbox and the contact profile. */
+.conversation-tag,
+.profile-tag {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  min-height:19px;
+  max-width:100%;
+  padding:2px 6px;
+  border-width:1px !important;
+  border-style:solid !important;
+  border-radius:5px;
+  color:#111827;
+  font-size:10px;
+  font-weight:500;
+  line-height:1.2;
+  letter-spacing:0;
+  box-shadow:none;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.profile-tag button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  padding:0;
+  border:0;
+  border-radius:4px;
+  background:color-mix(in srgb, currentColor 10%, transparent);
+  color:inherit;
+}
+.profile-tag button:hover { background:color-mix(in srgb, currentColor 18%, transparent); }
+@media (max-width:760px) {
+  .conversation-tag,
+  .profile-tag { min-height:19px; padding:2px 6px; font-size:10px; border-radius:5px; }
+}

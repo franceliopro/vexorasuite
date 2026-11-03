@@ -30,9 +30,9 @@ services:
     environment:
       NODE_ENV: production
       API_PORT: "3001"
-      # in-process (default) runs the periodic jobs here; set SCHEDULER_MODE=worker to hand them
-      # to the scheduler-worker service below. Both modes take a database lease per tick.
-      SCHEDULER_MODE: ${SCHEDULER_MODE:-in-process}
+      # The HTTP API never runs periodic work in production. The scheduler-worker below owns it.
+      # Override only for a deliberate maintenance or local-development scenario.
+      SCHEDULER_MODE: ${SCHEDULER_MODE:-worker}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://app.vexorasuite.com.br}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://app.vexorasuite.com.br}
@@ -116,10 +116,9 @@ services:
     command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/webhook-worker.js"]
 
   # Periodic jobs (audio triage, workflow cadence, channel health, Asaas reconciliation).
-  # Opt-in: `docker compose --profile scheduler up`. When enabled, also set
-  # SCHEDULER_MODE=worker on the api service so only this process runs the timers.
+  # This dedicated process is started by default. It keeps provider calls and cadence work
+  # outside the HTTP API, while database leases keep a second worker replica safe.
   scheduler-worker:
-    profiles: ["scheduler"]
     volumes:
       - automation_media:/var/lib/vexora/media
     build:

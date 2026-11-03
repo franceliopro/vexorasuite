@@ -79,7 +79,7 @@ test("fonts are self-hosted and build without network access", () => {
 
 test("interface icons come from Lucide instead of typographic glyphs", () => {
   // Prose keeps its arrows ("Compartilhar → Adicionar"), but glyphs used as controls are forbidden.
-  const forbidden = ["\u00d7", "\u2630", "\u2315", "\u21bb", "\u2039", "\u203a", "\u260f", "\u25eb", "\u2733", "\u2304", "\uff0b", "\u2197"];
+  const forbidden = ["\u00d7", "\u2630", "\u2315", "\u21bb", "\u2039", "\u203a", "\u260f", "\u25eb", "\u2733", "\u2304", "\uff0b", "\u2197", "\u2199", "\u26f6"];
   for (const file of tsxFiles) {
     const source = read(file);
     for (const glyph of forbidden) {

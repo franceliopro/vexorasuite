@@ -8,10 +8,10 @@ Monólito modular com monorepo TypeScript. O código compartilhado reduz diverg�
 
 - `apps/web`: Next.js para a interface web responsiva e futura PWA.
 - `apps/api`: NestJS como API HTTP, com contrato OpenAPI.
-- `apps/worker` (fase seguinte): processos assíncronos com BullMQ, sem executar tarefas longas no request HTTP.
-- `packages/contracts`: contratos e schemas compartilhados, sem dependência de UI.
-- `packages/config`: configurações TypeScript/ESLint compartilhadas, conforme necessário.
-- `packages/ui`: componentes visuais reutilizáveis, após estabilizar os padrões de interface.
+- `apps/api` também gera dois processos operacionais dedicados: `webhook-worker` e `scheduler-worker`.
+- `webhook-worker`: entrega webhooks persistidos, com tentativas e isolamento da API HTTP.
+- `scheduler-worker`: triagem de áudio, cadências, saúde de canais e reconciliação Asaas, fora do processo HTTP.
+- O código compartilhado permanece dentro do monólito modular até existir uma necessidade comprovada de extrair pacotes.
 
 ## Dados e multi-tenancy
 
@@ -25,10 +25,11 @@ Monólito modular com monorepo TypeScript. O código compartilhado reduz diverg�
 ## Eventos, tempo real e jobs
 
 - Persistir a mensagem/evento antes de publicar notificações.
-- Usar padrão Transactional Outbox para não perder eventos entre commit do banco e publicação.
+- Eventos de tempo real e entregas externas são persistidos antes do processamento.
 - Mensagens recebidas de provedores são idempotentes por identificador externo + canal/tenant.
-- WebSocket entrega atualizações; reconexão deve recuperar eventos perdidos via cursor/sync da API.
-- Filas Redis/BullMQ são para trabalho assíncrono; não substituem a persistência no PostgreSQL.
+- WebSocket entrega atualizações; reconexão recupera eventos perdidos via cursor/sync da API.
+- O trabalho periódico roda exclusivamente no `scheduler-worker` em produção, protegido por leases no PostgreSQL.
+- Redis é usado para limites distribuídos e cache operacional; não é fonte de verdade de negócio.
 
 ## WhatsApp
 
@@ -43,7 +44,7 @@ Monólito modular com monorepo TypeScript. O código compartilhado reduz diverg�
 - Autenticação e autorização server-side, proteção CSRF conforme mecanismo de sessão, rate limits e validação de entrada.
 - Segredos exclusivamente em variáveis protegidas ou secret manager.
 - Logs estruturados com request/correlation ID; nunca registrar tokens, chaves ou conteúdo sensível desnecessário.
-- Backups e teste periódico de restauração.
+- Backups e teste periódico de restauração fazem parte da operação do ambiente, não do deploy da aplicação.
 - CI com lint, typecheck, testes e build.
 - Migrações de banco versionadas e revisadas.
 - Mudanças em produção apenas após validação e aprovação explícita.

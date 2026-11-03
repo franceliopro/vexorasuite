@@ -120,7 +120,16 @@ export class IntelligenceRuntimeService {
       variables.nome = preferred || conversation.contact.name;
       variables.novo_nome = preferred;
       const nameReply=/^(sim|s|isso|manter|pode ser)$/i.test(inbound.content.trim())?conversation.contact.name:inbound.content.trim();
+      const organization = object(root.organization);
+      const address = [organization.address, organization.city, organization.state, organization.zipCode]
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        .map(value => value.trim())
+        .join(' · ');
       variables.empresa = tenant.name;
+      variables.razao_social = typeof organization.legalName === 'string' ? organization.legalName.trim() : '';
+      variables.cnpj = typeof organization.cnpj === 'string' ? organization.cnpj.trim() : '';
+      variables.endereco_completo = address;
+      variables.endereco = address;
       const messages: string[] = [];
       const skills: string[] = [];
       let state: Prisma.InputJsonValue = {};

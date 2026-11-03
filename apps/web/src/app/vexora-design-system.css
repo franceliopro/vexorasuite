@@ -2440,3 +2440,197 @@ body { background: var(--surface-page); color: var(--text-primary); }
   .conversation-tag,
   .profile-tag { min-height:19px; padding:2px 6px; font-size:10px; border-radius:5px; }
 }
+
+
+/* Canonical Flow Studio layout.
+   This final layer replaces previous experimental proportions: one rail, one stage,
+   one inspector and one fullscreen contract. */
+.chatbot-workspace {
+  --vx-flow-library-width: 260px;
+  --vx-flow-inspector-width: 280px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.chatbot-workspace .vx-flow-shell,
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+  display: grid !important;
+  grid-template-columns: var(--vx-flow-library-width) minmax(0, 1fr) var(--vx-flow-inspector-width) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  width: 100% !important;
+  height: clamp(800px, calc(100dvh - 190px), 1000px) !important;
+  min-height: 800px !important;
+  max-height: 1000px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+  grid-template-columns: var(--vx-flow-library-width) minmax(0, 1fr) !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed {
+  grid-template-columns: 44px minmax(0, 1fr) var(--vx-flow-inspector-width) !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-right-collapsed {
+  grid-template-columns: var(--vx-flow-library-width) minmax(0, 1fr) 44px !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-left-collapsed.vx-right-collapsed {
+  grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+}
+.chatbot-workspace .vx-flow-shell.vx-inspector-empty.vx-left-collapsed {
+  grid-template-columns: 44px minmax(0, 1fr) !important;
+}
+.chatbot-workspace .vx-flow-library,
+.chatbot-workspace .vx-flow-inspector,
+.chatbot-workspace .vx-flow-stage {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+.chatbot-workspace .vx-flow-library,
+.chatbot-workspace .vx-flow-inspector {
+  position: relative !important;
+  z-index: 2 !important;
+  overflow: auto !important;
+}
+.chatbot-workspace .vx-flow-library {
+  width: var(--vx-flow-library-width) !important;
+  min-width: var(--vx-flow-library-width) !important;
+  box-sizing: border-box;
+}
+.chatbot-workspace .vx-flow-inspector {
+  width: var(--vx-flow-inspector-width) !important;
+  min-width: var(--vx-flow-inspector-width) !important;
+  box-sizing: border-box;
+}
+.chatbot-workspace .vx-left-collapsed .vx-flow-library,
+.chatbot-workspace .vx-right-collapsed .vx-flow-inspector {
+  width: 44px !important;
+  min-width: 44px !important;
+  padding: 6px !important;
+  overflow: hidden !important;
+}
+.chatbot-workspace .vx-left-collapsed .vx-flow-library > :not(.vx-panel-handle),
+.chatbot-workspace .vx-right-collapsed .vx-flow-inspector > :not(.vx-panel-handle) {
+  display: none !important;
+}
+.chatbot-workspace .vx-left-collapsed .vx-flow-library .vx-panel-handle,
+.chatbot-workspace .vx-right-collapsed .vx-flow-inspector .vx-panel-handle {
+  display: inline-flex !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+.chatbot-workspace .vx-flow-stage {
+  position: relative !important;
+  z-index: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  isolation: isolate;
+  contain: paint;
+}
+.chatbot-workspace .vx-flow-stage-bar {
+  position: relative !important;
+  z-index: 3 !important;
+  flex: 0 0 auto !important;
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  overflow-x: auto;
+}
+.chatbot-workspace .vx-flow-scroll {
+  position: relative !important;
+  z-index: 0 !important;
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  clip-path: inset(0);
+}
+.chatbot-workspace .vx-flow-board {
+  position: relative;
+  z-index: 0;
+  min-width: 60000px !important;
+  min-height: 40000px !important;
+  transform-origin: top left;
+}
+.chatbot-workspace.vx-flow-fullscreen,
+.chatbot-workspace:fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--surface-page, #f7f8fc) !important;
+}
+.chatbot-workspace.vx-flow-fullscreen > :not(.vx-flow-shell),
+.chatbot-workspace:fullscreen > :not(.vx-flow-shell) {
+  display: none !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell,
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-inspector-empty,
+.chatbot-workspace:fullscreen .vx-flow-shell,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-inspector-empty {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  grid-template-columns: var(--vx-flow-library-width) minmax(0, 1fr) var(--vx-flow-inspector-width) !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-inspector-empty,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-inspector-empty {
+  grid-template-columns: var(--vx-flow-library-width) minmax(0, 1fr) !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-left-collapsed,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-left-collapsed {
+  grid-template-columns: 44px minmax(0, 1fr) var(--vx-flow-inspector-width) !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-right-collapsed,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-right-collapsed {
+  grid-template-columns: var(--vx-flow-library-width) minmax(0, 1fr) 44px !important;
+}
+.chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-left-collapsed.vx-right-collapsed,
+.chatbot-workspace:fullscreen .vx-flow-shell.vx-left-collapsed.vx-right-collapsed {
+  grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+}
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell,
+  .chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+    grid-template-columns: minmax(0, 1fr) !important;
+    height: max(420px, 66dvh) !important;
+    min-height: 420px !important;
+    max-height: none !important;
+  }
+  .chatbot-workspace .vx-flow-library,
+  .chatbot-workspace .vx-flow-inspector {
+    display: none !important;
+  }
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell,
+  .chatbot-workspace:fullscreen .vx-flow-shell {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-library,
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-inspector,
+  .chatbot-workspace:fullscreen .vx-flow-library,
+  .chatbot-workspace:fullscreen .vx-flow-inspector {
+    display: none !important;
+  }
+  .chatbot-workspace .vx-flow-stage-bar {
+    padding-inline: 8px;
+  }
+}

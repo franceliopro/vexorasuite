@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {
   BadRequestException,
   Body,
@@ -31,6 +32,7 @@ export function pipelineStages(template: keyof typeof PIPELINE_TEMPLATES) {
     tone: ["violet", "blue", "amber", "green"][i],
   }));
 }
+@AuditCovered()
 @Controller("departments")
 @UseGuards(AuthGuard)
 export class DepartmentsController {

@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {BadRequestException,Body,Controller,Get,Patch,Param,ParseUUIDPipe,Post,Req,ServiceUnavailableException,UseGuards} from '@nestjs/common';
 import {randomUUID} from 'node:crypto';
 import {PrismaService} from '../prisma/prisma.service';
@@ -8,6 +9,7 @@ import {assertDraftInput} from '../auth/product-scope';
 import {MarketingLibraryService} from './marketing-library.service';
 import {AssistantAutomationService} from './assistant-automation.service';
 import {ZernioService} from '../operations/zernio.service';
+@AuditCovered()
 @Controller('marketing')
 @UseGuards(AuthGuard)
 export class MarketingController{

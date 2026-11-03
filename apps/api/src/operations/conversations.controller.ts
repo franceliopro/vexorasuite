@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
@@ -24,6 +25,7 @@ function isFinalizedConversation(metadata: unknown, conversationId: string): boo
   return Array.isArray(ids) && ids.includes(conversationId);
 }
 
+@AuditCovered()
 @Controller("conversations")
 @UseGuards(AuthGuard)
 export class ConversationsController {

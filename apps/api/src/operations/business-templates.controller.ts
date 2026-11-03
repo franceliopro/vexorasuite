@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {materializePresetBundle} from './preset-bundle';
 import {inheritedPresets,PresetAssignment} from './preset-inheritance';
 import {isUUID} from 'class-validator';
@@ -11,6 +12,7 @@ import {AuthenticatedRequest} from '../auth/auth.types';
 import {PrismaService} from '../prisma/prisma.service';
 import {DEPARTMENT_PRESETS,SEGMENTS,segmentAgentPrompt,templateFlow} from './business-templates';
 import {pipelineStages} from './departments.controller';
+@AuditCovered()
 @Controller('business-templates') @UseGuards(AuthGuard)
 export class BusinessTemplatesController {
  constructor(private readonly prisma:PrismaService){}

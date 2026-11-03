@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {isUUID} from 'class-validator';
 import {publicationKey,RuntimeScope} from './runtime-scope';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { executableActions, executableKinds, RuntimeFlow, settings, validateRunt
 import { object } from './intelligence-runtime.service';
 import { economicalProviders } from '../ai/economical-providers';
 
+@AuditCovered()
 @Controller('chatbot/runtime')
 @UseGuards(AuthGuard)
 export class IntelligenceRuntimeController {

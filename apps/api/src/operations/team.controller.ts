@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {attendantName,knownByValue} from "./attendant-name";
 import { MODULES,moduleSelection,effectiveModules,patternModules } from "../auth/module-policy";
 import {
@@ -21,6 +22,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
+@AuditCovered()
 @Controller("team")
 @UseGuards(AuthGuard)
 export class TeamController {

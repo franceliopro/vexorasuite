@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {BadRequestException,Body,Controller,ForbiddenException,Get,Param,ParseUUIDPipe,Post,Req,UseGuards} from "@nestjs/common";
 import {settings as stepSettings} from "../ai/flow-runtime";
 import {randomUUID} from "node:crypto";
@@ -8,6 +9,7 @@ import {PrismaService} from "../prisma/prisma.service";
 import {inboxRouting} from "./inbox-routing";
 import {selectPublication,publicationKey} from "./runtime-scope";
 const object=(v:unknown):Record<string,any>=>v&&typeof v==="object"&&!Array.isArray(v)?v as any:{};
+@AuditCovered()
 @Controller("channels") @UseGuards(AuthGuard)
 export class InboxesController{
  constructor(private readonly prisma:PrismaService){}

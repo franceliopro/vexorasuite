@@ -1,8 +1,10 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import { Controller, Get, Param, Req, UseGuards, ForbiddenException, Post, Patch, Delete, Body, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 
+@AuditCovered()
 @Controller("assistant/authorized-contacts")
 @UseGuards(AuthGuard)
 export class AuthorizedContactsController {

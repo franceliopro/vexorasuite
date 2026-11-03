@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {BadRequestException,Body,ConflictException,Controller,ForbiddenException,Get,NotFoundException,Post,Query,Req,Res,StreamableFile,UploadedFiles,UseGuards,UseInterceptors} from '@nestjs/common';
 import {FileFieldsInterceptor} from '@nestjs/platform-express';
 import {Response} from 'express';
@@ -18,6 +19,7 @@ export async function presentationImage(file:Upload|undefined){
   return Uint8Array.from(bytes);
  }catch{throw new BadRequestException('A imagem não pôde ser preparada. Use uma imagem estática PNG, JPG ou WebP menor.');}
 }
+@AuditCovered()
 @Controller('home-presentation') @UseGuards(AuthGuard)
 export class HomePresentationController{
  constructor(private readonly prisma:PrismaService){}

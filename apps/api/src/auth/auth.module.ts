@@ -5,9 +5,10 @@ import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { AuthThrottle } from "./auth-throttle";
+import { MailModule } from "../mail/mail.module";
 
 @Module({
-  imports: [JwtModule.register({}), PrismaModule],
+  imports: [JwtModule.register({}), PrismaModule, MailModule],
   controllers: [AuthController],
   providers: [
     AuthService,

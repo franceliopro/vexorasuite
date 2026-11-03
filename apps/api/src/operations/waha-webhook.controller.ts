@@ -88,6 +88,14 @@ export class WahaWebhookController {
     const webhookAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl;
     const recoveredAvatar = !isGroup && !(typeof webhookAvatar === "string" && /^https:\/\//i.test(webhookAvatar))
       ? await this.waha.contactPicture(channel, chatId) : null;
+    const tenantForRuntime = await this.prisma.tenant.findUnique({ where: { id: channel.tenantId }, select: { integrations: true } });
+    const runtimeIntegrations = tenantForRuntime?.integrations && typeof tenantForRuntime.integrations === "object" && !Array.isArray(tenantForRuntime.integrations)
+      ? tenantForRuntime.integrations as Record<string, unknown> : {};
+    const runtimePublications = runtimeIntegrations.intelligencePublications && typeof runtimeIntegrations.intelligencePublications === "object" && !Array.isArray(runtimeIntegrations.intelligencePublications)
+      ? runtimeIntegrations.intelligencePublications as Record<string, any> : {};
+    const companyPublication = runtimeIntegrations.intelligencePublished && typeof runtimeIntegrations.intelligencePublished === "object"
+      ? runtimeIntegrations.intelligencePublished as Record<string, any> : {};
+    const intelligenceEnabled = companyPublication.active === true || Object.values(runtimePublications).some((publication) => publication?.active === true);
 
     let saved: { contactId: string; conversationId: string; isNewConversation: boolean; handlingMode: "BOT" | "HUMAN"; message: { id: string; content: string; contentType: string; status: string; direction: string; occurredAt: Date } } | null;
     try {
@@ -129,7 +137,7 @@ export class WahaWebhookController {
 
         const voiceEntry=conversation.handlingMode==='BOT'&&!isGroup&&(contentType==='audio'||(conversation.botState as any)?.flow==='VOICE_TRIAGE');
         if(voiceEntry&&(conversation.botState as any)?.flow!=='VOICE_TRIAGE'){await tx.conversation.update({where:{id:conversation.id},data:{botState:{flow:'VOICE_TRIAGE',previousState:conversation.botState||{}}}});}
-        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
+        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), ...(intelligenceEnabled && conversation.handlingMode === 'BOT' && !voiceEntry ? { engineStatus: 'PENDING', engineAttempts: 0 } : {}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });
@@ -142,8 +150,6 @@ export class WahaWebhookController {
     }
 
     if (!saved) {
-      const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
-      if(prior&&!(this.audio&&await this.audio.owns(prior.id,channel.tenantId))) await this.engine.receive(channel, prior.conversationId, prior.id);
       return { ok: true, duplicate: true };
     }
     this.logger.log(`Mensagem recebida e gravada: canal=${channelId} conversa=${saved.conversationId} tipo=${contentType}`);
@@ -151,6 +157,7 @@ export class WahaWebhookController {
     this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId, lastMessageAt: saved.message.occurredAt.toISOString() });
     if (saved.handlingMode === "BOT") {
       if(this.audio&&await this.audio.owns(saved.message.id,channel.tenantId))return {ok:true,processing:'audio-triage'};
+      if (intelligenceEnabled) return { ok: true, processing: 'queued' };
       if (!await this.engine.receive(channel, saved.conversationId, saved.message.id)) {
         await this.runMenuBot(channel, chatId, saved.conversationId, saved.isNewConversation, content);
       }

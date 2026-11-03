@@ -91,6 +91,12 @@ test("interface icons come from Lucide instead of typographic glyphs", () => {
   }
 });
 
+test("inbox conversation tags use their computed contrast color", () => {
+  const inbox = read("inbox-workspace.tsx");
+  assert.match(inbox, /color:tagForeground\(tag\.color\)/);
+  assert.doesNotMatch(inbox, /backgroundColor:tag\.color,color:"#111827"/);
+});
+
 test("every icon-only control keeps an accessible name", () => {
   for (const file of tsxFiles) {
     const source = read(file);

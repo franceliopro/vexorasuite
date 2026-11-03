@@ -37,6 +37,10 @@ export class AuthService {
     return Number.isFinite(configured) && configured >= 300 ? Math.min(28800, Math.floor(configured)) : 1800;
   }
 
+  private temporaryPassword(): string {
+    return "Vx!" + randomBytes(24).toString("base64url");
+  }
+
   /** Refresh token fields, omitted when the session service is not wired (unit tests). */
   private async refreshFields(userId: string, tenantId: string, sessionVersion: number, userAgent?: string) {
     if (!this.sessions) return {};
@@ -404,14 +408,15 @@ export class AuthService {
     const email=typeof input?.email==="string"?input.email.trim().toLowerCase():"";
     const memberRole=["ADMIN","MANAGER","AGENT"].includes(String(input?.role))?String(input.role):"AGENT";
     if(name.length<2||name.length>120||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
-    const passwordHash=await hash("Senha@123",12);
+    const temporaryPassword=this.temporaryPassword();
+    const passwordHash=await hash(temporaryPassword,12);
     try{
       const created=await this.prisma.$transaction(async tx=>{
         const user=await tx.user.create({data:{name,email,passwordHash,mustChangePassword:true}});
         await tx.membership.create({data:{tenantId,userId:user.id,role:memberRole as MembershipRole,knownBy:name}});
         return user;
       });
-      return {id:created.id,name:created.name,email:created.email,role:memberRole,avatarUrl:created.avatarUrl,mustChangePassword:true,temporaryPassword:"Senha@123"};
+      return {id:created.id,name:created.name,email:created.email,role:memberRole,avatarUrl:created.avatarUrl,mustChangePassword:true,temporaryPassword};
     }catch(error:any){if(error?.code==="P2002")throw new ConflictException("Já existe um usuário com este e-mail.");throw error;}
   }
   async updateUserProfile(userId:string,tenantId:string,input:any){
@@ -433,9 +438,10 @@ export class AuthService {
     this.assertUserAdministration(actorRole,actorPlatformAdmin);
     const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true}});
     if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
-    const passwordHash=await hash("Senha@123",12);
+    const temporaryPassword=this.temporaryPassword();
+    const passwordHash=await hash(temporaryPassword,12);
     await this.prisma.user.update({where:{id:userId},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
-    return {ok:true,temporaryPassword:"Senha@123"};
+    return {ok:true,temporaryPassword};
   }
 
   async organization(tenantId:string){const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{name:true,integrations:true}});const root=(tenant.integrations||{}) as Record<string,any>;return {name:tenant.name,cnpj:root.organization?.cnpj||"",legalName:root.organization?.legalName||"",address:root.organization?.address||"",city:root.organization?.city||"",state:root.organization?.state||"",zipCode:root.organization?.zipCode||""};}

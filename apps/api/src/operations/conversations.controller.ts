@@ -529,7 +529,7 @@ export class ConversationsController {
     @Query("limit") rawLimit?: string,
     @Query("before") before?: string,
   ) {
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } } as any, select: { id: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any, select: { id: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
 
     // Keep the response as an array for existing clients, but load only a bounded

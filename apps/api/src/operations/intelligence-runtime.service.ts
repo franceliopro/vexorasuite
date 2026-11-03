@@ -109,7 +109,9 @@ export class IntelligenceRuntimeService {
       variables.origem=typeof profile.source==='string'?profile.source:'';
       variables.pipeline=pipeline?.name||'';
       variables.etapa=typeof stage?.label==='string'?stage.label:typeof stage?.name==='string'?stage.name:stageId;
-      variables.time=department?.name||'';
+      variables.departamento=department?.name||'';
+      // `time` remains an alias for flows created before the global variable contract.
+      variables.time=variables.departamento;
       variables.atendente=assignee?.knownBy?.trim()||assignee?.user?.name||'';
       const currentHour=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'numeric',hourCycle:'h23'}).format(new Date()));
       variables.saudacao=currentHour<6?'Olá, boa madrugada!':currentHour<12?'Bom dia!':currentHour<18?'Boa tarde!':'Boa noite!';

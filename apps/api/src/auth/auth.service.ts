@@ -148,6 +148,19 @@ export class AuthService {
   }
 
 
+  /**
+   * Invalidate every access token issued to this user.
+   * AuthGuard compares the token sessionVersion with authVersion on each request,
+   * so this takes effect immediately without waiting for the JWT expiry.
+   */
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { authVersion: { increment: 1 } },
+    });
+    return { ok: true };
+  }
+
   async companies(userId:string){
     return this.prisma.membership.findMany({where:{userId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}},select:{tenant:{select:{id:true,name:true,slug:true,kind:true}}},orderBy:{tenant:{name:'asc'}}});
   }

@@ -11,6 +11,7 @@ import {CrmPipelinesController} from './crm-pipelines.controller';
 import { TeamController } from './team.controller';
 import { UserProfileController } from "./user-profile.controller";
 import { ChannelHealthService } from "./channel-health.service";
+import { JobLeaseService } from "../common/job-lease.service";
 import { PushService } from "./push.service";
 import { PushController } from "./push.controller";
 import { ContactAvatarController } from "./contact-avatar.controller";
@@ -56,7 +57,7 @@ import { WebhooksController } from "./webhooks.controller";
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule],
   controllers: [InboxesController,CopilotController,HomePresentationController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController],
-  providers: [DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService],
+  providers: [JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService],
 })
 export class OperationsModule {}
 

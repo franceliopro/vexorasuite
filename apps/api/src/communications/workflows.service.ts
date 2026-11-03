@@ -4,12 +4,15 @@ import {
   NotFoundException,
   OnModuleInit,
   OnModuleDestroy,
+  Optional,
 } from "@nestjs/common";
 import { isUUID } from "class-validator";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { mailAdmin } from "./access";
 import { localInstant, repeatInstant, workflowSteps } from "./workflow-time";
+import { JobLeaseService } from "../common/job-lease.service";
+import { schedulersEnabled } from "../common/scheduler-mode";
 import { WahaService } from "../operations/waha.service";
 import { contactMetadata, lockedContact } from "../prisma/contact-metadata";
 import { text } from "./content";
@@ -49,11 +52,12 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly waha: WahaService,
+    @Optional() private readonly leases?: JobLeaseService,
   ) {}
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
   onModuleInit() {
-    if (process.env.NODE_ENV === "test") return;
+    if (process.env.NODE_ENV === "test" || !schedulersEnabled()) return;
     this.timer = setInterval(() => void this.tick(), 15000);
     this.timer.unref();
   }
@@ -374,6 +378,8 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
+      // Only one replica advances the cadence at a time.
+      if (this.leases && !(await this.leases.claim("workflow-cadence", 14_000))) return;
       await this.prisma.workflowRun.updateMany({
         where: {
           status: "RUNNING",

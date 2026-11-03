@@ -1,18 +1,21 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WahaService } from './waha.service';
 import { EventsService } from './events.service';
+import { JobLeaseService } from '../common/job-lease.service';
+import { schedulersEnabled } from '../common/scheduler-mode';
 
 /** One database lease per tenant prevents every API replica polling the same gateway. */
 @Injectable()
 export class ChannelHealthService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running=false;
-  constructor(private readonly prisma:PrismaService,private readonly waha:WahaService,private readonly events:EventsService){}
-  onModuleInit(){this.timer=setInterval(()=>void this.check(),15000);this.timer.unref();void this.check();}
+  constructor(private readonly prisma:PrismaService,private readonly waha:WahaService,private readonly events:EventsService,@Optional() private readonly leases?:JobLeaseService){}
+  onModuleInit(){if(!schedulersEnabled())return;this.timer=setInterval(()=>void this.check(),15000);this.timer.unref();void this.check();}
   onModuleDestroy(){if(this.timer)clearInterval(this.timer);}
   async check(){
     if(this.running)return;this.running=true;
+    if(this.leases&&!(await this.leases.claim('channel-health',14000)))return;
     try {
       const channels=await this.prisma.channelConnection.findMany({where:{provider:'WAHA',isActive:true,tenant:{status:'ACTIVE'}},take:500});
       for(const channel of channels){

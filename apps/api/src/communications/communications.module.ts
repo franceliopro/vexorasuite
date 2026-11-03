@@ -5,9 +5,10 @@ import { PrismaModule } from "../prisma/prisma.module";
 import { WorkflowsService } from "./workflows.service";
 import { WorkflowsController } from "./workflows.controller";
 import { WahaService } from "../operations/waha.service";
+import { JobLeaseService } from "../common/job-lease.service";
 @Module({
   imports: [PrismaModule, AuthModule, JwtModule.register({})],
-  providers: [WorkflowsService, WahaService],
+  providers: [WorkflowsService, WahaService, JobLeaseService],
   controllers: [
     WorkflowsController,
   ],

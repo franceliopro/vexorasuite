@@ -1,4 +1,5 @@
 import {
+  Optional,
   Injectable,
   OnModuleInit,
   OnModuleDestroy,
@@ -12,6 +13,8 @@ import { economicalProviders } from "../ai/economical-providers";
 import { reserveAiExecution, dailyAiLimit } from "../ai/ai-budget";
 import { WahaService } from "./waha.service";
 import { EventsService } from "./events.service";
+import { JobLeaseService } from "../common/job-lease.service";
+import { schedulersEnabled } from "../common/scheduler-mode";
 const object = (x: any): Record<string, any> =>
   x && typeof x === "object" && !Array.isArray(x) ? x : {};
 @Injectable()
@@ -25,9 +28,10 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
     private readonly ai: AiService,
     private readonly waha: WahaService,
     private readonly events: EventsService,
+    @Optional() private readonly leases?: JobLeaseService,
   ) {}
   onModuleInit() {
-    if (process.env.NODE_ENV === "test") return;
+    if (process.env.NODE_ENV === "test" || !schedulersEnabled()) return;
     this.timer = setInterval(() => void this.tick(), 15000);
     this.timer.unref();
   }
@@ -45,6 +49,8 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
+      // Only one replica triages the queue at a time.
+      if (this.leases && !(await this.leases.claim("audio-triage", 14_000))) return;
       const old = await this.prisma.message.findMany({
         where: { metadata: { path: ["voiceTriageStatus"], equals: "RUNNING" } },
         take: 30,

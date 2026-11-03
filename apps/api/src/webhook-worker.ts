@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 const intervalMs = Math.max(1000, Number(process.env.WEBHOOK_WORKER_INTERVAL_MS || 2000));
 const batchSize = Math.max(1, Math.min(100, Number(process.env.WEBHOOK_WORKER_BATCH_SIZE || 25)));
 const maxAttempts = 3;
+let lastRealtimeCleanupAt = 0;
 
 type ClaimedDelivery = { id: string };
 
@@ -87,7 +88,14 @@ async function processDelivery(id: string): Promise<void> {
   }
 }
 
+async function cleanupRealtimeEvents(): Promise<void> {
+  if (Date.now() - lastRealtimeCleanupAt < 60_000) return;
+  await prisma.$executeRaw`DELETE FROM realtime_events WHERE expires_at <= NOW()`;
+  lastRealtimeCleanupAt = Date.now();
+}
+
 async function drain(): Promise<void> {
+  await cleanupRealtimeEvents();
   const ids = await claimBatch();
   await Promise.all(ids.map((id) => processDelivery(id)));
 }

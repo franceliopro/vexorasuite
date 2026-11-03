@@ -3455,3 +3455,14 @@ input[type="color"].profile-tag-inline-color {
 /* SLA compacto em linha única. */
 .supervision-summary-heading>label{display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:5px!important;white-space:nowrap!important;margin:0!important}
 .supervision-summary-heading>label select{width:76px!important;min-width:76px!important;height:28px!important;padding:3px 6px!important}
+
+
+/* Conversation media is served through the authenticated tenant proxy. Keep previews bounded and lightweight. */
+.inbox-audio-message{display:block;width:min(320px,100%);max-width:100%;height:36px}
+.inbox-image-message{display:block;width:auto;max-width:min(360px,100%);max-height:360px;border-radius:12px;object-fit:contain;background:var(--page,#f7f8fc)}
+.inbox-video-message{display:block;width:min(420px,100%);max-width:100%;max-height:360px;border-radius:12px;background:#111}
+@media(max-width:760px){
+ .inbox-audio-message{width:min(280px,100%)}
+ .inbox-image-message{max-width:100%;max-height:280px}
+ .inbox-video-message{max-height:280px}
+}

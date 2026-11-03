@@ -188,7 +188,7 @@ export class WahaService {
    }
    const response = await this.request(url.pathname, { redirect: "error" });
    if (!response) throw new BadGatewayException("Gateway de mídia indisponível.");
-   const mime = (response.headers.get("content-type") || "application/octet-stream").split(";")[0].toLowerCase();
+   const mime = ((response.headers.get("content-type") || "application/octet-stream").split(";")[0] || "application/octet-stream").toLowerCase();
    const declaredSize = Number(response.headers.get("content-length") || 0);
    if (!response.ok || (!mime.startsWith("audio/") && !mime.startsWith("image/") && !mime.startsWith("video/") && !mime.startsWith("application/")) || declaredSize > maxBytes) {
      throw new BadGatewayException("Mídia indisponível ou acima do limite.");

@@ -2,7 +2,7 @@ import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
-import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, StreamableFile, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
@@ -569,6 +569,35 @@ export class ConversationsController {
       }
       return [message];
     });
+  }
+
+  @Get(":id/messages/:messageId/media")
+  async messageMedia(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("messageId", ParseUUIDPipe) messageId: string,
+    @Query("view") view = "new",
+  ): Promise<StreamableFile> {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, tenantId: request.user.tenantId, ...(await this.accessWhere(request, view)) } as any,
+      select: { id: true, channelConnection: true },
+    });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA") {
+      throw new BadRequestException("Esta mídia não pertence a um canal WAHA.");
+    }
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, conversationId: conversation.id, tenantId: request.user.tenantId },
+      select: { metadata: true },
+    });
+    if (!message) throw new NotFoundException("Mídia não encontrada nesta conversa.");
+    const metadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
+      ? message.metadata as Record<string, unknown>
+      : {};
+    const rawMediaUrl = typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : "";
+    if (!rawMediaUrl) throw new NotFoundException("Esta mensagem não possui mídia disponível.");
+    const media = await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl);
+    return new StreamableFile(media.buffer, { type: media.mimetype });
   }
 
   @Post(":id/messages/:messageId/delete")

@@ -95,6 +95,26 @@ export class WahaService {
     }
   }
 
+  /** Resolve o telefone real quando o WhatsApp entrega um identificador @lid.
+   * A consulta é pontual, não faz sincronização de contatos nem de histórico. */
+  async resolveContactPhone(channel: ChannelConnection, chatId: string): Promise<string | null> {
+    const direct = chatId.match(/^(\d{8,18})@c\.us$/)?.[1];
+    if (direct) return direct;
+    if (!/^\d{8,18}@lid$/.test(chatId)) return null;
+    try {
+      const response = await this.request(
+        `/api/${encodeURIComponent(channel.sessionName)}/lids/${encodeURIComponent(chatId)}`,
+        { redirect: "error" },
+      );
+      if (!response.ok) return null;
+      const payload = await response.json().catch(() => ({})) as { pn?: unknown };
+      const phone = typeof payload.pn === "string" ? payload.pn.replace(/@c\.us$/i, "").replace(/\D/g, "") : "";
+      return /^\d{8,18}$/.test(phone) ? phone : null;
+    } catch {
+      return null;
+    }
+  }
+
   async contactPhoto(channel:ChannelConnection,chatId:string):Promise<Buffer|null>{
     if(!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId))return null;
     try{
@@ -210,6 +230,21 @@ export class WahaService {
      reader.releaseLock();
    }
    return { buffer: Buffer.concat(chunks), mimetype: mime };
+ }
+
+ /** Last-resort recovery for a fresh event that did not include media.url.
+  * WAHA keeps this lookup local to the active session; it does not fetch old history. */
+ async recoverMessageMedia(channel: ChannelConnection, chatId: string, providerMessageId: string): Promise<{ buffer: Buffer; mimetype: string }> {
+   if (!chatId || !providerMessageId) throw new BadGatewayException("Mídia indisponível.");
+   const response = await this.request(
+     `/api/${encodeURIComponent(channel.sessionName)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(providerMessageId)}?downloadMedia=true`,
+     { redirect: "error" },
+   );
+   if (!response.ok) throw new BadGatewayException("Não foi possível recuperar a mídia no WhatsApp.");
+   const payload = await response.json().catch(() => ({})) as { media?: { url?: unknown } };
+   const raw = typeof payload.media?.url === "string" ? payload.media.url : "";
+   if (!raw) throw new BadGatewayException("O WhatsApp não disponibilizou esta mídia.");
+   return this.downloadMedia(channel, raw);
  }
 
  async incomingAudio(channel: ChannelConnection, raw: string): Promise<{ buffer: Buffer; mimetype: string }> {

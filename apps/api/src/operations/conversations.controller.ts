@@ -590,15 +590,17 @@ export class ConversationsController {
     }
     const message = await this.prisma.message.findFirst({
       where: { id: messageId, conversationId: conversation.id, tenantId: request.user.tenantId },
-      select: { metadata: true },
+      select: { metadata: true, providerMessageId: true },
     });
     if (!message) throw new NotFoundException("Mídia não encontrada nesta conversa.");
     const metadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
       ? message.metadata as Record<string, unknown>
       : {};
     const rawMediaUrl = typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : "";
-    if (!rawMediaUrl) throw new NotFoundException("Esta mensagem não possui mídia disponível.");
-    const media = await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl);
+    const chatId = typeof metadata.chatId === "string" ? metadata.chatId : "";
+    const media = rawMediaUrl
+      ? await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl)
+      : await this.waha.recoverMessageMedia(conversation.channelConnection, chatId, message.providerMessageId || "");
     return new StreamableFile(media.buffer, { type: media.mimetype });
   }
 

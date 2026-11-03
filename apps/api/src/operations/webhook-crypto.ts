@@ -10,7 +10,7 @@ function isPrivateAddress(address: string): boolean {
   if (value === "::1" || value === "0:0:0:0:0:0:0:1" || value.startsWith("fc") || value.startsWith("fd") || value.startsWith("fe80:")) return true;
   const octets = value.split(".").map(Number);
   if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
-  const [first, second] = octets;
+  const [first, second = -1] = octets;
   return first === 0 || first === 10 || first === 127 || (first === 169 && second === 254) ||
     (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168) ||
     (first === 100 && second >= 64 && second <= 127);

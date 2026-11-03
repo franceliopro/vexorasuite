@@ -9,9 +9,10 @@ import { AiModule } from "./ai/ai.module";
 import { AuditInterceptor } from "./common/audit/audit.interceptor";
 import { RateLimitInterceptor } from "./common/rate-limit/rate-limit.interceptor";
 import { RateLimitService } from "./common/rate-limit/rate-limit.service";
+import { MailModule } from "./mail/mail.module";
 
 @Module({
-  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule],
+  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule],
   controllers: [HealthController],
   providers: [
     RateLimitService,

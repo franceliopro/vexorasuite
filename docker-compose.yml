@@ -69,6 +69,16 @@ services:
       RATE_LIMIT_READ_PER_MIN: ${RATE_LIMIT_READ_PER_MIN:-900}
       RATE_LIMIT_WRITE_PER_MIN: ${RATE_LIMIT_WRITE_PER_MIN:-240}
       TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Outgoing e-mail. Without MAIL_HOST the transport stays disabled (log only).
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SECURE: ${MAIL_SECURE:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Vexora Suite}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
     expose:
       - "3001"
     depends_on:

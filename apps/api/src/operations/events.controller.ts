@@ -1,5 +1,5 @@
 import {Controller,MessageEvent,Req,Sse,UseGuards} from '@nestjs/common';
-import {Observable,mergeMap,filter} from 'rxjs';
+import {Observable,mergeMap,filter,takeUntil,timer} from 'rxjs';
 import {AuthGuard} from '../auth/auth.guard';
 import {AuthenticatedRequest} from '../auth/auth.types';
 import {administrative,effectiveModules,patternModules} from '../auth/module-policy';
@@ -10,7 +10,9 @@ import {assignedConversationScope} from './conversation-visibility';
 export class EventsController{
  constructor(private readonly events:EventsService,private readonly prisma:PrismaService){}
  @Sse('events') stream(@Req() req:AuthenticatedRequest):Observable<MessageEvent>{
-  return this.events.stream(req.user.tenantId).pipe(mergeMap(async event=>{
+  const expiresAt = typeof (req.user as any).exp === 'number' ? Number((req.user as any).exp) * 1000 : Date.now() + 15 * 60 * 1000;
+  const remainingMs = Math.max(1, expiresAt - Date.now());
+  return this.events.stream(req.user.tenantId).pipe(takeUntil(timer(remainingMs)),mergeMap(async event=>{
    if(typeof (req.user as any).exp==='number'&&(req.user as any).exp*1000<=Date.now())return null;
    const member=await this.prisma.membership.findFirst({where:{tenantId:req.user.tenantId,userId:req.user.sub,user:{isActive:true,mustChangePassword:false},tenant:{status:'ACTIVE'}},select:{role:true,modules:true,deniedModules:true,user:{select:{authVersion:true,isPlatformAdmin:true}},tenant:{select:{kind:true,integrations:true}}}});
    if(!member||(req.user.sessionVersion??0)!==member.user.authVersion||member.tenant.kind==='PLATFORM'&&!member.user.isPlatformAdmin)return null;

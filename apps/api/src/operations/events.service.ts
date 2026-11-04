@@ -14,7 +14,7 @@ export interface TenantEvent {
 type PersistedEvent = { id: string; type: string; data: Record<string, unknown>; occurred_at: Date };
 
 /** Poll cadence used only to pick up events written by other replicas. */
-const REPLICA_POLL_MS = Number(process.env.REALTIME_POLL_MS || 2000);
+const REPLICA_POLL_MS = Number(process.env.REALTIME_POLL_MS || 5000);
 /** Bounded dedupe window: a long-lived stream must not grow one Set forever. */
 const SEEN_LIMIT = 5000;
 const PERSIST_ATTEMPTS = 3;

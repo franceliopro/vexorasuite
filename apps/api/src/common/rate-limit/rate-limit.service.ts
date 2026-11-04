@@ -32,6 +32,7 @@ export class RateLimitService implements OnModuleDestroy {
   private redis?: RedisRateLimitStore;
   private redisClient?: { disconnect?: () => void; quit?: () => Promise<unknown> };
   private connecting?: Promise<void>;
+  private redisUnavailableUntil = 0;
   private warned = false;
   readonly enabled = process.env.RATE_LIMIT_ENABLED !== "false" && process.env.NODE_ENV !== "test";
 
@@ -49,15 +50,26 @@ export class RateLimitService implements OnModuleDestroy {
       ? `ip:${request.ip ?? "unknown"}`
       : `user:${request.user.sub}`;
     const store = await this.store();
-    const result = await store.consume(`${policy.name}:${actor}`, policy.limit, policy.windowMs);
+    let result: { allowed: boolean; remaining: number; resetAt: number };
+    try {
+      result = await store.consume(`${policy.name}:${actor}`, policy.limit, policy.windowMs);
+    } catch (error) {
+      if (store.kind !== "redis") throw error;
+      this.redisClient?.disconnect?.();
+      this.redisClient = undefined;
+      this.redis = undefined;
+      this.redisUnavailableUntil = Date.now() + 30_000;
+      this.logger.warn(`Redis falhou durante o rate limit; usando contador local por 30s: ${error instanceof Error ? error.message : String(error)}`);
+      result = await this.memory.consume(`${policy.name}:${actor}`, policy.limit, policy.windowMs);
+    }
     return { ...result, limit: policy.limit, policy: policy.name };
   }
 
   private async store(): Promise<RateLimitStore> {
     if (this.redis) return this.redis;
     const url = process.env.REDIS_URL;
-    if (!url) return this.memory;
-    this.connecting ??= this.connect(url);
+    if (!url || Date.now() < this.redisUnavailableUntil) return this.memory;
+    this.connecting ??= this.connect(url).finally(() => { this.connecting = undefined; });
     await this.connecting;
     return this.redis ?? this.memory;
   }
@@ -85,6 +97,7 @@ export class RateLimitService implements OnModuleDestroy {
     } catch (error) {
       // Stop the reconnect loop: a limiter must never hold the process open or retry forever.
       candidate?.disconnect?.();
+      this.redisUnavailableUntil = Date.now() + 30_000;
       this.logger.warn(
         `Não foi possível usar o Redis para rate limit (${error instanceof Error ? error.message : String(error)}). Contador local em uso.`,
       );

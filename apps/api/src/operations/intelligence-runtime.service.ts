@@ -612,8 +612,11 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
     const claimed = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM messages WHERE id = ${messageId}::uuid AND tenant_id = ${channel.tenantId}::uuid FOR UPDATE`;
       const message = await tx.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId, conversationId, status: 'QUEUED' } });
-      if (!message || object(message.metadata).deliveryState === 'SENDING') return false;
-      await tx.message.update({ where: { id: messageId }, data: { metadata: { ...object(message.metadata), deliveryState: 'SENDING', deliveryClaimedAt: new Date().toISOString() } } });
+      const messageMetadata = object(message?.metadata);
+      const deliveryClaimedAt = Date.parse(String(messageMetadata.deliveryClaimedAt || ''));
+      const staleSending = messageMetadata.deliveryState === 'SENDING' && (!Number.isFinite(deliveryClaimedAt) || deliveryClaimedAt < Date.now() - 120000);
+      if (!message || (messageMetadata.deliveryState === 'SENDING' && !staleSending)) return false;
+      await tx.message.update({ where: { id: messageId }, data: { metadata: { ...messageMetadata, deliveryState: 'SENDING', deliveryClaimedAt: new Date().toISOString() } } });
       return { inboxRoutingRevision:object(message.metadata).inboxRoutingRevision||null, hasRuntimeScope:!!object(message.metadata).runtimeScope, scopeKey:object(message.metadata).scopeKey||'default',runtimeScope:object(object(message.metadata).runtimeScope) as RuntimeScope,revision: object(message.metadata).revision, handoffAssigneeId: object(message.metadata).handoffAssigneeId };
     });
     if (!claimed) return;

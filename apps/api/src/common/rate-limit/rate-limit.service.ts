@@ -91,11 +91,11 @@ export class RateLimitService implements OnModuleDestroy {
   }
 
   private async connect(url: string): Promise<void> {
-    let candidate: { disconnect?: () => void; ping: () => Promise<string>; on: (event: string, cb: (error: Error) => void) => void } | undefined;
+    let candidate: { disconnect?: () => void; ping: () => Promise<string>; connect: () => Promise<void>; on: (event: string, cb: (error: Error) => void) => void } | undefined;
     try {
       const { default: Redis } = await import("ioredis");
       const client = new Redis(url, {
-        lazyConnect: false,
+        lazyConnect: true,
         maxRetriesPerRequest: 1,
         enableOfflineQueue: false,
         connectTimeout: 2000,
@@ -106,7 +106,9 @@ export class RateLimitService implements OnModuleDestroy {
         this.warned = true;
         this.logger.warn(`Redis indisponível para rate limit; usando contador local: ${error.message}`);
       });
+      await client.connect();
       await client.ping();
+      this.warned = false;
       this.redisClient = client;
       this.redis = new RedisRateLimitStore(client);
       this.logger.log("Rate limit usando contador compartilhado no Redis.");

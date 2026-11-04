@@ -6,11 +6,12 @@ import { MailController } from "./mail.controller";
 import { EmailMailboxController } from "./email-mailbox.controller";
 import { MailService } from "./mail.service";
 import { EmailMailboxService } from "./email-mailbox.service";
+import { JobLeaseService } from "../common/job-lease.service";
 
 @Module({
   imports: [PrismaModule, forwardRef(() => AuthModule), JwtModule.register({})],
   controllers: [MailController, EmailMailboxController],
-  providers: [MailService, EmailMailboxService],
+  providers: [MailService, EmailMailboxService, JobLeaseService],
   exports: [MailService, EmailMailboxService],
 })
 export class MailModule {}

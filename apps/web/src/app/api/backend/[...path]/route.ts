@@ -1,5 +1,5 @@
 import { limitedRequestBody, RequestBodyTooLarge, trustedRequestOrigin } from "../../../../lib/backend-request";
-import { REFRESH_COOKIE, SESSION_COOKIE, sessionCookies, shouldRefresh } from "../../../../lib/session-cookies";
+import { LEGACY_REFRESH_COOKIE, LEGACY_SESSION_COOKIE, REFRESH_COOKIE, SESSION_COOKIE, sessionCookies, shouldRefresh } from "../../../../lib/session-cookies";
 import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
@@ -15,12 +15,17 @@ async function proxyRequest(request: Request, context: Context) {
   const pathValue = (params.path || []).map((part) => encodeURIComponent(part)).join("/");
   const cookieStore = await cookies();
   const apiOrigin = (process.env.API_INTERNAL_URL || "http://api:3001").replace(/\/$/, "");
-  const refreshToken = cookieStore.get(REFRESH_COOKIE)?.value;
   const secureCookie = process.env.NODE_ENV === "production";
+  const readCookie = (primary: string, legacy: string) => cookieStore.get(primary)?.value ?? cookieStore.get(legacy)?.value;
+  const refreshToken = readCookie(REFRESH_COOKIE, LEGACY_REFRESH_COOKIE);
 
   const applyCookies = (payload: Record<string, unknown>) => {
     const { cookies: jar, rest } = sessionCookies(payload, { secure: secureCookie });
     for (const cookie of jar) cookieStore.set(cookie.name, cookie.value, cookie.options);
+    if (secureCookie) {
+      cookieStore.delete(LEGACY_SESSION_COOKIE);
+      cookieStore.delete(LEGACY_REFRESH_COOKIE);
+    }
     return rest;
   };
 
@@ -68,6 +73,8 @@ async function proxyRequest(request: Request, context: Context) {
     }
     cookieStore.delete(SESSION_COOKIE);
     cookieStore.delete(REFRESH_COOKIE);
+    cookieStore.delete(LEGACY_SESSION_COOKIE);
+    cookieStore.delete(LEGACY_REFRESH_COOKIE);
     return Response.json({ ok: true });
   }
 
@@ -104,7 +111,7 @@ async function proxyRequest(request: Request, context: Context) {
   let upstream: Response;
   try {
     if (hasBody) bodyBuffer = await limitedRequestBody(request);
-    upstream = await send(cookieStore.get(SESSION_COOKIE)?.value);
+    upstream = await send(readCookie(SESSION_COOKIE, LEGACY_SESSION_COOKIE));
   } catch (error) {
     if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });
     return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
@@ -136,6 +143,8 @@ async function proxyRequest(request: Request, context: Context) {
   if (pathValue === "auth/me" && upstream.status === 401) {
     cookieStore.delete(SESSION_COOKIE);
     cookieStore.delete(REFRESH_COOKIE);
+    cookieStore.delete(LEGACY_SESSION_COOKIE);
+    cookieStore.delete(LEGACY_REFRESH_COOKIE);
   }
 
   const responseHeaders = new Headers();

@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import {
   DEFAULT_ACCESS_MAX_AGE,
   DEFAULT_REFRESH_MAX_AGE,
+  LEGACY_REFRESH_COOKIE,
+  LEGACY_SESSION_COOKIE,
   REFRESH_COOKIE,
   SESSION_COOKIE,
   sessionCookies,
@@ -18,9 +20,11 @@ test("both tokens become httpOnly cookies and never reach the response body", ()
   assert.equal(cookies.length, 2);
   const [access, refresh] = cookies;
   assert.equal(access.name, SESSION_COOKIE);
+  assert.match(access.name, /^__Host-/);
   assert.equal(access.value, "acesso");
   assert.equal(access.options.maxAge, 1800);
   assert.equal(refresh.name, REFRESH_COOKIE);
+  assert.match(refresh.name, /^__Host-/);
   assert.equal(refresh.options.maxAge, 2592000);
   for (const cookie of cookies) {
     assert.equal(cookie.options.httpOnly, true);
@@ -40,6 +44,8 @@ test("never falls back to a decade-long cookie when a lifetime is missing", () =
   assert.equal(cookies[0].options.maxAge, DEFAULT_ACCESS_MAX_AGE);
   assert.equal(cookies[1].options.maxAge, DEFAULT_REFRESH_MAX_AGE);
   assert.equal(cookies[0].options.secure, false);
+  assert.equal(cookies[0].name, LEGACY_SESSION_COOKIE);
+  assert.equal(cookies[1].name, LEGACY_REFRESH_COOKIE);
 });
 
 test("a payload without tokens sets nothing instead of an empty cookie", () => {
@@ -59,10 +65,19 @@ test("refreshes exactly once, and only when it can help", () => {
   }
 });
 
+test("production migration accepts legacy names and clears them after issuing host cookies", () => {
+  const source = readFileSync(new URL("../src/app/api/backend/[...path]/route.ts", import.meta.url), "utf8");
+  assert.match(source, /LEGACY_REFRESH_COOKIE/);
+  assert.match(source, /readCookie\(REFRESH_COOKIE, LEGACY_REFRESH_COOKIE\)/);
+  assert.match(source, /cookieStore\.delete\(LEGACY_SESSION_COOKIE\)/);
+  assert.match(source, /cookieStore\.delete\(LEGACY_REFRESH_COOKIE\)/);
+});
+
 test("the proxy revokes the session on logout instead of only dropping the cookie", () => {
   const source = readFileSync(new URL("../src/app/api/backend/[...path]/route.ts", import.meta.url), "utf8");
   assert.match(source, /apiOrigin \+ "\/api\/auth\/logout"/);
   assert.match(source, /cookieStore\.delete\(REFRESH_COOKIE\)/);
+  assert.match(source, /cookieStore\.delete\(LEGACY_REFRESH_COOKIE\)/);
   assert.match(source, /shouldRefresh\(/);
   assert.doesNotMatch(source, /maxAge: typeof payload\.expiresIn === "number" \? payload\.expiresIn : 28800/);
 });

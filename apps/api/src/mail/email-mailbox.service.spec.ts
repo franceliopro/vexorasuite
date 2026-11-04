@@ -1,4 +1,5 @@
 jest.mock("imapflow", () => ({ ImapFlow: jest.fn() }));
+jest.mock("../communications/security", () => ({ mailHost: jest.fn().mockResolvedValue("203.0.113.10") }));
 
 import { ImapFlow } from "imapflow";
 import { EmailMailboxService } from "./email-mailbox.service";
@@ -55,7 +56,7 @@ describe("EmailMailboxService IMAP timeouts", () => {
     };
     const events = { publish: jest.fn() };
     const service = new EmailMailboxService(prisma as never, events as never);
-    jest.spyOn(service as never, "decrypt" as never).mockReturnValue("password");
+    jest.spyOn(service as any, "decrypt" as any).mockReturnValue("password");
 
     await service.verify("tenant-1", "mailbox-1");
 

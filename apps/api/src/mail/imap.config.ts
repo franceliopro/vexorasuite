@@ -68,7 +68,7 @@ export function resolveImapSettings(env: Env = process.env): ImapSettings {
   if (!service && userEntry && /@(gmail|googlemail)\.com$/i.test(userEntry.value)) service = "gmail";
 
   const preset = service ? PRESETS[service] : undefined;
-  let host = hostEntry ? parseHost(hostEntry.value).host : preset?.host;
+  const host = hostEntry ? parseHost(hostEntry.value).host : preset?.host;
   const parsedHost = hostEntry ? parseHost(hostEntry.value) : undefined;
   let port = portEntry ? Number(portEntry.value) : parsedHost?.port || preset?.port || 993;
   if (!Number.isFinite(port) || port <= 0) port = 993;

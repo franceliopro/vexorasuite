@@ -80,7 +80,7 @@ describe("EmailMailboxService IMAP timeouts", () => {
     };
     const events = { publish: jest.fn() };
     const service = new EmailMailboxService(prisma as never, events as never);
-    jest.spyOn(service as never, "decrypt" as never).mockReturnValue("password");
+    jest.spyOn(service as any, "decrypt" as any).mockReturnValue("password");
 
     await service.sync("tenant-1", "mailbox-1");
 

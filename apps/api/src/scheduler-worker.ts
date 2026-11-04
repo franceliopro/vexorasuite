@@ -4,6 +4,20 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { touchWorkerHeartbeat } from "./worker-heartbeat";
 
+const workerId = process.env.WORKER_ID || process.env.HOSTNAME || "scheduler-worker";
+
+export type WorkerCycleLog = {
+  workerId: string;
+  cycle: number;
+  durationMs: number;
+  itemsProcessed: number;
+  consecutiveFailures: number;
+};
+
+export function formatWorkerCycleLog(metrics: WorkerCycleLog): string {
+  return JSON.stringify({ event: "worker_cycle", ...metrics });
+}
+
 /**
  * Dedicated process for the periodic jobs: audio triage, workflow cadence, channel health and
  * the daily Asaas reconciliation.
@@ -27,17 +41,32 @@ async function bootstrap() {
   await app.init();
   logger.log("Jobs periódicos ativos neste processo.");
 
-  const updateHeartbeat = async () => {
+  let cycleNumber = 0;
+  let consecutiveFailures = 0;
+  const runHeartbeatCycle = async () => {
+    const cycleStartedAt = Date.now();
+    let cycleFailures = 0;
     try {
       await touchWorkerHeartbeat();
     } catch (error) {
+      cycleFailures = 1;
       logger.warn(`Não foi possível atualizar o heartbeat do scheduler worker: ${error instanceof Error ? error.message : String(error)}`);
     }
+    consecutiveFailures = cycleFailures > 0 ? consecutiveFailures + 1 : 0;
+    cycleNumber += 1;
+    logger.log(formatWorkerCycleLog({
+      workerId,
+      cycle: cycleNumber,
+      durationMs: Date.now() - cycleStartedAt,
+      itemsProcessed: 0,
+      consecutiveFailures,
+    }));
   };
-  await updateHeartbeat();
+
   // This referenced timer keeps the application context alive and makes the worker liveness
   // observable without pretending that external providers or individual jobs are healthy.
-  const heartbeatTimer = setInterval(() => void updateHeartbeat(), 10_000);
+  await runHeartbeatCycle();
+  const heartbeatTimer = setInterval(() => void runHeartbeatCycle(), 10_000);
 
   const shutdown = async (signal: string) => {
     clearInterval(heartbeatTimer);
@@ -49,4 +78,6 @@ async function bootstrap() {
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-void bootstrap();
+if (require.main === module) {
+  void bootstrap();
+}

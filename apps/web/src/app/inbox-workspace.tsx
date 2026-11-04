@@ -469,6 +469,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       source.close();
     };
   }, [loadConversations, loadQueueCounts, loadMessages, loadChannels, loadSupervision]);
+  const pendingId = channels.find((item) => item.status === "CONNECTING" || item.status === "QR")?.id ?? null;
   useEffect(() => {
     if (!pendingId) return;
     let cancelled = false;

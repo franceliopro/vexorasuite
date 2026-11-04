@@ -27,6 +27,29 @@ export function canManageProfileCatalog(role: string): boolean {
   return administrative(role);
 }
 
+export function normalizeProfileTags(input: unknown, catalog: unknown, existing: Prisma.JsonValue): Prisma.InputJsonValue {
+  if (!Array.isArray(input)) throw new BadRequestException("Etiquetas inválidas.");
+  const configured = Array.isArray(catalog)
+    ? catalog.flatMap((tag) => {
+      if (!tag || typeof tag !== "object" || Array.isArray(tag)) return [];
+      const value = tag as Record<string, unknown>;
+      return typeof value.name === "string" && typeof value.color === "string" ? [{ name: value.name, color: value.color }] : [];
+    })
+    : [];
+  const currentNames = new Set((Array.isArray(existing) ? existing : []).map((tag) => typeof tag === "string"
+    ? tag.trim().toLocaleLowerCase("pt-BR")
+    : tag && typeof tag === "object" && !Array.isArray(tag) && typeof (tag as Record<string, unknown>).name === "string"
+      ? ((tag as Record<string, unknown>).name as string).trim().toLocaleLowerCase("pt-BR")
+      : ""));
+  return input.map((tag) => {
+    const value = typeof tag === "string" ? { name: tag, color: "#eeecff" } : tag as Record<string, unknown>;
+    const name = String(value.name || "").trim();
+    const definition = configured.find((candidate) => candidate.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
+    if (!definition && !currentNames.has(name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("A etiqueta precisa estar cadastrada no catálogo do CRM.");
+    return definition ? { ...value, name: definition.name, color: definition.color } : value;
+  }) as Prisma.InputJsonValue;
+}
+
 export function mergeProfileFields(legacy: unknown, catalog: unknown): Array<Record<string, unknown>> {
   const fields = Array.isArray(legacy) ? legacy.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value)) : [];
   const keys = new Set(fields.map((field) => typeof field.key === "string" ? field.key : "").filter(Boolean));
@@ -264,16 +287,7 @@ export class ContactsController {
     }
     const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, existing => {
       let tags: Prisma.InputJsonValue | undefined;
-      if (input.tags !== undefined) {
-        const currentNames = new Set((Array.isArray(existing.tags) ? existing.tags : []).map((tag) => typeof tag === "string" ? tag.trim().toLocaleLowerCase("pt-BR") : tag && typeof tag === "object" && !Array.isArray(tag) && typeof (tag as Record<string, unknown>).name === "string" ? ((tag as Record<string, unknown>).name as string).trim().toLocaleLowerCase("pt-BR") : ""));
-        tags = (input.tags as Array<string | Record<string, unknown>>).map((tag) => {
-          const value = typeof tag === "string" ? { name: tag, color: "#eeecff" } : tag;
-          const name = String(value.name || "").trim();
-          const definition = configuredTags.find((candidate) => candidate.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
-          if (!definition && !currentNames.has(name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("A etiqueta precisa estar cadastrada no catálogo do CRM.");
-          return definition ? { ...value, name: definition.name, color: definition.color } : value;
-        }) as Prisma.InputJsonValue;
-      }
+      if (input.tags !== undefined) tags = normalizeProfileTags(input.tags, configuredTags, existing.tags);
       return {
         ...existing,
         ...(tags !== undefined ? { tags } : {}),

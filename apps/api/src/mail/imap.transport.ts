@@ -57,10 +57,12 @@ export class ImapMailTransport {
     await client.connect();
     const lock = await client.getMailboxLock(this.settings.mailbox);
     try {
-      const exists = client.mailbox && typeof client.mailbox === "object" ? client.mailbox.exists : 0;
-      const start = Math.max(1, exists - safeLimit + 1);
+      const uidNext = client.mailbox && typeof client.mailbox === "object" && typeof client.mailbox.uidNext === "number" ? client.mailbox.uidNext : 1;
+      // The range is expressed in UIDs, not sequence numbers. Sequence numbers shift after
+      // expunges, while UID/UIDVALIDITY remains stable for incremental mailbox reads.
+      const startUid = Math.max(1, uidNext - safeLimit);
       const rows: Array<{ uid: number; source: Buffer }> = [];
-      for await (const message of client.fetch(`${start}:*`, { uid: true, source: true }, { uid: false })) {
+      for await (const message of client.fetch(`${startUid}:*`, { uid: true, source: true }, { uid: true })) {
         if (message.uid && message.source) rows.push({ uid: message.uid, source: Buffer.from(message.source) });
       }
       const parsed: InboundMail[] = [];

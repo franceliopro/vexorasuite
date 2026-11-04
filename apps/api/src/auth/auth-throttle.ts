@@ -134,7 +134,7 @@ export class AuthThrottle implements OnModuleDestroy {
     } catch (error) {
       this.redisRetryAt = Date.now() + 30_000;
       this.logger.warn(
-        "Redis indisponível para proteção de autenticação; usando contador local: "
+        "Redis indisponível para proteção de autenticação; usando contador local: " +
           (error instanceof Error ? error.message : String(error)),
       );
       return undefined;

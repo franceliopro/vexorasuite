@@ -30,7 +30,7 @@ function isFinalizedConversation(metadata: unknown, conversationId: string): boo
 @Controller("conversations")
 @UseGuards(AuthGuard)
 export class ConversationsController {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly email: EmailMailboxService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly email: EmailMailboxService = null as unknown as EmailMailboxService) {}
 
   // Quick replies are stored per tenant so all agents in the same company share
   // the same catalog without browser-local storage or cross-tenant leakage.

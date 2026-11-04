@@ -51,11 +51,12 @@ import { ConversationDistributionService } from "./conversation-distribution.ser
 import { SupervisionController } from "./supervision.controller";
 import { PublicApiController } from "./public-api.controller";
 import { WebhooksController } from "./webhooks.controller";
+import { MailModule } from "../mail/mail.module";
 
 @Module({
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
-  imports: [AuthModule, JwtModule.register({}), PrismaModule],
+  imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule],
   controllers: [InboxesController,CopilotController,HomePresentationController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController],
   providers: [JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService],
 })

@@ -439,7 +439,7 @@ export class AuthService {
     this.assertUserAdministration(actorRole,actorPlatformAdmin);
     const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
     if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
-    assertPasswordResetTargetAllowed(actorPlatformAdmin,membership.user.isPlatformAdmin);
+    assertPasswordResetTargetAllowed(actorPlatformAdmin,membership.user?.isPlatformAdmin);
     const temporaryPassword=this.temporaryPassword();
     const passwordHash=await hash(temporaryPassword,12);
     await this.prisma.user.update({where:{id:userId},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});

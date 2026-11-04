@@ -158,8 +158,15 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   async syncAll(): Promise<void> {
-    const mailboxes = await this.prisma.emailMailbox.findMany({ where: { status: { in: ["CONNECTED", "SYNCING"] } }, select: { id: true, tenantId: true } });
-    for (const mailbox of mailboxes) await this.sync(mailbox.tenantId, mailbox.id);
+    const retryBefore = new Date(Date.now() - 5 * 60_000);
+    const mailboxes = await this.prisma.emailMailbox.findMany({
+      where: { OR: [{ status: { in: ["CONNECTED", "SYNCING"] } }, { status: "ERROR", updatedAt: { lt: retryBefore } }] },
+      select: { id: true, tenantId: true },
+    });
+    for (const mailbox of mailboxes) {
+      try { await this.sync(mailbox.tenantId, mailbox.id); }
+      catch (error) { this.logger.warn("Falha isolada na caixa " + mailbox.id + ": " + (error instanceof Error ? error.message : String(error))); }
+    }
   }
 
   async sync(tenantId: string, id: string): Promise<{ imported: number; skipped: number }> {

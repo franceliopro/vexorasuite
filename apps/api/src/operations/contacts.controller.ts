@@ -287,7 +287,7 @@ export class ContactsController {
     }
     const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, existing => {
       let tags: Prisma.InputJsonValue | undefined;
-      if (input.tags !== undefined) tags = normalizeProfileTags(input.tags, configuredTags, existing.tags);
+      if (input.tags !== undefined) tags = normalizeProfileTags(input.tags, configuredTags, existing.tags ?? null);
       return {
         ...existing,
         ...(tags !== undefined ? { tags } : {}),

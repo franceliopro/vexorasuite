@@ -598,7 +598,7 @@ export class ConversationsController {
       : {};
     const rawMediaUrl = typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : "";
     const chatId = typeof metadata.chatId === "string" ? metadata.chatId : "";
-    let media;
+    let media: { buffer: Buffer; mimetype: string };
     if (rawMediaUrl) {
       try {
         media = await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl);

@@ -1,8 +1,12 @@
-import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { GlobalExceptionFilter } from "./global-exception.filter";
 
 describe("GlobalExceptionFilter", () => {
-  const runFilter = (exception: unknown, headers: Record<string, string> = {}) => {
+  const runFilter = (
+    exception: unknown,
+    headers: Record<string, string> = {},
+    responseOverrides: Record<string, unknown> = {},
+  ) => {
     const request = {
       originalUrl: "/api/example?tab=all",
       url: "/api/example",
@@ -10,8 +14,10 @@ describe("GlobalExceptionFilter", () => {
     };
     const json = jest.fn();
     const response = {
+      headersSent: false,
       setHeader: jest.fn(),
       status: jest.fn().mockReturnValue({ json }),
+      ...responseOverrides,
     };
     const host = {
       switchToHttp: () => ({
@@ -22,7 +28,7 @@ describe("GlobalExceptionFilter", () => {
 
     new GlobalExceptionFilter().catch(exception, host as never);
 
-    return { request, response, json };
+    return { response, json };
   };
 
   it("preserves the HTTP status and exposes only the safe error contract", () => {
@@ -42,14 +48,40 @@ describe("GlobalExceptionFilter", () => {
     expect(result.json.mock.calls[0][0]).not.toHaveProperty("providerToken");
   });
 
-  it("joins validation messages into a useful public message", () => {
+  it("preserves validation message arrays for frontend compatibility", () => {
     const result = runFilter(new BadRequestException({ message: ["email must be an email", "name should not be empty"], error: "Bad Request" }));
 
-    expect(result.response.setHeader).toHaveBeenCalledWith("x-request-id", expect.stringMatching(/^[0-9a-f-]{36}$/));
     expect(result.json.mock.calls[0][0]).toMatchObject({
       statusCode: 400,
-      message: "email must be an email; name should not be empty",
+      message: ["email must be an email", "name should not be empty"],
     });
+  });
+
+  it("keeps only controlled provider error metadata", () => {
+    const result = runFilter(new BadGatewayException({
+      message: "provider raw message with https://internal.example/secret",
+      providerStatus: 429,
+      providerReason: "rate_limit",
+      providerCode: "secret-code",
+      dashboardUrl: "https://internal.example/secret",
+    }));
+
+    expect(result.json.mock.calls[0][0]).toMatchObject({
+      statusCode: 502,
+      message: "A integração externa não confirmou a operação.",
+      providerStatus: 429,
+      providerReason: "rate_limit",
+    });
+    expect(result.json.mock.calls[0][0]).not.toHaveProperty("providerCode");
+    expect(result.json.mock.calls[0][0]).not.toHaveProperty("dashboardUrl");
+  });
+
+  it("does not write after the response already sent headers", () => {
+    const result = runFilter(new Error("late failure"), {}, { headersSent: true });
+
+    expect(result.response.setHeader).not.toHaveBeenCalled();
+    expect(result.response.status).not.toHaveBeenCalled();
+    expect(result.json).not.toHaveBeenCalled();
   });
 
   it("replaces an unsafe request id and hides unexpected exception details", () => {

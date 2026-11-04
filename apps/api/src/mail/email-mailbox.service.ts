@@ -240,7 +240,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     // so only one process can pull a mailbox at a time.
     if (this.leases && !(await this.leases.claim("email-mailbox:" + id, 15 * 60_000))) return { imported: 0, skipped: 0 };
     const imapEndpoint = await mailHost(row.imapHost);
-    const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
+    const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false, connectionTimeout: IMAP_CONNECTION_TIMEOUT_MS, socketTimeout: IMAP_SOCKET_TIMEOUT_MS });
     let imported = 0, skipped = 0;
     try {
       await client.connect();

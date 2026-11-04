@@ -7,9 +7,27 @@ const source = fs.readFileSync(new URL("../src/app/inbox-workspace.tsx", import.
 test("inbox uses SSE as primary realtime path", () => {
   assert.match(source, /new EventSource\("\/api\/backend\/events"\)/);
   assert.match(source, /source\.onopen\s*=\s*\(\)\s*=>\s*window\.dispatchEvent/);
+  assert.match(source, /source\.onerror\s*=\s*\(\)\s*=>\s*window\.dispatchEvent\(new Event\("vexora:events-offline"\)\)/);
   assert.match(source, /vexora:events-offline/);
   assert.match(source, /setInterval\(refreshFallback, 15000\)/);
   assert.doesNotMatch(source, /setInterval\(\(\)\s*=>\s*\{\s*void loadConversations\(\)/);
+});
+
+test("inbox guards message responses and older-message pagination", () => {
+  assert.match(source, /const messageRequest = useRef\(0\)/);
+  assert.match(source, /request !== messageRequest\.current \|\| selectedRef\.current !== id/);
+  assert.match(source, /const olderMessagesInFlight = useRef\(false\)/);
+  assert.match(source, /if \(olderMessagesInFlight\.current \|\| !selectedId \|\| !messages\.length \|\| !hasOlderMessages\) return/);
+  assert.match(source, /disabled=\{olderMessagesLoading\}/);
+});
+
+test("inbox separates loading states from empty states", () => {
+  assert.match(source, /const \[conversationsLoading, setConversationsLoading\] = useState\(true\)/);
+  assert.match(source, /const \[messagesLoading, setMessagesLoading\] = useState\(false\)/);
+  assert.match(source, /Carregando conversas…/);
+  assert.match(source, /Carregando mensagens…/);
+  assert.match(source, /!conversationsLoading && !conversations\.length/);
+  assert.match(source, /!messagesLoading && !messages\.length/);
 });
 
 const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", import.meta.url), "utf8");

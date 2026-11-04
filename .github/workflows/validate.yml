@@ -75,6 +75,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+      - name: Validate single Compose migration service
+        run: node apps/api/test/compose-migrations.test.cjs
       - name: Validate Prisma schema
         run: pnpm --filter @vexorasuite/api exec prisma validate
       - name: Generate Prisma client

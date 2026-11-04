@@ -20,6 +20,21 @@ services:
       retries: 3
       start_period: 30s
 
+  # Runs schema migrations once before API and workers start. It is intentionally
+  # one-shot so every runtime process uses the same completed migration barrier.
+  migration:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
+
   api:
     volumes:
       - automation_media:/var/lib/vexora/media
@@ -93,8 +108,8 @@ services:
     expose:
       - "3001"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
@@ -119,9 +134,9 @@ services:
       # Local liveness marker; it does not claim database/provider health.
       WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
     depends_on:
-      postgres:
-        condition: service_healthy
-    command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/webhook-worker.js"]
+      migration:
+        condition: service_completed_successfully
+    command: ["node", "dist/webhook-worker.js"]
     healthcheck:
       test: ["CMD", "node", "-e", "const fs=require('node:fs');const p=process.env.WORKER_HEARTBEAT_FILE;try{const age=Date.now()-fs.statSync(p).mtimeMs;process.exit(Number.isFinite(age)&&age>=0&&age<=60000?0:1)}catch{process.exit(1)}"]
       interval: 30s
@@ -162,9 +177,9 @@ services:
       # Local liveness marker; it does not claim database/provider health.
       WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
     depends_on:
-      postgres:
-        condition: service_healthy
-    command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/scheduler-worker.js"]
+      migration:
+        condition: service_completed_successfully
+    command: ["node", "dist/scheduler-worker.js"]
     healthcheck:
       test: ["CMD", "node", "-e", "const fs=require('node:fs');const p=process.env.WORKER_HEARTBEAT_FILE;try{const age=Date.now()-fs.statSync(p).mtimeMs;process.exit(Number.isFinite(age)&&age>=0&&age<=60000?0:1)}catch{process.exit(1)}"]
       interval: 30s

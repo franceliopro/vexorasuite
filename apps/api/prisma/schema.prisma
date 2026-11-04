@@ -81,7 +81,6 @@ model Tenant {
   authorizedContacts AuthorizedContact[]
   contacts    Contact[]
   conversations Conversation[]
-  emailMailbox EmailMailbox?
   messages    Message[]
   channelConnections ChannelConnection[]
   emailMailboxes EmailMailbox[]

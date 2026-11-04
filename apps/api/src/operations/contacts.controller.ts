@@ -100,11 +100,13 @@ export class ContactsController {
           ],
         } : {}),
         ...(q ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" as const } },
-            { phone: { contains: q } },
-            { email: { contains: q, mode: "insensitive" as const } },
-          ],
+          AND: [{
+            OR: [
+              { name: { contains: q, mode: "insensitive" as const } },
+              { phone: { contains: q } },
+              { email: { contains: q, mode: "insensitive" as const } },
+            ],
+          }],
         } : {}),
       },
       orderBy: { updatedAt: "desc" },

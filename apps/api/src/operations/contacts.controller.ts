@@ -10,6 +10,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
 import { AsaasService } from "./asaas.service";
+import { assignedConversationScope } from "./conversation-visibility";
+import { accessiblePipeline } from "./crm-pipelines.controller";
 
 const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];
@@ -79,17 +81,32 @@ export class ContactsController {
   ) {}
 
   @Get()
-  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string) {
+  async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string, @Query("pipelineId") pipelineId?: string) {
     const q = query?.trim();
+    const admin = administrative(request.user.role);
+    const departmentIds = admin ? [] : (await this.prisma.departmentMember.findMany({
+      where: { tenantId: request.user.tenantId, userId: request.user.sub, department: { isActive: true } },
+      select: { departmentId: true },
+    })).map((row) => row.departmentId);
+    if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
     const contacts = await this.prisma.contact.findMany({
       where: {
         tenantId: request.user.tenantId,
-        ...(q ? {
+        ...(pipelineId ? { pipelineId } : {}),
+        ...(!admin ? {
           OR: [
-            { name: { contains: q, mode: "insensitive" as const } },
-            { phone: { contains: q } },
-            { email: { contains: q, mode: "insensitive" as const } },
+            { pipeline: { enabled: true, departmentId: { in: departmentIds }, department: { isActive: true, modules: { has: "CRM" } } } },
+            { conversations: { some: { tenantId: request.user.tenantId, ...assignedConversationScope(request.user.tenantId, request.user.sub, departmentIds) } } },
           ],
+        } : {}),
+        ...(q ? {
+          AND: [{
+            OR: [
+              { name: { contains: q, mode: "insensitive" as const } },
+              { phone: { contains: q } },
+              { email: { contains: q, mode: "insensitive" as const } },
+            ],
+          }],
         } : {}),
       },
       orderBy: { updatedAt: "desc" },
@@ -395,10 +412,12 @@ export class ContactsController {
   }
 
   @Post()
-  async create(@Req() request: AuthenticatedRequest, @Body() input: CreateContactDto) {
+  async create(@Req() request: AuthenticatedRequest, @Query("pipelineId") pipelineId: string | undefined, @Body() input: CreateContactDto) {
+    if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
     const contact = await this.prisma.contact.create({
       data: {
         tenantId: request.user.tenantId,
+        ...(pipelineId ? { pipelineId } : {}),
         name: input.name.trim(),
         phone: input.phone?.trim() || null,
         email: input.email?.trim().toLowerCase() || null,

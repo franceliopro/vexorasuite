@@ -29,17 +29,23 @@ export class ChannelHealthService implements OnModuleInit, OnModuleDestroy {
         });
         if(!claimed)continue;
         let result:{status:string;providerStatus?:string};
-        try{result=await this.waha.status(channel);}catch{
+        let nextLastError: string | null = channel.lastError;
+        try{result=await this.waha.status(channel);}
+        catch{
           result={status:'UNKNOWN',providerStatus:'UNREACHABLE'};
-          await this.prisma.channelConnection.update({where:{id:channel.id},data:{status:'UNKNOWN',lastError:'Não foi possível verificar o WhatsApp. A entrega de mensagens pode estar interrompida.'}});
+          nextLastError='Não foi possível verificar o WhatsApp. A entrega de mensagens pode estar interrompida.';
         }
+        const providerStatus=result.providerStatus||'UNKNOWN';
+        if(result.status==='CONNECTED'||result.status==='CONNECTING'||result.status==='QR') nextLastError=null;
+        let changed=false;
         await this.prisma.$transaction(async tx=>{
           await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid FOR UPDATE`;
           const row=await tx.channelConnection.findUnique({where:{id:channel.id}});if(!row)return;
           const settings=(row.settings&&typeof row.settings==='object'&&!Array.isArray(row.settings)?row.settings:{}) as Record<string,any>;
-          await tx.channelConnection.update({where:{id:row.id},data:{settings:{...settings,healthCheckedAt:new Date().toISOString(),healthProviderStatus:result.providerStatus||'UNKNOWN'}}});
+          changed=row.status!==result.status||row.lastError!==nextLastError||settings.healthProviderStatus!==providerStatus;
+          await tx.channelConnection.update({where:{id:row.id},data:{status:result.status,lastError:nextLastError,settings:{...settings,healthCheckedAt:new Date().toISOString(),healthProviderStatus:providerStatus}}});
         });
-        this.events.publish(channel.tenantId,'channel.status',{id:channel.id,...result});
+        if(changed) this.events.publish(channel.tenantId,'channel.status',{id:channel.id,...result});
       }
     }catch{/* Next interval retries; a stale timestamp remains visible to the operator. */}finally{this.running=false;}
   }

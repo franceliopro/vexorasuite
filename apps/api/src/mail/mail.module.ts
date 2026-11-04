@@ -3,12 +3,14 @@ import { JwtModule } from "@nestjs/jwt";
 import { AuthModule } from "../auth/auth.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { MailController } from "./mail.controller";
+import { EmailMailboxController } from "./email-mailbox.controller";
 import { MailService } from "./mail.service";
+import { EmailMailboxService } from "./email-mailbox.service";
 
 @Module({
   imports: [PrismaModule, forwardRef(() => AuthModule), JwtModule.register({})],
-  controllers: [MailController],
-  providers: [MailService],
-  exports: [MailService],
+  controllers: [MailController, EmailMailboxController],
+  providers: [MailService, EmailMailboxService],
+  exports: [MailService, EmailMailboxService],
 })
 export class MailModule {}

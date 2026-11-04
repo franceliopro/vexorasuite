@@ -77,8 +77,8 @@ describe("EventsService", () => {
       };
       const service = new EventsService(prisma);
       const subscription = service.stream("tenant-a").subscribe();
-      await jest.advanceTimersByTimeAsync(2000);
-      await jest.advanceTimersByTimeAsync(2000);
+      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(5000);
 
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
       const secondCall = prisma.$queryRaw.mock.calls[1] as unknown[];

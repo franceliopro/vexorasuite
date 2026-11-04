@@ -19,6 +19,8 @@ type MailboxSettings = {
 const MAX_SYNC_MESSAGES = 50;
 const MAX_MESSAGE_TEXT = 200_000;
 const MAX_ATTACHMENT_META = 50;
+const MAX_OUTBOUND_ATTACHMENT_BYTES = 16 * 1024 * 1024;
+type EmailAttachment = { filename: string; contentType: string; data: string };
 
 @Injectable()
 export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
@@ -205,18 +207,25 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     return { imported, skipped };
   }
 
-  async send(tenantId: string, conversationId: string, text: string, userId: string) {
-    if (typeof text !== "string" || !text.trim() || text.length > MAX_MESSAGE_TEXT) throw new BadRequestException("Mensagem de e-mail inválida.");
+  async send(tenantId: string, conversationId: string, text: string, userId: string, attachment?: EmailAttachment) {
+    if (typeof text !== "string" || text.length > MAX_MESSAGE_TEXT || (!text.trim() && !attachment)) throw new BadRequestException("Mensagem de e-mail inválida.");
+    if (attachment) {
+      if (typeof attachment.filename !== "string" || !attachment.filename.trim() || attachment.filename.length > 255) throw new BadRequestException("Nome do anexo inválido.");
+      if (typeof attachment.contentType !== "string" || !/^[A-Za-z0-9.+-]+\/[A-Za-z0-9.+-]+$/.test(attachment.contentType)) throw new BadRequestException("Tipo do anexo inválido.");
+      if (typeof attachment.data !== "string" || !/^[A-Za-z0-9+/]*={0,2}$/.test(attachment.data)) throw new BadRequestException("Conteúdo do anexo inválido.");
+      const decodedSize = Math.floor(attachment.data.length * 3 / 4) - (attachment.data.endsWith("==") ? 2 : attachment.data.endsWith("=") ? 1 : 0);
+      if (decodedSize <= 0 || decodedSize > MAX_OUTBOUND_ATTACHMENT_BYTES) throw new BadRequestException("O anexo excede o limite de 16 MB.");
+    }
     const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId, channel: "EMAIL" }, include: { contact: true, channelConnection: { include: { emailMailbox: true } } } });
     if (!conversation?.channelConnection?.emailMailbox) throw new NotFoundException("Inbox de e-mail não encontrada para esta conversa.");
     const mailbox = conversation.channelConnection.emailMailbox;
     if (!mailbox.smtpHost || !mailbox.smtpUser || !mailbox.smtpPasswordEncrypted || !mailbox.smtpFrom) throw new ServiceUnavailableException("SMTP de resposta não configurado para esta caixa.");
     const transport = new SmtpMailTransport({ host: mailbox.smtpHost, port: mailbox.smtpPort || 587, secure: mailbox.smtpSecure === true, user: mailbox.smtpUser, password: this.decrypt(mailbox.smtpPasswordEncrypted), from: mailbox.smtpFrom, fromName: mailbox.smtpFromName || undefined });
     const subject = conversation.subject?.startsWith("Re:") ? conversation.subject : "Re: " + (conversation.subject || "(sem assunto)");
-    const result = await transport.send({ to: conversation.contact.email || "", subject, text: text.trim(), replyTo: mailbox.address });
+    const result = await transport.send({ to: conversation.contact.email || "", subject, text: text.trim() || "Arquivo anexado: " + attachment!.filename, replyTo: mailbox.address, ...(attachment ? { attachments: [{ filename: attachment.filename, content: Buffer.from(attachment.data, "base64"), contentType: attachment.contentType }] } : {}) });
     transport.close();
     if (!result.delivered) throw new BadGatewayException(result.reason || "O servidor SMTP não aceitou a resposta.");
-    const message = await this.prisma.message.create({ data: { tenantId, conversationId, providerMessageId: result.providerId || null, direction: "OUTBOUND", status: "SENT", content: text.trim(), contentType: "text", senderName: mailbox.smtpFrom, metadata: { provider: "EMAIL", mailboxId: mailbox.id, replyTo: conversation.contact.email, senderUserId: userId }, occurredAt: new Date() } });
+    const message = await this.prisma.message.create({ data: { tenantId, conversationId, providerMessageId: result.providerId || null, direction: "OUTBOUND", status: "SENT", content: text.trim() || "[Anexo] " + attachment!.filename, contentType: attachment ? "file" : "text", senderName: mailbox.smtpFrom, metadata: { provider: "EMAIL", mailboxId: mailbox.id, replyTo: conversation.contact.email, senderUserId: userId, ...(attachment ? { attachment: { filename: attachment.filename, contentType: attachment.contentType, size: Math.floor(attachment.data.length * 3 / 4) } } : {}) }, occurredAt: new Date() } });
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: message.occurredAt, status: "OPEN" } });
     this.events.publish(tenantId, "message.sent", { conversationId, message: { id: message.id, direction: message.direction, status: message.status, content: message.content, occurredAt: message.occurredAt.toISOString(), channel: "EMAIL" } });
     return message;

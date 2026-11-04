@@ -720,7 +720,10 @@ export class ConversationsController {
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
     if (conversation.channelConnection?.provider === "EMAIL") {
       const content = (input.content || input.caption || "").trim();
-      return this.email.send(tenantId, conversation.id, content, request.user.sub);
+      const attachment = input.data && input.filename && input.mimetype && input.kind !== "text" ? { filename: input.filename, contentType: input.mimetype, data: input.data } : undefined;
+      if (input.kind && input.kind !== "text" && !attachment) throw new BadRequestException("Anexo de e-mail incompleto.");
+      if (input.kind && ["location", "contact"].includes(input.kind)) throw new BadRequestException("Localização e contato ainda não são suportados em respostas por e-mail.");
+      return this.email.send(tenantId, conversation.id, content, request.user.sub, attachment);
     }
     if (!conversation.channelConnection || !["WAHA", "ZERNIO"].includes(conversation.channelConnection.provider) || !conversation.channelConnection.isActive) {
       throw new BadRequestException("Esta conversa não possui um canal de mensagens conectado.");

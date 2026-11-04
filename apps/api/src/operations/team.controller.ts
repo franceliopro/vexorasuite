@@ -23,6 +23,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
+import { assertPasswordResetTargetAllowed } from "../auth/password-reset-policy";
 @AuditCovered()
 @Controller("team")
 @UseGuards(AuthGuard)
@@ -232,7 +233,9 @@ export class TeamController {
   const passwordHash=await hash(password,12);
   await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
-   if(!await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true}}))throw new BadRequestException('Usuário não pertence a esta empresa.');
+   const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
+   if(!member)throw new BadRequestException('Usuário não pertence a esta empresa.');
+   assertPasswordResetTargetAllowed(req.user.isPlatformAdmin,member.user.isPlatformAdmin);
    await tx.user.update({where:{id},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
    await tx.pushSubscription.deleteMany({where:{userId:id}});
    await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'user.password.reset',entityType:'user',entityId:id}});

@@ -30,7 +30,7 @@ import { PrismaModule } from "../prisma/prisma.module";
 import { ContactsController } from "./contacts.controller";
 import { ConversationsController } from "./conversations.controller";
 import { EventsController } from "./events.controller";
-import { EventsService } from "./events.service";
+import { EventsModule } from "./events.module";
 import { ChannelConnectionsController } from "./channels.controller";
 import { WahaWebhookController } from "./waha-webhook.controller";
 import { WahaService } from "./waha.service";
@@ -56,9 +56,9 @@ import { MailModule } from "../mail/mail.module";
 @Module({
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
-  imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule],
+  imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule, EventsModule],
   controllers: [InboxesController,CopilotController,HomePresentationController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController],
-  providers: [JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, EventsService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService],
+  providers: [JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService],
 })
 export class OperationsModule {}
 

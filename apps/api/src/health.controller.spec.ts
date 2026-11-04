@@ -7,9 +7,10 @@ describe("HealthController", () => {
   const makeController = (
     queryRaw: jest.Mock = jest.fn().mockResolvedValue([{ "?column?": 1 }]),
     redisHealth: jest.Mock = jest.fn().mockResolvedValue("ok"),
+    rateLimitEnabled = true,
   ) => {
     const prisma = { $queryRaw: queryRaw } as unknown as PrismaService;
-    const rateLimit = { redisHealth } as unknown as RateLimitService;
+    const rateLimit = { enabled: rateLimitEnabled, redisHealth } as unknown as RateLimitService;
     return new HealthController(prisma, rateLimit);
   };
 
@@ -37,10 +38,20 @@ describe("HealthController", () => {
     });
   });
 
-  it("keeps readiness available while reporting a degraded Redis fallback", async () => {
+  it("reports degraded readiness when Redis is required but unavailable", async () => {
     const redisHealth = jest.fn().mockResolvedValue("degraded");
 
     await expect(makeController(undefined, redisHealth).ready()).resolves.toMatchObject({
+      status: "degraded",
+      database: "ok",
+      redis: "degraded",
+    });
+  });
+
+  it("does not report degraded readiness when rate limiting is disabled", async () => {
+    const redisHealth = jest.fn().mockResolvedValue("degraded");
+
+    await expect(makeController(undefined, redisHealth, false).ready()).resolves.toMatchObject({
       status: "ok",
       database: "ok",
       redis: "degraded",

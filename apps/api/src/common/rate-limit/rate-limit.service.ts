@@ -46,7 +46,7 @@ export class RateLimitService implements OnModuleDestroy {
   }
 
   async redisHealth(): Promise<RedisHealthStatus> {
-    if (!process.env.REDIS_URL) return "not_configured";
+    if (!this.enabled || !process.env.REDIS_URL) return "not_configured";
 
     const store = await this.store();
     if (store.kind !== "redis" || !this.redisClient?.ping) return "degraded";
@@ -113,7 +113,6 @@ export class RateLimitService implements OnModuleDestroy {
       this.redis = new RedisRateLimitStore(client);
       this.logger.log("Rate limit usando contador compartilhado no Redis.");
     } catch (error) {
-      // Stop the reconnect loop: a limiter must never hold the process open or retry forever.
       candidate?.disconnect?.();
       this.redisUnavailableUntil = Date.now() + 30_000;
       this.logger.warn(

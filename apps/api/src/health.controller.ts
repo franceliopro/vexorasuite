@@ -34,11 +34,14 @@ export class HealthController {
   @Get("health/ready")
   async ready() {
     await this.assertDatabase();
+    const redis = await this.rateLimit.redisHealth();
     return {
-      status: "ok",
+      // Readiness stays HTTP 200 so Compose does not restart the API for a degraded
+      // optional dependency, while the body remains truthful for operators.
+      status: this.rateLimit.enabled && redis === "degraded" ? "degraded" : "ok",
       service,
       database: "ok",
-      redis: await this.rateLimit.redisHealth(),
+      redis,
       timestamp: new Date().toISOString(),
     };
   }

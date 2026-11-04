@@ -11,15 +11,19 @@
   --font-display: "Manrope", "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --surface-page: #f7f8fc;
   --surface-1: #ffffff;
-  --surface-2: #fbfcff;
+  --surface-2: #fafbfe;
   --surface-3: #f3f4fa;
   --surface-hover: #f0efff;
   --surface-active: #e7e5ff;
   --text-primary: #20243a;
   --text-secondary: #626982;
-  --text-muted: #858ba0;
-  --border-subtle: #e5e8f1;
+  --text-muted: #626982;
+  --border-subtle: #e9ebf3;
   --border-strong: #cbd0df;
+  --primary-contrast: #ffffff;
+  --button-height: 40px;
+  --button-height-mobile: 44px;
+  --button-radius: 9px;
   --focus-ring: color-mix(in srgb, var(--primary) 48%, white);
   --control-height: 40px;
   --control-radius: 10px;
@@ -48,8 +52,8 @@
   --surface-active: color-mix(in srgb, var(--primary) 13%, white);
   --text-primary: #20243a;
   --text-secondary: #5f667d;
-  --text-muted: #7c849a;
-  --border-subtle: #e3e6ef;
+  --text-muted: #626982;
+  --border-subtle: #e4e7f0;
   --border-strong: #c8cede;
   --sidebar: #ffffff;
   --sidebar-bg: #ffffff;
@@ -77,7 +81,7 @@
   --surface-active: color-mix(in srgb, var(--primary) 27%, #202534);
   --text-primary: #eef1fa;
   --text-secondary: #c0c6d7;
-  --text-muted: #9ca5bb;
+  --text-muted: #c0c6d7;
   --border-subtle: #303747;
   --border-strong: #485168;
   --sidebar: #191D28;
@@ -397,8 +401,7 @@ html:root[data-theme] :is(.quick-reply-create > button:not(.quick-reply-emoji-tr
 /* Workspace components */
 /* Compact, resizable conversation tools anchored beside the contact sheet. */
 .inbox-workspace .inbox-quick-overlay{position:fixed;inset:0;z-index:950;padding:0;display:block;background:transparent;pointer-events:none}
-.inbox-workspace .inbox-quick-dialog,.inbox-workspace .inbox-quick-dialog:has(.inbox-finance-lookup){position:fixed;top:82px;right:18px;left:auto;bottom:auto;display:flex;flex-direction:column;min-width:0;max-width:calc(100vw - 36px);max-height:calc(100dvh - 100px);padding:0;overflow:hidden;pointer-events:auto;background:var(--card,#fff);color:var(--ink,#202638);border-radius:14px}
-.inbox-workspace .inbox-quick-dialog>header{position:relative;z-index:2;display:flex;flex:0 0 auto;gap:8px;align-items:center;justify-content:space-between;margin:0;padding:12px;border-bottom:1px solid var(--line,#dde2eb);background:var(--card,#fff)}
+.inbox-workspace .inbox-quick-dialog,.inbox-workspace .inbox-quick-dialog:has(.inbox-finance-lookup){position:fixed;top:82px;right:18px;left:auto;bottom:auto;display:flex;flex-direction:column;min-width:0;max-width:calc(100vw - 36px);max-height:calc(100dvh - 100px);padding:0;overflow:hidden;pointer-events:auto;background:var(--card,#fff);color:var(--ink,#202638);border-radius:14px}.inbox-workspace .inbox-quick-dialog>header{position:relative;z-index:2;display:flex;flex:0 0 auto;gap:8px;align-items:center;justify-content:space-between;margin:0;padding:12px;border-bottom:1px solid var(--line,#dde2eb);background:var(--card,#fff)}
 .inbox-workspace .inbox-quick-dialog>header strong{min-width:0;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 .inbox-workspace .inbox-quick-dialog>header button{display:grid;place-items:center;flex:none;width:32px;height:32px;padding:5px;color:inherit}
 .inbox-workspace .inbox-quick-dialog>div{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 12px 24px;scrollbar-width:thin;overscroll-behavior:contain}
@@ -797,8 +800,7 @@ body {
   border-color: transparent;
   background: var(--primary);
   color: var(--primary-contrast, #fff);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 18%, transparent);
-}
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 18%, transparent);}
 
 .page-content .primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -1198,7 +1200,6 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .finance-status-donut-card > strong { font-size: 12px; }
 .finance-status-donut-card > b { font-size: 12px; color: var(--muted, #778197); }
 .finance-status-panel { min-width: 0; }
-
 /* Chatbot controls follow the same fluid proportions as the rest of the workspace. */
 .chatbot-workspace .vx-flow-shell {
   grid-template-columns: minmax(180px, 20%) minmax(0, 1fr) minmax(240px, 26%) !important;
@@ -1597,8 +1598,7 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .presentation-backdrop{position:fixed;inset:0;z-index:1000;background:#080d2080;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
 .presentation-dialog{width:min(700px,100%);max-height:calc(100dvh - 40px);overflow:auto;overscroll-behavior:contain;padding:24px;display:flex;flex-direction:column;gap:16px}
 .presentation-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:16px}.presentation-dialog h2{margin:0}.presentation-dialog .module-tabs button{display:flex;align-items:center;gap:8px}.presentation-dialog .workspace-actions{display:flex;gap:12px;flex-wrap:wrap}.presentation-dialog .workspace-actions button{display:flex;align-items:center;gap:7px}
-.presentation-preview{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--line);border-radius:10px;background:var(--page);display:grid;place-items:center;align-self:center;flex-shrink:0}.presentation-preview-desktop{width:100%;aspect-ratio:16/9;max-height:270px}.presentation-preview-mobile{height:270px;aspect-ratio:9/16;max-width:100%}
-.presentation-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}.presentation-modes legend{font-weight:600;margin-bottom:10px}.presentation-modes label{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:9px;cursor:pointer}.presentation-modes label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}.presentation-modes input{flex-shrink:0}.presentation-modes span{display:flex;flex-direction:column;gap:3px}.presentation-modes small{font-size:11px;color:var(--muted)}.presentation-dialog footer{justify-content:flex-end}.presentation-dialog .settings-muted{font-size:12px;margin:0}
+.presentation-preview{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--line);border-radius:10px;background:var(--page);display:grid;place-items:center;align-self:center;flex-shrink:0}.presentation-preview-desktop{width:100%;aspect-ratio:16/9;max-height:270px}.presentation-preview-mobile{height:270px;aspect-ratio:9/16;max-width:100%}.presentation-modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}.presentation-modes legend{font-weight:600;margin-bottom:10px}.presentation-modes label{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:9px;cursor:pointer}.presentation-modes label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}.presentation-modes input{flex-shrink:0}.presentation-modes span{display:flex;flex-direction:column;gap:3px}.presentation-modes small{font-size:11px;color:var(--muted)}.presentation-dialog footer{justify-content:flex-end}.presentation-dialog .settings-muted{font-size:12px;margin:0}
 @media(min-width:761px){
  .suite-app{--desktop-sidebar-width:258px}
  .suite-app:has(>.sidebar.sidebar-compact){--desktop-sidebar-width:78px}
@@ -1997,8 +1997,7 @@ body { background: var(--surface-page); color: var(--text-primary); }
   flex: 1 1 auto !important;
   width: 100% !important;
   height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
+  min-height: 0 !important;  max-height: none !important;
   overflow: hidden !important;
 }
 .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell.vx-inspector-empty .vx-flow-inspector,
@@ -2397,8 +2396,7 @@ body { background: var(--surface-page); color: var(--text-primary); }
 .sidebar.sidebar-compact .nav-submenu-panel .nav-subitem:hover,
 .sidebar.sidebar-compact .nav-submenu-panel .nav-subitem.active{
   background:rgba(125,112,255,.18)!important;
-  color:#fff!important;
-}
+  color:#fff!important;}
 
 
 /* Canonical tag contract: the same data has the same compact appearance in the inbox and the contact profile. */
@@ -2634,3 +2632,10 @@ body { background: var(--surface-page); color: var(--text-primary); }
     padding-inline: 8px;
   }
 }
+
+/* Final semantic bridge: component surfaces never bypass the theme tokens. */
+html:root[data-theme] :is(.topbar,.content-card,.shortcut-item,.auth-panel,.mobile-menu,.icon-button,.secondary-button,.inbox-conversation,.message-bubble,.inbox-queue-menu,.handoff-trigger,.handoff-popover){background-color:var(--surface-1);color:var(--text-primary);border-color:var(--border-subtle)}
+html:root[data-theme] :is(.search-box,.inbox-composer textarea,.auth-field input,.settings-field input,.settings-field textarea){background-color:var(--surface-2);color:var(--text-primary);border-color:var(--border-strong)}
+html:root[data-theme] :is(.breadcrumbs,.card-heading p,.metric-card p,.shortcut-copy small,.page-footer,.inbox-empty,.conversation-summary small,.message-bubble small){color:var(--text-secondary)}
+html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--button-height);border-radius:var(--button-radius)}
+@media(max-width:760px){html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--button-height-mobile)}}

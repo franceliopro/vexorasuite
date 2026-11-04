@@ -16,6 +16,7 @@ import { AuthPayload } from "./auth.types";
 import { MailService } from "../mail/mail.service";
 import { RefreshSessionService, SessionReuseError } from "./refresh-session.service";
 import { renderEmail } from "../mail/mail.template";
+import { assertPasswordResetTargetAllowed } from "./password-reset-policy";
 
 @Injectable()
 export class AuthService {
@@ -436,8 +437,9 @@ export class AuthService {
   }
   async resetUserPassword(actorTenantId:string,actorRole:string,actorPlatformAdmin:boolean|undefined,userId:string){
     this.assertUserAdministration(actorRole,actorPlatformAdmin);
-    const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true}});
+    const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
     if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
+    assertPasswordResetTargetAllowed(actorPlatformAdmin,membership.user.isPlatformAdmin);
     const temporaryPassword=this.temporaryPassword();
     const passwordHash=await hash(temporaryPassword,12);
     await this.prisma.user.update({where:{id:userId},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});

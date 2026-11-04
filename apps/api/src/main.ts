@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { DocumentNormalizationPipe } from "./common/documents";
+import { GlobalExceptionFilter } from "./common/http/global-exception.filter";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
@@ -65,6 +66,7 @@ export function isAllowedCorsOrigin(requestOrigin: string | undefined, allowedOr
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   app.setGlobalPrefix("api");
+  app.useGlobalFilters(new GlobalExceptionFilter());
   // Behind Dokploy/Traefik the real client address comes in X-Forwarded-For. Without this the
   // rate limit would bucket every visitor under the proxy IP. Set TRUST_PROXY=0 if the API is
   // ever exposed directly.

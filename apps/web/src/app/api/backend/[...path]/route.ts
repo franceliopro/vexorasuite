@@ -1,6 +1,7 @@
 import { limitedRequestBody, RequestBodyTooLarge, trustedRequestOrigin } from "../../../../lib/backend-request";
 import { LEGACY_REFRESH_COOKIE, LEGACY_SESSION_COOKIE, REFRESH_COOKIE, SESSION_COOKIE, sessionCookies, shouldRefresh } from "../../../../lib/session-cookies";
 import { cookies } from "next/headers";
+import { applyResponseRequestId, getProxyRequestId, getResponseRequestId } from "../../../../lib/proxy-request-id";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ const refreshInFlight = new Map<string, Promise<Record<string, unknown> | null>>
 async function proxyRequest(request: Request, context: Context) {
   const params = await context.params;
   const pathValue = (params.path || []).map((part) => encodeURIComponent(part)).join("/");
+  const requestId = getProxyRequestId(request);
   const cookieStore = await cookies();
   const apiOrigin = (process.env.API_INTERNAL_URL || "http://api:3001").replace(/\/$/, "");
   const secureCookie = process.env.NODE_ENV === "production";
@@ -37,7 +39,7 @@ async function proxyRequest(request: Request, context: Context) {
       try {
         const response = await fetch(apiOrigin + "/api/auth/refresh", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", "x-request-id": requestId },
           body: JSON.stringify({ refreshToken }),
           cache: "no-store",
           signal: AbortSignal.timeout(15000),
@@ -65,7 +67,7 @@ async function proxyRequest(request: Request, context: Context) {
     if (refreshToken) {
       await fetch(apiOrigin + "/api/auth/logout", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-request-id": requestId },
         body: JSON.stringify({ refreshToken }),
         cache: "no-store",
         signal: AbortSignal.timeout(8000),
@@ -75,7 +77,7 @@ async function proxyRequest(request: Request, context: Context) {
     cookieStore.delete(REFRESH_COOKIE);
     cookieStore.delete(LEGACY_SESSION_COOKIE);
     cookieStore.delete(LEGACY_REFRESH_COOKIE);
-    return Response.json({ ok: true });
+    return applyResponseRequestId(Response.json({ ok: true }), requestId);
   }
 
   const requestUrl = new URL(request.url);
@@ -84,10 +86,11 @@ async function proxyRequest(request: Request, context: Context) {
   const accept = request.headers.get("accept");
   if (contentType) headers.set("content-type", contentType);
   if (accept) headers.set("accept", accept);
+  headers.set("x-request-id", requestId);
 
   const isSse = pathValue === "events";
   const hasBody = !["GET", "HEAD"].includes(request.method);
-  if (hasBody && !trustedRequestOrigin(request, process.env.NEXT_PUBLIC_APP_URL)) return Response.json({ message: "Origem da solicitação não autorizada." }, { status: 403 });
+  if (hasBody && !trustedRequestOrigin(request, process.env.NEXT_PUBLIC_APP_URL)) return applyResponseRequestId(Response.json({ message: "Origem da solicitação não autorizada." }, { status: 403 }), requestId);
 
   let bodyBuffer: ArrayBuffer | undefined;
   const timeoutFor = () => {
@@ -113,8 +116,8 @@ async function proxyRequest(request: Request, context: Context) {
     if (hasBody) bodyBuffer = await limitedRequestBody(request);
     upstream = await send(readCookie(SESSION_COOKIE, LEGACY_SESSION_COOKIE));
   } catch (error) {
-    if (error instanceof RequestBodyTooLarge) return Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 });
-    return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
+    if (error instanceof RequestBodyTooLarge) return applyResponseRequestId(Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 }), requestId);
+    return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
   }
 
   // Short access token, long session: the first 401 of an expired token is renewed here, so the
@@ -125,7 +128,7 @@ async function proxyRequest(request: Request, context: Context) {
       try {
         upstream = await send(renewed);
       } catch {
-        return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
+        return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
       }
     }
   }
@@ -133,10 +136,10 @@ async function proxyRequest(request: Request, context: Context) {
   const isAuth = request.method === "POST" && (["auth/login","auth/register","auth/companies","auth/switch","auth/refresh","auth/change-password"].includes(pathValue));
   if (isAuth && upstream.ok) {
     const payload = await upstream.json() as Record<string, unknown>;
-    if (typeof payload.accessToken !== "string") return Response.json({ error: "invalid_auth_response" }, { status: 502 });
+    if (typeof payload.accessToken !== "string") return applyResponseRequestId(Response.json({ error: "invalid_auth_response" }, { status: 502 }), requestId);
     // Both tokens become httpOnly cookies; the browser receives only the rest of the session.
     const rest = applyCookies(payload);
-    return Response.json(rest, { status: upstream.status });
+    return applyResponseRequestId(Response.json(rest, { status: upstream.status }), getResponseRequestId(upstream.headers, requestId));
   }
   // A 401 after the refresh attempt means the session is really over: drop both cookies so the
   // client does not keep retrying with a dead pair.
@@ -153,6 +156,7 @@ async function proxyRequest(request: Request, context: Context) {
   for(const name of ["content-security-policy","referrer-policy","x-ratelimit-limit","x-ratelimit-remaining","retry-after"]){const header=upstream.headers.get(name);if(header)responseHeaders.set(name,header);}
   const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
+  responseHeaders.set("x-request-id", getResponseRequestId(upstream.headers, requestId));
   if (isSse) {
     responseHeaders.set("cache-control", "no-cache, no-transform");
     responseHeaders.set("connection", "keep-alive");
@@ -161,7 +165,7 @@ async function proxyRequest(request: Request, context: Context) {
     const cacheControl = upstream.headers.get("cache-control");
     if (cacheControl) responseHeaders.set("cache-control", cacheControl);
   }
-  return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+  return applyResponseRequestId(new Response(upstream.body, { status: upstream.status, headers: responseHeaders }), getResponseRequestId(upstream.headers, requestId));
 }
 
 export const GET = proxyRequest;

@@ -82,20 +82,22 @@ export function resolveImapSettings(env: Env = process.env): ImapSettings {
   }
 
   let password = passwordEntry?.value;
-  const placeholders = [userEntry?.value, passwordEntry?.value].filter((value): value is string => Boolean(value && looksLikePlaceholder(value)));
+  const userPlaceholder = Boolean(userEntry?.value && looksLikePlaceholder(userEntry.value));
+  const passwordPlaceholder = Boolean(passwordEntry?.value && looksLikePlaceholder(passwordEntry.value));
+  const placeholders = userPlaceholder || passwordPlaceholder;
   if (password && service === "gmail") password = password.replace(/\s+/g, "");
 
   const missing: string[] = [];
   if (!host) missing.push("MAIL_IMAP_HOST");
-  if (!userEntry) missing.push("MAIL_IMAP_USER");
-  if (!passwordEntry || !password) missing.push("MAIL_IMAP_PASSWORD");
-  if (placeholders.length) warnings.push("A configuração IMAP contém texto de exemplo, não uma credencial real.");
+  if (!userEntry || userPlaceholder) missing.push("MAIL_IMAP_USER");
+  if (!passwordEntry || !password || passwordPlaceholder) missing.push("MAIL_IMAP_PASSWORD");
+  if (placeholders) warnings.push("A configuração IMAP contém texto de exemplo, não uma credencial real.");
 
   const blank = ["MAIL_IMAP_HOST", "MAIL_IMAP_PORT", "MAIL_IMAP_SECURE", "MAIL_IMAP_USER", "MAIL_IMAP_PASSWORD", "MAIL_IMAP_MAILBOX"]
     .filter((name) => env[name] !== undefined && !env[name]?.trim());
 
   return {
-    mode: missing.length || placeholders.length ? "off" : "imap",
+    mode: missing.length ? "off" : "imap",
     service,
     host,
     port,

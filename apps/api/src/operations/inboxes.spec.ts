@@ -11,7 +11,7 @@ function setup(){
 describe("inbox management",()=>{
  it("exposes physical identity and actual published agents without credentials",async()=>{
   const x=setup();const data=await x.controller.list(x.req);expect(data.inboxes[0]).toMatchObject({identity:"5566996361707",flow:{agents:[{id:"customer",name:"Atendimento",enabled:true}]},blockers:[]});
-  expect(JSON.stringify(data)).not.toContain("private");expect(x.tx.channelConnection.findMany).toHaveBeenCalledWith(expect.objectContaining({where:{tenantId:"tenant",isActive:true,provider:{in:["WAHA","ZERNIO"]}}}));
+  expect(JSON.stringify(data)).not.toContain("private");expect(x.tx.channelConnection.findMany).toHaveBeenCalledWith(expect.objectContaining({where:{tenantId:"tenant",isActive:true,provider:{in:["WAHA","ZERNIO","EMAIL"]}}}));
  });
  it("rejects attendants before reading inbox diagnostics",async()=>{
   const x=setup();x.req.user.role="AGENT";await expect(x.controller.list(x.req)).rejects.toThrow("administradores");expect(x.tx.channelConnection.findMany).not.toHaveBeenCalled();

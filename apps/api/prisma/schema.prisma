@@ -83,6 +83,7 @@ model Tenant {
   conversations Conversation[]
   messages    Message[]
   channelConnections ChannelConnection[]
+  emailMailboxes EmailMailbox[]
   auditLogs   AuditLog[]
   departments Department[]
   payments Payment[]
@@ -186,6 +187,7 @@ model Conversation {
   status      ConversationStatus @default(OPEN)
   priority    String @default("NORMAL")
   subject     String?
+  emailThreadKey String? @map("email_thread_key")
   lastMessageAt DateTime?        @map("last_message_at")
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
@@ -203,6 +205,7 @@ model Conversation {
   @@index([tenantId, contactId])
   @@index([tenantId, departmentId, status])
   @@index([tenantId, channelConnectionId, status])
+  @@index([tenantId, channelConnectionId, emailThreadKey])
   @@index([tenantId, archivedAt, deletedAt])
   @@map("conversations")
 }
@@ -221,6 +224,7 @@ model ChannelConnection {
   updatedAt   DateTime @updatedAt @map("updated_at")
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  emailMailbox EmailMailbox?
 
   @@index([tenantId, status])
   @@map("channel_connections")
@@ -324,6 +328,39 @@ model Message {
   @@unique([tenantId, providerMessageId])
   @@index([tenantId, conversationId, occurredAt])
   @@map("messages")
+}
+
+
+model EmailMailbox {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid @map("tenant_id")
+  channelConnectionId String @unique @db.Uuid @map("channel_connection_id")
+  address String
+  imapHost String @map("imap_host")
+  imapPort Int @default(993) @map("imap_port")
+  imapSecure Boolean @default(true) @map("imap_secure")
+  imapUser String @map("imap_user")
+  imapPasswordEncrypted String @map("imap_password_encrypted")
+  imapMailbox String @default("INBOX") @map("imap_mailbox")
+  smtpHost String? @map("smtp_host")
+  smtpPort Int? @map("smtp_port")
+  smtpSecure Boolean? @map("smtp_secure")
+  smtpUser String? @map("smtp_user")
+  smtpPasswordEncrypted String? @map("smtp_password_encrypted")
+  smtpFrom String? @map("smtp_from")
+  smtpFromName String? @map("smtp_from_name")
+  syncUidValidity Int? @map("sync_uid_validity")
+  syncLastUid Int @default(0) @map("sync_last_uid")
+  lastSyncAt DateTime? @map("last_sync_at")
+  status String @default("DISABLED")
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  channelConnection ChannelConnection @relation(fields: [channelConnectionId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, address])
+  @@index([tenantId, status])
+  @@map("email_mailboxes")
 }
 
 model AuditLog {

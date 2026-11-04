@@ -15,6 +15,7 @@ import { SendMessageDto } from "./dto/send-message.dto";
 import { WahaService } from "./waha.service";
 import { ZernioService } from "./zernio.service";
 import { accessiblePipeline } from "./crm-pipelines.controller";
+import { EmailMailboxService } from "../mail/email-mailbox.service";
 
 
 function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
@@ -29,7 +30,7 @@ function isFinalizedConversation(metadata: unknown, conversationId: string): boo
 @Controller("conversations")
 @UseGuards(AuthGuard)
 export class ConversationsController {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly email: EmailMailboxService = null as unknown as EmailMailboxService) {}
 
   // Quick replies are stored per tenant so all agents in the same company share
   // the same catalog without browser-local storage or cross-tenant leakage.
@@ -717,6 +718,10 @@ export class ConversationsController {
     if (isFinalizedConversation(conversation.contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado. Consulte o histórico em Contatos.");
     if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
+    if (conversation.channelConnection?.provider === "EMAIL") {
+      const content = (input.content || input.caption || "").trim();
+      return this.email.send(tenantId, conversation.id, content, request.user.sub);
+    }
     if (!conversation.channelConnection || !["WAHA", "ZERNIO"].includes(conversation.channelConnection.provider) || !conversation.channelConnection.isActive) {
       throw new BadRequestException("Esta conversa não possui um canal de mensagens conectado.");
     }

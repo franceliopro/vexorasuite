@@ -235,7 +235,7 @@ export class TeamController {
    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
    const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
    if(!member)throw new BadRequestException('Usuário não pertence a esta empresa.');
-   assertPasswordResetTargetAllowed(req.user.isPlatformAdmin,member.user.isPlatformAdmin);
+   assertPasswordResetTargetAllowed(req.user.isPlatformAdmin,member.user?.isPlatformAdmin);
    await tx.user.update({where:{id},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
    await tx.pushSubscription.deleteMany({where:{userId:id}});
    await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'user.password.reset',entityType:'user',entityId:id}});

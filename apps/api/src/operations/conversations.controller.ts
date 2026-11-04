@@ -598,9 +598,27 @@ export class ConversationsController {
       : {};
     const rawMediaUrl = typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : "";
     const chatId = typeof metadata.chatId === "string" ? metadata.chatId : "";
-    const media = rawMediaUrl
-      ? await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl)
-      : await this.waha.recoverMessageMedia(conversation.channelConnection, chatId, message.providerMessageId || "");
+    let media: { buffer: Buffer; mimetype: string };
+    if (rawMediaUrl) {
+      try {
+        media = await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl);
+      } catch (error) {
+        // WAHA file URLs may expire. Recover through the authenticated message lookup before
+        // reporting a broken attachment; the lookup remains scoped to this channel and message.
+        if (!chatId || !message.providerMessageId) throw error;
+        media = await this.waha.recoverMessageMedia(
+          conversation.channelConnection,
+          chatId,
+          message.providerMessageId,
+        );
+      }
+    } else {
+      media = await this.waha.recoverMessageMedia(
+        conversation.channelConnection,
+        chatId,
+        message.providerMessageId || "",
+      );
+    }
     return new StreamableFile(media.buffer, { type: media.mimetype });
   }
 

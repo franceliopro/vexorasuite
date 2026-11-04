@@ -7,7 +7,7 @@ export function ProviderConnections() {
   const [connections,setConnections] = useState<Connection[] | null>(null);
   const [provider,setProvider] = useState('openrouter');
   const [key,setKey] = useState('');
-  const [editing,setEditing]=useState(false),[usage,setUsage]=useState<any>(null);
+  const [editing,setEditing]=useState(false),[usage,setUsage]=useState<any>(null),[usageLoading,setUsageLoading]=useState(true),[usageError,setUsageError]=useState(''),[usageAttempt,setUsageAttempt]=useState(0);
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState('');
   const [error,setError] = useState('');
@@ -22,7 +22,7 @@ export function ProviderConnections() {
     }).catch(error=>{if(active)setError(error instanceof Error?error.message:'Falha ao verificar as conexões.');});
     return ()=>{active=false;};
   },[]);
-  useEffect(()=>{let active=true;const load=()=>fetch('/api/backend/assistant/provider-connections/usage',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(active)setUsage(v)}).catch(()=>{});void load();const timer=setInterval(()=>void load(),60000);return()=>{active=false;clearInterval(timer)}},[]);
+  useEffect(()=>{let active=true;const load=async()=>{setUsageLoading(true);setUsageError('');try{const response=await fetch('/api/backend/assistant/provider-connections/usage',{cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.message||'Não foi possível consultar as cotas do OpenRouter.');if(active)setUsage(data);}catch(error){if(active)setUsageError(error instanceof Error?error.message:'Não foi possível consultar as cotas do OpenRouter.');}finally{if(active)setUsageLoading(false)}};void load();const timer=setInterval(()=>void load(),60000);return()=>{active=false;clearInterval(timer)}},[usageAttempt]);
   async function save(event:React.FormEvent) {
     event.preventDefault();setBusy(true);setError('');setNotice('');
     try {
@@ -50,6 +50,7 @@ export function ProviderConnections() {
       <p><strong>Pesquisa:</strong> {runtime.research?.localConfigured?'SearXNG próprio configurado · sem cobrança de API':'SearXNG ainda não configurado no servidor; Brave é a conexão alternativa.'}</p>
       <p className="ai-admin-note">LLM local: {runtime.local?.llmConfigured?'endereço configurado':'ainda não configurado'}. Voz Whisper/Kokoro: {runtime.local?.voiceConfigured?'endereço configurado':'ainda não configurada'}. Modelos locais precisam estar instalados. Vídeos por templates usam FFmpeg.</p>
       <ul>{connections.map(connection=><li key={connection.provider}><strong>{labels[connection.provider]||connection.provider}:</strong> {connection.needsRepair?'Cadastre a chave novamente':connection.configured?`Chave cadastrada · ${connection.source==='tenant'?'desta empresa':'do servidor'}`:'Falta cadastrar a chave'}</li>)}</ul>
+      {usageLoading?<p role="status">Consultando cotas do OpenRouter…</p>:null}{usageError?<div role="alert"><p>{usageError}</p><button type="button" className="secondary-button" onClick={()=>setUsageAttempt(value=>value+1)}>Tentar novamente</button></div>:null}
       {usage?.configured&&<div role={usage.low||usage.incident?'alert':'status'} className={usage.low||usage.incident?'channel-health-warning':''}><strong>OpenRouter · cotas e créditos</strong>{usage.available?<><p>Cota gratuita: {usage.free?usage.free.remaining+' de '+usage.free.limit+' solicitações restantes hoje (UTC)':'não informada pelo provedor'}. Limite de crédito da chave: {usage.keyCreditsRemaining===null?'sem limite informado':'US$ '+usage.keyCreditsRemaining.toFixed(2)+' restantes'}. {usage.budget&&'Orçamento: US$ '+usage.budget.remaining.toFixed(2)+' restantes.'}</p><small>O limite da chave não representa necessariamente o saldo da conta.</small></>:<p>{usage.message}</p>}{(usage.low||usage.incident)&&<p>A cota está baixa ou houve bloqueio recente. Mantenha local → grátis; habilite contingência paga apenas se desejar, escolhendo seus modelos de menor custo.</p>}<a href="https://openrouter.ai/settings/credits" target="_blank" rel="noreferrer">Consultar saldo na OpenRouter</a></div>}
       <button type="button" className="secondary-button" aria-expanded={editing} onClick={()=>{setEditing(v=>!v);setKey('')}}>{editing?'Cancelar edição':'Editar conexão / permissões'}</button>{editing&&<form className="ai-admin-fields" onSubmit={save} style={{paddingTop:12}}>
         <label>Provedor da conexão<select value={provider} disabled={busy} onChange={event=>{setProvider(event.target.value);setKey('');setNotice('');}}>{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
@@ -61,3 +62,4 @@ export function ProviderConnections() {
     {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}
   </section>;
 }
+

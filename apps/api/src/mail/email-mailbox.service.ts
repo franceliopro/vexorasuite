@@ -172,6 +172,9 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
   async sync(tenantId: string, id: string): Promise<{ imported: number; skipped: number }> {
     const row = await this.getMailbox(tenantId, id);
     if (!["CONNECTED", "SYNCING"].includes(row.status)) return { imported: 0, skipped: 0 };
+    // Manual sync and the scheduler run in different processes; use the shared lease table
+    // so only one process can pull a mailbox at a time.
+    if (this.leases && !(await this.leases.claim("email-mailbox:" + id, 15 * 60_000))) return { imported: 0, skipped: 0 };
     const imapEndpoint = await mailHost(row.imapHost);
     const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
     let imported = 0, skipped = 0;

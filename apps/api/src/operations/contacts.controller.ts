@@ -157,7 +157,7 @@ export class ContactsController {
       if (index < 0) throw new BadRequestException("Etiqueta não encontrada.");
       if (latest.some((tag, tagIndex) => tagIndex !== index && typeof tag.name === "string" && tag.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("Já existe uma etiqueta com esse nome.");
       const tags = latest.map((tag, tagIndex) => tagIndex === index ? { ...tag, name, color } : tag);
-      return { ...value, tags };
+      return { ...value, tags } as any;
     });
     return (updated as any).tags.find((tag: any) => tag.id === tagId);
   }
@@ -165,7 +165,7 @@ export class ContactsController {
   @Delete("profile-config/tags/:tagId")
   async deleteProfileTag(@Req() request: AuthenticatedRequest, @Param("tagId", ParseUUIDPipe) tagId: string) {
     if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
-    const updated = await mutateTenantSetting(this.prisma, request.user.tenantId, current => {
+    const updated = await mutateTenantSetting(this.prisma, request.user.tenantId, "crmProfileConfig", current => {
       const value = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
       const latest = Array.isArray(value.tags) ? value.tags as Array<Record<string, unknown>> : [];
       if (!latest.some(tag => tag.id === tagId)) throw new BadRequestException("Etiqueta não encontrada.");

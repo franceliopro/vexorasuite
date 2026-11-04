@@ -3,6 +3,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
+import { isSupervisionStale } from "./supervision-metrics";
 
 @Controller("supervision")
 @UseGuards(AuthGuard)
@@ -54,6 +55,7 @@ export class SupervisionController {
         status: true,
         createdAt: true,
         updatedAt: true,
+        lastMessageAt: true,
         assigneeId: true,
         departmentId: true,
         contact: { select: { name: true } },
@@ -71,7 +73,7 @@ export class SupervisionController {
       const group = byDepartment.get(id) || { id, name: row.department?.name || "Sem departamento", waiting: 0, open: 0, stale: 0 };
       if (!row.assigneeId) group.waiting++;
       if (row.status === "OPEN") group.open++;
-      if (now - row.updatedAt.getTime() >= slaMinutes * 60_000) group.stale++;
+      if (isSupervisionStale(row, new Date(now), slaMinutes)) group.stale++;
       byDepartment.set(id, group);
     }
     return {

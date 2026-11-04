@@ -6,6 +6,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
 
+// Share one refresh rotation between concurrent requests in this web process. Without this,
+// parallel 401s reuse the same refresh token and trigger family-wide reuse revocation.
+const refreshInFlight = new Map<string, Promise<Record<string, unknown> | null>>();
+
 async function proxyRequest(request: Request, context: Context) {
   const params = await context.params;
   const pathValue = (params.path || []).map((part) => encodeURIComponent(part)).join("/");
@@ -23,19 +27,30 @@ async function proxyRequest(request: Request, context: Context) {
   /** Exchanges the refresh cookie. Returns the new access token, or null when the session is over. */
   const renewSession = async (): Promise<string | null> => {
     if (!refreshToken) return null;
+    const existing = refreshInFlight.get(refreshToken);
+    const task = existing ?? (async () => {
+      try {
+        const response = await fetch(apiOrigin + "/api/auth/refresh", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+          cache: "no-store",
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) return null;
+        return (await response.json()) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    })();
+    if (!existing) refreshInFlight.set(refreshToken, task);
     try {
-      const response = await fetch(apiOrigin + "/api/auth/refresh", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!response.ok) return null;
-      const payload = applyCookies((await response.json()) as Record<string, unknown>);
-      return typeof payload.accessToken === "string" ? payload.accessToken : null;
-    } catch {
-      return null;
+      const payload = await task;
+      if (!payload) return null;
+      const applied = applyCookies(payload);
+      return typeof applied.accessToken === "string" ? applied.accessToken : null;
+    } finally {
+      if (!existing && refreshInFlight.get(refreshToken) === task) refreshInFlight.delete(refreshToken);
     }
   };
 

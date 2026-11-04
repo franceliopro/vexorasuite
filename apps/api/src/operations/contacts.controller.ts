@@ -243,6 +243,7 @@ export class ContactsController {
 
   @Get(":id/history")
   async history(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await contactPipelineAccess(this.prisma, request, id);
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
     if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
     const conversations = await this.prisma.conversation.findMany({
@@ -275,6 +276,7 @@ export class ContactsController {
 
   @Patch(":id/profile")
   async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown }) {
+    await contactPipelineAccess(this.prisma, request, id);
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
     const configuredTags = input.tags !== undefined
       ? await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } }).then((tenant) => {
@@ -326,6 +328,7 @@ export class ContactsController {
 
   @Patch(":id/stage")
   async updateStage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { stage?: string }) {
+    await contactPipelineAccess(this.prisma, request, id);
     if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida. Para finalizar, registre o resultado comercial.");
     const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, metadata => {
       if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
@@ -341,6 +344,7 @@ export class ContactsController {
     @Param("id") id: string,
     @Body() input: { pipelineId?: string },
   ) {
+    await contactPipelineAccess(this.prisma, request, id);
     const pipelineId = typeof input.pipelineId === "string" ? input.pipelineId.trim() : "";
     if (!pipelineId) throw new BadRequestException("Pipeline inválido.");
     const result = await this.prisma.$transaction(async (tx) => {
@@ -368,6 +372,7 @@ export class ContactsController {
 
   @Post(":id/finalize")
   async finalize(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { outcome?: string; reason?: string }) {
+    await contactPipelineAccess(this.prisma, request, id);
     const tenantId = request.user.tenantId;
     const outcome = typeof input.outcome === "string" ? input.outcome.toUpperCase() : "";
     if (outcome !== "WON" && outcome !== "LOST") throw new BadRequestException("Escolha se o resultado foi ganho ou perda.");

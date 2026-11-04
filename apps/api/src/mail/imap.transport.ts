@@ -103,9 +103,3 @@ export class ImapMailTransport {
     });
   }
 }
-
-function resolveSettings(): ImapSettings {
-  // Kept as a function so the transport can be imported in unit tests without freezing process.env.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require("./imap.config").resolveImapSettings();
-}

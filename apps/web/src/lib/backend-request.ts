@@ -2,11 +2,9 @@ export class RequestBodyTooLarge extends Error {}
 export function trustedRequestOrigin(request:Request,publicUrl?:string){
  if(request.headers.get('sec-fetch-site')==='cross-site')return false;
  const origin=request.headers.get('origin');if(!origin)return true;
- const url=new URL(request.url);const allowed=new Set([url.origin]);
+ const url=new URL(request.url);const allowed=new Set<string>();
+ if(process.env.NODE_ENV!=='production')allowed.add(url.origin);
  if(publicUrl){try{allowed.add(new URL(publicUrl).origin)}catch{}}
- const host=(request.headers.get('x-forwarded-host')||request.headers.get('host')||'').split(',')[0]!.trim();
- const protocol=(request.headers.get('x-forwarded-proto')||url.protocol.replace(':','')).split(',')[0]!.trim();
- if(/^[a-z\d.:[\]-]+$/i.test(host)&&['http','https'].includes(protocol))allowed.add(protocol+'://'+host);
  return allowed.has(origin);
 }
 export async function limitedRequestBody(request:Request,maxBytes=22*1024*1024):Promise<ArrayBuffer>{

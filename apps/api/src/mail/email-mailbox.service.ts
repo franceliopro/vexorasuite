@@ -1,10 +1,12 @@
-import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from "@nestjs/common";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "../operations/events.service";
 import { SmtpMailTransport } from "./transports/smtp.transport";
+import { JobLeaseService } from "../common/job-lease.service";
+import { schedulersEnabled } from "../common/scheduler-mode";
 
 type MailboxInput = {
   name?: unknown; address?: unknown; imapHost?: unknown; imapPort?: unknown; imapSecure?: unknown; imapUser?: unknown; imapPassword?: unknown; imapMailbox?: unknown;
@@ -19,9 +21,27 @@ const MAX_MESSAGE_TEXT = 200_000;
 const MAX_ATTACHMENT_META = 50;
 
 @Injectable()
-export class EmailMailboxService {
+export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EmailMailboxService.name);
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService) {}
+  private timer?: NodeJS.Timeout;
+  private running = false;
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly leases?: JobLeaseService) {}
+
+  onModuleInit(): void {
+    if (!schedulersEnabled()) return;
+    this.timer = setInterval(() => void this.scheduledSync(), 60_000);
+    this.timer.unref();
+    void this.scheduledSync();
+  }
+
+  onModuleDestroy(): void { if (this.timer) clearInterval(this.timer); }
+
+  private async scheduledSync(): Promise<void> {
+    if (this.running || (this.leases && !(await this.leases.claim("email-mailbox-sync", 55_000)))) return;
+    this.running = true;
+    try { await this.syncAll(); } catch (error) { this.logger.warn("Falha no ciclo de sincronização de e-mail: " + (error instanceof Error ? error.message : String(error))); }
+    finally { this.running = false; }
+  }
 
   private key(): Buffer {
     const value = process.env.INTEGRATION_ENCRYPTION_KEY || "";

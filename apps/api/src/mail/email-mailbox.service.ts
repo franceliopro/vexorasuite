@@ -13,7 +13,7 @@ type MailboxInput = {
   smtpHost?: unknown; smtpPort?: unknown; smtpSecure?: unknown; smtpUser?: unknown; smtpPassword?: unknown; smtpFrom?: unknown; smtpFromName?: unknown;
 };
 type MailboxSettings = {
-  id: string; tenantId: string; address: string; imapHost: string; imapPort: number; imapSecure: boolean; imapUser: string; imapPasswordEncrypted: string; imapMailbox: string;
+  id: string; tenantId: string; address: string; imapHost: string; imapPort: number; imapSecure: boolean; imapUser: string; imapPasswordEncrypted: string; imapMailbox: string; status: string; syncUidValidity: number | null; syncLastUid: number;
   smtpHost: string | null; smtpPort: number | null; smtpSecure: boolean | null; smtpUser: string | null; smtpPasswordEncrypted: string | null; smtpFrom: string | null; smtpFromName: string | null; channelConnectionId: string;
 };
 const MAX_SYNC_MESSAGES = 50;
@@ -182,13 +182,14 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
           const mail = await simpleParser(item.source);
           const from = mail.from?.value?.[0]?.address?.toLowerCase() || row.address;
           const subject = (mail.subject || "").trim().slice(0, 500) || "(sem assunto)";
+          const addressList = (field: unknown): string[] => { const value = field && typeof field === "object" && "value" in field ? (field as { value?: unknown }).value : field; const entries = Array.isArray(value) ? value : [value]; return entries.map((entry) => entry && typeof entry === "object" && "address" in entry ? (entry as { address?: unknown }).address : null).filter((entry): entry is string => typeof entry === "string" && entry.length > 0); };
           const references = Array.isArray(mail.references) ? mail.references : mail.references ? [mail.references] : [];
           const threadKey = references[0] || mail.inReplyTo || mail.messageId || "subject:" + subject.toLocaleLowerCase("pt-BR");
           const contact = await this.prisma.contact.findFirst({ where: { tenantId, email: from } }) || await this.prisma.contact.create({ data: { tenantId, name: mail.from?.value?.[0]?.name?.trim() || from, email: from, source: "EMAIL" } });
           let conversation = await this.prisma.conversation.findFirst({ where: { tenantId, channelConnectionId: row.channelConnectionId, emailThreadKey: threadKey } });
           if (!conversation) conversation = await this.prisma.conversation.create({ data: { tenantId, contactId: contact.id, channelConnectionId: row.channelConnectionId, channel: "EMAIL", subject, emailThreadKey: threadKey, status: "OPEN", lastMessageAt: mail.date || new Date() } });
           const body = (mail.text || (typeof mail.html === "string" ? mail.html.replace(/<[^>]*>/g, " ") : "")).slice(0, MAX_MESSAGE_TEXT);
-          const message = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, providerMessageId: providerId, direction: "INBOUND", status: "RECEIVED", content: body, contentType: mail.html ? "html" : "text", senderName: mail.from?.value?.[0]?.name || from, occurredAt: mail.date || new Date(), metadata: { provider: "EMAIL", mailboxId: row.id, uid: item.uid, uidValidity, messageId: mail.messageId || null, inReplyTo: mail.inReplyTo || null, references, subject, from, to: mail.to?.value?.map((entry) => entry.address).filter(Boolean) || [], cc: mail.cc?.value?.map((entry) => entry.address).filter(Boolean) || [], html: typeof mail.html === "string" ? mail.html.slice(0, MAX_MESSAGE_TEXT) : null, attachments: mail.attachments.slice(0, MAX_ATTACHMENT_META).map((entry) => ({ filename: entry.filename, contentType: entry.contentType, size: entry.size })) } } });
+          const message = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, providerMessageId: providerId, direction: "INBOUND", status: "RECEIVED", content: body, contentType: mail.html ? "html" : "text", senderName: mail.from?.value?.[0]?.name || from, occurredAt: mail.date || new Date(), metadata: { provider: "EMAIL", mailboxId: row.id, uid: item.uid, uidValidity, messageId: mail.messageId || null, inReplyTo: mail.inReplyTo || null, references, subject, from, to: addressList(mail.to), cc: addressList(mail.cc), html: typeof mail.html === "string" ? mail.html.slice(0, MAX_MESSAGE_TEXT) : null, attachments: mail.attachments.slice(0, MAX_ATTACHMENT_META).map((entry) => ({ filename: entry.filename, contentType: entry.contentType, size: entry.size })) } } });
           await this.prisma.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: message.occurredAt, subject: conversation.subject || subject } });
           this.events.publish(tenantId, "message.received", { conversationId: conversation.id, message: { id: message.id, direction: message.direction, status: message.status, content: message.content, occurredAt: message.occurredAt.toISOString(), channel: "EMAIL" } });
           imported++;

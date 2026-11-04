@@ -3475,3 +3475,63 @@ input[type="color"].profile-tag-inline-color {
 
 /* Shared conversation label and attachment treatment. */
 .inbox-file-message{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:8px 10px;border:1px solid #dfe3ec;border-radius:10px;background:#fff;color:#344054;font-size:12px;font-weight:650;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inbox-file-message:hover{border-color:#b9c2df;background:#f7f8ff;color:#5145cd}
+
+
+/* Inbox visual contract: keep the three-pane workspace usable at tablet widths. */
+@media (min-width: 761px) and (max-width: 980px) {
+  .main-area:has(.inbox-workspace) .inbox-workspace {
+    grid-template-columns: minmax(220px, 30vw) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+  }
+  .main-area:has(.inbox-workspace) .contact-profile.content-card {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: min(240px, 30dvh);
+    max-height: 240px;
+  }
+}
+
+/* On phones, the selected thread and contact card remain reachable as separate scrollable areas. */
+@media (max-width: 760px) {
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: start;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open .inbox-thread {
+    min-height: min(62dvh, 560px);
+    height: auto;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open .contact-profile.content-card {
+    height: min(300px, 38dvh);
+    max-height: min(300px, 38dvh);
+    overflow: hidden;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open .contact-profile-body {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+/* Errors must stay above the fixed-height workspace instead of becoming a clipped grid row. */
+.main-area:has(.inbox-workspace) .inbox-error {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  z-index: 20;
+  box-shadow: 0 10px 28px rgba(16, 24, 40, .16);
+}
+@media (max-width: 760px) {
+  .main-area:has(.inbox-workspace) .inbox-error {
+    right: 5px;
+    bottom: max(5px, env(safe-area-inset-bottom));
+    left: 5px;
+  }
+}

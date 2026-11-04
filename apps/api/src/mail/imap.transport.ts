@@ -1,6 +1,6 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
-import { assertImapConfigured, ImapSettings } from "./imap.config";
+import { assertImapConfigured, ImapSettings, resolveImapSettings } from "./imap.config";
 
 export interface ImapVerification {
   ok: boolean;
@@ -33,7 +33,7 @@ const addresses = (value: unknown): string[] => {
 export class ImapMailTransport {
   private readonly settings: ImapSettings;
 
-  constructor(settings = resolveSettings()) {
+  constructor(settings = resolveImapSettings()) {
     assertImapConfigured(settings);
     this.settings = settings;
   }

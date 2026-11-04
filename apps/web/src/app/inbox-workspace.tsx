@@ -438,16 +438,37 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   }, [loadConversations, loadQueueCounts, loadMessages, loadChannels, loadSupervision]);
   useEffect(() => {
     const source = new EventSource("/api/backend/events");
+    let refreshTimer: number | null = null;
+    let refreshInFlight = false;
+    const refreshNow = () => {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
+      void Promise.all([
+        loadConversations(),
+        loadQueueCounts(),
+        loadChannels(),
+        loadSupervision(),
+        selectedRef.current ? loadMessages(selectedRef.current) : Promise.resolve(),
+      ]).finally(() => { refreshInFlight = false; });
+    };
+    // A busy tenant can emit several related events for one user action. Coalesce them so
+    // one burst results in one refresh instead of multiplying reads against the rate limit.
+    const refresh = () => {
+      if (refreshTimer !== null) return;
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        refreshNow();
+      }, 250);
+    };
     source.onopen = () => window.dispatchEvent(new Event("vexora:events-online"));
-    const refresh = () => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision(); if (selectedRef.current) void loadMessages(selectedRef.current); };
     ["message.received", "message.sent", "message.failed", "message.status", "message.queued", "conversation.updated", "conversation.assigned", "conversation.created", "contact.updated", "contact.created", "contact.stage_changed", "channel.status", "channel.created"].forEach((name) => source.addEventListener(name, refresh));
     source.addEventListener("team.updated",()=>{void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(()=>{});refresh();});
     // EventSource reconnects automatically. Keep the interface quiet; the 5-second polling fallback keeps conversations fresh while SSE recovers.
-    source.onerror = () => { window.dispatchEvent(new Event("vexora:events-offline")); };
-    return () => source.close();
-  }, [loadConversations, loadQueueCounts, loadChannels, loadMessages]);
-
-  const pendingId = channels.find((item) => item.status === "CONNECTING" || item.status === "QR")?.id ?? null;
+    return () => {
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+      source.close();
+    };
+  }, [loadConversations, loadQueueCounts, loadMessages, loadChannels, loadSupervision]);
   useEffect(() => {
     if (!pendingId) return;
     let cancelled = false;

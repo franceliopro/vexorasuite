@@ -211,7 +211,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     if (typeof text !== "string" || text.length > MAX_MESSAGE_TEXT || (!text.trim() && !attachment)) throw new BadRequestException("Mensagem de e-mail inválida.");
     if (attachment) {
       if (typeof attachment.filename !== "string" || !attachment.filename.trim() || attachment.filename.length > 255) throw new BadRequestException("Nome do anexo inválido.");
-      if (typeof attachment.contentType !== "string" || !/^[\\w.+-]+\\/[\\w.+-]+$/.test(attachment.contentType)) throw new BadRequestException("Tipo do anexo inválido.");
+      if (typeof attachment.contentType !== "string" || !/^[A-Za-z0-9.+-]+\/[A-Za-z0-9.+-]+$/.test(attachment.contentType)) throw new BadRequestException("Tipo do anexo inválido.");
       if (typeof attachment.data !== "string" || !/^[A-Za-z0-9+/]*={0,2}$/.test(attachment.data)) throw new BadRequestException("Conteúdo do anexo inválido.");
       const decodedSize = Math.floor(attachment.data.length * 3 / 4) - (attachment.data.endsWith("==") ? 2 : attachment.data.endsWith("=") ? 1 : 0);
       if (decodedSize <= 0 || decodedSize > MAX_OUTBOUND_ATTACHMENT_BYTES) throw new BadRequestException("O anexo excede o limite de 16 MB.");

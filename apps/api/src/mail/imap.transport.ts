@@ -24,6 +24,9 @@ export interface InboundMail {
   attachments: Array<{ filename?: string; contentType?: string; size: number }>;
 }
 
+const IMAP_CONNECTION_TIMEOUT_MS = 10_000;
+const IMAP_SOCKET_TIMEOUT_MS = 20_000;
+
 const addresses = (value: unknown): string[] => {
   if (!value || typeof value !== "object") return [];
   const list = Array.isArray((value as { value?: unknown }).value) ? (value as { value: Array<{ address?: string }> }).value : [];
@@ -102,6 +105,8 @@ export class ImapMailTransport {
       secure: this.settings.secure,
       auth: { user: this.settings.user, pass: this.settings.password },
       logger: false,
+      connectionTimeout: IMAP_CONNECTION_TIMEOUT_MS,
+      socketTimeout: IMAP_SOCKET_TIMEOUT_MS,
     });
   }
 }

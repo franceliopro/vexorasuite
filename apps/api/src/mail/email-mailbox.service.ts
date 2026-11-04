@@ -17,6 +17,8 @@ type MailboxSettings = {
   id: string; tenantId: string; address: string; imapHost: string; imapPort: number; imapSecure: boolean; imapUser: string; imapPasswordEncrypted: string; imapMailbox: string; status: string; syncUidValidity: number | null; syncLastUid: number;
   smtpHost: string | null; smtpPort: number | null; smtpSecure: boolean | null; smtpUser: string | null; smtpPasswordEncrypted: string | null; smtpFrom: string | null; smtpFromName: string | null; channelConnectionId: string;
 };
+const IMAP_CONNECTION_TIMEOUT_MS = 10_000;
+const IMAP_SOCKET_TIMEOUT_MS = 20_000;
 const MAX_SYNC_MESSAGES = 50;
 const MAX_MESSAGE_TEXT = 200_000;
 const MAX_ATTACHMENT_META = 50;
@@ -195,7 +197,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
   async verify(tenantId: string, id: string) {
     const row = await this.getMailbox(tenantId, id);
     const imapEndpoint = await mailHost(row.imapHost);
-    const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
+    const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false, connectionTimeout: IMAP_CONNECTION_TIMEOUT_MS, socketTimeout: IMAP_SOCKET_TIMEOUT_MS });
     try {
       await client.connect();
       const mailbox = await client.mailboxOpen(row.imapMailbox);

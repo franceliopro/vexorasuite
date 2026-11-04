@@ -7,6 +7,7 @@ import { EventsService } from "../operations/events.service";
 import { SmtpMailTransport } from "./transports/smtp.transport";
 import { JobLeaseService } from "../common/job-lease.service";
 import { schedulersEnabled } from "../common/scheduler-mode";
+import { mailHost } from "../communications/security";
 
 type MailboxInput = {
   name?: unknown; address?: unknown; imapHost?: unknown; imapPort?: unknown; imapSecure?: unknown; imapUser?: unknown; imapPassword?: unknown; imapMailbox?: unknown;
@@ -99,11 +100,13 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     const address = this.text(input.address, "Endereço de e-mail", 254).toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new BadRequestException("Endereço de e-mail inválido.");
     const imapHost = this.text(input.imapHost, "Servidor IMAP", 253).replace(/^[a-z]+:\/\//i, "").replace(/\/+$/, "");
+    await mailHost(imapHost);
     const imapUser = this.text(input.imapUser ?? address, "Usuário IMAP", 254);
     const imapPassword = this.text(input.imapPassword, "Senha IMAP", 512);
     const name = this.text(input.name ?? address, "Nome da caixa", 120);
     const imapMailbox = this.optionalText(input.imapMailbox, "Pasta IMAP", 120) || "INBOX";
     const smtpHost = this.optionalText(input.smtpHost, "Servidor SMTP", 253);
+    if (smtpHost) await mailHost(smtpHost);
     const smtpUser = this.optionalText(input.smtpUser, "Usuário SMTP", 254);
     const smtpPassword = this.optionalText(input.smtpPassword, "Senha SMTP", 512);
     const smtpFrom = this.optionalText(input.smtpFrom, "Remetente SMTP", 254) || address;
@@ -138,7 +141,8 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
 
   async verify(tenantId: string, id: string) {
     const row = await this.getMailbox(tenantId, id);
-    const client = new ImapFlow({ host: row.imapHost, port: row.imapPort, secure: row.imapSecure, auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
+    const imapEndpoint = await mailHost(row.imapHost);
+    const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
     try {
       await client.connect();
       const mailbox = await client.mailboxOpen(row.imapMailbox);
@@ -161,7 +165,8 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
   async sync(tenantId: string, id: string): Promise<{ imported: number; skipped: number }> {
     const row = await this.getMailbox(tenantId, id);
     if (!["CONNECTED", "SYNCING"].includes(row.status)) return { imported: 0, skipped: 0 };
-    const client = new ImapFlow({ host: row.imapHost, port: row.imapPort, secure: row.imapSecure, auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
+    const imapEndpoint = await mailHost(row.imapHost);
+    const client = new ImapFlow({ host: imapEndpoint, port: row.imapPort, secure: row.imapSecure, ...(row.imapSecure ? { tls: { servername: row.imapHost } } : {}), auth: { user: row.imapUser, pass: this.decrypt(row.imapPasswordEncrypted) }, logger: false });
     let imported = 0, skipped = 0;
     try {
       await client.connect();
@@ -220,7 +225,8 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     if (!conversation?.channelConnection?.emailMailbox) throw new NotFoundException("Inbox de e-mail não encontrada para esta conversa.");
     const mailbox = conversation.channelConnection.emailMailbox;
     if (!mailbox.smtpHost || !mailbox.smtpUser || !mailbox.smtpPasswordEncrypted || !mailbox.smtpFrom) throw new ServiceUnavailableException("SMTP de resposta não configurado para esta caixa.");
-    const transport = new SmtpMailTransport({ host: mailbox.smtpHost, port: mailbox.smtpPort || 587, secure: mailbox.smtpSecure === true, user: mailbox.smtpUser, password: this.decrypt(mailbox.smtpPasswordEncrypted), from: mailbox.smtpFrom, fromName: mailbox.smtpFromName || undefined });
+    const smtpEndpoint = await mailHost(mailbox.smtpHost);
+    const transport = new SmtpMailTransport({ host: smtpEndpoint, tlsServername: mailbox.smtpHost, port: mailbox.smtpPort || 587, secure: mailbox.smtpSecure === true, user: mailbox.smtpUser, password: this.decrypt(mailbox.smtpPasswordEncrypted), from: mailbox.smtpFrom, fromName: mailbox.smtpFromName || undefined });
     const subject = conversation.subject?.startsWith("Re:") ? conversation.subject : "Re: " + (conversation.subject || "(sem assunto)");
     const result = await transport.send({ to: conversation.contact.email || "", subject, text: text.trim() || "Arquivo anexado: " + attachment!.filename, replyTo: mailbox.address, ...(attachment ? { attachments: [{ filename: attachment.filename, content: Buffer.from(attachment.data, "base64"), contentType: attachment.contentType }] } : {}) });
     transport.close();

@@ -3,34 +3,29 @@ const fs = require('node:fs');
 
 const compose = fs.readFileSync('docker-compose.yml', 'utf8');
 const dockerfile = fs.readFileSync('apps/api/Dockerfile', 'utf8');
+const lines = compose.split('\n');
 
-assert.match(compose, /^  migration:\n/m, 'Compose must define one migration service');
-assert.match(
-  compose,
-  /  migration:[\s\S]*?command: \["\.\/node_modules\/\.bin\/prisma", "migrate", "deploy"\]/,
-  'migration service must run Prisma migrations'
-);
-assert.match(
-  compose,
-  /  migration:[\s\S]*?depends_on:\n      postgres:\n        condition: service_healthy/,
-  'migration service must wait for healthy PostgreSQL'
-);
+function serviceBlock(name) {
+  const start = lines.findIndex((line) => line === `  ${name}:`);
+  assert.notEqual(start, -1, `Compose must define ${name}`);
+  const end = lines.findIndex(
+    (line, index) => index > start && /^\x20{2}\S/.test(line)
+  );
+  return lines.slice(start, end === -1 ? lines.length : end).join('\n');
+}
+
+const migration = serviceBlock('migration');
+assert.match(migration, /command: \["\.\/node_modules\/\.bin\/prisma", "migrate", "deploy"\]/);
+assert.match(migration, /depends_on:[\s\S]*?postgres:[\s\S]*?condition: service_healthy/);
 
 for (const service of ['api', 'webhook-worker', 'scheduler-worker']) {
-  const start = compose.indexOf(`  ${service}:\n`);
-  assert.notEqual(start, -1, `Compose must define ${service}`);
-  const next = compose.indexOf('\n  ', start + 3);
-  const block = compose.slice(start, next === -1 ? compose.length : next);
+  const block = serviceBlock(service);
   assert.match(
     block,
     /depends_on:[\s\S]*?migration:[\s\S]*?condition: service_completed_successfully/,
     `${service} must wait for completed migrations`
   );
-  assert.doesNotMatch(
-    block,
-    /prisma migrate deploy/,
-    `${service} must not run migrations itself`
-  );
+  assert.doesNotMatch(block, /prisma migrate deploy/, `${service} must not migrate itself`);
 }
 
 assert.doesNotMatch(

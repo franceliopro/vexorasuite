@@ -7,9 +7,10 @@ import { EmailMailboxController } from "./email-mailbox.controller";
 import { MailService } from "./mail.service";
 import { EmailMailboxService } from "./email-mailbox.service";
 import { JobLeaseService } from "../common/job-lease.service";
+import { EventsModule } from "../operations/events.module";
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => AuthModule), JwtModule.register({})],
+  imports: [PrismaModule, forwardRef(() => AuthModule), JwtModule.register({}), EventsModule],
   controllers: [MailController, EmailMailboxController],
   providers: [MailService, EmailMailboxService, JobLeaseService],
   exports: [MailService, EmailMailboxService],

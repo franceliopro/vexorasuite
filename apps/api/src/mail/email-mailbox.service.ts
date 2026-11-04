@@ -202,10 +202,12 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
           imported++;
         }
         await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "CONNECTED", lastSyncAt: new Date(), lastError: null, ...(messages.length ? { syncLastUid: messages[messages.length - 1]!.uid } : {}) } });
+        await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "CONNECTED", lastError: null } });
       } finally { lock.release(); }
     } catch (error) {
       const detail = error instanceof Error ? error.message.slice(0, 240) : "Falha na sincronização da caixa.";
       await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "ERROR", lastError: detail } });
+      await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "ERROR", lastError: detail } });
       this.logger.warn("Falha ao sincronizar mailbox " + row.id + ": " + detail);
       throw new BadGatewayException("Não foi possível sincronizar a caixa de e-mail.");
     } finally { await client.logout().catch(() => client.close()); }

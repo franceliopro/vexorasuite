@@ -11,15 +11,19 @@
   --font-display: "Manrope", "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --surface-page: #f7f8fc;
   --surface-1: #ffffff;
-  --surface-2: #fbfcff;
+  --surface-2: #fafbfe;
   --surface-3: #f3f4fa;
   --surface-hover: #f0efff;
   --surface-active: #e7e5ff;
   --text-primary: #20243a;
   --text-secondary: #626982;
-  --text-muted: #858ba0;
-  --border-subtle: #e5e8f1;
+  --text-muted: #626982;
+  --border-subtle: #e9ebf3;
   --border-strong: #cbd0df;
+  --primary-contrast: #ffffff;
+  --button-height: 40px;
+  --button-height-mobile: 44px;
+  --button-radius: 9px;
   --focus-ring: color-mix(in srgb, var(--primary) 48%, white);
   --control-height: 40px;
   --control-radius: 10px;
@@ -33,13 +37,9 @@
   --sidebar-hover: rgba(255,255,255,.07);
   --sidebar-active: color-mix(in srgb, var(--primary) 25%, #252C39);
 }
+
 :root[data-theme="light"] {
   color-scheme: light;
-  --page: #f6f7fb;
-  --card: #ffffff;
-  --ink: #20243a;
-  --muted: #777f96;
-  --line: #e4e7f0;
   --surface-page: #f6f7fb;
   --surface-1: #ffffff;
   --surface-2: #fbfcff;
@@ -48,8 +48,8 @@
   --surface-active: color-mix(in srgb, var(--primary) 13%, white);
   --text-primary: #20243a;
   --text-secondary: #5f667d;
-  --text-muted: #7c849a;
-  --border-subtle: #e3e6ef;
+  --text-muted: #626982;
+  --border-subtle: #e4e7f0;
   --border-strong: #c8cede;
   --sidebar: #ffffff;
   --sidebar-bg: #ffffff;
@@ -64,11 +64,6 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #10131b;
-  --card: #191d28;
-  --ink: #eef1fa;
-  --muted: #a0a8bd;
-  --line: #303747;
   --surface-page: #10131b;
   --surface-1: #191d28;
   --surface-2: #202534;
@@ -77,7 +72,7 @@
   --surface-active: color-mix(in srgb, var(--primary) 27%, #202534);
   --text-primary: #eef1fa;
   --text-secondary: #c0c6d7;
-  --text-muted: #9ca5bb;
+  --text-muted: #c0c6d7;
   --border-subtle: #303747;
   --border-strong: #485168;
   --sidebar: #191D28;
@@ -2633,4 +2628,26 @@ body { background: var(--surface-page); color: var(--text-primary); }
   .chatbot-workspace .vx-flow-stage-bar {
     padding-inline: 8px;
   }
+}
+
+/* Final semantic bridge: component surfaces never bypass the theme tokens. */
+html:root[data-theme] :is(.topbar,.content-card,.shortcut-item,.auth-panel,.mobile-menu,.icon-button,.secondary-button,.inbox-conversation,.message-bubble,.inbox-queue-menu,.handoff-trigger,.handoff-popover) {
+  background-color: var(--surface-1);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+html:root[data-theme] :is(.search-box,.inbox-composer textarea,.auth-field input,.settings-field input,.settings-field textarea) {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+html:root[data-theme] :is(.breadcrumbs,.card-heading p,.metric-card p,.shortcut-copy small,.page-footer,.inbox-empty,.conversation-summary small,.message-bubble small) {
+  color: var(--text-secondary);
+}
+html:root[data-theme] :is(.primary-button,.secondary-button) {
+  min-height: var(--button-height);
+  border-radius: var(--button-radius);
+}
+@media (max-width: 760px) {
+  html:root[data-theme] :is(.primary-button,.secondary-button) { min-height: var(--button-height-mobile); }
 }

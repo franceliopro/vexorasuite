@@ -28,6 +28,10 @@ describe("CORS origin validation", () => {
     },
   );
 
+  it("rejects unsupported protocols", () => {
+    expect(() => parseCorsOrigins("ftp://app.example.com", "development")).toThrow("HTTP or HTTPS");
+  });
+
   it("allows localhost HTTP only outside production", () => {
     expect(parseCorsOrigins("http://localhost:3000", "development")).toEqual(["http://localhost:3000"]);
     expect(() => parseCorsOrigins("http://localhost:3000", "production")).toThrow("only allowed");

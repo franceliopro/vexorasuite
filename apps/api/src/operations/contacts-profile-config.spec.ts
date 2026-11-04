@@ -1,4 +1,4 @@
-import { canManageProfileCatalog, mergeProfileFields } from "./contacts.controller";
+import { canManageProfileCatalog, mergeProfileFields, normalizeProfileTags } from "./contacts.controller";
 
 describe("canManageProfileCatalog", () => {
   it("allows only platform administrators to mutate the catalog", () => {
@@ -30,5 +30,27 @@ describe("mergeProfileFields", () => {
       [{ id: "legacy", name: "Nome interno", key: "customer_type", type: "TEXT", options: [] }],
       [{ id: "customer_type", label: "Tipo", type: "SELECT", options: ["Ativo"], enabled: true }],
     )).toHaveLength(1);
+  });
+});
+
+
+describe("normalizeProfileTags", () => {
+  it("canonicalizes catalog tags and preserves existing legacy values", () => {
+    expect(normalizeProfileTags(
+      [{ name: "vip", color: "#ffffff" }, { name: "Legado", color: "#123456" }],
+      [{ name: "VIP", color: "#6258df" }],
+      [{ name: "Legado", color: "#123456" }],
+    )).toEqual([
+      { name: "VIP", color: "#6258df" },
+      { name: "Legado", color: "#123456" },
+    ]);
+  });
+
+  it("rejects a new tag that is not in the catalog", () => {
+    expect(() => normalizeProfileTags(
+      [{ name: "Fora do catálogo", color: "#ffffff" }],
+      [{ name: "VIP", color: "#6258df" }],
+      [],
+    )).toThrow("catálogo");
   });
 });

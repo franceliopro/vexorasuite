@@ -60,11 +60,15 @@ services:
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-https://api.vexorasuite.com.br}
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
+      REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
+      REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
+      REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
+      REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
       # Rate limit uses the shared Redis counter and reads the real client IP from the proxy.
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       RATE_LIMIT_AUTH_PER_MIN: ${RATE_LIMIT_AUTH_PER_MIN:-10}

@@ -6,6 +6,6 @@ import { EventsAuthorizationService } from "./events-authorization.service";
 @Module({
   imports: [PrismaModule],
   providers: [EventsService, EventsAuthorizationService],
-  exports: [EventsService],
+  exports: [EventsService, EventsAuthorizationService],
 })
 export class EventsModule {}

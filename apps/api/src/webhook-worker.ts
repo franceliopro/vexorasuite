@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { assertWebhookTargetSafe, decryptWebhookSecret, signWebhookPayload } from "./operations/webhook-crypto";
+import { touchWorkerHeartbeat } from "./worker-heartbeat";
 
 const prisma = new PrismaClient();
 const intervalMs = Math.max(1000, Number(process.env.WEBHOOK_WORKER_INTERVAL_MS || 2000));
@@ -101,6 +102,14 @@ async function drain(): Promise<void> {
   await Promise.all(ids.map((id) => processDelivery(id)));
 }
 
+async function updateHeartbeat(): Promise<void> {
+  try {
+    await touchWorkerHeartbeat();
+  } catch (error) {
+    console.warn("Não foi possível atualizar o heartbeat do webhook worker:", error);
+  }
+}
+
 async function shutdown(signal: string): Promise<void> {
   console.log("Webhook worker encerrando (" + signal + ").");
   await prisma.$disconnect();
@@ -112,8 +121,10 @@ process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
 async function main(): Promise<void> {
   await prisma.$connect();
+  await updateHeartbeat();
   console.log("Webhook worker ativo (intervalo " + intervalMs + "ms).");
   while (true) {
+    await updateHeartbeat();
     try {
       await drain();
     } catch (error) {

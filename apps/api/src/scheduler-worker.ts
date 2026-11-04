@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
+import { touchWorkerHeartbeat } from "./worker-heartbeat";
 
 /**
  * Dedicated process for the periodic jobs: audio triage, workflow cadence, channel health and
@@ -26,13 +27,20 @@ async function bootstrap() {
   await app.init();
   logger.log("Jobs periódicos ativos neste processo.");
 
-  // Scheduler timers intentionally use unref() so they do not block normal API shutdown.
-  // This process has no HTTP listener, so keep one explicit referenced handle here; otherwise
-  // Node exits with code 0 immediately after Nest initialization and Docker restarts it forever.
-  const keepAlive = setInterval(() => undefined, 60_000);
+  const updateHeartbeat = async () => {
+    try {
+      await touchWorkerHeartbeat();
+    } catch (error) {
+      logger.warn(`Não foi possível atualizar o heartbeat do scheduler worker: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  await updateHeartbeat();
+  // This referenced timer keeps the application context alive and makes the worker liveness
+  // observable without pretending that external providers or individual jobs are healthy.
+  const heartbeatTimer = setInterval(() => void updateHeartbeat(), 10_000);
 
   const shutdown = async (signal: string) => {
-    clearInterval(keepAlive);
+    clearInterval(heartbeatTimer);
     logger.log(`Encerrando após ${signal}.`);
     await app.close().catch(() => undefined);
     process.exit(0);

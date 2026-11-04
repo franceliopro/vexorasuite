@@ -116,10 +116,18 @@ services:
       WEBHOOK_ENCRYPTION_KEY: ${WEBHOOK_ENCRYPTION_KEY:?Configure WEBHOOK_ENCRYPTION_KEY no Dokploy}
       WEBHOOK_WORKER_INTERVAL_MS: ${WEBHOOK_WORKER_INTERVAL_MS:-2000}
       WEBHOOK_WORKER_BATCH_SIZE: ${WEBHOOK_WORKER_BATCH_SIZE:-25}
+      # Local liveness marker; it does not claim database/provider health.
+      WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
     depends_on:
       postgres:
         condition: service_healthy
     command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/webhook-worker.js"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('node:fs');const p=process.env.WORKER_HEARTBEAT_FILE;try{const age=Date.now()-fs.statSync(p).mtimeMs;process.exit(Number.isFinite(age)&&age>=0&&age<=60000?0:1)}catch{process.exit(1)}"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # Periodic jobs (audio triage, workflow cadence, channel health, Asaas reconciliation).
   # This dedicated process is started by default. It keeps provider calls and cadence work
@@ -151,10 +159,18 @@ services:
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
       REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
       REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
+      # Local liveness marker; it does not claim database/provider health.
+      WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
     depends_on:
       postgres:
         condition: service_healthy
     command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/scheduler-worker.js"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('node:fs');const p=process.env.WORKER_HEARTBEAT_FILE;try{const age=Date.now()-fs.statSync(p).mtimeMs;process.exit(Number.isFinite(age)&&age>=0&&age<=60000?0:1)}catch{process.exit(1)}"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   ollama:
     profiles: ["local-ai"]

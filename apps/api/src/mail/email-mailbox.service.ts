@@ -178,14 +178,18 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
       const ok = smtp.ok !== false;
       const status = ok ? "CONNECTED" : "ERROR";
       const lastError = ok ? null : smtp.detail || "Falha na verificação SMTP.";
-      await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status, lastError } });
-      await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status, lastError } });
+      await this.prisma.$transaction([
+        this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status, lastError } }),
+        this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status, lastError } }),
+      ]);
       this.events.publish(tenantId, "channel.status", { id: row.channelConnectionId, status, provider: "EMAIL", ...(lastError ? { lastError } : {}) });
       return { ok, messages: mailbox.exists, mailbox: row.imapMailbox, smtp };
     } catch (error) {
       const detail = error instanceof Error ? error.message.slice(0, 240) : "Falha de conexão IMAP.";
-      await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "ERROR", lastError: detail } });
-      await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "ERROR", lastError: detail } });
+      await this.prisma.$transaction([
+        this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "ERROR", lastError: detail } }),
+        this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "ERROR", lastError: detail } }),
+      ]);
       this.events.publish(tenantId, "channel.status", { id: row.channelConnectionId, status: "ERROR", provider: "EMAIL", lastError: detail });
       return { ok: false, detail };
     } finally { await client.logout().catch(() => client.close()); }
@@ -227,8 +231,14 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
         }
         for (const item of messages) {
           const providerId = "email:" + row.id + ":" + uidValidity + ":" + item.uid;
-          const exists = await this.prisma.message.findFirst({ where: { tenantId, providerMessageId: providerId }, select: { id: true } });
-          if (exists) { skipped++; continue; }
+          const exists = await this.prisma.message.findFirst({ where: { tenantId, providerMessageId: providerId }, select: { id: true, conversationId: true, occurredAt: true } });
+          if (exists) {
+            // A previous run may have committed the message before crashing while updating the
+            // conversation. Reconcile that state instead of silently skipping it forever.
+            await this.prisma.conversation.update({ where: { id: exists.conversationId }, data: { lastMessageAt: exists.occurredAt } });
+            skipped++;
+            continue;
+          }
           const mail = await simpleParser(item.source);
           const from = mail.from?.value?.[0]?.address?.toLowerCase() || row.address;
           const subject = (mail.subject || "").trim().slice(0, 500) || "(sem assunto)";
@@ -244,14 +254,18 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
           this.events.publish(tenantId, "message.received", { conversationId: conversation.id, message: { id: message.id, direction: message.direction, status: message.status, content: message.content, occurredAt: message.occurredAt.toISOString(), channel: "EMAIL" } });
           imported++;
         }
-        await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "CONNECTED", lastSyncAt: new Date(), lastError: null, ...(messages.length ? { syncLastUid: messages[messages.length - 1]!.uid } : {}) } });
-        await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "CONNECTED", lastError: null } });
+        await this.prisma.$transaction([
+          this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "CONNECTED", lastSyncAt: new Date(), lastError: null, ...(messages.length ? { syncLastUid: messages[messages.length - 1]!.uid } : {}) } }),
+          this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "CONNECTED", lastError: null } }),
+        ]);
         this.events.publish(tenantId, "channel.status", { id: row.channelConnectionId, status: "CONNECTED", provider: "EMAIL" });
       } finally { lock.release(); }
     } catch (error) {
       const detail = error instanceof Error ? error.message.slice(0, 240) : "Falha na sincronização da caixa.";
-      await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "ERROR", lastError: detail } });
-      await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "ERROR", lastError: detail } });
+      await this.prisma.$transaction([
+        this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "ERROR", lastError: detail } }),
+        this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "ERROR", lastError: detail } }),
+      ]);
       this.events.publish(tenantId, "channel.status", { id: row.channelConnectionId, status: "ERROR", provider: "EMAIL", lastError: detail });
       this.logger.warn("Falha ao sincronizar mailbox " + row.id + ": " + detail);
       throw new BadGatewayException("Não foi possível sincronizar a caixa de e-mail.");

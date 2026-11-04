@@ -6,8 +6,13 @@
  * 401 with a valid refresh cookie, exchanges it and repeats the request once.
  */
 
-export const SESSION_COOKIE = "vexora_session";
-export const REFRESH_COOKIE = "vexora_refresh";
+/** Secure production names. The __Host- prefix requires Secure, Path=/, and no Domain. */
+export const SESSION_COOKIE = "__Host-vexora_session";
+export const REFRESH_COOKIE = "__Host-vexora_refresh";
+
+/** Names accepted temporarily so existing browsers can renew without being logged out. */
+export const LEGACY_SESSION_COOKIE = "vexora_session";
+export const LEGACY_REFRESH_COOKIE = "vexora_refresh";
 
 /** Fallbacks mirror the API defaults, so a missing field cannot create a decade-long cookie. */
 export const DEFAULT_ACCESS_MAX_AGE = 1800;
@@ -33,18 +38,20 @@ export function sessionCookies(
   options: { secure: boolean },
 ): { cookies: TokenCookie[]; rest: Record<string, unknown> } {
   const cookies: TokenCookie[] = [];
+  const accessCookieName = options.secure ? SESSION_COOKIE : LEGACY_SESSION_COOKIE;
+  const refreshCookieName = options.secure ? REFRESH_COOKIE : LEGACY_REFRESH_COOKIE;
   const base = { httpOnly: true as const, secure: options.secure, sameSite: "lax" as const, path: "/" };
 
   if (typeof payload.accessToken === "string" && payload.accessToken) {
     const maxAge = typeof payload.expiresIn === "number" && payload.expiresIn > 0 ? payload.expiresIn : DEFAULT_ACCESS_MAX_AGE;
-    cookies.push({ name: SESSION_COOKIE, value: payload.accessToken, options: { ...base, maxAge } });
+    cookies.push({ name: accessCookieName, value: payload.accessToken, options: { ...base, maxAge } });
   }
   if (typeof payload.refreshToken === "string" && payload.refreshToken) {
     const maxAge =
       typeof payload.refreshExpiresIn === "number" && payload.refreshExpiresIn > 0
         ? payload.refreshExpiresIn
         : DEFAULT_REFRESH_MAX_AGE;
-    cookies.push({ name: REFRESH_COOKIE, value: payload.refreshToken, options: { ...base, maxAge } });
+    cookies.push({ name: refreshCookieName, value: payload.refreshToken, options: { ...base, maxAge } });
   }
 
   // The tokens must not also reach the browser as JSON.

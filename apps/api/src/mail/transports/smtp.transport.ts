@@ -52,6 +52,7 @@ export class SmtpMailTransport implements MailTransport {
         text: message.text,
         html: message.html,
         replyTo: message.replyTo ?? this.config.replyTo,
+        attachments: message.attachments,
       });
       const accepted = (info.accepted ?? []).map((entry: string | { address: string }) =>
         typeof entry === "string" ? entry : entry.address,

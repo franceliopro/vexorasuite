@@ -113,8 +113,10 @@ export class AuthThrottle implements OnModuleDestroy {
 
   private async connect(): Promise<RedisClient | undefined> {
     try {
+      const url = process.env.REDIS_URL;
+      if (!url) return undefined;
       const { default: Redis } = await import("ioredis");
-      const client = new Redis(process.env.REDIS_URL, {
+      const client = new Redis(url, {
         lazyConnect: false,
         maxRetriesPerRequest: 1,
         enableOfflineQueue: false,

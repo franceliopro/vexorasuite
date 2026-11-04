@@ -1,4 +1,13 @@
-import { mergeProfileFields } from "./contacts.controller";
+import { canManageProfileCatalog, mergeProfileFields } from "./contacts.controller";
+
+describe("canManageProfileCatalog", () => {
+  it("allows only platform administrators to mutate the catalog", () => {
+    expect(canManageProfileCatalog("OWNER")).toBe(true);
+    expect(canManageProfileCatalog("ADMIN")).toBe(true);
+    expect(canManageProfileCatalog("MANAGER")).toBe(false);
+    expect(canManageProfileCatalog("AGENT")).toBe(false);
+  });
+});
 
 describe("mergeProfileFields", () => {
   it("exposes active CRM catalog fields in the contact profile", () => {

@@ -14,6 +14,8 @@ export interface SmtpConfig {
   from: string;
   fromName?: string;
   replyTo?: string;
+  /** Original hostname used for TLS SNI when host is pinned to a resolved public IP. */
+  tlsServername?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export class SmtpMailTransport implements MailTransport {
     this.transporter = createTransport({
       ...(config.service ? { service: config.service } : {}),
       host: config.host,
+      ...(config.tlsServername ? { tls: { servername: config.tlsServername } } : {}),
       port: config.port,
       secure: config.secure,
       auth: config.user ? { user: config.user, pass: config.password ?? "" } : undefined,

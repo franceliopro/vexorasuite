@@ -90,7 +90,7 @@ async function proxyRequest(request: Request, context: Context) {
 
   const isSse = pathValue === "events";
   const hasBody = !["GET", "HEAD"].includes(request.method);
-  if (hasBody && !trustedRequestOrigin(request, process.env.NEXT_PUBLIC_APP_URL)) return Response.json({ message: "Origem da solicitação não autorizada." }, { status: 403 });
+  if (hasBody && !trustedRequestOrigin(request, process.env.NEXT_PUBLIC_APP_URL)) return applyResponseRequestId(Response.json({ message: "Origem da solicitação não autorizada." }, { status: 403 }), requestId);
 
   let bodyBuffer: ArrayBuffer | undefined;
   const timeoutFor = () => {
@@ -128,7 +128,7 @@ async function proxyRequest(request: Request, context: Context) {
       try {
         upstream = await send(renewed);
       } catch {
-        return Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 });
+        return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
       }
     }
   }

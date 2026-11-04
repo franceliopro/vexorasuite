@@ -109,7 +109,9 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     if (smtpHost) await mailHost(smtpHost);
     const smtpUser = this.optionalText(input.smtpUser, "Usuário SMTP", 254);
     const smtpPassword = this.optionalText(input.smtpPassword, "Senha SMTP", 512);
+    if (smtpHost && (!smtpUser || !smtpPassword)) throw new BadRequestException("A configuração SMTP exige usuário e senha.");
     const smtpFrom = this.optionalText(input.smtpFrom, "Remetente SMTP", 254) || address;
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(smtpFrom)) throw new BadRequestException("Remetente SMTP inválido.");
     const smtpFromName = this.optionalText(input.smtpFromName, "Nome do remetente", 120);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!tenant) throw new NotFoundException("Empresa não encontrada.");
@@ -139,6 +141,32 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     return row;
   }
 
+  private async verifySmtp(row: MailboxSettings): Promise<{ configured: boolean; ok: boolean | null; detail?: string; hint?: string }> {
+    if (!row.smtpHost) return { configured: false, ok: null };
+    if (!row.smtpUser || !row.smtpPasswordEncrypted || !row.smtpFrom) {
+      return { configured: true, ok: false, detail: "Configuração SMTP incompleta." };
+    }
+    let transport: SmtpMailTransport | undefined;
+    try {
+      const endpoint = await mailHost(row.smtpHost);
+      transport = new SmtpMailTransport({
+        host: endpoint,
+        tlsServername: row.smtpHost,
+        port: row.smtpPort || 587,
+        secure: row.smtpSecure === true,
+        user: row.smtpUser,
+        password: this.decrypt(row.smtpPasswordEncrypted),
+        from: row.smtpFrom,
+        fromName: row.smtpFromName || undefined,
+      });
+      return { configured: true, ...(await transport.verify()) };
+    } catch (error) {
+      return { configured: true, ok: false, detail: error instanceof Error ? error.message.slice(0, 240) : "Falha de conexão SMTP." };
+    } finally {
+      transport?.close();
+    }
+  }
+
   async verify(tenantId: string, id: string) {
     const row = await this.getMailbox(tenantId, id);
     const imapEndpoint = await mailHost(row.imapHost);
@@ -146,17 +174,22 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     try {
       await client.connect();
       const mailbox = await client.mailboxOpen(row.imapMailbox);
-      await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "CONNECTED", lastError: null } });
-      await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "CONNECTED", lastError: null } });
-      return { ok: true, messages: mailbox.exists, mailbox: row.imapMailbox };
+      const smtp = await this.verifySmtp(row);
+      const ok = smtp.ok !== false;
+      const status = ok ? "CONNECTED" : "ERROR";
+      const lastError = ok ? null : smtp.detail || "Falha na verificação SMTP.";
+      await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status, lastError } });
+      await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status, lastError } });
+      this.events.publish(tenantId, "channel.status", { id: row.channelConnectionId, status, provider: "EMAIL", ...(lastError ? { lastError } : {}) });
+      return { ok, messages: mailbox.exists, mailbox: row.imapMailbox, smtp };
     } catch (error) {
       const detail = error instanceof Error ? error.message.slice(0, 240) : "Falha de conexão IMAP.";
       await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "ERROR", lastError: detail } });
       await this.prisma.channelConnection.update({ where: { id: row.channelConnectionId }, data: { status: "ERROR", lastError: detail } });
+      this.events.publish(tenantId, "channel.status", { id: row.channelConnectionId, status: "ERROR", provider: "EMAIL", lastError: detail });
       return { ok: false, detail };
     } finally { await client.logout().catch(() => client.close()); }
   }
-
   async syncAll(): Promise<void> {
     const retryBefore = new Date(Date.now() - 5 * 60_000);
     const mailboxes = await this.prisma.emailMailbox.findMany({

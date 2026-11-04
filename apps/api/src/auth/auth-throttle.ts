@@ -32,6 +32,7 @@ export class AuthThrottle implements OnModuleDestroy {
   private readonly buckets = new Map<string, Bucket>();
   private redis?: RedisClient;
   private connecting?: Promise<RedisClient | undefined>;
+  private redisRetryAt = 0;
   private warned = false;
 
   constructor(
@@ -97,6 +98,8 @@ export class AuthThrottle implements OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     const redis = this.redis;
     this.redis = undefined;
+    this.connecting = undefined;
+    this.redisRetryAt = 0;
     if (redis?.quit) {
       await redis.quit().catch(() => redis.disconnect?.());
     } else {
@@ -107,6 +110,7 @@ export class AuthThrottle implements OnModuleDestroy {
   private async store(): Promise<RedisClient | undefined> {
     if (process.env.NODE_ENV === "test" || !process.env.REDIS_URL) return undefined;
     if (this.redis) return this.redis;
+    if (Date.now() < this.redisRetryAt) return undefined;
     this.connecting ??= this.connect();
     return this.connecting;
   }
@@ -124,9 +128,11 @@ export class AuthThrottle implements OnModuleDestroy {
       }) as unknown as RedisClient;
       await client.get(this.redisKey("healthcheck"));
       this.redis = client;
+      this.redisRetryAt = 0;
       this.logger.log("Proteção de autenticação usando contador compartilhado no Redis.");
       return client;
     } catch (error) {
+      this.redisRetryAt = Date.now() + 30_000;
       this.logger.warn(
         "Redis indisponível para proteção de autenticação; usando contador local: " +
           (error instanceof Error ? error.message : String(error)),
@@ -176,6 +182,8 @@ export class AuthThrottle implements OnModuleDestroy {
     }
     this.redis?.disconnect?.();
     this.redis = undefined;
+    this.connecting = undefined;
+    this.redisRetryAt = Date.now() + 30_000;
   }
 
   private prune(current: number): void {

@@ -169,7 +169,7 @@ export class ContactsController {
       const value = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
       const latest = Array.isArray(value.tags) ? value.tags as Array<Record<string, unknown>> : [];
       if (!latest.some(tag => tag.id === tagId)) throw new BadRequestException("Etiqueta não encontrada.");
-      return { ...value, tags: latest.filter(tag => tag.id !== tagId) };
+      return { ...value, tags: latest.filter(tag => tag.id !== tagId) } as any;
     });
     return { deleted: true, tagId, valuesPreserved: true, tags: (updated as any).tags };
   }

@@ -10,6 +10,8 @@ export interface RateLimitDecision {
   policy: string;
 }
 
+export type RedisHealthStatus = "ok" | "degraded" | "not_configured";
+
 interface RequestLike {
   method?: string;
   path?: string;
@@ -30,7 +32,7 @@ export class RateLimitService implements OnModuleDestroy {
   private readonly logger = new Logger(RateLimitService.name);
   private readonly memory = new MemoryRateLimitStore();
   private redis?: RedisRateLimitStore;
-  private redisClient?: { disconnect?: () => void; quit?: () => Promise<unknown> };
+  private redisClient?: { disconnect?: () => void; quit?: () => Promise<unknown>; ping?: () => Promise<string> };
   private connecting?: Promise<void>;
   private redisUnavailableUntil = 0;
   private warned = false;
@@ -41,6 +43,20 @@ export class RateLimitService implements OnModuleDestroy {
     this.redisClient = undefined;
     this.redis = undefined;
     if (client?.quit) void client.quit().catch(() => client.disconnect?.());
+  }
+
+  async redisHealth(): Promise<RedisHealthStatus> {
+    if (!process.env.REDIS_URL) return "not_configured";
+
+    const store = await this.store();
+    if (store.kind !== "redis" || !this.redisClient?.ping) return "degraded";
+
+    try {
+      await this.redisClient.ping();
+      return "ok";
+    } catch {
+      return "degraded";
+    }
   }
 
   async check(request: RequestLike): Promise<RateLimitDecision> {

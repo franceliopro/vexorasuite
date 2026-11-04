@@ -26,7 +26,13 @@ async function bootstrap() {
   await app.init();
   logger.log("Jobs periódicos ativos neste processo.");
 
+  // Scheduler timers intentionally use unref() so they do not block normal API shutdown.
+  // This process has no HTTP listener, so keep one explicit referenced handle here; otherwise
+  // Node exits with code 0 immediately after Nest initialization and Docker restarts it forever.
+  const keepAlive = setInterval(() => undefined, 60_000);
+
   const shutdown = async (signal: string) => {
+    clearInterval(keepAlive);
     logger.log(`Encerrando após ${signal}.`);
     await app.close().catch(() => undefined);
     process.exit(0);

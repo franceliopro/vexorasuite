@@ -136,20 +136,41 @@ export class ZernioWebhookController {
           }
           let conversation = await tx.conversation.findFirst({ where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } }, orderBy: { updatedAt: "desc" } });
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });
-          const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: customerName, metadata: { provider: "ZERNIO", externalConversationId, platform, attachments: Array.isArray(message.attachments) ? message.attachments : [] } } });
+          const metadata = {
+            provider: "ZERNIO",
+            externalConversationId,
+            platform,
+            attachments: Array.isArray(message.attachments) ? message.attachments : [],
+            ...(conversation.handlingMode === "BOT" ? { engineStatus: "PENDING", engineAttempts: 0 } : {}),
+          };
+          const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: customerName, metadata } });
           await tx.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: created.occurredAt } });
           return { contactId: contact.id, conversationId: conversation.id, message: created };
         });
+        let queuedForRetry = false;
+        const processIntelligence = async (conversationId: string, messageId: string) => {
+          try {
+            await this.engine.receive(channel, conversationId, messageId);
+            const current = await this.prisma.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId }, select: { metadata: true } });
+            const currentMetadata = current?.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata) ? current.metadata as JsonObject : {};
+            if (current) {
+              await this.prisma.message.update({ where: { id: messageId }, data: { metadata: { ...currentMetadata, engineStatus: "DONE", engineNextAttemptAt: null } } });
+            }
+          } catch (error) {
+            queuedForRetry = true;
+            this.logger.warn(`Intelligence Zernio enfileirada message=${messageId} tenant=${channel.tenantId} reason=${error instanceof Error ? error.message.slice(0, 240) : "falha desconhecida"}`);
+          }
+        };
         if (saved) {
           this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
           this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId });
-          await this.engine.receive(channel, saved.conversationId, saved.message.id);
+          await processIntelligence(saved.conversationId, saved.message.id);
         }
         if (!saved) {
           const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
-          if (prior) await this.engine.receive(channel, prior.conversationId, prior.id);
+          if (prior) await processIntelligence(prior.conversationId, prior.id);
         }
-        return { ok: true, duplicate: !saved };
+        return { ok: true, duplicate: !saved, queued: queuedForRetry };
       } catch (error) {
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") return { ok: true, duplicate: true };
         throw error;

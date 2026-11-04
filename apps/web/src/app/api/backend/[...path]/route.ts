@@ -126,7 +126,7 @@ async function proxyRequest(request: Request, context: Context) {
   const responseHeaders = new Headers();
   const disposition = upstream.headers.get("content-disposition");
   if (disposition) responseHeaders.set("content-disposition", disposition);
-  for(const name of ["content-security-policy","referrer-policy"]){const header=upstream.headers.get(name);if(header)responseHeaders.set(name,header);}
+  for(const name of ["content-security-policy","referrer-policy","x-ratelimit-limit","x-ratelimit-remaining","retry-after"]){const header=upstream.headers.get(name);if(header)responseHeaders.set(name,header);}
   const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
   if (isSse) {

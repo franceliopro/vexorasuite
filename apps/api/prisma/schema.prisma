@@ -225,6 +225,7 @@ model ChannelConnection {
   updatedAt   DateTime @updatedAt @map("updated_at")
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  emailMailbox EmailMailbox?
 
   @@index([tenantId, status])
   @@map("channel_connections")

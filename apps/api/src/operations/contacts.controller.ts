@@ -11,7 +11,7 @@ import { EventsService } from "./events.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
 import { AsaasService } from "./asaas.service";
 import { assignedConversationScope } from "./conversation-visibility";
-import { accessiblePipeline } from "./crm-pipelines.controller";
+import { accessiblePipeline, contactPipelineAccess } from "./crm-pipelines.controller";
 
 const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];

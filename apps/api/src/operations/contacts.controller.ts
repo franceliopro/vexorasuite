@@ -236,6 +236,19 @@ export class ContactsController {
   @Patch(":id/profile")
   async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown }) {
     if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
+    const configuredTags = input.tags !== undefined
+      ? await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } }).then((tenant) => {
+        const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+        const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
+        return Array.isArray(config.tags)
+          ? config.tags.flatMap((tag) => {
+            if (!tag || typeof tag !== "object" || Array.isArray(tag)) return [];
+            const value = tag as Record<string, unknown>;
+            return typeof value.name === "string" && typeof value.color === "string" ? [{ name: value.name, color: value.color }] : [];
+          })
+          : [];
+      })
+      : [];
     if (input.notes !== undefined && (typeof input.notes !== "string" || input.notes.length > 10000)) throw new BadRequestException("Anotações inválidas.");
     if (input.customFields !== undefined && (!input.customFields || typeof input.customFields !== "object" || Array.isArray(input.customFields))) throw new BadRequestException("Campos personalizados inválidos.");
     const leadOriginRecord = typeof input.leadOrigin === "string"
@@ -249,20 +262,33 @@ export class ContactsController {
       || (leadOriginRecord.identifier !== undefined && (typeof leadOriginRecord.identifier !== "string" || leadOriginRecord.identifier.length > 120)))) {
       throw new BadRequestException("Origem do lead inválida.");
     }
-    const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, existing => ({
-      ...existing,
-      ...(input.tags !== undefined ? { tags: input.tags as Prisma.InputJsonValue } : {}),
-      ...(input.notes !== undefined ? { notes: input.notes } : {}),
-      ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}),
-      ...(leadOriginRecord ? {
-        leadOrigin: {
-          source: (leadOriginRecord.source as string).trim(),
-          ...(typeof leadOriginRecord.identifier === "string" && leadOriginRecord.identifier.trim()
-            ? { identifier: leadOriginRecord.identifier.trim() }
-            : {}),
-        },
-      } : {}),
-    }));
+    const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, existing => {
+      let tags: Prisma.InputJsonValue | undefined;
+      if (input.tags !== undefined) {
+        const currentNames = new Set((Array.isArray(existing.tags) ? existing.tags : []).map((tag) => typeof tag === "string" ? tag.trim().toLocaleLowerCase("pt-BR") : tag && typeof tag === "object" && !Array.isArray(tag) && typeof (tag as Record<string, unknown>).name === "string" ? ((tag as Record<string, unknown>).name as string).trim().toLocaleLowerCase("pt-BR") : ""));
+        tags = (input.tags as Array<string | Record<string, unknown>>).map((tag) => {
+          const value = typeof tag === "string" ? { name: tag, color: "#eeecff" } : tag;
+          const name = String(value.name || "").trim();
+          const definition = configuredTags.find((candidate) => candidate.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
+          if (!definition && !currentNames.has(name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("A etiqueta precisa estar cadastrada no catálogo do CRM.");
+          return definition ? { ...value, name: definition.name, color: definition.color } : value;
+        }) as Prisma.InputJsonValue;
+      }
+      return {
+        ...existing,
+        ...(tags !== undefined ? { tags } : {}),
+        ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        ...(input.customFields !== undefined ? { customFields: input.customFields as Prisma.InputJsonValue } : {}),
+        ...(leadOriginRecord ? {
+          leadOrigin: {
+            source: (leadOriginRecord.source as string).trim(),
+            ...(typeof leadOriginRecord.identifier === "string" && leadOriginRecord.identifier.trim()
+              ? { identifier: leadOriginRecord.identifier.trim() }
+              : {}),
+          },
+        } : {}),
+      };
+    });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
     return { id: updated.id, metadata: updated.metadata };
   }

@@ -369,7 +369,7 @@ export function ContactProfilePanel({
                       list={"crm-tag-catalog-" + contact.id}
                       value={tagDraft}
                       onChange={(e) => setTagDraft(e.target.value)}
-                      placeholder="Nome da etiqueta"
+                      placeholder="Escolha uma etiqueta cadastrada"
                       maxLength={40}
                     />
                     <datalist id={"crm-tag-catalog-" + contact.id}>
@@ -377,7 +377,7 @@ export function ContactProfilePanel({
                         <option key={tag.id} value={tag.name} />
                       ))}
                     </datalist>
-                    <button type="submit" aria-label="Adicionar etiqueta">
+                    <button type="submit" aria-label="Adicionar etiqueta cadastrada">
                       <Plus size={14} />
                     </button>
                   </form>

@@ -3,7 +3,7 @@ import { emailThreadKeys } from "./email-mailbox.service";
 describe("emailThreadKeys", () => {
   it("normalizes angles, folded spaces and case", () => {
     expect(emailThreadKeys({ messageId: "  <  ABC\\r\\n\\t@Example.COM >  " }, "email:mailbox:1")).toEqual([
-      "abc @example.com",
+      "abc@example.com",
       "provider:email:mailbox:1",
     ]);
   });

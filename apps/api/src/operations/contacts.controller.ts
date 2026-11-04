@@ -4,6 +4,7 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, 
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
+import { administrative } from "../auth/module-policy";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
@@ -20,6 +21,10 @@ function readCrmStage(metadata: Prisma.JsonValue): CrmStage | null {
     if ("crmStage" in metadata) { const stage = metadata.crmStage; if (typeof stage === "string" && CRM_STAGES.includes(stage as CrmStage)) return stage as CrmStage; }
   }
   return "new";
+}
+
+export function canManageProfileCatalog(role: string): boolean {
+  return administrative(role);
 }
 
 export function mergeProfileFields(legacy: unknown, catalog: unknown): Array<Record<string, unknown>> {
@@ -117,6 +122,7 @@ export class ContactsController {
 
   @Post("profile-config/tags")
   async createProfileTag(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; color?: unknown }) {
+    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const color = typeof input.color === "string" ? input.color : "";
     if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a etiqueta.");
@@ -140,6 +146,7 @@ export class ContactsController {
 
   @Post("profile-config/fields")
   async createProfileField(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; type?: unknown; options?: unknown }) {
+    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const type = typeof input.type === "string" ? input.type.toUpperCase() : "TEXT";
     const allowed = ["TEXT", "NUMBER", "DATE", "SELECT", "CHECKBOX"];

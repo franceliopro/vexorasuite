@@ -22,6 +22,25 @@ function readCrmStage(metadata: Prisma.JsonValue): CrmStage | null {
   return "new";
 }
 
+export function mergeProfileFields(legacy: unknown, catalog: unknown): Array<Record<string, unknown>> {
+  const fields = Array.isArray(legacy) ? legacy.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value)) : [];
+  const keys = new Set(fields.map((field) => typeof field.key === "string" ? field.key : "").filter(Boolean));
+  const catalogFields = Array.isArray(catalog) ? catalog : [];
+  for (const value of catalogFields) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const field = value as Record<string, unknown>;
+    const key = typeof field.id === "string" ? field.id.trim() : "";
+    const name = typeof field.label === "string" ? field.label.trim() : "";
+    if (!key || !name || field.enabled === false || keys.has(key)) continue;
+    const type = field.type === "BOOLEAN" ? "CHECKBOX" : field.type;
+    if (!["TEXT", "NUMBER", "DATE", "SELECT", "CHECKBOX"].includes(String(type))) continue;
+    const options = Array.isArray(field.options) ? field.options.filter((option): option is string => typeof option === "string") : [];
+    fields.push({ id: "catalog-" + key, name, key, type, options, source: "custom-fields" });
+    keys.add(key);
+  }
+  return fields;
+}
+
 @Controller("contacts")
 @UseGuards(AuthGuard)
 export class ContactsController {
@@ -92,7 +111,8 @@ export class ContactsController {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
     const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
-    return { tags: Array.isArray(config.tags) ? config.tags : [], fields: Array.isArray(config.fields) ? config.fields : [] };
+    const catalog = Array.isArray(integrations.customFields) ? integrations.customFields : [];
+    return { tags: Array.isArray(config.tags) ? config.tags : [], fields: mergeProfileFields(config.fields, catalog) };
   }
 
   @Post("profile-config/tags")

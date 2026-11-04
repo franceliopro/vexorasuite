@@ -22,6 +22,31 @@ const MAX_MESSAGE_TEXT = 200_000;
 const MAX_ATTACHMENT_META = 50;
 const MAX_OUTBOUND_ATTACHMENT_BYTES = 16 * 1024 * 1024;
 type EmailAttachment = { filename: string; contentType: string; data: string };
+type EmailThreadHeaders = { messageId?: unknown; inReplyTo?: unknown; references?: unknown };
+
+function normalizeEmailMessageId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const compact = value.replace(/\\r?\\n[ \\t]+/g, " ").replace(/\\s+/g, " ").trim();
+  const normalized = compact.replace(/^<+|>+$/g, "").trim().toLocaleLowerCase("en-US");
+  return normalized && !/[<>\\r\\n]/.test(normalized) ? normalized : null;
+}
+
+function normalizedEmailReferences(value: unknown): string[] {
+  const entries = Array.isArray(value) ? value : value ? [value] : [];
+  return entries.map(normalizeEmailMessageId).filter((entry): entry is string => Boolean(entry));
+}
+
+export function emailThreadKeys(headers: EmailThreadHeaders, fallbackKey: string): string[] {
+  const references = normalizedEmailReferences(headers.references);
+  const candidates = [
+    normalizeEmailMessageId(headers.messageId),
+    normalizeEmailMessageId(headers.inReplyTo),
+    ...references,
+    fallbackKey ? "provider:" + fallbackKey : null,
+  ];
+  return [...new Set(candidates.filter((candidate): candidate is string => Boolean(candidate)))];
+}
+
 
 @Injectable()
 export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
@@ -244,9 +269,10 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
           const subject = (mail.subject || "").trim().slice(0, 500) || "(sem assunto)";
           const addressList = (field: unknown): string[] => { const value = field && typeof field === "object" && "value" in field ? (field as { value?: unknown }).value : field; const entries = Array.isArray(value) ? value : [value]; return entries.map((entry) => entry && typeof entry === "object" && "address" in entry ? (entry as { address?: unknown }).address : null).filter((entry): entry is string => typeof entry === "string" && entry.length > 0); };
           const references = Array.isArray(mail.references) ? mail.references : mail.references ? [mail.references] : [];
-          const threadKey = references[0] || mail.inReplyTo || mail.messageId || "subject:" + subject.toLocaleLowerCase("pt-BR");
+          const threadKeys = emailThreadKeys({ messageId: mail.messageId, inReplyTo: mail.inReplyTo, references }, providerId);
+          const threadKey = threadKeys[0]!;
           const contact = await this.prisma.contact.findFirst({ where: { tenantId, email: from } }) || await this.prisma.contact.create({ data: { tenantId, name: mail.from?.value?.[0]?.name?.trim() || from, email: from, source: "EMAIL" } });
-          let conversation = await this.prisma.conversation.findFirst({ where: { tenantId, channelConnectionId: row.channelConnectionId, emailThreadKey: threadKey } });
+          let conversation = await this.prisma.conversation.findFirst({ where: { tenantId, channelConnectionId: row.channelConnectionId, emailThreadKey: { in: threadKeys } } });
           if (!conversation) conversation = await this.prisma.conversation.create({ data: { tenantId, contactId: contact.id, channelConnectionId: row.channelConnectionId, channel: "EMAIL", subject, emailThreadKey: threadKey, status: "OPEN", lastMessageAt: mail.date || new Date() } });
           const body = (mail.text || (typeof mail.html === "string" ? mail.html.replace(/<[^>]*>/g, " ") : "")).slice(0, MAX_MESSAGE_TEXT);
           const message = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, providerMessageId: providerId, direction: "INBOUND", status: "RECEIVED", content: body, contentType: mail.html ? "html" : "text", senderName: mail.from?.value?.[0]?.name || from, occurredAt: mail.date || new Date(), metadata: { provider: "EMAIL", mailboxId: row.id, uid: item.uid, uidValidity, messageId: mail.messageId || null, inReplyTo: mail.inReplyTo || null, references, subject, from, to: addressList(mail.to), cc: addressList(mail.cc), html: typeof mail.html === "string" ? mail.html.slice(0, MAX_MESSAGE_TEXT) : null, attachments: mail.attachments.slice(0, MAX_ATTACHMENT_META).map((entry) => ({ filename: entry.filename, contentType: entry.contentType, size: entry.size })) } } });

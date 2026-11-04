@@ -27,7 +27,7 @@ type EmailThreadHeaders = { messageId?: unknown; inReplyTo?: unknown; references
 function normalizeEmailMessageId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const compact = value.replace(/\\r?\\n[ \\t]+/g, " ").replace(/\\s+/g, " ").trim();
-  const normalized = compact.replace(/^<+|>+$/g, "").trim().toLocaleLowerCase("en-US");
+  const normalized = compact.replace(/^<+|>+$/g, "").replace(/\s+/g, "").toLocaleLowerCase("en-US");
   return normalized && !/[<>\\r\\n]/.test(normalized) ? normalized : null;
 }
 

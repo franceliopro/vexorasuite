@@ -3,6 +3,8 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { MailService } from "./mail.service";
 import { renderEmail } from "./mail.template";
+import { maskImapAddress, resolveImapSettings } from "./imap.config";
+import { ImapMailTransport } from "./imap.transport";
 
 /** Platform-side diagnostics: the client companies never see or configure mail. */
 @Controller("mail")
@@ -13,6 +15,35 @@ export class MailController {
     if (req.user.isPlatformAdmin !== true) {
       throw new ForbiddenException("Somente a administração Véxora consulta o transporte de e-mail.");
     }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get("imap/status")
+  imapStatus(@Req() req: AuthenticatedRequest) {
+    this.platformAdmin(req);
+    const settings = resolveImapSettings();
+    return {
+      configured: settings.mode === "imap",
+      service: settings.service,
+      host: settings.host,
+      port: settings.port,
+      secure: settings.secure,
+      mailbox: settings.mailbox,
+      user: maskImapAddress(settings.user),
+      missing: settings.missing,
+      blank: settings.blank,
+      warnings: settings.warnings,
+      note: settings.mode === "imap" ? "IMAP configurado; valide a conexão antes de sincronizar." : "IMAP não configurado; nenhuma caixa será lida.",
+    };
+  }
+
+  @UseGuards(AuthGuard)
+  @Post("imap/verify")
+  async imapVerify(@Req() req: AuthenticatedRequest) {
+    this.platformAdmin(req);
+    const settings = resolveImapSettings();
+    if (settings.mode !== "imap") return { ok: false, detail: "IMAP não configurado.", missing: settings.missing };
+    return new ImapMailTransport(settings).verify();
   }
 
   @UseGuards(AuthGuard)

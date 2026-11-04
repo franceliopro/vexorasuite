@@ -182,7 +182,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
           const mail = await simpleParser(item.source);
           const from = mail.from?.value?.[0]?.address?.toLowerCase() || row.address;
           const subject = (mail.subject || "").trim().slice(0, 500) || "(sem assunto)";
-          const references = Array.isArray(mail.references) ? mail.references : mail.references ? [mail.references];
+          const references = Array.isArray(mail.references) ? mail.references : mail.references ? [mail.references] : [];
           const threadKey = references[0] || mail.inReplyTo || mail.messageId || "subject:" + subject.toLocaleLowerCase("pt-BR");
           const contact = await this.prisma.contact.findFirst({ where: { tenantId, email: from } }) || await this.prisma.contact.create({ data: { tenantId, name: mail.from?.value?.[0]?.name?.trim() || from, email: from, source: "EMAIL" } });
           let conversation = await this.prisma.conversation.findFirst({ where: { tenantId, channelConnectionId: row.channelConnectionId, emailThreadKey: threadKey } });

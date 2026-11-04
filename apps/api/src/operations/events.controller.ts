@@ -46,6 +46,6 @@ export class EventsController{
     if(!visible)return null;
    }else if(!allowed.includes('INBOX')||!['channel.status','channel.created','team.updated'].includes(event.type))return null;
    return {type:event.type,data:event.data};
-  }),filter((event):event is {type:string;data:Record<string,unknown>}=>event!==null));
+  }, 8),filter((event):event is {type:string;data:Record<string,unknown>}=>event!==null));
  }
 }

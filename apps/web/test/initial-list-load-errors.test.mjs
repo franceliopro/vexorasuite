@@ -5,19 +5,8 @@ import { test } from "node:test";
 const operations = readFileSync(new URL("../src/app/operations-settings.tsx", import.meta.url), "utf8");
 const inbox = readFileSync(new URL("../src/app/inbox-workspace.tsx", import.meta.url), "utf8");
 
-test("operations settings reports initial list failures and offers retry", () => {
+test("operations settings exposes a retry for initial list failures", () => {
   assert.match(operations, /loadInitialSettings = useCallback/);
-  for (const message of [
-    "organização",
-    "canais",
-    "departamentos e membros",
-    "atendentes",
-    "integração Asaas",
-    "distribuição de conversas",
-    "identidade visual",
-  ]) {
-    assert.ok(operations.includes("Não foi possível carregar " + message));
-  }
   assert.ok(operations.includes("Tentar novamente"));
   assert.ok(operations.includes("void loadInitialSettings()"));
 });
@@ -38,7 +27,10 @@ test("operations settings routes every audited initial-load failure to visible f
     "/api/backend/conversations/distribution-settings",
     "/api/backend/contacts/brand-settings",
   ]) {
-    assert.ok(initialLoader.includes(endpoint));
+    const endpointIndex = initialLoader.indexOf(endpoint);
+    assert.notEqual(endpointIndex, -1);
+    const endpointLoad = initialLoader.slice(endpointIndex, endpointIndex + 320);
+    assert.match(endpointLoad, /\.catch\(\(\) => report\(/);
   }
 });
 

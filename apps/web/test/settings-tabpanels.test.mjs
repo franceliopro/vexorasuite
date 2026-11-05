@@ -8,7 +8,7 @@ const presentation=fs.readFileSync(new URL('../src/app/presentation-home.tsx',im
 test('operations settings tabs have deterministic bidirectional tabpanel associations',()=>{
   assert.match(operations,/\[["]Organização["],"Atendimento","Identidade visual","Técnico"\] as const/);
   assert.match(operations,/function settingsTabKey\(tab:string\)\{return tab\.normalize\(["]NFD["]\)/);
-  assert.equal((operations.match(/role="tab"/g)||[]).length,4);
+  assert.match(operations,/\.map\(tab=>\{const key=settingsTabKey\(tab\),selected=settingsTab===tab;/);
   assert.equal((operations.match(/role="tabpanel"/g)||[]).length,1);
   assert.match(operations,/id=\{"settings-tab-"\+key\}/);
   assert.match(operations,/aria-controls=\{"settings-panel-"\+key\}/);

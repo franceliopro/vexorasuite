@@ -32,22 +32,16 @@
 - [ ] PWA instalável com UX adaptada por produto/tenant.
 - [ ] Módulos Escola, Clínica e demais segmentos conforme prioridade.
 
+## Fase 5 — experiência premium e plataforma vertical
+- [ ] Consolidar tokens de design Véxora para tema escuro, híbrido e claro.
+- [ ] Aplicar componentes premium reutilizáveis em Inbox, CRM, Kanban, Financeiro, Studio Visual e portais.
+- [ ] Validar microinterações, cards expansíveis, estados de feedback, acessibilidade, responsividade e `prefers-reduced-motion`.
+- [ ] Concluir a paridade funcional do Inbox: datas de conversa, mídia ampliada, thumbnails, anexos, emoji, áudio, menu contextual e recibos.
+- [ ] Registrar e validar o provisionamento por módulos, White Label, backups, restauração e migração entre servidores Dokploy.
+- [ ] Implantar os modelos verticais Rastreabem e FAETER conforme os blueprints do produto.
+
+O inventário detalhado, a direção de design premium, a FAETER e as integrações financeiras estão em [docs/product-blueprints-and-integrations.md](product-blueprints-and-integrations.md).
+
 ## Critério de produção
 Nenhum domínio oficial ou dado do sistema atual será migrado antes de testes de aceite, plano de rollback e autorização explícita.
 
-## Escopo consolidado — plataforma replicável e atendimento assistido
-- [ ] Separar tarefas operacionais da empresa de procedimentos personalizados por contato.
-- [ ] Finalizar o atendimento Bot/Agente → equipe ou atendente, preservando um pacote interno de contexto sem expor instruções ao cliente.
-- [ ] Permitir atendimento por equipe, atendente individual e múltiplos canais WhatsApp, respeitando as limitações reais de sessão e identidade de cada número.
-- [ ] Criar instalação guiada por empresa com seleção de módulos, domínios, integrações e branding.
-- [ ] Criar Backup Center e Restore Wizard para plataforma, tenants, bancos, sites, arquivos e mídias.
-- [ ] Criar Studio Visual assistido por IA para sites, landing pages, formulários, postagens, galerias e publicação por domínio.
-- [ ] Manter o código no GitHub e o deploy no Dokploy; dados, segredos, backups e certificados permanecem fora do repositório.
-- [ ] Suportar White Label com uma base de código, módulos habilitáveis e identidade visual isolada por empresa.
-
-
-## Escopo de produtos e integrações registrado
-- [ ] Integrar Stripe, Mercado Pago e InfinitePay por adaptadores financeiros com Sandbox/Produção, idempotência e webhooks.
-- [ ] Criar catálogo de produtos e clientes reutilizável por tenant.
-- [ ] Criar o produto FAETER Teologia com curso de 36 matérias, módulos com pré-requisitos, modalidades presencial/online, portal do aluno, cobrança InfinitePay, provas, reteste autorizado, notas, gráficos, PDF e WhatsApp.
-- [ ] Usar `docs/product-blueprints-and-integrations.md` como blueprint compartilhado entre agentes e futuras instâncias.

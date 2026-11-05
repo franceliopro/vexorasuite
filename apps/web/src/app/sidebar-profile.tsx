@@ -13,6 +13,8 @@ export function SidebarProfile({
   onTeam: () => void;
 }) {
   const [profile, setProfile] = useState<any>(null),
+    [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState(""),
     [notice, setNotice] = useState("");
   const menuRef = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -21,12 +23,22 @@ export function SidebarProfile({
     document.addEventListener("mousedown",close); document.addEventListener("keydown",escape);
     return () => { document.removeEventListener("mousedown",close); document.removeEventListener("keydown",escape); };
   }, []);
-  useEffect(() => {
-    fetch("/api/backend/profile")
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setProfile)
-      .catch(() => {});
-  }, []);
+  async function loadProfile() {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const response = await fetch("/api/backend/profile", { cache: "no-store" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Não foi possível carregar o perfil.");
+      setProfile(data);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Não foi possível carregar o perfil.");
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void loadProfile(); }, []);
   return (
     <details ref={menuRef} className="sidebar-profile-menu">
       <summary className="profile-row" title="Meu perfil e equipe">
@@ -41,7 +53,9 @@ export function SidebarProfile({
       </summary>
       <div className="sidebar-profile-popover">
         <h2>Meu perfil</h2>
-        {profile && (
+        {loading && <p role="status">Carregando perfil...</p>}
+        {!loading && loadError && <div><p role="alert">{loadError}</p><button type="button" className="secondary-button" onClick={() => void loadProfile()}>Tentar novamente</button></div>}
+        {!loading && !loadError && profile && (
           <form
             className="ai-admin-fields"
             onSubmit={async (e) => {
@@ -99,3 +113,4 @@ export function SidebarProfile({
     </details>
   );
 }
+

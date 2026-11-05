@@ -42,6 +42,8 @@
 
 O inventário detalhado, a direção de design premium, a FAETER e as integrações financeiras estão em [docs/product-blueprints-and-integrations.md](product-blueprints-and-integrations.md).
 
+Para acompanhar o que já foi implementado, testado e aprovado, consulte o [painel de status de implementação](implementation-status.md). Este roadmap permanece como visão de fases e prioridades; o painel registra evidências e pendências de aceite.
+
 ## Critério de produção
 Nenhum domínio oficial ou dado do sistema atual será migrado antes de testes de aceite, plano de rollback e autorização explícita.
 

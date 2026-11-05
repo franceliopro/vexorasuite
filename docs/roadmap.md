@@ -34,3 +34,14 @@
 
 ## Critério de produção
 Nenhum domínio oficial ou dado do sistema atual será migrado antes de testes de aceite, plano de rollback e autorização explícita.
+
+## Escopo consolidado — plataforma replicável e atendimento assistido
+- [ ] Separar tarefas operacionais da empresa de procedimentos personalizados por contato.
+- [ ] Finalizar o atendimento Bot/Agente → equipe ou atendente, preservando um pacote interno de contexto sem expor instruções ao cliente.
+- [ ] Permitir atendimento por equipe, atendente individual e múltiplos canais WhatsApp, respeitando as limitações reais de sessão e identidade de cada número.
+- [ ] Criar instalação guiada por empresa com seleção de módulos, domínios, integrações e branding.
+- [ ] Criar Backup Center e Restore Wizard para plataforma, tenants, bancos, sites, arquivos e mídias.
+- [ ] Criar Studio Visual assistido por IA para sites, landing pages, formulários, postagens, galerias e publicação por domínio.
+- [ ] Manter o código no GitHub e o deploy no Dokploy; dados, segredos, backups e certificados permanecem fora do repositório.
+- [ ] Suportar White Label com uma base de código, módulos habilitáveis e identidade visual isolada por empresa.
+

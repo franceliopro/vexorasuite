@@ -18,7 +18,7 @@ test("AI workspace tabs point to deterministic tabpanels", () => {
     tablistLabel: "Áreas de configuração da inteligência",
     panelIds: ["ai-workspace-tabpanel", "ai-agent-tabpanel"],
   });
-  assert.match(ai, /id=\{`ai-workspace-tab-\$\{[^}]+\}`\}/);
+  assert.match(ai, /id=\{tabId\}/);
   assert.match(ai, /aria-controls=\"ai-workspace-tabpanel\"/);
   assert.match(ai, /aria-controls=\"ai-agent-tabpanel\"/);
   assert.match(ai, /hidden=\{!agent\}/);

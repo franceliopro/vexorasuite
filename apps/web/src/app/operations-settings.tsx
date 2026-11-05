@@ -83,6 +83,7 @@ const settingsTabs=["Organização","Atendimento","Identidade visual","Técnico"
  {available.length?<div className="settings-group-list">{available.map(g=><label key={g.id} className="settings-group-option"><input type="checkbox" checked={ids.split(/[\r\n,]+/).map(v=>v.trim()).includes(g.id)} onChange={e=>toggleGroup(g.id,e.target.checked)}/><span><strong>{g.name}</strong><small>{g.id}</small></span></label>)}</div>:null}
  <label className="settings-field">IDs autorizados<textarea rows={3} value={ids} onChange={e=>setIds(e.target.value)} placeholder="Um ID por linha, terminado em @g.us"/></label><button className="primary-button" onClick={()=>void saveGroups()} disabled={busy}>{busy?"Salvando...":"Salvar regras de grupos"}</button></>:<p className="settings-muted">Conecte o WhatsApp antes de configurar grupos.</p>}</section>
 
+ </div>
  </>;
  return <section className="settings-workspace"><header className="settings-heading"><div><p className="eyebrow">ADMINISTRAÇÃO</p><h1>Configurações</h1></div></header>
  {error?<div className="settings-feedback error" role="alert">{error}<button onClick={()=>setError("")}><X size={16} aria-hidden="true" /></button></div>:null}{notice?<div className="settings-feedback success" role="status">{notice}<button onClick={()=>setNotice("")}><X size={16} aria-hidden="true" /></button></div>:null}

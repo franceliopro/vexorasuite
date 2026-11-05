@@ -10,7 +10,7 @@ export class TasksController{
  private async requireTask(req:AuthenticatedRequest,id:string){const task=await this.prisma.workTask.findFirst({where:{id,tenantId:req.user.tenantId},include:{steps:{orderBy:{position:"asc"}}}});if(!task)throw new NotFoundException("Tarefa não encontrada.");return task;}
  private async authorize(req:AuthenticatedRequest,task:{assigneeId:string|null;createdById:string}){if(["OWNER","ADMIN","MANAGER"].includes(req.user.role)||task.assigneeId===req.user.sub||task.createdById===req.user.sub)return;throw new ForbiddenException("Sem permissão para modificar esta tarefa.");}
  @Get()
- async list(@Req() req:AuthenticatedRequest,@Query("status") status="active"){const where={tenantId:req.user.tenantId,...(status==="done"?{status:"DONE"}:status==="all"?{}:{status:{not:"DONE"}})};return this.prisma.workTask.findMany({where,include:{steps:{orderBy:{position:"asc"}},assignee:{select:{id:true,name:true}}},orderBy:[{dueAt:"asc"},{createdAt:"desc"}],take:200});}
+ async list(@Req() req:AuthenticatedRequest,@Query("status") status="active",@Query("contactId") contactId?:string){const where={tenantId:req.user.tenantId,...(status==="done"?{status:"DONE"}:status==="all"?{}:{status:{not:"DONE"}}),...(contactId?{contactId}: {})};return this.prisma.workTask.findMany({where,include:{steps:{orderBy:{position:"asc"}},assignee:{select:{id:true,name:true}}},orderBy:[{dueAt:"asc"},{createdAt:"desc"}],take:200});}
  @Get("metrics")
  async metrics(@Req() req:AuthenticatedRequest){const tasks=await this.prisma.workTask.findMany({where:{tenantId:req.user.tenantId},select:{status:true,assigneeId:true,createdById:true,complexity:true,dueAt:true,completedAt:true}});const now=Date.now();return {total:tasks.length,completed:tasks.filter(t=>t.status==="DONE").length,overdue:tasks.filter(t=>t.status!=="DONE"&&t.dueAt&&t.dueAt.getTime()<now).length,weightedCompleted:tasks.filter(t=>t.status==="DONE").reduce((n,t)=>n+t.complexity,0),byAssignee:Object.values(tasks.reduce<Record<string,{userId:string;completed:number;weighted:number}>>((acc,t)=>{const key=t.assigneeId||t.createdById;const row=acc[key]||{userId:key,completed:0,weighted:0};if(t.status==="DONE"){row.completed++;row.weighted+=t.complexity;}acc[key]=row;return acc;},{}))};}
  @Post()
@@ -22,3 +22,4 @@ export class TasksController{
  @Post(":id/reopen")
  async reopen(@Req() req:AuthenticatedRequest,@Param("id",ParseUUIDPipe) id:string){const task=await this.requireTask(req,id);if(!["OWNER","ADMIN","MANAGER"].includes(req.user.role))throw new ForbiddenException("Somente gestão pode reabrir.");return this.prisma.workTask.update({where:{id},data:{status:"OPEN",completedAt:null}});}
 }
+

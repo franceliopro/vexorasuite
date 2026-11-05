@@ -17,13 +17,17 @@ export class RateLimitInterceptor implements NestInterceptor {
 
     const decision = await this.limiter.check(request);
     const response = context.switchToHttp().getResponse();
-    if (response?.setHeader) {
+    const setHeader = (name: string, value: string) => {
+      if (!response?.setHeader || response.headersSent || response.writableEnded) return;
+      response.setHeader(name, value);
+    };
+    if (response?.setHeader && !response.headersSent && !response.writableEnded) {
       response.setHeader("X-RateLimit-Limit", String(decision.limit));
       response.setHeader("X-RateLimit-Remaining", String(decision.remaining));
     }
     if (!decision.allowed) {
       const retryAfter = Math.max(1, Math.ceil((decision.resetAt - Date.now()) / 1000));
-      if (response?.setHeader) response.setHeader("Retry-After", String(retryAfter));
+      setHeader("Retry-After", String(retryAfter));
       throw new HttpException(
         `Muitas requisições em pouco tempo. Tente novamente em ${retryAfter} segundo(s).`,
         HttpStatus.TOO_MANY_REQUESTS,
@@ -32,3 +36,4 @@ export class RateLimitInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
+

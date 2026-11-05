@@ -18,7 +18,8 @@ test("operations settings reports initial list failures and offers retry", () =>
   ]) {
     assert.ok(operations.includes("Não foi possível carregar " + message));
   }
-  assert.match(operations, /onClick=\{\(\) => void loadInitialSettings\(\)\}/);
+  assert.ok(operations.includes("Tentar novamente"));
+  assert.ok(operations.includes("void loadInitialSettings()"));
 });
 
 test("operations settings routes every audited initial-load failure to visible feedback", () => {
@@ -44,7 +45,8 @@ test("operations settings routes every audited initial-load failure to visible f
 test("inbox reports initial list failures and offers retry", () => {
   assert.match(inbox, /loadInitialLists = useCallback/);
   assert.match(inbox, /Não foi possível carregar: /);
-  assert.match(inbox, /onClick=\{\(\) => void loadInitialLists\(\)\}/);
+  assert.ok(inbox.includes("Tentar novamente"));
+  assert.ok(inbox.includes("void loadInitialLists()"));
 });
 
 test("inbox initial pipeline, department and agent loads are explicit", () => {

@@ -18,7 +18,71 @@ O segmento acrescenta vocabulário e filas especializadas sem quebrar esse model
 
 O atendimento começa em qualquer canal autorizado e segue pelo mesmo protocolo até a resolução. Chatbot, Workflow, Agente de IA e atendente humano podem movimentar o Kanban, registrar contexto e encaminhar a próxima ação.
 
-## 2. Camada financeira multi-provedor
+## 2. Direção de design premium
+
+A Véxora será construída com uma experiência premium, tecnológica e consistente, mantendo clareza operacional. O visual não deve ser apenas decorativo: cada animação, contraste e expansão precisa ajudar o usuário a entender o estado, a próxima ação e o resultado do trabalho.
+
+### Identidade visual
+
+- Tema escuro híbrido como referência, com superfícies em preto e azul-marinho profundo.
+- Gradientes controlados em azul elétrico, ciano, violeta e magenta, derivados do branding Véxora.
+- Bordas de destaque, especialmente em cards e painéis de ação, sem transformar a interface em um excesso de brilho.
+- Tipografia legível, hierarquia forte, espaçamento generoso, ícones consistentes e estados de status reconhecíveis.
+- Suporte a temas escuro, híbrido e claro quando a operação exigir, com tokens visuais centralizados.
+- Branding por empresa e White Label sem perder as regras de acessibilidade e contraste do produto.
+
+### Interação e movimento
+
+- Cards e blocos expansíveis que revelam detalhes sem tirar o usuário do contexto.
+- Setas, conectores e pontos de navegação com movimento sutil e contínuo quando houver significado operacional.
+- Estados hover, focus, active, loading, sucesso, alerta, erro, vazio e bloqueio desenhados de forma consistente.
+- Transições curtas baseadas prioritariamente em `transform` e `opacity`, com suporte a `prefers-reduced-motion`.
+- Feedback visual e textual imediato para ações de envio, transferência, cobrança, conclusão, falha e mudança de Kanban.
+- Layout responsivo para desktop, tablet e celular, incluindo uso em atendimento e portais móveis.
+
+### Qualidade visual e técnica
+
+- Contraste, foco por teclado, leitura por tecnologia assistiva e alvos de toque adequados.
+- Efeitos visuais com limite de peso: lazy loading, redução de repaints e ausência de animações que prejudiquem o atendimento.
+- Componentes reutilizáveis para evitar que cada módulo crie botões, tabelas, modais ou estados incompatíveis.
+- Testes de regressão visual nas telas críticas antes de considerar a experiência pronta.
+
+### Referência visual do atendimento
+
+O Inbox deve oferecer uma experiência familiar, sem copiar identidade de terceiros: agrupamento por **Hoje**, **Ontem**, dia da semana e data completa; imagens ampliáveis; links com thumbnail quando disponível; anexos; emoji; gravação e reprodução de áudio; menu contextual; resposta, encaminhamento e ações de mensagem. O status de entrega deve ser compreensível: um indicador para enviado, dois para entregue e estado visual distinto para lido.
+
+Identificadores técnicos de provedores, como endereços internos de sessão, não devem aparecer para o usuário. A interface deve priorizar nome, telefone formatado, empresa, avatar e contexto do contato. O histórico completo do contato ou cliente deve estar acessível a partir da lista e do atendimento.
+
+## 3. Escopo completo da Véxora
+
+Este é o inventário de produto que será implantado, validado ou mantido no blueprint, sempre respeitando o isolamento por empresa:
+
+1. **Core multiempresa:** autenticação, organizações, usuários, permissões, departamentos, tenants, branding, auditoria e isolamento de dados.
+2. **Atendimento omnichannel:** WhatsApp, Instagram, Facebook, TikTok, Telegram, LinkedIn, e-mail, Google, Threads, X e canais web conforme disponibilidade de cada integração.
+3. **Contatos e CRM:** cadastro persistente, números alternativos, histórico, protocolos, clientes, segmentos, campos personalizados e recuperação segura após troca de número.
+4. **Inbox e atendimento humano:** conversas, anexos, mídia, links, áudio, emoji, recibos, busca, histórico, equipe, atendente individual e colaboração entre canais.
+5. **Chatbot, Workflow e Agentes de IA:** blocos, condições, variáveis, integrações, memória contextual, simulação, versionamento, publicação e transbordo com resumo para o setor correto.
+6. **Kanban e protocolos:** filas por segmento, SLA, prioridade, tags, responsáveis, movimentação pelo bot, agente ou pessoa, encerramento e reabertura rastreáveis.
+7. **Tarefas:** tarefas internas da empresa separadas de procedimentos personalizados por cliente, com checklist, progresso, responsáveis, prazos e conclusão.
+8. **Financeiro e cobrança:** catálogo, clientes, produtos, assinaturas, cobranças, inadimplência, conciliação, notificações e adaptadores Asaas, InfinitePay, Stripe e Mercado Pago.
+9. **Marketing e aquisição:** campanhas, mensagens de aniversário e relacionamento, formulários, landing pages, captação e jornadas de entrada na própria Véxora.
+10. **Studio Visual:** criação de páginas, blocos, formulários, galerias, postagens e conteúdo dinâmico com branding por cliente, sem obrigar o uso de uma hospedagem separada para cada operação.
+11. **Onboarding e White Label:** instalação guiada, escolha de módulos, domínios, integrações, permissões, identidade visual, configuração por segmento e painel dedicado.
+12. **Backup, restauração e migração:** cópia de dados da Véxora, arquivos, bancos e configurações; restauração seletiva; exportação; replicação em novo servidor Dokploy e migração entre clientes com segurança.
+13. **Relatórios e observabilidade:** indicadores de atendimento, vendas, financeiro, automação, erros, integrações, saúde do sistema, trilhas de auditoria e alertas operacionais.
+14. **Verticais e modelos:** Rastreabem, FAETER, clínicas, estética, medicina, advocacia, imobiliárias, escolas e outras operações com vocabulário, filas, formulários e permissões próprios.
+
+### Modelo de status
+
+Para evitar interpretações incorretas por pessoas ou agentes futuros, cada item do inventário deve ser classificado como:
+
+- **Implantado e validado:** existe no ambiente e passou pelos testes funcionais e de segurança previstos.
+- **Em implantação:** já tem implementação em andamento, mas ainda depende de validação ou publicação.
+- **Blueprint/roadmap:** está especificado neste documento e será construído posteriormente; não deve ser apresentado como disponível.
+
+Registrar uma intenção neste documento não substitui teste, configuração de ambiente, aprovação de integração ou validação ponta a ponta.
+
+## 4. Camada financeira multi-provedor
 
 O Financeiro deve operar por uma interface comum de provedores, sem acoplar a operação a um único gateway.
 
@@ -48,7 +112,7 @@ Cada adaptador deve expor, no mínimo:
 
 Nenhum chatbot deve informar que cobrou, pagou, cancelou ou liberou acesso antes da confirmação do provedor. Falhas de integração devem encaminhar para o Financeiro com contexto e manter o protocolo aberto.
 
-## 3. FAETER Teologia
+## 5. FAETER Teologia
 
 ### Posicionamento
 
@@ -92,7 +156,7 @@ Cada aluno terá usuário e senha próprios para acessar:
 
 O portal nunca deve permitir que um aluno veja dados de outro aluno, turma, pagamento ou prova.
 
-## 4. Sistema de provas
+## 6. Sistema de provas
 
 ### Regras comuns
 
@@ -132,7 +196,7 @@ Após o envio, o aluno recebe a nota imediatamente quando a correção estiver c
 
 O envio por WhatsApp não deve expor o resultado a um número diferente do contato autenticado do aluno. A escola pode autorizar exceções por procedimento interno.
 
-## 5. Secretaria e gestão interna
+## 7. Secretaria e gestão interna
 
 A secretaria terá visão de:
 
@@ -146,7 +210,7 @@ A secretaria terá visão de:
 
 O professor acessa apenas as turmas, disciplinas, provas e resultados sob sua responsabilidade. A secretaria possui as funções administrativas autorizadas. O aluno acessa somente os próprios dados.
 
-## 6. Ordem de implantação
+## 8. Ordem de implantação
 
 1. Finalizar e validar o fluxo de atendimento da Véxora com Comercial, Financeiro e Suporte.
 2. Criar a empresa Rastreabem em ambiente controlado e testar bot, protocolo, transbordo, equipe, Kanban e Asaas Sandbox.
@@ -159,7 +223,7 @@ O professor acessa apenas as turmas, disciplinas, provas e resultados sob sua re
 9. Implementar gráficos, resultado animado, PDF e envio autorizado por WhatsApp.
 10. Revalidar backup, restauração, isolamento por tenant, auditoria e migração para outro servidor Dokploy.
 
-## 7. Critérios de aceite
+## 9. Critérios de aceite
 
 Um módulo só será considerado pronto quando passar por teste automatizado, teste de autorização, teste de falha do provedor, teste de idempotência, teste de isolamento entre empresas e teste de interface no desktop e no celular.
 

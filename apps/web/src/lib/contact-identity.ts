@@ -1,4 +1,4 @@
-type ContactIdentity={name:string;metadata?:Record<string,unknown>};
+type ContactIdentity={name:string;metadata?:Record<string,unknown>|null};
 const object=(value:unknown):Record<string,unknown>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
 /** Formats a real WhatsApp number without exposing LID/JID identifiers as phone numbers. */
 export function readablePhone(phone?: string|null, externalId?: string|null): string {
@@ -6,7 +6,7 @@ export function readablePhone(phone?: string|null, externalId?: string|null): st
  const candidate=raw||String(externalId||"").trim();
  if (!candidate || /@(lid|g\.us|broadcast)$/i.test(candidate)) return "Telefone não informado";
  const normalizedCandidate=candidate.replace(/@[^@]+$/i,"");
- const digits=normalizedCandidate.replace(/\\D/g,"");
+ const digits=normalizedCandidate.replace(/\D/g,"");
  if (digits.length===13 && digits.startsWith("55")) return `+55 (${digits.slice(2,4)}) ${digits.slice(4,9)}-${digits.slice(9)}`;
  if (digits.length===12 && digits.startsWith("55")) return `+55 (${digits.slice(2,4)}) ${digits.slice(4,8)}-${digits.slice(8)}`;
  if (digits.length===11 && digits[2]==="9") return `+55 (${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;

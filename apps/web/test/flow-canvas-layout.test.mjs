@@ -40,7 +40,7 @@ test("Flow Studio refreshes transfer destinations on meaningful events, not a fi
 
 
 test("canvas viewport controls keep the flow inside the visible coordinate space", () => {
-  assert.doesNotMatch(workspace, /translate\\(\\$\\{canvasOrigin\\}px/);
-  assert.doesNotMatch(workspace, /\\(minX\\+canvasOrigin\\)/);
-  assert.doesNotMatch(workspace, /\\+canvasOrigin\\)\\*scale-canvas/);
+  assert.doesNotMatch(workspace, /translate\(\$\{canvasOrigin\}px/);
+  assert.doesNotMatch(workspace, /\(minX\+canvasOrigin\)/);
+  assert.doesNotMatch(workspace, /\+canvasOrigin\)\*scale-canvas/);
 });

@@ -2,7 +2,7 @@
 
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
 import { tagForeground } from "../lib/tag-contrast";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Clock3,
   Compass,
@@ -15,7 +15,6 @@ import {
   Tag,
   UserRound,
   X,
-  CheckCircle2,
 } from "lucide-react";
 
 type ContactProfileData = {
@@ -49,14 +48,6 @@ type ProfileFieldDef = {
   options: string[];
 };
 type ContactIdentity = { id: string; provider: string; externalId: string; phone?: string | null; displayName?: string | null; firstSeenAt: string; lastSeenAt: string; revokedAt?: string | null };
-type ContactTask = { id: string; title: string; status: string; completedAt?: string | null; steps: Array<{ id: string; done: boolean }> };
-function channelLabel(provider: string) {
-  const value = provider.toUpperCase();
-  if (value.includes("WHATSAPP") || value.includes("WAHA")) return "WhatsApp";
-  if (value.includes("INSTAGRAM")) return "Instagram";
-  if (value.includes("FACEBOOK")) return "Facebook";
-  return "Canal de atendimento";
-}
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -102,34 +93,6 @@ export function ContactProfilePanel({
   const [identityExternalId, setIdentityExternalId] = useState("");
   const [identityPhone, setIdentityPhone] = useState("");
   const [identitySaving, setIdentitySaving] = useState(false);
-  const [tasks, setTasks] = useState<ContactTask[]>([]);
-  const [taskDraft, setTaskDraft] = useState("");
-  const [taskComposerOpen, setTaskComposerOpen] = useState(false);
-  const [taskSaving, setTaskSaving] = useState(false);
-  const loadTasks = useCallback(async () => {
-    const items = await request<ContactTask[]>("/api/backend/tasks?status=all&scope=CONTACT_PROCEDURE&contactId=" + encodeURIComponent(contact.id));
-    setTasks(items || []);
-  }, [contact.id]);
-  async function createContactTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const title = taskDraft.trim();
-    if (!title || taskSaving) return;
-    setTaskSaving(true);
-    try {
-      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, contactId: contact.id, scope: "CONTACT_PROCEDURE" }) });
-      setTaskDraft("");
-      setTaskComposerOpen(false);
-      await loadTasks();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível criar a tarefa."); }
-    finally { setTaskSaving(false); }
-  }
-  async function toggleContactTask(task: ContactTask) {
-    if (task.status === "DONE" || taskSaving) return;
-    setTaskSaving(true);
-    try { await request("/api/backend/tasks/" + task.id + "/complete", { method: "POST" }); await loadTasks(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível concluir a tarefa."); }
-    finally { setTaskSaving(false); }
-  }
   useEffect(() => {
     const meta = contact.metadata || {};
     setTags(
@@ -183,7 +146,6 @@ export function ContactProfilePanel({
     setTab("dados");
     setError("");
   }, [contact.id]);
-  useEffect(() => { void loadTasks().catch(() => setTasks([])); }, [loadTasks]);
   useEffect(() => {
     let live = true;
     void request<ContactIdentity[]>("/api/backend/contacts/" + contact.id + "/identities")
@@ -453,17 +415,10 @@ export function ContactProfilePanel({
                     </button>
                   </form>
                 </section>
-                <section className="profile-section contact-tasks-section">
-                  <div className="contact-tasks-heading"><strong><CheckCircle2 size={14} /> Procedimentos deste contato</strong><button type="button" className="contact-task-add" aria-label="Adicionar procedimento" onClick={() => setTaskComposerOpen((value) => !value)}><Plus size={15} /></button></div>
-                  <p>Organize pendências e acompanhe o que já foi resolvido.</p>
-                  {tasks.length ? <div className="contact-task-progress"><span><b>{Math.round((tasks.filter((task) => task.status === "DONE").length / tasks.length) * 100)}%</b> concluído</span><small>{tasks.filter((task) => task.status === "DONE").length} de {tasks.length} procedimentos</small><div className="contact-task-progress-bar"><span style={{ width: `${Math.round((tasks.filter((task) => task.status === "DONE").length / tasks.length) * 100)}%` }} /></div></div> : <div className="contact-task-empty">Nenhum procedimento cadastrado.</div>}
-                  {taskComposerOpen ? <form className="contact-task-composer" onSubmit={createContactTask}><input autoFocus value={taskDraft} onChange={(event) => setTaskDraft(event.target.value)} placeholder="Ex.: Confirmar documentação do cliente" maxLength={180} /><button type="submit" className="primary-button" disabled={!taskDraft.trim() || taskSaving}>{taskSaving ? "Salvando…" : "Adicionar"}</button></form> : null}
-                  {tasks.length ? <div className="contact-task-list">{tasks.map((task) => <label className={"contact-task-item" + (task.status === "DONE" ? " is-done" : "")} key={task.id}><input type="checkbox" checked={task.status === "DONE"} disabled={task.status === "DONE" || taskSaving} onChange={() => void toggleContactTask(task)} /><span>{task.title}</span>{task.status === "DONE" ? <small>Concluído</small> : null}</label>)}</div> : null}
-                </section>
                 <section className="profile-section contact-identities-section">
                   <strong><Link2 size={14} /> Identidades de atendimento</strong>
                   <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => <div className="contact-identity-item" key={identity.id}><span><b>{readablePhone(identity.phone, identity.externalId)}</b><small>{channelLabel(identity.provider)}{identity.displayName ? " · " + identity.displayName : ""}</small></span><small title={identity.lastSeenAt}>Ativo</small></div>)}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => <div className="contact-identity-item" key={identity.id}><span><b>{identity.phone ? readablePhone(identity.phone, identity.externalId) : identity.externalId}</b><small>{identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><small title={identity.lastSeenAt}>Ativo</small></div>)}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
                   <form className="contact-identity-form" onSubmit={bindIdentity}>
                     <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
                     <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
@@ -659,14 +614,14 @@ export function ContactProfilePanel({
                 <p className="profile-section-hint">
                   Conversas, canais, responsáveis e etapas registradas para auditoria.
                 </p>
-                {conversationId ? <div className="protocol-current">
+                <div className="protocol-current">
                   <small>ATENDIMENTO ATUAL</small>
                   <b>{protocol(conversationId)}</b>
                   <span>
                     {new Date(createdAt || Date.now()).toLocaleString("pt-BR")} ·{" "}
                     {channel || "WhatsApp"}
                   </span>
-                </div> : <div className="protocol-current"><small>HISTÓRICO COMPLETO</small><b>{history.length ? `${history.length} atendimentos registrados` : "Nenhum atendimento registrado"}</b><span>Todos os canais vinculados a este contato.</span></div>}
+                </div>
                 {history.map((item) => (
                   <div className="protocol-history-item" key={item.id}>
                     <div>

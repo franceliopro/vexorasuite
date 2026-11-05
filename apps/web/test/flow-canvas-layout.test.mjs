@@ -37,3 +37,10 @@ test("Flow Studio refreshes transfer destinations on meaningful events, not a fi
   assert.doesNotMatch(workspace, /setInterval\(refresh,30000\)/);
   assert.match(workspace, /window\.addEventListener\('vexora:team-updated',refresh\)/);
 });
+
+
+test("canvas viewport controls keep the flow inside the visible coordinate space", () => {
+  assert.doesNotMatch(workspace, /transform:\`translate\\(\\$\\{canvasOrigin\\}px/);
+  assert.doesNotMatch(workspace, /\\(minX\\+canvasOrigin\\)/);
+  assert.doesNotMatch(workspace, /\\+canvasOrigin\\)\\*scale-canvas/);
+});

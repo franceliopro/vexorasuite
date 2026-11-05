@@ -107,7 +107,7 @@ export function ContactProfilePanel({
   const [taskComposerOpen, setTaskComposerOpen] = useState(false);
   const [taskSaving, setTaskSaving] = useState(false);
   const loadTasks = useCallback(async () => {
-    const items = await request<ContactTask[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+    const items = await request<ContactTask[]>("/api/backend/tasks?status=all&scope=CONTACT_PROCEDURE&contactId=" + encodeURIComponent(contact.id));
     setTasks(items || []);
   }, [contact.id]);
   async function createContactTask(event: FormEvent<HTMLFormElement>) {
@@ -116,7 +116,7 @@ export function ContactProfilePanel({
     if (!title || taskSaving) return;
     setTaskSaving(true);
     try {
-      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, contactId: contact.id }) });
+      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, contactId: contact.id, scope: "CONTACT_PROCEDURE" }) });
       setTaskDraft("");
       setTaskComposerOpen(false);
       await loadTasks();

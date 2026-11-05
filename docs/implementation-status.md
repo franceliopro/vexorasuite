@@ -15,7 +15,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 |---|---|---|
 | Build do Compose | [x] | Deployment do Dokploy concluiu com `Docker Compose Deployed: ✅` |
 | Migration antes da API | [x] | Log mostrou PostgreSQL saudável, migration concluída e API saudável |
-| Frontend | [x] | 98 testes do frontend e TypeScript passaram |
+| Frontend | [x] | 100 testes do frontend e TypeScript passaram |
 | Atendimento e Inbox | [x] | Testes de realtime, filas, datas, recibos e acessibilidade passaram |
 | Chatbot/Flow Studio | [x] | Testes de canvas, clipping, opções e estados de carregamento passaram |
 | Transbordo e Kanban | [x] | 14 testes críticos do backend passaram |
@@ -64,6 +64,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Menu contextual e atalhos de atendimento.
 - [x] Identificadores técnicos ocultados na exibição do contato.
 - [x] Números WhatsApp com sufixo técnico normalizados para telefone legível.
+- [x] Regressão pós-correção: 100 testes do frontend passaram, incluindo identidade de contatos.
 - [~] Envio e recebimento real de imagem, áudio, vídeo, documento e thumbnail via WAHA.
 - [~] Confirmação real dos três estados de recibo com um aparelho WhatsApp.
 - [~] Validação de troca de número e recuperação histórica em conversa real.

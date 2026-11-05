@@ -45,3 +45,9 @@ Nenhum domínio oficial ou dado do sistema atual será migrado antes de testes d
 - [ ] Manter o código no GitHub e o deploy no Dokploy; dados, segredos, backups e certificados permanecem fora do repositório.
 - [ ] Suportar White Label com uma base de código, módulos habilitáveis e identidade visual isolada por empresa.
 
+
+## Escopo de produtos e integrações registrado
+- [ ] Integrar Stripe, Mercado Pago e InfinitePay por adaptadores financeiros com Sandbox/Produção, idempotência e webhooks.
+- [ ] Criar catálogo de produtos e clientes reutilizável por tenant.
+- [ ] Criar o produto FAETER Teologia com curso de 36 matérias, módulos com pré-requisitos, modalidades presencial/online, portal do aluno, cobrança InfinitePay, provas, reteste autorizado, notas, gráficos, PDF e WhatsApp.
+- [ ] Usar `docs/product-blueprints-and-integrations.md` como blueprint compartilhado entre agentes e futuras instâncias.

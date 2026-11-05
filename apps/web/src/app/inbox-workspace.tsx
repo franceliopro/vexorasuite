@@ -173,7 +173,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
   const [quickReplyPipelines,setQuickReplyPipelines]=useState<QuickReplyPipeline[]>([]);
-  useEffect(()=>{let live=true;fetch("/api/backend/crm/pipelines",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{if(live)setQuickReplyPipelines(Array.isArray(data?.pipelines)?data.pipelines:[])}).catch(()=>{});return()=>{live=false}},[tenantId]);
+
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
   const [supervision, setSupervision] = useState<SupervisionOverview | null>(null);
   const [supervisionSla, setSupervisionSla] = useState(30);
@@ -186,6 +186,19 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape')setFullScreen(false)};document.addEventListener('keydown',close);return()=>document.removeEventListener('keydown',close)},[]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const loadInitialLists = useCallback(async () => {
+    setInitialListError("");
+    const failures: string[] = [];
+    await Promise.all([
+      api<{pipelines?: QuickReplyPipeline[]}>("/api/backend/crm/pipelines").then(data => setQuickReplyPipelines(Array.isArray(data?.pipelines) ? data.pipelines : [])).catch(() => failures.push("pipelines")),
+      api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => failures.push("departamentos")),
+      api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => failures.push("atendentes")),
+    ]);
+    if (failures.length) {
+      setInitialListError("Não foi possível carregar: " + failures.join(", ") + ". Tente novamente.");
+    }
+  }, []);
+
   const [handoffDepartment, setHandoffDepartment] = useState("");
   const [handoffNote,setHandoffNote]=useState("");
   const [handoffPhone,setHandoffPhone]=useState("");
@@ -272,6 +285,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const recognitionRef = useRef<{stop:()=>void}|null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [initialListError, setInitialListError] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [finalizationOpen, setFinalizationOpen] = useState(false);
@@ -435,10 +449,8 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [quickOpen, emojiOpen]);
-  useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision();
-    void api<Department[]>("/api/backend/departments").then(setDepartments).catch(() => {});
-    void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => {});
-  }, [loadConversations, loadQueueCounts, loadChannels, loadSupervision]);
+  useEffect(() => { void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision(); void loadInitialLists();
+  }, [loadConversations, loadQueueCounts, loadChannels, loadSupervision, loadInitialLists]);
   useEffect(() => {
     messageRequest.current += 1;
     olderMessagesInFlight.current = false;
@@ -923,7 +935,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     {selected ? <ContactProfilePanel contact={selected.contact} conversationId={selected.id} status={selected.status} createdAt={selected.createdAt} displayName={contactDisplayName(selected.contact,selected.botState)} channel={selected.channel} expanded={contactProfileExpanded} onExpandedChange={setContactProfileExpanded} /> : null}
 
     {finalizationOpen && selected ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !actionBusy) setFinalizationOpen(false); }}><section ref={finalizationRef} tabIndex={-1} className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="inbox-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={actionBusy} onClick={() => setFinalizationOpen(false)}><X size={18}/></button><span className="finalization-icon"><CheckCircle2 size={22}/></span><h2 id="inbox-finalization-title">Finalizar atendimento</h2><p>Qual foi o resultado comercial de <strong>{selected.contact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalizationOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalizationOutcome("WON"); setFinalizationReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Converter lead em cliente</small></span></button><button type="button" className={finalizationOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalizationOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalizationOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={finalizationReason} onChange={(event) => setFinalizationReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A conversa sairá da fila de mensagens e o contato será retirado do Kanban. O histórico continuará disponível em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={actionBusy} onClick={() => setFinalizationOpen(false)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalizationOutcome || (finalizationOutcome === "LOST" && !finalizationReason) || actionBusy} onClick={() => void confirmConversationFinalization()}>{actionBusy ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
-    {error ? <div className="inbox-error" role="alert" aria-live="assertive"><span>{error}</span><button onClick={() => setError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div> : null}
+    {initialListError ? <div className="inbox-error" role="alert" aria-live="assertive"><span>{initialListError}</span><button type="button" onClick={() => void loadInitialLists()}>Tentar novamente</button><button type="button" onClick={() => setInitialListError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div> : null}{error ? <div className="inbox-error" role="alert" aria-live="assertive"><span>{error}</span><button onClick={() => setError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div> : null}
   </section>;
 }
 

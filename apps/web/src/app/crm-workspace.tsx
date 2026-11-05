@@ -240,7 +240,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
         <div className="crm-form-actions"><button className="secondary-button" type="button" onClick={() => setFormOpen(false)}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Salvando..." : "Cadastrar contato"}</button></div>
       </form> : null}
 
-      <div id="crm-tabpanel" role="tabpanel" aria-labelledby={`crm-tab-${view}`>
+      <div id="crm-tabpanel" role="tabpanel" aria-labelledby={`crm-tab-${view}`}>
       {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
         <section className="crm-pipeline" aria-label="Pipeline comercial">
           {stages.map((stage) => {

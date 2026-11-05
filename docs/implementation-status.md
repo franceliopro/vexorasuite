@@ -24,6 +24,15 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 | Integrações oficiais e provedores reais | [~] | Adaptadores e contratos existem; credenciais/provedores ainda exigem validação individual |
 | Verticais Rastreabem e FAETER | [ ] | Blueprint registrado; implantação ainda não iniciada |
 
+### Correções encontradas nos logs de 05/11/2026
+
+- [x] Proteção contra `ERR_HTTP_HEADERS_SENT` no `RateLimitInterceptor`.
+- [x] Teste de regressão para respostas que já iniciaram o envio dos headers.
+- [x] Remoção da consulta frontend obsoleta `marketing/prepared`, responsável por 404 repetitivos.
+- [x] 14 testes do rate limit passaram após a correção.
+- [x] 100 testes do frontend passaram após a correção.
+- [~] Novo deployment no Dokploy ainda necessário para validar a correção no ambiente publicado.
+
 ## 1. Fundação e deploy
 
 - [x] Branch oficial definido: `foundation/bootstrap-monorepo`.

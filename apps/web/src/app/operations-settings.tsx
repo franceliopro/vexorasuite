@@ -3,7 +3,7 @@ import {NotificationSettings} from "./notification-settings";
 import {BusinessTemplates} from "./business-templates";
 import { GreetingSettings } from "./greeting-settings";
 import { CustomFieldsSettings } from "./custom-fields-settings";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   MessageSquare,
   Palette,
@@ -42,9 +42,25 @@ export function OperationsSettings({canConfigureAsaas,companyName="Sua empresa",
  const [testCompanies,setTestCompanies]=useState<TestCompany[]>([]),[testClientSlug,setTestClientSlug]=useState(""),[testResetBusy,setTestResetBusy]=useState(false),[testResetProviders,setTestResetProviders]=useState<string[]>(["WAHA","ZERNIO"]);
  const [distribution,setDistribution]=useState<DistributionSettings>({enabled:false,strategy:"QUEUE",maxActivePerAgent:0}),[distributionBusy,setDistributionBusy]=useState(false);
  const [mailStatus,setMailStatus]=useState<MailStatus|null>(null),[mailRecipient,setMailRecipient]=useState(""),[mailBusy,setMailBusy]=useState<"verify"|"send"|null>(null),[mailResult,setMailResult]=useState("");
+ const [initialLoadError,setInitialLoadError]=useState("");
  const channel=channels.find(c=>c.status==="CONNECTED")||channels[0];
- useEffect(()=>{void api<Organization>("/api/backend/auth/organization").then(setOrganization).catch(()=>{});void api<Channel[]>("/api/backend/channels").then(setChannels).catch(e=>setError(e instanceof Error?e.message:"Falha ao carregar os canais."));void api<Department[]>("/api/backend/departments").then(async rows=>{setDepartments(rows);const pairs=await Promise.all(rows.map(async d=>[d.id,(await api<Agent[]>("/api/backend/departments/"+d.id+"/members").catch(()=>[])).map(a=>a.id)] as const));setMembers(Object.fromEntries(pairs));}).catch(e=>setError(e instanceof Error?e.message:"Falha ao carregar departamentos."));void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(()=>{});void api<Asaas>("/api/backend/integrations/asaas").then(setAsaas).catch(()=>{});void api<DistributionSettings>("/api/backend/conversations/distribution-settings").then(setDistribution).catch(()=>{});void api<BrandSettings>("/api/backend/contacts/brand-settings").then(v=>setBrand({...defaultBrand,...v,primaryColor:(v.primaryColor||defaultBrand.primaryColor).toUpperCase()})).catch(()=>{});},[]);
- useEffect(()=>{if(!isPlatformAdmin)return;void api<{companies:TestCompany[]}>("/api/backend/auth/companies").then(result=>{const rows=(result.companies||[]).filter(item=>item.kind==="COMPANY");setTestCompanies(rows);const first=rows.at(0);if(!testClientSlug&&first)setTestClientSlug(first.slug);}).catch(()=>{});},[isPlatformAdmin]);
+ const loadInitialSettings = useCallback(() => {
+  setInitialLoadError("");
+  const report = (message:string) => setInitialLoadError(current => current ? current + " " + message : message);
+  void api<Organization>("/api/backend/auth/organization").then(setOrganization).catch(() => report("Não foi possível carregar os dados da organização."));
+  void api<Channel[]>("/api/backend/channels").then(setChannels).catch(() => report("Não foi possível carregar os canais."));
+  void api<Department[]>("/api/backend/departments").then(async rows => {
+    setDepartments(rows);
+    const pairs = await Promise.all(rows.map(async d => [d.id, (await api<Agent[]>("/api/backend/departments/" + d.id + "/members")).map(a => a.id)] as const));
+    setMembers(Object.fromEntries(pairs));
+  }).catch(() => report("Não foi possível carregar departamentos e membros."));
+  void api<Agent[]>("/api/backend/conversations/assignees").then(setAgents).catch(() => report("Não foi possível carregar os atendentes."));
+  void api<Asaas>("/api/backend/integrations/asaas").then(setAsaas).catch(() => report("Não foi possível carregar a integração Asaas."));
+  void api<DistributionSettings>("/api/backend/conversations/distribution-settings").then(setDistribution).catch(() => report("Não foi possível carregar a distribuição de conversas."));
+  void api<BrandSettings>("/api/backend/contacts/brand-settings").then(v => setBrand({...defaultBrand,...v,primaryColor:(v.primaryColor||defaultBrand.primaryColor).toUpperCase()})).catch(() => report("Não foi possível carregar a identidade visual."));
+ }, []);
+ useEffect(() => { void loadInitialSettings(); }, [loadInitialSettings]);
+ useEffect(()=>{if(!isPlatformAdmin)return;void api<{companies:TestCompany[]}>("/api/backend/auth/companies").then(result=>{const rows=(result.companies||[]).filter(item=>item.kind==="COMPANY");setTestCompanies(rows);const first=rows.at(0);if(!testClientSlug&&first)setTestClientSlug(first.slug);}).catch(()=>setInitialLoadError("Não foi possível carregar as empresas de teste."));},[isPlatformAdmin]);
  useEffect(()=>{if(!isPlatformAdmin||settingsTab!=="Técnico")return;void api<MailStatus>("/api/backend/mail/status").then(setMailStatus).catch(e=>setError(e instanceof Error?e.message:"Falha ao consultar o transporte de e-mail."));},[isPlatformAdmin,settingsTab]);
  useEffect(()=>{if(!channel){setGroups({groupsEnabled:false,allowedGroupIds:[]});setIds("");return;}let cancelled=false;void api<Groups>("/api/backend/channels/"+channel.id+"/group-settings").then(v=>{if(!cancelled){setGroups(v);setIds(v.allowedGroupIds.join("\n"));}}).catch(()=>{});return()=>{cancelled=true;}},[channel?.id]);
  async function discover(){if(!channel)return;setLoading(true);setError("");try{const r=await api<{groups:Group[]}>("/api/backend/channels/"+channel.id+"/groups");setAvailable(r.groups);if(!r.groups.length)setNotice("Nenhum grupo encontrado. Você pode informar o ID manualmente.");}catch(e){setError(e instanceof Error?e.message:"Falha ao buscar grupos.");}finally{setLoading(false);}}
@@ -86,7 +102,7 @@ const settingsTabs=["Organização","Atendimento","Identidade visual","Técnico"
  </div>
  </>;
  return <section className="settings-workspace"><header className="settings-heading"><div><p className="eyebrow">ADMINISTRAÇÃO</p><h1>Configurações</h1></div></header>
- {error?<div className="settings-feedback error" role="alert">{error}<button onClick={()=>setError("")}><X size={16} aria-hidden="true" /></button></div>:null}{notice?<div className="settings-feedback success" role="status">{notice}<button onClick={()=>setNotice("")}><X size={16} aria-hidden="true" /></button></div>:null}
+ {error?<div className="settings-feedback error" role="alert">{error}<button onClick={()=>setError("")}><X size={16} aria-hidden="true" /></button></div>:null}{initialLoadError?<div className="settings-feedback error" role="alert">{initialLoadError}<button type="button" onClick={()=>void loadInitialSettings()} disabled={false}>Tentar novamente</button><button type="button" onClick={()=>setInitialLoadError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div>:null}{notice?<div className="settings-feedback success" role="status">{notice}<button onClick={()=>setNotice("")}><X size={16} aria-hidden="true" /></button></div>:null}
  <div className="settings-tabs" role="tablist" aria-label="Categorias de configuração">{["Organização","Atendimento","Identidade visual","Técnico"].map(tab=>{const key=settingsTabKey(tab),selected=settingsTab===tab;return <button key={tab} id={"settings-tab-"+key} type="button" role="tab" aria-selected={selected} aria-controls={"settings-panel-"+key} tabIndex={selected?0:-1} className={selected?"active":""} onClick={()=>setSettingsTab(tab)}>{tab}</button>})}</div>
  {settingsTabs.map(tab=>{const key=settingsTabKey(tab),selected=settingsTab===tab;return <div key={tab} id={"settings-panel-"+key} role="tabpanel" aria-labelledby={"settings-tab-"+key} hidden={!selected}>{selected?settingsContent:null}</div>})}
  </section>;

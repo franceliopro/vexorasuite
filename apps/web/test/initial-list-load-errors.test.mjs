@@ -7,15 +7,38 @@ const inbox = readFileSync(new URL("../src/app/inbox-workspace.tsx", import.meta
 
 test("operations settings reports initial list failures and offers retry", () => {
   assert.match(operations, /loadInitialSettings = useCallback/);
-  assert.match(operations, /Não foi possível carregar os atendentes/);
-  assert.match(operations, /Não foi possível carregar a identidade visual/);
+  for (const message of [
+    "organização",
+    "canais",
+    "departamentos e membros",
+    "atendentes",
+    "integração Asaas",
+    "distribuição de conversas",
+    "identidade visual",
+  ]) {
+    assert.ok(operations.includes("Não foi possível carregar " + message));
+  }
   assert.match(operations, /onClick=\{\(\) => void loadInitialSettings\(\)\}/);
 });
 
-test("operations settings no longer silently swallows audited initial loads", () => {
-  const initialEffect = operations.slice(operations.indexOf("const loadInitialSettings"), operations.indexOf("useEffect(()=>{if(!isPlatformAdmin"));
-  assert.doesNotMatch(initialEffect, /catch\(\(\) => \{\}\)/);
-  assert.match(initialEffect, /catch\(\) => report/);
+test("operations settings routes every audited initial-load failure to visible feedback", () => {
+  const initialLoader = operations.slice(
+    operations.indexOf("const loadInitialSettings"),
+    operations.indexOf("useEffect(()=>{if(!isPlatformAdmin"),
+  );
+  assert.doesNotMatch(initialLoader, /catch\(\(\) => \{\}\)/);
+  assert.equal((initialLoader.match(/\.catch\(\(\) => report\(/g) || []).length, 7);
+  for (const endpoint of [
+    "/api/backend/auth/organization",
+    "/api/backend/channels",
+    "/api/backend/departments",
+    "/api/backend/conversations/assignees",
+    "/api/backend/integrations/asaas",
+    "/api/backend/conversations/distribution-settings",
+    "/api/backend/contacts/brand-settings",
+  ]) {
+    assert.ok(initialLoader.includes(endpoint));
+  }
 });
 
 test("inbox reports initial list failures and offers retry", () => {
@@ -26,6 +49,7 @@ test("inbox reports initial list failures and offers retry", () => {
 
 test("inbox initial pipeline, department and agent loads are explicit", () => {
   const initialLists = inbox.slice(inbox.indexOf("const loadInitialLists"), inbox.indexOf("const [handoffDepartment"));
+  assert.equal((initialLists.match(/failures\.push\(/g) || []).length, 3);
   assert.match(initialLists, /crm\/pipelines/);
   assert.match(initialLists, /\/api\/backend\/departments/);
   assert.match(initialLists, /\/api\/backend\/conversations\/assignees/);

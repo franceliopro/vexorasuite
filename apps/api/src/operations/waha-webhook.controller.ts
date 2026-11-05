@@ -10,6 +10,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
 import { AsaasService } from "./asaas.service";
+import { resolveContactIdentity } from "./contact-identity";
 
 @Controller("webhooks/waha")
 export class WahaWebhookController {
@@ -107,13 +108,17 @@ export class WahaWebhookController {
 
         const rawAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl || recoveredAvatar;
         const avatarUrl = typeof rawAvatar === "string" && /^https:\/\//i.test(rawAvatar) ? rawAvatar : null;
-        let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId: chatId } });
-        if (!contact && phone) contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, phone } });
-        if (!contact) {
-          contact = await tx.contact.create({
-            data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) } },
-          });
-        } else {
+        let contact = await resolveContactIdentity(tx, {
+          tenantId: channel.tenantId,
+          provider: "WAHA",
+          externalId: chatId,
+          phone,
+          displayName: notifyName || null,
+          metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) },
+          createContact: { name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), source: "WhatsApp" },
+        });
+        if (!contact) throw new Error("Não foi possível resolver a identidade do contato.");
+        {
           const update: { name?: string; phone?: string; externalId?: string; metadata?: Prisma.InputJsonValue } = {};
           if (avatarUrl) {
             const existingMetadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
@@ -121,7 +126,7 @@ export class WahaWebhookController {
           }
           if (notifyName && (!contact.name || contact.name === contact.phone || contact.name === contact.externalId)) update.name = notifyName;
           if (phone && !contact.phone) update.phone = phone;
-          if (!contact.externalId) update.externalId = chatId;
+          if (!contact.externalId || contact.externalId !== chatId) update.externalId = chatId;
           if (Object.keys(update).length) contact = await tx.contact.update({ where: { id: contact.id }, data: update });
         }
 

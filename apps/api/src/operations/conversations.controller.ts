@@ -2,6 +2,7 @@ import { AuditCovered } from "../common/audit/audit.decorator";
 import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
+import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, StreamableFile, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
@@ -369,7 +370,8 @@ export class ConversationsController {
     const conversation=await this.prisma.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${request.user.tenantId}::uuid FOR UPDATE`;
       // Social identities remain separate; linking never turns a typed phone into verified identity.
-      const target=await tx.contact.upsert({where:{tenantId_externalId:{tenantId:request.user.tenantId,externalId:phone+'@c.us'}},create:{tenantId:request.user.tenantId,name:source.contact.name,phone,externalId:phone+'@c.us',source:'WHATSAPP'},update:{}});
+      const target=await resolveContactIdentity(tx,{tenantId:request.user.tenantId,provider:'WAHA',externalId:phone+'@c.us',phone,displayName:source.contact.name,createContact:{name:source.contact.name,source:'WHATSAPP'}});
+      if(!target)throw new BadRequestException('Não foi possível localizar o contato do novo WhatsApp.');
       let next=await tx.conversation.findFirst({where:{tenantId:request.user.tenantId,contactId:target.id,channelConnectionId:channel.id,channel:'WHATSAPP',deletedAt:null,archivedAt:null,status:{in:['OPEN','PENDING']}},orderBy:{createdAt:'desc'}});
       if(!next)next=await tx.conversation.create({data:{tenantId:request.user.tenantId,contactId:target.id,channelConnectionId:channel.id,channel:'WHATSAPP',handlingMode:'HUMAN',assigneeId:request.user.sub}});
       if(source.id!==next.id){

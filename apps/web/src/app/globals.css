@@ -2892,6 +2892,68 @@ input[type="color"].profile-tag-inline-color {
 .contact-profile.profile-collapsed .profile-toggle svg{display:block}
 .workspace-avatar{background:#191D28!important;color:#f1f4fb}
 
+/* Keep the inbox usable at tablet widths: the profile gets its own row instead
+   of compressing list, thread and profile into three unreadable columns. */
+@media (min-width: 761px) and (max-width: 980px) {
+  .main-area:has(.inbox-workspace) .inbox-workspace {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .main-area:has(.inbox-workspace) .inbox-list.content-card,
+  .main-area:has(.inbox-workspace) .inbox-thread.content-card {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+  .main-area:has(.inbox-workspace) .contact-profile.content-card {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    max-height: none;
+  }
+}
+
+/* On mobile the profile follows the conversation in the page scroll, rather
+   than sitting below a clipped fixed-height workspace. */
+@media (max-width: 760px) {
+  .main-area:has(.inbox-workspace) > .page-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open .inbox-thread.content-card {
+    flex: 0 0 auto;
+    height: min(640px, calc(100dvh - var(--mobile-nav-h) - 104px));
+    min-height: 420px;
+    max-height: none;
+  }
+  .main-area:has(.inbox-workspace) .inbox-workspace.mobile-thread-open .contact-profile.content-card {
+    flex: 0 0 300px;
+    height: 300px;
+    max-height: 300px;
+  }
+}
+
+/* Errors are transient workspace notices; keep them in the visible stacking
+   context even when the three panels are independently scrollable. */
+.inbox-workspace .inbox-error {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  z-index: 20;
+}
+
 /* Keep accents faithful to the tenant-selected brand color in dark/hybrid themes. */
 :root[data-theme="dark"] .empty-illustration,
 :root[data-theme="hybrid"] .empty-illustration,
@@ -3475,3 +3537,5 @@ input[type="color"].profile-tag-inline-color {
 
 /* Shared conversation label and attachment treatment. */
 .inbox-file-message{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:8px 10px;border:1px solid #dfe3ec;border-radius:10px;background:#fff;color:#344054;font-size:12px;font-weight:650;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inbox-file-message:hover{border-color:#b9c2df;background:#f7f8ff;color:#5145cd}
+.message-date-separator{display:flex;align-items:center;justify-content:center;margin:8px 0 2px;color:#667085;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:none}.message-date-separator span{padding:5px 10px;border:1px solid #e4e7ec;border-radius:999px;background:color-mix(in srgb,var(--card,#fff) 88%,#dfe5f2)}.message-bubble small{display:flex;align-items:center;justify-content:flex-end;gap:5px}.message-status{font-size:11px;font-weight:800;letter-spacing:-.12em;line-height:1}.message-status.sent,.message-status.delivered{color:#98a2b3}.message-status.read{color:#1687d9}.message-status.queued{color:#98a2b3}.message-status.failed{color:#d92d20;letter-spacing:0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.contact-identity-list{display:grid;gap:6px}.contact-identity-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid #e4e7ec;border-radius:8px;background:#fafbfc}.contact-identity-item span{display:grid;gap:2px;min-width:0}.contact-identity-item b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#344054;font-size:11px}.contact-identity-item small{color:#98a2b3;font-size:10px}.contact-identity-form{display:grid;gap:7px}.contact-identity-form label{display:grid;gap:4px;color:#667085;font-size:10px;font-weight:650}.contact-identity-form input,.contact-identity-form select{width:100%;padding:8px;border:1px solid #d0d5dd;border-radius:7px;background:var(--card,#fff);color:var(--ink,#344054);font:inherit;font-size:11px}

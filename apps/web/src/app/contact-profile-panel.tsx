@@ -6,6 +6,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   Clock3,
   Compass,
+  Link2,
   PanelRightClose,
   PanelRightOpen,
   Plus,
@@ -46,6 +47,7 @@ type ProfileFieldDef = {
   type: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "CHECKBOX";
   options: string[];
 };
+type ContactIdentity = { id: string; provider: string; externalId: string; phone?: string | null; displayName?: string | null; firstSeenAt: string; lastSeenAt: string; revokedAt?: string | null };
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -86,6 +88,11 @@ export function ContactProfilePanel({
   const [history, setHistory] = useState<Protocol[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [identities, setIdentities] = useState<ContactIdentity[]>([]);
+  const [identityProvider, setIdentityProvider] = useState("WAHA");
+  const [identityExternalId, setIdentityExternalId] = useState("");
+  const [identityPhone, setIdentityPhone] = useState("");
+  const [identitySaving, setIdentitySaving] = useState(false);
   useEffect(() => {
     const meta = contact.metadata || {};
     setTags(
@@ -138,6 +145,13 @@ export function ContactProfilePanel({
     setLeadOriginId(typeof lead?.identifier === "string" ? lead.identifier : "");
     setTab("dados");
     setError("");
+  }, [contact.id]);
+  useEffect(() => {
+    let live = true;
+    void request<ContactIdentity[]>("/api/backend/contacts/" + contact.id + "/identities")
+      .then((v) => { if (live) setIdentities(v || []); })
+      .catch(() => { if (live) setIdentities([]); });
+    return () => { live = false; };
   }, [contact.id]);
   useEffect(() => {
     let live = true;
@@ -225,6 +239,25 @@ export function ContactProfilePanel({
     } finally {
       setSaving(false);
     }
+  }
+  async function bindIdentity(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const phone = identityPhone.replace(/\D/g, "");
+    const externalId = identityExternalId.trim() || (identityProvider === "WAHA" && phone ? phone + "@c.us" : "");
+    if (!externalId) { setError("Informe o identificador recebido do novo WhatsApp."); return; }
+    setIdentitySaving(true); setError("");
+    try {
+      await request("/api/backend/contacts/" + contact.id + "/identities/rebind", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ provider: identityProvider, externalId, phone: phone || undefined }),
+      });
+      const refreshed = await request<ContactIdentity[]>("/api/backend/contacts/" + contact.id + "/identities");
+      setIdentities(refreshed || []);
+      setIdentityExternalId(""); setIdentityPhone("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível vincular o novo número.");
+    } finally { setIdentitySaving(false); }
   }
   const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const statusLabel = (value: string) =>
@@ -380,6 +413,17 @@ export function ContactProfilePanel({
                     <button type="submit" aria-label="Adicionar etiqueta cadastrada">
                       <Plus size={14} />
                     </button>
+                  </form>
+                </section>
+                <section className="profile-section contact-identities-section">
+                  <strong><Link2 size={14} /> Identidades de atendimento</strong>
+                  <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => <div className="contact-identity-item" key={identity.id}><span><b>{identity.phone ? readablePhone(identity.phone, identity.externalId) : identity.externalId}</b><small>{identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><small title={identity.lastSeenAt}>Ativo</small></div>)}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  <form className="contact-identity-form" onSubmit={bindIdentity}>
+                    <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
+                    <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
+                    <label>Identificador do canal<input value={identityExternalId} onChange={(e) => setIdentityExternalId(e.target.value)} placeholder="Ex.: 5511999999999@c.us" /></label>
+                    <button type="submit" className="secondary-button" disabled={identitySaving}>{identitySaving ? "Vinculando…" : "Vincular novo canal"}</button>
                   </form>
                 </section>
                 <section className="profile-section">

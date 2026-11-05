@@ -12,6 +12,7 @@ import { CreateContactDto } from "./dto/create-contact.dto";
 import { AsaasService } from "./asaas.service";
 import { assignedConversationScope } from "./conversation-visibility";
 import { accessiblePipeline, contactPipelineAccess } from "./crm-pipelines.controller";
+import { bindContactIdentity } from "./contact-identity";
 
 const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];
@@ -272,6 +273,45 @@ export class ContactsController {
       updatedAt: conversation.updatedAt,
       firstMessageAt: conversation.messages[0]?.occurredAt || conversation.createdAt,
     }));
+  }
+
+  @Post(":id/identities/rebind")
+  async rebindIdentity(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() input: { provider?: unknown; externalId?: unknown; phone?: unknown; displayName?: unknown },
+  ) {
+    if (!administrative(request.user.role)) throw new ForbiddenException("Somente administradores podem vincular um novo número ao contato.");
+    const provider = typeof input.provider === "string" ? input.provider.trim().toUpperCase() : "";
+    const externalId = typeof input.externalId === "string" ? input.externalId.trim() : "";
+    const phone = typeof input.phone === "string" ? input.phone.replace(/\D/g, "") : null;
+    if (!provider || provider.length > 40 || !externalId || externalId.length > 240) throw new BadRequestException("Informe o provedor e o identificador do novo canal.");
+    if (phone !== null && (phone.length < 8 || phone.length > 15)) throw new BadRequestException("Informe um número de telefone válido.");
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const identity = await bindContactIdentity(tx, { tenantId: request.user.tenantId, contactId: id, provider, externalId, phone, displayName: typeof input.displayName === "string" ? input.displayName.trim().slice(0, 160) : null });
+        if (!identity) throw new BadRequestException("Contato não encontrado nesta empresa.");
+        await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "CONTACT_IDENTITY_REBOUND", entityType: "Contact", entityId: id, details: { provider, externalId, phone, contactId: id } } });
+        return identity;
+      });
+      this.events.publish(request.user.tenantId, "contact.identity_rebound", { contactId: id, provider, externalId });
+      return { contactId: result.contact.id, provider, externalId, phone: result.phone, historyPreserved: true };
+    } catch (error) {
+      if (error instanceof Error && error.message === "IDENTITY_ALREADY_BOUND") throw new BadRequestException("Esse identificador já está vinculado a outro contato. A mesclagem precisa ser confirmada separadamente.");
+      throw error;
+    }
+  }
+
+  @Get(":id/identities")
+  async identities(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    await contactPipelineAccess(this.prisma, request, id);
+    const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true } });
+    if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
+    return this.prisma.contactIdentity.findMany({
+      where: { tenantId: request.user.tenantId, contactId: id },
+      select: { id: true, provider: true, externalId: true, phone: true, displayName: true, firstSeenAt: true, lastSeenAt: true, revokedAt: true },
+      orderBy: { lastSeenAt: "desc" },
+    });
   }
 
   @Patch(":id/profile")

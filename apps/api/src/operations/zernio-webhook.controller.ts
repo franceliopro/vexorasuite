@@ -6,6 +6,7 @@ import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { ZernioService } from "./zernio.service";
+import { resolveContactIdentity } from "./contact-identity";
 
 const zernioProfileId = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -125,12 +126,19 @@ export class ZernioWebhookController {
         const saved = await this.prisma.$transaction(async (tx) => {
           const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
           if (duplicate) return null;
-          let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId } });
           const avatar = sender.profile_pic || sender.profile_picture_url || sender.picture?.data?.url || (typeof sender.picture === "string" ? sender.picture : undefined) || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
-          if (!contact) {
-            contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, phone, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
-          } else {
+          let contact = await resolveContactIdentity(tx, {
+            tenantId: channel.tenantId,
+            provider: `ZERNIO:${platform}`,
+            externalId,
+            phone,
+            displayName: customerName,
+            metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata },
+            createContact: { name: customerName, source: platform },
+          });
+          if (!contact) throw new Error("Não foi possível resolver a identidade social do contato.");
+          {
             const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as JsonObject : {};
             contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...(phone && !contact.phone ? { phone } : {}), ...((customerName !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name: customerName } : {}) } });
           }

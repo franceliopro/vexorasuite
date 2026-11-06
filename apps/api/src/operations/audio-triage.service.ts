@@ -15,6 +15,7 @@ import { WahaService } from "./waha.service";
 import { EventsService } from "./events.service";
 import { JobLeaseService } from "../common/job-lease.service";
 import { schedulersEnabled } from "../common/scheduler-mode";
+import { inboxRouting } from "./inbox-routing";
 const object = (x: any): Record<string, any> =>
   x && typeof x === "object" && !Array.isArray(x) ? x : {};
 const normalized = (value: unknown) => String(value || "")
@@ -152,11 +153,13 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
       !c.contact.externalId?.endsWith("@c.us")
     )
       return this.finish(id, tenantId, "REVIEW");
+    const inbox = inboxRouting(channel.settings),
+      configuredDepartmentId = inbox.departmentId || null;
     const configuration=await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}});
     if(object(object(configuration.integrations).intelligencePublished).active===false)return this.finish(id,tenantId,'SKIPPED');
     let text = claimed.content,
       reply = "",
-      departmentId: string | null = c.departmentId || null,
+      departmentId: string | null = c.departmentId || configuredDepartmentId,
       state = object(c.botState),
       transcribed = false;
     try {
@@ -184,7 +187,14 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
       if (!assistant.enabled || published.active === false)
         throw Error("disabled");
       const departments = await this.prisma.department.findMany({
-        where: { tenantId, isActive: true, modules: { has: "INBOX" } },
+        where: {
+          tenantId,
+          isActive: true,
+          OR: [
+            { modules: { has: "INBOX" } },
+            ...(configuredDepartmentId ? [{ id: configuredDepartmentId }] : []),
+          ],
+        },
         select: {
           id: true,
           key: true,

@@ -260,10 +260,38 @@ export class WahaWebhookController {
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
     const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+    await this.recordGuidedHandoffContext(channel.tenantId, conversationId, key, platform, label, destination?.name || "Fila geral");
     if (destination?.id) await this.distribution.assign(channel.tenantId, conversationId, destination.id);
     this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: destination?.id ?? null, status: "OPEN" });
     const missing = !destination ? " Não encontrei uma fila ativa configurada; a conversa ficou na fila geral." : "";
     await this.sendBotReply(channel, chatId, conversationId, "Certo! Encaminhei sua conversa: " + label + "." + missing + " Um atendente continuará por aqui. 🙌");
+  }
+
+  private async recordGuidedHandoffContext(tenantId: string, conversationId: string, sector: string, platform: string | null, label: string, destination: string): Promise<void> {
+    await this.prisma.$transaction(async tx => {
+      const conversation = await tx.conversation.findFirst({
+        where: { id: conversationId, tenantId },
+        include: { contact: { select: { name: true, phone: true } } },
+      });
+      if (!conversation) return;
+      const latestInternal = await tx.message.findFirst({ where: { tenantId, conversationId, direction: "INTERNAL" }, orderBy: { occurredAt: "desc" }, select: { metadata: true } });
+      const metadata = latestInternal?.metadata && typeof latestInternal.metadata === "object" && !Array.isArray(latestInternal.metadata) ? latestInternal.metadata as Record<string, unknown> : {};
+      if (metadata.kind === "guided_handoff_context") return;
+      const inbound = await tx.message.findFirst({ where: { tenantId, conversationId, direction: "INBOUND" }, orderBy: { occurredAt: "desc" }, select: { content: true } });
+      const content = [
+        "Contexto do transbordo",
+        "Origem: chatbot guiado",
+        "Motivo: " + label,
+        "Setor: " + sector,
+        platform ? "Plataforma: " + platform : "",
+        "Destino: " + destination,
+        conversation.contact?.name ? "Contato: " + conversation.contact.name : "",
+        conversation.contact?.phone ? "Telefone: " + conversation.contact.phone : "",
+        inbound?.content ? "Última mensagem do cliente: " + inbound.content.slice(0, 1000) : "",
+      ].filter(Boolean).join("\n");
+      await tx.message.create({ data: { tenantId, conversationId, direction: "INTERNAL", status: "SENT", content, contentType: "text", senderName: "Contexto do atendimento", metadata: { kind: "guided_handoff_context", sector, platform, destination } } });
+      await tx.auditLog.create({ data: { tenantId, action: "conversation.guided_handoff_context", entityType: "conversation", entityId: conversationId, details: { sector, platform, destination } } });
+    });
   }
 
   private async runMenuBot(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
@@ -475,4 +503,5 @@ export class WahaWebhookController {
     return null;
   }
 }
+
 

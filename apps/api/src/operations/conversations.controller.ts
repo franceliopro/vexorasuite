@@ -209,10 +209,15 @@ export class ConversationsController {
     if (!stages.some((stage) => stage.id === stageId)) throw new BadRequestException("Etapa não pertence ao pipeline.");
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true, contactId: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true } });
+    const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true, pipelineId: true } });
     if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
     const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
-    const updated = await this.prisma.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+    const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.crm_updated", entityType: "conversation", entityId: id, details: { contactId: conversation.contactId, fromPipelineId: contact.pipelineId, toPipelineId: pipeline.id, fromStage: previousStage, toStage: stageId } } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId });
     return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId };

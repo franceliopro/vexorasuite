@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 
 export const DEFAULT_WORKER_HEARTBEAT_FILE = "/tmp/vexora-worker-heartbeat";
 export const DEFAULT_WORKER_HEARTBEAT_MAX_AGE_MS = 60_000;
+const MAX_HEARTBEAT_CLOCK_SKEW_MS = 1_000;
 
 export async function touchWorkerHeartbeat(
   filePath = process.env.WORKER_HEARTBEAT_FILE || DEFAULT_WORKER_HEARTBEAT_FILE,
@@ -18,7 +19,7 @@ export function isWorkerHeartbeatFresh(
 ): boolean {
   try {
     const ageMs = now - statSync(filePath).mtimeMs;
-    return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= maxAgeMs;
+    return Number.isFinite(ageMs) && ageMs >= -MAX_HEARTBEAT_CLOCK_SKEW_MS && ageMs <= maxAgeMs;
   } catch {
     return false;
   }

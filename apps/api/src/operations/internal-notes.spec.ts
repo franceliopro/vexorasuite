@@ -75,3 +75,17 @@ describe("guided chatbot handoff context", () => {
     expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
   });
 });
+
+
+describe("conversation lifecycle audit: archive and recovery", () => {
+  const request: any = { user: { tenantId: "tenant", sub: "agent", role: "OWNER" } };
+  it("audits archive, restore and trash", async () => {
+    const tx: any = { conversation: { update: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN" }) }, auditLog: { create: jest.fn() } };
+    const prisma: any = { conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contact: { metadata: {} } }) }, $transaction: jest.fn((fn: any) => fn(tx)) };
+    const controller = new ConversationsController(prisma, { publish: jest.fn() } as any, {} as any, {} as any);
+    await controller.archive(request, "conversation");
+    await controller.restore(request, "conversation");
+    await controller.trash(request, "conversation");
+    expect(tx.auditLog.create.mock.calls.map((call: any[]) => call[0].data.action)).toEqual(["conversation.archived", "conversation.restored", "conversation.trashed"]);
+  });
+});

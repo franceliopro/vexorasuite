@@ -24,7 +24,7 @@
   --button-height: 40px;
   --button-height-mobile: 44px;
   --button-radius: 9px;
-  --focus-ring: color-mix(in srgb, var(--primary) 48%, white);
+  --focus-ring: var(--text-primary);
   --control-height: 40px;
   --control-radius: 10px;
   --radius-card: 14px;
@@ -509,7 +509,7 @@ body{font-family:var(--font-ui,system-ui);font-size:var(--ui-body);line-height:1
 .operation-notices summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;list-style:inside}
 .operation-notices summary span{font-size:12px;font-weight:500;white-space:nowrap}
 .operation-notices p{font-size:13px;margin:12px 0 4px}.operation-notices a{color:inherit;text-decoration:underline}
-:is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+:is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--focus-ring);outline-offset:3px}
 @media(max-width:760px){:root{--ui-title:22px;--ui-section:16px}.simple-workspace{gap:16px}.simple-workspace .creative-heading{align-items:flex-start;flex-direction:column}.workspace-actions{width:100%;flex-wrap:nowrap}.workspace-actions .primary-button{flex:1}.workspace-surface{padding:16px}.workspace-filters{flex-direction:column}.workspace-filters select{max-width:none}.publication-row{flex-wrap:wrap;gap:10px}.publication-row>div:first-child{flex-basis:100%}.publication-row>.secondary-button{margin-left:auto}.page-content :is(.primary-button,.secondary-button),.simple-workspace .module-tabs button{min-height:44px}.simple-workspace .ai-admin-fields{gap:16px}.simple-workspace .ai-admin-fields :is(input:not([type=checkbox]),textarea,select){font-size:16px}.marketing-job>summary{align-items:flex-start}.marketing-job .status-pill{max-width:45%}}
 
 .pwa-panel{position:fixed;top:calc(64px + env(safe-area-inset-top));right:12px;max-height:calc(100dvh - 144px);overflow:auto}
@@ -2629,3 +2629,14 @@ html:root[data-theme] :is(.search-box,.inbox-composer textarea,.auth-field input
 html:root[data-theme] :is(.breadcrumbs,.card-heading p,.metric-card p,.shortcut-copy small,.page-footer,.inbox-empty,.conversation-summary small,.message-bubble small){color:var(--text-secondary)}
 html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--button-height);border-radius:var(--button-radius)}
 @media(max-width:760px){html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--button-height-mobile)}}
+
+/* Focus visibility (WCAG 2.4.7 / 1.4.11).
+   --focus-ring is a neutral theme color, so it keeps 3:1 on any surface whatever the tenant brand color is.
+   The navigation sits on its own surface, so it takes the sidebar text color. */
+.sidebar { --focus-ring: var(--sidebar-text); }
+/* Borderless inputs live inside a styled wrapper: the wrapper shows the focus, since the input outline is removed. */
+:is(.search-box,.crm-search,.origin-search,.profile-tag-editable):focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 22%, transparent);
+}

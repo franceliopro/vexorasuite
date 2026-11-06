@@ -80,6 +80,9 @@ export class ContactsController {
     private readonly events: EventsService,
     private readonly asaas: AsaasService,
   ) {}
+  private async auditProfileCatalog(request: AuthenticatedRequest, action: string, details: Prisma.InputJsonObject) {
+    await this.prisma.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action, entityType: "crm_profile_config", entityId: request.user.tenantId, details } });
+  }
 
   @Get()
   async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string, @Query("pipelineId") pipelineId?: string) {
@@ -182,6 +185,7 @@ export class ContactsController {
       if(latest.length>=100)throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
       return {...value,tags:[...latest,tag]};
     });
+    await this.auditProfileCatalog(request, "crm.profile_tag_created", { tagId: tag.id, name: tag.name, color: tag.color });
     return (updated as any).tags.find((t:any)=>t.name.toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR"))||tag;
   }
 
@@ -200,6 +204,7 @@ export class ContactsController {
       const tags = latest.map((tag, tagIndex) => tagIndex === index ? { ...tag, name, color } : tag);
       return { ...value, tags } as any;
     });
+    await this.auditProfileCatalog(request, "crm.profile_tag_updated", { tagId, name, color });
     return (updated as any).tags.find((tag: any) => tag.id === tagId);
   }
 
@@ -212,6 +217,7 @@ export class ContactsController {
       if (!latest.some(tag => tag.id === tagId)) throw new BadRequestException("Etiqueta não encontrada.");
       return { ...value, tags: latest.filter(tag => tag.id !== tagId) } as any;
     });
+    await this.auditProfileCatalog(request, "crm.profile_tag_deleted", { tagId });
     return { deleted: true, tagId, valuesPreserved: true, tags: (updated as any).tags };
   }
 
@@ -239,6 +245,7 @@ export class ContactsController {
       if(latest.length>=100)throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
       return {...value,fields:[...latest,field]};
     });
+    await this.auditProfileCatalog(request, "crm.profile_field_created", { fieldId: field.id, key: field.key, type: field.type });
     return field;
   }
 

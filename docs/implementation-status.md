@@ -34,7 +34,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Erro de build do Dokploy corrigido: `ContactProfileData.metadata` agora aceita `null`.
 - [x] Normalização de telefone corrigida para números formatados e identificadores `@c.us`.
 - [x] TypeScript passou após a correção do build.
-- [~] Novo deployment no Dokploy ainda necessário para validar a correção no ambiente publicado.
+- [x] Novo deployment no Dokploy validado: build passou e terminou com `Docker Compose Deployed: ✅`.
 
 ## 1. Fundação e deploy
 
@@ -47,7 +47,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] `WEBHOOK_ENCRYPTION_KEY` exigida em produção.
 - [x] `INTEGRATION_ENCRYPTION_KEY` prevista para credenciais IMAP/SMTP.
 - [x] Deployment observado no Dokploy concluído sem erro no log enviado.
-- [~] Confirmar o SHA exato exibido pelo deployment ativo no Dokploy.
+- [x] SHA confirmado no Dokploy: `b02088a9f0a3335d5f74bef2c240918bf77ffac2`.
 - [~] Confirmar domínio, TLS, cookies e sessão no ambiente publicado.
 
 ## 2. Qualidade e segurança

@@ -517,16 +517,16 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="dark"] .topbar,:root[data-theme="dark"] .crm-toolbar,:root[data-theme="dark"] .crm-view-switch,:root[data-theme="dark"] .contact-profile-heading,:root[data-theme="dark"] .contact-profile-tabs,:root[data-theme="dark"] .profile-section,:root[data-theme="dark"] .crm-card-footer{border-color:var(--line)}
 :root[data-theme="dark"] .topbar,:root[data-theme="dark"] .page-content{color:var(--ink)}
 :root[data-theme="dark"] .page-heading h1,:root[data-theme="dark"] .crm-heading h1,:root[data-theme="dark"] .settings-heading h1,:root[data-theme="dark"] .content-card h2,:root[data-theme="dark"] .crm-pipeline-card strong,:root[data-theme="dark"] .crm-contact-main strong,:root[data-theme="dark"] .contact-profile-identity h3,:root[data-theme="dark"] .profile-section>strong,:root[data-theme="dark"] .report-table-scroll td,:root[data-theme="dark"] .report-table-scroll th{color:var(--ink)}
-:root[data-theme="dark"] input:not([type="checkbox"]):not([type="color"]),:root[data-theme="dark"] textarea,:root[data-theme="dark"] select,:root[data-theme="dark"] .search-box,:root[data-theme="dark"] .crm-search,:root[data-theme="dark"] .origin-search{background:#131620;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="color"]),:root[data-theme="dark"] textarea,:root[data-theme="dark"] select,:root[data-theme="dark"] .search-box,:root[data-theme="dark"] .crm-search,:root[data-theme="dark"] .origin-search{background:var(--surface-1);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .crm-pipeline-column{background:linear-gradient(180deg,rgba(var(--stage-rgb),.11),var(--card) 150px);border-color:rgba(var(--stage-rgb),.24)}
 :root[data-theme="dark"] .crm-stage-heading h2,:root[data-theme="dark"] .crm-stage-empty,:root[data-theme="dark"] .crm-contact-tags>span{color:var(--ink)}
-:root[data-theme="dark"] .crm-move-label select,:root[data-theme="dark"] .profile-tag-palette button,:root[data-theme="dark"] .secondary-button,:root[data-theme="dark"] .crm-view-switch button{background:#202433;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] .crm-move-label select,:root[data-theme="dark"] .profile-tag-palette button,:root[data-theme="dark"] .secondary-button,:root[data-theme="dark"] .crm-view-switch button{background:var(--surface-2);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .crm-view-switch button.active{background:#302b58;color:#d5d0ff;border-color:#6258df}
 :root[data-theme="dark"] .contact-profile,:root[data-theme="dark"] .contact-profile-body,:root[data-theme="dark"] .conversation-list,:root[data-theme="dark"] .conversation-thread,:root[data-theme="dark"] .composer-shell,:root[data-theme="dark"] .inbox-composer{background:var(--card);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .conversation-row,:root[data-theme="dark"] .conversation-tag,:root[data-theme="dark"] .composer-popover,:root[data-theme="dark"] .profile-notes,:root[data-theme="dark"] .profile-custom-fields{border-color:var(--line)}
-:root[data-theme="dark"] .profile-status-pill,:root[data-theme="dark"] .protocol-current{background:#202433;border-color:var(--line);color:var(--ink)}
+:root[data-theme="dark"] .profile-status-pill,:root[data-theme="dark"] .protocol-current{background:var(--surface-2);border-color:var(--line);color:var(--ink)}
 :root[data-theme="dark"] .report-table-scroll th,:root[data-theme="dark"] .report-table-scroll td{border-color:var(--line)}
-:root[data-theme="dark"] .report-table-scroll th{background:#202433}
+:root[data-theme="dark"] .report-table-scroll th{background:var(--surface-2)}
 :root[data-theme="dark"] .theme-toggle{color:#e6c96c}
 @media(prefers-reduced-motion:reduce){.theme-toggle{transition:none}}
 
@@ -592,7 +592,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="light"] .icon-button:hover{background:color-mix(in srgb,var(--primary) 8%,white);color:var(--primary)}
 :root[data-theme="light"] .sidebar .brand-full-logo{max-width:176px}
 :root[data-theme="dark"]{--sidebar:#0b0d15;--sidebar-muted:#a3a5c0;--green:#40c99b;--shadow:0 4px 20px rgba(0,0,0,.22)}
-:root[data-theme="dark"] input:not([type="checkbox"]):not([type="color"]):not([type="radio"]):not([type="range"]):not([type="file"]),:root[data-theme="dark"] textarea,:root[data-theme="dark"] select,:root[data-theme="dark"] option{background:#202431;color:var(--ink);border-color:var(--line);color-scheme:dark}
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="color"]):not([type="radio"]):not([type="range"]):not([type="file"]),:root[data-theme="dark"] textarea,:root[data-theme="dark"] select,:root[data-theme="dark"] option{background:var(--surface-2);color:var(--ink);border-color:var(--line);color-scheme:dark}
 :root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:#8d95ab}
 :root[data-theme="dark"] input[type="checkbox"],:root[data-theme="dark"] input[type="radio"],:root[data-theme="light"] input[type="checkbox"],:root[data-theme="light"] input[type="radio"]{accent-color:var(--primary)}
 :root[data-theme="dark"] .secondary-button,:root[data-theme="dark"] .text-button,:root[data-theme="dark"] .crm-view-switch button,:root[data-theme="dark"] .crm-move-label select,:root[data-theme="dark"] .settings-tabs,:root[data-theme="dark"] .module-tabs{background:var(--card);color:var(--ink);border-color:var(--line)}
@@ -600,7 +600,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="dark"] .settings-tabs button.active,:root[data-theme="dark"] .module-tabs button.active,:root[data-theme="dark"] .crm-view-switch button.active{background:color-mix(in srgb,var(--primary) 20%,var(--card));color:color-mix(in srgb,var(--primary) 60%,white);border-color:color-mix(in srgb,var(--primary) 40%,var(--line))}
 :root[data-theme="dark"] .primary-button{background:var(--primary);color:var(--primary-contrast,#fff);box-shadow:0 4px 12px color-mix(in srgb,var(--primary) 24%,transparent)}
 :root[data-theme="dark"] .primary-button:hover{filter:brightness(1.12)}
-:root[data-theme="dark"] .composer-popover,:root[data-theme="dark"] .workspace-info-popover,:root[data-theme="dark"] [role="listbox"],:root[data-theme="dark"] [role="menu"],:root[data-theme="dark"] .profile-dropdown{background:#202431;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] .composer-popover,:root[data-theme="dark"] .workspace-info-popover,:root[data-theme="dark"] [role="listbox"],:root[data-theme="dark"] [role="menu"],:root[data-theme="dark"] .profile-dropdown{background:var(--surface-2);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .content-card,:root[data-theme="dark"] .metric-card,:root[data-theme="dark"] .settings-card,:root[data-theme="dark"] .crm-contacts-card,:root[data-theme="dark"] .crm-pipeline-card{box-shadow:var(--shadow)}
 :root[data-theme="dark"] .brand-copy small{color:#b4b0ff}
 :root[data-theme="dark"] .brand-mark{background:linear-gradient(140deg,color-mix(in srgb,var(--primary) 55%,white),var(--primary))}
@@ -664,10 +664,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="dark"] .bottom-note,:root[data-theme="dark"] .environment-banner,:root[data-theme="dark"] .settings-members,:root[data-theme="dark"] .settings-webhook-url,:root[data-theme="dark"] .protocol-current,:root[data-theme="dark"] .crm-customer-note,:root[data-theme="dark"] .crm-customer-origin.is-asaas,:root[data-theme="dark"] .crm-customer-origin.is-pending,:root[data-theme="dark"] .origin-tip,:root[data-theme="dark"] .crm-stage-pill{background:var(--page);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .search-box,:root[data-theme="dark"] .search-box kbd,:root[data-theme="dark"] .icon-button,:root[data-theme="dark"] .logout-button,:root[data-theme="dark"] .secondary-button,:root[data-theme="dark"] .crm-toolbar-search,:root[data-theme="dark"] .crm-view-switch,:root[data-theme="dark"] .crm-view-switch button,:root[data-theme="dark"] .crm-move-label select,:root[data-theme="dark"] .profile-origin-select,:root[data-theme="dark"] .report-filters input,:root[data-theme="dark"] .origin-search input,:root[data-theme="dark"] .report-table-scroll th,:root[data-theme="dark"] .finalization-reason select,:root[data-theme="dark"] .profile-add-tag button{background:var(--card);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .thread-messages{background:var(--page)}
-:root[data-theme="dark"] .message-bubble{background:#242836;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] .message-bubble{background:var(--surface-2);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .message-line.outgoing .message-bubble{background:color-mix(in srgb,var(--primary) 22%,var(--card));border-color:color-mix(in srgb,var(--primary) 40%,var(--line))}
 :root[data-theme="dark"] .inbox-composer,:root[data-theme="dark"] .composer-shell,:root[data-theme="dark"] .handoff-toolbar{background:var(--card);border-color:var(--line)}
-:root[data-theme="dark"] .inbox-composer textarea,:root[data-theme="dark"] .auth-field input,:root[data-theme="dark"] .settings-field input,:root[data-theme="dark"] .settings-field textarea,:root[data-theme="dark"] .settings-create-department input,:root[data-theme="dark"] .crm-form-grid input,:root[data-theme="dark"] .crm-search input{background:#242836;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] .inbox-composer textarea,:root[data-theme="dark"] .auth-field input,:root[data-theme="dark"] .settings-field input,:root[data-theme="dark"] .settings-field textarea,:root[data-theme="dark"] .settings-create-department input,:root[data-theme="dark"] .crm-form-grid input,:root[data-theme="dark"] .crm-search input{background:var(--surface-2);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .inbox-queue-button.active,:root[data-theme="dark"] .inbox-more-queues.has-active>summary,:root[data-theme="dark"] .contact-profile-tabs button.active,:root[data-theme="dark"] .crm-clear-search:hover,:root[data-theme="dark"] .crm-view-switch button.active{background:color-mix(in srgb,var(--primary) 20%,var(--card));color:var(--ink);border-color:color-mix(in srgb,var(--primary) 42%,var(--line))}
 :root[data-theme="dark"] .finalization-outcomes button.won.selected{background:#18352d;border-color:#286c52}
 :root[data-theme="dark"] .finalization-outcomes button.lost.selected{background:#3a2428;border-color:#8c454b}
@@ -805,17 +805,17 @@ button.primary-button:hover:not(:disabled) {
 
 /* Theme polish: consistent controls, accessible contrast and compact collapsed navigation. */
 :root[data-theme="dark"] .topbar {
-  background: #343946;
-  border-bottom-color: #454b5a;
+  background: var(--surface-hover);
+  border-bottom-color: var(--border-mid);
 }
 :root[data-theme="dark"] .topbar .search-box,
 :root[data-theme="dark"] .topbar .search-box kbd {
   background: #3c4250;
-  color: #e0e4ed;
-  border-color: #505767;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
-:root[data-theme="dark"] .topbar .search-box input { color: #f1f3f8; }
-:root[data-theme="dark"] .topbar .search-box input::placeholder { color: #c0c6d3; }
+:root[data-theme="dark"] .topbar .search-box input { color: var(--text-primary); }
+:root[data-theme="dark"] .topbar .search-box input::placeholder { color: var(--text-secondary); }
 :root[data-theme="dark"] .thread-action-button,
 :root[data-theme="dark"] .thread-assign-select,
 :root[data-theme="dark"] .handoff-trigger,
@@ -831,9 +831,9 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .inbox-composer textarea,
 :root[data-theme="dark"] .inbox-composer input,
 :root[data-theme="dark"] [contenteditable="true"] {
-  background-color: #303644;
-  color: #e5e8ef;
-  border-color: #51596a;
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 :root[data-theme="dark"] .inbox-composer textarea::placeholder,
 :root[data-theme="dark"] input::placeholder,
@@ -845,7 +845,7 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] hr,
 :root[data-theme="dark"] .inbox-thread hr,
 :root[data-theme="dark"] .contact-profile-body hr {
-  border-color: #4b5261;
+  border-color: var(--border-strong);
   background-color: #4b5261;
 }
 :root[data-theme="dark"] .thread-action-button,
@@ -853,31 +853,31 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .handoff-trigger,
 :root[data-theme="dark"] .profile-field-create button,
 :root[data-theme="dark"] .profile-add-tag button {
-  color: #e0e4ed;
+  color: var(--text-primary);
 }
 :root[data-theme="dark"] .thread-heading,
 :root[data-theme="dark"] .inbox-panel-heading,
 :root[data-theme="dark"] .contact-profile-heading,
 :root[data-theme="dark"] .contact-profile-tabs,
 :root[data-theme="dark"] .profile-section {
-  border-color: #454c5b;
+  border-color: var(--border-mid);
 }
 :root[data-theme="hybrid"] .sidebar,
 :root[data-theme="dark"] .sidebar {
-  background: #202431;
-  color: #e7eaf2;
+  background: var(--sidebar-bg);
+  color: var(--text-primary);
 }
 :root[data-theme="hybrid"] .sidebar .sidebar-collapse,
 :root[data-theme="dark"] .sidebar .sidebar-collapse {
-  color: #d9deea;
-  background: #303644;
-  border-color: #444b5b;
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border-color: var(--border-mid);
 }
 :root[data-theme="hybrid"] .sidebar .help-card,
 :root[data-theme="dark"] .sidebar .help-card {
-  color: #d9deea;
-  background: #292f3d;
-  border-color: #414858;
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border-color: var(--border-mid);
 }
 :root[data-theme="light"] .sidebar .sidebar-collapse {
   color: #4f566b;
@@ -953,50 +953,50 @@ button.primary-button:hover:not(:disabled) {
 /* Final theme contrast pass: hybrid reuses the dark sidebar, while the workspace remains distinct. */
 :root[data-theme="hybrid"] .sidebar,
 :root[data-theme="dark"] .sidebar {
-  background: #202431;
-  color: #e7eaf2;
+  background: var(--surface-2);
+  color: var(--text-primary);
 }
 :root[data-theme="hybrid"] .sidebar .nav-item,
 :root[data-theme="dark"] .sidebar .nav-item,
 :root[data-theme="hybrid"] .sidebar .nav-subitem,
-:root[data-theme="dark"] .sidebar .nav-subitem { color: #d9deea; }
+:root[data-theme="dark"] .sidebar .nav-subitem { color: var(--text-primary); }
 :root[data-theme="hybrid"] .sidebar .nav-item.active,
 :root[data-theme="dark"] .sidebar .nav-item.active,
 :root[data-theme="hybrid"] .sidebar .nav-subitem.active,
 :root[data-theme="dark"] .sidebar .nav-subitem.active {
   background: #343b4d;
   color: #fff;
-  border-color: #4a5369;
+  border-color: var(--border-strong);
 }
 :root[data-theme="dark"] .breadcrumbs,
 :root[data-theme="dark"] .breadcrumbs > span,
-:root[data-theme="dark"] .breadcrumbs > strong { color: #eef1f7; }
-:root[data-theme="dark"] .topbar { background: #292e3a; }
-:root[data-theme="dark"] .topbar .search-box { background: #3a4150; border-color: #535c6e; }
+:root[data-theme="dark"] .breadcrumbs > strong { color: var(--text-primary); }
+:root[data-theme="dark"] .topbar { background: var(--surface-2); }
+:root[data-theme="dark"] .topbar .search-box { background: #3a4150; border-color: var(--border-strong); }
 :root[data-theme="dark"] .topbar .search-box input,
-:root[data-theme="dark"] .topbar .search-box > span { color: #f4f6fb; }
+:root[data-theme="dark"] .topbar .search-box > span { color: var(--text-primary); }
 
 /* Messages and conversation previews must never inherit dark text on dark surfaces. */
 :root[data-theme="dark"] .inbox-conversation,
 :root[data-theme="dark"] .inbox-conversation.selected {
-  background: #242a38;
-  border-bottom-color: #3a4150;
-  color: #edf0f7;
+  background: var(--surface-2);
+  border-bottom-color: var(--border-mid);
+  color: var(--text-primary);
 }
 :root[data-theme="dark"] .inbox-conversation .conversation-summary > strong,
-:root[data-theme="dark"] .inbox-conversation .conversation-title-row > strong { color: #f4f6fb; }
+:root[data-theme="dark"] .inbox-conversation .conversation-title-row > strong { color: var(--text-primary); }
 :root[data-theme="dark"] .inbox-conversation .conversation-summary small { color: #c0c7d5; }
 :root[data-theme="dark"] .inbox-conversation.selected {
-  background: #30374a;
+  background: var(--surface-hover);
   box-shadow: inset 3px 0 var(--primary);
 }
-:root[data-theme="dark"] .thread-messages { background: #1c202b; }
+:root[data-theme="dark"] .thread-messages { background: var(--surface-1); }
 :root[data-theme="dark"] .message-bubble,
-:root[data-theme="dark"] .message-bubble p { color: #edf0f7; }
-:root[data-theme="dark"] .message-bubble { background: #2b3140; border-color: #454d5e; }
+:root[data-theme="dark"] .message-bubble p { color: var(--text-primary); }
+:root[data-theme="dark"] .message-bubble { background: var(--surface-hover); border-color: var(--border-strong); }
 :root[data-theme="dark"] .message-line.outgoing .message-bubble {
-  background: color-mix(in srgb, var(--primary) 28%, #272d3b);
-  border-color: color-mix(in srgb, var(--primary) 58%, #454d5e);
+  background: color-mix(in srgb, var(--primary) 28%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--border-strong));
 }
 :root[data-theme="dark"] .message-bubble small { color: #c0c7d5; }
 
@@ -1009,9 +1009,9 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .profile-section,
 :root[data-theme="dark"] .profile-field-create,
 :root[data-theme="dark"] .protocol-current {
-  background: #242a38;
-  color: #edf0f7;
-  border-color: #424a5a;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-mid);
 }
 :root[data-theme="dark"] .contact-profile-identity p,
 :root[data-theme="dark"] .contact-profile-title small,
@@ -1029,9 +1029,9 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .profile-origin-identifier,
 :root[data-theme="dark"] .profile-notes,
 :root[data-theme="dark"] .profile-custom-fields {
-  background: #303746;
-  color: #f1f3f8;
-  border-color: #535c6e;
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
   color-scheme: dark;
 }
 :root[data-theme="dark"] .profile-field-row input::placeholder,
@@ -1041,10 +1041,10 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .profile-add-tag button,
 :root[data-theme="dark"] .contact-profile-tabs button.active {
   background: #3a4153;
-  color: #f1f3f8;
+  color: var(--text-primary);
   border-color: #59647a;
 }
-:root[data-theme="dark"] .profile-tag-palette button { border-color: #242a38; box-shadow: 0 0 0 1px #697286; }
+:root[data-theme="dark"] .profile-tag-palette button { border-color: var(--border-subtle); box-shadow: 0 0 0 1px #697286; }
 :root[data-theme="dark"] .profile-custom-tag-color { border-color: #697286; }
 :root[data-theme="dark"] .profile-tag-editable { text-shadow: none; }
 :root[data-theme="dark"] .profile-tag-editable input:not([type="color"]) { }
@@ -1056,9 +1056,9 @@ button.primary-button:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--tag-color, #7665e8) 65%, #8b91a5);
 }
 :root[data-theme="dark"] .crm-contact-tags > span {
-  background: color-mix(in srgb, var(--tag-color, #7665e8) 48%, #202431);
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 48%, var(--surface-2));
   color: #fff;
-  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 78%, #596174);
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 78%, var(--border-strong));
 }
 
 :root[data-theme="light"] .inbox-conversation {
@@ -1238,25 +1238,25 @@ button.primary-button:hover:not(:disabled) {
 
 /* Dark theme: CRM Kanban contact labels must use a dark surface with light text. */
 :root[data-theme="dark"] .crm-contact-tags > span {
-  background: color-mix(in srgb, var(--tag-color, #7665e8) 18%, #171b26) !important;
-  color: #f8faff !important;
-  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 62%, #454c5b) !important;
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 18%, var(--surface-1)) !important;
+  color: var(--text-primary) !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 62%, var(--border-mid)) !important;
   text-shadow: none !important;
 }
 
 
 /* Consistent dark contact labels in CRM Kanban and contact profile. */
 :root[data-theme="dark"] .crm-contact-tags > span {
-  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, #171b26) !important;
-  color: #f8faff !important;
-  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, #454c5b) !important;
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, var(--surface-1)) !important;
+  color: var(--text-primary) !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, var(--border-mid)) !important;
   text-shadow: none !important;
 }
 
 :root[data-theme="dark"] .contact-profile .profile-tag,
 :root[data-theme="dark"] .contact-profile .profile-tag-editable {
-  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, #171b26) !important;
-  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, #454c5b) !important;
+  background: color-mix(in srgb, var(--tag-color, #7665e8) 16%, var(--surface-1)) !important;
+  border-color: color-mix(in srgb, var(--tag-color, #7665e8) 70%, var(--border-mid)) !important;
   text-shadow: none !important;
 }
 
@@ -1305,13 +1305,13 @@ button.primary-button:hover:not(:disabled) {
 .quick-reply-create { display: grid; gap: 7px; padding-top: 12px; }
 .quick-reply-create input, .quick-reply-create textarea { width: 100%; min-width: 0; padding: 8px 9px; border: 1px solid #e1e5ef; border-radius: 8px; background: #fff; color: #252941; font: inherit; font-size: 11px; }
 .quick-reply-create button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; border: 0; border-radius: 8px; background: var(--primary, #6258df); color: #fff; font-size: 11px; font-weight: 700; }
-:root[data-theme="dark"] .composer-shell, :root[data-theme="dark"] .composer-shell .inbox-composer, :root[data-theme="dark"] .composer-popover { background: #202634; border-color: #424a5b; color: #edf0f7; }
-:root[data-theme="dark"] .composer-shell .inbox-composer > textarea { color: #f4f6fb; }
-:root[data-theme="dark"] .composer-search, :root[data-theme="dark"] .quick-reply-create input, :root[data-theme="dark"] .quick-reply-create textarea { background: #2a3140; border-color: #4a5366; color: #f4f6fb; color-scheme: dark; }
-:root[data-theme="dark"] .emoji-category-tabs button { background: #292f3e; border-color: #454d60; color: #c4cada; }
+:root[data-theme="dark"] .composer-shell, :root[data-theme="dark"] .composer-shell .inbox-composer, :root[data-theme="dark"] .composer-popover { background: var(--surface-2); border-color: var(--border-mid); color: var(--text-primary); }
+:root[data-theme="dark"] .composer-shell .inbox-composer > textarea { color: var(--text-primary); }
+:root[data-theme="dark"] .composer-search, :root[data-theme="dark"] .quick-reply-create input, :root[data-theme="dark"] .quick-reply-create textarea { background: var(--surface-hover); border-color: var(--border-strong); color: var(--text-primary); color-scheme: dark; }
+:root[data-theme="dark"] .emoji-category-tabs button { background: var(--surface-hover); border-color: var(--border-strong); color: #c4cada; }
 :root[data-theme="dark"] .emoji-category-tabs button.active { background: #393653; border-color: #6a61ad; color: #e3e0ff; }
-:root[data-theme="dark"] .quick-reply-row { border-bottom-color: #363e4e; }
-:root[data-theme="dark"] .quick-reply-use { color: #edf0f7; }
+:root[data-theme="dark"] .quick-reply-row { border-bottom-color: var(--border-mid); }
+:root[data-theme="dark"] .quick-reply-use { color: var(--text-primary); }
 :root[data-theme="dark"] .quick-reply-use small, :root[data-theme="dark"] .composer-char-count, :root[data-theme="dark"] .composer-shortcut-hint { color: #aeb7c8; }
 @media(max-width:640px) {
  .composer-shell { padding: 9px; }
@@ -1362,9 +1362,9 @@ button.primary-button:hover:not(:disabled) {
 /* Dark-mode routing controls need readable labels/icons, not washed-out light buttons. */
 :root[data-theme="dark"] .handoff-direct-trigger,
 :root[data-theme="dark"] .handoff-invite-trigger {
-  color: #f0f3fb !important;
-  background: #303746 !important;
-  border-color: #4b5365 !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-hover) !important;
+  border-color: var(--border-strong) !important;
 }
 :root[data-theme="dark"] .handoff-direct-trigger svg,
 :root[data-theme="dark"] .handoff-invite-trigger svg {
@@ -1373,15 +1373,15 @@ button.primary-button:hover:not(:disabled) {
 :root[data-theme="dark"] .handoff-direct-trigger:hover,
 :root[data-theme="dark"] .handoff-menu[open] > .handoff-direct-trigger,
 :root[data-theme="dark"] .invite-menu[open] > .handoff-invite-trigger {
-  background: color-mix(in srgb, var(--primary) 20%, #303746) !important;
+  background: color-mix(in srgb, var(--primary) 20%, var(--surface-hover)) !important;
   color: #fff !important;
-  border-color: color-mix(in srgb, var(--primary) 55%, #4b5365) !important;
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border-strong)) !important;
 }
 :root[data-theme="dark"] .contact-profile-heading > button,
 :root[data-theme="dark"] .contact-profile-heading button,
 :root[data-theme="dark"] .profile-toggle,
 :root[data-theme="dark"] .contact-profile .icon-button {
-  color: #f1f4fb !important;
+  color: var(--text-primary) !important;
 }
 :root[data-theme="dark"] .contact-profile-heading > button svg,
 :root[data-theme="dark"] .contact-profile-heading button svg,
@@ -2405,9 +2405,9 @@ input[type="color"].profile-tag-inline-color {
   --sidebar: #191D28;
   --sidebar-deep: #10131B;
   --sidebar-muted: #b4bdce;
-  background: #191D28 !important;
-  color: #eef2f8 !important;
-  border-right: 1px solid #303847;
+  background: var(--sidebar-bg) !important;
+  color: var(--text-primary) !important;
+  border-right: 1px solid var(--sidebar-border);
 }
 :root[data-theme="hybrid"] .sidebar .brand,
 :root[data-theme="dark"] .sidebar .brand,
@@ -2417,7 +2417,7 @@ input[type="color"].profile-tag-inline-color {
 :root[data-theme="dark"] .sidebar .profile-copy strong,
 :root[data-theme="hybrid"] .sidebar .help-card strong,
 :root[data-theme="dark"] .sidebar .help-card strong {
-  color: #eef2f8;
+  color: var(--text-primary);
 }
 :root[data-theme="hybrid"] .sidebar .nav-section,
 :root[data-theme="dark"] .sidebar .nav-section {
@@ -2433,16 +2433,16 @@ input[type="color"].profile-tag-inline-color {
 :root[data-theme="dark"] .sidebar .nav-item:hover,
 :root[data-theme="hybrid"] .sidebar .nav-subitem:hover,
 :root[data-theme="dark"] .sidebar .nav-subitem:hover {
-  background: #252c39 !important;
-  color: #ffffff !important;
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
 }
 :root[data-theme="hybrid"] .sidebar .nav-item.active,
 :root[data-theme="dark"] .sidebar .nav-item.active,
 :root[data-theme="hybrid"] .sidebar .nav-subitem.active,
 :root[data-theme="dark"] .sidebar .nav-subitem.active {
-  background: color-mix(in srgb, var(--primary) 24%, #191D28) !important;
-  color: #ffffff !important;
-  border-color: color-mix(in srgb, var(--primary) 42%, #303847) !important;
+  background: color-mix(in srgb, var(--primary) 24%, var(--surface-1)) !important;
+  color: var(--text-primary) !important;
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border-subtle)) !important;
 }
 :root[data-theme="hybrid"] .sidebar .nav-glyph,
 :root[data-theme="dark"] .sidebar .nav-glyph,
@@ -2460,21 +2460,21 @@ input[type="color"].profile-tag-inline-color {
 :root[data-theme="dark"] .sidebar .sidebar-collapse,
 :root[data-theme="hybrid"] .sidebar .help-card,
 :root[data-theme="dark"] .sidebar .help-card {
-  background: #10131B !important;
-  color: #e7ecf5 !important;
-  border-color: #303847 !important;
+  background: var(--surface-page) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
 }
 :root[data-theme="hybrid"] .sidebar .workspace-switcher:hover,
 :root[data-theme="dark"] .sidebar .workspace-switcher:hover,
 :root[data-theme="hybrid"] .sidebar .sidebar-collapse:hover,
 :root[data-theme="dark"] .sidebar .sidebar-collapse:hover {
-  background: #252c39 !important;
+  background: var(--surface-2) !important;
 }
 :root[data-theme="hybrid"] .sidebar .help-icon,
 :root[data-theme="dark"] .sidebar .help-icon,
 :root[data-theme="hybrid"] .sidebar .profile-avatar,
 :root[data-theme="dark"] .sidebar .profile-avatar {
-  background: color-mix(in srgb, var(--primary) 20%, #191D28) !important;
+  background: color-mix(in srgb, var(--primary) 20%, var(--surface-1)) !important;
   color: #e0dcff !important;
 }
 :root[data-theme="hybrid"] .sidebar .help-card small,
@@ -2487,11 +2487,11 @@ input[type="color"].profile-tag-inline-color {
 }
 :root[data-theme="hybrid"] .sidebar .profile-row,
 :root[data-theme="dark"] .sidebar .profile-row {
-  border-top-color: #303847 !important;
+  border-top-color: var(--border-subtle) !important;
 }
 :root[data-theme="hybrid"] .sidebar .nav-submenu,
 :root[data-theme="dark"] .sidebar .nav-submenu {
-  border-left-color: #394254 !important;
+  border-left-color: var(--border-mid) !important;
 }
 /* Workspace identity uses the requested deep slate in every appearance mode. */
 .sidebar .workspace-avatar {
@@ -2540,12 +2540,12 @@ input[type="color"].profile-tag-inline-color {
 :root[data-theme="hybrid"] .message-bubble small { color: #59647a !important; }
 /* Dark mode: separate bubbles clearly from the thread and keep message text crisp. */
 :root[data-theme="dark"] .thread-messages .message-bubble {
-  background: #303747 !important;
-  border: 1px solid #586276 !important;
-  color: #f4f6fb !important;
+  background: var(--surface-hover) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text-primary) !important;
 }
 :root[data-theme="dark"] .thread-messages .message-bubble p {
-  color: #f4f6fb !important;
+  color: var(--text-primary) !important;
 }
 :root[data-theme="dark"] .thread-messages .message-bubble small {
   color: #cbd3e1 !important;
@@ -2555,7 +2555,7 @@ input[type="color"].profile-tag-inline-color {
   border-color: #7770b5 !important;
 }
 :root[data-theme="dark"] .thread-messages .message-line.outgoing .message-bubble p {
-  color: #fbfaff !important;
+  color: var(--text-primary) !important;
 }
 
 /* Refined page headings: keep the page title, remove the overline and tighten the supporting copy. */
@@ -2682,14 +2682,14 @@ input[type="color"].profile-tag-inline-color {
 :root[data-theme="hybrid"] .sidebar .nav-subitem.active,
 :root[data-theme="dark"] .sidebar .nav-item.active,
 :root[data-theme="dark"] .sidebar .nav-subitem.active {
-  background: color-mix(in srgb, var(--primary) 52%, #191D28) !important;
-  border-color: color-mix(in srgb, var(--primary) 68%, #303847) !important;
+  background: color-mix(in srgb, var(--primary) 52%, var(--surface-1)) !important;
+  border-color: color-mix(in srgb, var(--primary) 68%, var(--border-subtle)) !important;
 }
 :root[data-theme="hybrid"] .sidebar .help-icon,
 :root[data-theme="dark"] .sidebar .help-icon,
 :root[data-theme="hybrid"] .sidebar .profile-avatar,
 :root[data-theme="dark"] .sidebar .profile-avatar {
-  background: color-mix(in srgb, var(--primary) 38%, #191D28) !important;
+  background: color-mix(in srgb, var(--primary) 38%, var(--surface-1)) !important;
   color: #fff7ef !important;
 }
 

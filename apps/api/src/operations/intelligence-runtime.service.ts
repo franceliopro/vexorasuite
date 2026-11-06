@@ -594,6 +594,23 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       await tx.conversation.update({ where: { id: conversation.id }, data: { botState: {...object(state),scopeKey,runtimeScope}, ...(human ? { handlingMode: 'HUMAN', assigneeId, departmentId, status: 'OPEN' } : skills.includes('department.route')?{departmentId,assigneeId:null}:{}) } });
       const queued: Message[] = [];
       for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, inboxRoutingRevision:entry.revision, scopeKey, runtimeScope, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null } } }));
+      if (human) {
+        const contactName = conversation.contact.metadata && typeof object(conversation.contact.metadata).novo_nome === 'string'
+          ? String(object(conversation.contact.metadata).novo_nome).trim()
+          : conversation.contact.name;
+        const context = [
+          'Contexto do transbordo',
+          'Motivo: ' + reason,
+          'Contato: ' + contactName,
+          conversation.contact.phone ? 'Telefone: ' + conversation.contact.phone : '',
+          variables.plataforma ? 'Plataforma: ' + variables.plataforma : '',
+          variables.setor ? 'Setor identificado: ' + variables.setor : '',
+          variables.solicitacao ? 'Solicitação registrada: ' + String(variables.solicitacao).slice(0, 1000) : '',
+          'Última mensagem do cliente: ' + inbound.content.trim().slice(0, 1000),
+          departmentId ? 'Destino: departamento' : assigneeId ? 'Destino: atendente' : 'Destino: fila geral',
+        ].filter(Boolean).join('\n');
+        await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'INTERNAL', status: 'SENT', content: context, contentType: 'text', senderName: 'Contexto do atendimento', metadata: { kind: 'handoff_context', reason, sourceMessageId: inbound.id, departmentId, assigneeId, scopeKey } } });
+      }
       await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
     }, { timeout: 120000 });

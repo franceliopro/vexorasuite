@@ -613,7 +613,17 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
         if (conversation && step.type === "STAGE") {
           const contact = await lockedContact(tx, rule.tenantId, conversation.contactId);
           const metadata = contactMetadata(contact.metadata);
+          const pipeline = contact.pipelineId
+            ? await tx.crmPipeline.findFirst({
+                where: { id: contact.pipelineId, tenantId: rule.tenantId, enabled: true },
+                select: { id: true, stages: true },
+              })
+            : null;
+          const validStage = Array.isArray(pipeline?.stages) && pipeline.stages.some((item: any) => item && item.id === content);
+          if (!pipeline || !validStage) throw Error("crm_stage");
+          const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
           await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, crmStage: content, crmFinalization: null } } });
+          await tx.auditLog.create({ data: { tenantId: rule.tenantId, userId: rule.userId, action: "contact.stage_changed", entityType: "contact", entityId: contact.id, details: { pipelineId: pipeline.id, fromStage: previousStage, toStage: content, source: "workflow", workflowRunId: run.id } } });
         }
         if (conversation && step.type === "PRIORITY")
           await tx.conversation.update({ where: { id: conversation.id }, data: { priority: content } });

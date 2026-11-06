@@ -80,6 +80,9 @@ export class ContactsController {
     private readonly events: EventsService,
     private readonly asaas: AsaasService,
   ) {}
+  private async auditProfileCatalog(request: AuthenticatedRequest, action: string, details: Prisma.InputJsonObject) {
+    await this.prisma.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action, entityType: "crm_profile_config", entityId: request.user.tenantId, details } });
+  }
 
   @Get()
   async list(@Req() request: AuthenticatedRequest, @Query("q") query?: string, @Query("pipelineId") pipelineId?: string) {
@@ -182,6 +185,7 @@ export class ContactsController {
       if(latest.length>=100)throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
       return {...value,tags:[...latest,tag]};
     });
+    await this.auditProfileCatalog(request, "crm.profile_tag_created", { tagId: tag.id, name: tag.name, color: tag.color });
     return (updated as any).tags.find((t:any)=>t.name.toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR"))||tag;
   }
 
@@ -200,6 +204,7 @@ export class ContactsController {
       const tags = latest.map((tag, tagIndex) => tagIndex === index ? { ...tag, name, color } : tag);
       return { ...value, tags } as any;
     });
+    await this.auditProfileCatalog(request, "crm.profile_tag_updated", { tagId, name, color });
     return (updated as any).tags.find((tag: any) => tag.id === tagId);
   }
 
@@ -212,6 +217,7 @@ export class ContactsController {
       if (!latest.some(tag => tag.id === tagId)) throw new BadRequestException("Etiqueta não encontrada.");
       return { ...value, tags: latest.filter(tag => tag.id !== tagId) } as any;
     });
+    await this.auditProfileCatalog(request, "crm.profile_tag_deleted", { tagId });
     return { deleted: true, tagId, valuesPreserved: true, tags: (updated as any).tags };
   }
 
@@ -239,6 +245,7 @@ export class ContactsController {
       if(latest.length>=100)throw new BadRequestException("O limite de campos personalizados desta empresa foi atingido.");
       return {...value,fields:[...latest,field]};
     });
+    await this.auditProfileCatalog(request, "crm.profile_field_created", { fieldId: field.id, key: field.key, type: field.type });
     return field;
   }
 
@@ -362,6 +369,22 @@ export class ContactsController {
         } : {}),
       };
     });
+    const changedFields = [
+      input.tags !== undefined ? "tags" : null,
+      input.notes !== undefined ? "notes" : null,
+      input.customFields !== undefined ? "customFields" : null,
+      input.leadOrigin !== undefined ? "leadOrigin" : null,
+    ].filter((field): field is string => Boolean(field));
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId: request.user.tenantId,
+        userId: request.user.sub,
+        action: "contact.profile_updated",
+        entityType: "contact",
+        entityId: updated.id,
+        details: { changedFields },
+      },
+    });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
     return { id: updated.id, metadata: updated.metadata };
   }
@@ -370,9 +393,21 @@ export class ContactsController {
   async updateStage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { stage?: string }) {
     await contactPipelineAccess(this.prisma, request, id);
     if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida. Para finalizar, registre o resultado comercial.");
+    let previousStage: string | null = null;
     const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, metadata => {
       if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
+      previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
       return { ...metadata, crmStage: input.stage! };
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId: request.user.tenantId,
+        userId: request.user.sub,
+        action: "contact.stage_changed",
+        entityType: "contact",
+        entityId: updated.id,
+        details: { from: previousStage, to: input.stage },
+      },
     });
     this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, stage: input.stage });
     return { ...updated, crmStage: input.stage };
@@ -392,6 +427,7 @@ export class ContactsController {
       if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
       if (contact.pipelineId !== pipelineId) throw new BadRequestException("O contato mudou de pipeline. Atualize a tela e tente novamente.");
       const metadata = contactMetadata(contact.metadata);
+      const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
       const nextMetadata: Prisma.InputJsonObject = {
         ...metadata,
         crmRemoved: {
@@ -400,10 +436,21 @@ export class ContactsController {
           removedAt: new Date().toISOString(),
         },
       };
-      return tx.contact.update({
+      const updated = await tx.contact.update({
         where: { id: contact.id },
         data: { pipelineId: null, metadata: nextMetadata },
       });
+      await tx.auditLog.create({
+        data: {
+          tenantId: request.user.tenantId,
+          userId: request.user.sub,
+          action: "contact.removed_from_pipeline",
+          entityType: "contact",
+          entityId: contact.id,
+          details: { pipelineId, previousStage },
+        },
+      });
+      return updated;
     });
     this.events.publish(request.user.tenantId, "contact.removed_from_pipeline", { id: result.id, pipelineId });
     return result;
@@ -431,7 +478,7 @@ export class ContactsController {
     const rest = Object.fromEntries(Object.entries(existing).filter(([key]) => key !== "crmStage" && key !== "crmFinalization")) as Prisma.JsonObject;
     const finalizedAt = new Date().toISOString();
       const existingConversations = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id }, select: { id: true } });
-      const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true } });
+      const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true, status: true } });
       const finalizedConversationIds = [...new Set([...priorFinalizedIds, ...existingConversations.map((item) => item.id)])];
       const metadata: Prisma.InputJsonObject = {
         ...rest,
@@ -446,7 +493,29 @@ export class ContactsController {
         },
       };
       const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
-      if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: finalizedConversationIds }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+      if (active.length) {
+        await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: active.map((item) => item.id) }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+        await tx.auditLog.createMany({
+          data: active.map((conversation) => ({
+            tenantId,
+            userId: request.user.sub,
+            action: "conversation.status_changed",
+            entityType: "conversation",
+            entityId: conversation.id,
+            details: { from: conversation.status, to: "RESOLVED", reason: "contact.crm_finalized", contactId: contact.id, outcome },
+          })),
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          userId: request.user.sub,
+          action: "contact.crm_finalized",
+          entityType: "contact",
+          entityId: contact.id,
+          details: { outcome, ...(outcome === "LOST" ? { reason } : {}), finalizedConversationIds },
+        },
+      });
       return { contact: updatedContact, conversations: active.map((item) => item.id) };
     });
     const asaasSync = outcome === "WON" ? await this.asaas.syncCustomerByContact(tenantId, result.contact.id) : null;
@@ -459,16 +528,30 @@ export class ContactsController {
   @Post()
   async create(@Req() request: AuthenticatedRequest, @Query("pipelineId") pipelineId: string | undefined, @Body() input: CreateContactDto) {
     if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
-    const contact = await this.prisma.contact.create({
-      data: {
-        tenantId: request.user.tenantId,
-        ...(pipelineId ? { pipelineId } : {}),
-        name: input.name.trim(),
-        phone: input.phone?.trim() || null,
-        email: input.email?.trim().toLowerCase() || null,
-        source: input.source?.trim() || null,
-        externalId: input.externalId?.trim() || null,
-      },
+    const phone = input.phone?.replace(/\D/g, "") || null;
+    const contact = await this.prisma.$transaction(async tx => {
+      const created = await tx.contact.create({
+        data: {
+          tenantId: request.user.tenantId,
+          ...(pipelineId ? { pipelineId } : {}),
+          name: input.name.trim(),
+          phone,
+          email: input.email?.trim().toLowerCase() || null,
+          source: input.source?.trim() || null,
+          externalId: input.externalId?.trim() || null,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          tenantId: request.user.tenantId,
+          userId: request.user.sub,
+          action: "contact.created",
+          entityType: "contact",
+          entityId: created.id,
+          details: { pipelineId: pipelineId || null, source: created.source || null, hasPhone: Boolean(phone), hasEmail: Boolean(created.email) },
+        },
+      });
+      return created;
     });
     this.events.publish(request.user.tenantId, "contact.created", {
       id: contact.id,

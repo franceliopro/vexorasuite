@@ -139,4 +139,21 @@ describe("RateLimitInterceptor", () => {
     const result = await interceptor.intercept(contextFor(request), { handle: () => of("ok") });
     expect(result).toBeDefined();
   });
+
+  it("does not write headers after the response has started", async () => {
+    process.env.RATE_LIMIT_WRITE_PER_MIN = "1";
+    const service = new RateLimitService();
+    (service as any).enabled = true;
+    const startedResponse: any = { headersSent: true, writableEnded: true, setHeader: jest.fn() };
+    const startedContext = {
+      switchToHttp: () => ({
+        getRequest: () => ({ method: "POST", path: "/api/tasks", ip: "203.0.113.9" }),
+        getResponse: () => startedResponse,
+      }),
+    } as any;
+    const interceptor = new RateLimitInterceptor(service);
+    await interceptor.intercept(startedContext, { handle: () => of("ok") });
+    expect(startedResponse.setHeader).not.toHaveBeenCalled();
+    delete process.env.RATE_LIMIT_WRITE_PER_MIN;
+  });
 });

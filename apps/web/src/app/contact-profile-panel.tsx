@@ -15,6 +15,7 @@ import {
   Tag,
   UserRound,
   X,
+  CheckCircle2,
 } from "lucide-react";
 
 type ContactProfileData = {
@@ -24,7 +25,7 @@ type ContactProfileData = {
   email?: string | null;
   externalId?: string | null;
   source?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
 };
 type Protocol = {
   id: string;
@@ -48,6 +49,8 @@ type ProfileFieldDef = {
   options: string[];
 };
 type ContactIdentity = { id: string; provider: string; externalId: string; phone?: string | null; displayName?: string | null; firstSeenAt: string; lastSeenAt: string; revokedAt?: string | null };
+type ProcedureStep = { id: string; label: string; done: boolean };
+type Procedure = { id: string; title: string; description: string; status: string; progress: number; steps: ProcedureStep[]; dueAt?: string | null };
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -73,7 +76,7 @@ export function ContactProfilePanel({
   displayName?: string;
   onExpandedChange: (expanded: boolean) => void;
 }) {
-  const [tab, setTab] = useState<"dados" | "notas" | "protocolos">("dados");
+  const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [notes, setNotes] = useState("");
@@ -93,6 +96,13 @@ export function ContactProfilePanel({
   const [identityExternalId, setIdentityExternalId] = useState("");
   const [identityPhone, setIdentityPhone] = useState("");
   const [identitySaving, setIdentitySaving] = useState(false);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [procedureBusy, setProcedureBusy] = useState(false);
+  const [procedureForm, setProcedureForm] = useState(false);
+  const [procedureTitle, setProcedureTitle] = useState("");
+  const [procedureDescription, setProcedureDescription] = useState("");
+  const [procedureSteps, setProcedureSteps] = useState("");
+  const [procedureDueAt, setProcedureDueAt] = useState("");
   useEffect(() => {
     const meta = contact.metadata || {};
     setTags(
@@ -145,6 +155,13 @@ export function ContactProfilePanel({
     setLeadOriginId(typeof lead?.identifier === "string" ? lead.identifier : "");
     setTab("dados");
     setError("");
+  }, [contact.id]);
+  useEffect(() => {
+    let live = true;
+    void request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id))
+      .then((items) => { if (live) setProcedures(items || []); })
+      .catch(() => { if (live) setProcedures([]); });
+    return () => { live = false; };
   }, [contact.id]);
   useEffect(() => {
     let live = true;
@@ -259,6 +276,46 @@ export function ContactProfilePanel({
       setError(e instanceof Error ? e.message : "Não foi possível vincular o novo número.");
     } finally { setIdentitySaving(false); }
   }
+  async function toggleProcedure(procedure: Procedure, step: ProcedureStep) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/steps/" + step.id, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: !step.done }) });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function createProcedure(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!procedureTitle.trim()) { setError("Informe o nome do procedimento."); return; }
+    const steps = procedureSteps.split("\n").map((value) => value.trim()).filter(Boolean);
+    if (!steps.length) { setError("Inclua pelo menos uma etapa no procedimento."); return; }
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: procedureTitle.trim(), description: procedureDescription.trim(), contactId: contact.id, dueAt: procedureDueAt ? new Date(procedureDueAt).toISOString() : null, steps }) });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []); setProcedureForm(false); setProcedureTitle(""); setProcedureDescription(""); setProcedureSteps(""); setProcedureDueAt("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function finishProcedure(procedure: Procedure) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/complete", { method: "POST" });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível finalizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function reopenProcedure(procedure: Procedure) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/reopen", { method: "POST" });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível reabrir o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
   const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const statusLabel = (value: string) =>
     ({ OPEN: "Em atendimento", PENDING: "Pendente", RESOLVED: "Finalizado", CLOSED: "Encerrado" })[
@@ -367,6 +424,7 @@ export function ContactProfilePanel({
             >
               Protocolos
             </button>
+            <button type="button" className={tab === "procedimentos" ? "active" : ""} onClick={() => setTab("procedimentos")}>Procedimentos</button>
           </nav>
           <div className="contact-profile-body">
             {tab === "dados" ? (
@@ -418,7 +476,7 @@ export function ContactProfilePanel({
                 <section className="profile-section contact-identities-section">
                   <strong><Link2 size={14} /> Identidades de atendimento</strong>
                   <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => <div className="contact-identity-item" key={identity.id}><span><b>{identity.phone ? readablePhone(identity.phone, identity.externalId) : identity.externalId}</b><small>{identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><small title={identity.lastSeenAt}>Ativo</small></div>)}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => <div className="contact-identity-item" key={identity.id}><span><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><small title={identity.lastSeenAt}>Ativo</small></div>)}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
                   <form className="contact-identity-form" onSubmit={bindIdentity}>
                     <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
                     <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
@@ -641,6 +699,23 @@ export function ContactProfilePanel({
                   </div>
                 ))}
                 {!history.length ? <p>Nenhuma conversa registrada para este contato.</p> : null}
+              </section>
+            ) : null}
+            {tab === "procedimentos" ? (
+              <section className="profile-section">
+                <div className="profile-section-heading"><strong><CheckCircle2 size={14} /> Procedimentos do cliente</strong><button type="button" className="secondary-button" onClick={() => setProcedureForm((value) => !value)}><Plus size={13} /> Novo</button></div>
+                <p className="profile-section-hint">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
+                {procedureForm ? <form className="profile-procedure-form" onSubmit={createProcedure}><label>Nome do procedimento<input value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder="Ex.: Documentação de contratação" autoFocus /></label><label>Descrição<textarea value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label><label>Etapas — uma por linha<textarea value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label><label>Prazo<input type="datetime-local" value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="calendar-modal-actions"><button type="button" className="secondary-button" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={procedureBusy}>{procedureBusy ? "Criando…" : "Criar procedimento"}</button></div></form> : null}
+                {procedures.map((procedure) => (
+                  <article className="profile-procedure" key={procedure.id}>
+                    <div className="profile-procedure-heading"><b>{procedure.title}</b><span>{procedure.progress}%</span></div>
+                    {procedure.description ? <p>{procedure.description}</p> : null}
+                    <div className="profile-procedure-progress"><span style={{ width: procedure.progress + "%" }} /></div>
+                    <div className="profile-procedure-steps">{procedure.steps.map((step) => <label key={step.id}><input type="checkbox" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
+                    <div className="profile-procedure-footer">{procedure.status === "DONE" ? <><span className="tasks-done"><CheckCircle2 size={14} /> Finalizado</span><button type="button" className="secondary-button" disabled={procedureBusy} onClick={() => void reopenProcedure(procedure)}>Reabrir</button></> : <button type="button" className="secondary-button" disabled={procedureBusy || procedure.progress < 100} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> Finalizar procedimento</button>}</div>
+                  </article>
+                ))}
+                {!procedures.length ? <p>Nenhum procedimento personalizado registrado para este cliente.</p> : null}
               </section>
             ) : null}
           </div>

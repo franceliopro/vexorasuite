@@ -209,10 +209,15 @@ export class ConversationsController {
     if (!stages.some((stage) => stage.id === stageId)) throw new BadRequestException("Etapa não pertence ao pipeline.");
     const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, select: { id: true, contactId: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true } });
+    const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true, pipelineId: true } });
     if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
     const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
-    const updated = await this.prisma.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+    const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.crm_updated", entityType: "conversation", entityId: id, details: { contactId: conversation.contactId, fromPipelineId: contact.pipelineId, toPipelineId: pipeline.id, fromStage: previousStage, toStage: stageId } } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId });
     return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId };
@@ -405,9 +410,13 @@ export class ConversationsController {
     const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId: request.user.sub }, select: { id: true } });
     if (!membership) throw new BadRequestException("Você não faz parte desta empresa.");
     // Conditional update prevents two agents from simultaneously taking the same unassigned conversation.
-    const claimed = await this.prisma.conversation.updateMany({
-      where: { id, tenantId, status: { in: ["OPEN", "PENDING"] }, OR: [{ assigneeId: null }, { assigneeId: request.user.sub }] },
-      data: { assigneeId: request.user.sub,handlingMode:"HUMAN" },
+    const claimed = await this.prisma.$transaction(async tx => {
+      const result = await tx.conversation.updateMany({
+        where: { id, tenantId, status: { in: ["OPEN", "PENDING"] }, OR: [{ assigneeId: null }, { assigneeId: request.user.sub }] },
+        data: { assigneeId: request.user.sub,handlingMode:"HUMAN" },
+      });
+      if (result.count) await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.assumed", entityType: "conversation", entityId: id, details: { previousAssigneeId: conversation.assigneeId, assigneeId: request.user.sub } } });
+      return result;
     });
     if (!claimed.count) throw new BadRequestException("Esta conversa já foi atribuída a outro atendente ou não está mais disponível.");
     const updated = await this.prisma.conversation.findFirst({ where: { id, tenantId }, include: { assignee: { select: { id: true, name: true } } } });
@@ -421,7 +430,7 @@ export class ConversationsController {
   async assign(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body("userId") userId: string | null | undefined, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true,departmentId:true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, assigneeId: true, departmentId:true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de alterar o responsável.");
     if (userId !== null && userId !== undefined) {
@@ -430,7 +439,11 @@ export class ConversationsController {
       if (!membership) throw new BadRequestException("O atendente selecionado não pertence a esta empresa.");
       if(conversation.departmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:conversation.departmentId,userId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento desta conversa. Use a transferência para mudar de departamento.");
     }
-    const updated = await this.prisma.conversation.update({ where: { id }, data: { assigneeId: userId ?? null,...(userId?{handlingMode:"HUMAN" as const}:{}) }, include: { assignee: { select: { id: true, name: true } } } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id }, data: { assigneeId: userId ?? null,...(userId?{handlingMode:"HUMAN" as const}:{}) }, include: { assignee: { select: { id: true, name: true } } } });
+      await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.assigned", entityType: "conversation", entityId: id, details: { fromAssigneeId: conversation.assigneeId, toAssigneeId: userId ?? null, departmentId: conversation.departmentId } } });
+      return next;
+    });
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status, assigneeId: updated.assigneeId });
     if(updated.assigneeId)this.events.publish(tenantId,"conversation.assigned",{id});
     return updated;
@@ -449,7 +462,20 @@ export class ConversationsController {
       const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId }, select: { metadata: true } });
       if (contact && isFinalizedConversation(contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado comercialmente e permanece fora da fila. Consulte Contatos.");
     }
-    const updated = await this.prisma.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id }, data: { status: status as typeof allowed[number] } });
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          userId: request.user.sub,
+          action: "conversation.status_changed",
+          entityType: "conversation",
+          entityId: id,
+          details: { from: conversation.status, to: next.status, contactId: conversation.contactId },
+        },
+      });
+      return next;
+    });
     this.events.publish(tenantId, "conversation.updated", { id, status: updated.status });
     return updated;
   }
@@ -463,7 +489,7 @@ export class ConversationsController {
   ) {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, handlingMode: true, departmentId: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") {
       throw new BadRequestException("Reabra a conversa antes de transferi-la para um atendente.");
@@ -480,7 +506,8 @@ export class ConversationsController {
         throw new BadRequestException("Atendente inválido para esta empresa.");
       }
     }
-    if(departmentId&&assigneeId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
+    const destinationDepartmentId = departmentId || conversation.departmentId;
+    if(assigneeId&&destinationDepartmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:destinationDepartmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
     const note = this.internalNoteText(input.note, true);
     const access = await this.accessWhere(request, view);
     const author = await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});
@@ -512,15 +539,28 @@ export class ConversationsController {
   async returnToBot(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, handlingMode: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") {
       throw new BadRequestException("Reabra a conversa antes de devolvê-la ao bot.");
     }
-    const updated = await this.prisma.conversation.update({
-      where: { id },
-      data: { handlingMode: "BOT", departmentId: null, assigneeId: null },
-      select: { id: true, handlingMode: true, departmentId: true, assigneeId: true, status: true },
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({
+        where: { id },
+        data: { handlingMode: "BOT", departmentId: null, assigneeId: null },
+        select: { id: true, handlingMode: true, departmentId: true, assigneeId: true, status: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          userId: request.user.sub,
+          action: "conversation.returned_to_bot",
+          entityType: "conversation",
+          entityId: id,
+          details: { from: conversation.handlingMode ?? "HUMAN", to: "BOT" },
+        },
+      });
+      return next;
     });
     this.events.publish(tenantId, "conversation.updated", { id, handlingMode: "BOT", departmentId: null, assigneeId: null, status: updated.status });
     return updated;
@@ -775,7 +815,12 @@ export class ConversationsController {
       throw new BadGatewayException("A mensagem não foi enviada. A falha ficou registrada no histórico.");
     }
     const sent = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "SENT", providerMessageId } });
-    await this.prisma.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: sent.occurredAt, ...(conversation.status === "RESOLVED" ? { status: "OPEN" } : {}) } });
+    await this.prisma.$transaction(async tx => {
+      await tx.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: sent.occurredAt, ...(conversation.status === "RESOLVED" ? { status: "OPEN" } : {}) } });
+      if (conversation.status === "RESOLVED") {
+        await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.reopened_by_reply", entityType: "conversation", entityId: conversation.id, details: { messageId: sent.id, fromStatus: "RESOLVED", toStatus: "OPEN" } } });
+      }
+    });
     this.events.publish(tenantId, "message.sent", { conversationId: conversation.id, message: { id: sent.id, direction: sent.direction, status: sent.status, content: sent.content, occurredAt: sent.occurredAt.toISOString() } });
     return sent;
   }
@@ -801,11 +846,15 @@ export class ConversationsController {
     if (!isUUID(userId)) throw new BadRequestException("Atendente inválido.");
     const member = await this.prisma.membership.findFirst({ where: { tenantId: request.user.tenantId, userId, user: { isActive: true } }, select: { id: true } });
     if (!member) throw new BadRequestException("O atendente selecionado não pertence a esta empresa.");
-    const participant = await this.prisma.conversationParticipant.upsert({
-      where: { conversationId_userId: { conversationId: id, userId } },
-      create: { tenantId: request.user.tenantId, conversationId: id, userId, kind: "INVITED" },
-      update: { kind: "INVITED" },
-      include: { user: { select: { id: true, name: true } } },
+    const participant = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversationParticipant.upsert({
+        where: { conversationId_userId: { conversationId: id, userId } },
+        create: { tenantId: request.user.tenantId, conversationId: id, userId, kind: "INVITED" },
+        update: { kind: "INVITED" },
+        include: { user: { select: { id: true, name: true } } },
+      });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.participant_invited", entityType: "conversation", entityId: id, details: { invitedUserId: userId } } });
+      return next;
     });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, invitedUserId: userId });
     return participant;
@@ -814,7 +863,11 @@ export class ConversationsController {
   @Post(":id/archive")
   async archive(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
-    const updated = await this.prisma.conversation.update({ where: { id }, data: { archivedAt: new Date() } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id }, data: { archivedAt: new Date() } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.archived", entityType: "conversation", entityId: id, details: {} } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: updated.archivedAt });
     return updated;
   }
@@ -825,7 +878,11 @@ export class ConversationsController {
     const existing = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, include: { contact: { select: { metadata: true } } } });
     if (!existing) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (isFinalizedConversation(existing.contact.metadata, existing.id)) throw new BadRequestException("Este atendimento foi finalizado comercialmente e não pode voltar à fila.");
-    const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { archivedAt: null, deletedAt: null, status: "OPEN" } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { archivedAt: null, deletedAt: null, status: "OPEN" } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.restored", entityType: "conversation", entityId: id, details: { fromStatus: existing.status, toStatus: "OPEN" } } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: null, deletedAt: null, status: updated.status });
     return updated;
   }
@@ -833,7 +890,11 @@ export class ConversationsController {
   @Post(":id/trash")
   async trash(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
-    const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { deletedAt: new Date() } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { deletedAt: new Date() } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.trashed", entityType: "conversation", entityId: id, details: {} } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, deletedAt: updated.deletedAt });
     return updated;
   }

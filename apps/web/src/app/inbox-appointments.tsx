@@ -1,5 +1,6 @@
 "use client";
 import { formatDateTimeBR, formatTimeBR } from "../lib/date-format";
+import { readablePhone } from "../lib/contact-identity";
 import {useEffect,useRef,useState} from 'react';
 type Account={id:string;email:string};
 type Calendar={id:string;summary:string;accessRole?:string};
@@ -29,7 +30,7 @@ export function InboxAppointments({contact,onConfirm}:{contact:{id:string;name:s
   try{
    const fresh=await readDay();if(!mounted.current)return;setEvents(fresh);
    if(fresh.some(e=>e.transparency!=='transparent'&&new Date(e.start?.dateTime||(e.start?.date?e.start.date+'T00:00:00':'')).getTime()<to.getTime()&&new Date(e.end?.dateTime||(e.end?.date?e.end.date+'T00:00:00':'')).getTime()>from.getTime()))throw Error('Esse intervalo já possui um compromisso. Escolha outro horário.');
-   const event=await api<Event>(encodeURIComponent(account)+'/events?'+new URLSearchParams({calendarId:calendar}),{summary:title.trim(),description:'Cliente: '+contact.name+(contact.phone?'\nTelefone: '+contact.phone:'')+'\nContato Véxora: '+contact.id,start:from.toISOString(),end:to.toISOString()});
+   const event=await api<Event>(encodeURIComponent(account)+'/events?'+new URLSearchParams({calendarId:calendar}),{summary:title.trim(),description:'Cliente: '+contact.name+(readablePhone(contact.phone)?'\nTelefone: '+readablePhone(contact.phone):''),start:from.toISOString(),end:to.toISOString()});
    if(!event.id)throw Error('A agenda não confirmou o agendamento. Atualize antes de repetir.');
    if(mounted.current){setSaved({id:event.id,start:from.toISOString(),end:to.toISOString(),title:title.trim()});try{setEvents(await readDay());}catch{setError('Agendamento salvo; não foi possível atualizar a lista.');}}
   }catch(e){if(mounted.current)setError((e instanceof Error?e.message:'Não foi possível confirmar.')+' Confira a agenda antes de tentar novamente.');}

@@ -53,3 +53,11 @@ test("conversation load failures stop loading and expose a retry", () => {
   assert.match(source, /className="inbox-list-error" role="alert"/);
   assert.match(source, /onClick=\\{\\(\\) => void loadConversations\\(\\)\\}/);
 });
+
+
+const wahaWebhook = fs.readFileSync(new URL("../../api/src/operations/waha-webhook.controller.ts", import.meta.url), "utf8");
+test("WhatsApp receipts never move backwards", () => {
+  assert.match(wahaWebhook, /const previousStatuses: MessageStatus\[\] = status === "SENT"/);
+  assert.match(wahaWebhook, /message\.updateMany\(\{ where: \{ id: message\.id, status: \{ in: previousStatuses \} \}/);
+  assert.match(wahaWebhook, /reason: "ACK_REGRESSION"/);
+});

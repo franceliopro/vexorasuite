@@ -330,6 +330,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [quickReplySettings, setQuickReplySettings] = useState<QuickReplySettings>(DEFAULT_QUICK_REPLY_SETTINGS);
   const [quickSettingsSaving, setQuickSettingsSaving] = useState(false);
   const [listening, setListening] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; url: string; mimetype: string } | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<BlobPart[]>([]);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [composerTextHeight, setComposerTextHeight] = useState(34);
   useEffect(() => {
@@ -343,7 +346,6 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     if (document.activeElement === el) el.scrollTop = el.scrollHeight;
   }, [draft]);
   const quickContentRef = useRef<HTMLTextAreaElement | null>(null);
-  const recognitionRef = useRef<{stop:()=>void}|null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [initialListError, setInitialListError] = useState("");
@@ -789,12 +791,41 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     (!emojiSearch.trim() || group.toLocaleLowerCase("pt-BR").includes(emojiSearch.toLocaleLowerCase("pt-BR")) ||
       values.some(v => v.includes(emojiSearch.trim()) || (EMOJI_NAME_BY_VALUE[v] || "").includes(emojiSearch.trim().toLocaleLowerCase("pt-BR"))))
   );
+  function clearRecordedAudio() {
+    if (recordedAudio) URL.revokeObjectURL(recordedAudio.url);
+    setRecordedAudio(null);
+  }
+  async function sendRecordedBlob(blob: Blob) {
+    if (!selectedId || busy) return;
+    setBusy(true); setError("");
+    try {
+      const mimetype = blob.type || "audio/webm";
+      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "audio", filename: "audio-vexora." + (mimetype.includes("ogg") ? "ogg" : "webm"), mimetype, data: await fileBase64(blob) }) });
+      await loadMessages(selectedId); await loadConversations();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar o áudio."); }
+    finally { setBusy(false); }
+  }
   function toggleVoice() {
-    if(listening){recognitionRef.current?.stop();setListening(false);return}
-    const w=window as Window & {SpeechRecognition?:new()=>any;webkitSpeechRecognition?:new()=>any};
-    const C=w.SpeechRecognition||w.webkitSpeechRecognition;
-    if(!C){setError("Ditado por voz indisponível neste navegador. Você pode usar o microfone do teclado do celular.");return}
-    try { const r=new C(); r.lang="pt-BR"; r.continuous=true; r.interimResults=true; r.onresult=(e:any)=>{const text=Array.from(e.results as ArrayLike<any>).slice(e.resultIndex).filter((x:any)=>x.isFinal).map((x:any)=>x[0].transcript).join(" ").trim();if(text)setDraft(v=>v?v.trimEnd()+" "+text:text)}; r.onerror=()=>{setListening(false);setError("Verifique a permissão de acesso ao microfone.")}; r.onend=()=>setListening(false); recognitionRef.current=r; r.start(); setListening(true); } catch { setError("Não foi possível iniciar o microfone. Confira as permissões do navegador."); }
+    if (listening) {
+      recorderRef.current?.stop(); setListening(false);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setError("A gravação de áudio não está disponível neste navegador."); return;
+    }
+    void navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const mime = ["audio/ogg;codecs=opus", "audio/webm;codecs=opus", "audio/webm"].find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      recordingChunksRef.current = [];
+      recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        if (blob.size) void sendRecordedBlob(blob);
+      };
+      recorder.onerror = () => { stream.getTracks().forEach(track => track.stop()); setListening(false); setError("Não foi possível concluir a gravação."); };
+      recorderRef.current = recorder; recorder.start(); setListening(true);
+    }).catch(() => setError("Permita o acesso ao microfone para gravar um áudio."));
   }
 
   function fileKind(file: File): "image"|"video"|"audio"|"file" {
@@ -803,7 +834,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     if (file.type.startsWith("audio/")) return "audio";
     return "file";
   }
-  async function fileBase64(file: File): Promise<string> {
+  async function fileBase64(file: Blob): Promise<string> {
     const buffer = await file.arrayBuffer();
     let binary = "";
     const bytes = new Uint8Array(buffer);
@@ -847,11 +878,15 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
 
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
-    if (!selectedId || !draft.trim() || busy) return;
+    if (!selectedId || busy || (!draft.trim() && !recordedAudio)) return;
     setBusy(true); setError("");
     try {
-      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: draft.trim() }) });
+      const body = recordedAudio
+        ? { kind: "audio", filename: "audio-vexora." + (recordedAudio.mimetype.includes("ogg") ? "ogg" : "webm"), mimetype: recordedAudio.mimetype, data: await fileBase64(recordedAudio.blob) }
+        : { content: draft.trim() };
+      await api("/api/backend/conversations/" + selectedId + "/messages?view=" + queueView, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       setDraft("");
+      clearRecordedAudio();
       await loadMessages(selectedId);
       await loadConversations();
     } catch (e) {

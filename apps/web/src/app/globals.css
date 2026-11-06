@@ -3615,5 +3615,6 @@ html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--bu
 .message-line + .message-line{margin-top:-7px}
 .message-line + .message-line:not(.outgoing) .message-bubble{border-top-left-radius:7px}
 .message-line.outgoing + .message-line.outgoing .message-bubble{border-top-right-radius:7px}
+.message-link{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 58%,transparent);text-underline-offset:2px;overflow-wrap:anywhere}.message-link:hover{text-decoration-thickness:2px}
 @keyframes inbox-message-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:760px){.inbox-audio-player{min-width:0;gap:7px}.inbox-audio-waveform{width:118px}.inbox-audio-player .inbox-audio-message{width:118px}.message-bubble{max-width:90%;padding:9px 10px}.message-date-separator span{font-size:8px}}

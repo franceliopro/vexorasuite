@@ -12,6 +12,16 @@ import { WahaService } from "./waha.service";
 import { AsaasService } from "./asaas.service";
 import { resolveContactIdentity } from "./contact-identity";
 
+function inboundLinkPreview(payload: any): { url: string; title?: string; description?: string; imageUrl?: string } | null {
+  const candidates = [payload?.linkPreview, payload?._data?.linkPreview, payload?._data?.links?.[0]];
+  const raw = candidates.find(value => value && typeof value === "object") as Record<string, unknown> | undefined;
+  const url = [raw?.url, raw?.canonicalUrl, payload?.linkPreviewUrl].find(value => typeof value === "string" && /^https:\/\//i.test(value)) as string | undefined;
+  if (!url) return null;
+  const text = (value: unknown, max: number) => typeof value === "string" && value.trim() ? value.trim().slice(0, max) : undefined;
+  const imageUrl = [raw?.image, raw?.imageUrl, raw?.thumbnail, raw?.thumbnailUrl].find(value => typeof value === "string" && /^https:\/\//i.test(value)) as string | undefined;
+  return { url, ...(text(raw?.title, 180) ? { title: text(raw?.title, 180) } : {}), ...(text(raw?.description, 320) ? { description: text(raw?.description, 320) } : {}), ...(imageUrl ? { imageUrl } : {}) };
+}
+
 @Controller("webhooks/waha")
 export class WahaWebhookController {
   private readonly logger = new Logger(WahaWebhookController.name);
@@ -78,7 +88,7 @@ export class WahaWebhookController {
     // preservando privacidade e evitando qualquer sincronização completa.
     if (!phone && !isGroup) phone = await this.waha.resolveContactPhone(channel, chatId);
     const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
-    const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
+    const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";\n    const linkPreview = content.includes("http") ? inboundLinkPreview(payload) : null;
     const mimeType = String(payload.media?.mimetype || "");
     const contentType = inboundKind(payload);
     const timestamp = Number(payload.timestamp);
@@ -145,7 +155,7 @@ export class WahaWebhookController {
 
         const voiceEntry=conversation.handlingMode==='BOT'&&!isGroup&&(contentType==='audio'||(conversation.botState as any)?.flow==='VOICE_TRIAGE');
         if(voiceEntry&&(conversation.botState as any)?.flow!=='VOICE_TRIAGE'){await tx.conversation.update({where:{id:conversation.id},data:{botState:{flow:'VOICE_TRIAGE',previousState:conversation.botState||{}}}});}
-        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), ...(intelligenceEnabled && conversation.handlingMode === 'BOT' && !voiceEntry ? { engineStatus: 'PENDING', engineAttempts: 0 } : {}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
+        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), ...(intelligenceEnabled && conversation.handlingMode === 'BOT' && !voiceEntry ? { engineStatus: 'PENDING', engineAttempts: 0 } : {}), ...(linkPreview ? { linkPreview } : {}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });

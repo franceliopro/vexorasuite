@@ -27,7 +27,7 @@ test("inbox separates loading states from empty states", () => {
   assert.match(source, /Carregando conversas…/);
   assert.match(source, /Carregando mensagens…/);
   assert.match(source, /!conversationsLoading && !conversations\.length/);
-  assert.match(source, /!messagesLoading && !messages\.length/);
+  assert.match(source, /!messagesLoading && !messageLoadError && !messages\.length/);
 });
 
 const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", import.meta.url), "utf8");
@@ -60,4 +60,13 @@ test("WhatsApp receipts never move backwards", () => {
   assert.match(wahaWebhook, /const previousStatuses: MessageStatus\[\] = status === "SENT"/);
   assert.match(wahaWebhook, /message\.updateMany\(\{ where: \{ id: message\.id, status: \{ in: previousStatuses \} \}/);
   assert.match(wahaWebhook, /reason: "ACK_REGRESSION"/);
+});
+
+
+test("message selection clears stale history and exposes a retry", () => {
+  assert.match(source, /const \[messageLoadError, setMessageLoadError\] = useState\("?"\)/);
+  assert.match(source, /setMessages\(\[\]\);\s*setHasOlderMessages\(false\);\s*setMessageLoadError\("?"\);/);
+  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /Não foi possível carregar as mensagens\./);
+  assert.match(source, /message\.deleted/);
 });

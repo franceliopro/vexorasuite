@@ -89,8 +89,10 @@ export class AuthService {
     const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
     const expiresAt = new Date(Date.now() + this.resetTtlMinutes * 60_000);
     await this.prisma.$transaction(async (tx) => {
-      // A new request invalidates every link issued before it.
-      await tx.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
+      // Do not invalidate a still-valid link merely because another request was made. This keeps
+      // a legitimate e-mail usable even if someone repeatedly knows the address. Expired links
+      // are harmless and are marked consumed here to keep the token table bounded.
+      await tx.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null, expiresAt: { lte: new Date() } }, data: { usedAt: new Date() } });
       await tx.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
     });
 

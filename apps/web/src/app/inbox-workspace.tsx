@@ -336,8 +336,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const recordingStreamRef = useRef<MediaStream | null>(null);
   useEffect(() => () => {
     recordingStreamRef.current = null;
+    setListening(false);
     if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
-  }, []);
+  }, [selectedId]);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [composerTextHeight, setComposerTextHeight] = useState(34);
   useEffect(() => {

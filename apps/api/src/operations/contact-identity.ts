@@ -34,6 +34,9 @@ export async function resolveContactIdentity(tx: Prisma.TransactionClient, input
       revokedAt: null,
     };
     identity = await tx.contactIdentity.update({ where: { id: identity.id }, data: update, include: { contact: true } });
+    if (input.phone && !identity.contact.phone) {
+      return tx.contact.update({ where: { id: identity.contact.id }, data: { phone: input.phone } });
+    }
     return identity.contact;
   }
 
@@ -51,6 +54,9 @@ export async function resolveContactIdentity(tx: Prisma.TransactionClient, input
         metadata: input.metadata || {},
       },
     });
+    if (input.phone && !contact.phone) {
+      return tx.contact.update({ where: { id: contact.id }, data: { phone: input.phone } });
+    }
     return contact;
   }
 
@@ -97,3 +103,4 @@ export async function bindContactIdentity(
   await tx.contact.update({ where: { id: contact.id }, data: { phone: input.phone || contact.phone, externalId } });
   return identity;
 }
+

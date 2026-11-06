@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import "./vexora-design-system.css";
+import "./vexora-night.css";
 
 export const metadata: Metadata = {
   title: "Véxora Suite",
@@ -17,7 +18,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
-  themeColor: "#111827",
+  themeColor: "#f7f8fc",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

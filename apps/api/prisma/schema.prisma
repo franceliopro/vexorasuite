@@ -487,6 +487,7 @@ model ZernioOAuthAttempt {
 model WorkTask {
   id             String         @id @default(uuid()) @db.Uuid
   tenantId       String         @map("tenant_id") @db.Uuid
+  scope          String         @default("COMPANY")
   title          String
   description    String         @default("")
   status         String         @default("OPEN")
@@ -505,7 +506,7 @@ model WorkTask {
   creator        User           @relation("WorkTaskCreator", fields: [createdById], references: [id])
   steps          WorkTaskStep[]
 
-  @@index([tenantId, status, dueAt])
+  @@index([tenantId, scope, status, dueAt])
   @@index([tenantId, assigneeId])
   @@map("work_tasks")
 }
@@ -762,3 +763,4 @@ model RefreshToken {
   @@index([familyId])
   @@map("refresh_tokens")
 }
+

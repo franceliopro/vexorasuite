@@ -38,8 +38,8 @@ export class AuthController {
   }
 
   @Post("password/forgot")
-  forgotPassword(@Body() input: ForgotPasswordDto) {
-    return this.auth.requestPasswordReset(input);
+  forgotPassword(@Body() input: ForgotPasswordDto, @Req() req: AuthenticatedRequest) {
+    return this.auth.requestPasswordReset(input, this.clientAddress(req));
   }
 
   @Post("password/reset")
@@ -58,6 +58,11 @@ export class AuthController {
       refreshToken: typeof body?.refreshToken === "string" ? body.refreshToken : undefined,
       accessToken: authorization.replace(/^Bearer\s+/i, "") || undefined,
     });
+  }
+
+  private clientAddress(req: AuthenticatedRequest): string {
+    const address = req.ip || req.socket?.remoteAddress || "unknown";
+    return address.slice(0, 120);
   }
 
   private userAgent(req: AuthenticatedRequest): string | undefined {

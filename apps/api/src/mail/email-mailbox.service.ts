@@ -23,7 +23,11 @@ const MAX_SYNC_MESSAGES = 50;
 const MAX_MESSAGE_TEXT = 200_000;
 const MAX_ATTACHMENT_META = 50;
 const MAX_OUTBOUND_ATTACHMENT_BYTES = 16 * 1024 * 1024;
-type EmailAttachment = { filename: string; contentType: string; data: string };\n\nexport function isValidEmailAddress(value: string): boolean {\n  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);\n}
+type EmailAttachment = { filename: string; contentType: string; data: string };
+
+export function isValidEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 type EmailThreadHeaders = { messageId?: unknown; inReplyTo?: unknown; references?: unknown };
 
 function normalizeEmailMessageId(value: unknown): string | null {

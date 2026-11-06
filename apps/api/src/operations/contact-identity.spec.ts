@@ -4,7 +4,7 @@ describe("contact identities", () => {
   it("resolves the stable contact from a provider identity", async () => {
     const contact = { id: "contact-1", tenantId: "tenant-1", name: "Ana", phone: "5511999999999", externalId: "old@c.us" };
     const tx: any = {
-      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(1),
       contactIdentity: {
         findUnique: jest.fn().mockResolvedValue({ id: "identity-1", contact }),
         update: jest.fn().mockResolvedValue({ contact }),
@@ -18,7 +18,7 @@ describe("contact identities", () => {
 
   it("refuses to rebind an identity already owned by another contact", async () => {
     const tx: any = {
-      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(1),
       contact: { findFirst: jest.fn().mockResolvedValue({ id: "contact-2", tenantId: "tenant-1", name: "Bia" }) },
       contactIdentity: { findUnique: jest.fn().mockResolvedValue({ id: "identity-1", contactId: "contact-1" }) },
     };

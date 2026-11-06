@@ -54,3 +54,24 @@ describe("conversation lifecycle audit", () => {
     expect(x.tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "conversation.returned_to_bot", details: { from: "HUMAN", to: "BOT" } }) }));
   });
 });
+
+
+describe("guided chatbot handoff context", () => {
+  it("stores internal context and avoids duplicating it", async () => {
+    const tx: any = {
+      conversation: { findFirst: jest.fn().mockResolvedValue({ contact: { name: "Ana", phone: "556699999999" } }) },
+      message: { findFirst: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ content: "Preciso de suporte" }), create: jest.fn().mockResolvedValue({ id: "context" }) },
+      auditLog: { create: jest.fn() },
+    };
+    const prisma: any = { $transaction: jest.fn((fn: any) => fn(tx)) };
+    const { WahaWebhookController } = await import("./waha-webhook.controller");
+    const controller = new WahaWebhookController(prisma, {} as any, {} as any, {} as any, {} as any, {} as any);
+    await (controller as any).recordGuidedHandoffContext("tenant", "conversation", "SUPORTE", "RASTREABEM", "Suporte · Rastreabem", "Suporte");
+    expect(tx.message.create.mock.calls[0][0].data).toMatchObject({ direction: "INTERNAL", senderName: "Contexto do atendimento", metadata: { kind: "guided_handoff_context" } });
+    expect(tx.message.create.mock.calls[0][0].data.content).toContain("Última mensagem do cliente: Preciso de suporte");
+    tx.message.findFirst.mockReset();
+    tx.message.findFirst.mockResolvedValue({ metadata: { kind: "guided_handoff_context" } });
+    await (controller as any).recordGuidedHandoffContext("tenant", "conversation", "SUPORTE", null, "Suporte", "Suporte");
+    expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
+  });
+});

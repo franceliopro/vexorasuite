@@ -298,6 +298,15 @@ export function ContactProfilePanel({
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o procedimento."); }
     finally { setProcedureBusy(false); }
   }
+  async function finishProcedure(procedure: Procedure) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/complete", { method: "POST" });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível finalizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
   const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const statusLabel = (value: string) =>
     ({ OPEN: "Em atendimento", PENDING: "Pendente", RESOLVED: "Finalizado", CLOSED: "Encerrado" })[
@@ -694,6 +703,7 @@ export function ContactProfilePanel({
                     {procedure.description ? <p>{procedure.description}</p> : null}
                     <div className="profile-procedure-progress"><span style={{ width: procedure.progress + "%" }} /></div>
                     <div className="profile-procedure-steps">{procedure.steps.map((step) => <label key={step.id}><input type="checkbox" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
+                    <div className="profile-procedure-footer">{procedure.status === "DONE" ? <span className="tasks-done"><CheckCircle2 size={14} /> Finalizado</span> : <button type="button" className="secondary-button" disabled={procedureBusy || procedure.progress < 100} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> Finalizar procedimento</button>}</div>
                   </article>
                 ))}
                 {!procedures.length ? <p>Nenhum procedimento personalizado registrado para este cliente.</p> : null}

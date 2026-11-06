@@ -23,7 +23,7 @@ const MAX_SYNC_MESSAGES = 50;
 const MAX_MESSAGE_TEXT = 200_000;
 const MAX_ATTACHMENT_META = 50;
 const MAX_OUTBOUND_ATTACHMENT_BYTES = 16 * 1024 * 1024;
-type EmailAttachment = { filename: string; contentType: string; data: string };
+type EmailAttachment = { filename: string; contentType: string; data: string };\n\nexport function isValidEmailAddress(value: string): boolean {\n  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);\n}
 type EmailThreadHeaders = { messageId?: unknown; inReplyTo?: unknown; references?: unknown };
 
 function normalizeEmailMessageId(value: unknown): string | null {
@@ -250,7 +250,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
         if (!box) throw new Error("Pasta IMAP indisponível.");
         const uidValidity = Number(box.uidValidity || 0);
         const startUid = row.syncUidValidity === uidValidity ? row.syncLastUid + 1 : 1;
-        await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "SYNCING", syncUidValidity: uidValidity || null } });
+        await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "SYNCING", syncUidValidity: uidValidity || null, ...(row.syncUidValidity !== uidValidity ? { syncLastUid: 0 } : {}) } });
         const messages: Array<{ uid: number; source: Buffer }> = [];
         for await (const item of client.fetch({ uid: String(startUid) + ":*" }, { uid: true, source: true }, { uid: true })) {
           if (messages.length >= MAX_SYNC_MESSAGES) break;

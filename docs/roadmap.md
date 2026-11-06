@@ -47,3 +47,4 @@ Para acompanhar o que já foi implementado, testado e aprovado, consulte o [pain
 
 ## Critério de produção
 Nenhum domínio oficial ou dado do sistema atual será migrado antes de testes de aceite, plano de rollback e autorização explícita.
+

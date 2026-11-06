@@ -93,6 +93,7 @@ describe("EmailMailboxService IMAP timeouts", () => {
   });
 });
 
+
 describe("email address validation", () => {
   it("rejects whitespace and accepts a normal mailbox address", () => {
     expect(isValidEmailAddress("finance inbox@example.com")).toBe(false);

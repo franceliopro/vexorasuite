@@ -159,3 +159,4 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 7. Registrar neste arquivo o resultado e o horário do teste.
 
 Este painel não declara que um item está pronto apenas porque existe uma tela ou uma função no código. O aceite exige a evidência indicada em cada seção.
+

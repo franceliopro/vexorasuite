@@ -26,3 +26,31 @@ describe("private conversation collaboration",()=>{
  it("keeps mentions scoped to the recipient and rechecks current conversation visibility",async()=>{const x=setup();x.prisma.internalMention={findMany:jest.fn().mockResolvedValue([{id:"mine",userId:"author",conversationId:"visible",messageId:"n1"},{id:"hidden",userId:"author",conversationId:"revoked",messageId:"n2"}]),updateMany:jest.fn()};x.prisma.conversation.findMany=jest.fn().mockResolvedValue([{id:"visible"}]);x.prisma.message.findMany=jest.fn().mockResolvedValue([{id:"n1",senderName:"Tonico",metadata:{departmentName:"Financeiro Link"}}]);const result=await x.controller.mentions(req);expect(result.map(n=>n.id)).toEqual(["mine"]);expect(result[0]).toMatchObject({authorName:"Tonico",departmentName:"Financeiro Link"});expect(x.prisma.internalMention.findMany.mock.calls[0][0].where).toEqual({tenantId:"tenant",userId:"author"});await x.controller.readMention(req,"mine");expect(x.prisma.internalMention.updateMany.mock.calls[0][0].where).toEqual({id:"mine",tenantId:"tenant",userId:"author",readAt:null});});
  it("records the company nickname on private messages",async()=>{const x=setup();x.tx.membership.findFirst.mockResolvedValue({id:"membership",knownBy:"Tonico"});const note=await x.controller.addInternalNote(req,"conversation",{content:"Contexto"});expect(note.senderName).toBe("Tonico");});
 });
+
+
+describe("conversation lifecycle audit", () => {
+  const request: any = { user: { tenantId: "tenant", sub: "agent", role: "OWNER" } };
+  function setup() {
+    const tx: any = {
+      conversation: { update: jest.fn().mockResolvedValue({ id: "conversation", status: "RESOLVED", handlingMode: "BOT", departmentId: null, assigneeId: null }) },
+      auditLog: { create: jest.fn() },
+    };
+    const prisma: any = {
+      conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contactId: "contact", handlingMode: "HUMAN" }) },
+      contact: { findFirst: jest.fn().mockResolvedValue({ metadata: {} }) },
+      $transaction: jest.fn((fn: any) => fn(tx)),
+    };
+    const events: any = { publish: jest.fn() };
+    return { tx, controller: new ConversationsController(prisma, events, {} as any, {} as any) };
+  }
+  it("audits status transitions with previous and next status", async () => {
+    const x = setup();
+    await x.controller.updateStatus(request, "conversation", "RESOLVED");
+    expect(x.tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "conversation.status_changed", details: { from: "OPEN", to: "RESOLVED", contactId: "contact" } }) }));
+  });
+  it("audits returning an atendimento to the bot", async () => {
+    const x = setup();
+    await x.controller.returnToBot(request, "conversation");
+    expect(x.tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "conversation.returned_to_bot", details: { from: "HUMAN", to: "BOT" } }) }));
+  });
+});

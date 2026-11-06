@@ -95,7 +95,8 @@ export class WahaWebhookController {
     // preservando privacidade e evitando qualquer sincronização completa.
     if (!phone && !isGroup) phone = await this.waha.resolveContactPhone(channel, chatId);
     const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
-    const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";\n    const linkPreview = content.includes("http") ? inboundLinkPreview(payload) : null;
+    const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
+    const linkPreview = content.includes("http") ? inboundLinkPreview(payload) : null;
     const mimeType = String(payload.media?.mimetype || "");
     const contentType = inboundKind(payload);
     const timestamp = Number(payload.timestamp);

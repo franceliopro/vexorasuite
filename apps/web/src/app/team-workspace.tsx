@@ -106,15 +106,6 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 e.preventDefault();
                 setBusy(true);
                 try {
-                  if(editingId){
-                    const currentRow=rows.find((row) => row.id === editingId);
-                    const profileChanged=form.name.trim()!==(currentRow?.fullName||currentRow?.name||"").trim()||form.email.trim().toLowerCase()!==(currentRow?.email||"").trim().toLowerCase();
-                    if(profileChanged){
-                      const profileResponse=await fetch("/api/backend/team/"+editingId+"/profile",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({name:form.name,email:form.email,knownBy:form.knownBy})});
-                      const profileData=await profileResponse.json();
-                      if(!profileResponse.ok)throw Error(profileData.message||"Não foi possível atualizar o cadastro.");
-                    }
-                  }
                   const r = await fetch("/api/backend/team"+(editingId?"/"+editingId+"/access":""), {
                     method: editingId?"PATCH":"POST",
                     headers: { "content-type": "application/json" },

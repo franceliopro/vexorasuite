@@ -19,7 +19,7 @@ export async function resolveContactIdentity(tx: Prisma.TransactionClient, input
   const provider = input.provider.trim().toUpperCase();
   const externalId = input.externalId.trim();
   if (!provider || !externalId) throw new Error("A identidade externa precisa de provedor e identificador.");
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.tenantId + ":identity:" + provider + ":" + externalId}, 0))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.tenantId + ":identity:" + provider + ":" + externalId}, 0))`;
 
   let identity = await tx.contactIdentity.findUnique({
     where: { tenantId_provider_externalId: { tenantId: input.tenantId, provider, externalId } },
@@ -92,7 +92,7 @@ export async function bindContactIdentity(
   const provider = input.provider.trim().toUpperCase();
   const externalId = input.externalId.trim();
   if (!provider || !externalId) throw new Error("A identidade externa precisa de provedor e identificador.");
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.tenantId + ":identity:" + provider + ":" + externalId}, 0))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.tenantId + ":identity:" + provider + ":" + externalId}, 0))`;
   const contact = await tx.contact.findFirst({ where: { id: input.contactId, tenantId: input.tenantId } });
   if (!contact) return null;
   const existing = await tx.contactIdentity.findUnique({ where: { tenantId_provider_externalId: { tenantId: input.tenantId, provider, externalId } } });

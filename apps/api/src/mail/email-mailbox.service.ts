@@ -26,6 +26,10 @@ const MAX_OUTBOUND_ATTACHMENT_BYTES = 16 * 1024 * 1024;
 type EmailAttachment = { filename: string; contentType: string; data: string };
 type EmailThreadHeaders = { messageId?: unknown; inReplyTo?: unknown; references?: unknown };
 
+export function isValidEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function normalizeEmailMessageId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const compact = value.replace(/\r?\n[ \t]+/g, " ").replace(/\\[rnt]/g, " ").replace(/\s+/g, " ").trim();
@@ -125,7 +129,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
 
   async create(tenantId: string, input: MailboxInput) {
     const address = this.text(input.address, "Endereço de e-mail", 254).toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new BadRequestException("Endereço de e-mail inválido.");
+    if (!isValidEmailAddress(address)) throw new BadRequestException("Endereço de e-mail inválido.");
     const imapHost = this.text(input.imapHost, "Servidor IMAP", 253).replace(/^[a-z]+:\/\//i, "").replace(/\/+$/, "");
     await mailHost(imapHost);
     const imapUser = this.text(input.imapUser ?? address, "Usuário IMAP", 254);
@@ -138,7 +142,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     const smtpPassword = this.optionalText(input.smtpPassword, "Senha SMTP", 512);
     if (smtpHost && (!smtpUser || !smtpPassword)) throw new BadRequestException("A configuração SMTP exige usuário e senha.");
     const smtpFrom = this.optionalText(input.smtpFrom, "Remetente SMTP", 254) || address;
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(smtpFrom)) throw new BadRequestException("Remetente SMTP inválido.");
+    if (!isValidEmailAddress(smtpFrom)) throw new BadRequestException("Remetente SMTP inválido.");
     const smtpFromName = this.optionalText(input.smtpFromName, "Nome do remetente", 120);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!tenant) throw new NotFoundException("Empresa não encontrada.");
@@ -250,7 +254,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
         if (!box) throw new Error("Pasta IMAP indisponível.");
         const uidValidity = Number(box.uidValidity || 0);
         const startUid = row.syncUidValidity === uidValidity ? row.syncLastUid + 1 : 1;
-        await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "SYNCING", syncUidValidity: uidValidity || null } });
+        await this.prisma.emailMailbox.update({ where: { id: row.id }, data: { status: "SYNCING", syncUidValidity: uidValidity || null, ...(row.syncUidValidity !== uidValidity ? { syncLastUid: 0 } : {}) } });
         const messages: Array<{ uid: number; source: Buffer }> = [];
         for await (const item of client.fetch({ uid: String(startUid) + ":*" }, { uid: true, source: true }, { uid: true })) {
           if (messages.length >= MAX_SYNC_MESSAGES) break;

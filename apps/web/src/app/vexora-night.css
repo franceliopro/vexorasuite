@@ -1,0 +1,61 @@
+
+/* ===== Véxora Night (tema escuro derivado do logo e do slide de referência; valores medidos em PNG) ===== */
+:root {
+  --accent-blue: #168cff; --accent-violet: #7a35ff; --accent-magenta: #d24cff;
+  --accent-cyan: #28d7ff; --accent-amber: #ffb45a; --accent-green: #35e3a1;
+  --accent-blue-text: #168cff; --accent-violet-text: #a78bff; --accent-magenta-text: #d24cff;
+  --accent-cyan-text: #28d7ff; --accent-amber-text: #ffb45a; --accent-green-text: #35e3a1;
+  --on-accent-blue: #050817; --on-accent-violet: #ffffff; --on-accent-magenta: #050817;
+  --on-accent-cyan: #050817; --on-accent-amber: #050817; --on-accent-green: #050817;
+}
+:root[data-theme="dark"] {
+  --surface-page: #050817;
+  --surface-1: #080f27;
+  --surface-2: #0d1530;
+  --surface-3: #131c3a;
+  --surface-hover: #16214a;
+  --surface-active: color-mix(in srgb, var(--primary) 27%, #0d1530);
+  --text-primary: #f7faff;
+  --text-secondary: #a9b7d0;
+  --text-muted: #8b99b8;
+  --border-subtle: #233055;
+  --border-strong: #5a6a9a;
+  --shadow: 0 5px 20px rgba(0,0,0,.35);
+  --shadow-panel: 0 8px 28px rgba(0,0,0,.35);
+  --night-glow-blue: rgba(22,140,255,.16);
+  --night-glow-violet: rgba(122,53,255,.12);
+}
+:root[data-theme="dark"], :root[data-theme="hybrid"] {
+  --sidebar: #070c20; --sidebar-bg: #070c20; --sidebar-text: #f7faff;
+  --sidebar-muted: #9fb0cf; --sidebar-muted-text: #9fb0cf; --sidebar-border: #1c2748;
+  --sidebar-active: color-mix(in srgb, var(--primary) 26%, #0d1530);
+}
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(60rem 38rem at 100% 0%, var(--night-glow-blue), transparent 70%),
+    radial-gradient(52rem 36rem at 0% 100%, var(--night-glow-violet), transparent 70%),
+    var(--surface-page);
+  background-attachment: fixed;
+}
+:root[data-theme="dark"] :is(.suite-app, .main-area) { background: transparent; }
+
+/* Cartão de acento: borda esquerda de 3px + selo numérico na mesma cor */
+.vx-accent-card {
+  --accent: var(--accent-blue); --accent-text: var(--accent-blue-text); --on-accent: var(--on-accent-blue);
+  position: relative; padding: 16px 18px 16px 20px; border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent); border-radius: 14px; background: var(--surface-1);
+  color: var(--text-primary); transition: border-color .2s, background .2s, transform .2s;
+}
+.vx-accent-card:hover, .vx-accent-card:focus-visible { background: var(--surface-hover); border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle)); border-left-color: var(--accent); }
+.vx-accent-card[aria-expanded="true"] { background: var(--surface-2); }
+.vx-accent-card .vx-accent-badge { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 800; }
+.vx-accent-card .vx-accent-title { font-weight: 800; color: var(--text-primary); }
+.vx-accent-card .vx-accent-desc { color: var(--text-secondary); }
+.vx-accent-card .vx-accent-link { color: var(--accent-text); }
+.vx-accent-card.accent-blue { --accent: var(--accent-blue); --accent-text: var(--accent-blue-text); --on-accent: var(--on-accent-blue); }
+.vx-accent-card.accent-violet { --accent: var(--accent-violet); --accent-text: var(--accent-violet-text); --on-accent: var(--on-accent-violet); }
+.vx-accent-card.accent-magenta { --accent: var(--accent-magenta); --accent-text: var(--accent-magenta-text); --on-accent: var(--on-accent-magenta); }
+.vx-accent-card.accent-cyan { --accent: var(--accent-cyan); --accent-text: var(--accent-cyan-text); --on-accent: var(--on-accent-cyan); }
+.vx-accent-card.accent-amber { --accent: var(--accent-amber); --accent-text: var(--accent-amber-text); --on-accent: var(--on-accent-amber); }
+.vx-accent-card.accent-green { --accent: var(--accent-green); --accent-text: var(--accent-green-text); --on-accent: var(--on-accent-green); }
+@media (prefers-reduced-motion: reduce) { .vx-accent-card { transition: none; } }

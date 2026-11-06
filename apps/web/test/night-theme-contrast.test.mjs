@@ -1,0 +1,16 @@
+import test from "node:test";import assert from "node:assert/strict";import fs from "node:fs";
+const css=fs.readFileSync(new URL("../src/app/vexora-night.css",import.meta.url),"utf8");
+const lum=h=>{const c=[1,3,5].map(o=>parseInt(h.slice(o,o+2),16)/255).map(x=>x<=.03928?x/12.92:((x+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+const cr=(a,b)=>{const x=Math.max(lum(a),lum(b)),y=Math.min(lum(a),lum(b));return(x+.05)/(y+.05)};
+const block=(sel)=>{const i=css.lastIndexOf(`${sel} {`);assert.ok(i>=0,sel);return css.slice(i,css.indexOf("}",i))};
+const tok=(b,n)=>{const m=b.match(new RegExp(`--${n}:\\s*(#[0-9a-fA-F]{6})`));assert.ok(m,n);return m[1]};
+const night=block(':root[data-theme="dark"]'),root=block(":root");
+const surfaces=["surface-page","surface-1","surface-2","surface-3","surface-hover"];
+test("Night: texto >=4.5 em todas as superfícies",()=>{for(const t of["text-primary","text-secondary","text-muted"])for(const s of surfaces)assert.ok(cr(tok(night,t),tok(night,s))>=4.5,`${t}/${s}`)});
+test("Night: três níveis de texto distintos",()=>{const a=new Set(["text-primary","text-secondary","text-muted"].map(t=>tok(night,t)));assert.equal(a.size,3)});
+test("Night: borda de controle >=3:1 sobre surface-2",()=>assert.ok(cr(tok(night,"border-strong"),tok(night,"surface-2"))>=3));
+test("Acentos: texto do acento >=4.5 nas superfícies do Night",()=>{for(const a of["blue","violet","magenta","cyan","amber","green"])for(const s of surfaces)assert.ok(cr(tok(root,`accent-${a}-text`),tok(night,s))>=4.5,`${a}/${s}`)});
+test("Acentos: texto do selo >=4.5 sobre o acento",()=>{for(const a of["blue","violet","magenta","cyan","amber","green"])assert.ok(cr(tok(root,`on-accent-${a}`),tok(root,`accent-${a}`))>=4.5,a)});
+test("Acentos: borda/selo >=3:1 sobre surface-1 (não-texto)",()=>{for(const a of["blue","violet","magenta","cyan","amber","green"])assert.ok(cr(tok(root,`accent-${a}`),tok(night,"surface-1"))>=3,a)});
+test("Sidebar unificada em dark+hybrid",()=>assert.match(css,/:root\[data-theme="dark"\], :root\[data-theme="hybrid"\] \{\s*--sidebar:/));
+test("Cartão de acento: borda 3px e reduced-motion",()=>{assert.match(css,/border-left: 3px solid var\(--accent\)/);assert.match(css,/prefers-reduced-motion: reduce\) \{ \.vx-accent-card/)});

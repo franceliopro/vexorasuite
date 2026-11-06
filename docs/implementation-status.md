@@ -105,7 +105,8 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Finalização com ganho/perda e motivo.
 - [x] Histórico mantido após finalização.
 - [x] Tarefas internas separadas do contexto da conversa.
-- [~] Procedimentos personalizados por cliente com checklist e progresso percentual.
+- [x] Procedimentos personalizados por cliente com checklist, progresso percentual, finalização e reabertura auditada.
+- [x] Tarefas internas separadas dos procedimentos de cliente em listas e indicadores do módulo Tarefas.
 - [~] Aceite visual do Kanban durante o atendimento real.
 - [ ] Modelos de operação Rastreabem com Comercial, Financeiro e Suporte.
 

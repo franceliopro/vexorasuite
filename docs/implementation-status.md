@@ -72,12 +72,13 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Ficha do contato acessível a partir da conversa.
 - [x] Histórico do contato preservado no CRM/Contatos.
 - [x] Anexos com seleção múltipla e limite de tamanho no frontend.
-- [x] Emoji, respostas rápidas, localização, contato e gravação de áudio previstos no compositor.
+- [x] Emoji, respostas rápidas, localização, contato e gravação de áudio no compositor; o microfone grava e envia mídia real pelo canal WAHA.
+- [x] Áudio recebido exibido com waveform determinístico, progresso de reprodução e controles nativos.
 - [x] Menu contextual e atalhos de atendimento.
 - [x] Identificadores técnicos ocultados na exibição do contato.
 - [x] Números WhatsApp com sufixo técnico normalizados para telefone legível.
 - [x] Regressão pós-correção: 100 testes do frontend passaram, incluindo identidade de contatos.
-- [~] Envio e recebimento real de imagem, áudio, vídeo, documento e thumbnail via WAHA.
+- [~] Envio e recebimento real de imagem, áudio, vídeo, documento e thumbnail via WAHA; o contrato foi validado localmente, mas ainda falta aceite com aparelho real.
 - [~] Confirmação real dos três estados de recibo com um aparelho WhatsApp.
 - [~] Validação de troca de número e recuperação histórica em conversa real.
 - [ ] Integração oficial Meta para Instagram/Facebook em produção.
@@ -158,3 +159,4 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 7. Registrar neste arquivo o resultado e o horário do teste.
 
 Este painel não declara que um item está pronto apenas porque existe uma tela ou uma função no código. O aceite exige a evidência indicada em cada seção.
+

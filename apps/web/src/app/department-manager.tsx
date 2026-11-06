@@ -14,15 +14,36 @@ const initial = {
 };
 export function DepartmentManager() {
   const [rows, setRows] = useState<any[]>([]),
+    [agents, setAgents] = useState<{ id: string; name: string; email?: string; isActive?: boolean }[]>([]),
+    [members, setMembers] = useState<Record<string, string[]>>({}),
     [form, setForm] = useState(initial),
     [id, setId] = useState(""),
     [editing, setEditing] = useState(false),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   async function load() {
-    const r = await fetch("/api/backend/departments", { cache: "no-store" });
+    const [r, teamResponse] = await Promise.all([
+      fetch("/api/backend/departments", { cache: "no-store" }),
+      fetch("/api/backend/team", { cache: "no-store" }),
+    ]);
     if (!r.ok) throw Error("Não foi possível carregar setores.");
-    setRows(await r.json());
+    if (!teamResponse.ok) throw Error("Não foi possível carregar os atendentes.");
+    const departments = await r.json();
+    const team = await teamResponse.json();
+    const pairs = await Promise.all(
+      departments.map(async (department: any) => {
+        const response = await fetch(
+          "/api/backend/departments/" + department.id + "/members",
+          { cache: "no-store" },
+        );
+        if (!response.ok) throw Error("Não foi possível carregar os atendentes do setor.");
+        const assigned = await response.json();
+        return [department.id, assigned.map((agent: { id: string }) => agent.id)] as const;
+      }),
+    );
+    setRows(departments);
+    setAgents(team.filter((agent: any) => agent.isActive !== false));
+    setMembers(Object.fromEntries(pairs));
   }
   useEffect(() => {
     void load().catch((e) => setNotice(e.message));
@@ -69,6 +90,29 @@ export function DepartmentManager() {
       );
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Não foi possível salvar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function saveMembers(departmentId: string) {
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/backend/departments/" + departmentId + "/members", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userIds: members[departmentId] || [] }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw Error(data.message || "Não foi possível salvar os atendentes do setor.");
+      setMembers((current) => ({
+        ...current,
+        [departmentId]: data.map((agent: { id: string }) => agent.id),
+      }));
+      setNotice("Atendentes do setor salvos.");
+      window.dispatchEvent(new Event("vexora:team-updated"));
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Não foi possível salvar os atendentes do setor.");
     } finally {
       setBusy(false);
     }
@@ -249,6 +293,32 @@ export function DepartmentManager() {
             >
               Desativar
             </button>
+          )}
+          {d.isActive && (
+            <div className="department-members-editor">
+              <strong>Atendentes deste setor</strong>
+              <small>Defina quem recebe e pode assumir conversas encaminhadas para este setor.</small>
+              <div className="department-member-options">
+                {agents.length ? agents.map((agent) => (
+                  <label className="ai-toggle" key={agent.id}>
+                    <input
+                      type="checkbox"
+                      checked={(members[d.id] || []).includes(agent.id)}
+                      onChange={(event) => setMembers((current) => ({
+                        ...current,
+                        [d.id]: event.target.checked
+                          ? [...new Set([...(current[d.id] || []), agent.id])]
+                          : (current[d.id] || []).filter((id) => id !== agent.id),
+                      }))}
+                    />
+                    <span>{agent.name}{agent.email ? " · " + agent.email : ""}</span>
+                  </label>
+                )) : <small>Nenhum atendente ativo cadastrado.</small>}
+              </div>
+              <button className="secondary-button" type="button" disabled={busy} onClick={() => void saveMembers(d.id)}>
+                {busy ? "Salvando…" : "Salvar atendentes do setor"}
+              </button>
+            </div>
           )}
         </article>
       ))}

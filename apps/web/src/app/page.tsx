@@ -8,6 +8,7 @@ import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { applyBrandTheme } from "../lib/brand-theme";
+import { applyThemeColor } from "../lib/theme-color";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
 import { WorkspaceAlerts } from "./workspace-alerts";
@@ -216,7 +217,7 @@ export default function HomePage() {
   const [brandAssets,setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);
   const [greeting,setGreeting] = useState("Bom dia");
   useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if(saved==="dark"||saved==="hybrid"||saved==="light")setTheme(saved); } catch {} finally{setThemeReady(true)} }, []);
-  useEffect(() => { if(!themeReady)return; document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme,themeReady]);
+  useEffect(() => { if(!themeReady)return; document.documentElement.dataset.theme = theme; applyThemeColor(theme); try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme,themeReady]);
   useEffect(() => { const updateGreeting=()=>{const hour=new Date().getHours();setGreeting(hour>=5&&hour<12?"Bom dia":hour>=12&&hour<18?"Boa tarde":hour>=18?"Boa noite":"Boa madrugada");};updateGreeting();const timer=window.setInterval(updateGreeting,60000);return()=>window.clearInterval(timer); }, []);
   useEffect(() => { if (!session||session.user.mustChangePassword) return; let live=true; const apply=(v:any)=>{if(!live||!v)return;const next={...defaultBrandAssets,...v};if(!/^#[0-9a-fA-F]{6}$/.test(next.primaryColor))next.primaryColor=defaultBrandAssets.primaryColor;setBrandAssets(next);applyBrandTheme(next.primaryColor);if(next.favicon){let link=document.querySelector<HTMLLinkElement>('link[rel~="icon"]');if(!link){link=document.createElement("link");link.rel="icon";document.head.appendChild(link);}link.href=next.favicon;}};void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(apply).catch(()=>{});const onBrandUpdate=(event:Event)=>apply((event as CustomEvent).detail);window.addEventListener("vexora:brand-updated",onBrandUpdate);return()=>{live=false;window.removeEventListener("vexora:brand-updated",onBrandUpdate);}; }, [session?.tenant.slug]);
   useEffect(()=>{if(!assistantOpen)return;const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape")setAssistantOpen(false)};const outside=(e:MouseEvent)=>{if(e.target instanceof Element&&!e.target.closest(".ai-assistant-panel,.ai-assistant-trigger"))setAssistantOpen(false)};document.addEventListener("keydown",onKey);document.addEventListener("mousedown",outside);return()=>{document.removeEventListener("keydown",onKey);document.removeEventListener("mousedown",outside)}},[assistantOpen]);

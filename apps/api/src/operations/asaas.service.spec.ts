@@ -24,6 +24,8 @@ describe("AsaasService webhook reconciliation", () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       message: { create: jest.fn().mockResolvedValue({ id: "message-id" }) },
+      auditLog: { create: jest.fn() },
+      $transaction: jest.fn((callback: (client: unknown) => unknown) => callback(prisma)),
     } as unknown as PrismaService;
     const service = new AsaasService(prisma);
     jest.spyOn(service as any, "settings").mockResolvedValue({ sandbox: false });
@@ -77,6 +79,7 @@ describe("AsaasService CRM customer synchronization", () => {
 
   function setupContact() {
     const prisma = {
+      auditLog: { create: jest.fn() },
       contact: {
         findFirst: jest.fn()
           .mockResolvedValueOnce(contact)

@@ -1,5 +1,5 @@
-Warning: truncated output (original token count: 78451)
-Total output lines: 3617
+Warning: truncated output (original token count: 78509)
+Total output lines: 3620
 
 /* Self-hosted brand fonts. The files live in public/fonts and are copied into the runtime
    image, so neither the browser nor the container build depends on a font CDN.
@@ -664,9 +664,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="dark"] .shortcut-item,:root[data-theme="dark"] .inbox-conversation,:root[data-theme="dark"] .thread-action-button,:root[data-theme="dark"] .thread-assign-select,:root[data-theme="dark"] .handoff-trigger,:root[data-theme="dark"] .handoff-popover,:root[data-theme="dark"] .inbox-queue-menu,:root[data-theme="dark"] .composer-popover,:root[data-theme="dark"] .finalization-dialog,:root[data-theme="dark"] .finalization-outcomes button,:root[data-theme="dark"] .report-presets button,:root[data-theme="dark"] .origin-open-link,:root[data-theme="dark"] .mobile-inbox-back{background:var(--card);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .shortcut-item,:root[data-theme="dark"] .inbox-conversation{border-bottom-color:var(--line)}
 :root[data-theme="dark"] .shortcut-icon,:root[data-theme="dark"] .empty-illustration,:root[data-theme="dark"] .handoff-trigger-icon,:root[data-theme="dark"] .handoff-popover-mark,:root[data-theme="dark"] .handoff-option-icon,:root[data-theme="dark"] .handoff-avatar,:root[data-theme="dark"] .thread-status,:root[data-theme="dark"] .crm-contact-avatar,:root[data-theme="dark"] .crm-contact-source,:root[data-theme="dark"] .crm-card-source,:root[data-theme="dark"] .finalization-close{background:color-mix(in srgb,var(--primary) 16%,var(--card));color:var(--ink);border-color:var(--line)}
-:root[data-theme="dark"] .bottom-note,:root[data-theme="dark"] .environment-banner,:root[data-theme="dark"] .settings-members,:root[data-theme="dark"] .settings-webhook-url,:root[data-theme="dark"] .protocol-cur…28451 tokens truncated…-size:12px}.finance-health-date-range input{min-height:34px;padding:6px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:var(--card,#fff);color:inherit}
-
-/* Compact network and automation provenance marks in the inbox. */
+:root[data-theme="dark"] .bottom-note,:root[data-theme="dark"] .environment-banner,:root[data-theme="dark"] .settings-members,:root[data-theme="dark"] .settings-webhook-url,:root[data-theme="dark"] .protocol-cur…28509 tokens truncated… inbox. */
 .conversation-channel-marks{display:inline-flex;align-items:center;gap:3px;flex-shrink:0}
 .conversation-channel-marks .channel-mark{width:15px;height:15px;min-width:15px;display:inline-flex;align-items:center;justify-content:center}
 .conversation-channel-marks .channel-mark svg{width:11px;height:11px}
@@ -1282,6 +1280,9 @@ html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--bu
 .inbox-image-message,.inbox-video-message{cursor:zoom-in;box-shadow:0 2px 8px rgba(16,24,40,.08)}
 .message-date-separator{position:sticky;top:0;z-index:2;display:flex;justify-content:center;margin:2px 0 4px}
 .message-date-separator span{padding:5px 10px;border:1px solid rgba(98,88,223,.14);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 1px 4px rgba(16,24,40,.06);color:#667085;font-size:9px;font-weight:700;backdrop-filter:blur(8px)}
+.message-line + .message-line{margin-top:-7px}
+.message-line + .message-line:not(.outgoing) .message-bubble{border-top-left-radius:7px}
+.message-line.outgoing + .message-line.outgoing .message-bubble{border-top-right-radius:7px}
 @keyframes inbox-message-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:760px){.inbox-audio-player{min-width:0;gap:7px}.inbox-audio-waveform{width:118px}.inbox-audio-player .inbox-audio-message{width:118px}.message-bubble{max-width:90%;padding:9px 10px}.message-date-separator span{font-size:8px}}
 

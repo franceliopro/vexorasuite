@@ -45,6 +45,10 @@ test("message selection clears stale history and exposes a retry", () => {
   assert.match(source, /message\.deleted/);
 });
 
+test("notification focus is consumed after selecting its conversation", () => {
+  assert.match(source, /if \(selectedId && notificationFocus\.current === selectedId\) notificationFocus\.current = null/);
+});
+
 const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", import.meta.url), "utf8");
 test("chatbot flow serialization is memoized", () => {
   assert.match(chatbot, /useMemo/);

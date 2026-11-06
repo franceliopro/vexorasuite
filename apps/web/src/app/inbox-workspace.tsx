@@ -488,6 +488,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
 
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => {
+    if (selectedId && notificationFocus.current === selectedId) notificationFocus.current = null;
+  }, [selectedId]);
+  useEffect(() => {
     let active = true;
     void Promise.all([api<QuickReply[]>("/api/backend/conversations/quick-replies"), api<Partial<QuickReplySettings>>("/api/backend/conversations/quick-reply-settings")])
       .then(([items, settings]) => { if (active) { setQuickReplies(items); setQuickReplySettings({ ...DEFAULT_QUICK_REPLY_SETTINGS, ...settings, greetings: { ...DEFAULT_QUICK_REPLY_SETTINGS.greetings, ...(settings.greetings || {}) }, farewells: { ...DEFAULT_QUICK_REPLY_SETTINGS.farewells, ...(settings.farewells || {}) } }); } })

@@ -521,16 +521,30 @@ export class ContactsController {
   @Post()
   async create(@Req() request: AuthenticatedRequest, @Query("pipelineId") pipelineId: string | undefined, @Body() input: CreateContactDto) {
     if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
-    const contact = await this.prisma.contact.create({
-      data: {
-        tenantId: request.user.tenantId,
-        ...(pipelineId ? { pipelineId } : {}),
-        name: input.name.trim(),
-        phone: input.phone?.trim() || null,
-        email: input.email?.trim().toLowerCase() || null,
-        source: input.source?.trim() || null,
-        externalId: input.externalId?.trim() || null,
-      },
+    const phone = input.phone?.replace(/\D/g, "") || null;
+    const contact = await this.prisma.$transaction(async tx => {
+      const created = await tx.contact.create({
+        data: {
+          tenantId: request.user.tenantId,
+          ...(pipelineId ? { pipelineId } : {}),
+          name: input.name.trim(),
+          phone,
+          email: input.email?.trim().toLowerCase() || null,
+          source: input.source?.trim() || null,
+          externalId: input.externalId?.trim() || null,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          tenantId: request.user.tenantId,
+          userId: request.user.sub,
+          action: "contact.created",
+          entityType: "contact",
+          entityId: created.id,
+          details: { pipelineId: pipelineId || null, source: created.source || null, hasPhone: Boolean(phone), hasEmail: Boolean(created.email) },
+        },
+      });
+      return created;
     });
     this.events.publish(request.user.tenantId, "contact.created", {
       id: contact.id,

@@ -248,7 +248,7 @@ html:root[data-theme] :is(.thread-messages,.inbox-conversation-list,.crm-contact
   --sidebar-active: color-mix(in srgb, var(--primary) 28%, #252C39);
 }
 :root[data-theme="hybrid"] .sidebar,
-:root[data-theme="dark"] .sidebar { background:#191D28; color:#f7f7ff; border-right-color:#303847; }
+:root[data-theme="dark"] .sidebar { background:var(--sidebar-bg); color:var(--text-primary); border-right-color:var(--sidebar-border); }
 :root[data-theme="hybrid"] .sidebar .nav-item,
 :root[data-theme="dark"] .sidebar .nav-item { color:#b7b8d0; }
 :root[data-theme="hybrid"] .sidebar .nav-item:hover,

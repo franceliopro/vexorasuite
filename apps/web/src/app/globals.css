@@ -63,6 +63,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 .danger-text{color:#c34f5b}
 .inbox-empty strong{display:block;margin-bottom:5px;color:#646a82;font-size:11px}
 .inbox-empty p{margin:5px 0 0;font-size:10px;line-height:1.6}
+.inbox-list-error{display:flex;flex-direction:column;gap:5px;margin:10px 12px;padding:10px 11px;border:1px solid #f1c4c4;border-radius:9px;background:#fff7f7;color:#9d3d45;font-size:10px;line-height:1.45}.inbox-list-error span{color:#b15c63;font-size:9px;overflow-wrap:anywhere}.inbox-list-error button{align-self:flex-start;padding:5px 8px;border:1px solid currentColor;border-radius:6px;background:transparent;color:inherit;font-size:9px;font-weight:700;cursor:pointer}
 .thread-heading{padding:12px 15px}
 .thread-heading p{margin-top:3px}
 .thread-empty{gap:0}

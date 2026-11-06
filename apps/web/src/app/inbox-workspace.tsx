@@ -233,6 +233,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:string;canManageChannels?:boolean}) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(true);
+  const [conversationLoadError, setConversationLoadError] = useState("");
   const [quickReplyPipelines,setQuickReplyPipelines]=useState<QuickReplyPipeline[]>([]);
 
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({});
@@ -383,6 +384,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const loadConversations = useCallback(async () => {
     const request=++conversationRequest.current;
     setConversationsLoading(true);
+    setConversationLoadError("");
     try {
       const rows = await api<Conversation[]>("/api/backend/conversations?view=" + queueView);
       const focus=queueView==="all-open"?notificationFocus.current:null;
@@ -392,8 +394,10 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       setConversationsLoading(false);
       setSelectedId((current) => focus&&rows.some(row=>row.id===focus)?focus:current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? null);
     } catch (e) {
-      setConversationsLoading(false);
-      setError(e instanceof Error ? e.message : "Falha ao carregar conversas.");
+      if (request === conversationRequest.current) {
+        setConversationsLoading(false);
+        setConversationLoadError(e instanceof Error ? e.message : "Falha ao carregar conversas.");
+      }
     }
   }, [queueView]);
   const loadQueueCounts = useCallback(async () => {
@@ -991,6 +995,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
         {supervision.oldestWaiting ? <p className="supervision-oldest">Mais antiga: <strong>{supervision.oldestWaiting.contactName}</strong></p> : null}
         <details className="supervision-details"><summary>Ver por departamento e conversas paradas</summary><div className="supervision-departments">{supervision.byDepartment.map((department) => <span key={department.id}><strong>{department.name}</strong><small>{department.waiting} aguardando · {department.open} abertas · {department.stale} fora do SLA</small></span>)}</div>{supervision.staleConversations.length ? <div className="supervision-stale-list">{supervision.staleConversations.slice(0, 8).map((conversation) => <button key={conversation.id} type="button" onClick={() => { notificationFocus.current = conversation.id; setQueueView("all-open"); setSelectedId(conversation.id); setMobileThreadOpen(true); void loadConversations(); }}><strong>{conversation.contactName}</strong><small>{conversation.department || "Sem departamento"} · {conversation.assignee || "Sem atendente"}</small></button>)}</div> : <small className="supervision-clear">Nenhuma conversa fora do SLA.</small>}</details>
       </section> : null}
+      {conversationLoadError ? <div className="inbox-list-error" role="alert"><strong>Não foi possível atualizar as conversas.</strong><span>{conversationLoadError}</span><button type="button" onClick={() => void loadConversations()}>Tentar novamente</button></div> : null}
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { notificationFocus.current=null;setSelectedId(item.id); setMobileThreadOpen(true); }}>
           <ContactAvatar contact={item.contact}/><span className="conversation-summary"><span className="conversation-title-row"><strong>{contactDisplayName(item.contact,item.botState)}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))}/></span></span><small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:tagForeground(tag.color),borderColor:"color-mix(in srgb, "+tag.color+" 82%, #334155)"}}>{tag.name}</span>)}</span> : null}{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : null}</span>

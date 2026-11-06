@@ -30,6 +30,13 @@ test("inbox separates loading states from empty states", () => {
   assert.match(source, /!messagesLoading && !messages\.length/);
 });
 
+test("conversation load failures stop loading and expose a retry", () => {
+  assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
+  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Falha ao carregar conversas\."\)/);
+  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
+});
+
 const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", import.meta.url), "utf8");
 test("chatbot flow serialization is memoized", () => {
   assert.match(chatbot, /useMemo/);

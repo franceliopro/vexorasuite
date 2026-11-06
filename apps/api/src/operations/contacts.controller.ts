@@ -362,6 +362,22 @@ export class ContactsController {
         } : {}),
       };
     });
+    const changedFields = [
+      input.tags !== undefined ? "tags" : null,
+      input.notes !== undefined ? "notes" : null,
+      input.customFields !== undefined ? "customFields" : null,
+      input.leadOrigin !== undefined ? "leadOrigin" : null,
+    ].filter((field): field is string => Boolean(field));
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId: request.user.tenantId,
+        userId: request.user.sub,
+        action: "contact.profile_updated",
+        entityType: "contact",
+        entityId: updated.id,
+        details: { changedFields },
+      },
+    });
     this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id });
     return { id: updated.id, metadata: updated.metadata };
   }

@@ -809,7 +809,12 @@ export class ConversationsController {
       throw new BadGatewayException("A mensagem não foi enviada. A falha ficou registrada no histórico.");
     }
     const sent = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "SENT", providerMessageId } });
-    await this.prisma.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: sent.occurredAt, ...(conversation.status === "RESOLVED" ? { status: "OPEN" } : {}) } });
+    await this.prisma.$transaction(async tx => {
+      await tx.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: sent.occurredAt, ...(conversation.status === "RESOLVED" ? { status: "OPEN" } : {}) } });
+      if (conversation.status === "RESOLVED") {
+        await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.reopened_by_reply", entityType: "conversation", entityId: conversation.id, details: { messageId: sent.id, fromStatus: "RESOLVED", toStatus: "OPEN" } } });
+      }
+    });
     this.events.publish(tenantId, "message.sent", { conversationId: conversation.id, message: { id: sent.id, direction: sent.direction, status: sent.status, content: sent.content, occurredAt: sent.occurredAt.toISOString() } });
     return sent;
   }

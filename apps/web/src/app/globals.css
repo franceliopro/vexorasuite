@@ -3612,5 +3612,8 @@ html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--bu
 .inbox-image-message,.inbox-video-message{cursor:zoom-in;box-shadow:0 2px 8px rgba(16,24,40,.08)}
 .message-date-separator{position:sticky;top:0;z-index:2;display:flex;justify-content:center;margin:2px 0 4px}
 .message-date-separator span{padding:5px 10px;border:1px solid rgba(98,88,223,.14);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 1px 4px rgba(16,24,40,.06);color:#667085;font-size:9px;font-weight:700;backdrop-filter:blur(8px)}
+.message-line + .message-line{margin-top:-7px}
+.message-line + .message-line:not(.outgoing) .message-bubble{border-top-left-radius:7px}
+.message-line.outgoing + .message-line.outgoing .message-bubble{border-top-right-radius:7px}
 @keyframes inbox-message-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:760px){.inbox-audio-player{min-width:0;gap:7px}.inbox-audio-waveform{width:118px}.inbox-audio-player .inbox-audio-message{width:118px}.message-bubble{max-width:90%;padding:9px 10px}.message-date-separator span{font-size:8px}}

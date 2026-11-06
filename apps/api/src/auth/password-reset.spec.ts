@@ -78,11 +78,11 @@ describe("password reset — request", () => {
     expect(mail.send.mock.calls[0][0].to).toBe("ana@exemplo.com");
   });
 
-  it("invalidates every previous link when a new one is requested", async () => {
+  it("keeps a still-valid previous link usable when a new one is requested", async () => {
     const { service, tx } = setup({ user: USER });
     await service.requestPasswordReset({ email: "ana@exemplo.com" });
     expect(tx.passwordResetToken.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-1", usedAt: null } }),
+      expect.objectContaining({ where: { userId: "user-1", usedAt: null, expiresAt: { lte: expect.any(Date) } } }),
     );
   });
 

@@ -93,6 +93,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Validação de departamento e atendente ativo no backend.
 - [x] Ações de etapa, etiqueta, prioridade, CRM e tarefa cobertas por código/testes.
 - [x] Cancelamento de automação quando a conversa muda de departamento ou atendente.
+- [x] Fallback de transbordo usa o departamento da inbox para áudio e pedido de atendente; evita fila geral quando há destino configurado.
 - [x] Testes locais do Flow Studio e opções passaram.
 - [~] Publicação de um fluxo real em canal WAHA e execução com conversa real.
 - [~] Transbordo real com resumo de contexto para equipe ou atendente.

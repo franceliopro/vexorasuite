@@ -19,7 +19,7 @@
 - [ ] Webhooks autenticados, idempotência e logs de diagnóstico.
 - [ ] Entrega em tempo real com recuperação após reconexão.
 - [ ] Atribuição de atendente, status, etiquetas e histórico.
-- [ ] Fluxo WhatsApp -> resposta -> transferência humana -> encerramento.
+- [~] Fluxo WhatsApp -> resposta -> transferência humana -> encerramento; fallback por departamento da inbox implementado, pendente aceite real no Dokploy.
 
 ## Fase 3 — automações e operação
 - [ ] Motor de automação com estados explícitos e cancelamento.

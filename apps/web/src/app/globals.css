@@ -1,5 +1,5 @@
-Warning: truncated output (original token count: 78068)
-Total output lines: 3606
+Warning: truncated output (original token count: 78451)
+Total output lines: 3617
 
 /* Self-hosted brand fonts. The files live in public/fonts and are copied into the runtime
    image, so neither the browser nor the container build depends on a font CDN.
@@ -664,22 +664,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #aaa5
 :root[data-theme="dark"] .shortcut-item,:root[data-theme="dark"] .inbox-conversation,:root[data-theme="dark"] .thread-action-button,:root[data-theme="dark"] .thread-assign-select,:root[data-theme="dark"] .handoff-trigger,:root[data-theme="dark"] .handoff-popover,:root[data-theme="dark"] .inbox-queue-menu,:root[data-theme="dark"] .composer-popover,:root[data-theme="dark"] .finalization-dialog,:root[data-theme="dark"] .finalization-outcomes button,:root[data-theme="dark"] .report-presets button,:root[data-theme="dark"] .origin-open-link,:root[data-theme="dark"] .mobile-inbox-back{background:var(--card);color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .shortcut-item,:root[data-theme="dark"] .inbox-conversation{border-bottom-color:var(--line)}
 :root[data-theme="dark"] .shortcut-icon,:root[data-theme="dark"] .empty-illustration,:root[data-theme="dark"] .handoff-trigger-icon,:root[data-theme="dark"] .handoff-popover-mark,:root[data-theme="dark"] .handoff-option-icon,:root[data-theme="dark"] .handoff-avatar,:root[data-theme="dark"] .thread-status,:root[data-theme="dark"] .crm-contact-avatar,:root[data-theme="dark"] .crm-contact-source,:root[data-theme="dark"] .crm-card-source,:root[data-theme="dark"] .finalization-close{background:color-mix(in srgb,var(--primary) 16%,var(--card));color:var(--ink);border-color:var(--line)}
-:root[data-theme="dark"] .bottom-note,:root[data-theme="dark"] .environment-banner,:root[data-theme="dark"] .settings-members,:root[data-theme="dark"] .settings-webhook-url,:root[data-theme="dark"] .protocol-cur…28068 tokens truncated…finance-health-bar-group{display:flex;flex:1;min-width:0;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:8px}
-.finance-health-bar-pair{display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%;height:calc(100% - 24px)}
-.finance-health-bar{width:min(28px,42%);min-height:1px;border-radius:5px 5px 0 0}
-.finance-health-bar-paid{background:var(--primary,#6258df)}
-.finance-health-bar-open{background:color-mix(in srgb,var(--primary,#6258df) 26%,var(--card,#fff))}
-.finance-health-bar-group small{font-size:10px;color:var(--muted,#697386)}
-.finance-health-legend{display:flex;gap:18px;margin-top:14px;font-size:11px}
-.finance-health-legend span:first-child{color:var(--primary,#6258df)}
-.finance-health-legend span:last-child{color:var(--muted,#697386)}
-.finance-health-summary dl>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border,#e7e9ee);padding:12px 0}
-.finance-health-summary dt{font-size:12px;color:var(--muted,#697386)}
-.finance-health-summary dd{margin:0;font-weight:700}
-@media(max-width:1100px){.finance-health-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-health-panels{grid-template-columns:1fr}}
-@media(max-width:550px){.finance-health-metrics{grid-template-columns:1fr 1fr}.finance-health-metric{padding:12px}.finance-health-metric>strong{font-size:18px}}
-
-.finance-health-date-range{display:flex;gap:10px;flex-wrap:wrap}.finance-health-date-range label{display:flex;align-items:center;gap:6px;font-size:12px}.finance-health-date-range input{min-height:34px;padding:6px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:var(--card,#fff);color:inherit}
+:root[data-theme="dark"] .bottom-note,:root[data-theme="dark"] .environment-banner,:root[data-theme="dark"] .settings-members,:root[data-theme="dark"] .settings-webhook-url,:root[data-theme="dark"] .protocol-cur…28451 tokens truncated…-size:12px}.finance-health-date-range input{min-height:34px;padding:6px;border:1px solid var(--border,#dce0e7);border-radius:8px;background:var(--card,#fff);color:inherit}
 
 /* Compact network and automation provenance marks in the inbox. */
 .conversation-channel-marks{display:inline-flex;align-items:center;gap:3px;flex-shrink:0}
@@ -1288,4 +1273,15 @@ html:root[data-theme] :is(.primary-button,.secondary-button){min-height:var(--bu
 .inbox-audio-waveform span{display:block;flex:1;min-width:2px;border-radius:999px;background:#c9c7e9;transition:background .15s ease}
 .inbox-audio-waveform span.played{background:var(--vexora-audio-played)}
 .inbox-audio-player .inbox-audio-message{width:150px;max-width:100%}
+.thread-messages{background:linear-gradient(180deg,#f7f8fc 0%,#eef1f7 100%)}
+.message-line{position:relative;animation:inbox-message-in .16s ease-out both}
+.message-bubble{position:relative;box-shadow:0 1px 1px rgba(16,24,40,.04);transition:box-shadow .16s ease,transform .16s ease}
+.message-bubble:hover{box-shadow:0 5px 18px rgba(16,24,40,.08)}
+.message-line:not(.outgoing) .message-bubble::after{content:"";position:absolute;left:-6px;bottom:-1px;width:10px;height:10px;background:inherit;clip-path:polygon(100% 0,100% 100%,0 100%)}
+.message-line.outgoing .message-bubble::after{content:"";position:absolute;right:-6px;bottom:-1px;width:10px;height:10px;background:inherit;clip-path:polygon(0 0,100% 100%,0 100%)}
+.inbox-image-message,.inbox-video-message{cursor:zoom-in;box-shadow:0 2px 8px rgba(16,24,40,.08)}
+.message-date-separator{position:sticky;top:0;z-index:2;display:flex;justify-content:center;margin:2px 0 4px}
+.message-date-separator span{padding:5px 10px;border:1px solid rgba(98,88,223,.14);border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 1px 4px rgba(16,24,40,.06);color:#667085;font-size:9px;font-weight:700;backdrop-filter:blur(8px)}
+@keyframes inbox-message-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){.inbox-audio-player{min-width:0;gap:7px}.inbox-audio-waveform{width:118px}.inbox-audio-player .inbox-audio-message{width:118px}.message-bubble{max-width:90%;padding:9px 10px}.message-date-separator span{font-size:8px}}
 

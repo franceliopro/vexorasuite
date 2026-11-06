@@ -32,7 +32,8 @@ export class ProviderConnectionsController {
     const assistant=object(object(tenant.integrations).assistant);
     const selections=[assistant.llm,...(Array.isArray(assistant.agents)?assistant.agents.map((agent:any)=>agent.llm):[]),...(Array.isArray(assistant.fallbackModels)?assistant.fallbackModels:[])];
     if(!selections.some((selection:any)=>selection?.provider==='openrouter'&&selection.model))return {configured:false,provider:'local',message:'OpenRouter não está em uso nos modelos configurados.'};
-    let key:string|undefined;\n    try{key=providerApiKey('openrouter',tenant.integrations,req.user.tenantId)}catch{return {configured:false,needsRepair:true,message:'A chave do OpenRouter desta empresa precisa ser cadastrada novamente em Agentes de IA.'}}
+    let key:string|undefined;
+    try{key=providerApiKey('openrouter',tenant.integrations,req.user.tenantId)}catch{return {configured:false,needsRepair:true,message:'A chave do OpenRouter desta empresa precisa ser cadastrada novamente em Agentes de IA.'}}
     if(!key)return {configured:false};
     const incident=providerLimit(key),cached=this.usageCache.get(req.user.tenantId);
     if(cached&&cached.expires>Date.now())return {...cached.value,incident};

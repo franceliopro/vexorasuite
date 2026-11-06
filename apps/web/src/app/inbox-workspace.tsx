@@ -291,6 +291,17 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   useEffect(()=>{setInternalOpen(!!selectedId&&new URLSearchParams(window.location.search).get("internal")==="1");setInternalDraft("");setCopilotOpen(false);setCopilotMessage(null);setHandoffNote("");setHandoffPhone("");setHandoffDepartment("");setHandoffAssignee("");},[selectedId]);
   useEffect(()=>{const close=(event:MouseEvent)=>{if(!(event.target as Element)?.closest(".message-context-menu"))setMessageMenu(null)};window.addEventListener("click",close);return()=>window.removeEventListener("click",close)},[]);
   const threadScrollRef=useRef<HTMLDivElement|null>(null);
+  useEffect(()=>{
+    const element=threadScrollRef.current;
+    if(!element)return;
+    const openImage=(event:MouseEvent)=>{
+      const target=(event.target as Element).closest("img.inbox-image-message") as HTMLImageElement|null;
+      if(!target?.src)return;
+      window.open(target.src,"_blank","noopener,noreferrer");
+    };
+    element.addEventListener("click",openImage);
+    return()=>element.removeEventListener("click",openImage);
+  },[selectedId,messages.length]);
   const threadPinnedRef=useRef(true);
   useEffect(()=>{const el=threadScrollRef.current;if(!el)return;if(threadPinnedRef.current)el.scrollTop=el.scrollHeight},[messages,selectedId]);
   useEffect(()=>{threadPinnedRef.current=true;requestAnimationFrame(()=>{const el=threadScrollRef.current;if(el)el.scrollTop=el.scrollHeight})},[selectedId]);

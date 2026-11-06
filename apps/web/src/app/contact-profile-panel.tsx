@@ -98,6 +98,11 @@ export function ContactProfilePanel({
   const [identitySaving, setIdentitySaving] = useState(false);
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [procedureBusy, setProcedureBusy] = useState(false);
+  const [procedureForm, setProcedureForm] = useState(false);
+  const [procedureTitle, setProcedureTitle] = useState("");
+  const [procedureDescription, setProcedureDescription] = useState("");
+  const [procedureSteps, setProcedureSteps] = useState("");
+  const [procedureDueAt, setProcedureDueAt] = useState("");
   useEffect(() => {
     const meta = contact.metadata || {};
     setTags(
@@ -278,6 +283,19 @@ export function ContactProfilePanel({
       const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
       setProcedures(next || []);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function createProcedure(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!procedureTitle.trim()) { setError("Informe o nome do procedimento."); return; }
+    const steps = procedureSteps.split("\n").map((value) => value.trim()).filter(Boolean);
+    if (!steps.length) { setError("Inclua pelo menos uma etapa no procedimento."); return; }
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: procedureTitle.trim(), description: procedureDescription.trim(), contactId: contact.id, dueAt: procedureDueAt ? new Date(procedureDueAt).toISOString() : null, steps }) });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []); setProcedureForm(false); setProcedureTitle(""); setProcedureDescription(""); setProcedureSteps(""); setProcedureDueAt("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o procedimento."); }
     finally { setProcedureBusy(false); }
   }
   const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
@@ -667,8 +685,9 @@ export function ContactProfilePanel({
             ) : null}
             {tab === "procedimentos" ? (
               <section className="profile-section">
-                <strong><CheckCircle2 size={14} /> Procedimentos do cliente</strong>
+                <div className="profile-section-heading"><strong><CheckCircle2 size={14} /> Procedimentos do cliente</strong><button type="button" className="secondary-button" onClick={() => setProcedureForm((value) => !value)}><Plus size={13} /> Novo</button></div>
                 <p className="profile-section-hint">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
+                {procedureForm ? <form className="profile-procedure-form" onSubmit={createProcedure}><label>Nome do procedimento<input value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder="Ex.: Documentação de contratação" autoFocus /></label><label>Descrição<textarea value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label><label>Etapas — uma por linha<textarea value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label><label>Prazo<input type="datetime-local" value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="calendar-modal-actions"><button type="button" className="secondary-button" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={procedureBusy}>{procedureBusy ? "Criando…" : "Criar procedimento"}</button></div></form> : null}
                 {procedures.map((procedure) => (
                   <article className="profile-procedure" key={procedure.id}>
                     <div className="profile-procedure-heading"><b>{procedure.title}</b><span>{procedure.progress}%</span></div>

@@ -489,7 +489,7 @@ export class ConversationsController {
   ) {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, handlingMode: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, status: true, handlingMode: true, departmentId: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") {
       throw new BadRequestException("Reabra a conversa antes de transferi-la para um atendente.");
@@ -506,7 +506,8 @@ export class ConversationsController {
         throw new BadRequestException("Atendente inválido para esta empresa.");
       }
     }
-    if(departmentId&&assigneeId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
+    const destinationDepartmentId = departmentId || conversation.departmentId;
+    if(assigneeId&&destinationDepartmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:destinationDepartmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
     const note = this.internalNoteText(input.note, true);
     const access = await this.accessWhere(request, view);
     const author = await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});

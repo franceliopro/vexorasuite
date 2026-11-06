@@ -5,7 +5,7 @@ import {documentDigits} from '../common/documents';
 import { formatDateBR } from '../common/date-format';
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import { Prisma, type ChannelConnection } from "@prisma/client";
+import { MessageStatus, Prisma, type ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
@@ -60,8 +60,15 @@ export class WahaWebhookController {
       if (!providerMessageId || !status) return { ok: true, ignored: true };
       const message = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, include: { conversation: { select: { id: true, channelConnectionId: true } } } });
       if (!message || message.conversation.channelConnectionId !== channel.id) return { ok: true, ignored: true };
-      const updated = await this.prisma.message.update({ where: { id: message.id }, data: { status } });
-      this.events.publish(channel.tenantId, "message.status", { conversationId: message.conversationId, messageId: updated.id, status: updated.status });
+      const previousStatuses: MessageStatus[] = status === "SENT"
+        ? [MessageStatus.QUEUED]
+        : status === "DELIVERED"
+          ? [MessageStatus.QUEUED, MessageStatus.SENT]
+          : [MessageStatus.QUEUED, MessageStatus.SENT, MessageStatus.DELIVERED];
+      const nextStatus = status as MessageStatus;
+      const updated = await this.prisma.message.updateMany({ where: { id: message.id, status: { in: previousStatuses } }, data: { status: nextStatus } });
+      if (!updated.count) return { ok: true, ignored: true, reason: "ACK_REGRESSION" };
+      this.events.publish(channel.tenantId, "message.status", { conversationId: message.conversationId, messageId: message.id, status: nextStatus });
       return { ok: true };
     }
 

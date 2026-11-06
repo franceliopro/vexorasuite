@@ -276,9 +276,23 @@ export class AsaasService {
       : paid
         ? { notIn: ["PAID", "CANCELLED"] }
         : { notIn: ["PAID", status] };
-    const changed = await this.prisma.payment.updateMany({
-      where: { id: existing.id, tenantId, status: statusGuard },
-      data: { status },
+    const changed = await this.prisma.$transaction(async tx => {
+      const result = await tx.payment.updateMany({
+        where: { id: existing.id, tenantId, status: statusGuard },
+        data: { status },
+      });
+      if (result.count) {
+        await tx.auditLog.create({
+          data: {
+            tenantId,
+            action: "payment.status_changed",
+            entityType: "payment",
+            entityId: existing.id,
+            details: { provider: "ASAAS", externalId, event, fromStatus: existing.status, toStatus: status, environment: existing.environment },
+          },
+        });
+      }
+      return result;
     });
     if (!changed.count) return null;
     const updated = await this.prisma.payment.findFirst({
@@ -668,4 +682,5 @@ export class AsaasService {
     };
   }
 }
+
 

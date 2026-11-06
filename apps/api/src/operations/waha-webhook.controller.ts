@@ -259,7 +259,11 @@ export class WahaWebhookController {
     const fallback = key.startsWith("COMERCIAL_") ? ["COMERCIAL"] : [];
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
     const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
-    await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+    await this.prisma.$transaction(async tx => {
+      const current = await tx.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { handlingMode: true, status: true } });
+      await tx.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: "conversation.guided_handoff", entityType: "conversation", entityId: conversationId, details: { fromHandlingMode: current?.handlingMode || "BOT", fromStatus: current?.status || null, toHandlingMode: "HUMAN", toStatus: "OPEN", sector: key, platform, destination: destination?.name || "Fila geral" } } });
+    });
     await this.recordGuidedHandoffContext(channel.tenantId, conversationId, key, platform, label, destination?.name || "Fila geral");
     if (destination?.id) await this.distribution.assign(channel.tenantId, conversationId, destination.id);
     this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: destination?.id ?? null, status: "OPEN" });
@@ -317,7 +321,10 @@ export class WahaWebhookController {
       const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
       const normalized = inboundText.trim().toLocaleLowerCase("pt-BR");
       if (!departments.length) {
-        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" } });
+        await this.prisma.$transaction(async tx => {
+          await tx.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" } });
+          await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: "conversation.guided_handoff", entityType: "conversation", entityId: conversationId, details: { fromHandlingMode: "BOT", toHandlingMode: "HUMAN", toStatus: "OPEN", destination: "Fila geral", reason: "no_active_department" } } });
+        });
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, "Obrigado pela mensagem! Vou encaminhar você para a fila geral de atendimento. Um atendente continuará por aqui. 🙌");
         return;
@@ -333,7 +340,10 @@ export class WahaWebhookController {
         ));
       const menu = `Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n${options}\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.`;
       if (chosen) {
-        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
+        await this.prisma.$transaction(async tx => {
+          await tx.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
+          await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: "conversation.guided_handoff", entityType: "conversation", entityId: conversationId, details: { fromHandlingMode: "BOT", toHandlingMode: "HUMAN", toStatus: "OPEN", destination: chosen.name, departmentId: chosen.id, reason: "guided_triage" } } });
+        });
         await this.distribution.assign(channel.tenantId, conversationId, chosen.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, `Certo! Estou encaminhando sua conversa para **${chosen.name}**. Um atendente continuará o atendimento por aqui. 🙌`);

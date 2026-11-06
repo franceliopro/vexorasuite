@@ -4,6 +4,7 @@ import { AsaasService } from "./asaas.service";
 describe("AsaasService customer synchronization", () => {
   function setup(existing: unknown[] = []) {
     const tx = {
+      auditLog: { create: jest.fn() },
       contact: {
         findMany: jest.fn().mockResolvedValue(existing),
         create: jest.fn().mockResolvedValue({ id: "new-contact" }),

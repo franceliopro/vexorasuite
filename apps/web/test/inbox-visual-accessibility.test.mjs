@@ -39,7 +39,7 @@ test("message history groups dates and exposes WhatsApp-style delivery ticks", (
 });
 
 test("message links are safe and remain readable inside bubbles", () => {
-  assert.match(inbox, /const MESSAGE_URL_PATTERN = \/);
+  assert.ok(inbox.includes("const MESSAGE_URL_PATTERN = /"));
   assert.match(inbox, /className="message-link" href=\{href\} target="_blank" rel="noopener noreferrer"/);
   assert.match(css, /\\.message-link\\{[^}]*overflow-wrap:anywhere/);
 });

@@ -45,9 +45,16 @@ test("chatbot flow serialization is memoized", () => {
 });
 
 const conversations = fs.readFileSync(new URL("../../api/src/operations/conversations.controller.ts", import.meta.url), "utf8");
+const wahaWebhook = fs.readFileSync(new URL("../../api/src/operations/waha-webhook.controller.ts", import.meta.url), "utf8");
 test("inbox list does not load unused participant graphs", () => {
   assert.match(conversations, /const rows = await this\.prisma\.conversation\.findMany/);
   assert.doesNotMatch(conversations, /messages: \{[\s\S]*participants: \{ include:/);
+});
+
+test("WhatsApp receipts never move backwards", () => {
+  assert.match(wahaWebhook, /const previousStatuses: MessageStatus\[\] = status === "SENT"/);
+  assert.match(wahaWebhook, /message\.updateMany\(\{ where: \{ id: message\.id, status: \{ in: previousStatuses \} \}/);
+  assert.match(wahaWebhook, /reason: "ACK_REGRESSION"/);
 });
 
 test("inbox does not keep a duplicate assignee loader", () => {

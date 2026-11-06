@@ -443,7 +443,7 @@ export class ContactsController {
     const rest = Object.fromEntries(Object.entries(existing).filter(([key]) => key !== "crmStage" && key !== "crmFinalization")) as Prisma.JsonObject;
     const finalizedAt = new Date().toISOString();
       const existingConversations = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id }, select: { id: true } });
-      const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true } });
+      const active = await tx.conversation.findMany({ where: { tenantId, contactId: contact.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null }, select: { id: true, status: true } });
       const finalizedConversationIds = [...new Set([...priorFinalizedIds, ...existingConversations.map((item) => item.id)])];
       const metadata: Prisma.InputJsonObject = {
         ...rest,
@@ -458,7 +458,19 @@ export class ContactsController {
         },
       };
       const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
-      if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: finalizedConversationIds }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+      if (active.length) {
+        await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: active.map((item) => item.id) }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+        await tx.auditLog.createMany({
+          data: active.map((conversation) => ({
+            tenantId,
+            userId: request.user.sub,
+            action: "conversation.status_changed",
+            entityType: "conversation",
+            entityId: conversation.id,
+            details: { from: conversation.status, to: "RESOLVED", reason: "contact.crm_finalized", contactId: contact.id, outcome },
+          })),
+        });
+      }
       await tx.auditLog.create({
         data: {
           tenantId,

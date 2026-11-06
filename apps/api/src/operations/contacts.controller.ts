@@ -370,9 +370,21 @@ export class ContactsController {
   async updateStage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { stage?: string }) {
     await contactPipelineAccess(this.prisma, request, id);
     if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida. Para finalizar, registre o resultado comercial.");
+    let previousStage: string | null = null;
     const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, metadata => {
       if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
+      previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
       return { ...metadata, crmStage: input.stage! };
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId: request.user.tenantId,
+        userId: request.user.sub,
+        action: "contact.stage_changed",
+        entityType: "contact",
+        entityId: updated.id,
+        details: { from: previousStage, to: input.stage },
+      },
     });
     this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, stage: input.stage });
     return { ...updated, crmStage: input.stage };
@@ -447,6 +459,16 @@ export class ContactsController {
       };
       const updatedContact = await tx.contact.update({ where: { id: contact.id }, data: { metadata } });
       if (active.length) await tx.conversation.updateMany({ where: { tenantId, contactId: contact.id, id: { in: finalizedConversationIds }, status: { in: ["OPEN", "PENDING"] } }, data: { status: "RESOLVED" } });
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          userId: request.user.sub,
+          action: "contact.crm_finalized",
+          entityType: "contact",
+          entityId: contact.id,
+          details: { outcome, ...(outcome === "LOST" ? { reason } : {}), finalizedConversationIds },
+        },
+      });
       return { contact: updatedContact, conversations: active.map((item) => item.id) };
     });
     const asaasSync = outcome === "WON" ? await this.asaas.syncCustomerByContact(tenantId, result.contact.id) : null;
@@ -478,4 +500,5 @@ export class ContactsController {
     return contact;
   }
 }
+
 

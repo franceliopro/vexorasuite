@@ -2,7 +2,7 @@ jest.mock("imapflow", () => ({ ImapFlow: jest.fn() }));
 jest.mock("../communications/security", () => ({ mailHost: jest.fn().mockResolvedValue("203.0.113.10") }));
 
 import { ImapFlow } from "imapflow";
-import { EmailMailboxService } from "./email-mailbox.service";
+import { EmailMailboxService, isValidEmailAddress } from "./email-mailbox.service";
 
 const ImapFlowMock = ImapFlow as unknown as jest.Mock;
 
@@ -90,5 +90,14 @@ describe("EmailMailboxService IMAP timeouts", () => {
         socketTimeout: 20_000,
       }),
     );
+  });
+});
+
+
+describe("email address validation", () => {
+  it("rejects whitespace and accepts a normal mailbox address", () => {
+    expect(isValidEmailAddress("finance inbox@example.com")).toBe(false);
+    expect(isValidEmailAddress("finance\t@example.com")).toBe(false);
+    expect(isValidEmailAddress("finance@example.com")).toBe(true);
   });
 });

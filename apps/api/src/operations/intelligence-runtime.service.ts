@@ -260,8 +260,15 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       let tokensUsed = 0;
       let model: string | null = null;
       const handoff = async (key?: string,userId?:string) => {
+        // An inbox configured for automation has a deterministic human fallback.
+        // Audio, explicit "atendente" requests, and unsupported inputs must not
+        // lose the configured department and fall into the general queue.
+        const routingDepartmentId = !key && !userId && entry.mode === "AUTOMATION" ? entry.departmentId : null;
+        const routingUserId = !key && !userId && entry.mode === "AUTOMATION" && entry.targetType === "USER" ? entry.targetId : null;
         let department = key ? await tx.department.findFirst({ where: { tenantId: channel.tenantId, key, isActive: true } }) : null;
+        if (!department && routingDepartmentId) department = await tx.department.findFirst({ where: { tenantId: channel.tenantId, id: routingDepartmentId, isActive: true } });
         let target = userId ? await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId,user:{isActive:true}},select:{userId:true,knownBy:true,user:{select:{name:true}}}}) : null;
+        if (!target && routingUserId) target = await tx.membership.findFirst({where:{tenantId:channel.tenantId,userId:routingUserId,user:{isActive:true}},select:{userId:true,knownBy:true,user:{select:{name:true}}}});
         const belongs = target&&department ? await tx.departmentMember.findFirst({where:{tenantId:channel.tenantId,departmentId:department.id,userId:target.userId},select:{id:true}}) : true;
         if((key&&!department)||(userId&&(!target||!belongs))){reason='handoff_target_unavailable';department=null;target=null;}
         human = true; departmentId = department?.id ?? null; assigneeId=target?.userId??null;

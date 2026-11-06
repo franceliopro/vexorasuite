@@ -158,3 +158,13 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 
 Este painel não declara que um item está pronto apenas porque existe uma tela ou uma função no código. O aceite exige a evidência indicada em cada seção.
 
+
+
+## Auditoria de ciclo de atendimento — 05/11/2026
+
+- [x] Transbordo para humano preserva contexto interno estruturado, sem envio ao cliente.
+- [x] Protocolo do atendimento permanece estável por conversa.
+- [x] Mudança de status registra auditoria com status anterior, novo status e contato relacionado.
+- [x] Retorno do atendimento ao bot registra auditoria explícita.
+- [x] Testes automatizados dos dois ciclos publicados e aprovados (2 cenários).
+- [x] Deploy no Dokploy concluído sem erro nos commits 270d57f e d3bce1b.

@@ -169,7 +169,8 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               <label>
                 Nome
                 <input
-                  required
+                  required={!editingId}
+                  disabled={!!editingId}
                   maxLength={160}
                   value={form.name}
                   onChange={(e) =>
@@ -182,7 +183,8 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 E-mail de acesso
                 <input
                   type="email"
-                  required
+                  required={!editingId}
+                  disabled={!!editingId}
                   autoComplete="off"
                   value={form.email}
                   onChange={(e) =>

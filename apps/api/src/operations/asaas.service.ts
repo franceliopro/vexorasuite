@@ -14,6 +14,9 @@ function mergedCustomerMetadata(customer: Record<string, string | null>): Record
 export class AsaasService {
   private readonly logger = new Logger(AsaasService.name);
   constructor(private readonly prisma: PrismaService) {}
+  private async auditCustomerSync(tenantId: string, contactId: string, action: string, details: Prisma.InputJsonObject) {
+    await this.prisma.auditLog.create({ data: { tenantId, action, entityType: "contact", entityId: contactId, details } });
+  }
 
   private encryptionKey(): Buffer {
     const secret = process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET;
@@ -333,6 +336,7 @@ export class AsaasService {
           asaasSync: { ...metadataOf(latestMetadata.asaasSync), status: "PENDING", lastAttemptAt: new Date().toISOString(), lastError: message },
         } as Prisma.InputJsonObject },
       });
+      await this.auditCustomerSync(tenantId, contactId, "payment.customer_sync_pending", { status: "PENDING", message });
       return { status: "PENDING" as const, message };
     };
 
@@ -349,6 +353,7 @@ export class AsaasService {
             asaasSync: { ...existingSync, status: "SYNCED", environment, lastError: null, syncedAt: new Date().toISOString() },
           } as Prisma.InputJsonObject },
         });
+        await this.auditCustomerSync(tenantId, contactId, "payment.customer_sync_succeeded", { status: "SYNCED", customerId: existingAsaas.customerId, environment, source: "existing" });
         return { status: "SYNCED", customerId: existingAsaas.customerId };
       }
 
@@ -413,6 +418,7 @@ export class AsaasService {
           asaasSync: { ...metadataOf(latestMetadata.asaasSync), status: "SYNCED", environment, lastError: null, syncedAt },
         } as Prisma.InputJsonObject },
       });
+      await this.auditCustomerSync(tenantId, contactId, "payment.customer_sync_succeeded", { status: "SYNCED", customerId: remote.id, environment, source: matches.length === 1 ? "ASAAS_MATCH" : "VEXORA" });
       return { status: "SYNCED", customerId: remote.id };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao sincronizar cliente com o Asaas.";

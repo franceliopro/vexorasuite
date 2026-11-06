@@ -333,6 +333,11 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; url: string; mimetype: string } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  useEffect(() => () => {
+    recordingStreamRef.current = null;
+    if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
+  }, []);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [composerTextHeight, setComposerTextHeight] = useState(34);
   useEffect(() => {
@@ -814,6 +819,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       setError("A gravação de áudio não está disponível neste navegador."); return;
     }
     void navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      recordingStreamRef.current = stream;
       const mime = ["audio/ogg;codecs=opus", "audio/webm;codecs=opus", "audio/webm"].find(type => MediaRecorder.isTypeSupported(type));
       const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       recordingChunksRef.current = [];
@@ -821,9 +827,10 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       recorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        if (blob.size) void sendRecordedBlob(blob);
+        if (recordingStreamRef.current === stream && blob.size) void sendRecordedBlob(blob);
+        if (recordingStreamRef.current === stream) recordingStreamRef.current = null;
       };
-      recorder.onerror = () => { stream.getTracks().forEach(track => track.stop()); setListening(false); setError("Não foi possível concluir a gravação."); };
+      recorder.onerror = () => { stream.getTracks().forEach(track => track.stop()); recordingStreamRef.current = null; setListening(false); setError("Não foi possível concluir a gravação."); };
       recorderRef.current = recorder; recorder.start(); setListening(true);
     }).catch(() => setError("Permita o acesso ao microfone para gravar um áudio."));
   }

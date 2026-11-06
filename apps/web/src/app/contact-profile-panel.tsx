@@ -15,6 +15,7 @@ import {
   Tag,
   UserRound,
   X,
+  CheckCircle2,
 } from "lucide-react";
 
 type ContactProfileData = {
@@ -48,6 +49,8 @@ type ProfileFieldDef = {
   options: string[];
 };
 type ContactIdentity = { id: string; provider: string; externalId: string; phone?: string | null; displayName?: string | null; firstSeenAt: string; lastSeenAt: string; revokedAt?: string | null };
+type ProcedureStep = { id: string; label: string; done: boolean };
+type Procedure = { id: string; title: string; description: string; status: string; progress: number; steps: ProcedureStep[]; dueAt?: string | null };
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -73,7 +76,7 @@ export function ContactProfilePanel({
   displayName?: string;
   onExpandedChange: (expanded: boolean) => void;
 }) {
-  const [tab, setTab] = useState<"dados" | "notas" | "protocolos">("dados");
+  const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [notes, setNotes] = useState("");
@@ -93,6 +96,8 @@ export function ContactProfilePanel({
   const [identityExternalId, setIdentityExternalId] = useState("");
   const [identityPhone, setIdentityPhone] = useState("");
   const [identitySaving, setIdentitySaving] = useState(false);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [procedureBusy, setProcedureBusy] = useState(false);
   useEffect(() => {
     const meta = contact.metadata || {};
     setTags(
@@ -145,6 +150,13 @@ export function ContactProfilePanel({
     setLeadOriginId(typeof lead?.identifier === "string" ? lead.identifier : "");
     setTab("dados");
     setError("");
+  }, [contact.id]);
+  useEffect(() => {
+    let live = true;
+    void request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id))
+      .then((items) => { if (live) setProcedures(items || []); })
+      .catch(() => { if (live) setProcedures([]); });
+    return () => { live = false; };
   }, [contact.id]);
   useEffect(() => {
     let live = true;
@@ -259,6 +271,15 @@ export function ContactProfilePanel({
       setError(e instanceof Error ? e.message : "Não foi possível vincular o novo número.");
     } finally { setIdentitySaving(false); }
   }
+  async function toggleProcedure(procedure: Procedure, step: ProcedureStep) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/steps/" + step.id, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: !step.done }) });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
   const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const statusLabel = (value: string) =>
     ({ OPEN: "Em atendimento", PENDING: "Pendente", RESOLVED: "Finalizado", CLOSED: "Encerrado" })[
@@ -367,6 +388,7 @@ export function ContactProfilePanel({
             >
               Protocolos
             </button>
+            <button type="button" className={tab === "procedimentos" ? "active" : ""} onClick={() => setTab("procedimentos")}>Procedimentos</button>
           </nav>
           <div className="contact-profile-body">
             {tab === "dados" ? (
@@ -641,6 +663,21 @@ export function ContactProfilePanel({
                   </div>
                 ))}
                 {!history.length ? <p>Nenhuma conversa registrada para este contato.</p> : null}
+              </section>
+            ) : null}
+            {tab === "procedimentos" ? (
+              <section className="profile-section">
+                <strong><CheckCircle2 size={14} /> Procedimentos do cliente</strong>
+                <p className="profile-section-hint">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
+                {procedures.map((procedure) => (
+                  <article className="profile-procedure" key={procedure.id}>
+                    <div className="profile-procedure-heading"><b>{procedure.title}</b><span>{procedure.progress}%</span></div>
+                    {procedure.description ? <p>{procedure.description}</p> : null}
+                    <div className="profile-procedure-progress"><span style={{ width: procedure.progress + "%" }} /></div>
+                    <div className="profile-procedure-steps">{procedure.steps.map((step) => <label key={step.id}><input type="checkbox" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
+                  </article>
+                ))}
+                {!procedures.length ? <p>Nenhum procedimento personalizado registrado para este cliente.</p> : null}
               </section>
             ) : null}
           </div>

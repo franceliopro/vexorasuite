@@ -404,6 +404,7 @@ export class ContactsController {
       if (!contact) throw new BadRequestException("Contato não encontrado nesta empresa.");
       if (contact.pipelineId !== pipelineId) throw new BadRequestException("O contato mudou de pipeline. Atualize a tela e tente novamente.");
       const metadata = contactMetadata(contact.metadata);
+      const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
       const nextMetadata: Prisma.InputJsonObject = {
         ...metadata,
         crmRemoved: {
@@ -412,10 +413,21 @@ export class ContactsController {
           removedAt: new Date().toISOString(),
         },
       };
-      return tx.contact.update({
+      const updated = await tx.contact.update({
         where: { id: contact.id },
         data: { pipelineId: null, metadata: nextMetadata },
       });
+      await tx.auditLog.create({
+        data: {
+          tenantId: request.user.tenantId,
+          userId: request.user.sub,
+          action: "contact.removed_from_pipeline",
+          entityType: "contact",
+          entityId: contact.id,
+          details: { pipelineId, previousStage },
+        },
+      });
+      return updated;
     });
     this.events.publish(request.user.tenantId, "contact.removed_from_pipeline", { id: result.id, pipelineId });
     return result;

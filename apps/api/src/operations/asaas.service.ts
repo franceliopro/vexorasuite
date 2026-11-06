@@ -508,7 +508,7 @@ export class AsaasService {
       if (phone.startsWith("55") && (phone.length === 12 || phone.length === 13)) phone = phone.slice(2);
       return phone.length === 11 && phone[2] === "9" ? phone.slice(0, 2) + phone.slice(3) : phone;
     };
-    const counters = { created: 0, updated: 0, unchanged: 0, notListed: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
+    const counters = { created: 0, updated: 0, unchanged: 0, ambiguous: 0, notListed: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
 
     // Load the tenant's contacts once; a query per imported customer would become quadratic.
     const tenantContacts = await this.prisma.contact.findMany({
@@ -560,6 +560,11 @@ export class AsaasService {
           if (byEmail.length === 1) matches = byEmail;
         }
 
+        if (matches.length > 1) {
+          await tx.auditLog.create({ data: { tenantId, action: "payment.customer_reconciliation_ambiguous", entityType: "asaas_customer", entityId: customer.id, details: { candidateContactIds: matches.map((contact) => contact.id), environment: counters.environment } } });
+          counters.ambiguous++;
+          return;
+        }
         if (matches.length === 1) {
           const existing = matches[0];
           if (!existing) throw new ServiceUnavailableException("Não foi possível reconciliar o cadastro Asaas com segurança.");
@@ -590,6 +595,7 @@ export class AsaasService {
             },
             select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
           });
+          await tx.auditLog.create({ data: { tenantId, action: "payment.customer_reconciled", entityType: "contact", entityId: updated.id, details: { customerId: customer.id, environment: counters.environment, mode: "updated" } } });
           Object.assign(existing, updated);
           counters.updated++;
           return;
@@ -614,6 +620,7 @@ export class AsaasService {
           },
           select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
         });
+        await tx.auditLog.create({ data: { tenantId, action: "payment.customer_reconciled", entityType: "contact", entityId: created.id, details: { customerId: customer.id, environment: counters.environment, mode: "created" } } });
         tenantContacts.push(created);
         counters.created++;
       });

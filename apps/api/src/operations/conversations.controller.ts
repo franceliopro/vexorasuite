@@ -840,7 +840,11 @@ export class ConversationsController {
   @Post(":id/archive")
   async archive(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
-    const updated = await this.prisma.conversation.update({ where: { id }, data: { archivedAt: new Date() } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id }, data: { archivedAt: new Date() } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.archived", entityType: "conversation", entityId: id, details: {} } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: updated.archivedAt });
     return updated;
   }
@@ -851,7 +855,11 @@ export class ConversationsController {
     const existing = await this.prisma.conversation.findFirst({ where: { id, tenantId: request.user.tenantId }, include: { contact: { select: { metadata: true } } } });
     if (!existing) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     if (isFinalizedConversation(existing.contact.metadata, existing.id)) throw new BadRequestException("Este atendimento foi finalizado comercialmente e não pode voltar à fila.");
-    const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { archivedAt: null, deletedAt: null, status: "OPEN" } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { archivedAt: null, deletedAt: null, status: "OPEN" } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.restored", entityType: "conversation", entityId: id, details: { fromStatus: existing.status, toStatus: "OPEN" } } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, archivedAt: null, deletedAt: null, status: updated.status });
     return updated;
   }
@@ -859,7 +867,11 @@ export class ConversationsController {
   @Post(":id/trash")
   async trash(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
-    const updated = await this.prisma.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { deletedAt: new Date() } });
+    const updated = await this.prisma.$transaction(async tx => {
+      const next = await tx.conversation.update({ where: { id, tenantId: request.user.tenantId }, data: { deletedAt: new Date() } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.trashed", entityType: "conversation", entityId: id, details: {} } });
+      return next;
+    });
     this.events.publish(request.user.tenantId, "conversation.updated", { id, deletedAt: updated.deletedAt });
     return updated;
   }

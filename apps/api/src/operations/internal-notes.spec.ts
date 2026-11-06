@@ -89,3 +89,17 @@ describe("conversation lifecycle audit: archive and recovery", () => {
     expect(tx.auditLog.create.mock.calls.map((call: any[]) => call[0].data.action)).toEqual(["conversation.archived", "conversation.restored", "conversation.trashed"]);
   });
 });
+
+
+describe("conversation collaboration audit", () => {
+  it("audits assume, assign and invite actions", async () => {
+    const request: any = { user: { tenantId: "tenant", sub: "agent", role: "OWNER" } };
+    const tx: any = { conversation: { updateMany: jest.fn().mockResolvedValue({ count: 1 }), update: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN" }) }, conversationParticipant: { upsert: jest.fn().mockResolvedValue({ id: "participant" }) }, auditLog: { create: jest.fn() } };
+    const prisma: any = { conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", assigneeId: null, departmentId: null, contact: { metadata: {} } }) }, membership: { findFirst: jest.fn().mockResolvedValue({ id: "membership" }) }, $transaction: jest.fn((fn: any) => fn(tx)) };
+    const controller = new ConversationsController(prisma, { publish: jest.fn() } as any, {} as any, {} as any);
+    await controller.assume(request, "conversation");
+    await controller.assign(request, "conversation", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    await controller.invite(request, "conversation", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(tx.auditLog.create.mock.calls.map((call: any[]) => call[0].data.action)).toEqual(["conversation.assumed", "conversation.assigned", "conversation.participant_invited"]);
+  });
+});

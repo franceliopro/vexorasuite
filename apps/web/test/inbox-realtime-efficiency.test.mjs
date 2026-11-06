@@ -46,3 +46,10 @@ test("inbox list does not load unused participant graphs", () => {
 test("inbox does not keep a duplicate assignee loader", () => {
   assert.doesNotMatch(source, /setAssignees|loadAssignees/);
 });
+
+test("conversation load failures stop loading and expose a retry", () => {
+  assert.match(source, /const \\[conversationLoadError, setConversationLoadError\\] = useState\\(""\\)/);
+  assert.match(source, /setConversationLoadError\\(e instanceof Error \\? e\\.message : "Falha ao carregar conversas\\."\\)/);
+  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /onClick=\\{\\(\\) => void loadConversations\\(\\)\\}/);
+});

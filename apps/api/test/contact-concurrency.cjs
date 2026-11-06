@@ -12,7 +12,8 @@ async function main() {
   const prisma = new PrismaClient();
   const tenant = await prisma.tenant.create({ data: { name: 'Concurrency regression', slug: 'ci-' + randomUUID() } });
   const controller = new ContactsController(prisma, { publish() {} }, { syncCustomerByContact() { throw Error('No external calls allowed'); } });
-  const req = { user: { tenantId: tenant.id, sub: randomUUID(), role: 'OWNER' } };
+  const user = await prisma.user.create({ data: { email: 'ci-' + randomUUID() + '@example.test', passwordHash: 'not-a-real-hash', name: 'Concurrency actor' } });
+  const req = { user: { tenantId: tenant.id, sub: user.id, role: 'OWNER' } };
   try {
     const contact = await prisma.contact.create({ data: { tenantId: tenant.id, name: 'Test contact', metadata: {} } });
     for (let run = 0; run < 10; run++) {
@@ -47,6 +48,7 @@ async function main() {
     console.log('PostgreSQL: concurrent profile/tag edits, tenant isolation and finalization race passed');
   } finally {
     await prisma.tenant.delete({ where: { id: tenant.id } });
+    await prisma.user.delete({ where: { id: user.id } });
     await prisma.$disconnect();
   }
 }

@@ -65,12 +65,14 @@ export class AuthService {
    * to discover which e-mails have an account. Delivery problems are logged by MailService and
    * never reported here.
    */
-  async requestPasswordReset(input: { email: string; tenantSlug?: string }): Promise<{ accepted: true }> {
+  async requestPasswordReset(input: { email: string; tenantSlug?: string }, sourceAddress = "unknown"): Promise<{ accepted: true }> {
     this.secret();
     const email = input.email.trim().toLowerCase();
-    const throttleKey = `reset:${email}`;
-    await this.throttle.assertAllowed(throttleKey);
-    await this.throttle.recordFailure(throttleKey);
+    // Enforce both dimensions: an attacker cannot invalidate a user's mailbox recovery flow by
+    // rotating IPs, and one origin cannot flood every account. The response stays anonymous-safe.
+    const throttleKeys = [`reset:email:${email}`, `reset:ip:${sourceAddress.slice(0, 120)}`];
+    for (const key of throttleKeys) await this.throttle.assertAllowed(key);
+    for (const key of throttleKeys) await this.throttle.recordFailure(key);
 
     const slug = input.tenantSlug?.trim().toLowerCase();
     const user = await this.prisma.user.findFirst({

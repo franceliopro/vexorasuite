@@ -389,9 +389,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const olderMessagesInFlight = useRef(false);
 
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (showLoading = true) => {
     const request=++conversationRequest.current;
-    setConversationsLoading(true);
+    if (showLoading) setConversationsLoading(true);
     setConversationLoadError("");
     try {
       const rows = await api<Conversation[]>("/api/backend/conversations?view=" + queueView);
@@ -442,9 +442,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       }
     }).catch(() => {});
   }, [loadSupervision]);
-  const loadMessages = useCallback(async (id: string) => {
+  const loadMessages = useCallback(async (id: string, showLoading = true) => {
     const request = ++messageRequest.current;
-    setMessagesLoading(true);
+    if (showLoading) setMessagesLoading(true);
     setMessageLoadError("");
     try {
       const rows = await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView + "&limit=100");
@@ -563,8 +563,8 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     let realtimeOnline = false;
     const refreshFallback = () => {
       if (realtimeOnline || document.visibilityState !== "visible") return;
-      void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision();
-      if (selectedRef.current) void loadMessages(selectedRef.current);
+      void loadConversations(false); void loadQueueCounts(); void loadChannels(); void loadSupervision();
+      if (selectedRef.current) void loadMessages(selectedRef.current, false);
     };
     const markOnline = () => { realtimeOnline = true; };
     const markOffline = () => { realtimeOnline = false; };
@@ -588,11 +588,11 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       if (refreshInFlight) return;
       refreshInFlight = true;
       void Promise.all([
-        loadConversations(),
+        loadConversations(false),
         loadQueueCounts(),
         loadChannels(),
         loadSupervision(),
-        selectedRef.current ? loadMessages(selectedRef.current) : Promise.resolve(),
+        selectedRef.current ? loadMessages(selectedRef.current, false) : Promise.resolve(),
       ]).finally(() => { refreshInFlight = false; });
     };
     // A busy tenant can emit several related events for one user action. Coalesce them so
@@ -1022,7 +1022,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     <div className="inbox-thread content-card">
       {selected ? <>
         {copilotOpen&&<InboxCopilot key={selected.id+":"+(copilotMessage?.id||"draft")} conversationId={selected.id} view={queueView} draft={draft} message={copilotMessage?{id:copilotMessage.id,content:copilotMessage.content}:undefined} onUse={setDraft} onClose={()=>{setCopilotOpen(false);setCopilotMessage(null);}} onNote={()=>{void loadMessages(selected.id);}} onSend={async text=>{await api("/api/backend/conversations/"+selected.id+"/messages?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content:text})});setDraft("");await loadMessages(selected.id);await loadConversations();}}/>}
-        <header className="thread-heading"><button type="button" className="thread-icon-action" title={fullScreen?"Sair da tela cheia (Esc)":"Tela cheia"} aria-label={fullScreen?"Sair da tela cheia":"Tela cheia"} onClick={()=>setFullScreen(v=>!v)}>{fullScreen?<Minimize2 size={17} aria-hidden="true"/>:<Maximize2 size={17} aria-hidden="true"/>}</button><button type="button" className="mobile-inbox-back" aria-label="Voltar às conversas" onClick={() => setMobileThreadOpen(false)}><ArrowLeft size={18}/><span>Conversas</span></button><ContactAvatar contact={selected.contact}/><div className="thread-contact"><h2 title={selected.contact.name}>{contactDisplayName(selected.contact,selected.botState)}</h2>{selected.assignee&&<strong className="attendant-identity">{selected.assignee.name}{selected.department?" · "+selected.department.name:""}</strong>}{serviceProtocol?<small className="thread-protocol" title="Protocolo do atendimento">Protocolo {serviceProtocol.code}</small>:null}</div><details className="thread-actions-menu"><summary className="thread-actions-trigger" aria-label="Ações da conversa" title="Ações da conversa"><MoreHorizontal size={21} aria-hidden="true"/></summary><div className="thread-actions">{!contactProfileExpanded ? <button type="button" className="thread-icon-action profile-restore-action" aria-label="Reabrir ficha do contato" title="Reabrir ficha do contato" onClick={()=>setContactProfileExpanded(true)}><UserRound size={18}/></button> : null}{!selected.assignee ? <button type="button" aria-label="Assumir conversa" className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
+        <header className="thread-heading"><button type="button" className="thread-icon-action" title={fullScreen?"Sair da tela cheia (Esc)":"Tela cheia"} aria-label={fullScreen?"Sair da tela cheia":"Tela cheia"} onClick={()=>setFullScreen(v=>!v)}>{fullScreen?<Minimize2 size={17} aria-hidden="true"/>:<Maximize2 size={17} aria-hidden="true"/>}</button><button type="button" className="mobile-inbox-back" aria-label="Voltar às conversas" onClick={() => setMobileThreadOpen(false)}><ArrowLeft size={18}/><span>Conversas</span></button><ContactAvatar contact={selected.contact}/><div className="thread-contact"><h2 title={selected.contact.name}>{contactDisplayName(selected.contact,selected.botState)}</h2>{selected.assignee&&<strong className="attendant-identity">{selected.assignee.name}{selected.department?" · "+selected.department.name:""}</strong>}{serviceProtocol?<small className="thread-protocol" title="Protocolo do atendimento">Protocolo {serviceProtocol.code}</small>:null}</div><details className="thread-actions-menu"><summary className="thread-actions-trigger" aria-label="Ações da conversa" title="Ações da conversa"><MoreHorizontal size={21} aria-hidden="true"/></summary><div className="thread-actions">{!contactProfileExpanded ? <button type="button" className="thread-icon-action profile-restore-action" aria-label="Reabrir ficha do contato" title="Reabrir ficha do contato" onClick={()=>setContactProfileExpanded(true)}><UserRound size={18}/></button> : null}{selected.handlingMode === "HUMAN" ? <button type="button" aria-label="Devolver ao chatbot" className="thread-action-button" onClick={() => void returnToBot()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Devolver ao chatbot"><Bot size={15} aria-hidden="true" /></button> : null}{!selected.assignee ? <button type="button" aria-label="Assumir conversa" className="thread-action-button" onClick={() => void assumeConversation()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Assumir esta conversa"><UserRound size={15} aria-hidden="true" /></button> : null}<div className="handoff-toolbar" aria-label="Direcionamento da conversa">
           <details className="handoff-menu">
             <summary className="handoff-invite-trigger handoff-direct-trigger" aria-label="Direcionar conversa" title="Direcionar conversa">
               <ArrowRightLeft size={18} aria-hidden="true"/>
@@ -1048,7 +1048,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
               {!agents.length?<p className="handoff-empty">Nenhum atendente disponível.</p>:null}
             </div>
           </details>
-        </div>{selected.status === "RESOLVED" ? <button type="button" aria-label="Reabrir conversa" className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={18} aria-hidden="true" /></button> : selected.status !== "CLOSED" ? <button type="button" aria-label="Finalizar atendimento" className="thread-action-button resolve" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento"><CheckCircle2 size={18} aria-hidden="true" /></button> : null}<div className="thread-rare-actions">{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action" aria-label="Restaurar" title="Restaurar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={16}/></button> : <><button type="button" className="thread-icon-action" aria-label="Arquivar" title="Arquivar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={16}/></button><button type="button" className="thread-icon-action danger-text" aria-label="Mover para lixeira" title="Mover para lixeira" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={16}/></button></>}</div></div></details></header>
+        </div>{selected.status === "RESOLVED" ? <button type="button" aria-label="Reabrir conversa" className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={18} aria-hidden="true" /></button> : selected.status !== "CLOSED" ? <button type="button" aria-label="Finalizar atendimento" className="thread-action-button resolve" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento"><CheckCircle2 size={18} aria-hidden="true" /></button> : null}<div className="thread-rare-actions">{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action" aria-label="Restaurar" title="Restaurar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={16}/></button> : <><button type="button" className="thread-icon-action" aria-label="Arquivar" title="Arquivar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={16}/></button><button type="button" className="thread-icon-action danger-text" aria-label="Mover para lixeira" title="Mover para a lixeira" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={16}/></button></>}</div></div></details></header>
         {selected.channel!=='WHATSAPP'&&<WhatsappBridge conversationId={selected.id} view={queueView} onOpen={id=>{notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}/>}
         {channels.filter(c=>c.provider==='WAHA'&&(c.status!=='CONNECTED'||!c.healthCheckedAt||Date.now()-Date.parse(c.healthCheckedAt)>90000)).map(c=><div className="channel-health-warning" role="alert" key={c.id}><strong>{c.name}: {c.status==='CONNECTED'?'verificação desatualizada':c.status==='UNKNOWN'?'conexão não verificada':'WhatsApp desconectado ou aguardando conexão'}</strong><span>{c.lastError||'Mensagens podem não ser recebidas nem respondidas.'} Última verificação: {c.healthCheckedAt?new Date(c.healthCheckedAt).toLocaleTimeString('pt-BR'):'ainda não realizada'}.</span><a href="/?module=Canais%20e%20integra%C3%A7%C3%B5es">Ver conexões</a></div>)}<div className="thread-messages" ref={threadScrollRef} onScroll={e=>{const el=e.currentTarget;threadPinnedRef.current=el.scrollHeight-el.scrollTop-el.clientHeight<110}}>
           {hasOlderMessages&&<button type="button" className="text-button load-older-messages" disabled={olderMessagesLoading} onClick={()=>void loadOlderMessages()}>{olderMessagesLoading ? "Carregando mensagens anteriores…" : "Carregar mensagens anteriores"}</button>}

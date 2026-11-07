@@ -11,6 +11,7 @@ export interface SmtpConfig {
   secure: boolean;
   user?: string;
   password?: string;
+  accessToken?: string;
   from: string;
   fromName?: string;
   replyTo?: string;
@@ -37,7 +38,7 @@ export class SmtpMailTransport implements MailTransport {
       ...(config.tlsServername ? { tls: { servername: config.tlsServername } } : {}),
       port: config.port,
       secure: config.secure,
-      auth: config.user ? { user: config.user, pass: config.password ?? "" } : undefined,
+      auth: config.user ? config.accessToken ? { type: "OAuth2", user: config.user, accessToken: config.accessToken } : { user: config.user, pass: config.password ?? "" } : undefined,
       pool: true,
       maxConnections: 3,
       connectionTimeout: 10_000,

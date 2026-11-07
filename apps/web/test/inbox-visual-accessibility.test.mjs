@@ -17,6 +17,12 @@ test("handoff controls have explicit accessible names", () => {
   assert.match(inbox, /className="handoff-invite-trigger" aria-label="Convidar atendente"/);
 });
 
+test("human conversations expose the return-to-chatbot action", () => {
+  assert.match(inbox, /selected\.handlingMode === "HUMAN"/);
+  assert.match(inbox, /aria-label="Devolver ao chatbot"/);
+  assert.match(inbox, /\/return-to-bot\?view=/);
+});
+
 test("tablet inbox uses two columns and a dedicated profile row", () => {
   assert.match(css, /@media \(min-width: 761px\) and \(max-width: 980px\) \{[\s\S]*?\.main-area:has\(\.inbox-workspace\) \.inbox-workspace \{[\s\S]*?grid-template-columns: minmax\(220px, 280px\) minmax\(0, 1fr\);[\s\S]*?grid-template-rows: minmax\(0, 1fr\) 220px;/);
   assert.match(css, /@media \(min-width: 761px\) and \(max-width: 980px\) \{[\s\S]*?\.main-area:has\(\.inbox-workspace\) \.contact-profile\.content-card \{[\s\S]*?grid-column: 1 \/ -1;/);
@@ -39,7 +45,7 @@ test("message history groups dates and exposes WhatsApp-style delivery ticks", (
 });
 
 test("message links are safe and remain readable inside bubbles", () => {
-  assert.match(inbox, /const MESSAGE_URL_PATTERN = \/);
+  assert.ok(inbox.includes("const MESSAGE_URL_PATTERN = /"));
   assert.match(inbox, /className="message-link" href=\{href\} target="_blank" rel="noopener noreferrer"/);
-  assert.match(css, /\\.message-link\\{[^}]*overflow-wrap:anywhere/);
+  assert.match(css, /\.message-link\{[^}]*overflow-wrap:anywhere/);
 });

@@ -173,7 +173,7 @@ export class TeamController {
   this.admin(req);
   const name=typeof input?.name==='string'?input.name.trim():'';
   const email=typeof input?.email==='string'?input.email.trim().toLowerCase():'';
-  if(name.length<2||name.length>160||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException('Informe nome e e-mail válidos.');
+  if(name.length<2||name.length>160||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new BadRequestException('Informe nome e e-mail válidos.');
   await this.prisma.$transaction(async tx=>{
     await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
     const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});

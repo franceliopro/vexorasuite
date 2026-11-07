@@ -367,7 +367,9 @@ model EmailMailbox {
   imapPort              Int               @default(993) @map("imap_port")
   imapSecure            Boolean           @default(true) @map("imap_secure")
   imapUser              String            @map("imap_user")
-  imapPasswordEncrypted String            @map("imap_password_encrypted")
+  imapPasswordEncrypted String?           @map("imap_password_encrypted")
+  authMode              String            @default("PASSWORD") @map("auth_mode")
+  googleConnectionId    String?           @map("google_connection_id") @db.Uuid
   imapMailbox           String            @default("INBOX") @map("imap_mailbox")
   smtpHost              String?           @map("smtp_host")
   smtpPort              Int?              @map("smtp_port")
@@ -385,9 +387,11 @@ model EmailMailbox {
   updatedAt             DateTime          @updatedAt @map("updated_at")
   tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   channelConnection     ChannelConnection @relation(fields: [channelConnectionId], references: [id], onDelete: Cascade)
+  googleConnection      GoogleConnection? @relation(fields: [googleConnectionId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, address])
   @@index([tenantId, status])
+  @@index([tenantId, googleConnectionId])
   @@map("email_mailboxes")
 }
 
@@ -441,6 +445,7 @@ model GoogleOAuthAttempt {
 
 model GoogleConnection {
   creativeReferences    CreativeReference[]
+  emailMailboxes        EmailMailbox[]
   id                    String              @id @default(uuid()) @db.Uuid
   tenantId              String              @map("tenant_id") @db.Uuid
   googleAccountId       String              @map("google_account_id")

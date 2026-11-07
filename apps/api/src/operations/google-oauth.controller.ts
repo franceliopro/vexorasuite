@@ -11,6 +11,7 @@ const scopes: Record<string, string[]> = {
   drive: ["openid", "email", "profile", "https://www.googleapis.com/auth/drive.file"],
   "drive-library": ["openid", "email", "profile", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.readonly"],
   "drive-manager": ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"],
+  gmail: ["openid", "email", "profile", "https://mail.google.com/"],
 };
 @Controller("integrations/google")
 export class GoogleOAuthController {
@@ -112,7 +113,7 @@ export class GoogleOAuthController {
   @UseGuards(AuthGuard)
   async disconnectService(@Req() req:AuthenticatedRequest,@Param("id") id:string,@Param("service") service:string){
     if(!["OWNER","ADMIN"].includes(req.user.role))throw new ForbiddenException("Apenas administradores podem gerenciar Google.");
-    if(!["calendar","drive"].includes(service))throw new BadRequestException("Serviço inválido.");
+    if(!["calendar","drive","gmail"].includes(service))throw new BadRequestException("Serviço inválido.");
     const row=await this.prisma.googleConnection.findFirst({where:{id,tenantId:req.user.tenantId}});
     if(!row)throw new BadRequestException("Conexão não encontrada.");
     await this.prisma.googleConnection.update({where:{id},data:{disabledServices:{set:Array.from(new Set([...row.disabledServices,service]))}}});
@@ -122,7 +123,7 @@ export class GoogleOAuthController {
   @UseGuards(AuthGuard)
   async forgetService(@Req() req:AuthenticatedRequest,@Param('id') id:string,@Param('service') service:string){
     if(!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException();
-    if(!['calendar','drive'].includes(service))throw new BadRequestException('Serviço inválido.');
+    if(!['calendar','drive','gmail'].includes(service))throw new BadRequestException('Serviço inválido.');
     await this.prisma.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM google_connections WHERE id=${id}::uuid AND tenant_id=${req.user.tenantId}::uuid FOR UPDATE`;
       const row=await tx.googleConnection.findFirst({where:{id,tenantId:req.user.tenantId}});
@@ -136,7 +137,7 @@ export class GoogleOAuthController {
     if(!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException();
     const row=await this.prisma.googleConnection.findFirst({where:{id,tenantId:req.user.tenantId}});
     if(!row)throw new BadRequestException('Conexão não encontrada.');
-    const services=['calendar','drive'].filter(service=>row.scopes.includes(service==='drive'?'/drive':'/calendar'));
+    const services=['calendar','drive','gmail'].filter(service=>row.scopes.includes(service==='drive'?'/drive':service==='gmail'?'/mail.google.com':'/calendar'));
     if(services.some(service=>!row.disabledServices.includes(service)))throw new BadRequestException('Desconecte os serviços antes de remover a conta.');
     await this.prisma.googleConnection.deleteMany({where:{id,tenantId:req.user.tenantId}});return {removed:true};
   }

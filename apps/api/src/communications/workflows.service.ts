@@ -22,7 +22,7 @@ const WORKFLOW_FINANCIAL_STATUSES = ["OPEN", "PENDING", "PAID", "OVERDUE", "CANC
 
 function parseCustomerField(value: unknown): { key: string; expected: string } | null {
   if (typeof value !== "string" || !value.trim()) return null;
-  const match = value.trim().match(/^([a-zA-Z0-9_.-]{1,80})\\s*=\\s*(.{1,200})$/);
+  const match = value.trim().match(/^([a-zA-Z0-9_.-]{1,80})\s*=\s*(.{1,200})$/);
   return match ? { key: match[1]!, expected: match[2]!.trim() } : null;
 }
 

@@ -21,7 +21,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 | Transbordo e Kanban | [x] | 14 testes críticos do backend passaram |
 | Identidade de contatos | [x] | Testes para `@lid`, `@g.us`, `@broadcast` e número `@c.us` passaram |
 | Atendimento real no Dokploy | [~] | Infraestrutura está saudável; falta conversa ponta a ponta real |
-| Integrações oficiais e provedores reais | [~] | Adaptadores e contratos existem; credenciais/provedores ainda exigem validação individual |
+| Integrações oficiais e provedores reais | [~] | Gmail OAuth publicado; credenciais e provedores restantes ainda exigem validação individual |
 | Verticais Rastreabem e FAETER | [ ] | Blueprint registrado; implantação ainda não iniciada |
 
 ### Correções encontradas nos logs de 05/11/2026
@@ -116,8 +116,12 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Contrato e fluxo atual do Asaas com validações de ambiente.
 - [x] Variáveis SMTP documentadas: `MAIL_SERVICE`, `MAIL_HOST`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM`.
 - [x] Chave de integração documentada para proteger credenciais IMAP/SMTP.
+- [x] Gmail OAuth para caixas publicado no branch oficial e confirmado no frontend em produção; vínculo por endereço, token criptografado e autenticação IMAP/SMTP OAuth implementados.
+- [x] Build da API e 8 testes direcionados de caixa/SMTP passaram após a implementação OAuth.
 - [~] Teste real de envio SMTP no Dokploy.
 - [~] Cadastro e leitura de caixa IMAP com credencial configurada.
+- [~] Aceite real do Gmail OAuth ainda depende da autorização da conta e do vínculo da caixa no painel.
+- [~] Outlook, Hostinger, HostGator e demais provedores continuam no modo IMAP/SMTP por caixa; OAuth específico de cada provedor permanece etapa posterior.
 - [~] Cobranças e consulta financeira dentro da conversa com destinatário confirmado.
 - [ ] Adaptador Stripe.
 - [ ] Adaptador Mercado Pago.
@@ -159,4 +163,19 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 7. Registrar neste arquivo o resultado e o horário do teste.
 
 Este painel não declara que um item está pronto apenas porque existe uma tela ou uma função no código. O aceite exige a evidência indicada em cada seção.
+
+## Auditoria local — 07/11/2026
+
+- [x] API: `pnpm --filter @vexorasuite/api typecheck` passou após as alterações de OAuth Gmail e caixas IMAP/SMTP.
+- [x] API: 3 suítes direcionadas de e-mail passaram, totalizando 12 testes (`email-mailbox.service`, `smtp.transport` e `mail.diagnostics`).
+- [x] API: suíte completa passou com 91 suítes e 558 testes após a correção do heartbeat, que agora usa o timestamp gravado pelo worker em vez de depender da precisão do `mtime` do filesystem.
+- [x] Frontend: `pnpm --filter @vexorasuite/web typecheck` passou.
+- [x] Frontend: suíte direcionada passou com 123 testes, incluindo Inbox, canais, acessibilidade, identidade de contatos, Flow Studio e temas.
+- [x] Frontend: lint passou sem erros após a limpeza da tela de Conexões; permanecem 97 warnings de código legado em outros módulos, registrados como backlog e sem supressão global.
+- [x] Inbox: conversas em atendimento humano agora exibem a ação acessível “Devolver ao chatbot”, usando o endpoint existente de retorno e bloqueando a ação em conversas encerradas.
+- [x] Inbox: regressão visual/semântica adicionada; suíte web direcionada passou com 124 testes.
+- [x] Backend: retorno ao chatbot cobre auditoria, evento `conversation.updated` e bloqueio de conversas `RESOLVED`/`CLOSED`; suíte de ciclo de vida passou com 10 testes.
+- [~] Frontend: o `next build` compilou, validou tipos e gerou as páginas estáticas; ficou preso na etapa final de coleta de traces e foi interrompido. Ainda falta repetir o build em ambiente limpo/CI antes de marcar o build de produção como aprovado.
+- [~] Dokploy: nenhuma aprovação nova foi declarada nesta auditoria local. Ainda falta confirmar o SHA ativo e executar o aceite ponta a ponta com WAHA, IMAP/SMTP e OAuth Gmail.
+- [~] Ambiente: lint web passou com 0 erros e 96 warnings legados; os warnings não bloqueiam o build, mas permanecem backlog de qualidade.
 

@@ -42,7 +42,11 @@ async function main(){
   await allow(changed.accessToken,'/api/contacts');
   await team.access(request,owner.id,{modules:['INBOX','CRM'],departmentIds:[],deniedModules:['WORDPRESS']});
   await assert.rejects(()=>allow(changed.accessToken,'/api/wordpress/sites'),/não está habilitado/);
-  await assert.rejects(()=>team.access({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false,allowedModules:['SETTINGS']}},owner.id,{modules:[],departmentIds:[],deniedModules:[]}),/acessos administrativos/);
+  await assert.rejects(()=>team.access({user:{sub:owner.id,tenantId,role:'ADMIN',isPlatformAdmin:false,allowedModules:['SETTINGS']}},owner.id,{modules:[],departmentIds:[],deniedModules:[]}),/acessos administrativos/);
+  await team.access({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false,allowedModules:['SETTINGS']}},owner.id,{modules:[],departmentIds:[],deniedModules:['WORDPRESS']});
+  const ownerMembership=await db.membership.findFirstOrThrow({where:{tenantId,userId:owner.id},select:{modules:true,deniedModules:true}});
+  assert(ownerMembership.modules.includes('INBOX')&&ownerMembership.modules.includes('WORDPRESS'),'Owner keeps full team administration');
+  assert.deepEqual(ownerMembership.deniedModules,[],'Owner is not blocked by own denials');
   const forged=await jwt.signAsync({sub:owner.id,tenantId:platformId,tenantSlug:'platform-'+platformId,role:'OWNER',isPlatformAdmin:true,sessionVersion:1},{secret:process.env.JWT_ACCESS_SECRET});
   await assert.rejects(()=>allow(forged,'/api/auth/me'),/revogado/);
   const secondReset=await team.resetPassword(request,owner.id);

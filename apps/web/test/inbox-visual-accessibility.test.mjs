@@ -27,7 +27,9 @@ test("mobile switches between list and thread without clipping the conversation"
   const mobile = css.match(/@media\(max-width:760px\)\{[\s\S]*\n\}/)?.[0] ?? "";
   assert.match(mobile, /\.inbox-workspace:not\(\.mobile-thread-open\) :is\(\.inbox-thread,\.contact-profile\),\.inbox-workspace\.mobile-thread-open \.inbox-list\{display:none\}/);
   assert.match(mobile, /\.inbox-workspace\.mobile-thread-open \.inbox-thread\{height:100%\}/);
-  assert.match(mobile, /\.inbox-workspace\{grid-template-columns:1fr;height:auto;min-height:0\}/);
+  const singleColumn = (mobile.match(/\.inbox-workspace[^{]*\{[^}]*grid-template-columns:1fr[^}]*\}/g) ?? []);
+  assert.ok(singleColumn.some(rule => /height:auto/.test(rule) && /min-height:0/.test(rule)));
+  assert.ok(singleColumn.some(rule => /:has\(\.contact-profile\)/.test(rule)), "mobile grid must override the three-column profile layout");
 });
 
 test("message history groups dates and exposes WhatsApp-style delivery ticks", () => {

@@ -66,7 +66,9 @@ test("sidebar expandida por padrão, compacta com submenu flutuante e dock mobil
   assert.match(block(".main-area"), /margin-left:var\(--sb\)/);
   assert.match(css, /\.sidebar\.sidebar-compact \.nav-submenu\{position:fixed/);
   assert.match(css, /\.mobile-bottom-nav\{[^}]*position:fixed[^}]*min-height:var\(--dock\)/);
-  assert.match(css, /\.main-area\{margin-left:0;padding-bottom:var\(--dock\)\}/);
+  const mobileMain = (css.match(/\.main-area\{[^}]*\}/g) ?? []).filter(rule => /padding-bottom:var\(--dock\)/.test(rule));
+  assert.ok(mobileMain.length, "main-area mobile deve reservar a dock");
+  assert.match(mobileMain.join("\n"), /margin-left:0/);
   assert.match(css, /--dock:calc\(var\(--dock-btn\) \+ 8px \+ env\(safe-area-inset-bottom\)\)/);
 });
 

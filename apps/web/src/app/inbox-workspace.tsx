@@ -112,7 +112,6 @@ function AudioMessage({ src }: { src: string }) {
   </div>;
 }
 
-
 const MESSAGE_URL_PATTERN = /(https?:\/\/[^\s<]+)/g;
 function MessageText({ content, deleted }: { content: string; deleted?: boolean }) {
   const parts = content.split(MESSAGE_URL_PATTERN);
@@ -123,7 +122,6 @@ function MessageText({ content, deleted }: { content: string; deleted?: boolean 
     return <Fragment key={index}><a className="message-link" href={href} target="_blank" rel="noopener noreferrer">{href}</a>{punctuation}</Fragment>;
   })}</p>;
 }
-
 function LinkPreview({ preview }: { preview: NonNullable<Message["metadata"]>["linkPreview"] }) {
   if (!preview?.url) return null;
   return <a className="message-link-preview" href={preview.url} target="_blank" rel="noopener noreferrer">
@@ -304,8 +302,8 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   useModalDialog(quickPanel==="appointments",appointmentModalRef,()=>setQuickPanel(null));
   useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape"){setQuickPanel(null);setEmojiOpen(false);setQuickOpen(false);return;}if(!event.altKey||event.ctrlKey||event.shiftKey||event.repeat)return;const key=event.code;const panels:Record<string,"billing"|"appointments"|"attachments"|"help">={KeyF:"billing",KeyA:"appointments",KeyU:"attachments",Slash:"help"};if(key==="KeyP"){event.preventDefault();setContactProfileExpanded(v=>!v);}else if(key==="KeyE"){event.preventDefault();setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false);setQuickPanel(null);}else if(key==="KeyR"){event.preventDefault();setQuickOpen(v=>!v);setEmojiOpen(false);setQuickPanel(null);}else if(panels[key]){event.preventDefault();setQuickPanel(v=>v===panels[key]?null:panels[key] ?? null);setEmojiOpen(false);setQuickOpen(false);}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);},[]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [messageLoadError, setMessageLoadError] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messageLoadError, setMessageLoadError] = useState("");
   const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [olderMessagesLoading, setOlderMessagesLoading] = useState(false);
   const [draft, setDraft] = useState("");
@@ -394,6 +392,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const loadConversations = useCallback(async (showLoading = true) => {
     const request=++conversationRequest.current;
     if (showLoading) setConversationsLoading(true);
+    setConversationLoadError("");
     try {
       const rows = await api<Conversation[]>("/api/backend/conversations?view=" + queueView);
       const focus=queueView==="all-open"?notificationFocus.current:null;
@@ -403,8 +402,10 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       setConversationsLoading(false);
       setSelectedId((current) => focus&&rows.some(row=>row.id===focus)?focus:current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? null);
     } catch (e) {
-      setConversationsLoading(false);
-      setError(e instanceof Error ? e.message : "Falha ao carregar conversas.");
+      if (request === conversationRequest.current) {
+        setConversationsLoading(false);
+        setConversationLoadError(e instanceof Error ? e.message : "Falha ao carregar conversas.");
+      }
     }
   }, [queueView]);
   const loadQueueCounts = useCallback(async () => {
@@ -550,6 +551,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     messageRequest.current += 1;
     olderMessagesInFlight.current = false;
     setOlderMessagesLoading(false);
+    setMessages([]);
+    setHasOlderMessages(false);
+    setMessageLoadError("");
     if (selectedId) void loadMessages(selectedId);
     else { setMessages([]); setMessagesLoading(false); }
   }, [selectedId, loadMessages]);
@@ -1044,7 +1048,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
               {!agents.length?<p className="handoff-empty">Nenhum atendente disponível.</p>:null}
             </div>
           </details>
-        </div>{selected.status === "RESOLVED" ? <button type="button" aria-label="Reabrir conversa" className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={18} aria-hidden="true" /></button> : selected.status !== "CLOSED" ? <button type="button" aria-label="Finalizar atendimento" className="thread-action-button resolve" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento"><CheckCircle2 size={18} aria-hidden="true" /></button> : null}<div className="thread-rare-actions">{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action" aria-label="Restaurar" title="Restaurar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={16}/></button> : <><button type="button" className="thread-icon-action" aria-label="Arquivar" title="Arquivar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={16}/></button><button type="button" className="thread-icon-action danger-text" aria-label="Mover para lixeira" title="Mover para lixeira" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(loadConversations).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={16}/></button></>}</div></div></details></header>
+        </div>{selected.status === "RESOLVED" ? <button type="button" aria-label="Reabrir conversa" className="thread-action-button" onClick={() => void setConversationStatus("OPEN")} disabled={actionBusy} title="Reabrir conversa"><RotateCcw size={18} aria-hidden="true" /></button> : selected.status !== "CLOSED" ? <button type="button" aria-label="Finalizar atendimento" className="thread-action-button resolve" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento"><CheckCircle2 size={18} aria-hidden="true" /></button> : null}<div className="thread-rare-actions">{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action" aria-label="Restaurar" title="Restaurar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={16}/></button> : <><button type="button" className="thread-icon-action" aria-label="Arquivar" title="Arquivar" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={16}/></button><button type="button" className="thread-icon-action danger-text" aria-label="Mover para lixeira" title="Mover para a lixeira" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={16}/></button></>}</div></div></details></header>
         {selected.channel!=='WHATSAPP'&&<WhatsappBridge conversationId={selected.id} view={queueView} onOpen={id=>{notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}/>}
         {channels.filter(c=>c.provider==='WAHA'&&(c.status!=='CONNECTED'||!c.healthCheckedAt||Date.now()-Date.parse(c.healthCheckedAt)>90000)).map(c=><div className="channel-health-warning" role="alert" key={c.id}><strong>{c.name}: {c.status==='CONNECTED'?'verificação desatualizada':c.status==='UNKNOWN'?'conexão não verificada':'WhatsApp desconectado ou aguardando conexão'}</strong><span>{c.lastError||'Mensagens podem não ser recebidas nem respondidas.'} Última verificação: {c.healthCheckedAt?new Date(c.healthCheckedAt).toLocaleTimeString('pt-BR'):'ainda não realizada'}.</span><a href="/?module=Canais%20e%20integra%C3%A7%C3%B5es">Ver conexões</a></div>)}<div className="thread-messages" ref={threadScrollRef} onScroll={e=>{const el=e.currentTarget;threadPinnedRef.current=el.scrollHeight-el.scrollTop-el.clientHeight<110}}>
           {hasOlderMessages&&<button type="button" className="text-button load-older-messages" disabled={olderMessagesLoading} onClick={()=>void loadOlderMessages()}>{olderMessagesLoading ? "Carregando mensagens anteriores…" : "Carregar mensagens anteriores"}</button>}

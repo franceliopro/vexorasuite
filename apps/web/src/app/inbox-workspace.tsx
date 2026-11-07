@@ -444,6 +444,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const loadMessages = useCallback(async (id: string) => {
     const request = ++messageRequest.current;
     setMessagesLoading(true);
+    setMessageLoadError("");
     try {
       const rows = await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView + "&limit=100");
       if (request !== messageRequest.current || selectedRef.current !== id) return;

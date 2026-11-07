@@ -48,10 +48,10 @@ test("inbox does not keep a duplicate assignee loader", () => {
 });
 
 test("conversation load failures stop loading and expose a retry", () => {
-  assert.match(source, /const \\[conversationLoadError, setConversationLoadError\\] = useState\\(""\\)/);
-  assert.match(source, /setConversationLoadError\\(e instanceof Error \\? e\\.message : "Falha ao carregar conversas\\."\\)/);
+  assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
+  assert.match(source, /setError\(e instanceof Error \? e\.message : "Falha ao carregar conversas\."\)/);
   assert.match(source, /className="inbox-list-error" role="alert"/);
-  assert.match(source, /onClick=\\{\\(\\) => void loadConversations\\(\\)\\}/);
+  assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
 });
 
 
@@ -64,8 +64,9 @@ test("WhatsApp receipts never move backwards", () => {
 
 
 test("message selection clears stale history and exposes a retry", () => {
-  assert.match(source, /const \[messageLoadError, setMessageLoadError\] = useState\("?"\)/);
-  assert.match(source, /setMessages\(\[\]\);\s*setHasOlderMessages\(false\);\s*setMessageLoadError\("?"\);/);
+  assert.match(source, /const \[messageLoadError, setMessageLoadError\] = useState\(""\)/);
+  assert.match(source, /setMessagesLoading\(true\);\s*setMessageLoadError\(""\);/);
+  assert.match(source, /else \{ setMessages\(\[\]\); setMessagesLoading\(false\); \}/);
   assert.match(source, /className="inbox-list-error" role="alert"/);
   assert.match(source, /Não foi possível carregar as mensagens\./);
   assert.match(source, /message\.deleted/);

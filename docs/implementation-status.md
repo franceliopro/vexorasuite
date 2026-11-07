@@ -21,7 +21,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 | Transbordo e Kanban | [x] | 14 testes críticos do backend passaram |
 | Identidade de contatos | [x] | Testes para `@lid`, `@g.us`, `@broadcast` e número `@c.us` passaram |
 | Atendimento real no Dokploy | [~] | Infraestrutura está saudável; falta conversa ponta a ponta real |
-| Integrações oficiais e provedores reais | [~] | Adaptadores e contratos existem; credenciais/provedores ainda exigem validação individual |
+| Integrações oficiais e provedores reais | [~] | Gmail OAuth publicado; credenciais e provedores restantes ainda exigem validação individual |
 | Verticais Rastreabem e FAETER | [ ] | Blueprint registrado; implantação ainda não iniciada |
 
 ### Correções encontradas nos logs de 05/11/2026

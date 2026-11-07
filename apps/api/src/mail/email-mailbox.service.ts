@@ -129,7 +129,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
 
   async create(tenantId: string, input: MailboxInput) {
     const address = this.text(input.address, "Endereço de e-mail", 254).toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new BadRequestException("Endereço de e-mail inválido.");
+    if (!isValidEmailAddress(address)) throw new BadRequestException("Endereço de e-mail inválido.");
     const imapHost = this.text(input.imapHost, "Servidor IMAP", 253).replace(/^[a-z]+:\/\//i, "").replace(/\/+$/, "");
     await mailHost(imapHost);
     const imapUser = this.text(input.imapUser ?? address, "Usuário IMAP", 254);
@@ -142,7 +142,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     const smtpPassword = this.optionalText(input.smtpPassword, "Senha SMTP", 512);
     if (smtpHost && (!smtpUser || !smtpPassword)) throw new BadRequestException("A configuração SMTP exige usuário e senha.");
     const smtpFrom = this.optionalText(input.smtpFrom, "Remetente SMTP", 254) || address;
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(smtpFrom)) throw new BadRequestException("Remetente SMTP inválido.");
+    if (!isValidEmailAddress(smtpFrom)) throw new BadRequestException("Remetente SMTP inválido.");
     const smtpFromName = this.optionalText(input.smtpFromName, "Nome do remetente", 120);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } });
     if (!tenant) throw new NotFoundException("Empresa não encontrada.");
@@ -164,6 +164,40 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
       if (error && typeof error === "object" && "code" in error && error.code === "P2002") throw new BadRequestException("Esta caixa de e-mail já está cadastrada nesta empresa.");
       throw error;
     });
+  }
+
+  async update(tenantId: string, id: string, input: MailboxInput) {
+    const current = await this.getMailbox(tenantId, id);
+    const address = this.text(input.address ?? current.address, "Endereço de e-mail", 254).toLowerCase();
+    if (!isValidEmailAddress(address)) throw new BadRequestException("Endereço de e-mail inválido.");
+    const imapHost = this.text(input.imapHost ?? current.imapHost, "Servidor IMAP", 253).replace(/^[a-z]+:\/\//i, "").replace(/\/+$/, "");
+    await mailHost(imapHost);
+    const imapUser = this.text(input.imapUser ?? current.imapUser, "Usuário IMAP", 254);
+    const imapPassword = this.optionalText(input.imapPassword, "Senha IMAP", 512);
+    const imapMailbox = this.optionalText(input.imapMailbox ?? current.imapMailbox, "Pasta IMAP", 120) || "INBOX";
+    const smtpHost = this.optionalText(input.smtpHost ?? current.smtpHost, "Servidor SMTP", 253);
+    if (smtpHost) await mailHost(smtpHost);
+    const smtpUser = this.optionalText(input.smtpUser ?? current.smtpUser, "Usuário SMTP", 254);
+    const smtpPassword = this.optionalText(input.smtpPassword, "Senha SMTP", 512);
+    if (smtpHost && (!smtpUser || (!smtpPassword && !current.smtpPasswordEncrypted))) throw new BadRequestException("A configuração SMTP exige usuário e senha.");
+    const smtpFrom = this.optionalText(input.smtpFrom ?? current.smtpFrom, "Remetente SMTP", 254) || address;
+    if (!isValidEmailAddress(smtpFrom)) throw new BadRequestException("Remetente SMTP inválido.");
+    const imapChanged = imapHost !== current.imapHost || imapUser !== current.imapUser || imapMailbox !== current.imapMailbox || this.port(input.imapPort, "Porta IMAP", current.imapPort) !== current.imapPort || this.bool(input.imapSecure, current.imapSecure) !== current.imapSecure;
+    const result = await this.prisma.$transaction(async (tx) => {
+      const mailbox = await tx.emailMailbox.update({ where: { id: current.id }, data: {
+        address, imapHost, imapPort: this.port(input.imapPort, "Porta IMAP", current.imapPort), imapSecure: this.bool(input.imapSecure, current.imapSecure), imapUser,
+        ...(imapPassword ? { imapPasswordEncrypted: this.encrypt(imapPassword) } : {}), imapMailbox,
+        smtpHost, smtpPort: smtpHost ? this.port(input.smtpPort, "Porta SMTP", current.smtpPort || 587) : null, smtpSecure: smtpHost ? this.bool(input.smtpSecure, current.smtpSecure ?? false) : null,
+        smtpUser, ...(smtpPassword ? { smtpPasswordEncrypted: this.encrypt(smtpPassword) } : { smtpPasswordEncrypted: smtpHost ? current.smtpPasswordEncrypted : null }), smtpFrom, smtpFromName: this.optionalText(input.smtpFromName ?? current.smtpFromName, "Nome do remetente", 120),
+        status: "PENDING", lastError: null, ...(imapChanged ? { syncUidValidity: null, syncLastUid: 0, lastSyncAt: null } : {}),
+      } });
+      await tx.channelConnection.update({ where: { id: current.channelConnectionId }, data: { name: this.optionalText(input.name, "Nome da caixa", 120) || address } });
+      return mailbox;
+    }).catch((error) => {
+      if (error && typeof error === "object" && "code" in error && error.code === "P2002") throw new BadRequestException("Esta caixa de e-mail já está cadastrada nesta empresa.");
+      throw error;
+    });
+    return { id: result.id, channelConnectionId: result.channelConnectionId, address: result.address, status: result.status };
   }
 
   private async getMailbox(tenantId: string, id: string): Promise<MailboxSettings> {
@@ -330,3 +364,4 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     return message;
   }
 }
+

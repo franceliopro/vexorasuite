@@ -133,7 +133,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
   async list(tenantId: string) {
     const rows = await this.prisma.emailMailbox.findMany({
       where: { tenantId }, orderBy: { address: "asc" },
-      select: { id: true, address: true, imapHost: true, imapPort: true, imapSecure: true, imapUser: true, imapMailbox: true, authMode: true, googleConnectionId: true, smtpHost: true, smtpPort: true, smtpSecure: true, smtpFrom: true, smtpFromName: true, status: true, lastError: true, lastSyncAt: true, channelConnectionId: true },
+      select: { id: true, address: true, imapHost: true, imapPort: true, imapSecure: true, imapUser: true, imapMailbox: true, authMode: true, googleConnectionId: true, smtpHost: true, smtpPort: true, smtpSecure: true, smtpUser: true, smtpFrom: true, smtpFromName: true, status: true, lastError: true, lastSyncAt: true, channelConnectionId: true },
     });
     return rows.map((row) => ({ ...row, imapUser: row.imapUser.replace(/^(.{2}).*(@.*)$/, "$1***$2"), configured: true }));
   }

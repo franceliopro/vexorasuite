@@ -391,9 +391,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const olderMessagesInFlight = useRef(false);
 
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (showLoading = true) => {
     const request=++conversationRequest.current;
-    setConversationsLoading(true);
+    if (showLoading) setConversationsLoading(true);
     try {
       const rows = await api<Conversation[]>("/api/backend/conversations?view=" + queueView);
       const focus=queueView==="all-open"?notificationFocus.current:null;
@@ -441,9 +441,9 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       }
     }).catch(() => {});
   }, [loadSupervision]);
-  const loadMessages = useCallback(async (id: string) => {
+  const loadMessages = useCallback(async (id: string, showLoading = true) => {
     const request = ++messageRequest.current;
-    setMessagesLoading(true);
+    if (showLoading) setMessagesLoading(true);
     setMessageLoadError("");
     try {
       const rows = await api<Message[]>("/api/backend/conversations/" + id + "/messages?view=" + queueView + "&limit=100");
@@ -559,8 +559,8 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     let realtimeOnline = false;
     const refreshFallback = () => {
       if (realtimeOnline || document.visibilityState !== "visible") return;
-      void loadConversations(); void loadQueueCounts(); void loadChannels(); void loadSupervision();
-      if (selectedRef.current) void loadMessages(selectedRef.current);
+      void loadConversations(false); void loadQueueCounts(); void loadChannels(); void loadSupervision();
+      if (selectedRef.current) void loadMessages(selectedRef.current, false);
     };
     const markOnline = () => { realtimeOnline = true; };
     const markOffline = () => { realtimeOnline = false; };
@@ -584,11 +584,11 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       if (refreshInFlight) return;
       refreshInFlight = true;
       void Promise.all([
-        loadConversations(),
+        loadConversations(false),
         loadQueueCounts(),
         loadChannels(),
         loadSupervision(),
-        selectedRef.current ? loadMessages(selectedRef.current) : Promise.resolve(),
+        selectedRef.current ? loadMessages(selectedRef.current, false) : Promise.resolve(),
       ]).finally(() => { refreshInFlight = false; });
     };
     // A busy tenant can emit several related events for one user action. Coalesce them so

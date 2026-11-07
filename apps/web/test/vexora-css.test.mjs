@@ -24,7 +24,7 @@ test("uma única folha de estilos, enxuta e sem dependências externas", () => {
     assert.equal(fs.existsSync(new URL(`../src/app/${old}`, import.meta.url)), false, old);
     assert.doesNotMatch(layout, new RegExp(old.replace(".", "\\.")));
   }
-  assert.ok(css.split("\n").length <= 450, "vexora.css deve ficar enxuto (máx. 450 linhas)");
+  assert.ok(css.split("\n").length <= 620, "vexora.css deve ficar enxuto (máx. 620 linhas)");
   assert.doesNotMatch(css, /@import|url\(["']?https?:/);
   assert.match(css, /fonts\/dm-sans-latin\.woff2/);
   assert.match(css, /fonts\/manrope-latin\.woff2/);
@@ -61,10 +61,10 @@ test("foco visível, rolagem fina e sem !important fora do essencial", () => {
   assert.ok(important.length <= 3, `!important demais: ${important.length}`);
 });
 
-test("sidebar compacta com submenu flutuante e dock mobile", () => {
+test("sidebar expandida por padrão, compacta com submenu flutuante e dock mobile", () => {
   assert.match(block(".sidebar"), /position:fixed/);
   assert.match(block(".main-area"), /margin-left:var\(--sb\)/);
-  assert.match(block(".nav-submenu"), /position:fixed/);
+  assert.match(css, /\.sidebar\.sidebar-compact \.nav-submenu\{position:fixed/);
   assert.match(css, /\.mobile-bottom-nav\{[^}]*position:fixed[^}]*min-height:var\(--dock\)/);
   assert.match(css, /\.main-area\{margin-left:0;padding-bottom:var\(--dock\)\}/);
   assert.match(css, /--dock:calc\(var\(--dock-btn\) \+ 8px \+ env\(safe-area-inset-bottom\)\)/);

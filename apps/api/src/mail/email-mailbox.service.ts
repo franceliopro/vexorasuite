@@ -385,8 +385,12 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     const auth = await this.auth(mailbox);
     const transport = new SmtpMailTransport({ host: smtpEndpoint, tlsServername: mailbox.smtpHost, port: mailbox.smtpPort || 587, secure: mailbox.smtpSecure === true, user: auth.user, ...(auth.pass ? { password: auth.pass } : {}), ...(auth.accessToken ? { accessToken: auth.accessToken } : {}), from: mailbox.smtpFrom, fromName: mailbox.smtpFromName || undefined });
     const subject = conversation.subject?.startsWith("Re:") ? conversation.subject : "Re: " + (conversation.subject || "(sem assunto)");
-    const result = await transport.send({ to: conversation.contact.email || "", subject, text: text.trim() || "Arquivo anexado: " + attachment!.filename, replyTo: mailbox.address, ...(attachment ? { attachments: [{ filename: attachment.filename, content: Buffer.from(attachment.data, "base64"), contentType: attachment.contentType }] } : {}) });
-    transport.close();
+    let result: Awaited<ReturnType<SmtpMailTransport["send"]>>;
+    try {
+      result = await transport.send({ to: conversation.contact.email || "", subject, text: text.trim() || "Arquivo anexado: " + attachment!.filename, replyTo: mailbox.address, ...(attachment ? { attachments: [{ filename: attachment.filename, content: Buffer.from(attachment.data, "base64"), contentType: attachment.contentType }] } : {}) });
+    } finally {
+      transport.close();
+    }
     if (!result.delivered) throw new BadGatewayException(result.reason || "O servidor SMTP não aceitou a resposta.");
     const message = await this.prisma.message.create({ data: { tenantId, conversationId, providerMessageId: result.providerId || null, direction: "OUTBOUND", status: "SENT", content: text.trim() || "[Anexo] " + attachment!.filename, contentType: attachment ? "file" : "text", senderName: mailbox.smtpFrom, metadata: { provider: "EMAIL", mailboxId: mailbox.id, replyTo: conversation.contact.email, senderUserId: userId, ...(attachment ? { attachment: { filename: attachment.filename, contentType: attachment.contentType, size: Math.floor(attachment.data.length * 3 / 4) } } : {}) }, occurredAt: new Date() } });
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: message.occurredAt, status: "OPEN" } });

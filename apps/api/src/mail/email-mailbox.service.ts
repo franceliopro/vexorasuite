@@ -197,7 +197,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     }
     const imapHost = this.text(input.imapHost ?? current.imapHost, "Servidor IMAP", 253).replace(/^[a-z]+:\/\//i, "").replace(/\/+$/, "");
     await mailHost(imapHost);
-    const imapUser = this.text(input.imapUser ?? current.imapUser, "Usuário IMAP", 254);
+    const imapUser = input.imapUser === undefined || input.imapUser === "" ? current.imapUser : this.text(input.imapUser, "Usuário IMAP", 254);
     const imapPassword = authMode === "GOOGLE_OAUTH" ? null : this.optionalText(input.imapPassword, "Senha IMAP", 512);
     const imapMailbox = this.optionalText(input.imapMailbox ?? current.imapMailbox, "Pasta IMAP", 120) || "INBOX";
     const smtpHost = this.optionalText(input.smtpHost ?? current.smtpHost, "Servidor SMTP", 253);

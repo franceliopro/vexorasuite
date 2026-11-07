@@ -1,4 +1,5 @@
 import { ForbiddenException } from "@nestjs/common";
+jest.mock("bcryptjs", () => ({ hash: jest.fn().mockResolvedValue("hashed-password") }));
 import { TeamController } from "./team.controller";
 
 describe("TeamController password reset authorization", () => {

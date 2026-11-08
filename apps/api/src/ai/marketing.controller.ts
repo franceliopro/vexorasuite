@@ -1,5 +1,5 @@
 import { AuditCovered } from "../common/audit/audit.decorator";
-import {BadRequestException,Body,Controller,Get,Patch,Param,ParseUUIDPipe,Post,Req,ServiceUnavailableException,UseGuards} from '@nestjs/common';
+import {BadRequestException,Body,Controller,Delete,Get,Patch,Param,ParseUUIDPipe,Post,Query,Req,ServiceUnavailableException,UseGuards} from '@nestjs/common';
 import {randomUUID} from 'node:crypto';
 import {PrismaService} from '../prisma/prisma.service';
 import {Prisma} from '@prisma/client';
@@ -9,6 +9,22 @@ import {assertDraftInput} from '../auth/product-scope';
 import {MarketingLibraryService} from './marketing-library.service';
 import {AssistantAutomationService} from './assistant-automation.service';
 import {ZernioService} from '../operations/zernio.service';
+type WebAssetKind='SITE'|'LANDING'|'FORM';
+type WebAssetField={id:string;label:string;type:string;required:boolean;options?:string[]};
+function normalizeWebAssetKind(value:unknown):WebAssetKind|null{const v=String(value||'').toUpperCase();return v==='SITE'||v==='LANDING'||v==='FORM'?v:null;}
+function normalizeWebSlug(value:unknown,fallback:string):string{const raw=(typeof value==='string'&&value.trim())||fallback||'';return raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);}
+function normalizeWebFields(value:unknown):WebAssetField[]{
+ const allowed=new Set(['text','email','tel','textarea','select','number','date']);
+ const rows=Array.isArray(value)?value.slice(0,20):[];
+ return rows.filter(item=>item&&typeof item==='object').map((item:any)=>({
+  id:typeof item.id==='string'&&item.id?item.id:randomUUID(),
+  label:typeof item.label==='string'?item.label.trim().slice(0,80):'',
+  type:allowed.has(String(item.type))?String(item.type):'text',
+  required:item.required===true,
+  ...(Array.isArray(item.options)?{options:item.options.filter((option:any)=>typeof option==='string'&&option.trim()).slice(0,20).map((option:string)=>option.trim().slice(0,60))}:{}),
+ })).filter((item:WebAssetField)=>item.label);
+}
+function readWebAssetDetails(value:unknown):Record<string,any>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,any>:{};}
 @AuditCovered()
 @Controller('marketing')
 @UseGuards(AuthGuard)
@@ -87,5 +103,67 @@ export class MarketingController{
   const next={...current,...(typeof input?.caption==='string'?{caption:input.caption.trim()}:{}),...(typeof input?.plannedFor==='string'?{plannedFor:input.plannedFor}:{}),...(typeof input?.status==='string'&&['DRAFT','READY'].includes(input.status)?{status:input.status}: {})};
   await this.prisma.auditLog.update({where:{id},data:{details:next}});
   return {id,status:next.status};
+ }
+ @Get('web-assets') async listWebAssets(@Req() req:AuthenticatedRequest,@Query('kind') kind?:string){
+  const requested=normalizeWebAssetKind(kind);
+  const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'marketing.web-asset'},orderBy:{createdAt:'desc'},take:200});
+  return rows.map(row=>{
+   const details=readWebAssetDetails(row.details);
+   const assetKind=normalizeWebAssetKind(details.kind);
+   if(!assetKind||(requested&&assetKind!==requested))return null;
+   return {
+    id:row.id,
+    kind:assetKind,
+    title:typeof details.title==='string'?details.title:'',
+    slug:typeof details.slug==='string'?details.slug:'',
+    summary:typeof details.summary==='string'?details.summary:'',
+    status:details.status==='READY'?'READY':'DRAFT',
+    fields:Array.isArray(details.fields)?normalizeWebFields(details.fields):[],
+    createdAt:row.createdAt,
+    updatedAt:typeof details.updatedAt==='string'?details.updatedAt:row.createdAt.toISOString(),
+   };
+  }).filter((asset):asset is NonNullable<typeof asset>=>asset!==null);
+ }
+ @Post('web-assets') async createWebAsset(@Req() req:AuthenticatedRequest,@Body() input:any){
+  this.automation.authorize(req);
+  const kind=normalizeWebAssetKind(input?.kind);
+  if(!kind)throw new BadRequestException('Tipo de ativo inválido.');
+  const title=typeof input?.title==='string'?input.title.trim():'';
+  if(!title||title.length>160)throw new BadRequestException('Informe um título de até 160 caracteres.');
+  const slug=normalizeWebSlug(input?.slug,title);
+  if(!slug)throw new BadRequestException('Informe um endereço válido para este ativo.');
+  const summary=typeof input?.summary==='string'?input.summary.trim().slice(0,400):'';
+  const fields=kind==='FORM'?normalizeWebFields(input?.fields):[];
+  if(kind==='FORM'&&!fields.length)throw new BadRequestException('Adicione ao menos um campo ao formulário.');
+  const id=randomUUID();
+  const now=new Date().toISOString();
+  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'marketing.web-asset',entityType:kind.toLowerCase(),entityId:id,details:{kind,title,slug,summary,status:'DRAFT',fields,createdAt:now,updatedAt:now}}});
+  return {id,kind,title,slug,summary,status:'DRAFT',fields};
+ }
+ @Patch('web-assets/:id') async updateWebAsset(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
+  this.automation.authorize(req);
+  const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.web-asset'}});
+  if(!row)throw new BadRequestException('Ativo não encontrado.');
+  const current=readWebAssetDetails(row.details);
+  const kind=normalizeWebAssetKind(current.kind);
+  if(!kind)throw new BadRequestException('Ativo inválido.');
+  const title=typeof input?.title==='string'?input.title.trim():String(current.title||'');
+  if(!title||title.length>160)throw new BadRequestException('Informe um título de até 160 caracteres.');
+  const slug=normalizeWebSlug(typeof input?.slug==='string'?input.slug:current.slug,title);
+  if(!slug)throw new BadRequestException('Informe um endereço válido para este ativo.');
+  const summary=typeof input?.summary==='string'?input.summary.trim().slice(0,400):String(current.summary||'');
+  const status=typeof input?.status==='string'&&['DRAFT','READY'].includes(input.status)?input.status:(String(current.status)==='READY'?'READY':'DRAFT');
+  const fields=kind==='FORM'&&Array.isArray(input?.fields)?normalizeWebFields(input.fields):(Array.isArray(current.fields)?normalizeWebFields(current.fields):[]);
+  if(kind==='FORM'&&!fields.length)throw new BadRequestException('Adicione ao menos um campo ao formulário.');
+  const details={...current,title,slug,summary,status,fields,updatedAt:new Date().toISOString()};
+  await this.prisma.auditLog.update({where:{id},data:{details}});
+  return {id,kind,title,slug,summary,status,fields};
+ }
+ @Delete('web-assets/:id') async deleteWebAsset(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
+  this.automation.authorize(req);
+  const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.web-asset'}});
+  if(!row)throw new BadRequestException('Ativo não encontrado.');
+  await this.prisma.auditLog.delete({where:{id}});
+  return {deleted:true};
  }
 }

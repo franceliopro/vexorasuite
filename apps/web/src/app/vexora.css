@@ -269,7 +269,7 @@ details>summary::-webkit-details-marker{display:none}
 
 /* ===== 8. Atendimento ===== */
 .inbox-workspace{display:grid;grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}
-@media(max-width:980px){.inbox-workspace{grid-template-columns:minmax(0,1fr);height:100dvh}}
+@media(max-width:980px){.inbox-workspace{grid-template-columns:minmax(0,1fr)}}
 .inbox-workspace:has(.contact-profile){grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)}
 .inbox-workspace>*{min-height:0;padding:0;overflow:hidden}
 .inbox-thread>.thread-empty{flex:1}

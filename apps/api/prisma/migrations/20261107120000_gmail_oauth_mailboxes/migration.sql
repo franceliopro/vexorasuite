@@ -9,3 +9,4 @@ CREATE INDEX "email_mailboxes_tenant_id_google_connection_id_idx"
 ALTER TABLE "email_mailboxes"
   ADD CONSTRAINT "email_mailboxes_google_connection_id_fkey"
   FOREIGN KEY ("google_connection_id") REFERENCES "google_connections"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+

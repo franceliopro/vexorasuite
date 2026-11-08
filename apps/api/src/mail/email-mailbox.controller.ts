@@ -42,3 +42,4 @@ export class EmailMailboxController {
     return this.mailboxes.sync(request.user.tenantId, id);
   }
 }
+

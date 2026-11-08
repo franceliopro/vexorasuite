@@ -992,3 +992,27 @@ details>summary:hover{color:var(--tx)}
 .internal-note-cta{display:flex;justify-content:flex-end;margin-top:2px}
 .internal-note-assume{min-height:32px;padding:0 14px;font-size:11.5px}
 @media(max-width:760px){.internal-note-card{width:100%}}
+
+
+/* ===== Atendimento v2 · fidelidade à proposta visual (desktop) ===== */
+/* Desktop: a regra base do compositor só alcançava abaixo de 760px no build anterior; aqui ela vale de 761px para cima. */
+@media (min-width: 761px) {
+  .composer-shell > .inbox-composer { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--ln); border-radius: 14px; padding: 8px 10px; background: var(--s1); }
+  .composer-shell .inbox-composer .composer-toolbar { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: auto; padding: 0; border: 0; flex-wrap: nowrap; }
+  .composer-shell .inbox-composer .composer-tools { flex: 1 1 auto; width: auto; min-width: 0; align-items: center; gap: 2px; flex-wrap: nowrap; }
+  .composer-shell .inbox-composer .composer-tools > textarea { flex: 1 1 auto; width: auto; min-width: 70px; max-height: 40px; resize: none; }
+}
+/* Botões com rótulo no cabeçalho: o globals encaixota em 36×36 e esconde o texto. Aqui eles viram pílulas naturais. */
+.thread-header-actions .thread-finalize-button,
+.thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 36px; min-height: 36px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; place-items: initial; white-space: nowrap; }
+/* Filas em uma única linha rolável, como na proposta. */
+.inbox-queues { display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 5px; padding: 9px 10px; scrollbar-width: none; border-bottom: 1px solid var(--ln); overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
+.inbox-queues::-webkit-scrollbar { display: none; }
+.inbox-queue-button { flex: 0 0 auto; min-height: 28px; padding: 0 10px; gap: 5px; font-size: 11px; }
+.inbox-queue-button .inbox-queue-count { min-width: 17px; min-height: 17px; height: 17px; padding: 0 5px; font-size: 9px; gap: 2px; }
+@media (max-width: 340px) { .inbox-queues { flex-wrap: wrap; } }
+/* Item da lista: horário à direita do título + linha de status do atendimento. */
+.conversation-title-row { min-width: 0; }
+.conversation-time { margin-left: auto; flex: none; font-size: 10.5px; color: var(--tx3); font-variant-numeric: tabular-nums; }
+.conversation-new { display: inline-flex; align-items: center; gap: 6px; width: max-content; margin-top: 2px; font-size: 10.5px; font-weight: 650; color: var(--ok, #128A4C); }
+.conversation-new-dot { width: 7px; height: 7px; border-radius: 99px; background: var(--ok, #12B76A); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ok, #12B76A) 22%, transparent); }

@@ -1,5 +1,5 @@
 "use client";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ArrowRight, Bot, CircleDollarSign, Hourglass, Sparkles, Timer, Users } from "lucide-react";
 
 export type OverviewWaitingItem = {
@@ -20,6 +20,8 @@ export type OverviewTeamMember = {
   presence: "active" | "paused";
 };
 
+export type OverviewChannel = { label: string; count: number; percent: number };
+
 export type OverviewSnapshot = {
   openConversations: number;
   contacts: number;
@@ -30,6 +32,7 @@ export type OverviewSnapshot = {
   team?: OverviewTeamMember[];
   hourly?: { labels: string[]; values: number[]; average: number[]; peakIndex: number | null; peakValue: number };
   topics?: Array<{ label: string; count: number; percent: number }>;
+  channels?: OverviewChannel[];
   kpis?: { resolvedByAi: number; resolvedByAiPercent: number; revenue: number; payments: number; firstResponseSeconds: number | null };
 };
 
@@ -154,10 +157,61 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
   );
 }
 
-export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnapshot | null; onOpenQueue: () => void }) {
+const CHANNEL_COLORS: Array<{ match: RegExp; color: string }> = [
+  { match: /WHATS|WAHA/i, color: "#25D366" },
+  { match: /INSTAGRAM/i, color: "#C13584" },
+  { match: /FACEBOOK|MESSENGER/i, color: "#1877F2" },
+  { match: /TELEGRAM/i, color: "#229ED9" },
+  { match: /E-?MAIL|EMAIL/i, color: "#64748B" },
+  { match: /SMS/i, color: "#F59E0B" },
+  { match: /WEB|SITE|FORM|LANDING/i, color: "#0E7A5C" },
+];
+
+function channelColor(label: string): string {
+  return CHANNEL_COLORS.find((entry) => entry.match.test(label))?.color || "#8B5CF6";
+}
+
+function channelGradient(channels: OverviewChannel[]): string {
+  let cursor = 0;
+  const stops = channels.map((channel) => {
+    const start = cursor;
+    cursor = Math.min(100, cursor + channel.percent);
+    return `${channelColor(channel.label)} ${start}% ${cursor}%`;
+  });
+  if (cursor < 100) stops.push(`var(--s3) ${cursor}% 100%`);
+  return `conic-gradient(${stops.join(",")})`;
+}
+
+function ChannelMix({ channels }: { channels: OverviewChannel[] }) {
+  const total = channels.reduce((sum, channel) => sum + channel.count, 0);
+  return (
+    <div className="vx-channels">
+      <div
+        className="vx-channel-donut"
+        style={{ background: channelGradient(channels) }}
+        role="img"
+        aria-label={`Conversas por canal: ${channels.map((channel) => `${channel.label} ${channel.percent}%`).join(", ")}`}
+      >
+        <span><strong>{total}</strong><small>{total === 1 ? "conversa" : "conversas"}</small></span>
+      </div>
+      <ul className="vx-channel-legend">
+        {channels.map((channel) => (
+          <li key={channel.label}>
+            <i style={{ background: channelColor(channel.label) }} aria-hidden="true" />
+            <span>{channel.label}</span>
+            <b>{channel.percent}%</b>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: OverviewSnapshot | null; onOpenQueue: () => void; shortcuts?: ReactNode }) {
   const waiting = data?.waiting;
   const team = data?.team || [];
   const topics = data?.topics || [];
+  const channels = data?.channels || [];
   const kpis = data?.kpis;
   const hourly = data?.hourly;
   const waitingTotal = waiting?.total || 0;
@@ -232,32 +286,47 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         </article>
       </div>
 
-      <article className="content-card vx-chart-card">
-        <header className="vx-card-head">
-          <div><h2>Atendimentos por hora</h2><p>Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
-          <span className="vx-card-badge"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
-        </header>
-        {hourly ? <HourlyChart hourly={hourly} /> : <p className="vx-card-empty">Aguardando os primeiros atendimentos.</p>}
-      </article>
+      <div className="vx-main-row">
+        <div className="vx-main-charts">
+          <article className="content-card vx-chart-card">
+            <header className="vx-card-head">
+              <div><h2>Atendimentos por hora</h2><p>Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
+              <span className="vx-card-badge"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
+            </header>
+            {hourly ? <HourlyChart hourly={hourly} /> : <p className="vx-card-empty">Aguardando os primeiros atendimentos.</p>}
+          </article>
 
-      <article className="content-card vx-team-card">
-        <header className="vx-card-head"><div><h2>Equipe agora</h2><p>Quem está atendendo neste momento</p></div><span className="vx-card-badge neutral"><Users size={13} aria-hidden="true" />{team.length}</span></header>
-        {team.length ? (
-          <ul className="vx-team-list">
-            {team.map((member, index) => (
-              <li key={member.id} className="vx-team-row">
-                <span className="vx-team-avatar" style={{ "--i": index } as CSSProperties}>
-                  {member.initials || initialsOf(member.name)}
-                  <i className={`vx-presence ${member.presence}`} aria-hidden="true" />
-                </span>
-                <span className="vx-team-copy"><b>{member.name}</b><small>{member.departmentName || "Atendimento"}</small></span>
-                <span className="vx-team-load" aria-hidden="true"><i style={{ width: `${member.loadPercent}%` }} /></span>
-                <span className="vx-team-count">{member.openCount}</span>
-              </li>
-            ))}
-          </ul>
-        ) : <p className="vx-card-empty">Nenhum atendente com conversa aberta agora.</p>}
-      </article>
+          <article className="content-card vx-channels-card">
+            <header className="vx-card-head">
+              <div><h2>Redes sociais</h2><p>Conversas por canal nos últimos 30 dias</p></div>
+              <span className="vx-card-badge neutral">Canais</span>
+            </header>
+            {channels.length ? <ChannelMix channels={channels} /> : <p className="vx-card-empty">As conversas por canal aparecem aqui quando houver atendimentos.</p>}
+          </article>
+        </div>
+
+        <aside className="vx-main-side">
+          {shortcuts}
+          <article className="content-card vx-team-card">
+            <header className="vx-card-head"><div><h2>Equipe agora</h2><p>Quem está atendendo neste momento</p></div><span className="vx-card-badge neutral"><Users size={13} aria-hidden="true" />{team.length}</span></header>
+            {team.length ? (
+              <ul className="vx-team-list">
+                {team.map((member, index) => (
+                  <li key={member.id} className="vx-team-row">
+                    <span className="vx-team-avatar" style={{ "--i": index } as CSSProperties}>
+                      {member.initials || initialsOf(member.name)}
+                      <i className={`vx-presence ${member.presence}`} aria-hidden="true" />
+                    </span>
+                    <span className="vx-team-copy"><b>{member.name}</b><small>{member.departmentName || "Atendimento"}</small></span>
+                    <span className="vx-team-load" aria-hidden="true"><i style={{ width: `${member.loadPercent}%` }} /></span>
+                    <span className="vx-team-count">{member.openCount}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="vx-card-empty">Nenhum atendente com conversa aberta agora.</p>}
+          </article>
+        </aside>
+      </div>
 
       <article className="content-card vx-topics-card">
         <header className="vx-card-head"><div><h2>Do que as pessoas falam</h2><p>Assuntos dos últimos 30 dias</p></div><span className="vx-card-badge neutral">Top {topics.length || 0}</span></header>

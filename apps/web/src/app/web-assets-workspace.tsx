@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ClipboardList, Globe2, LayoutTemplate, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { ClipboardList, Globe2, LayoutTemplate, Pencil, Plus, RefreshCw, Sparkles, Trash2, Wand2, X } from "lucide-react";
 import { VexoraDialog } from "./vexora-dialog";
 
 export type WebAssetKind = "SITE" | "LANDING" | "FORM";
@@ -79,6 +79,11 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
   const [slug, setSlug] = useState("");
   const [summary, setSummary] = useState("");
   const [fields, setFields] = useState<WebAssetField[]>([]);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiTone, setAiTone] = useState("natural");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,6 +121,38 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
   function closeDialog() {
     if (busy) return;
     setDialog(null);
+  }
+
+  function openAi() {
+    setAiPrompt("");
+    setAiTone("natural");
+    setAiError("");
+    setAiOpen(true);
+  }
+
+  async function draftWithAi(event: FormEvent) {
+    event.preventDefault();
+    const prompt = aiPrompt.trim();
+    if (!prompt || aiBusy) return;
+    setAiBusy(true);
+    setAiError("");
+    try {
+      const draft = await api<{ title: string; slug: string; summary: string; fields: WebAssetField[] }>(
+        "marketing/web-assets/ai-draft",
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, prompt, tone: aiTone }) },
+      );
+      setTitle(draft.title || "");
+      setSlug(draft.slug || slugify(draft.title || ""));
+      setSummary(draft.summary || "");
+      setFields(kind === "FORM" ? (draft.fields?.length ? draft.fields.map((field) => ({ ...field, id: field.id || crypto.randomUUID() })) : [blankField()]) : []);
+      setAiOpen(false);
+      setDialog("create");
+      setNotice("Rascunho criado pela assistente. Revise o texto e os campos antes de salvar.");
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "A assistente não conseguiu criar o rascunho agora.");
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   async function submit(event: FormEvent) {
@@ -184,11 +221,20 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
         </div>
         <div className="workspace-actions">
           <button className="secondary-button" type="button" onClick={() => void load()} aria-label="Atualizar lista"><RefreshCw size={16} /></button>
+          <button className="secondary-button vx-web-ai-trigger" type="button" onClick={openAi}><Sparkles size={16} /> Criar com IA</button>
           <button className="primary-button" type="button" onClick={openCreate}><Plus size={16} /> Novo {meta.singular}</button>
         </div>
       </header>
 
       <p className="vx-web-hint"><Icon size={16} aria-hidden="true" />{meta.hint}</p>
+      <section className="vx-web-ai-card" aria-label="Assistente de criação">
+        <span className="vx-web-ai-mark"><Sparkles size={20} aria-hidden="true" /></span>
+        <div className="vx-web-ai-copy">
+          <strong>Nossa Véxora — Assistente Pessoal</strong>
+          <p>Descreva o que você precisa e a assistente monta um rascunho de {meta.singular} com título, endereço e texto. Você revisa e salva; nada é publicado automaticamente.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={openAi}><Wand2 size={15} aria-hidden="true" /> Criar tudo com IA</button>
+      </section>
       {error && <p role="alert" className="creative-error">{error}</p>}
       {notice && <p role="status" className="vx-web-notice">{notice}</p>}
 
@@ -222,6 +268,27 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
           <button className="primary-button" type="button" onClick={openCreate}><Plus size={16} /> Criar {meta.singular}</button>
         </div>
       )}
+
+      <VexoraDialog
+        open={aiOpen}
+        title="Criar com a assistente"
+        subtitle={"Nossa Véxora — Assistente Pessoal"}
+        icon={<Sparkles size={20} aria-hidden="true" />}
+        onClose={() => { if (!aiBusy) setAiOpen(false); }}
+        footer={
+          <>
+            <button className="secondary-button" type="button" onClick={() => setAiOpen(false)} disabled={aiBusy}>Cancelar</button>
+            <button className="primary-button" type="submit" form="vx-web-ai-form" disabled={aiBusy || !aiPrompt.trim()}>{aiBusy ? "Criando rascunho…" : "Gerar rascunho"}</button>
+          </>
+        }
+      >
+        <form id="vx-web-ai-form" className="ai-admin-fields vx-web-ai-form" onSubmit={draftWithAi}>
+          <label>O que você quer criar?<textarea rows={5} maxLength={1200} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder={`Ex.: ${kind === "FORM" ? "Formulário de contato com nome, e-mail, telefone e mensagem para uma clínica odontológica" : kind === "LANDING" ? "Landing page para uma campanha de avaliação gratuita de ortodontia" : "Site institucional de uma clínica com especialidades, equipe e contato"}`} autoFocus /></label>
+          <label>Tom do texto<select value={aiTone} onChange={(e) => setAiTone(e.target.value)}><option value="natural">Natural</option><option value="cordial">Cordial</option><option value="formal">Formal</option><option value="direto">Direto</option></select></label>
+          <p className="vx-web-ai-note">A assistente usa as regras e o conhecimento já configurados da empresa. O resultado é um rascunho para revisão: não envia mensagens nem publica nada.</p>
+          {aiError ? <p role="alert" className="creative-error">{aiError}</p> : null}
+        </form>
+      </VexoraDialog>
 
       <VexoraDialog
         open={dialog !== null}

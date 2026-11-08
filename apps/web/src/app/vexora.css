@@ -504,13 +504,20 @@ details>summary:hover{color:var(--tx)}
   .page-content :is(h1,h2,h3,h4,p,strong,small,label,button,a){overflow-wrap:anywhere}
   .persistent-module-tabs{padding:8px 16px 0}
   .metrics-grid,.tasks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .inbox-workspace,.inbox-workspace:has(.contact-profile){grid-template-columns:1fr;height:auto;min-height:0}
+.inbox-workspace,.inbox-workspace:has(.contact-profile){grid-template-columns:1fr;height:auto;min-height:0;align-content:start}
+  .inbox-notes-board{max-height:140px;overflow:auto;padding:6px 10px 0}
+  .thread-heading{flex-wrap:wrap;padding:10px 12px;gap:6px}
+  .thread-contact-avatar{width:36px;height:36px;font-size:12px}
+  .thread-contact h2{font-size:15px}
+  .thread-contact-status{font-size:11px}
+  .thread-action-button{width:30px;height:30px}
   .inbox-workspace:not(.mobile-thread-open) :is(.inbox-thread,.contact-profile),.inbox-workspace.mobile-thread-open .inbox-list{display:none}
   .inbox-composer{display:flex;flex-direction:column;gap:8px}
   .composer-toolbar{flex-wrap:wrap}
   .composer-tools{flex-wrap:wrap}
   .composer-toolbar textarea{order:1;flex:1 1 100%;width:100%;min-height:44px;font-size:16px}
-  .inbox-workspace.mobile-thread-open{height:calc(100dvh - var(--top) - var(--dock) - 24px)}.inbox-workspace.mobile-thread-open .inbox-thread{height:100%}
+  .inbox-workspace.mobile-thread-open{height:calc(100dvh - var(--top) - var(--dock) - 24px);grid-template-rows:minmax(0,1fr) auto}.inbox-workspace.mobile-thread-open .inbox-thread{height:100%}
+  .inbox-workspace.mobile-thread-open .contact-profile{max-height:230px}
   .vx-flow-shell{grid-template-columns:1fr;height:auto}
   .vx-flow-stage{height:70dvh}
   .settings-catalog-grid,.workflow-template-grid{grid-template-columns:1fr}
@@ -742,6 +749,9 @@ details>summary:hover{color:var(--tx)}
 .thread-contact-avatar{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 26%,var(--s2)),color-mix(in srgb,var(--primary) 58%,var(--s3)));color:#FFFFFF;font-weight:800;font-size:15px;overflow:hidden}
 .thread-contact h2{margin:0 0 2px;font-size:17px;font-weight:800;color:var(--tx)}
 .thread-contact-status{margin:0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.thread-contact{display:grid;min-width:0;gap:2px}
+.thread-contact h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread-contact-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .status-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px color-mix(in srgb,var(--ok) 40%,transparent)}
 .thread-header-actions{display:flex;align-items:center;gap:6px}
 .thread-action-button{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);font-size:13px}
@@ -750,3 +760,10 @@ details>summary:hover{color:var(--tx)}
 
 /* Ficha do cliente à direita */
 .contact-profile{border-left:1px solid var(--ln)}
+
+
+/* Handoff/invite inside the modern thread header */
+.thread-header-actions .handoff-menu{position:relative;min-width:0;padding:0;border:0;background:none;box-shadow:none;display:inline-flex;align-items:center}
+.thread-header-actions .handoff-menu > summary{list-style:none}
+.thread-header-actions .handoff-menu > summary::-webkit-details-marker{display:none}
+.thread-header-actions .handoff-menu .handoff-popover{position:fixed;z-index:190;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);width:min(340px,calc(100vw - 28px));max-height:min(72dvh,560px);overflow:auto}

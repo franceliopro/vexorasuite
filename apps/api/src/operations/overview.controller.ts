@@ -41,7 +41,7 @@ type WaitingRow = {
   id: string;
   createdAt: Date;
   channel: string;
-  contact: { name: string } | null;
+  contact: { name: string; id: string } | null;
   department: { name: string } | null;
 };
 
@@ -78,7 +78,7 @@ export class OverviewController {
    this.prisma.conversation.count({where:{...scope,status:{in:['RESOLVED','CLOSED']}}}),
    this.prisma.contact.count({where:{tenantId,conversations:{some:{tenantId,deletedAt:null,...(!admin?assignedConversationScope(tenantId,req.user.sub,teams.map(t=>t.departmentId)):{})}}}}),
    this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}),
-   this.prisma.conversation.findMany({where:scope,orderBy:{updatedAt:'desc'},take:5,select:{id:true,status:true,updatedAt:true,contact:{select:{name:true}}}}),
+   this.prisma.conversation.findMany({where:scope,orderBy:{updatedAt:'desc'},take:5,select:{id:true,status:true,updatedAt:true,createdAt:true,handlingMode:true,contact:{select:{name:true,id:true}}}}),
   ]);
 
   const now = new Date();
@@ -87,13 +87,13 @@ export class OverviewController {
   const monthAgo = new Date(now.getTime() - 30 * DAY_MS);
   const waitingWhere = {...scope,archivedAt:null,status:{in:OPEN_STATUSES},handlingMode:'HUMAN' as const,assigneeId:null};
 
-  const [waitingTotal,waitingRows,teamRows,hourRows,topicRows,resolvedByAi,payments,firstResponseRows] = await Promise.all([
+  const [waitingTotal,waitingRows,teamRows,hourRows,topicRows,resolvedByAi,payments,firstResponseRows,contactsNewWeek] = await Promise.all([
    optional(() => this.prisma.conversation.count({where:waitingWhere}), 0),
    optional(() => this.prisma.conversation.findMany({
      where:waitingWhere,
      orderBy:{createdAt:'asc'},
      take:6,
-     select:{id:true,createdAt:true,channel:true,contact:{select:{name:true}},department:{select:{name:true}}},
+     select:{id:true,createdAt:true,channel:true,contact:{select:{name:true,id:true}},department:{select:{name:true}}},
    }), [] as WaitingRow[]),
    optional(() => this.prisma.conversation.findMany({
      where:{...scope,archivedAt:null,status:{in:OPEN_STATUSES},assigneeId:{not:null}},
@@ -115,11 +115,13 @@ export class OverviewController {
      take:200,
      select:{createdAt:true,messages:{where:{direction:'OUTBOUND' as const},orderBy:{occurredAt:'asc' as const},take:1,select:{occurredAt:true}}},
    }), [] as FirstResponseRow[]),
+   optional(() => this.prisma.contact.count({where:{tenantId,createdAt:{gte:weekAgo}}}), 0),
   ]);
 
   const waitingItems = waitingRows.map((row) => ({
     id: row.id,
     contactName: row.contact?.name || "Contato sem nome",
+    contactId: row.contact?.id || null,
     departmentName: row.department?.name || null,
     channel: channelLabel(row.channel),
     waitingMinutes: Math.max(0, Math.floor((now.getTime() - new Date(row.createdAt).getTime()) / 60000)),
@@ -200,10 +202,12 @@ export class OverviewController {
   const root=tenant.integrations as Record<string,any>;const assistantEnabled=root?.assistant?.enabled!==false;const agents=assistantEnabled&&Array.isArray(root?.assistant?.agents)?root.assistant.agents:[];
   return {
    openConversations,
+   agentsTotal:Array.isArray(root?.assistant?.agents)?root.assistant.agents.length:0,
    completedConversations,
    contacts,
+   contactsNewWeek,
    activeAgents:agents.filter((a:any)=>a.enabled===true).length,
-   recent,
+   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, contact: { name: item.contact?.name || 'Contato sem nome', id: item.contact?.id || null } })),
    scope:admin?'tenant':'assigned_and_team',
    updatedAt:new Date().toISOString(),
    waiting:{

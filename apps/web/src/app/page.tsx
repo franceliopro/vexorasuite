@@ -1,5 +1,4 @@
 "use client";
-import { formatDateTimeBR } from "../lib/date-format";
 import {PresentationHome} from "./presentation-home";
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
@@ -84,7 +83,6 @@ import {
   Plus,
   ArrowRight,
   ArrowUpRight,
-  LayoutGrid,
 } from "lucide-react";
 
 const iconMap = {
@@ -133,13 +131,6 @@ const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de
   : ["Criações", "Referências criativas", "Google Drive", "Sites", "Landing Pages", "Formulários"].includes(value)
     ? "marketing"
     : value === "Canais e integrações" ? "connections" : null;
-
-const metrics = [
-  { key:"openConversations",label: "Conversas abertas", value: "—", note: "Abertas e pendentes, conforme suas permissões", icon: "messages" },
-  { key:"contacts",label: "Contatos", value: "—", note: "Cadastros desta empresa", icon: "users" },
-  { key:"activeAgents",label: "Agentes ativos", value: "—", note: "Agentes habilitados na configuração", icon: "sparkles" },
-  { key:"completedConversations",label: "Atendimentos finalizados", value: "—", note: "Total atual, conforme suas permissões", icon: "chart-no-axes-combined" },
-] as const;
 
 export default function HomePage() {
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
@@ -312,7 +303,7 @@ export default function HomePage() {
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="main-area">
-        <header className={"topbar" + (isOverview ? " topbar-dark" : "")}>
+        <header className="topbar">
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
           <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className="crumb-slash">/</span><strong>{active}</strong></>}</div>
           <div className="topbar-actions">
@@ -336,22 +327,15 @@ export default function HomePage() {
 
           {presentationHome?<PresentationHome key={session?.tenant.id}/>:!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p></section>:isOverview ? (
             <>
-              {overviewError&&!overview&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
-                {metrics.map((metric) => <article className="metric-card" key={metric.label}><div className="metric-top"><span>{metric.label}</span><span className="metric-icon"><Icon name={metric.icon} size={17} /></span></div><strong className="metric-value">{overview?overview[metric.key].toLocaleString("pt-BR"):metric.value}</strong><p>{metric.note}</p></article>)}
-              </section>
+              {overviewError&&!overview&&<p role="status">{overviewError}</p>}
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} shortcuts={
-                <article className="content-card shortcuts-card">
+                <article className="content-card vx-access-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
-                  <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow"><ArrowUpRight size={15} aria-hidden="true" /></span></button>)}
+                  <div className="vx-access-grid">
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"green",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
                   </div>
                 </article>
               } />
-              <article className="content-card activity-card">
-                <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>
-                {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span><LayoutGrid size={26} aria-hidden="true" /></span><i><Sparkles size={13} aria-hidden="true" /></i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>}
-              </article>
-              <section className="bottom-note"><span className="note-icon">i</span><p><strong>Dados reais:</strong> os indicadores refletem o estado atual da sua empresa. Consulte a Inteligência Operacional para comparar períodos.</p></section>
             </>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />

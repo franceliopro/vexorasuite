@@ -13,7 +13,7 @@ test("inbox queues expose the selected state to assistive technology", () => {
 });
 
 test("handoff controls have explicit accessible names", () => {
-  assert.match(inbox, /className="handoff-invite-trigger handoff-direct-trigger" aria-label="Direcionar conversa"/);
+  assert.match(inbox, /className="handoff-invite-trigger handoff-direct-trigger[^"]*" aria-label="Direcionar conversa"/);
   assert.match(inbox, /className="handoff-invite-trigger" aria-label="Convidar atendente"/);
 });
 

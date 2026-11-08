@@ -15,8 +15,8 @@ import {
   UserRound,
   X,
   CheckCircle2,
+  CalendarDays,
   Sparkles,
-  Wand2,
 } from "lucide-react";
 
 type ContactProfileData = {
@@ -99,6 +99,7 @@ export function ContactProfilePanel({
   const [fieldDraftOptions, setFieldDraftOptions] = useState("");
   const [leadOrigin, setLeadOrigin] = useState("");
   const [leadOriginId, setLeadOriginId] = useState("");
+  const [originEditing, setOriginEditing] = useState(false);
   const [history, setHistory] = useState<Protocol[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -361,19 +362,33 @@ export function ContactProfilePanel({
         : value === "ACTIVE"
           ? "Ativo no Asaas"
           : "Status não informado";
+  const initialsOf = (value: string) => {
+    const parts = value.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    const first = parts[0]?.charAt(0) || "";
+    const last = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) || "" : "";
+    return (first + last).toUpperCase() || "?";
+  };
+  const profileLeadSubtitle = () => {
+    if (leadOrigin.trim()) {
+      const origin = leadOrigin.trim();
+      return /landing|site|formul[aá]rio|campanha/i.test(origin) ? `Novo contato, veio de uma ${origin.toLowerCase()}` : `Novo contato, veio de ${origin}`;
+    }
+    return "Lead / cliente";
+  };
   return (
     <aside className={"contact-profile content-card " + (!expanded ? "profile-collapsed" : "")}>
       <div className="contact-profile-heading">
         {expanded ? (
-          <span className="contact-profile-avatar">
-            {(displayName || contactDisplayName(contact)).slice(0, 1).toUpperCase()}
-          </span>
-        ) : null}
-        {expanded ? (
-          <div className="contact-profile-title">
-            <strong>Ficha do contato</strong>
-            <small>Lead / cliente</small>
-          </div>
+          <>
+            <span className="contact-profile-avatar">
+              {initialsOf(displayName || contactDisplayName(contact))}
+            </span>
+            <div className="contact-profile-title">
+              <strong>{displayName || contactDisplayName(contact)}</strong>
+              <small>{profileLeadSubtitle()}</small>
+            </div>
+          </>
         ) : null}
         <button
           type="button"
@@ -387,8 +402,7 @@ export function ContactProfilePanel({
       {expanded ? (
         <>
           <div className="contact-profile-identity">
-            <h3>{displayName || contactDisplayName(contact)}</h3>
-            <p>{readablePhone(contact.phone, contact.externalId)}</p>
+            {contact.phone ? <p>{readablePhone(contact.phone, contact.externalId)}</p> : null}
             {contact.email ? <p>{contact.email}</p> : null}
             <span
               className={
@@ -413,19 +427,21 @@ export function ContactProfilePanel({
               </span>
             ) : null}
           </div>
-          <section className="contact-ai-card" aria-label="Sugestão da assistente">
+          <section className="contact-ai-card" aria-label="Assistente">
             <header>
-              <span className="contact-ai-title"><Sparkles size={14} aria-hidden="true" /> Assistente Véxora</span>
-              <button type="button" className="contact-ai-refresh" onClick={() => onRequestAiSuggestion?.("suggest")} disabled={aiSuggestionBusy}>{aiSuggestionBusy ? "Analisando..." : aiSuggestion ? "Gerar outra" : "Sugerir"}</button>
+              <span className="contact-ai-title"><Sparkles size={14} aria-hidden="true" /> Assistente</span>
+              <span className="contact-ai-onlyyou">Só você vê</span>
+              <button type="button" className="contact-ai-refresh" onClick={() => onRequestAiSuggestion?.("suggest")} disabled={aiSuggestionBusy} title="Gerar outra sugestão" aria-label="Gerar outra sugestão">{aiSuggestionBusy ? "…" : "↻"}</button>
             </header>
             {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
             {aiSuggestion?.text
-              ? <p className="contact-ai-text">{aiSuggestion.text}</p>
-              : <p className="contact-ai-placeholder">{aiSuggestionBusy ? "Lendo o histórico desta conversa." : "A assistente pode sugerir a próxima resposta com base no histórico. Nada é enviado sem sua confirmação."}</p>}
+              ? <div className="contact-ai-bubble">{aiSuggestion.text}</div>
+              : <p className="contact-ai-placeholder">{aiSuggestionBusy ? "Lendo o histórico desta conversa." : "Posso sugerir a próxima resposta com base no histórico. Nada é enviado sem sua confirmação."}</p>}
             <div className="contact-ai-actions">
-              <button type="button" className="secondary-button" onClick={() => onRequestAiSuggestion?.("improve")} disabled={aiSuggestionBusy}><Wand2 size={13} aria-hidden="true" /> Reescrever</button>
-              <button type="button" className="primary-button" onClick={() => aiSuggestion?.text && onUseAiSuggestion?.(aiSuggestion.text)} disabled={!aiSuggestion?.text}><CheckCircle2 size={13} aria-hidden="true" /> Usar na resposta</button>
+              <button type="button" className="contact-ai-primary" onClick={() => aiSuggestion?.text && onUseAiSuggestion?.(aiSuggestion.text)} disabled={!aiSuggestion?.text}><CheckCircle2 size={14} aria-hidden="true" /> Usar na resposta</button>
+              <button type="button" className="contact-ai-ghost" onClick={() => onRequestAiSuggestion?.("improve")} disabled={aiSuggestionBusy}>Reescrever</button>
             </div>
+            <small className="contact-ai-caption">Você revisa antes de enviar.</small>
           </section>
           <nav className="contact-profile-tabs">
             <button
@@ -500,7 +516,7 @@ export function ContactProfilePanel({
                 <section className="profile-section contact-identities-section">
                   <strong><Link2 size={14} /> Identidades de atendimento</strong>
                   <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => <div className="contact-identity-item" key={identity.id}><span><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><small title={identity.lastSeenAt}>Ativo</small></div>)}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="contact-identity-card" key={identity.id}><span className="contact-identity-icon" aria-hidden="true">{isWaha ? <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg> : <Link2 size={18}/>}</span><span className="contact-identity-copy"><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className="profile-status-pill small done">Ativo</span></div>})}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
                   <form className="contact-identity-form" onSubmit={bindIdentity}>
                     <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
                     <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
@@ -510,53 +526,69 @@ export function ContactProfilePanel({
                 </section>
                 <section className="profile-section">
                   <strong>
-                    <Compass size={14} /> Origem do lead
-                  </strong>
-                  <select
-                    className="profile-origin-select"
-                    value={leadOrigin}
-                    onChange={(e) => {
-                      setLeadOrigin(e.target.value);
-                      setLeadOriginId("");
-                    }}
-                  >
-                    <option value="">Não identificada</option>
-                    <option>Site/Formulário</option>
-                    <option>Landing Page</option>
-                    <option>Facebook</option>
-                    <option>Instagram</option>
-                    <option>Google</option>
-                    <option>WhatsApp (WAHA)</option>
-                    <option>Campanha de WhatsApp</option>
-                    <option>Campanha de SMS</option>
-                    <option>Campanha de Áudio</option>
-                    <option>Indicação</option>
-                    <option>Evento</option>
-                    <option>Importação</option>
-                    <option>Outra</option>
-                  </select>
-                  {[
-                    "Landing Page",
-                    "Facebook",
-                    "Instagram",
-                    "Google",
-                    "Campanha de WhatsApp",
-                    "Campanha de SMS",
-                    "Campanha de Áudio",
-                  ].includes(leadOrigin) ? (
-                    <input
-                      className="profile-origin-identifier"
-                      value={leadOriginId}
-                      onChange={(e) => setLeadOriginId(e.target.value)}
-                      placeholder="Identificador da landing page/campanha"
-                      maxLength={120}
-                    />
-                  ) : null}
-                  <small>
-                    Use o identificador criado na landing page ou campanha para atribuir
-                    corretamente a origem. O canal de atendimento não define a origem.
-                  </small>
-                </section>
+                     <Compass size={14} /> Origem do lead
+                   </strong>
+                   {!leadOrigin || originEditing ? (
+                     <>
+                       <select
+                         className="profile-origin-select"
+                         value={leadOrigin}
+                         onChange={(e) => {
+                           setLeadOrigin(e.target.value);
+                           setLeadOriginId("");
+                         }}
+                       >
+                         <option value="">Não identificada</option>
+                         <option>Site/Formulário</option>
+                         <option>Landing Page</option>
+                         <option>Facebook</option>
+                         <option>Instagram</option>
+                         <option>Google</option>
+                         <option>WhatsApp (WAHA)</option>
+                         <option>Campanha de WhatsApp</option>
+                         <option>Campanha de SMS</option>
+                         <option>Campanha de Áudio</option>
+                         <option>Indicação</option>
+                         <option>Evento</option>
+                         <option>Importação</option>
+                         <option>Outra</option>
+                       </select>
+                       {[
+                         "Landing Page",
+                         "Facebook",
+                         "Instagram",
+                         "Google",
+                         "Campanha de WhatsApp",
+                         "Campanha de SMS",
+                         "Campanha de Áudio",
+                       ].includes(leadOrigin) ? (
+                         <input
+                           className="profile-origin-identifier"
+                           value={leadOriginId}
+                           onChange={(e) => setLeadOriginId(e.target.value)}
+                           placeholder="Identificador da landing page/campanha"
+                           maxLength={120}
+                         />
+                       ) : null}
+                       <small>Use o identificador criado na landing page ou campanha para atribuir corretamente a origem. O canal de atendimento não define a origem.</small>
+                       <button type="button" className="text-button" onClick={() => setOriginEditing(false)}>Concluir</button>
+                     </>
+                   ) : (
+                     <div className="profile-origin-value">
+                       <span>{leadOrigin}{leadOriginId ? ` · ${leadOriginId}` : ""}</span>
+                       <button type="button" className="text-button" onClick={() => setOriginEditing(true)}>Alterar</button>
+                     </div>
+                   )}
+                 </section>
+                 <section className="profile-section agenda-cobranca-section">
+                   <strong>
+                     <CalendarDays size={14} /> Agenda e cobrança
+                   </strong>
+                   <div className="agenda-cobranca-empty">
+                     <b>Nada agendado ainda</b>
+                     <p>Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
+                   </div>
+                 </section>
                 <section className="profile-section">
                   <strong>
                     <UserRound size={14} /> Campos personalizados

@@ -567,7 +567,11 @@ details>summary:hover{color:var(--tx)}
 .vx-chart-peak-chip{margin-left:auto;padding:4px 9px;border-radius:99px;background:var(--primary-soft);color:var(--primary-ink);font-weight:800}
 .vx-team-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 .vx-team-row{display:grid;grid-template-columns:auto minmax(0,1fr) 64px auto;align-items:center;gap:10px}
-.vx-team-avatar{position:relative;display:grid;place-items:center;width:38px;height:38px;border-radius:13px;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 26%,var(--s2)),color-mix(in srgb,var(--primary) 58%,var(--s3)));color:var(--tx);font-size:12px;font-weight:800;letter-spacing:-.02em}
+.vx-team-avatar{position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 26%,var(--s2)),color-mix(in srgb,var(--primary) 58%,var(--s3)));color:#FFFFFF;font-weight:800;font-size:14px;letter-spacing:-.02em;box-shadow:0 0 0 2px var(--s1),0 4px 12px -6px color-mix(in srgb,#000 .35);overflow:hidden}
+.vx-team-avatar::before{content:"";position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 90deg,#22A57C 0deg,#1877F2 90deg,#C13584 180deg,#8B5CF6 270deg);opacity:0;transition:opacity .3s}
+.vx-team-row:hover .vx-team-avatar::before{opacity:.5}
+.vx-team-avatar i{position:absolute;right:-3px;bottom:-3px;width:10px;height:10px;border-radius:50%;border:2px solid var(--s1);background:color-mix(in srgb,var(--bad) 80%,var(--bad))}
+.vx-team-avatar i.paused{background:var(--tx2)}
 .vx-presence{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;border:2px solid var(--s1)}.vx-presence.active{background:var(--mint)}.vx-presence.paused{background:var(--amber)}
 .vx-team-copy{display:grid;gap:1px;min-width:0}.vx-team-copy b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vx-team-copy small{font-size:10.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vx-team-load{display:block;height:6px;border-radius:99px;background:var(--s3);overflow:hidden}.vx-team-load i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--accent2) 65%,var(--primary)))}
@@ -632,18 +636,6 @@ details>summary:hover{color:var(--tx)}
 .vx-main-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);gap:var(--gap);align-items:start}
 .vx-main-charts,.vx-main-side{display:grid;gap:var(--gap);min-width:0;align-content:start}
 .vx-main-side .shortcuts-card{min-height:0;padding:18px 20px}
-.vx-channels-card{display:grid;gap:14px;padding:20px}
-.vx-channels{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:20px}
-.vx-channel-donut{position:relative;display:grid;place-items:center;width:132px;height:132px;border-radius:50%;flex:none}
-.vx-channel-donut::after{content:"";position:absolute;inset:22px;border-radius:50%;background:var(--s1);box-shadow:inset 0 0 0 1px var(--ln)}
-.vx-channel-donut>span{position:relative;z-index:1;display:grid;justify-items:center;line-height:1.1}
-.vx-channel-donut strong{font:800 24px/1 var(--font-display);color:var(--tx)}
-.vx-channel-donut small{font-size:10.5px;font-weight:700;color:var(--tx2)}
-.vx-channel-legend{display:grid;gap:8px;margin:0;padding:0;list-style:none;min-width:0}
-.vx-channel-legend li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;font-size:12.5px}
-.vx-channel-legend i{width:10px;height:10px;border-radius:3px;flex:none}
-.vx-channel-legend span{color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vx-channel-legend b{font-variant-numeric:tabular-nums;color:var(--tx)}
 @media(max-width:1120px){.vx-main-row{grid-template-columns:minmax(0,1fr)}}
 
 /* Visão geral: brilho galáxia nos KPIs e gráficos */

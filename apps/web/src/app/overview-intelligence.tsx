@@ -157,56 +157,6 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
   );
 }
 
-const CHANNEL_COLORS: Array<{ match: RegExp; color: string }> = [
-  { match: /WHATS|WAHA/i, color: "#25D366" },
-  { match: /INSTAGRAM/i, color: "#C13584" },
-  { match: /FACEBOOK|MESSENGER/i, color: "#1877F2" },
-  { match: /TELEGRAM/i, color: "#229ED9" },
-  { match: /E-?MAIL|EMAIL/i, color: "#64748B" },
-  { match: /SMS/i, color: "#F59E0B" },
-  { match: /WEB|SITE|FORM|LANDING/i, color: "#0E7A5C" },
-];
-
-function channelColor(label: string): string {
-  return CHANNEL_COLORS.find((entry) => entry.match.test(label))?.color || "#8B5CF6";
-}
-
-function channelGradient(channels: OverviewChannel[]): string {
-  let cursor = 0;
-  const stops = channels.map((channel) => {
-    const start = cursor;
-    cursor = Math.min(100, cursor + channel.percent);
-    return `${channelColor(channel.label)} ${start}% ${cursor}%`;
-  });
-  if (cursor < 100) stops.push(`var(--s3) ${cursor}% 100%`);
-  return `conic-gradient(${stops.join(",")})`;
-}
-
-function ChannelMix({ channels }: { channels: OverviewChannel[] }) {
-  const total = channels.reduce((sum, channel) => sum + channel.count, 0);
-  return (
-    <div className="vx-channels">
-      <div
-        className="vx-channel-donut"
-        style={{ background: channelGradient(channels) }}
-        role="img"
-        aria-label={`Conversas por canal: ${channels.map((channel) => `${channel.label} ${channel.percent}%`).join(", ")}`}
-      >
-        <span><strong>{total}</strong><small>{total === 1 ? "conversa" : "conversas"}</small></span>
-      </div>
-      <ul className="vx-channel-legend">
-        {channels.map((channel) => (
-          <li key={channel.label}>
-            <i style={{ background: channelColor(channel.label) }} aria-hidden="true" />
-            <span>{channel.label}</span>
-            <b>{channel.percent}%</b>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: OverviewSnapshot | null; onOpenQueue: () => void; shortcuts?: ReactNode }) {
   const waiting = data?.waiting;
   const team = data?.team || [];
@@ -294,14 +244,6 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
               <span className="vx-card-badge"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
             </header>
             {hourly ? <HourlyChart hourly={hourly} /> : <p className="vx-card-empty">Aguardando os primeiros atendimentos.</p>}
-          </article>
-
-          <article className="content-card vx-channels-card">
-            <header className="vx-card-head">
-              <div><h2>Redes sociais</h2><p>Conversas por canal nos últimos 30 dias</p></div>
-              <span className="vx-card-badge neutral">Canais</span>
-            </header>
-            {channels.length ? <ChannelMix channels={channels} /> : <p className="vx-card-empty">As conversas por canal aparecem aqui quando houver atendimentos.</p>}
           </article>
         </div>
 

@@ -7,9 +7,9 @@ const inbox = fs.readFileSync(new URL("inbox-workspace.tsx", appDir), "utf8");
 const css = fs.readFileSync(new URL("globals.css", appDir), "utf8");
 
 test("inbox queues expose the selected state to assistive technology", () => {
-  assert.match(inbox, /className=\{"inbox-queue-button .*aria-current=\{queueView === item\.id \? "page" : undefined\}/);
+  assert.match(inbox, /aria-current=\{queueView === item\.id \? "page" : undefined\}/);
   assert.match(inbox, /aria-pressed=\{queueView === item\.id\}/);
-  assert.match(inbox, /className=\{queueView === item\.id \? "active" : ""\} aria-current=/);
+  assert.match(inbox, /className=\{"inbox-queue-button " \+ \(queueView === item\.id \? "active" : ""\)\}/);
 });
 
 test("handoff controls have explicit accessible names", () => {

@@ -12,10 +12,11 @@ import {
   Plus,
   Save,
   StickyNote,
-  Tag,
   UserRound,
   X,
   CheckCircle2,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
 
 type ContactProfileData = {
@@ -66,6 +67,11 @@ export function ContactProfilePanel({
   expanded,
   onExpandedChange,
   displayName,
+  aiSuggestion,
+  aiSuggestionBusy = false,
+  aiSuggestionError,
+  onRequestAiSuggestion,
+  onUseAiSuggestion,
 }: {
   contact: ContactProfileData;
   conversationId: string;
@@ -75,6 +81,11 @@ export function ContactProfilePanel({
   expanded: boolean;
   displayName?: string;
   onExpandedChange: (expanded: boolean) => void;
+  aiSuggestion?: { text: string; provider?: string; model?: string } | null;
+  aiSuggestionBusy?: boolean;
+  aiSuggestionError?: string;
+  onRequestAiSuggestion?: (mode: "suggest" | "improve") => void;
+  onUseAiSuggestion?: (text: string) => void;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
@@ -402,6 +413,20 @@ export function ContactProfilePanel({
               </span>
             ) : null}
           </div>
+          <section className="contact-ai-card" aria-label="Sugestão da assistente">
+            <header>
+              <span className="contact-ai-title"><Sparkles size={14} aria-hidden="true" /> Assistente Véxora</span>
+              <button type="button" className="contact-ai-refresh" onClick={() => onRequestAiSuggestion?.("suggest")} disabled={aiSuggestionBusy}>{aiSuggestionBusy ? "Analisando..." : aiSuggestion ? "Gerar outra" : "Sugerir"}</button>
+            </header>
+            {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
+            {aiSuggestion?.text
+              ? <p className="contact-ai-text">{aiSuggestion.text}</p>
+              : <p className="contact-ai-placeholder">{aiSuggestionBusy ? "Lendo o histórico desta conversa." : "A assistente pode sugerir a próxima resposta com base no histórico. Nada é enviado sem sua confirmação."}</p>}
+            <div className="contact-ai-actions">
+              <button type="button" className="secondary-button" onClick={() => onRequestAiSuggestion?.("improve")} disabled={aiSuggestionBusy}><Wand2 size={13} aria-hidden="true" /> Reescrever</button>
+              <button type="button" className="primary-button" onClick={() => aiSuggestion?.text && onUseAiSuggestion?.(aiSuggestion.text)} disabled={!aiSuggestion?.text}><CheckCircle2 size={13} aria-hidden="true" /> Usar na resposta</button>
+            </div>
+          </section>
           <nav className="contact-profile-tabs">
             <button
               type="button"
@@ -426,53 +451,52 @@ export function ContactProfilePanel({
             </button>
             <button type="button" className={tab === "procedimentos" ? "active" : ""} onClick={() => setTab("procedimentos")}>Procedimentos</button>
           </nav>
+          <section className="profile-tags-block" aria-label="Etiquetas do contato">
+            <div className="profile-tags">
+              {tags.map((tag, index) => (
+                <span
+                  className="profile-tag"
+                  key={index}
+                  style={{
+                    backgroundColor: tag.color,
+                    color: tagForeground(tag.color),
+                    borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)",
+                  }}
+                >
+                  <span>{tag.name}</span>
+                  <button
+                    type="button"
+                    aria-label={"Remover " + tag.name}
+                    onClick={() => setTags(tags.filter((_, i) => i !== index))}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+              {!tags.length ? <small className="profile-tags-empty">Sem etiquetas neste contato.</small> : null}
+            </div>
+            <form className="profile-add-tag" onSubmit={addTag}>
+              <input
+                list={"crm-tag-catalog-" + contact.id}
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                placeholder="Adicionar etiqueta"
+                maxLength={40}
+                aria-label="Etiqueta do contato"
+              />
+              <datalist id={"crm-tag-catalog-" + contact.id}>
+                {tagCatalog.map((tag) => (
+                  <option key={tag.id} value={tag.name} />
+                ))}
+              </datalist>
+              <button type="submit" aria-label="Adicionar etiqueta cadastrada">
+                <Plus size={14} />
+              </button>
+            </form>
+          </section>
           <div className="contact-profile-body">
             {tab === "dados" ? (
               <>
-                <section className="profile-section">
-                  <strong>
-                    <Tag size={14} /> Etiquetas
-                  </strong>
-                  <div className="profile-tags">
-                    {tags.map((tag, index) => (
-                      <span
-                        className="profile-tag"
-                        key={index}
-                        style={{
-                          backgroundColor: tag.color,
-                          color: tagForeground(tag.color),
-                          borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)",
-                        }}
-                      >
-                        <span>{tag.name}</span>
-                        <button
-                          type="button"
-                          aria-label={"Remover " + tag.name}
-                          onClick={() => setTags(tags.filter((_, i) => i !== index))}
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <form className="profile-add-tag" onSubmit={addTag}>
-                    <input
-                      list={"crm-tag-catalog-" + contact.id}
-                      value={tagDraft}
-                      onChange={(e) => setTagDraft(e.target.value)}
-                      placeholder="Escolha uma etiqueta cadastrada"
-                      maxLength={40}
-                    />
-                    <datalist id={"crm-tag-catalog-" + contact.id}>
-                      {tagCatalog.map((tag) => (
-                        <option key={tag.id} value={tag.name} />
-                      ))}
-                    </datalist>
-                    <button type="submit" aria-label="Adicionar etiqueta cadastrada">
-                      <Plus size={14} />
-                    </button>
-                  </form>
-                </section>
                 <section className="profile-section contact-identities-section">
                   <strong><Link2 size={14} /> Identidades de atendimento</strong>
                   <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>

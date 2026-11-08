@@ -302,7 +302,7 @@ export default function HomePage() {
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="main-area">
-        <header className="topbar">
+        <header className={"topbar" + (isOverview ? " topbar-dark" : "")}>
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
           <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className="crumb-slash">/</span><strong>{active}</strong></>}</div>
           <div className="topbar-actions">
@@ -329,19 +329,18 @@ export default function HomePage() {
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
                 {metrics.map((metric) => <article className="metric-card" key={metric.label}><div className="metric-top"><span>{metric.label}</span><span className="metric-icon"><Icon name={metric.icon} size={17} /></span></div><strong className="metric-value">{overview?overview[metric.key].toLocaleString("pt-BR"):metric.value}</strong><p>{metric.note}</p></article>)}
               </section>
-              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
-              <section className="dashboard-grid">
-                <article className="content-card activity-card">
-                  <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>
-                  {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span><LayoutGrid size={26} aria-hidden="true" /></span><i><Sparkles size={13} aria-hidden="true" /></i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>}
-                </article>
+              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} shortcuts={
                 <article className="content-card shortcuts-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="shortcut-list">
                     {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow"><ArrowUpRight size={15} aria-hidden="true" /></span></button>)}
                   </div>
                 </article>
-              </section>
+              } />
+              <article className="content-card activity-card">
+                <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>
+                {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span><LayoutGrid size={26} aria-hidden="true" /></span><i><Sparkles size={13} aria-hidden="true" /></i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>}
+              </article>
               <section className="bottom-note"><span className="note-icon">i</span><p><strong>Dados reais:</strong> os indicadores refletem o estado atual da sua empresa. Consulte a Inteligência Operacional para comparar períodos.</p></section>
             </>
           ) : active === "Tarefas" ? (

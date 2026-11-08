@@ -515,7 +515,7 @@ details>summary:hover{color:var(--tx)}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* ===== 14. Visão geral inteligente ===== */
-.tone-mint{--tone:var(--mint);color:var(--mint-ink)}.tone-coral{--tone:var(--coral);color:var(--coral-ink)}.tone-amber{--tone:var(--amber);color:var(--amber-ink)}
+.tone-mint{--tone:var(--mint);color:var(--mint-ink)}.tone-coral{--tone:var(--coral);color:var(--coral-ink)}.tone-amber{--tone:var(--amber);color:var(--amber-ink)}.tone-blue{--tone:var(--accent2);color:var(--accent2)}.tone-violet{--tone:color-mix(in srgb,var(--primary) 55%,var(--accent2));color:color-mix(in srgb,var(--primary) 55%,var(--accent2))}
 .vx-overview{display:grid;gap:var(--gap);grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);margin:var(--gap) 0}
 .vx-hero{grid-column:1/-1;position:relative;overflow:hidden;padding:26px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--ln));border-radius:var(--r-xl);background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 9%,var(--s1)),var(--s1) 58%,color-mix(in srgb,var(--accent2) 7%,var(--s1)));box-shadow:var(--shadow-lg)}
 .vx-hero::before{content:"";position:absolute;right:-10%;top:-60%;width:62%;height:190%;background:radial-gradient(closest-side,color-mix(in srgb,var(--primary) 20%,transparent),transparent 72%);pointer-events:none}

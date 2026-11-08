@@ -190,7 +190,7 @@ export default function HomePage() {
   useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível atualizar os indicadores.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
@@ -282,19 +282,22 @@ export default function HomePage() {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
-                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false); setSidebarCollapsed(true);
+                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
                       }
                     }}>
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
           })}
         </nav>
         <div className="sidebar-bottom">
+          <button type="button" className="sidebar-collapse" aria-label={sidebarCollapsed ? "Expansir menu" : "Recolher menu"} onClick={() => setSidebarCollapsed(v => !v)}>
+            {sidebarCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}
+          </button>
           <div className="sidebar-utilities"><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button><details className="sidebar-help"><summary className="sidebar-icon" aria-label="Ajuda" title="Ajuda"><CircleHelp size={18}/></summary><div><strong>Precisa de ajuda?</strong><p>Consulte as configurações dos canais ou peça orientação no assistente Véxora.</p><button className="text-button" onClick={()=>setAssistantOpen(true)}>Abrir assistente</button></div></details></div>
           {session&&<SidebarProfile user={session.user} canManage={canManage&&moduleVisible("Atendentes")} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
         </div>

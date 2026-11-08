@@ -7,8 +7,8 @@ import {fileURLToPath} from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const page = fs.readFileSync(path.join(root, "src/app/page.tsx"), "utf8");
 
-test("sidebar has no manual collapse button and child navigation closes groups", () => {
-  assert.doesNotMatch(page, /sidebar-collapse-button/);
-  assert.match(page, /setExpandedModules\(\[\]\);\s*setSidebarCollapsed\(true\)/);
+test("sidebar tem botão de recolher e não fecha grupos ao clicar em filho", () => {
+  assert.match(page, /sidebar-collapse/);
+  assert.doesNotMatch(page, /setSidebarCollapsed\(true\)/);
   assert.doesNotMatch(page, /const parent=navigation\.flatMap/);
 });

@@ -268,8 +268,8 @@ details>summary::-webkit-details-marker{display:none}
 .settings-catalog-note{display:flex;align-items:center;gap:8px}
 
 /* ===== 8. Atendimento ===== */
-.inbox-workspace{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:var(--gap);height:calc(100dvh - var(--top) - 56px);min-height:520px}
-.inbox-workspace:has(.contact-profile){grid-template-columns:minmax(260px,320px) minmax(0,1fr) minmax(280px,340px)}
+.inbox-workspace{display:grid;grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}
+.inbox-workspace:has(.contact-profile){grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)}
 .inbox-workspace>*{min-height:0;padding:0;overflow:hidden}
 .inbox-thread>.thread-empty{flex:1}
 .inbox-list,.inbox-thread,.contact-profile{display:flex;flex-direction:column}
@@ -735,3 +735,26 @@ details>summary:hover{color:var(--tx)}
 .vx-web-ai-form{display:grid;gap:12px}
 .vx-web-ai-note{margin:0;font-size:11.5px;line-height:1.5;color:var(--tx2)}
 @media(max-width:760px){.vx-web-ai-card{grid-template-columns:auto minmax(0,1fr)}.vx-web-ai-card>.primary-button{grid-column:1/-1;justify-content:center}}
+
+
+/* Atendimento: header moderno da conversa */
+.thread-contact-avatar{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 26%,var(--s2)),color-mix(in srgb,var(--primary) 58%,var(--s3)));color:#FFFFFF;font-weight:800;font-size:15px;overflow:hidden}
+.thread-contact h2{margin:0 0 2px;font-size:17px;font-weight:800;color:var(--tx)}
+.thread-contact-status{margin:0;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px color-mix(in srgb,var(--ok) 40%,transparent)}
+.thread-header-actions{display:flex;align-items:center;gap:6px}
+.thread-action-button{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);font-size:13px}
+.thread-action-button:hover{background:var(--hover);color:var(--tx)}
+.thread-action-button.resolve{background:var(--primary);color:var(--primary-contrast);border-color:var(--primary)}
+
+/* Composer em pílula com microfone no campo */
+.inbox-composer{padding:8px 12px;border-top:1px solid var(--ln);background:color-mix(in srgb,var(--s1) 92%,var(--bg))}
+.composer-tools{display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s1)}
+.composer-tools textarea{flex:1;min-width:0;border:0;background:transparent;box-shadow:none;padding:8px 4px;resize:none;outline:0;font-size:13px}
+.composer-mic{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);cursor:pointer}
+.composer-mic:hover{background:var(--hover);color:var(--tx)}
+.composer-send-button{flex:none;width:36px;height:36px;min-height:36px;border-radius:50%}
+.composer-send-button span{display:none}
+
+/* Ficha do cliente à direita */
+.contact-profile{border-left:1px solid var(--ln)}

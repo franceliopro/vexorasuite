@@ -994,12 +994,14 @@ details>summary:hover{color:var(--tx)}
 @media(max-width:760px){.internal-note-card{width:100%}}
 
 
-/* ===== Atendimento v2 · fidelidade à proposta visual ===== */
-/* Desktop: a regra base do compositor só alcançava abaixo de 760px no build anterior; aqui ela vale em toda a largura. */
-.composer-shell > .inbox-composer { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--ln); border-radius: 14px; padding: 8px 10px; background: var(--s1); }
-.composer-shell .inbox-composer .composer-toolbar { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: auto; padding: 0; border: 0; flex-wrap: nowrap; }
-.composer-shell .inbox-composer .composer-tools { flex: 1 1 auto; width: auto; min-width: 0; align-items: center; gap: 2px; flex-wrap: nowrap; }
-.composer-shell .inbox-composer .composer-tools > textarea { flex: 1 1 auto; width: auto; min-width: 70px; max-height: 40px; resize: none; }
+/* ===== Atendimento v2 · fidelidade à proposta visual (desktop) ===== */
+/* Desktop: a regra base do compositor só alcançava abaixo de 760px no build anterior; aqui ela vale de 761px para cima. */
+@media (min-width: 761px) {
+  .composer-shell > .inbox-composer { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--ln); border-radius: 14px; padding: 8px 10px; background: var(--s1); }
+  .composer-shell .inbox-composer .composer-toolbar { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: auto; padding: 0; border: 0; flex-wrap: nowrap; }
+  .composer-shell .inbox-composer .composer-tools { flex: 1 1 auto; width: auto; min-width: 0; align-items: center; gap: 2px; flex-wrap: nowrap; }
+  .composer-shell .inbox-composer .composer-tools > textarea { flex: 1 1 auto; width: auto; min-width: 70px; max-height: 40px; resize: none; }
+}
 /* Botões com rótulo no cabeçalho: o globals encaixota em 36×36 e esconde o texto. Aqui eles viram pílulas naturais. */
 .thread-header-actions .thread-finalize-button,
 .thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 36px; min-height: 36px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; place-items: initial; white-space: nowrap; }

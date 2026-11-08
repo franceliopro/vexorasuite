@@ -10,8 +10,10 @@ const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.W
 import { applyBrandTheme } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
+const WebAssetsWorkspace=dynamic(()=>import("./web-assets-workspace").then(module=>module.WebAssetsWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
 import { WorkspaceAlerts } from "./workspace-alerts";
+import { OverviewIntelligence, type OverviewSnapshot } from "./overview-intelligence";
 import { SidebarProfile } from "./sidebar-profile";
 const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
 import { useEffect, useRef, useState } from "react";
@@ -41,6 +43,9 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Marketing":()=>import("./creative-library-workspace"),
   "Referências criativas":()=>import("./creative-library-workspace"),
   "Google Drive":()=>import("./creative-library-workspace"),
+  "Sites":()=>import("./web-assets-workspace"),
+  "Landing Pages":()=>import("./web-assets-workspace"),
+  "Formulários":()=>import("./web-assets-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
   "Gestão":()=>import("./finance-workspace"),
   "Canais e integrações":()=>import("./channels-integrations"),
@@ -114,7 +119,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }, { label: "Sites", icon: "share" }, { label: "Landing Pages", icon: "layout-dashboard" }, { label: "Formulários", icon: "tasks" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações", icon: "share" }] }, { label: "Configurações", icon: "settings" }] },
@@ -122,12 +127,12 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
   automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
-  marketing: [{ label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }],
+  marketing: [{ label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }, { label: "Sites", target: "Sites" }, { label: "Landing Pages", target: "Landing Pages" }, { label: "Formulários", target: "Formulários" }],
   connections: [{ label: "Conexões", target: "Canais e integrações" }],
 };
 const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de IA"].includes(value)
   ? "automation"
-  : ["Criações", "Referências criativas", "Google Drive"].includes(value)
+  : ["Criações", "Referências criativas", "Google Drive", "Sites", "Landing Pages", "Formulários"].includes(value)
     ? "marketing"
     : value === "Canais e integrações" ? "connections" : null;
 
@@ -182,7 +187,7 @@ export default function HomePage() {
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [active, navigationReady]);
   useEffect(()=>{try{localStorage.removeItem("vexora:quick-replies");localStorage.removeItem("vexora-chatbot-rastreabem-draft-v2")}catch{}},[]);
-  const [overview,setOverview]=useState<{openConversations:number;contacts:number;activeAgents:number;completedConversations:number;recent:{id:string;status:string;updatedAt:string;contact:{name:string}}[]}|null>(null);
+  const [overview,setOverview]=useState<OverviewSnapshot|null>(null);
   const [overviewError,setOverviewError]=useState("");
   useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível atualizar os indicadores.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -242,7 +247,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'MARKETING','Landing Pages':'MARKETING','Formulários':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
@@ -326,14 +331,10 @@ export default function HomePage() {
 
           {presentationHome?<PresentationHome key={session?.tenant.id}/>:!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p></section>:isOverview ? (
             <>
-              {overviewError&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
+              {overviewError&&!overview&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
                 {metrics.map((metric) => <article className="metric-card" key={metric.label}><div className="metric-top"><span>{metric.label}</span><span className="metric-icon"><Icon name={metric.icon} size={17} /></span></div><strong className="metric-value">{overview?overview[metric.key].toLocaleString("pt-BR"):metric.value}</strong><p>{metric.note}</p></article>)}
               </section>
-              <section className="overview-insights" aria-label="Resumo visual da operação">
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Status da operação</h2><p>Distribuição dos atendimentos atuais</p></div></div><div className="donut-chart donut-open"><strong>{overview?.openConversations ?? "—"}</strong><small>abertas</small></div><div className="chart-legend"><span><i className="legend-dot open"/>Abertas</span><span><i className="legend-dot done"/>Finalizadas</span></div></article>
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Capacidade</h2><p>Contatos e agentes habilitados</p></div></div><div className="bar-chart"><div><span>Contatos</span><b><i style={{width: overview ? `${Math.min(100, Math.max(8, overview.contacts))}%` : "8%"}}/></b><strong>{overview?.contacts ?? "—"}</strong></div><div><span>Agentes</span><b><i className="bar-agents" style={{width: overview ? `${Math.min(100, Math.max(8, overview.activeAgents * 12))}%` : "8%"}}/></b><strong>{overview?.activeAgents ?? "—"}</strong></div></div></article>
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Atividade recente</h2><p>Volume finalizado e aberto</p></div></div><div className="mini-stat-row"><div><strong>{overview?.completedConversations ?? "—"}</strong><span>finalizados</span></div><div><strong>{overview?.openConversations ?? "—"}</strong><span>em andamento</span></div></div><button className="secondary-button" onClick={() => setActive("Atendimento")}>Abrir atendimento <ArrowRight size={15} aria-hidden="true" /></button></article>
-              </section>
+              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
               <section className="dashboard-grid">
                 <article className="content-card activity-card">
                   <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>
@@ -362,6 +363,8 @@ export default function HomePage() {
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+          ) : active === "Sites" || active === "Landing Pages" || active === "Formulários" ? (
+            canManage ? <WebAssetsWorkspace key={active} kind={active==="Sites"?"SITE":active==="Landing Pages"?"LANDING":"FORM"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar sites, landing pages e formulários.</p></section>
           ) : active === "Atendentes" ? (
             canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true}/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (

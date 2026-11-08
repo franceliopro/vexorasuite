@@ -111,7 +111,21 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
 
 
   return (
-    <main className="auth-screen">
+    <main className="auth-screen auth-screen-split">
+      <aside className="auth-brand-panel">
+        <div className="auth-brand-lockup"><span className="brand-mark">V</span><span className="auth-brand-name">véxora<small>SUITE</small></span></div>
+        <div className="auth-brand-copy">
+          <p className="eyebrow">INTELIGÊNCIA OPERACIONAL</p>
+          <h2>Uma operação inteira, em um só lugar.</h2>
+          <p>Atendimento, CRM, automação e resultados conectados com a identidade da sua empresa — sem ruído e sem retrabalho.</p>
+        </div>
+        <ul className="auth-brand-points">
+          <li>Atendimento humano no centro da operação</li>
+          <li>Automação determinística antes da IA</li>
+          <li>Dados e credenciais isolados por empresa</li>
+        </ul>
+        <p className="auth-brand-foot">Ambiente seguro · multiempresa</p>
+      </aside>
       <section className="auth-panel">
         <div className="auth-brand"><span className="brand-mark">V</span><span><strong>véxora</strong><small>SUITE</small></span></div>
         <p className="eyebrow">AMBIENTE DE OPERAÇÕES</p>

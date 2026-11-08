@@ -179,6 +179,18 @@ export class OverviewController {
     .slice(0, 5)
     .map(([label, count]) => ({ label, count, percent: topicTotal ? Math.round((count / topicTotal) * 100) : 0 }));
 
+  // Channel mix reuses the same 30-day conversation sample already loaded above.
+  const channelMap = new Map<string, number>();
+  for (const row of topicRows) {
+    const label = channelLabel(row.channel);
+    channelMap.set(label, (channelMap.get(label) || 0) + 1);
+  }
+  const channelTotal = [...channelMap.values()].reduce((sum, value) => sum + value, 0);
+  const channels = [...channelMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([label, count]) => ({ label, count, percent: channelTotal ? Math.round((count / channelTotal) * 100) : 0 }));
+
   const revenue = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
   const responseGaps = firstResponseRows
     .map((row) => row.messages[0] ? (new Date(row.messages[0].occurredAt).getTime() - new Date(row.createdAt).getTime()) / 1000 : null)
@@ -202,6 +214,7 @@ export class OverviewController {
    team,
    hourly,
    topics,
+   channels,
    kpis:{
      resolvedByAi,
      resolvedByAiPercent:completedConversations?Math.round((resolvedByAi/completedConversations)*100):0,

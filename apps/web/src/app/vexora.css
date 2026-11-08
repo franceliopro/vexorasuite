@@ -748,14 +748,5 @@ details>summary:hover{color:var(--tx)}
 .thread-action-button:hover{background:var(--hover);color:var(--tx)}
 .thread-action-button.resolve{background:var(--primary);color:var(--primary-contrast);border-color:var(--primary)}
 
-/* Composer em pílula com microfone no campo */
-.inbox-composer{padding:8px 12px;border-top:1px solid var(--ln);background:color-mix(in srgb,var(--s1) 92%,var(--bg))}
-.composer-tools{display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s1)}
-.composer-tools textarea{flex:1;min-width:0;border:0;background:transparent;box-shadow:none;padding:8px 4px;resize:none;outline:0;font-size:13px}
-.composer-mic{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);cursor:pointer}
-.composer-mic:hover{background:var(--hover);color:var(--tx)}
-.composer-send-button{flex:none;width:36px;height:36px;min-height:36px;border-radius:50%}
-.composer-send-button span{display:none}
-
 /* Ficha do cliente à direita */
 .contact-profile{border-left:1px solid var(--ln)}

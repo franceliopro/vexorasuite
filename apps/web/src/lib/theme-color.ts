@@ -1,10 +1,10 @@
 export type ThemeMode = "hybrid" | "light" | "dark";
 
-/** Mobile browser/status bar colors; each matches the page surface (--bg) of its theme. */
+/** Mobile browser/status bar colors; each matches the page surface (--surface-page) of its theme. */
 export const THEME_BAR_COLORS: Record<ThemeMode, string> = {
-  light: "#F6F7F4",
-  hybrid: "#F6F7F4",
-  dark: "#0A0F0C",
+  light: "#f6f7fb",
+  hybrid: "#f7f8fc",
+  dark: "#10131b",
 };
 
 /** Keeps <meta name="theme-color"> in sync with the active theme. */

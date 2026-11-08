@@ -30,6 +30,25 @@ test("inbox separates loading states from empty states", () => {
   assert.match(source, /!messagesLoading && !messageLoadError && !messages\.length/);
 });
 
+test("conversation load failures stop loading and expose a retry", () => {
+  assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
+  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Falha ao carregar conversas\."\)/);
+  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
+});
+
+test("message selection clears stale history and exposes a retry", () => {
+  assert.match(source, /const \[messageLoadError, setMessageLoadError\] = useState\(""\)/);
+  assert.match(source, /setMessages\(\[\]\);\s*setHasOlderMessages\(false\);\s*setMessageLoadError\(""\);/);
+  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /Não foi possível carregar as mensagens\./);
+  assert.match(source, /message\.deleted/);
+});
+
+test("notification focus is consumed after selecting its conversation", () => {
+  assert.match(source, /if \(selectedId && notificationFocus\.current === selectedId\) notificationFocus\.current = null/);
+});
+
 const chatbot = fs.readFileSync(new URL("../src/app/chatbot-workspace.tsx", import.meta.url), "utf8");
 test("chatbot flow serialization is memoized", () => {
   assert.match(chatbot, /useMemo/);
@@ -38,36 +57,18 @@ test("chatbot flow serialization is memoized", () => {
 });
 
 const conversations = fs.readFileSync(new URL("../../api/src/operations/conversations.controller.ts", import.meta.url), "utf8");
+const wahaWebhook = fs.readFileSync(new URL("../../api/src/operations/waha-webhook.controller.ts", import.meta.url), "utf8");
 test("inbox list does not load unused participant graphs", () => {
   assert.match(conversations, /const rows = await this\.prisma\.conversation\.findMany/);
   assert.doesNotMatch(conversations, /messages: \{[\s\S]*participants: \{ include:/);
 });
 
-test("inbox does not keep a duplicate assignee loader", () => {
-  assert.doesNotMatch(source, /setAssignees|loadAssignees/);
-});
-
-test("conversation load failures stop loading and expose a retry", () => {
-  assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
-  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Falha ao carregar conversas\."\)/);
-  assert.match(source, /className="inbox-list-error" role="alert"/);
-  assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
-});
-
-
-const wahaWebhook = fs.readFileSync(new URL("../../api/src/operations/waha-webhook.controller.ts", import.meta.url), "utf8");
 test("WhatsApp receipts never move backwards", () => {
   assert.match(wahaWebhook, /const previousStatuses: MessageStatus\[\] = status === "SENT"/);
   assert.match(wahaWebhook, /message\.updateMany\(\{ where: \{ id: message\.id, status: \{ in: previousStatuses \} \}/);
   assert.match(wahaWebhook, /reason: "ACK_REGRESSION"/);
 });
 
-
-test("message selection clears stale history and exposes a retry", () => {
-  assert.match(source, /const \[messageLoadError, setMessageLoadError\] = useState\(""\)/);
-  assert.match(source, /setMessagesLoading\(true\);\s*setMessageLoadError\(""\);/);
-  assert.match(source, /else \{ setMessages\(\[\]\); setMessagesLoading\(false\); \}/);
-  assert.match(source, /className="inbox-list-error" role="alert"/);
-  assert.match(source, /Não foi possível carregar as mensagens\./);
-  assert.match(source, /message\.deleted/);
+test("inbox does not keep a duplicate assignee loader", () => {
+  assert.doesNotMatch(source, /setAssignees|loadAssignees/);
 });

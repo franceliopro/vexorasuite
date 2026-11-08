@@ -5,7 +5,6 @@ import { VexoraDialog } from "./vexora-dialog";
 import {
   AlertCircle,
   CheckCircle2,
-  Plus,
   RefreshCw,
   Instagram,
   Facebook,
@@ -58,9 +57,9 @@ function GmailOAuthMailboxSettings(){
  const load=useCallback(async()=>{try{const [boxes,connections]=await Promise.all([api<{mailboxes:{id:string;address:string;authMode:string;googleConnectionId:string|null;status:string}[]}>('/api/backend/mailboxes'),api<{id:string;email:string;scopes:string}[]>('/api/backend/integrations/google/connections')]);setMailboxes(boxes.mailboxes||[]);setAccounts((connections||[]).filter(a=>a.scopes.includes('https://mail.google.com/')));}catch(e){setError(e instanceof Error?e.message:'Não foi possível carregar o OAuth Gmail.');}},[]);
  useEffect(()=>{void load()},[load]);
  async function connect(){setBusy(true);setError('');try{const result=await api<{authorizationUrl:string}>('/api/backend/integrations/google/start/gmail',{method:'POST'});window.location.assign(result.authorizationUrl);}catch(e){setError(e instanceof Error?e.message:'Não foi possível iniciar a autorização Gmail.');setBusy(false);}}
- async function linkGmailOAuth(mailbox:{id:string;address:string},account:{id:string;email:string}){setBusy(true);setError('');try{await api('/api/backend/mailboxes/'+mailbox.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({address:mailbox.address,authMode:'GOOGLE_OAUTH',googleConnectionId:account.id,imapPassword:'',smtpPassword:'',imapUser:mailbox.address,smtpUser:mailbox.address})});setNotice('OAuth Gmail vinculado à caixa '+mailbox.address+'.');await load();}catch(e){setError(e instanceof Error?e.message:'Não foi possível vincular o Gmail.');}finally{setBusy(false);}}
+  async function linkGmailOAuth(mailbox:{id:string;address:string},account:{id:string;email:string}){setBusy(true);setError('');try{await api('/api/backend/mailboxes/'+mailbox.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({address:mailbox.address,authMode:'GOOGLE_OAUTH',googleConnectionId:account.id,imapPassword:'',smtpPassword:'',imapUser:mailbox.address,smtpUser:mailbox.address})});setNotice('OAuth Gmail vinculado à caixa '+mailbox.address+'.');await load();}catch(e){setError(e instanceof Error?e.message:'Não foi possível vincular o Gmail.');}finally{setBusy(false);}}
  const compatible=mailboxes.flatMap(mailbox=>accounts.filter(account=>account.email.toLowerCase()===mailbox.address.toLowerCase()).map(account=>({mailbox,account})));
- return <section className="channels-shell-section"><div className="channels-section-heading"><span className="channels-provider-mark">G</span><div><h2>OAuth Gmail para caixas</h2><p>Autorize cada Gmail sem senha de app. Outlook, Hostinger e HostGator continuam usando IMAP/SMTP próprio.</p></div><button type="button" className="secondary-button" disabled={busy} onClick={()=>void connect()}>Autorizar Gmail</button></div>{error?<p className="channels-form-note" role="alert">{error}</p>:null}{notice?<p className="channels-form-note" role="status">{notice}</p>:null}{compatible.length?<div className="channels-inbox-grid">{compatible.map(({mailbox,account})=><article className="channels-inbox-card" key={mailbox.id}><strong>{mailbox.address}</strong><p>Conta Google autorizada: {account.email}</p><small>{mailbox.authMode==='GOOGLE_OAUTH'?'OAuth Gmail ativo.':'Senha de app atualmente configurada.'}</small>{mailbox.authMode!=='GOOGLE_OAUTH'?<button type="button" className="primary-button" disabled={busy} onClick={()=>void linkGmailOAuth(mailbox,account)}>Usar OAuth nesta caixa</button>:null}</article>)}</div>:<p className="channels-form-note">Autorize um Gmail com o mesmo endereço da caixa para habilitar OAuth.</p>}</section>;
+  return <section className="channels-shell-section"><div className="channels-section-heading"><span className="channels-provider-mark">G</span><div><h2>OAuth Gmail para caixas</h2><p>Autorize cada Gmail sem senha de app. Outlook, Hostinger e HostGator continuam usando IMAP/SMTP próprio.</p></div><button type="button" className="secondary-button" disabled={busy} onClick={()=>void connect()}>Autorizar Gmail</button></div>{error?<p className="channels-form-note" role="alert">{error}</p>:null}{notice?<p className="channels-form-note" role="status">{notice}</p>:null}{compatible.length?<div className="channels-inbox-grid">{compatible.map(({mailbox,account})=><article className="channels-inbox-card" key={mailbox.id}><strong>{mailbox.address}</strong><p>Conta Google autorizada: {account.email}</p><small>{mailbox.authMode==='GOOGLE_OAUTH'?'OAuth Gmail ativo.':'Senha de app atualmente configurada.'}</small>{mailbox.authMode!=='GOOGLE_OAUTH'?<button type="button" className="primary-button" disabled={busy} onClick={()=>void linkGmailOAuth(mailbox,account)}>Usar OAuth nesta caixa</button>:null}</article>)}</div>:<p className="channels-form-note">Autorize um Gmail com o mesmo endereço da caixa para habilitar OAuth.</p>}</section>;
 }
 
 export function ChannelsIntegrations(){
@@ -70,12 +69,10 @@ export function ChannelsIntegrations(){
  const [googleConfig,setGoogleConfig]=useState<{configured:boolean;encryptionConfigured?:boolean;status:string;callbackUrl:string|null}|null>(null);
  const [googleConnections,setGoogleConnections]=useState<{id:string;email:string;scopes:string;disabledServices:string[];renewable:boolean}[]>([]);
  const [googleBusy,setGoogleBusy]=useState(false);
- const [googleLoading,setGoogleLoading]=useState(true);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  type InboxRow = { id:string; name:string; provider:string; platform:string; status:string; identity?:string|null; departmentName?:string|null; routing:{mode:string;departmentId?:string|null;targetType?:string;targetId?:string|null;revision?:string|null}; };
  const [inboxes,setInboxes]=useState<InboxRow[]>([]);
- const [inboxesLoading,setInboxesLoading]=useState(true);
  const [inboxDepartments,setInboxDepartments]=useState<{id:string;name:string}[]>([]);
  const [inboxAgents,setInboxAgents]=useState<{id:string;name:string;email?:string}[]>([]);
  const [inboxAiAgents,setInboxAiAgents]=useState<{id:string;name:string}[]>([]);
@@ -87,10 +84,8 @@ export function ChannelsIntegrations(){
  const [targetTypes,setTargetTypes]=useState<Record<string,string>>({});
  const [renameValues,setRenameValues]=useState<Record<string,string>>({});
   const loadInboxes=useCallback(async()=>{
-   setInboxesLoading(true);
    try{const result=await api<{inboxes:InboxRow[];departments:{id:string;name:string}[]}>("/api/backend/channels/inboxes");setInboxes(result.inboxes);setInboxDepartments(result.departments);const [agents,ai]=await Promise.all([api<{id:string;name:string;email?:string}[]>("/api/backend/conversations/assignees"),api<{agents?:{id:string;name:string}[]}>("/api/backend/assistant/config")]);setInboxAgents(agents);setInboxAiAgents(Array.isArray(ai.agents)?ai.agents:[]);}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível carregar os canais.");}
-   finally{setInboxesLoading(false);}
   },[]);
 
  const [busy,setBusy]=useState(false);
@@ -105,10 +100,8 @@ export function ChannelsIntegrations(){
    finally{setLoading(false);refreshing.current=false;}
  },[]);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const result=params.get("google");if(result==="connected")setNotice("Conta Google autorizada com sucesso. A conexão está disponível nesta empresa.");else if(result)setError("A autorização Google não foi concluída ("+result+"). Tente conectar novamente.");const social=params.get("zernio");if(social==="connected")setNotice("Conta social autorizada e vinculada a esta empresa.");else if(social)setError("Não foi possível concluir o OAuth da Zernio ("+social+"). Tente novamente.");if(result||social){const url=new URL(window.location.href);url.searchParams.delete("google");url.searchParams.delete("zernio");window.history.replaceState(window.history.state,"",url.pathname+url.search+url.hash);void refresh(true);}},[refresh]);
- useEffect(()=>{void refresh();void loadInboxes();setGoogleLoading(true);void Promise.all([api<{configured:boolean;encryptionConfigured:boolean;status:string;callbackUrl:string|null}>("/api/backend/integrations/google/config"),api<{id:string;email:string;scopes:string;disabledServices:string[];renewable:boolean}[]>("/api/backend/integrations/google/connections")]).then(([config,connections])=>{setGoogleConfig(config);setGoogleConnections(connections);}).catch(e=>setError(e instanceof Error?e.message:"Não foi possível carregar as conexões Google.")).finally(()=>setGoogleLoading(false));},[refresh,loadInboxes]);
+ useEffect(()=>{void refresh();void loadInboxes();void Promise.all([api<{configured:boolean;encryptionConfigured:boolean;status:string;callbackUrl:string|null}>("/api/backend/integrations/google/config"),api<{id:string;email:string;scopes:string;disabledServices:string[];renewable:boolean}[]>("/api/backend/integrations/google/connections")]).then(([config,connections])=>{setGoogleConfig(config);setGoogleConnections(connections);}).catch(e=>setError(e instanceof Error?e.message:"Não foi possível carregar as conexões Google."));},[refresh,loadInboxes]);
  async function connectGoogle(service:"calendar"|"drive"){setGoogleBusy(true);setError("");try{const result=await api<{authorizationUrl:string}>("/api/backend/integrations/google/start/"+service,{method:"POST"});window.location.assign(result.authorizationUrl);}catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização Google.");setGoogleBusy(false);}}
- async function disconnectGoogleService(id:string,service:"calendar"|"drive"){if(!window.confirm("Desconectar somente o Google "+(service==="calendar"?"Agenda":"Drive")+"? O outro serviço permanecerá conectado."))return;setGoogleBusy(true);try{await api("/api/backend/integrations/google/connections/"+encodeURIComponent(id)+"/services/"+service,{method:"DELETE"});setGoogleConnections(rows=>rows.map(row=>row.id===id?{...row,disabledServices:[...new Set([...(row.disabledServices||[]),service])]}:row));setNotice("Serviço desconectado. A outra integração foi preservada.");}catch(e){setError(e instanceof Error?e.message:"Falha ao desconectar serviço.");}finally{setGoogleBusy(false);}}
- async function forgetGoogle(id:string){setGoogleBusy(true);try{await api('/api/backend/integrations/google/connections/'+id+'/forget',{method:'DELETE'});setGoogleConnections(rows=>rows.filter(a=>a.id!==id));setNotice('Conta desconectada removida da lista.')}catch(e){setError(e instanceof Error?e.message:'Falha ao remover')}finally{setGoogleBusy(false)}}
  async function forgetGoogleService(id:string,service:string){setGoogleBusy(true);try{await api('/api/backend/integrations/google/connections/'+id+'/services/'+service+'/forget',{method:'DELETE'});setGoogleConnections(rows=>rows.map(a=>a.id===id?{...a,disabledServices:[...a.disabledServices,'hidden:'+service]}:a));setNotice('Serviço desconectado removido da lista.')}catch(e){setError(e instanceof Error?e.message:'Falha ao remover')}finally{setGoogleBusy(false)}}
 
 
@@ -153,7 +146,6 @@ export function ChannelsIntegrations(){
    try{const result=await api<{authorizationUrl:string}>("/api/backend/channels/zernio/oauth/start/"+platform,{method:"POST"});window.location.assign(result.authorizationUrl);}
    catch(e){setError(e instanceof Error?e.message:"Não foi possível iniciar a autorização OAuth.");setBusy(false);}
  }
- const linkedAccounts=diagnostic?.authenticated?diagnostic.accounts:[];
  const visibleSocialAccounts=(diagnostic?.accounts||[]).filter(account=>!inboxes.some(inbox=>inbox.platform.toLowerCase()===account.platform.toLowerCase()&&((inbox.identity||"").replace(/^@/,"").toLowerCase()===(account.username||"").replace(/^@/,"").toLowerCase()||inbox.id===account.accountId)));
  return <section className="channels-page">
  {error?<div className="channels-alert error" role="alert"><AlertCircle size={17}/><span>{error}</span><button type="button" onClick={()=>setError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div>:null}
@@ -173,5 +165,4 @@ export function ChannelsIntegrations(){
  </section>
  </section>;
 }
-
 

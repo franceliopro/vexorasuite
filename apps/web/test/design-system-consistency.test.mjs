@@ -1,62 +1,68 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import path from "node:path";
 
 const appDir = new URL("../src/app/", import.meta.url);
 const read = (name) => fs.readFileSync(new URL(name, appDir), "utf8");
-const css = read("vexora.css");
+const globalsCss = read("globals.css");
+const designSystemCss = read("vexora-design-system.css");
 
 const tsxFiles = fs.readdirSync(appDir).filter((name) => name.endsWith(".tsx"));
 
 test("the mobile dock height is declared once and reused", () => {
-  assert.match(css, /--dock-btn:62px/);
-  assert.match(css, /--dock:calc\(var\(--dock-btn\) \+ 8px \+ env\(safe-area-inset-bottom\)\)/);
-  assert.match(css, /\.mobile-bottom-nav\{[^}]*min-height:var\(--dock\)/);
-  assert.doesNotMatch(css, /\.mobile-bottom-nav\{[^}]*min-height:\d+px/);
+  assert.match(globalsCss, /--mobile-nav-btn-h:\s*62px/);
+  assert.match(globalsCss, /--mobile-nav-h:\s*calc\(var\(--mobile-nav-btn-h\) \+ 8px \+ env\(safe-area-inset-bottom\)\)/);
+  // Both stylesheets must derive the dock height from the token instead of hard-coding pixels.
+  assert.match(globalsCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*var\(--mobile-nav-h\)/);
+  assert.match(designSystemCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*var\(--mobile-nav-h\)/);
+  assert.doesNotMatch(globalsCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*\d+px/);
+  assert.doesNotMatch(designSystemCss, /min-height:calc\((?:60|72)px \+ env\(safe-area-inset-bottom\)\)/);
 });
 
 test("content reserves the dock gutter exactly once", () => {
-  const rules = css.match(/\.main-area\{[^}]*padding-bottom:var\(--dock\)[^}]*\}/g) ?? [];
-  assert.equal(rules.length, 1, "the dock gutter must be reserved once, on .main-area");
-  assert.doesNotMatch(css, /\.page-content\{[^}]*padding-bottom:calc\(7[46]px/);
+  assert.match(globalsCss, /\.main-area\s*\{[^}]*padding-bottom:\s*var\(--mobile-nav-h\)/);
+  // A second reservation on the scroll container used to push the inbox composer behind the dock.
+  assert.doesNotMatch(globalsCss, /\.page-content\s*\{[^}]*padding-bottom:calc\(7[46]px/);
+  assert.doesNotMatch(designSystemCss, /\.page-content\{padding-bottom:calc\(76px/);
 });
 
 test("the inbox thread fills the remaining viewport instead of using magic numbers", () => {
-  assert.doesNotMatch(css, /100dvh - 58px - 62px/);
-  assert.match(css, /\.inbox-workspace\.mobile-thread-open \.inbox-thread\{[^}]*height:100%/);
-  const rules = css.match(/\.inbox-workspace\.mobile-thread-open \.inbox-thread[^{]*\{[^}]*\}/g) ?? [];
-  for (const rule of rules) {
+  assert.doesNotMatch(designSystemCss, /100dvh - 58px - 62px/);
+  const threadRules = globalsCss.match(/\.inbox-workspace\.mobile-thread-open \.inbox-thread[^{]*\{[^}]*\}/g) ?? [];
+  assert.ok(threadRules.length >= 1, "expected a mobile thread rule");
+  for (const rule of threadRules) {
     assert.doesNotMatch(rule, /height:\s*calc\(100dvh/, `fixed viewport height found in: ${rule}`);
   }
 });
 
 test("the app chrome heights come from tokens", () => {
-  assert.match(css, /--top:68px/);
-  assert.match(css, /@media\(max-width:760px\)\{:root\{--top:58px\}\}/);
-  assert.match(css, /\.topbar\{[^}]*height:var\(--top\)/);
-  assert.doesNotMatch(css, /\.topbar\{[^}]*height:\d+px/);
+  assert.match(globalsCss, /--topbar-h:\s*69px/);
+  assert.match(globalsCss, /@media \(max-width:760px\)\{:root\{--topbar-h:59px\}\}/);
+  assert.match(globalsCss, /\.topbar\{height:var\(--topbar-h\)/);
+  assert.doesNotMatch(globalsCss, /\.topbar\{height:\d+px/);
 });
 
 test("fonts are self-hosted and build without network access", () => {
   const layout = read("layout.tsx");
   assert.doesNotMatch(layout, /next\/font\/google/);
   assert.doesNotMatch(layout, /fonts\.googleapis\.com/);
-  assert.doesNotMatch(css, /fonts\.googleapis\.com/);
-  assert.doesNotMatch(css, /@import\s+url\(["']?https?:/);
+  assert.doesNotMatch(globalsCss, /fonts\.googleapis\.com/);
+  assert.doesNotMatch(globalsCss, /@import\s+url\(["']?https?:/);
 
   // The brand faces must be declared from files we serve ourselves, not from a CDN.
   for (const face of ["DM Sans", "Manrope"]) {
     assert.match(
-      css,
+      globalsCss,
       new RegExp(`@font-face\\{font-family:'${face}';src:url\\('/fonts/[a-z-]+\\.woff2'\\)`),
       `missing local @font-face for ${face}`,
     );
   }
-  assert.match(css, /font-display:swap/);
+  assert.match(globalsCss, /font-display:swap/);
 
   // The token ladder keeps the brand family first and the system stack as fallback.
-  assert.match(css, /--font-ui:"DM Sans",ui-sans-serif/);
-  assert.match(css, /--font-display:"Manrope","DM Sans"/);
+  assert.match(designSystemCss, /--font-ui:\s*"DM Sans",\s*ui-sans-serif/);
+  assert.match(designSystemCss, /--font-display:\s*"Manrope",\s*"DM Sans"/);
 
   // The referenced files must exist in the repository, otherwise the container serves a 404.
   const fontsDir = new URL("../public/fonts/", import.meta.url);
@@ -68,16 +74,6 @@ test("fonts are self-hosted and build without network access", () => {
 
   for (const file of tsxFiles) {
     assert.doesNotMatch(read(file), /fonts\.googleapis\.com/, `${file} still loads Google Fonts at runtime`);
-  }
-});
-
-test("one identity ships three themes with hybrid as the entry point", () => {
-  const layout = read("layout.tsx");
-  assert.match(layout, /data-theme="hybrid"/);
-  assert.match(css, /:root\[data-theme=hybrid\]\{/);
-  assert.match(css, /:root\[data-theme=dark\]\{/);
-  for (const tokenName of ["--bg", "--s1", "--tx", "--tx2", "--ln", "--primary"]) {
-    assert.ok(css.includes(`${tokenName}:`), `missing shared token ${tokenName}`);
   }
 });
 

@@ -18,7 +18,7 @@ describe("conversation lifecycle audit", () => {
       $transaction: jest.fn((fn: any) => fn(tx)),
     };
     const events: any = { publish: jest.fn() };
-    return { tx, prisma, controller: new ConversationsController(prisma, events, {} as any, {} as any) };
+    return { tx, prisma, events, controller: new ConversationsController(prisma, events, {} as any, {} as any) };
   }
 
   it("audits status transitions with the previous and next status", async () => {
@@ -41,6 +41,19 @@ describe("conversation lifecycle audit", () => {
         details: { from: "HUMAN", to: "BOT" },
       }),
     }));
+    expect(x.tx.conversation.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "conversation" },
+      data: { handlingMode: "BOT", departmentId: null, assigneeId: null },
+    }));
+    expect(x.events.publish).toHaveBeenCalledWith("tenant", "conversation.updated", expect.objectContaining({ id: "conversation", handlingMode: "BOT" }));
+  });
+
+  it.each(["RESOLVED", "CLOSED"])("does not return a %s conversation to the bot", async (status) => {
+    const x = setup();
+    x.prisma.conversation.findFirst.mockResolvedValue({ id: "conversation", status, contactId: "contact", handlingMode: "HUMAN", contact: { metadata: {} } });
+    await expect(x.controller.returnToBot(request, "conversation")).rejects.toThrow("Reabra a conversa antes de devolvê-la ao bot.");
+    expect(x.tx.conversation.update).not.toHaveBeenCalled();
+    expect(x.tx.auditLog.create).not.toHaveBeenCalled();
   });
 
   it.each([

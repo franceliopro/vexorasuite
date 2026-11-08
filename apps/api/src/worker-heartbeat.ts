@@ -1,4 +1,4 @@
-import { promises as fs, statSync } from "node:fs";
+import { promises as fs, readFileSync, statSync } from "node:fs";
 import { dirname } from "node:path";
 
 export const DEFAULT_WORKER_HEARTBEAT_FILE = "/tmp/vexora-worker-heartbeat";
@@ -18,8 +18,13 @@ export function isWorkerHeartbeatFresh(
   now = Date.now(),
 ): boolean {
   try {
-    const ageMs = now - statSync(filePath).mtimeMs;
-    return Number.isFinite(ageMs) && ageMs >= -MAX_HEARTBEAT_CLOCK_SKEW_MS && ageMs <= maxAgeMs;
+    const stat = statSync(filePath);
+    const recordedAt = Number.parseInt(readFileSync(filePath, "utf8").trim(), 10);
+    const heartbeatAt = Number.isFinite(recordedAt) ? recordedAt : stat.mtimeMs;
+    const ageMs = now - heartbeatAt;
+    // Prefer the timestamp written by the heartbeat itself. Filesystem mtimes
+    // can be rounded on Windows and incorrectly keep an expired heartbeat alive.
+    return Number.isFinite(ageMs) && ageMs >= -MAX_HEARTBEAT_CLOCK_SKEW_MS && ageMs < maxAgeMs;
   } catch {
     return false;
   }

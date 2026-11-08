@@ -5,9 +5,10 @@ import fs from "node:fs";
 const page = fs.readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const design = fs.readFileSync(new URL("../src/app/vexora-design-system.css", import.meta.url), "utf8");
 
-test("sidebar starts expanded and stays open after selecting navigation", () => {
-  assert.match(page, /useState\(false\)/);
-  assert.doesNotMatch(page, /setSidebarCollapsed\(true\)/);
+test("sidebar expands on desktop and collapses on mobile viewports", () => {
+  assert.match(page, /window\.innerWidth < 981/);
+  assert.match(page, /matchMedia\("\(max-width: 980px\)"\)/);
+  assert.match(page, /mq\.addEventListener\("change", update\)/);
 });
 
 test("workspace families use persistent tabs instead of nested sidebar flyouts", () => {

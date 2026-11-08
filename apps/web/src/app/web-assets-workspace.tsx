@@ -243,10 +243,10 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
       ) : items.length ? (
         <div className="vx-web-grid">
           {items.map((asset) => (
-            <article className="content-card vx-web-card" key={asset.id}>
+            <article className={"content-card vx-web-card" + (asset.status !== "READY" ? " is-deactivated" : "")} key={asset.id}>
               <div className="vx-web-card-top">
-                <span className={`vx-web-badge tone-${asset.kind === "FORM" ? "violet" : asset.kind === "LANDING" ? "blue" : "mint"}`}><Icon size={16} aria-hidden="true" /></span>
-                <span className={"status-pill " + (asset.status === "READY" ? "" : "is-muted")}>{asset.status === "READY" ? "Pronto" : "Rascunho"}</span>
+                <span className={`vx-web-badge tone-${asset.kind === "FORM" ? "violet" : "mint"}`}><Icon size={16} aria-hidden="true" /></span>
+                <span className={"status-pill " + (asset.status === "READY" ? "is-active" : "is-muted")}>{asset.status === "READY" ? "Ativo" : "Desativado"}</span>
               </div>
               <h2>{asset.title}</h2>
               <p className="vx-web-slug">/{asset.slug}</p>

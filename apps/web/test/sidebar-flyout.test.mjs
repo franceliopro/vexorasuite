@@ -5,9 +5,9 @@ import fs from "node:fs";
 const page = fs.readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 const design = fs.readFileSync(new URL("../src/app/vexora-design-system.css", import.meta.url), "utf8");
 
-test("sidebar starts collapsed and collapses after selecting navigation", () => {
-  assert.match(page, /useState\(true\)/);
-  assert.match(page, /setSidebarCollapsed\(true\)/);
+test("sidebar starts expanded and stays open after selecting navigation", () => {
+  assert.match(page, /useState\(false\)/);
+  assert.doesNotMatch(page, /setSidebarCollapsed\(true\)/);
 });
 
 test("workspace families use persistent tabs instead of nested sidebar flyouts", () => {

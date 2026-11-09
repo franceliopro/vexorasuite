@@ -97,10 +97,21 @@ export function ContactProfilePanel({
   aiSuggestion?: { text: string; provider?: string; model?: string } | null;
   aiSuggestionBusy?: boolean;
   aiSuggestionError?: string;
-  onRequestAiSuggestion?: (mode: "suggest" | "improve") => void;
+  onRequestAiSuggestion?: (mode: "suggest" | "improve", tone?: string) => void;
   onUseAiSuggestion?: (text: string) => void;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
+  const [aiPersona, setAiPersona] = useState<string>(() => {
+    if (typeof window === "undefined") return "cordial";
+    try { return window.localStorage.getItem("vexora-ai-persona") || "cordial"; } catch { return "cordial"; }
+  });
+  useEffect(() => { try { window.localStorage.setItem("vexora-ai-persona", aiPersona); } catch {} }, [aiPersona]);
+  const [aiImproveDraft, setAiImproveDraft] = useState("");
+  const improveWithAi = () => {
+    if (!aiImproveDraft.trim()) return;
+    onUseAiSuggestion?.(aiImproveDraft);
+    onRequestAiSuggestion?.("improve", aiPersona);
+  };
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [notes, setNotes] = useState("");
@@ -442,6 +453,32 @@ export function ContactProfilePanel({
               </span>
             ) : null}
           </div>
+          <section className="profile-ai-compose" aria-label="Texto com IA">
+            <strong><Sparkles size={12} aria-hidden="true" /> Texto com IA</strong>
+            <textarea
+              className="profile-ai-textarea"
+              rows={3}
+              maxLength={4000}
+              value={aiImproveDraft}
+              onChange={(e) => setAiImproveDraft(e.target.value)}
+              placeholder="Escreva o rascunho que a assistente deve melhorar..."
+              aria-label="Rascunho para a assistente melhorar"
+            />
+            <div className="profile-ai-row">
+              <label>Personalidade
+                <select value={aiPersona} onChange={(e) => setAiPersona(e.target.value)} aria-label="Personalidade da resposta">
+                  <option value="cordial">Cordial</option>
+                  <option value="direto">Direto</option>
+                  <option value="formal">Formal</option>
+                  <option value="informal">Informal</option>
+                  <option value="animado">Animado</option>
+                </select>
+              </label>
+              <button type="button" className="secondary-button" disabled={aiSuggestionBusy || !aiImproveDraft.trim()} onClick={improveWithAi}>{aiSuggestionBusy ? "Gerando…" : "Melhorar com IA"}</button>
+            </div>
+            {aiSuggestion ? <div className="profile-ai-result"><small>Sugestão</small><p>{aiSuggestion.text}</p><button type="button" className="text-button" onClick={() => onUseAiSuggestion?.(aiSuggestion.text)}><Sparkles size={11} aria-hidden="true" /> Inserir na resposta</button></div> : null}
+            {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
+          </section>
           <section className="contact-ai-card" aria-label="Assistente">
             <header>
               <span className="contact-ai-title"><Sparkles size={14} aria-hidden="true" /> Assistente</span>
@@ -528,83 +565,8 @@ export function ContactProfilePanel({
           <div className="contact-profile-body">
             {tab === "dados" ? (
               <>
-                <section className="profile-section contact-identities-section">
-                  <strong><Link2 size={14} /> Identidades de atendimento</strong>
-                  <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="contact-identity-card" key={identity.id}><span className="contact-identity-icon" aria-hidden="true">{isWaha ? <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg> : <Link2 size={18}/>}</span><span className="contact-identity-copy"><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className="profile-status-pill small done">Ativo</span></div>})}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
-                  <form className="contact-identity-form" onSubmit={bindIdentity}>
-                    <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
-                    <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
-                    <label>Identificador do canal<input value={identityExternalId} onChange={(e) => setIdentityExternalId(e.target.value)} placeholder="Ex.: 5511999999999@c.us" /></label>
-                    <button type="submit" className="secondary-button" disabled={identitySaving}>{identitySaving ? "Vinculando…" : "Vincular novo canal"}</button>
-                  </form>
-                </section>
-                <section className="profile-section">
-                  <strong>
-                     <Compass size={14} /> Origem do lead
-                   </strong>
-                   {!leadOrigin || originEditing ? (
-                     <>
-                       <select
-                         className="profile-origin-select"
-                         value={leadOrigin}
-                         onChange={(e) => {
-                           setLeadOrigin(e.target.value);
-                           setLeadOriginId("");
-                         }}
-                       >
-                         <option value="">Não identificada</option>
-                         <option>Site/Formulário</option>
-                         <option>Landing Page</option>
-                         <option>Facebook</option>
-                         <option>Instagram</option>
-                         <option>Google</option>
-                         <option>WhatsApp (WAHA)</option>
-                         <option>Campanha de WhatsApp</option>
-                         <option>Campanha de SMS</option>
-                         <option>Campanha de Áudio</option>
-                         <option>Indicação</option>
-                         <option>Evento</option>
-                         <option>Importação</option>
-                         <option>Outra</option>
-                       </select>
-                       {[
-                         "Landing Page",
-                         "Facebook",
-                         "Instagram",
-                         "Google",
-                         "Campanha de WhatsApp",
-                         "Campanha de SMS",
-                         "Campanha de Áudio",
-                       ].includes(leadOrigin) ? (
-                         <input
-                           className="profile-origin-identifier"
-                           value={leadOriginId}
-                           onChange={(e) => setLeadOriginId(e.target.value)}
-                           placeholder="Identificador da landing page/campanha"
-                           maxLength={120}
-                         />
-                       ) : null}
-                       <small>Use o identificador criado na landing page ou campanha para atribuir corretamente a origem. O canal de atendimento não define a origem.</small>
-                       <button type="button" className="text-button" onClick={() => setOriginEditing(false)}>Concluir</button>
-                     </>
-                   ) : (
-                     <div className="profile-origin-value">
-                       <span>{leadOrigin}{leadOriginId ? ` · ${leadOriginId}` : ""}</span>
-                       <button type="button" className="text-button" onClick={() => setOriginEditing(true)}>Alterar</button>
-                     </div>
-                   )}
-                 </section>
-                 <section className="profile-section agenda-cobranca-section">
-                   <strong>
-                     <CalendarDays size={14} /> Agenda e cobrança
-                   </strong>
-                   <div className="agenda-cobranca-empty">
-                     <b>Nada agendado ainda</b>
-                     <p>Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
-                   </div>
-                 </section>
-                <section className="profile-section">
+                                <div className="profile-scroll-flow">
+<section className="profile-section">
                   <strong>
                     <UserRound size={14} /> Campos personalizados
                   </strong>
@@ -717,6 +679,85 @@ export function ContactProfilePanel({
                     </small>
                   </section>
                 ) : null}
+                </div>
+                <div className="profile-sticky-tail">
+<section className="profile-section contact-identities-section">
+                  <strong><Link2 size={14} /> Identidades de atendimento</strong>
+                  <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="contact-identity-card" key={identity.id}><span className="contact-identity-icon" aria-hidden="true">{isWaha ? <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg> : <Link2 size={18}/>}</span><span className="contact-identity-copy"><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className="profile-status-pill small done">Ativo</span></div>})}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  <form className="contact-identity-form" onSubmit={bindIdentity}>
+                    <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
+                    <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
+                    <label>Identificador do canal<input value={identityExternalId} onChange={(e) => setIdentityExternalId(e.target.value)} placeholder="Ex.: 5511999999999@c.us" /></label>
+                    <button type="submit" className="secondary-button" disabled={identitySaving}>{identitySaving ? "Vinculando…" : "Vincular novo canal"}</button>
+                  </form>
+                </section>
+                <section className="profile-section">
+                  <strong>
+                     <Compass size={14} /> Origem do lead
+                   </strong>
+                   {!leadOrigin || originEditing ? (
+                     <>
+                       <select
+                         className="profile-origin-select"
+                         value={leadOrigin}
+                         onChange={(e) => {
+                           setLeadOrigin(e.target.value);
+                           setLeadOriginId("");
+                         }}
+                       >
+                         <option value="">Não identificada</option>
+                         <option>Site/Formulário</option>
+                         <option>Landing Page</option>
+                         <option>Facebook</option>
+                         <option>Instagram</option>
+                         <option>Google</option>
+                         <option>WhatsApp (WAHA)</option>
+                         <option>Campanha de WhatsApp</option>
+                         <option>Campanha de SMS</option>
+                         <option>Campanha de Áudio</option>
+                         <option>Indicação</option>
+                         <option>Evento</option>
+                         <option>Importação</option>
+                         <option>Outra</option>
+                       </select>
+                       {[
+                         "Landing Page",
+                         "Facebook",
+                         "Instagram",
+                         "Google",
+                         "Campanha de WhatsApp",
+                         "Campanha de SMS",
+                         "Campanha de Áudio",
+                       ].includes(leadOrigin) ? (
+                         <input
+                           className="profile-origin-identifier"
+                           value={leadOriginId}
+                           onChange={(e) => setLeadOriginId(e.target.value)}
+                           placeholder="Identificador da landing page/campanha"
+                           maxLength={120}
+                         />
+                       ) : null}
+                       <small>Use o identificador criado na landing page ou campanha para atribuir corretamente a origem. O canal de atendimento não define a origem.</small>
+                       <button type="button" className="text-button" onClick={() => setOriginEditing(false)}>Concluir</button>
+                     </>
+                   ) : (
+                     <div className="profile-origin-value">
+                       <span>{leadOrigin}{leadOriginId ? ` · ${leadOriginId}` : ""}</span>
+                       <button type="button" className="text-button" onClick={() => setOriginEditing(true)}>Alterar</button>
+                     </div>
+                   )}
+                 </section>
+                 <section className="profile-section agenda-cobranca-section">
+                   <strong>
+                     <CalendarDays size={14} /> Agenda e cobrança
+                   </strong>
+                   <div className="agenda-cobranca-empty">
+                     <b>Nada agendado ainda</b>
+                     <p>Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
+                   </div>
+                 </section>
+                </div>
               </>
             ) : null}
             {tab === "notas" ? (

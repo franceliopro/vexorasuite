@@ -1,5 +1,6 @@
 "use client";
 
+import { InitialsAvatar } from "./inbox-avatars";
 import type { Agent } from "./inbox-workspace-types";
 
 export interface MentionPopoverProps {
@@ -7,15 +8,6 @@ export interface MentionPopoverProps {
   mentionList: Agent[];
   mentionIndex: number;
   onPick: (agent: Agent) => void;
-}
-
-/** Avatar pequeno com iniciais do nome (até 2 letras). */
-export function InitialsAvatar({ name }: { name: string }) {
-  const trimmed = name.trim();
-  if (!trimmed) return <span className="mention-avatar">?</span>;
-  const parts = trimmed.split(/\s+/).filter(Boolean);
-  const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("") || "?";
-  return <span className="mention-avatar">{initials}</span>;
 }
 
 export function MentionPopover({ mentionQuery, mentionList, mentionIndex, onPick }: MentionPopoverProps) {

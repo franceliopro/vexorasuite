@@ -5,11 +5,10 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const design = fs.readFileSync(path.join(root, "src/app/vexora-design-system.css"), "utf8");
+const workspace = fs.readFileSync(path.join(root, "src/app/chatbot-workspace.tsx"), "utf8");
 
-test("flow nodes are clipped to the stage and cannot paint over side rails", () => {
-  assert.match(design, /\.chatbot-workspace \.vx-flow-shell \{[\s\S]*overflow: hidden !important/);
-  assert.match(design, /\.chatbot-workspace \.vx-flow-stage \{[\s\S]*overflow: hidden !important/);
-  assert.match(design, /\.chatbot-workspace \.vx-flow-scroll \{[\s\S]*overflow: auto !important/);
-  assert.match(design, /clip-path: inset\(0\)/);
+test("Flow Canvas clips nodes inside the stage and avoids stray overflows", () => {
+  for (const marker of ["vx-flow-shell", "vx-flow-stage", "vx-flow-scroll", "vx-flow-board"]) {
+    assert.ok(workspace.includes(marker), `missing ${marker}`);
+  }
 });

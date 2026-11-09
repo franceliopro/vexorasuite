@@ -1,5 +1,4 @@
 "use client";
-import { tagForeground } from "../lib/tag-contrast";
 import { formatDateBR } from "../lib/date-format";
 import dynamic from "next/dynamic";
 const InboxAppointments=dynamic(()=>import("./inbox-appointments").then(m=>m.InboxAppointments));
@@ -29,28 +28,16 @@ import {
   X,
   Send,
   Keyboard,
-  ArrowLeft,
-  MoreHorizontal,
-  Instagram,
-  Facebook,
   MessageCircle,
-  Mail,
   Bot,
-  BrainCircuit,
-  Music2,
-  AlarmClock,
   Wallet,
   CalendarDays,
   Paperclip,
   HelpCircle,
-  PanelRightClose,
   RotateCw,
   MessagesSquare,
-  Maximize2,
-  Minimize2,
   MoveDiagonal2,
   Sparkles,
-  Wand2,
   StickyNote,
 } from "lucide-react";
 const InboxCopilot=dynamic(()=>import("./inbox-copilot").then(m=>m.InboxCopilot));
@@ -61,12 +48,12 @@ import { emojiCatalog } from "./emoji-catalog";
 
 type FinanceDebt={id:string;value:number;dueDate:string;status:string;description:string;invoiceUrl:string|null;bankSlipUrl:string|null};
 type Channel = { id: string; name: string; provider: string; status: string; lastError?: string | null; healthCheckedAt?: string | null };
-type Contact = { id: string; name: string; phone?: string | null; email?: string | null; externalId?: string | null; source?: string | null; pipelineId?:string|null; metadata?: Record<string, unknown> };
 type ServiceProtocol = { code: string; conversationId: string };
-type Message = { id: string; content: string; contentType: string; direction: string; status: string; occurredAt: string; senderName?:string|null; metadata?: Record<string, unknown> & {linkedConversationId?:string;departmentName?:string;linkPreview?:{url:string;title?:string;description?:string;imageUrl?:string}} };
-type Assignee = { id: string; name: string; email: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
-type Agent = { id: string; name: string; email: string };
+import { ContactAvatar } from "./inbox-avatars";
+import { ConversationList } from "./conversation-list";
+import { MentionPopover } from "./mention-popover";
+import type { Agent, Message, Conversation } from "./inbox-workspace-types";
 function messageDateKey(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return value;
@@ -85,19 +72,6 @@ function messageDateLabel(value: string, now = new Date()): string {
     const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(date);
     return weekday.charAt(0).toLocaleUpperCase("pt-BR") + weekday.slice(1);
   }
-  return formatDateBR(date);
-}
-
-function timeShortLabel(value: string | undefined, now = new Date()): string {
-  const date = new Date(value || "");
-  if (!Number.isFinite(date.getTime())) return "";
-  const minutes = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 60000));
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `há ${days} d`;
   return formatDateBR(date);
 }
 
@@ -172,6 +146,12 @@ const QUICK_REPLY_VARIABLES = [
   { token:"{{etapa}}", label:"Etapa", hint:"Etapa atual do contato" },
   { token:"{{protocolo}}", label:"Protocolo", hint:"Número do atendimento" },
 ] as const;
+function formatVoiceTimer(total: number): string {
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 function greetingPeriod(date = new Date()): "dawn"|"morning"|"afternoon"|"evening" {
   const hour = date.getHours();
   if (hour < 6) return "dawn";
@@ -198,7 +178,6 @@ const EMOJI_GROUPS: Record<string, string[]> = emojiCatalog.reduce((groups, [emo
   (groups[label] ||= []).push(emoji);
   return groups;
 }, {} as Record<string, string[]>);
-type Conversation = { id: string; status: string; createdAt?: string; updatedAt?: string; channel?: string; handlingMode?: "BOT" | "HUMAN"; botState?: Record<string, unknown>; isOverdue?: boolean; department?: Department | null; archivedAt?: string | null; deletedAt?: string | null; contact: Contact; assignee?: { id: string; name: string } | null; messages: Message[]; subject?: string | null; lastMessageAt?: string | null; priority?: string | null };
 type SupervisionOverview = {
   slaMinutes: number;
   totals: { open: number; pending: number; waiting: number; stale: number };
@@ -206,48 +185,6 @@ type SupervisionOverview = {
   byDepartment: Array<{ id: string; name: string; waiting: number; open: number; stale: number }>;
   staleConversations: Array<{ id: string; contactName: string; assignee: string | null; department: string | null; updatedAt: string; status: string }>;
 };
-function avatarUrl(contact: Contact): string | null {
-  const meta = contact.metadata || {};
-  for (const key of ["avatarUrl", "profilePictureUrl", "photoUrl", "pictureUrl", "profileImage", "profilePicUrl", "profilePicture", "imageUrl", "photo", "avatar"]) {
-    const value = meta[key];
-    if (typeof value === "string" && /^https:\/\//i.test(value)) return value;
-  }
-  return null;
-}
-function ChannelMark({ channel, kind = "source", mode }: { channel?: string; kind?: "source" | "agent"; mode?: "BOT" | "HUMAN" }) {
-  const value = (channel || "WHATSAPP").toUpperCase();
-  if (kind === "agent") {
-    if (mode !== "BOT") return null;
-    if (!value.trim()) return null;
-    const isAi = ["AI", "LLM", "OPENAI", "GPT", "IA"].some(token => value === token);
-    return <span className={"channel-mark " + (isAi ? "channel-ai" : "channel-bot")} title={isAi ? "Atendimento por IA" : "Atendimento por chatbot"} aria-label={isAi ? "IA" : "Chatbot"}>{isAi ? <BrainCircuit size={12}/> : <Bot size={12}/>}</span>;
-  }
-  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <span className="channel-mark channel-email" title="E-mail" aria-label="E-mail"><Mail size={13} strokeWidth={2.25}/></span>;
-  if (value.includes("INSTAGRAM")) return <span className="channel-mark channel-instagram" title="Instagram" aria-label="Instagram"><Instagram size={13} strokeWidth={2.25}/></span>;
-  if (value.includes("FACEBOOK") || value === "MESSENGER") return <span className="channel-mark channel-facebook" title="Facebook" aria-label="Facebook"><Facebook size={13} strokeWidth={2.25}/></span>;
-  if (value.includes("TIKTOK")) return <span className="channel-mark channel-tiktok" title="TikTok" aria-label="TikTok"><Music2 size={13} strokeWidth={2.25}/></span>;
-  if (value.includes("CHATBOT") || value.includes("WIDGET") || value.includes("WEBCHAT")) return <span className="channel-mark channel-bot" title="Chatbot do site" aria-label="Chatbot"><Bot size={13}/></span>;
-  if (value.includes("AI") || value.includes("IA")) return <span className="channel-mark channel-ai" title="Inteligência artificial" aria-label="IA"><BrainCircuit size={13}/></span>;
-  return <span className="channel-mark channel-whatsapp" title="WhatsApp" aria-label="WhatsApp"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/><path fill="white" d="M12 3.5a8.5 8.5 0 0 0-7.3 12.85l.31.5-.79 2.9 2.98-.78.48.28A8.5 8.5 0 1 0 12 3.5Z"/><path fill="#25D366" d="M9.07 7.36c-.22-.48-.44-.49-.65-.5h-.55c-.19 0-.5.07-.77.36s-1 1-1 2.4 1.03 2.76 1.17 2.95c.14.2 2 3.2 4.94 4.37 2.44.97 2.94.78 3.47.73.53-.05 1.7-.7 1.94-1.37.24-.68.24-1.26.17-1.38-.07-.12-.27-.19-.57-.34l-1.68-.83c-.3-.14-.52-.21-.74.12-.22.34-.85 1.03-1.04 1.25-.2.22-.38.25-.68.1-.3-.14-1.28-.47-2.43-1.5-.9-.8-1.5-1.8-1.68-2.1-.18-.3-.02-.46.13-.61.14-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.38-.02-.53l-.75-1.8Z"/></svg></span>
-}
-function ContactAvatar({ contact, className = "conversation-avatar" }: { contact: Contact; className?: string }) {
-  const proxy="/api/backend/contacts/"+contact.id+"/avatar";
-  const [src,setSrc]=useState<string|null>(proxy);
-  useEffect(()=>setSrc(proxy),[proxy,contact.metadata?.avatarUrl]);
-  return <span className={className}>{src?<img key={src} src={src} alt={"Foto de "+contactDisplayName(contact)} loading="lazy" referrerPolicy="no-referrer" onError={()=>setSrc(current=>current===proxy?avatarUrl(contact):null)}/>:null}{!src&&<span className="avatar-fallback">{contactDisplayName(contact).slice(0,1).toUpperCase()}</span>}</span>;
-}
-
-function contactLabels(contact: Contact): Array<{name:string;color:string}> {
-  const value = contact.metadata?.tags;
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((raw) => {
-    if (typeof raw === "string") return [{name:raw,color:"#eeecff"}];
-    if (raw && typeof raw === "object" && "name" in raw && typeof (raw as {name?:unknown}).name === "string") return [{name:(raw as {name:string}).name,color:typeof (raw as {color?:unknown}).color === "string" ? (raw as {color:string}).color : "#eeecff"}];
-    return [];
-  });
-}
-
-
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -326,9 +263,8 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [olderMessagesLoading, setOlderMessagesLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [composerTab, setComposerTab] = useState<"reply" | "note">("reply");
-  const [aiSuggestion, setAiSuggestion] = useState<{ conversationId: string; text: string; provider?: string; model?: string } | null>(null);
-  const [aiSuggestionBusy, setAiSuggestionBusy] = useState(false);
-  const [aiSuggestionError, setAiSuggestionError] = useState("");
+  const [improveBusy, setImproveBusy] = useState(false);
+  const [improveError, setImproveError] = useState("");
   const [attendantNotes, setAttendantNotes] = useState<Message[]>([]);
   const [attendantNote, setAttendantNote] = useState("");
   const [attendantNoteBusy, setAttendantNoteBusy] = useState(false);
@@ -343,7 +279,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const openImage=(event:MouseEvent)=>{
       const target=(event.target as Element).closest("img.inbox-image-message") as HTMLImageElement|null;
       if(!target?.src)return;
-      window.open(target.src,"_blank","noopener,noreferrer");
+      setLightboxSrc(target.src);
     };
     element.addEventListener("click",openImage);
     return()=>element.removeEventListener("click",openImage);
@@ -359,10 +295,14 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [composerHeight, setComposerHeight] = useState(0);
   const composerResizeStart = useRef<{ pointerY: number; height: number } | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [emojiSearch, setEmojiSearch] = useState("");
   const [emojiCategory, setEmojiCategory] = useState("Todos");
   const [emojiTarget, setEmojiTarget] = useState<"composer" | "quick-reply">("composer");
   const [quickOpen, setQuickOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionList = mentionQuery === null ? [] : agents.filter(a => a.name.toLowerCase().includes(mentionQuery.toLowerCase()) || a.email.toLowerCase().includes(mentionQuery.toLowerCase()));
   const [quickSearch, setQuickSearch] = useState("");
   const [quickActiveIndex, setQuickActiveIndex] = useState(0);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
@@ -376,16 +316,25 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [quickReplySettings, setQuickReplySettings] = useState<QuickReplySettings>(DEFAULT_QUICK_REPLY_SETTINGS);
   const [quickSettingsSaving, setQuickSettingsSaving] = useState(false);
   const [listening, setListening] = useState(false);
+  const [recordingLevels, setRecordingLevels] = useState<number[]>([]);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [recordedAudio, setRecordedAudio] = useState<{ blob: Blob; url: string; mimetype: string } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const waveFrameRef = useRef(0);
+  const discardRecordingRef = useRef(false);
   useEffect(() => () => {
     recordingStreamRef.current = null;
     setListening(false);
+    if (waveFrameRef.current) window.cancelAnimationFrame(waveFrameRef.current);
+    if (audioContextRef.current) { const ctx = audioContextRef.current; audioContextRef.current = null; ctx.close().catch(() => {}); }
     if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
   }, [selectedId]);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerCaretRef = useRef<number | null>(null);
   const [composerTextHeight, setComposerTextHeight] = useState(34);
   useEffect(() => {
     const el = composerRef.current;
@@ -430,7 +379,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     } catch (e) {
       if (request === conversationRequest.current) {
         setConversationsLoading(false);
-        setConversationLoadError(e instanceof Error ? e.message : "Falha ao carregar conversas.");
+        setConversationLoadError(e instanceof Error ? e.message : "Não foi possível atualizar as conversas. Verifique sua conexão e toque em Tentar novamente.");
       }
     }
   }, [queueView]);
@@ -478,7 +427,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       setMessages(rows);
       setHasOlderMessages(rows.length === 100);
     } catch (e) {
-      if (request === messageRequest.current && selectedRef.current === id) setMessageLoadError(e instanceof Error ? e.message : "Falha ao carregar mensagens.");
+      if (request === messageRequest.current && selectedRef.current === id) setMessageLoadError(e instanceof Error ? e.message : "Não foi possível carregar as mensagens. Verifique sua conexão e toque em Tentar novamente.");
     } finally {
       if (request === messageRequest.current) setMessagesLoading(false);
     }
@@ -494,9 +443,8 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   }, [queueView]);
 
   useEffect(() => {
-    setAiSuggestion(null);
-    setAiSuggestionError("");
-    setAiSuggestionBusy(false);
+    setImproveBusy(false);
+    setImproveError("");
     setAttendantNotes([]);
     setAttendantNote("");
     setAttendantNoteError("");
@@ -504,29 +452,99 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     if (selectedId) void loadAttendantNotes(selectedId);
   }, [selectedId, loadAttendantNotes]);
 
-  async function requestAiSuggestion(mode: "suggest" | "improve" = "suggest") {
-    if (!selectedId || aiSuggestionBusy) return;
-    if (mode === "improve" && !draft.trim()) {
-      setAiSuggestionError("Escreva um rascunho para a assistente reescrever.");
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-tip]")) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.closest?.("[data-tip]")) active.blur();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.closest?.("[data-tip]")) active.blur();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!listening) return;
+    setRecordingSeconds(0);
+    const id = window.setInterval(() => setRecordingSeconds(s => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [listening]);
+
+  async function improveDraftWithAi() {
+    if (!selectedId || improveBusy) return;
+    const isNote = composerTab === "note";
+    const source = isNote ? attendantNote : draft;
+    if (!source.trim()) {
+      setImproveError("Escreva algo antes de melhorar com IA.");
       return;
     }
-    setAiSuggestionBusy(true);
-    setAiSuggestionError("");
+    setImproveBusy(true);
+    setImproveError("");
     try {
-      const result = await api<{ text: string; provider?: string; model?: string }>(
+      const result = await api<{ text: string }>(
         "/api/backend/conversations/" + selectedId + "/copilot",
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: mode, text: mode === "improve" ? draft : undefined, tone: "cordial" }),
+          body: JSON.stringify({ action: "improve", text: source, tone: "cordial" }),
         },
       );
-      setAiSuggestion({ conversationId: selectedId, text: result.text, provider: result.provider, model: result.model });
+      if (isNote) setAttendantNote(result.text); else setDraft(result.text);
     } catch (e) {
-      setAiSuggestionError(e instanceof Error ? e.message : "A assistente não conseguiu sugerir uma resposta agora.");
+      setImproveError(e instanceof Error ? e.message : "A assistente não conseguiu melhorar o texto agora.");
     } finally {
-      setAiSuggestionBusy(false);
+      setImproveBusy(false);
     }
+  }
+
+  function handleComposerChange(event: { target: HTMLTextAreaElement }) {
+    const value = event.target.value;
+    if (composerTab === "note") { setAttendantNote(value); return; }
+    const caret = event.target.selectionStart ?? value.length;
+    composerCaretRef.current = caret;
+    const before = value.slice(0, caret);
+    const match = /@([A-Za-zÀ-Ÿ0-9_.\- ]{0,32})$/.exec(before);
+    if (match && typeof match[1] === "string") { setMentionQuery(match[1]); setMentionIndex(0); } else { setMentionQuery(null); }
+    if (value.startsWith("##")) { setInternalDraft(value.slice(2).trimStart()); setDraft(""); setInternalOpen(true); return; }
+    setDraft(value);
+  }
+
+  function handleComposerKeyDown(event: { key: string; currentTarget: HTMLTextAreaElement; nativeEvent: { isComposing: boolean }; preventDefault: () => void; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }) {
+    const e = event;
+    if (e.nativeEvent && e.nativeEvent.isComposing) return;
+    if (mentionQuery !== null && e.key === "ArrowDown") { e.preventDefault(); setMentionIndex(i => Math.min(i + 1, Math.max(0, mentionList.length - 1))); return; }
+    if (mentionQuery !== null && e.key === "ArrowUp") { e.preventDefault(); setMentionIndex(i => Math.max(0, i - 1)); return; }
+    if (mentionQuery !== null && (e.key === "Enter" || e.key === "Tab") && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); const picked = mentionList[Math.min(mentionIndex, Math.max(0, mentionList.length - 1))]; if (picked) applyMention(picked); return; }
+    if (mentionQuery !== null && e.key === "Escape") { e.preventDefault(); setMentionQuery(null); return; }
+    if (e.key === "/"&&(e.currentTarget.selectionStart===0||/\s/.test(e.currentTarget.value[e.currentTarget.selectionStart-1]||" "))){e.preventDefault();setQuickSearch("");setQuickActiveIndex(0);setQuickOpen(true);setEmojiOpen(false)}
+    if(quickOpen&&e.key==="ArrowDown"){e.preventDefault();setQuickActiveIndex(i=>Math.min(i+1,Math.max(0,filteredQuickReplies.length-1)))}
+    if(quickOpen&&e.key==="ArrowUp"){e.preventDefault();setQuickActiveIndex(i=>Math.max(0,i-1))}
+    if(quickOpen&&e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();const item=filteredQuickReplies[Math.min(quickActiveIndex,filteredQuickReplies.length-1)];if(item)applyQuickReply(item)}
+    else if(e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();e.currentTarget.form?.requestSubmit()}
+    if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}
+    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}
+    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}
+  }
+
+  function applyMention(agent: Agent) {
+    const value = composerTab === "note" ? attendantNote : draft;
+    const caret = composerCaretRef.current ?? value.length;
+    const before = value.slice(0, caret).replace(/@([A-Za-zÀ-Ÿ0-9_.\- ]*)$/, "@" + agent.name.trim() + " ");
+    const next = before + value.slice(caret);
+    if (composerTab === "note") { setAttendantNote(next); } else { setDraft(next); }
+    setMentionQuery(null);
+    composerRef.current?.focus();
+    const pos = before.length;
+    requestAnimationFrame(() => { if (composerRef.current) composerRef.current.setSelectionRange(pos, pos); });
   }
 
   function handleNoteSubmit(event?: any) { if (event && typeof event.preventDefault === "function") event.preventDefault(); return saveAttendantNote(); }
@@ -904,6 +922,14 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     return content.replace(/\{\{([^{}]+)\}\}/g,(_,key:string)=>valueFor(key.trim()));
   }
 
+  const [recentEmojis, setRecentEmojis] = useState<string[]>(() => {
+    try {
+      const raw = window.localStorage.getItem("vexora:recent-emojis");
+      return raw ? (JSON.parse(raw) as string[]).slice(0, 14) : [];
+    } catch {
+      return [];
+    }
+  });
   function insertEmoji(value:string) {
     const isQuickReply = emojiTarget === "quick-reply";
     const el = isQuickReply ? quickContentRef.current : composerRef.current;
@@ -912,11 +938,18 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     const end = el?.selectionEnd ?? currentText.length;
     const nextText = currentText.slice(0, start) + value + currentText.slice(end);
     if (isQuickReply) setQuickContent(nextText); else setDraft(nextText);
+    setRecentEmojis(prev => {
+      const next = [value, ...prev.filter(v => v !== value)].slice(0, 14);
+      try { window.localStorage.setItem("vexora:recent-emojis", JSON.stringify(next)); } catch {}
+      return next;
+    });
     setEmojiOpen(false); setEmojiSearch("");
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + value.length, start + value.length); });
   }
   const emojiGroups = EMOJI_GROUPS;
-  const visibleEmojis = Object.entries(emojiGroups).filter(([group,values]) =>
+  const visibleEmojis = emojiCategory === "Recentes"
+    ? (recentEmojis.length ? [["Recentes", recentEmojis] as [string, string[]]] : [])
+    : Object.entries(emojiGroups).filter(([group,values]) =>
     (emojiCategory === "Todos" || emojiCategory === group) &&
     (!emojiSearch.trim() || group.toLocaleLowerCase("pt-BR").includes(emojiSearch.toLocaleLowerCase("pt-BR")) ||
       values.some(v => v.includes(emojiSearch.trim()) || (EMOJI_NAME_BY_VALUE[v] || "").includes(emojiSearch.trim().toLocaleLowerCase("pt-BR"))))
@@ -935,11 +968,65 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível enviar o áudio."); }
     finally { setBusy(false); }
   }
-  function toggleVoice() {
-    if (listening) {
-      recorderRef.current?.stop(); setListening(false);
+  function startWaveform(stream: MediaStream) {
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.78;
+      source.connect(analyser);
+      audioContextRef.current = ctx;
+      analyserRef.current = analyser;
+      const bins = new Uint8Array(analyser.frequencyBinCount);
+      const step = () => {
+        analyser.getByteFrequencyData(bins);
+        const bars: number[] = [];
+        const chunk = Math.max(1, Math.floor(bins.length / 26));
+        for (let i = 0; i < 26; i++) {
+          let sum = 0;
+          for (let j = 0; j < chunk; j++) sum += bins[i * chunk + j] || 0;
+          bars.push(sum / chunk / 255);
+        }
+        setRecordingLevels(bars);
+        waveFrameRef.current = window.requestAnimationFrame(step);
+      };
+      waveFrameRef.current = window.requestAnimationFrame(step);
+    } catch {
+      /* waveform é decorativa */
+    }
+  }
+  function stopWaveform() {
+    if (waveFrameRef.current) window.cancelAnimationFrame(waveFrameRef.current);
+    waveFrameRef.current = 0;
+    analyserRef.current = null;
+    if (audioContextRef.current) {
+      const ctx = audioContextRef.current;
+      audioContextRef.current = null;
+      ctx.close().catch(() => {});
+    }
+    setRecordingLevels([]);
+  }
+  function stopVoiceRecording(send: boolean) {
+    discardRecordingRef.current = !send;
+    const recorder = recorderRef.current;
+    if (!recorder) {
+      setListening(false);
+      stopWaveform();
       return;
     }
+    if (recorder.state !== "inactive") recorder.stop();
+    setListening(false);
+    stopWaveform();
+  }
+  function toggleVoice() {
+    if (listening) {
+      stopVoiceRecording(true);
+      return;
+    }
+    discardRecordingRef.current = false;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setError("A gravação de áudio não está disponível neste navegador."); return;
     }
@@ -951,12 +1038,19 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       recorder.ondataavailable = event => { if (event.data.size) recordingChunksRef.current.push(event.data); };
       recorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
+        stopWaveform();
+        if (discardRecordingRef.current) {
+          discardRecordingRef.current = false;
+          if (recordingStreamRef.current === stream) recordingStreamRef.current = null;
+          return;
+        }
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         if (recordingStreamRef.current === stream && blob.size) void sendRecordedBlob(blob);
         if (recordingStreamRef.current === stream) recordingStreamRef.current = null;
       };
-      recorder.onerror = () => { stream.getTracks().forEach(track => track.stop()); recordingStreamRef.current = null; setListening(false); setError("Não foi possível concluir a gravação."); };
+      recorder.onerror = () => { stream.getTracks().forEach(track => track.stop()); stopWaveform(); recordingStreamRef.current = null; setListening(false); setError("Não foi possível concluir a gravação."); };
       recorderRef.current = recorder; recorder.start(); setListening(true);
+      startWaveform(stream);
     }).catch(() => setError("Permita o acesso ao microfone para gravar um áudio."));
   }
 
@@ -1105,14 +1199,6 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     if (!conversation.assignee) return "Novo";
     return "Em atendimento";
   }
-  function presenceTone(conversation: Conversation): string | null {
-    if (conversation.isOverdue) return "conversation-presence presence-dot-coral";
-    const age = conversation.updatedAt || conversation.createdAt ? Date.now() - new Date((conversation.updatedAt || conversation.createdAt) as string).getTime() : Number.POSITIVE_INFINITY;
-    const minutes = age / 60000;
-    if (minutes <= 5) return "conversation-presence";
-    if (minutes <= 20) return "conversation-presence presence-dot-amber";
-    return null;
-  }
   function lastInboundContent(): string {
     const last = messages.filter((message) => message.direction === "INBOUND").slice(-1)[0];
     const text = last?.content?.trim() || "Sem mensagens ainda";
@@ -1129,23 +1215,26 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
           <span className={supervision.totals.stale ? "is-alert" : ""}><strong>{supervision.totals.stale}</strong><small>Fora do SLA</small></span>
         </div>
       </section> : null}
-      {conversationLoadError ? <div className="inbox-list-error" role="alert"><strong>Não foi possível atualizar as conversas.</strong><span>{conversationLoadError}</span><button type="button" onClick={() => void loadConversations()}>Tentar novamente</button></div> : null}
+      {conversationLoadError ? <div className="inbox-list-error" role="alert"><strong>Não foi possível atualizar as conversas</strong><span>{conversationLoadError || "Verifique sua conexão e toque em Tentar novamente."}</span><button type="button" onClick={() => void loadConversations()}>Tentar novamente</button></div> : null}
       <nav className="inbox-queues" aria-label="Filas de atendimento">
-        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Equipe" }, { id: "all-open", label: "Todas" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} aria-current={queueView === item.id ? "page" : undefined} aria-pressed={queueView === item.id} onClick={() => { setQueueView(item.id); setMobileThreadOpen(false); }}><span>{item.label}</span>{item.id !== "all-open" ? <span className="inbox-queue-count">{queueCounts[item.id] ?? 0}</span> : null}</button>)}
+        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Equipes" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} aria-current={queueView === item.id ? "page" : undefined} aria-pressed={queueView === item.id} onClick={() => { setQueueView(item.id); setMobileThreadOpen(false); }}><span>{item.label}</span><span className="inbox-queue-count">{queueCounts[item.id] ?? 0}</span></button>)}
+        <details className="inbox-queue-more">
+          <summary className="inbox-queue-button inbox-queue-more-trigger" aria-label="Tipos de interação" title="Demais filas" data-tip="Todos · Concluídos · Arquivados · Lixeira"><MessagesSquare size={14} aria-hidden="true" /></summary>
+          <div className="inbox-queue-more-menu" role="menu" aria-label="Outras filas">
+            <button type="button" role="menuitem" onClick={() => { setQueueView("all-open"); setMobileThreadOpen(false); }}><MessagesSquare size={12} aria-hidden="true" /> Todas</button>
+            <button type="button" role="menuitem" onClick={() => { setQueueView("completed"); setMobileThreadOpen(false); }}><CheckCircle2 size={12} aria-hidden="true" /> Concluídos</button>
+            <button type="button" role="menuitem" onClick={() => { setQueueView("archived"); setMobileThreadOpen(false); }}><Archive size={12} aria-hidden="true" /> Arquivados</button>
+            <button type="button" role="menuitem" onClick={() => { setQueueView("trash"); setMobileThreadOpen(false); }}><Trash2 size={12} aria-hidden="true" /> Lixeira</button>
+          </div>
+        </details>
       </nav>
-      <div className="inbox-conversation-list">
-        {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { notificationFocus.current=null;setSelectedId(item.id); setMobileThreadOpen(true); }}>
-          <span className="conversation-avatar-wrap"><ContactAvatar contact={item.contact}/>{presenceTone(item) ? <span className={presenceTone(item) as string} aria-hidden="true" /> : null}</span><span className="conversation-summary"><span className="conversation-title-row"><strong>{contactDisplayName(item.contact,item.botState)}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))}/></span><span className="conversation-time">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span></span><small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:tagForeground(tag.color),borderColor:"color-mix(in srgb, "+tag.color+" 82%, #334155)"}}>{tag.name}</span>)}</span> : null}{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : (!item.assignee && item.status === "OPEN" ? <span className="conversation-new"><span className="conversation-new-dot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span> : null)}</span>
-        </button>)}
-        {conversationsLoading && conversations.length === 0 ? <div className="inbox-empty" role="status"><strong>Carregando conversas…</strong><p>Buscando as conversas desta fila.</p></div> : null}
-        {!conversationsLoading && !conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
-      </div>
+      <ConversationList conversations={conversations} conversationsLoading={conversationsLoading} selectedId={selectedId} queueView={queueView} onSelect={(item) => { notificationFocus.current = null; setSelectedId(item.id); setMobileThreadOpen(true); }} />
     </aside>
     <div className="inbox-thread content-card">
       {selected ? <>
         {copilotOpen&&<InboxCopilot key={selected.id+":"+(copilotMessage?.id||"draft")} conversationId={selected.id} view={queueView} draft={draft} message={copilotMessage?{id:copilotMessage.id,content:copilotMessage.content}:undefined} onUse={setDraft} onClose={()=>{setCopilotOpen(false);setCopilotMessage(null);}} onNote={()=>{void loadMessages(selected.id);}} onSend={async text=>{await api("/api/backend/conversations/"+selected.id+"/messages?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content:text})});setDraft("");await loadMessages(selected.id);await loadConversations();}}/>}
-                <header className="thread-heading"><ContactAvatar contact={selected.contact} className="thread-contact-avatar"/><div className="thread-contact"><h2 title={selected.contact.name}>{contactDisplayName(selected.contact,selected.botState)}</h2><p className="thread-contact-status"><span className={"status-dot " + conversationStatusTone(selected)} aria-hidden="true" />{conversationStatusLine(selected)}</p><div className="thread-protocol-row"><small className="thread-protocol" title="Protocolo do atendimento">Protocolo {serviceProtocol ? serviceProtocol.code : "—"}</small><details className="thread-status-pill"><summary>{conversationStatusPill(selected)}<ChevronDown size={13} aria-hidden="true" /></summary><div className="thread-status-pill-menu">{!selected.assignee ? <button type="button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void assumeConversation();}}><UserPlus size={13} aria-hidden="true" /> Assumir esta conversa</button> : null}<button type="button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void setConversationStatus("PENDING");}}><Clock3 size={13} aria-hidden="true" /> Pendente</button><button type="button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void setConversationStatus("RESOLVED");}}><CheckCircle2 size={13} aria-hidden="true" /> Resolvida</button></div></details></div></div><div className="thread-header-actions">{selected.handlingMode === "HUMAN" ? <button type="button" aria-label="Devolver ao chatbot" className="thread-icon-action" onClick={() => void returnToBot()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Devolver ao chatbot"><Bot size={15} aria-hidden="true" /></button> : null}<details className="handoff-menu">
-            <summary className="handoff-invite-trigger handoff-direct-trigger thread-transfer-button" aria-label="Direcionar conversa" title="Direcionar conversa"><ArrowRightLeft size={14} aria-hidden="true" /><span>Transferir</span></summary>
+                <header className="thread-heading"><ContactAvatar contact={selected.contact} className="thread-contact-avatar"/><div className="thread-contact"><h2 title={selected.contact.name}>{contactDisplayName(selected.contact,selected.botState)}</h2><p className="thread-contact-status"><span className={"status-dot " + conversationStatusTone(selected)} aria-hidden="true" />{conversationStatusLine(selected)}</p><div className="thread-protocol-row"><small className="thread-protocol" title="Protocolo do atendimento">Protocolo {serviceProtocol ? serviceProtocol.code : "—"}</small><details className="thread-status-pill"><summary>{conversationStatusPill(selected)}<ChevronDown size={13} aria-hidden="true" /></summary><div className="thread-status-pill-menu">{!selected.assignee ? <button type="button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void assumeConversation();}}><UserPlus size={13} aria-hidden="true" /> Assumir esta conversa</button> : null}<button type="button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void setConversationStatus("PENDING");}}><Clock3 size={13} aria-hidden="true" /> Pendente</button><button type="button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void setConversationStatus("RESOLVED");}}><CheckCircle2 size={13} aria-hidden="true" /> Resolvida</button></div></details></div></div><div className="thread-header-actions">{selected.handlingMode === "HUMAN" ? <button type="button" aria-label="Devolver ao chatbot" className="thread-icon-action chatbot-return" onClick={() => void returnToBot()} disabled={actionBusy || selected.status === "RESOLVED" || selected.status === "CLOSED"} title="Devolver ao chatbot" data-tip="Devolver ao chatbot"><Bot size={17} aria-hidden="true" /></button> : null}<details className="handoff-menu">
+            <summary className="handoff-invite-trigger handoff-direct-trigger thread-transfer-button" aria-label="Direcionar conversa" title="Direcionar conversa" data-tip="Direcionar conversa"><ArrowRightLeft size={16} aria-hidden="true" /></summary>
             <div className="handoff-popover">
               <div className="handoff-popover-heading"><div><strong>Para quem vai?</strong><small>Escolha a equipe ou uma pessoa</small></div><span className="handoff-popover-mark"><Users size={17}/></span></div>
               <div className="handoff-section-label">EQUIPES</div>
@@ -1158,7 +1247,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
               <label className="handoff-context">Contexto para quem recebe<textarea rows={3} maxLength={4000} value={handoffNote} onChange={e=>setHandoffNote(e.target.value)} placeholder="Informações importantes para o próximo atendente ou setor…"/><small>Nota interna. Não será enviada ao cliente.</small></label>
               <div className="handoff-popover-footer"><span>Destino: <b>{handoffDepartment?departments.find(d=>d.id===handoffDepartment)?.name:"Fila geral"}{handoffAssignee?" · "+agents.find(a=>a.id===handoffAssignee)?.name:""}</b></span><button type="button" className="handoff-confirm" disabled={actionBusy} onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");void handoffToHuman();}}><ArrowRightLeft size={14}/> Transferir</button></div>
             </div>
-          </details><button type="button" aria-label="Finalizar atendimento" className="thread-action-button thread-finalize-button" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento"><CheckCircle2 size={14} aria-hidden="true" /><span>Finalizar</span></button><details className="thread-rare-actions"><summary className="thread-icon-action" aria-label="Mais ações" title="Mais ações"><MoreHorizontal size={16} aria-hidden="true" /></summary><div className="thread-rare-menu"><details className="rare-invite"><summary className="handoff-invite-trigger" aria-label="Convidar atendente" title="Convidar atendente"><UserPlus size={14} aria-hidden="true" /> Convidar atendente</summary><div className="thread-rare-submenu">{agents.map(a=><div key={a.id} className="invite-option"><span className="handoff-avatar">{a.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><span className="handoff-option-copy"><strong>{a.name}</strong><small>{a.email}</small></span><button type="button" aria-label={"Convidar "+a.name} title={"Convidar "+a.name} className="invite-person-button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");setInviteAssignee(a.id);void api("/api/backend/conversations/"+selected.id+"/invite?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId:a.id})}).then(()=>{setInviteAssignee("");return loadConversations();}).catch(e=>setError(e instanceof Error?e.message:"Não foi possível convidar o atendente."));}}><UserPlus size={14}/></button></div>)}{!agents.length?<p className="handoff-empty">Nenhum atendente disponível.</p>:null}</div></details>{selected.archivedAt || selected.deletedAt ? <button type="button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))}><RotateCcw size={14} aria-hidden="true" /> Restaurar</button> : <><button type="button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))}><Archive size={14} aria-hidden="true" /> Arquivar</button><button type="button" className="danger" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))}><Trash2 size={14} aria-hidden="true" /> Lixeira</button></>}</div></details></div></header>{copilotOpen&&<InboxCopilot key={selected.id+":"+(copilotMessage?.id||"draft")} conversationId={selected.id} view={queueView} draft={draft} message={copilotMessage?{id:copilotMessage.id,content:copilotMessage.content}:undefined} onUse={setDraft} onClose={()=>{setCopilotOpen(false);setCopilotMessage(null);}} onNote={()=>{void loadMessages(selected.id);}} onSend={async text=>{await api("/api/backend/conversations/"+selected.id+"/messages?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content:text})});setDraft("");await loadMessages(selected.id);await loadConversations();}}/>}
+          </details><button type="button" aria-label="Finalizar atendimento" className="thread-icon-action thread-finalize-button" onClick={() => { setFinalizationOpen(true); setFinalizationOutcome(""); setFinalizationReason(""); }} disabled={actionBusy} title="Finalizar atendimento" data-tip="Finalizar atendimento"><CheckCircle2 size={17} aria-hidden="true" /></button><details className="handoff-menu invite-menu"><summary className="handoff-invite-trigger" aria-label="Convidar atendente" title="Convidar atendente" data-tip="Convidar atendente"><UserPlus size={16} aria-hidden="true" /></summary><div className="handoff-popover invite-popover" role="dialog" aria-label="Convidar atendente"><div className="handoff-popover-heading"><div><strong>Convidar atendente</strong><small>Escolha uma pessoa da equipe</small></div><span className="handoff-popover-mark"><UserPlus size={17} aria-hidden="true" /></span></div>{agents.map(a=><div key={a.id} className="invite-option"><span className="handoff-avatar">{a.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><span className="handoff-option-copy"><strong>{a.name}</strong><small>{a.email}</small></span><button type="button" aria-label={"Convidar "+a.name} title={"Convidar "+a.name} className="invite-person-button" onClick={(event)=>{event.currentTarget.closest("details")?.removeAttribute("open");setInviteAssignee(a.id);void api("/api/backend/conversations/"+selected.id+"/invite?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId:a.id})}).then(()=>{setInviteAssignee("");return loadConversations();}).catch(e=>setError(e instanceof Error?e.message:"Não foi possível convidar o atendente."));}}><UserPlus size={14}/></button></div>)}{!agents.length?<p className="handoff-empty">Nenhum atendente disponível.</p>:null}</div></details>{selected.archivedAt || selected.deletedAt ? <button type="button" className="thread-icon-action thread-restore-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/restore?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível restaurar."))} aria-label="Restaurar conversa" title="Restaurar conversa" data-tip="Restaurar conversa"><RotateCcw size={16} aria-hidden="true" /></button> : <><button type="button" className="thread-icon-action thread-archive-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/archive?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível arquivar."))} aria-label="Arquivar conversa" title="Arquivar conversa" data-tip="Arquivar conversa"><Archive size={16} aria-hidden="true" /></button><button type="button" className="thread-icon-action thread-trash-button" onClick={() => void api("/api/backend/conversations/" + selected.id + "/trash?view=" + queueView, { method: "POST" }).then(() => loadConversations()).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível mover para a lixeira."))} aria-label="Mover para a lixeira" title="Mover para a lixeira" data-tip="Mover para a lixeira"><Trash2 size={16} aria-hidden="true" /></button></>}</div></header>{copilotOpen&&<InboxCopilot key={selected.id+":"+(copilotMessage?.id||"draft")} conversationId={selected.id} view={queueView} draft={draft} message={copilotMessage?{id:copilotMessage.id,content:copilotMessage.content}:undefined} onUse={setDraft} onClose={()=>{setCopilotOpen(false);setCopilotMessage(null);}} onNote={()=>{void loadMessages(selected.id);}} onSend={async text=>{await api("/api/backend/conversations/"+selected.id+"/messages?view="+queueView,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content:text})});setDraft("");await loadMessages(selected.id);await loadConversations();}}/>}
         
         {selected.channel!=='WHATSAPP'&&<WhatsappBridge conversationId={selected.id} view={queueView} onOpen={id=>{notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}/>}
         {channels.filter(c=>c.provider==='WAHA'&&(c.status!=='CONNECTED'||!c.healthCheckedAt||Date.now()-Date.parse(c.healthCheckedAt)>90000)).map(c=><div className="channel-health-warning" role="alert" key={c.id}><strong>{c.name}: {c.status==='CONNECTED'?'verificação desatualizada':c.status==='UNKNOWN'?'conexão não verificada':'WhatsApp desconectado ou aguardando conexão'}</strong><span>{c.lastError||'Mensagens podem não ser recebidas nem respondidas.'} Última verificação: {c.healthCheckedAt?new Date(c.healthCheckedAt).toLocaleTimeString('pt-BR'):'ainda não realizada'}.</span><a href="/?module=Canais%20e%20integra%C3%A7%C3%B5es">Ver conexões</a></div>)}<div className="inbox-assume-wrap">{selected.handlingMode === "HUMAN" && !selected.assignee && selected.status === "OPEN" ? <><section className="inbox-assume-banner" aria-label="Conversa na fila de novas"><span className="inbox-assume-icon" aria-hidden="true"><UserRound size={19} /></span><div className="inbox-assume-text"><strong>Esta conversa está na fila de novas.</strong><span>Assuma para responder em nome da equipe.</span></div><button type="button" className="primary-button inbox-assume-button" onClick={() => void assumeConversation()} disabled={actionBusy}>Assumir conversa</button></section><dl className="inbox-assume-meta"><div><dt>Motivo</dt><dd>{selected.subject?.trim() || "Atendimento novo"}</dd></div><div><dt>Contexto</dt><dd title={lastInboundContent()}>{lastInboundContent()}</dd></div><div><dt>Próximo passo</dt><dd>Assumir e responder</dd></div></dl></> : null}</div><div className="thread-messages" ref={threadScrollRef} onScroll={e=>{const el=e.currentTarget;threadPinnedRef.current=el.scrollHeight-el.scrollTop-el.clientHeight<110}}>
@@ -1169,22 +1258,24 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
             const mediaUrl = selected && hasMedia && ["audio", "image", "video", "file"].includes(message.contentType)
               ? "/api/backend/conversations/" + selected.id + "/messages/" + message.id + "/media?view=" + encodeURIComponent(queueView)
               : "";
-            return <Fragment key={message.id}>{showDateSeparator&&<div className="message-date-separator" role="separator" aria-label={messageDateLabel(message.occurredAt)}><span>{messageDateLabel(message.occurredAt)}</span></div>}{message.direction === "INTERNAL" ? <div className="internal-note-line"><div className="internal-note-card"><header className="internal-note-head"><span className="internal-note-icon" aria-hidden="true">{message.metadata?.kind === "handoff_context" || message.senderName === "Contexto do atendimento" ? <Sparkles size={12}/> : <StickyNote size={12}/>}</span><strong className="internal-note-title">{message.metadata?.kind === "handoff_context" || message.senderName === "Contexto do atendimento" ? "Contexto do atendimento" : "Nota privada de " + (message.senderName || "Equipe")}</strong><small className="internal-note-badge">Só a equipe vê</small><time className="internal-note-time">{new Date(message.occurredAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</time></header><div className="internal-note-body"><MessageText content={message.content || "Anexo recebido (" + message.contentType + ")"} deleted={message.metadata?.deleted===true}/></div>{message.metadata?.linkedConversationId&&/^[a-f0-9-]{36}$/i.test(message.metadata.linkedConversationId) ? <div className="internal-note-linked"><button type="button" className="text-button" onClick={() => { const linked = message.metadata!.linkedConversationId!; notificationFocus.current = linked; setQueueView("all-open"); setSelectedId(linked); void loadConversations(); setMobileThreadOpen(true); }}>Abrir conversa vinculada</button></div> : null}{message.metadata?.kind === "handoff_context" && !selected.assignee && (selected.status === "OPEN" || selected.status === "PENDING") ? <div className="internal-note-cta"><button type="button" className="primary-button internal-note-assume" onClick={() => void assumeConversation()} disabled={actionBusy}>{actionBusy ? "Assumindo…" : "Assumir conversa"}</button></div> : null}</div></div> : <div className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble" onContextMenu={event=>{event.preventDefault();setMessageMenu({message,x:Math.min(event.clientX,window.innerWidth-220),y:Math.min(event.clientY,window.innerHeight-130)})}}>{message.direction==="OUTBOUND"&&message.senderName&&<strong className="attendant-identity">{message.senderName}{message.metadata?.departmentName?" · "+message.metadata.departmentName:""}</strong>}{message.direction==="INTERNAL"&&<strong className="internal-note-label">Interno · {message.senderName||"Equipe"}{message.metadata?.departmentName?" · "+message.metadata.departmentName:""} · não enviado ao cliente</strong>}{mediaUrl ? (message.contentType==="audio" ? <AudioMessage src={mediaUrl}/> : message.contentType==="image" ? <img className="inbox-image-message" src={mediaUrl} alt={typeof message.metadata?.filename==="string" ? message.metadata.filename : "Imagem recebida"} loading="lazy"/> : message.contentType==="video" ? <video className="inbox-video-message" controls preload="metadata" src={mediaUrl} aria-label="Vídeo recebido"/> : <a className="inbox-file-message" href={mediaUrl} target="_blank" rel="noreferrer"><Paperclip size={15}/>{typeof message.metadata?.filename==="string" ? message.metadata.filename : "Abrir arquivo"}</a>) : <>{message.metadata?.linkPreview ? <LinkPreview preview={message.metadata.linkPreview}/> : null}<MessageText content={message.content || "Anexo recebido (" + message.contentType + ")"} deleted={message.metadata?.deleted===true}/></>}{message.direction==='INTERNAL'&&message.metadata?.linkedConversationId&&/^[a-f0-9-]{36}$/i.test(message.metadata.linkedConversationId)&&<button type="button" className="text-button" onClick={()=>{const id=message.metadata!.linkedConversationId!;notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}>Abrir conversa vinculada</button>}<small><span>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span><MessageStatus message={message}/></small>{messageMenu?.message.id===message.id&&<div className="message-context-menu" style={{left:messageMenu.x,top:messageMenu.y}} role="menu" onClick={event=>event.stopPropagation()}><button type="button" onClick={()=>void deleteMessage(message,"ME")}>Excluir para mim</button>{message.direction==="OUTBOUND"&&<button type="button" onClick={()=>void deleteMessage(message,"ALL")}>Excluir para todos</button>}</div>}{message.direction==="OUTBOUND"&&(message.metadata&&(message.metadata as Record<string,unknown>).engine===true||message.metadata&&(message.metadata as Record<string,unknown>).bot===true||message.senderName==="Véxora Intelligence Engine"||message.senderName==="Assistente virtual")?<span className="ai-message-foot"><Sparkles size={11} aria-hidden="true" /><em>{message.senderName||"Véxora Intelligence Engine"} · IA</em><span>{new Date(message.occurredAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span><MessageStatus message={message}/></span>:null}</div></div>}</Fragment>;
+            return <Fragment key={message.id}>{showDateSeparator&&<div className="message-date-separator" role="separator" aria-label={messageDateLabel(message.occurredAt)}><span>{messageDateLabel(message.occurredAt)}</span></div>}{message.direction === "INTERNAL" ? <div className="internal-note-line"><div className="internal-note-card"><header className="internal-note-head"><span className="internal-note-icon" aria-hidden="true">{message.metadata?.kind === "handoff_context" || message.senderName === "Contexto do atendimento" ? <Sparkles size={12}/> : <StickyNote size={12}/>}</span><strong className="internal-note-title">{message.metadata?.kind === "handoff_context" || message.senderName === "Contexto do atendimento" ? "Contexto do atendimento" : "Nota privada de " + (message.senderName || "Equipe")}</strong><small className="internal-note-badge">Só a equipe vê</small><time className="internal-note-time">{new Date(message.occurredAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</time></header><div className="internal-note-body"><MessageText content={message.content || "Anexo recebido (" + message.contentType + ")"} deleted={message.metadata?.deleted===true}/></div>{message.metadata?.linkedConversationId&&/^[a-f0-9-]{36}$/i.test(message.metadata.linkedConversationId) ? <div className="internal-note-linked"><button type="button" className="text-button" onClick={() => { const linked = message.metadata!.linkedConversationId!; notificationFocus.current = linked; setQueueView("all-open"); setSelectedId(linked); void loadConversations(); setMobileThreadOpen(true); }}>Abrir conversa vinculada</button></div> : null}{message.metadata?.kind === "handoff_context" && !selected.assignee && (selected.status === "OPEN" || selected.status === "PENDING") ? <div className="internal-note-cta"><button type="button" className="primary-button internal-note-assume" onClick={() => void assumeConversation()} disabled={actionBusy}>{actionBusy ? "Assumindo…" : "Assumir conversa"}</button></div> : null}</div></div> : <div className={"message-line " + (message.direction === "OUTBOUND" ? "outgoing" : "")}><div className="message-bubble" onContextMenu={event=>{event.preventDefault();setMessageMenu({message,x:Math.min(event.clientX,window.innerWidth-220),y:Math.min(event.clientY,window.innerHeight-130)})}}>{message.direction==="OUTBOUND"&&message.senderName&&<strong className="attendant-identity">{message.senderName}{message.metadata?.departmentName?" · "+message.metadata.departmentName:""}</strong>}{message.direction==="INTERNAL"&&<strong className="internal-note-label">Interno · {message.senderName||"Equipe"}{message.metadata?.departmentName?" · "+message.metadata.departmentName:""} · não enviado ao cliente</strong>}{mediaUrl ? (<>{message.contentType==="audio" ? <AudioMessage src={mediaUrl}/> : message.contentType==="image" ? <img className="inbox-image-message" src={mediaUrl} alt={typeof message.metadata?.filename==="string" ? message.metadata.filename : "Imagem recebida"} loading="lazy" role="button" tabIndex={0} aria-label="Ampliar imagem" onClick={() => setLightboxSrc(mediaUrl)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setLightboxSrc(mediaUrl); } }}/> : message.contentType==="video" ? <video className="inbox-video-message" controls preload="metadata" src={mediaUrl} aria-label="Vídeo recebido"/> : <a className="inbox-file-message" href={mediaUrl} target="_blank" rel="noreferrer"><Paperclip size={15}/>{typeof message.metadata?.filename==="string" ? message.metadata.filename : "Abrir arquivo"}</a>}{message.content ? <MessageText content={message.content} deleted={message.metadata?.deleted===true}/> : null}</>) : <>{message.metadata?.linkPreview ? <LinkPreview preview={message.metadata.linkPreview}/> : null}<MessageText content={message.content || "Anexo recebido (" + message.contentType + ")"} deleted={message.metadata?.deleted===true}/></>}{message.direction==='INTERNAL'&&message.metadata?.linkedConversationId&&/^[a-f0-9-]{36}$/i.test(message.metadata.linkedConversationId)&&<button type="button" className="text-button" onClick={()=>{const id=message.metadata!.linkedConversationId!;notificationFocus.current=id;setQueueView('all-open');setSelectedId(id);void loadConversations();setMobileThreadOpen(true)}}>Abrir conversa vinculada</button>}<small><span>{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span><MessageStatus message={message}/></small>{messageMenu?.message.id===message.id&&<div className="message-context-menu" style={{left:messageMenu.x,top:messageMenu.y}} role="menu" onClick={event=>event.stopPropagation()}><button type="button" onClick={()=>void deleteMessage(message,"ME")}>Excluir para mim</button>{message.direction==="OUTBOUND"&&<button type="button" onClick={()=>void deleteMessage(message,"ALL")}>Excluir para todos</button>}</div>}{message.direction==="OUTBOUND"&&(message.metadata&&(message.metadata as Record<string,unknown>).engine===true||message.metadata&&(message.metadata as Record<string,unknown>).bot===true||message.senderName==="Véxora Intelligence Engine"||message.senderName==="Assistente virtual")?<span className="ai-message-foot"><Sparkles size={11} aria-hidden="true" /><em>{message.senderName||"Véxora Intelligence Engine"} · IA</em><span>{new Date(message.occurredAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span><MessageStatus message={message}/></span>:null}</div></div>}</Fragment>;
           })}
           {messagesLoading ? <p className="inbox-empty" role="status">Carregando mensagens…</p> : null}
-          {!messagesLoading && messageLoadError ? <div className="inbox-list-error" role="alert"><strong>Não foi possível carregar as mensagens.</strong><span>{messageLoadError}</span><button type="button" onClick={() => selectedId && void loadMessages(selectedId)}>Tentar novamente</button></div> : null}
+          {!messagesLoading && messageLoadError ? <div className="inbox-list-error" role="alert"><strong>Não foi possível carregar as mensagens</strong><span>{messageLoadError || "Verifique sua conexão e toque em Tentar novamente."}</span><button type="button" onClick={() => selectedId && void loadMessages(selectedId)}>Tentar novamente</button></div> : null}
           {!messagesLoading && !messageLoadError && !messages.length ? <p className="inbox-empty">Aguardando a primeira mensagem…</p> : null}
         </div>
         {quickPanel?<div className="inbox-quick-overlay"><section ref={quickPanel==="appointments"?appointmentModalRef:undefined} tabIndex={-1} className="inbox-quick-dialog" style={quickPanel==="appointments"?{width:"min(760px, calc(100vw - 24px))",height:"min(720px, calc(100dvh - 100px))"}:{width:quickPanelSize.width,height:quickPanelSize.height}} role={quickPanel==="appointments"?"dialog":"region"} aria-modal={quickPanel==="appointments"?true:undefined} aria-label="Ações rápidas"><header><strong>{quickPanel==="billing"?"Cobranças · "+contactDisplayName(selected.contact,selected.botState):quickPanel==="appointments"?"Agendamentos":quickPanel==="attachments"?"Anexos":"Atalhos de teclado"}</strong><button type="button" aria-label="Fechar" title="Fechar · Esc" onClick={()=>setQuickPanel(null)}><X size={17}/></button></header>{quickPanel==="billing"?<div><p className="inbox-finance-intro">Consulte os débitos e envie ao cliente sem sair da conversa.</p><div className="inbox-finance-lookup"><input aria-label="CPF ou CNPJ do cliente" maxLength={18} autoComplete="off" inputMode="numeric" onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();void lookupDebts()}}} placeholder="CPF ou CNPJ" value={debtDocument} onChange={e=>{debtRequestVersion.current++;setDebtDocument(e.target.value);setDebtLookupError("");setDebtResult(null);setDebtSelected([]);setFinanceRecipientConfirmed(false);setDebtLoading(false)}}/><button type="button" className="secondary-button" disabled={debtLoading||debtDocument.replace(/\D/g,"").length<11} onClick={()=>void lookupDebts()}>{debtLoading?"Consultando…":"Consultar"}</button></div>{debtLookupError?<p role="alert" className="inbox-finance-field-error">{debtLookupError}</p>:null}{debtResult?<><div className="inbox-finance-client"><strong>{debtResult.customerName||"Cliente"}</strong><small>{debtResult.environment} · {debtResult.debts.length} débitos{debtResult.partial?" · consulta parcial":""}</small></div><div className="inbox-finance-select-all"><label><input type="checkbox" checked={debtResult.debts.length>0&&debtSelected.length===debtResult.debts.length} onChange={e=>setDebtSelected(e.target.checked?debtResult.debts.map(d=>d.id):[])}/> Selecionar todos os débitos</label><span>{debtSelected.length} de {debtResult.debts.length} selecionados</span></div><div className="inbox-finance-debts">{debtResult.debts.map(d=><label key={d.id}><input type="checkbox" checked={debtSelected.includes(d.id)} onChange={e=>setDebtSelected(v=>e.target.checked?[...v,d.id]:v.filter(id=>id!==d.id))}/><span>{d.description||"Cobrança"} · {/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)?d.dueDate.slice(8,10)+"/"+d.dueDate.slice(5,7)+"/"+d.dueDate.slice(0,4):d.dueDate}<small>{d.status==="OVERDUE"?"Vencida":"Pendente"}</small></span><strong>{d.value.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</strong></label>)}</div>{debtResult.debts.length?<><div className="inbox-finance-total"><span>Total em aberto</span><strong>{debtResult.debts.reduce((a,d)=>a+d.value,0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</strong></div><label className="inbox-finance-confirm"><input type="checkbox" checked={financeRecipientConfirmed} onChange={e=>setFinanceRecipientConfirmed(e.target.checked)}/> Confirmei que esta conversa pertence ao destinatário correto.</label><button type="button" className="primary-button" disabled={!financeRecipientConfirmed||debtSending||debtResult.partial} onClick={()=>void sendFinanceText(financeSummary())}>Enviar lista de débitos</button></>:<p>Nenhuma cobrança pendente encontrada.</p>}<label>Forma de pagamento<select value={debtFormat} onChange={e=>setDebtFormat(e.target.value)}><option value="invoice">Fatura completa (link)</option><option value="boleto">Boleto completo (link)</option></select></label><button type="button" className="secondary-button" disabled={!financeRecipientConfirmed||debtSending||!debtSelected.length||debtResult.partial||debtResult.debts.filter(d=>debtSelected.includes(d.id)).some(d=>!(debtFormat==="boleto"?d.bankSlipUrl:d.invoiceUrl))} onClick={()=>void sendFinanceText(financePayment())}>Enviar cobrança selecionada</button><small>Pix copia e cola e linha digitável exigem consulta específica ao Asaas e serão adicionados depois.</small></>:null}</div>:quickPanel==="appointments"?<InboxAppointments key={selected.id} contact={{...selected.contact,name:contactDisplayName(selected.contact,selected.botState)}} onConfirm={text=>{setDraft(current=>current.trim()?current+"\n\n"+text:text);setQuickPanel(null);composerRef.current?.focus();}}/>:quickPanel==="attachments"?<div><p>Envie arquivos, localização ou um contato para esta conversa.</p>{attachmentFiles.length?<div className="inbox-attachment-list">{attachmentFiles.map((file,index)=><div key={index}><span>{file.name} · {(file.size/1024/1024).toFixed(1)} MB</span><button type="button" onClick={()=>setAttachmentFiles(v=>v.filter((_,i)=>i!==index))} aria-label={"Remover "+file.name}><X size={14}/></button></div>)}</div>:<p className="inbox-quick-warning">Escolha um ou mais arquivos no clipe para preparar o envio.</p>}<div className="inbox-attachment-actions"><button type="button" className="primary-button" disabled={busy||!attachmentFiles.length} onClick={()=>void sendAttachmentFiles()}>Enviar arquivos</button><button type="button" className="secondary-button" disabled={busy} onClick={()=>void sendCurrentLocation()}>Enviar localização</button><button type="button" className="secondary-button" disabled={busy} onClick={()=>void sendCurrentContact()}>Enviar contato</button></div></div>:<div className="inbox-shortcut-list">{[["Alt+M","Menu lateral"],["Alt+P","Ficha do contato"],["Alt+F","Cobranças"],["Alt+A","Agendamentos"],["Alt+U","Anexos"],["Alt+E","Emojis"],["Alt+R","Respostas rápidas"],["Alt+/","Esta lista"],["Esc","Fechar janela"]].map(([key,label])=><div key={key}><kbd>{key}</kbd><span>{label}</span></div>)}</div>}<button type="button" className="inbox-quick-resize" style={{display:quickPanel==="appointments"?"none":undefined}} aria-label="Redimensionar janela de ações rápidas" title="Arraste para ajustar largura e altura; use as setas com foco" onPointerDown={e=>{quickResize.current={x:e.clientX,y:e.clientY,width:quickPanelSize.width,height:quickPanelSize.height};e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{const r=quickResize.current;if(!r)return;setQuickPanelSize({width:Math.max(Math.min(260,window.innerWidth-36),Math.min(window.innerWidth-36,r.width+r.x-e.clientX)),height:Math.max(240,Math.min(window.innerHeight-100,r.height+e.clientY-r.y))})}} onPointerUp={()=>{quickResize.current=null}} onPointerCancel={()=>{quickResize.current=null}} onKeyDown={e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();setQuickPanelSize(v=>({width:Math.max(260,Math.min(window.innerWidth-36,v.width+(e.key==="ArrowLeft"?20:e.key==="ArrowRight"?-20:0))),height:Math.max(240,Math.min(window.innerHeight-100,v.height+(e.key==="ArrowDown"?20:e.key==="ArrowUp"?-20:0)))}))}}}><MoveDiagonal2 size={14} aria-hidden="true" /></button></section></div>:null}
         <div hidden={!internalOpen}><InboxInternalChat key={selected.id} open={internalOpen} conversationId={selected.id} view={queueView} attendants={agents} draft={internalDraft} onDraftChange={setInternalDraft} onClose={()=>setInternalOpen(false)} onSent={()=>{void loadMessages(selected.id);}}/></div>
-        <input ref={attachmentInputRef} type="file" accept="image/*,video/mp4,video/3gpp,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip" multiple style={{display:"none"}} onChange={e=>{const files=Array.from(e.target.files||[]);const valid=files.filter(file=>file.size<=16*1024*1024);setAttachmentFiles(valid);if(valid.length!==files.length)setError("Alguns arquivos excedem o limite provisório de 16 MB e não foram selecionados.");if(valid.length)setQuickPanel("attachments");e.currentTarget.value="";}}/><div className="composer-shell" style={composerHeight ? { height: `${composerHeight}px` } : undefined}><div className="composer-resize-handle" role="separator" aria-orientation="horizontal" aria-label="Ajustar altura da área de mensagem" tabIndex={0} title="Arraste para ajustar a altura da área de mensagem" onPointerDown={event=>{const shell=event.currentTarget.parentElement;if(!shell)return;composerResizeStart.current={pointerY:event.clientY,height:shell.getBoundingClientRect().height};event.currentTarget.setPointerCapture(event.pointerId);setComposerHeight(shell.getBoundingClientRect().height)}} onPointerMove={event=>{const start=composerResizeStart.current;if(!start||!(event.buttons&1))return;setComposerHeight(Math.max(58,Math.min(280,start.height+start.pointerY-event.clientY)))}} onPointerUp={()=>{composerResizeStart.current=null}} onPointerCancel={()=>{composerResizeStart.current=null}} onKeyDown={event=>{if(event.key==="ArrowUp"||event.key==="ArrowDown"){event.preventDefault();const current=event.currentTarget.parentElement?.getBoundingClientRect().height??58;setComposerHeight(Math.max(58,Math.min(280,(composerHeight||current)+(event.key==="ArrowUp"?16:-16))))}}}><span /></div>{quickReplies.length ? <div className="composer-chips" aria-label="Respostas rápidas">{quickReplies.slice(0, 3).map((item) => <button key={item.id} type="button" className="composer-chip" title={item.content} onClick={() => applyQuickReply(item)}>{item.title}</button>)}</div> : null}
-<form className={"inbox-composer" + (composerTab === "note" ? " composer-is-note" : "")} onSubmit={composerTab === "note" ? handleNoteSubmit : sendMessage}><div className="composer-tabs" role="tablist" aria-label="Modo do compositor"><button type="button" role="tab" aria-selected={composerTab === "reply"} className={composerTab === "reply" ? "active" : ""} onClick={() => setComposerTab("reply")}><MessageCircle size={14} aria-hidden="true" /> Responder</button><button type="button" role="tab" aria-selected={composerTab === "note"} className={composerTab === "note" ? "active" : ""} onClick={() => setComposerTab("note")}><Lock size={13} aria-hidden="true" /> Nota privada</button></div><div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className={"composer-icon-button "+(internalOpen?"active":"")} aria-label="Chat interno" aria-expanded={internalOpen} title="Chat interno · digite ##" onClick={()=>setInternalOpen(v=>!v)}><MessageCircle size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Atalhos · Alt+/" aria-label="Ver atalhos · Alt+/" onClick={()=>setQuickPanel(v=>v==="help"?null:"help")}><HelpCircle size={17}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Cobranças · Alt+F" aria-label="Cobranças · Alt+F" onClick={()=>setQuickPanel(v=>v==="billing"?null:"billing")}><Wallet size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Agendamentos · Alt+A" aria-label="Agendamentos · Alt+A" onClick={()=>setQuickPanel(v=>v==="appointments"?null:"appointments")}><CalendarDays size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Anexos · Alt+U" aria-label="Anexos · Alt+U" onClick={()=>attachmentInputRef.current?.click()}><Paperclip size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Emojis · Alt+E" onClick={()=>{setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><div className="composer-popover-heading"><strong>Emojis</strong><button type="button" className="composer-popover-close" onClick={()=>setEmojiOpen(false)} aria-label="Fechar emojis"><X size={15}/></button></div><input className="composer-search" value={emojiSearch} onChange={e=>setEmojiSearch(e.target.value)} placeholder="Buscar emoji ou categoria…" aria-label="Buscar emoji"/><div className="emoji-category-tabs"><button type="button" className={emojiCategory==="Todos"?"active":""} onClick={()=>setEmojiCategory("Todos")}>Todos</button>{Object.keys(emojiGroups).map(group=><button type="button" key={group} className={emojiCategory===group?"active":""} onClick={()=>setEmojiCategory(group)}>{group}</button>)}</div><div className="emoji-grid">{visibleEmojis.flatMap(([group,values])=>values.map(x=><button type="button" key={group+x} title={EMOJI_NAME_BY_VALUE[x] || group} aria-label={"Inserir emoji "+(EMOJI_NAME_BY_VALUE[x] || x)} onClick={()=>insertEmoji(x)}>{x}</button>))}</div>{!visibleEmojis.length?<small className="composer-empty-hint">Nenhum emoji encontrado. Tente outra busca.</small>:null}</div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" title="Respostas rápidas · Alt+R" onClick={()=>{setQuickOpen(v=>!v);setQuickActiveIndex(0);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><div className="composer-popover-heading"><strong>Respostas rápidas</strong><div className="quick-reply-heading-actions"><button type="button" className="quick-reply-settings-toggle" onClick={()=>{resetQuickEditor();setQuickEditorOpen(true);setQuickSettingsOpen(false)}}><Plus size={13}/> Nova</button><button type="button" className="quick-reply-settings-toggle" onClick={()=>setQuickSettingsOpen(v=>!v)}>{quickSettingsOpen?"Voltar":"Configurar frases"}</button><button type="button" className="composer-popover-close" onClick={()=>setQuickOpen(false)} aria-label="Fechar respostas rápidas"><X size={15}/></button></div></div>{quickSettingsOpen ? <div className="quick-reply-settings"><label>Nome da empresa<input value={quickReplySettings.companyName} onChange={e=>setQuickReplySettings(v=>({...v,companyName:e.target.value}))} placeholder="Nome usado em {{empresa}}"/></label><strong>Saudações por horário</strong>{([{key:"dawn",label:"Madrugada"},{key:"morning",label:"Manhã"},{key:"afternoon",label:"Tarde"},{key:"evening",label:"Noite"}] as const).map(period=><label key={"g-"+period.key}>{period.label}<input value={quickReplySettings.greetings[period.key]} onChange={e=>setQuickReplySettings(v=>({...v,greetings:{...v.greetings,[period.key]:e.target.value}}))}/></label>)}<strong>Despedidas por horário</strong>{([{key:"dawn",label:"Madrugada"},{key:"morning",label:"Manhã"},{key:"afternoon",label:"Tarde"},{key:"evening",label:"Noite"}] as const).map(period=><label key={"f-"+period.key}>{period.label}<input value={quickReplySettings.farewells[period.key]} onChange={e=>setQuickReplySettings(v=>({...v,farewells:{...v.farewells,[period.key]:e.target.value}}))}/></label>)}<button type="button" onClick={()=>void saveQuickReplySettings()} disabled={quickSettingsSaving}>{quickSettingsSaving?"Salvando…":"Salvar frases da empresa"}</button></div> : <><input className="composer-search" value={quickSearch} onChange={e=>setQuickSearch(e.target.value)} placeholder="Buscar por nome, categoria, atalho ou conteúdo…" aria-label="Buscar respostas rápidas"/>{filteredQuickReplies.map((q,index)=><div className="quick-reply-row" key={q.id}><button type="button" className={"quick-reply-use "+(quickActiveIndex===index?"active":"")} onClick={()=>applyQuickReply(q)}><b>{q.title}</b><small>{q.category || "Geral"}{q.shortcut ? " · /"+q.shortcut : ""}</small><small>{resolveQuickReply(q.content)}</small></button><button type="button" className="quick-reply-edit" aria-label={"Editar "+q.title} title="Editar resposta" onClick={()=>editQuickReply(q)}><Keyboard size={14}/></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}{quickEditorOpen ? <div className="quick-reply-create"><div className="quick-reply-editor-heading"><strong>{quickEditingId?"Editar resposta rápida":"Nova resposta rápida"}</strong><button type="button" onClick={resetQuickEditor} aria-label="Fechar editor"><X size={15}/></button></div><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><div className="quick-reply-meta-fields"><input value={quickCategory} onChange={e=>setQuickCategory(e.target.value)} placeholder="Categoria (ex.: Cobrança)"/><input value={quickShortcut} onChange={e=>setQuickShortcut(e.target.value.replace(/\s/g,""))} placeholder="Atalho opcional (ex.: oi)"/></div><textarea ref={quickContentRef} rows={3} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta. Use as variáveis abaixo…"/><div className="quick-reply-variables"><strong>Inserir variável no cursor</strong><div>{quickReplyVariableCatalog().map(variable=><button type="button" key={variable.token} title={variable.hint} onClick={()=>insertQuickToken(variable.token)}>{variable.token}</button>)}</div></div><div className="quick-reply-preview"><strong>Prévia</strong><p>{resolveQuickReply(quickContent || "Olá, {{novo_nome}}! {{saudacao}} {{despedida}}")}</p></div><button type="button" className="quick-reply-emoji-trigger" title="Inserir emoji no texto da resposta" onClick={()=>{setEmojiTarget("quick-reply");setEmojiOpen(true);}}><Smile size={14}/> Inserir emoji</button><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> {quickEditingId?"Salvar alterações":"Criar resposta"}</button></div> : null}</> }</div>:null}</div><textarea ref={composerRef} style={{ height: `${composerTextHeight}px`, minHeight: "34px", maxHeight: "74px" }} value={composerTab === "note" ? attendantNote : draft} onChange={e=>{if(composerTab === "note"){setAttendantNote(e.target.value);return;} if(e.target.value.startsWith("##")){setInternalDraft(e.target.value.slice(2).trimStart());setDraft("");setInternalOpen(true);}else setDraft(e.target.value);}} onKeyDown={e=>{if(e.nativeEvent.isComposing)return;if(e.key==="/"&&(e.currentTarget.selectionStart===0||/\s/.test(e.currentTarget.value[e.currentTarget.selectionStart-1]||" "))){e.preventDefault();setQuickSearch("");setQuickActiveIndex(0);setQuickOpen(true);setEmojiOpen(false)}if(quickOpen&&e.key==="ArrowDown"){e.preventDefault();setQuickActiveIndex(i=>Math.min(i+1,Math.max(0,filteredQuickReplies.length-1)))}if(quickOpen&&e.key==="ArrowUp"){e.preventDefault();setQuickActiveIndex(i=>Math.max(0,i-1))}if(quickOpen&&e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();const item=filteredQuickReplies[Math.min(quickActiveIndex,filteredQuickReplies.length-1)];if(item)applyQuickReply(item)}else if(e.key==="Enter"&&!e.shiftKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();e.currentTarget.form?.requestSubmit()}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="e"){e.preventDefault();setEmojiOpen(v=>!v)}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="r"){e.preventDefault();setQuickOpen(v=>!v)}}} placeholder={composerTab === "note" ? "Escreva sua anotação privada…" : "Digite sua mensagem..."} maxLength={4000} rows={1} aria-label={composerTab === "note" ? "Anotação privada" : "Mensagem"}/>{composerTab !== "note" ? <button type="button" className={"composer-icon-button "+(listening?"recording":"")} title={listening ? "Parar gravação" : "Gravar áudio"} aria-label={listening ? "Parar gravação" : "Gravar áudio"} onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button> : null}{composerTab !== "note" ? <button className="composer-send-button" type="submit" aria-label={busy ? "Enviando mensagem" : "Enviar mensagem"} disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button> : <button className="composer-send-button composer-note-send" type="submit" aria-label="Salvar anotação" disabled={attendantNoteBusy||!attendantNote.trim()}>{attendantNoteBusy?<RotateCcw size={16}/>:<Check size={16}/>}<span>{attendantNoteBusy?"Salvando":"Salvar nota"}</span></button>}</div></div></form></div>
+        <input ref={attachmentInputRef} type="file" accept="image/*,video/mp4,video/3gpp,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip" multiple style={{display:"none"}} onChange={e=>{const files=Array.from(e.target.files||[]);const valid=files.filter(file=>file.size<=16*1024*1024);setAttachmentFiles(valid);if(valid.length!==files.length)setError("Alguns arquivos excedem o limite provisório de 16 MB e não foram selecionados.");if(valid.length)setQuickPanel("attachments");e.currentTarget.value="";}}/><div className="composer-shell" style={composerHeight ? { height: `${composerHeight}px` } : undefined}>
+        <MentionPopover mentionQuery={mentionQuery} mentionList={mentionList} mentionIndex={mentionIndex} onPick={applyMention} /><div className="composer-resize-handle" role="separator" aria-orientation="horizontal" aria-label="Ajustar altura da área de mensagem" tabIndex={0} title="Arraste para ajustar a altura da área de mensagem" onPointerDown={event=>{const shell=event.currentTarget.parentElement;if(!shell)return;composerResizeStart.current={pointerY:event.clientY,height:shell.getBoundingClientRect().height};event.currentTarget.setPointerCapture(event.pointerId);setComposerHeight(shell.getBoundingClientRect().height)}} onPointerMove={event=>{const start=composerResizeStart.current;if(!start||!(event.buttons&1))return;setComposerHeight(Math.max(58,Math.min(280,start.height+start.pointerY-event.clientY)))}} onPointerUp={()=>{composerResizeStart.current=null}} onPointerCancel={()=>{composerResizeStart.current=null}} onKeyDown={event=>{if(event.key==="ArrowUp"||event.key==="ArrowDown"){event.preventDefault();const current=event.currentTarget.parentElement?.getBoundingClientRect().height??58;setComposerHeight(Math.max(58,Math.min(280,(composerHeight||current)+(event.key==="ArrowUp"?16:-16))))}}}><span /></div>{quickReplies.length ? <div className="composer-chips" aria-label="Respostas rápidas">{quickReplies.slice(0, 3).map((item) => <button key={item.id} type="button" className="composer-chip" title={item.content} onClick={() => applyQuickReply(item)}>{item.title}</button>)}</div> : null}
+<form className={"inbox-composer" + (composerTab === "note" ? " composer-is-note" : "")} onSubmit={composerTab === "note" ? handleNoteSubmit : sendMessage}><div className="composer-tabs-row"><div className="composer-tabs" role="tablist" aria-label="Modo do compositor"><button type="button" role="tab" aria-selected={composerTab === "reply"} className={composerTab === "reply" ? "active" : ""} onClick={() => setComposerTab("reply")}><MessageCircle size={14} aria-hidden="true" /> Responder</button><button type="button" role="tab" aria-selected={composerTab === "note"} className={composerTab === "note" ? "active" : ""} onClick={() => setComposerTab("note")}><Lock size={13} aria-hidden="true" /> Nota privada</button></div><button type="button" className="composer-ai-improve" onClick={() => void improveDraftWithAi()} disabled={improveBusy || !(composerTab === "note" ? attendantNote.trim() : draft.trim())} aria-label="Melhorar texto com IA" title="Melhorar texto com IA">{improveBusy ? <Sparkles size={12} className="vx-spin" aria-hidden="true" /> : <Sparkles size={12} aria-hidden="true" />} <span>{improveBusy ? "Melhorando…" : "Melhorar com IA"}</span></button></div>{improveError ? <p className="composer-ai-error" role="alert">{improveError}</p> : null}{listening ? <div className="voice-recording" role="status" aria-live="polite"><span className="voice-dot" aria-hidden="true" /><span className="voice-timer">{formatVoiceTimer(recordingSeconds)}</span><div className="voice-wave" aria-hidden="true">{recordingLevels.map((level, index) => <span key={index} style={{ height: `${Math.max(4, Math.round(level * 30))}px` }} />)}</div><span className="voice-hint">Gravando a sua fala…</span><button type="button" className="voice-cancel" onClick={() => stopVoiceRecording(false)} aria-label="Descartar áudio" data-tip="Descartar áudio"><Trash2 size={16} aria-hidden="true" /></button><button type="button" className="voice-send" onClick={() => stopVoiceRecording(true)} aria-label="Enviar áudio" data-tip="Enviar áudio"><Check size={16} aria-hidden="true" /></button></div> : null}<div className="composer-toolbar"><div className="composer-tools"><div className="composer-tool-wrap"><button type="button" className={"composer-icon-button "+(internalOpen?"active":"")} aria-label="Chat interno" aria-expanded={internalOpen} data-tip="Chat interno · digite ##" onClick={()=>setInternalOpen(v=>!v)}><MessageCircle size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" data-tip="Atalhos · Alt+/" aria-label="Ver atalhos · Alt+/" onClick={()=>setQuickPanel(v=>v==="help"?null:"help")}><HelpCircle size={17}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" data-tip="Cobranças · Alt+F" aria-label="Cobranças · Alt+F" onClick={()=>setQuickPanel(v=>v==="billing"?null:"billing")}><Wallet size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" data-tip="Agendamentos · Alt+A" aria-label="Agendamentos · Alt+A" onClick={()=>setQuickPanel(v=>v==="appointments"?null:"appointments")}><CalendarDays size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" data-tip="Anexos · Alt+U" aria-label="Anexos · Alt+U" onClick={() => setQuickPanel(v => v === "attachments" ? null : "attachments")}><Paperclip size={18}/></button></div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" data-tip="Emojis · Alt+E" onClick={()=>{setEmojiTarget("composer");setEmojiOpen(v=>!v);setQuickOpen(false)}} aria-label="Emojis"><Smile size={18}/></button>{emojiOpen?<div className="composer-popover emoji-popover"><div className="composer-popover-heading"><strong>Emojis</strong><button type="button" className="composer-popover-close" onClick={()=>setEmojiOpen(false)} aria-label="Fechar emojis"><X size={15}/></button></div><input className="composer-search" value={emojiSearch} onChange={e=>setEmojiSearch(e.target.value)} placeholder="Buscar emoji ou categoria…" aria-label="Buscar emoji"/><div className="emoji-category-tabs">{recentEmojis.length ? <button type="button" className={emojiCategory==="Recentes"?"active":""} onClick={()=>setEmojiCategory("Recentes")}>Recentes</button> : null}<button type="button" className={emojiCategory==="Todos"?"active":""} onClick={()=>setEmojiCategory("Todos")}>Todos</button>{Object.keys(emojiGroups).map(group=><button type="button" key={group} className={emojiCategory===group?"active":""} onClick={()=>setEmojiCategory(group)}>{group}</button>)}</div><div className="emoji-grid">{visibleEmojis.flatMap(([group,values])=>values.map(x=><button type="button" key={group+x} title={EMOJI_NAME_BY_VALUE[x] || group} aria-label={"Inserir emoji "+(EMOJI_NAME_BY_VALUE[x] || x)} onClick={()=>insertEmoji(x)}>{x}</button>))}</div>{!visibleEmojis.length?<small className="composer-empty-hint">Nenhum emoji encontrado. Tente outra busca.</small>:null}</div>:null}</div><div className="composer-tool-wrap"><button type="button" className="composer-icon-button" data-tip="Respostas rápidas · Alt+R" onClick={()=>{setQuickOpen(v=>!v);setQuickActiveIndex(0);setEmojiOpen(false)}} aria-label="Respostas rápidas"><BookmarkPlus size={18}/></button>{quickOpen?<div className="composer-popover quick-replies-popover"><div className="composer-popover-heading"><strong>Respostas rápidas</strong><div className="quick-reply-heading-actions"><button type="button" className="quick-reply-settings-toggle" onClick={()=>{resetQuickEditor();setQuickEditorOpen(true);setQuickSettingsOpen(false)}}><Plus size={13}/> Nova</button><button type="button" className="quick-reply-settings-toggle" onClick={()=>setQuickSettingsOpen(v=>!v)}>{quickSettingsOpen?"Voltar":"Configurar frases"}</button><button type="button" className="composer-popover-close" onClick={()=>setQuickOpen(false)} aria-label="Fechar respostas rápidas"><X size={15}/></button></div></div>{quickSettingsOpen ? <div className="quick-reply-settings"><label>Nome da empresa<input value={quickReplySettings.companyName} onChange={e=>setQuickReplySettings(v=>({...v,companyName:e.target.value}))} placeholder="Nome usado em {{empresa}}"/></label><strong>Saudações por horário</strong>{([{key:"dawn",label:"Madrugada"},{key:"morning",label:"Manhã"},{key:"afternoon",label:"Tarde"},{key:"evening",label:"Noite"}] as const).map(period=><label key={"g-"+period.key}>{period.label}<input value={quickReplySettings.greetings[period.key]} onChange={e=>setQuickReplySettings(v=>({...v,greetings:{...v.greetings,[period.key]:e.target.value}}))}/></label>)}<strong>Despedidas por horário</strong>{([{key:"dawn",label:"Madrugada"},{key:"morning",label:"Manhã"},{key:"afternoon",label:"Tarde"},{key:"evening",label:"Noite"}] as const).map(period=><label key={"f-"+period.key}>{period.label}<input value={quickReplySettings.farewells[period.key]} onChange={e=>setQuickReplySettings(v=>({...v,farewells:{...v.farewells,[period.key]:e.target.value}}))}/></label>)}<button type="button" onClick={()=>void saveQuickReplySettings()} disabled={quickSettingsSaving}>{quickSettingsSaving?"Salvando…":"Salvar frases da empresa"}</button></div> : <><input className="composer-search" value={quickSearch} onChange={e=>setQuickSearch(e.target.value)} placeholder="Buscar por nome, categoria, atalho ou conteúdo…" aria-label="Buscar respostas rápidas"/>{filteredQuickReplies.map((q,index)=><div className="quick-reply-row" key={q.id}><button type="button" className={"quick-reply-use "+(quickActiveIndex===index?"active":"")} onClick={()=>applyQuickReply(q)}><b>{q.title}</b><small>{q.category || "Geral"}{q.shortcut ? " · /"+q.shortcut : ""}</small><small>{resolveQuickReply(q.content)}</small></button><button type="button" className="quick-reply-edit" aria-label={"Editar "+q.title} title="Editar resposta" onClick={()=>editQuickReply(q)}><Keyboard size={14}/></button><button type="button" className="quick-reply-delete" aria-label="Excluir resposta" onClick={()=>saveQuickReplies(quickReplies.filter(x=>x.id!==q.id))}><X size={14}/></button></div>)}{quickEditorOpen ? <div className="quick-reply-create"><div className="quick-reply-editor-heading"><strong>{quickEditingId?"Editar resposta rápida":"Nova resposta rápida"}</strong><button type="button" onClick={resetQuickEditor} aria-label="Fechar editor"><X size={15}/></button></div><input value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} placeholder="Nome da resposta"/><div className="quick-reply-meta-fields"><input value={quickCategory} onChange={e=>setQuickCategory(e.target.value)} placeholder="Categoria (ex.: Cobrança)"/><input value={quickShortcut} onChange={e=>setQuickShortcut(e.target.value.replace(/\s/g,""))} placeholder="Atalho opcional (ex.: oi)"/></div><textarea ref={quickContentRef} rows={3} value={quickContent} onChange={e=>setQuickContent(e.target.value)} placeholder="Texto da resposta. Use as variáveis abaixo…"/><div className="quick-reply-variables"><strong>Inserir variável no cursor</strong><div>{quickReplyVariableCatalog().map(variable=><button type="button" key={variable.token} title={variable.hint} onClick={()=>insertQuickToken(variable.token)}>{variable.token}</button>)}</div></div><div className="quick-reply-preview"><strong>Prévia</strong><p>{resolveQuickReply(quickContent || "Olá, {{novo_nome}}! {{saudacao}} {{despedida}}")}</p></div><button type="button" className="quick-reply-emoji-trigger" title="Inserir emoji no texto da resposta" onClick={()=>{setEmojiTarget("quick-reply");setEmojiOpen(true);}}><Smile size={14}/> Inserir emoji</button><button type="button" onClick={createQuickReply} disabled={!quickTitle.trim()||!quickContent.trim()}><Plus size={14}/> {quickEditingId?"Salvar alterações":"Criar resposta"}</button></div> : null}</> }</div>:null}</div><textarea ref={composerRef} style={{ height: `${composerTextHeight}px`, minHeight: "34px", maxHeight: "74px" }} rows={1} maxLength={4000} value={composerTab === "note" ? attendantNote : draft} onChange={handleComposerChange} onKeyDown={handleComposerKeyDown} placeholder={composerTab === "note" ? "Escreva sua anotação privada…" : "Digite sua mensagem..."} aria-label={composerTab === "note" ? "Anotação privada" : "Mensagem"}/>{composerTab !== "note" ? <button type="button" className={"composer-icon-button "+(listening?"recording":"")} data-tip={listening ? "Parar gravação" : "Gravar áudio"} aria-label={listening ? "Parar gravação" : "Gravar áudio"} onClick={toggleVoice}>{listening?<MicOff size={18}/>:<Mic size={18}/>}</button> : null}{composerTab !== "note" ? <button className="composer-send-button" type="submit" aria-label={busy ? "Enviando mensagem" : "Enviar mensagem"} disabled={busy||!draft.trim()}>{busy?<RotateCcw size={16}/>:<Send size={16}/>}<span>{busy?"Enviando":"Enviar"}</span></button> : <button className="composer-send-button composer-note-send" type="submit" aria-label="Salvar anotação" disabled={attendantNoteBusy||!attendantNote.trim()}>{attendantNoteBusy?<RotateCcw size={16}/>:<Check size={16}/>}<span>{attendantNoteBusy?"Salvando":"Salvar nota"}</span></button>}</div></div></form></div>
       </> : <div className="thread-empty"><span className="module-placeholder-icon"><MessagesSquare size={22} aria-hidden="true" /></span><p>As mensagens recebidas aparecerão aqui.</p></div>}
     </div>
-    {selected ? <ContactProfilePanel contact={selected.contact} conversationId={selected.id} status={selected.status} createdAt={selected.createdAt} displayName={contactDisplayName(selected.contact,selected.botState)} channel={selected.channel} expanded={contactProfileExpanded} onExpandedChange={setContactProfileExpanded} aiSuggestion={aiSuggestion && aiSuggestion.conversationId === selected.id ? aiSuggestion : null} aiSuggestionBusy={aiSuggestionBusy} aiSuggestionError={aiSuggestionError} onRequestAiSuggestion={requestAiSuggestion} onUseAiSuggestion={setDraft} /> : null}
+    {selected ? <ContactProfilePanel contact={selected.contact} conversationId={selected.id} status={selected.status} createdAt={selected.createdAt} displayName={contactDisplayName(selected.contact,selected.botState)} channel={selected.channel} expanded={contactProfileExpanded} onExpandedChange={setContactProfileExpanded} /> : null}
 
     {finalizationOpen && selected ? <div className="finalization-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !actionBusy) setFinalizationOpen(false); }}><section ref={finalizationRef} tabIndex={-1} className="finalization-dialog" role="dialog" aria-modal="true" aria-labelledby="inbox-finalization-title"><button type="button" className="finalization-close" aria-label="Fechar" disabled={actionBusy} onClick={() => setFinalizationOpen(false)}><X size={18}/></button><span className="finalization-icon"><CheckCircle2 size={22}/></span><h2 id="inbox-finalization-title">Finalizar atendimento</h2><p>Qual foi o resultado comercial de <strong>{selected.contact.name}</strong>?</p><div className="finalization-outcomes"><button type="button" className={finalizationOutcome === "WON" ? "selected won" : "won"} onClick={() => { setFinalizationOutcome("WON"); setFinalizationReason(""); }}><Check size={17}/><span><strong>Ganho</strong><small>Converter lead em cliente</small></span></button><button type="button" className={finalizationOutcome === "LOST" ? "selected lost" : "lost"} onClick={() => setFinalizationOutcome("LOST")}><X size={17}/><span><strong>Perda</strong><small>Registrar motivo da perda</small></span></button></div>{finalizationOutcome === "LOST" ? <label className="finalization-reason">Motivo da perda<select required value={finalizationReason} onChange={(event) => setFinalizationReason(event.target.value)}><option value="">Selecione o motivo…</option>{lossReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label> : null}<p className="finalization-note">A conversa sairá da fila de mensagens e o contato será retirado do Kanban. O histórico continuará disponível em Contatos.</p><div className="finalization-actions"><button type="button" className="secondary-button" disabled={actionBusy} onClick={() => setFinalizationOpen(false)}>Cancelar</button><button type="button" className="primary-button" disabled={!finalizationOutcome || (finalizationOutcome === "LOST" && !finalizationReason) || actionBusy} onClick={() => void confirmConversationFinalization()}>{actionBusy ? "Finalizando…" : "Confirmar finalização"}</button></div></section></div> : null}
     {initialListError ? <div className="inbox-error" role="alert" aria-live="assertive"><span>{initialListError}</span><button type="button" onClick={() => void loadInitialLists()}>Tentar novamente</button><button type="button" onClick={() => setInitialListError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div> : null}{error ? <div className="inbox-error" role="alert" aria-live="assertive"><span>{error}</span><button onClick={() => setError("")} aria-label="Fechar aviso"><X size={16} aria-hidden="true" /></button></div> : null}
+    {lightboxSrc ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Imagem ampliada" onMouseDown={(event) => { if (event.target === event.currentTarget) setLightboxSrc(null); }} onKeyDown={(event) => { if (event.key === "Escape") setLightboxSrc(null); }}><button type="button" className="image-lightbox-close" aria-label="Fechar imagem" autoFocus onClick={() => setLightboxSrc(null)}><X size={20} aria-hidden="true" /></button><img src={lightboxSrc} alt="Imagem ampliada" /></div> : null}
   </section>;
 }
 

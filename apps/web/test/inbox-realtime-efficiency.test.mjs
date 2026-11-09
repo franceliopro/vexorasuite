@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const source = fs.readFileSync(new URL("../src/app/inbox-workspace.tsx", import.meta.url), "utf8");
+const conversationList = fs.readFileSync(new URL("../src/app/conversation-list.tsx", import.meta.url), "utf8");
 
 test("inbox uses SSE as primary realtime path", () => {
   assert.match(source, /new EventSource\("\/api\/backend\/events"\)/);
@@ -24,15 +25,15 @@ test("inbox guards message responses and older-message pagination", () => {
 test("inbox separates loading states from empty states", () => {
   assert.match(source, /const \[conversationsLoading, setConversationsLoading\] = useState\(true\)/);
   assert.match(source, /const \[messagesLoading, setMessagesLoading\] = useState\(false\)/);
-  assert.match(source, /Carregando conversas…/);
+  assert.match(conversationList, /Carregando conversas…/);
   assert.match(source, /Carregando mensagens…/);
-  assert.match(source, /!conversationsLoading && !conversations\.length/);
+  assert.match(conversationList, /!conversationsLoading && !conversations\.length/);
   assert.match(source, /!messagesLoading && !messageLoadError && !messages\.length/);
 });
 
 test("conversation load failures stop loading and expose a retry", () => {
   assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
-  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Falha ao carregar conversas\."\)/);
+  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Não foi possível atualizar as conversas\./);
   assert.match(source, /className="inbox-list-error" role="alert"/);
   assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
 });

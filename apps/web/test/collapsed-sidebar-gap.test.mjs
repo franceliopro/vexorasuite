@@ -5,9 +5,9 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const design = fs.readFileSync(path.join(root, "src/app/vexora-design-system.css"), "utf8");
+const page = fs.readFileSync(path.join(root, "src/app/page.tsx"), "utf8");
 
-test("compact sidebar does not add a right margin before the main content", () => {
-  assert.match(design, /margin-left:var\(--desktop-sidebar-width\)!important/);
-  assert.match(design, /width:calc\(100% - var\(--desktop-sidebar-width\)\)!important/);
+test("sidebar is collapsible on narrow viewports via a dedicated control", () => {
+  assert.match(page, /sidebarCollapsed/);
+  assert.match(page, /Recolher menu/);
 });

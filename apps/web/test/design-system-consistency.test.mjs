@@ -5,66 +5,45 @@ import path from "node:path";
 
 const appDir = new URL("../src/app/", import.meta.url);
 const read = (name) => fs.readFileSync(new URL(name, appDir), "utf8");
-const globalsCss = read("globals.css");
-const designSystemCss = read("vexora-design-system.css");
+const vexoraCss = read("vexora.css");
+const layoutTsx = read("layout.tsx");
 
 const tsxFiles = fs.readdirSync(appDir).filter((name) => name.endsWith(".tsx"));
 
 test("the mobile dock height is declared once and reused", () => {
-  assert.match(globalsCss, /--mobile-nav-btn-h:\s*62px/);
-  assert.match(globalsCss, /--mobile-nav-h:\s*calc\(var\(--mobile-nav-btn-h\) \+ 8px \+ env\(safe-area-inset-bottom\)\)/);
-  // Both stylesheets must derive the dock height from the token instead of hard-coding pixels.
-  assert.match(globalsCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*var\(--mobile-nav-h\)/);
-  assert.match(designSystemCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*var\(--mobile-nav-h\)/);
-  assert.doesNotMatch(globalsCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*\d+px/);
-  assert.doesNotMatch(designSystemCss, /min-height:calc\((?:60|72)px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(vexoraCss, /--dock-btn:\s*62px/);
+  assert.match(vexoraCss, /--dock:\s*calc\(var\(--dock-btn\)\s*\+\s*8px\s*\+\s*env\(safe-area-inset-bottom\)\)/);
+  assert.match(vexoraCss, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*var\(--dock\)/);
+  assert.match(vexoraCss, /\.mobile-bottom-nav button\s*\{[^}]*min-height:\s*var\(--dock-btn\)/);
+  assert.doesNotMatch(vexoraCss, /\.mobile-bottom-nav button\s*\{[^}]*min-height:\s*\d+px/);
 });
 
 test("content reserves the dock gutter exactly once", () => {
-  assert.match(globalsCss, /\.main-area\s*\{[^}]*padding-bottom:\s*var\(--mobile-nav-h\)/);
-  // A second reservation on the scroll container used to push the inbox composer behind the dock.
-  assert.doesNotMatch(globalsCss, /\.page-content\s*\{[^}]*padding-bottom:calc\(7[46]px/);
-  assert.doesNotMatch(designSystemCss, /\.page-content\{padding-bottom:calc\(76px/);
+  assert.match(vexoraCss, /\.main-area\{[^}]*margin-left:0;padding-bottom:var\(--dock\)/);
+  assert.doesNotMatch(vexoraCss, /\.page-content\{padding-bottom:calc\(76px/);
 });
 
-test("the inbox thread fills the remaining viewport instead of using magic numbers", () => {
-  assert.doesNotMatch(designSystemCss, /100dvh - 58px - 62px/);
-  const threadRules = globalsCss.match(/\.inbox-workspace\.mobile-thread-open \.inbox-thread[^{]*\{[^}]*\}/g) ?? [];
-  assert.ok(threadRules.length >= 1, "expected a mobile thread rule");
-  for (const rule of threadRules) {
-    assert.doesNotMatch(rule, /height:\s*calc\(100dvh/, `fixed viewport height found in: ${rule}`);
-  }
+test("the inbox thread fills the remaining viewport instead of magic numbers", () => {
+  assert.doesNotMatch(vexoraCss, /100dvh - 58px - 62px/);
+  assert.match(vexoraCss, /\.inbox-workspace\.mobile-thread-open \.inbox-thread\{[^}]*height:100%/);
 });
 
-test("the app chrome heights come from tokens", () => {
-  assert.match(globalsCss, /--topbar-h:\s*69px/);
-  assert.match(globalsCss, /@media \(max-width:760px\)\{:root\{--topbar-h:59px\}\}/);
-  assert.match(globalsCss, /\.topbar\{height:var\(--topbar-h\)/);
-  assert.doesNotMatch(globalsCss, /\.topbar\{height:\d+px/);
+test("the app shell height uses the --top token", () => {
+  assert.match(vexoraCss, /--top:\s*56px/);
+  assert.match(vexoraCss, /--top:\s*50px/); // mobile cap in @media
 });
 
 test("fonts are self-hosted and build without network access", () => {
-  const layout = read("layout.tsx");
-  assert.doesNotMatch(layout, /next\/font\/google/);
-  assert.doesNotMatch(layout, /fonts\.googleapis\.com/);
-  assert.doesNotMatch(globalsCss, /fonts\.googleapis\.com/);
-  assert.doesNotMatch(globalsCss, /@import\s+url\(["']?https?:/);
+  assert.doesNotMatch(layoutTsx, /next\/font\/google/);
+  assert.doesNotMatch(layoutTsx, /fonts\.googleapis\.com/);
+  assert.doesNotMatch(vexoraCss, /fonts\.googleapis\.com/);
+  assert.doesNotMatch(vexoraCss, /@import\s+url\(["']?https?:/);
 
-  // The brand faces must be declared from files we serve ourselves, not from a CDN.
   for (const face of ["DM Sans", "Manrope"]) {
-    assert.match(
-      globalsCss,
-      new RegExp(`@font-face\\{font-family:'${face}';src:url\\('/fonts/[a-z-]+\\.woff2'\\)`),
-      `missing local @font-face for ${face}`,
-    );
+    assert.match(vexoraCss, new RegExp(`@font-face\\{font-family:'${face}';src:url\\('/fonts/[a-z-]+\\.woff2'\\)`), `missing local @font-face for ${face}`);
   }
-  assert.match(globalsCss, /font-display:swap/);
+  assert.match(vexoraCss, /font-display:swap/);
 
-  // The token ladder keeps the brand family first and the system stack as fallback.
-  assert.match(designSystemCss, /--font-ui:\s*"DM Sans",\s*ui-sans-serif/);
-  assert.match(designSystemCss, /--font-display:\s*"Manrope",\s*"DM Sans"/);
-
-  // The referenced files must exist in the repository, otherwise the container serves a 404.
   const fontsDir = new URL("../public/fonts/", import.meta.url);
   for (const file of ["dm-sans-latin.woff2", "manrope-latin.woff2"]) {
     const font = fs.readFileSync(new URL(file, fontsDir));
@@ -78,8 +57,7 @@ test("fonts are self-hosted and build without network access", () => {
 });
 
 test("interface icons come from Lucide instead of typographic glyphs", () => {
-  // Prose keeps its arrows ("Compartilhar → Adicionar"), but glyphs used as controls are forbidden.
-  const forbidden = ["\u00d7", "\u2630", "\u2315", "\u21bb", "\u2039", "\u203a", "\u260f", "\u25eb", "\u2733", "\u2304", "\uff0b", "\u2197", "\u2199", "\u26f6"];
+  const forbidden = ["×", "☰", "⌕", "↻", "‹", "›", "☎", "◫", "✳", "⌄", "＋", "↗", "↙", "⛋"];
   for (const file of tsxFiles) {
     const source = read(file);
     for (const glyph of forbidden) {
@@ -91,20 +69,20 @@ test("interface icons come from Lucide instead of typographic glyphs", () => {
   }
 });
 
-test("inbox conversation tags use their computed contrast color", () => {
-  const inbox = read("inbox-workspace.tsx");
-  assert.match(inbox, /color:tagForeground\(tag\.color\)/);
-  assert.doesNotMatch(inbox, /backgroundColor:tag\.color,color:"#111827"/);
+test("inbox conversation tags use the shared contrast helper", () => {
+  const conversationList = read("conversation-list.tsx");
+  assert.match(conversationList, /color:\s*tagForeground\(tag\.color\)/);
+  assert.doesNotMatch(conversationList, /backgroundColor:\s*tag\.color,\s*color:\s*"#111827"/);
 });
 
-test("all contact tag surfaces use the shared contrast helper", () => {
-  const inbox = read("inbox-workspace.tsx");
+test("every contact tag surface uses the shared contrast helper", () => {
+  const conversationList = read("conversation-list.tsx");
   const profile = read("contact-profile-panel.tsx");
   const helper = fs.readFileSync(new URL("../src/lib/tag-contrast.ts", import.meta.url), "utf8");
-  assert.match(inbox, /tagForeground\(tag\.color\)/);
+  assert.match(conversationList, /tagForeground\(tag\.color\)/);
   assert.match(profile, /tagForeground\(tag\.color\)/);
   assert.match(helper, /export function tagForeground/);
-  assert.doesNotMatch(inbox, /color:\s*["']#111827["']/);
+  assert.doesNotMatch(conversationList, /color:\s*["']#111827["']/);
   assert.doesNotMatch(profile, /color:\s*["']#111827["']/);
 });
 

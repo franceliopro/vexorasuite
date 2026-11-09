@@ -504,9 +504,10 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     if (selectedId) void loadAttendantNotes(selectedId);
   }, [selectedId, loadAttendantNotes]);
 
-  async function requestAiSuggestion(mode: "suggest" | "improve" = "suggest") {
+  async function requestAiSuggestion(mode: "suggest" | "improve" = "suggest", tone = "cordial", text?: string) {
     if (!selectedId || aiSuggestionBusy) return;
-    if (mode === "improve" && !draft.trim()) {
+    const source = text ?? draft;
+    if (mode === "improve" && !source.trim()) {
       setAiSuggestionError("Escreva um rascunho para a assistente reescrever.");
       return;
     }
@@ -518,7 +519,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: mode, text: mode === "improve" ? draft : undefined, tone: "cordial" }),
+          body: JSON.stringify({ action: mode, text: mode === "improve" ? source : undefined, tone }),
         },
       );
       setAiSuggestion({ conversationId: selectedId, text: result.text, provider: result.provider, model: result.model });
@@ -1133,11 +1134,11 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       <nav className="inbox-queues" aria-label="Filas de atendimento">
         {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Equipe" }, { id: "all-open", label: "Todas" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} aria-current={queueView === item.id ? "page" : undefined} aria-pressed={queueView === item.id} onClick={() => { setQueueView(item.id); setMobileThreadOpen(false); }}><span>{item.label}</span>{item.id !== "all-open" ? <span className="inbox-queue-count">{queueCounts[item.id] ?? 0}</span> : null}</button>)}
         <details className="inbox-queue-more">
-          <summary className="inbox-queue-button inbox-queue-more-trigger" aria-label="Mais filas" title="Concluídos, Arquivados e Lixeira"><MoreHorizontal size={13} aria-hidden="true" /><span>Mais</span></summary>
+          <summary className="inbox-queue-button inbox-queue-more-trigger" aria-label="Mostrar demais filas" title="Mais filas" data-tip="Todos · Arquivados · Lixeira · Concluídos"><MoreHorizontal size={13} aria-hidden="true" /></summary>
           <div className="inbox-queue-more-menu" role="menu" aria-label="Outras filas">
-            <button type="button" role="menuitem" onClick={() => { setQueueView("completed"); setMobileThreadOpen(false); }}>Concluídos</button>
-            <button type="button" role="menuitem" onClick={() => { setQueueView("archived"); setMobileThreadOpen(false); }}>Arquivados</button>
-            <button type="button" role="menuitem" onClick={() => { setQueueView("trash"); setMobileThreadOpen(false); }}>Lixeira</button>
+            <button type="button" role="menuitem" onClick={() => { setQueueView("completed"); setMobileThreadOpen(false); }}><CheckCircle2 size={12} aria-hidden="true" /> Concluídos</button>
+            <button type="button" role="menuitem" onClick={() => { setQueueView("archived"); setMobileThreadOpen(false); }}><Archive size={12} aria-hidden="true" /> Arquivados</button>
+            <button type="button" role="menuitem" onClick={() => { setQueueView("trash"); setMobileThreadOpen(false); }}><Trash2 size={12} aria-hidden="true" /> Lixeira</button>
           </div>
         </details>
       </nav>

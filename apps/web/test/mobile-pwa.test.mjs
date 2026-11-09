@@ -6,9 +6,8 @@ const layout = fs.readFileSync(new URL("../src/app/layout.tsx", import.meta.url)
 const manifest = fs.readFileSync(new URL("../src/app/manifest.ts", import.meta.url), "utf8");
 
 test("uses the consolidated design system entrypoint", () => {
-  assert.match(layout, /import "\.\/modules\.css";/);
   assert.match(layout, /import "\.\/vexora\.css";/);
-  assert.doesNotMatch(layout, /mobile-app\.css|mobile-scroll\.css|home-presentation\.css|scrollbars\.css/);
+  assert.doesNotMatch(layout, /modules\.css|globals\.css|vexora-design-system\.css|mobile-app\.css|mobile-scroll\.css|home-presentation\.css|scrollbars\.css/);
 });
 
 test("manifest opens Véxora as an installable standalone app", () => {

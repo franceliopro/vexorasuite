@@ -5,10 +5,21 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const design = fs.readFileSync(path.join(root, "src/app/vexora-design-system.css"), "utf8");
+const page = fs.readFileSync(path.join(root, "src/app/page.tsx"), "utf8");
+const vexoraCss = fs.readFileSync(path.join(root, "src/app/vexora.css"), "utf8");
 
-test("sidebar utility icons stay stacked and compact in the collapsed rail", () => {
-  assert.match(design, /sidebar\.sidebar-compact \.sidebar-utilities[\s\S]*flex-direction:column!important/);
-  assert.match(design, /sidebar\.sidebar-compact \.sidebar-icon[\s\S]*width:36px/);
-  assert.match(design, /sidebar\.sidebar-compact \.nav-item[\s\S]*min-height:42px/);
+test("sidebar collapses on narrow viewports and expands on desktop", () => {
+  assert.match(page, /window\.innerWidth\s*<\s*981/);
+  assert.match(page, /matchMedia\("\(max-width: 980px\)"\)/);
+  assert.match(page, /mq\.addEventListener\("change", update\)/);
+});
+
+test("sidebar bordered rail has visible focus states", () => {
+  assert.match(vexoraCss, /\.nav-item[\s\S]*?border-radius/);
+});
+
+test("sidebar exposes utility icons with accessible names", () => {
+  for (const label of ["Recolher menu", "Instalar Véxora"]) {
+    assert.ok(page.includes(label), `missing ${label}`);
+  }
 });

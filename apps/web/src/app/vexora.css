@@ -294,7 +294,13 @@ details>summary::-webkit-details-marker{display:none}
 .supervision-metrics .is-alert strong{color:var(--bad)}
 .supervision-oldest{font-size:12px;color:var(--tx2)}
 .inbox-conversation-list{flex:1;overflow-y:auto;display:grid;align-content:start}
-.inbox-conversation{display:grid;gap:4px;padding:13px 16px;border-bottom:1px solid var(--ln);text-align:left;border-left:2px solid transparent}
+.inbox-conversation{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--ln);text-align:left;border-left:2px solid transparent}
+.inbox-conversation .conversation-avatar-wrap{align-self:flex-start;margin-top:2px}
+.inbox-conversation .conversation-summary{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.inbox-conversation .conversation-channel-marks{display:inline-flex;gap:3px;align-items:center;margin-left:2px}
+.inbox-conversation .conversation-time{margin-left:auto;flex:none;font-size:10px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.inbox-conversation .conversation-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.inbox-conversation .conversation-tag{font-size:9px;min-height:16px;padding:0 5px;border-radius:4px;gap:2px}
 .inbox-conversation:hover{background:var(--s2)}
 .inbox-conversation.selected{background:var(--primary-soft);border-left-color:var(--primary)}
 .conversation-tags{display:flex;flex-wrap:wrap;gap:4px}
@@ -717,16 +723,6 @@ details>summary:hover{color:var(--tx)}
 @media(max-width:760px){.inbox-notes-board{grid-template-columns:minmax(0,1fr);padding:8px 10px 0}.inbox-ai-note-text{max-height:84px}}
 
 /* Ficha do contato: cartão da assistente + etiquetas fixas */
-.contact-ai-card{display:grid;gap:8px;margin:12px 16px 0;padding:12px 14px;border:1px solid color-mix(in srgb,var(--primary) 24%,transparent);border-radius:14px;background:linear-gradient(160deg,color-mix(in srgb,var(--primary) 12%,var(--s1)),color-mix(in srgb,var(--accent2) 8%,var(--s1)))}
-.contact-ai-card header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.contact-ai-title{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--primary-ink)}
-.contact-ai-refresh{min-height:26px;padding:0 10px;border-radius:99px;border:1px solid color-mix(in srgb,var(--primary) 35%,transparent);background:transparent;color:var(--primary-ink);font-size:11px;font-weight:700}
-.contact-ai-refresh:hover:not(:disabled){background:color-mix(in srgb,var(--primary) 12%,transparent)}
-.contact-ai-text{margin:0;max-height:112px;overflow:auto;font-size:12.5px;line-height:1.55;color:var(--tx);white-space:pre-wrap}
-.contact-ai-placeholder{margin:0;font-size:11.5px;line-height:1.5;color:var(--tx2)}
-.contact-ai-error{margin:0;font-size:11.5px;font-weight:700;color:var(--bad)}
-.contact-ai-actions{display:flex;gap:8px;flex-wrap:wrap}
-.contact-ai-actions .primary-button,.contact-ai-actions .secondary-button{min-height:30px;padding:0 11px;font-size:11.5px}
 .profile-tags-block{display:grid;gap:8px;padding:10px 16px 12px;border-bottom:1px solid var(--ln)}
 .profile-tags-block .profile-tags{gap:6px}
 .profile-tags-block .profile-add-tag{display:flex;gap:6px}
@@ -946,20 +942,6 @@ details>summary:hover{color:var(--tx)}
 .contact-profile-identity p{margin:0;font-size:12.5px;color:var(--tx2)}
 .profile-status-pill.small{min-height:19px;padding:0 8px;font-size:9.5px}
 
-.contact-ai-card{gap:8px;padding:12px 13px;border-radius:16px;border:1px solid color-mix(in srgb,var(--primary) 26%,var(--ln));background:linear-gradient(165deg,color-mix(in srgb,var(--primary) 9%,var(--s1)),color-mix(in srgb,var(--accent2) 6%,var(--s1)))}
-.contact-ai-card header{display:flex;align-items:center;gap:6px}
-.contact-ai-title{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;color:var(--primary-ink)}
-.contact-ai-onlyyou{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
-.contact-ai-refresh{display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--tx2);font-size:15px;cursor:pointer}
-.contact-ai-refresh:hover:not(:disabled){background:var(--s2);color:var(--tx)}
-.contact-ai-bubble{max-height:130px;overflow:auto;padding:10px 11px;border-radius:12px;background:var(--s1);border:1px solid color-mix(in srgb,var(--primary) 16%,var(--ln));font-size:12px;line-height:1.55;color:var(--tx);white-space:pre-wrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
-.contact-ai-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.contact-ai-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1;min-height:34px;padding:0 12px;border:1px solid var(--primary);border-radius:11px;background:var(--primary);color:var(--primary-contrast);font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
-.contact-ai-primary:hover:not(:disabled){filter:brightness(1.06)}
-.contact-ai-primary:disabled{opacity:.5;cursor:not-allowed}
-.contact-ai-ghost{min-height:34px;padding:0 12px;border:0;border-radius:11px;background:transparent;color:var(--tx2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-.contact-ai-ghost:hover:not(:disabled){background:var(--s2);color:var(--tx)}
-.contact-ai-caption{font-size:10.5px;color:var(--tx2)}
 
 .contact-identity-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--ln);border-radius:14px;background:var(--s2)}
 .contact-identity-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:10px;background:#E9FBEF}
@@ -1002,9 +984,11 @@ details>summary:hover{color:var(--tx)}
   .composer-shell .inbox-composer .composer-tools { flex: 1 1 auto; width: auto; min-width: 0; align-items: center; gap: 2px; flex-wrap: nowrap; }
   .composer-shell .inbox-composer .composer-tools > textarea { flex: 1 1 auto; width: auto; min-width: 70px; max-height: 40px; resize: none; }
 }
-/* Botões com rótulo no cabeçalho: o globals encaixota em 36×36 e esconde o texto. Aqui eles viram pílulas naturais. */
+/* Botões com rótulo no cabeçalho: pílulas em fonte da tela, texto e ícone alinhados verticalmente. */
 .thread-header-actions .thread-finalize-button,
-.thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 32px; min-height: 32px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; place-items: initial; white-space: nowrap; line-height: 1; }
+.thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 32px; min-height: 32px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; }
+.thread-header-actions .thread-finalize-button { gap: 8px; }
+.thread-header-actions .thread-transfer-button { gap: 8px; }
 /* Filas em uma única linha rolável, como na proposta. */
 .inbox-queues { display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 5px; padding: 9px 10px; scrollbar-width: none; border-bottom: 1px solid var(--ln); overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
 .inbox-queues::-webkit-scrollbar { display: none; }
@@ -1122,3 +1106,17 @@ details>summary:hover{color:var(--tx)}
 /* ===== Legendas das mensagens com mídia ===== */
 .media-caption { display: block; margin-top: 6px; }
 .media-caption p { margin: 0; font-size: 11px; line-height: 1.4; color: inherit; }
+
+
+/* ===== Botao 'Mais' com balãozinho (tooltip) ===== */
+.inbox-queue-more-trigger { position: relative; width: 26px; min-width: 26px; padding: 0 !important; justify-content: center; }
+.inbox-queue-more-trigger::after {
+  content: attr(data-tip);
+  position: absolute; left: 0; top: calc(100% + 8px); z-index: 60;
+  padding: 6px 10px; border-radius: 8px; background: var(--s1); color: var(--tx);
+  border: 1px solid var(--ln); font-size: 10px; font-weight: 600; white-space: nowrap;
+  box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none;
+  transform: translateY(-3px); transition: opacity .14s ease, transform .14s ease;
+}
+.inbox-queue-more-trigger:hover::after,
+.inbox-queue-more-trigger:focus-visible::after { opacity: 1; transform: translateY(0); }

@@ -2,7 +2,7 @@
 
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
 import { tagForeground } from "../lib/tag-contrast";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Clock3,
   Compass,
@@ -97,21 +97,26 @@ export function ContactProfilePanel({
   aiSuggestion?: { text: string; provider?: string; model?: string } | null;
   aiSuggestionBusy?: boolean;
   aiSuggestionError?: string;
-  onRequestAiSuggestion?: (mode: "suggest" | "improve", tone?: string) => void;
+  onRequestAiSuggestion?: (mode: "suggest" | "improve", tone?: string, text?: string) => void;
   onUseAiSuggestion?: (text: string) => void;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
-  const [aiPersona, setAiPersona] = useState<string>(() => {
-    if (typeof window === "undefined") return "cordial";
-    try { return window.localStorage.getItem("vexora-ai-persona") || "cordial"; } catch { return "cordial"; }
-  });
-  useEffect(() => { try { window.localStorage.setItem("vexora-ai-persona", aiPersona); } catch {} }, [aiPersona]);
   const [aiImproveDraft, setAiImproveDraft] = useState("");
+  const pendingImprove = useRef(false);
   const improveWithAi = () => {
-    if (!aiImproveDraft.trim()) return;
+    const text = aiImproveDraft.trim();
+    if (!text) return;
+    pendingImprove.current = true;
     onUseAiSuggestion?.(aiImproveDraft);
-    onRequestAiSuggestion?.("improve", aiPersona);
+    onRequestAiSuggestion?.("improve", undefined, text);
   };
+  useEffect(() => {
+    if (!pendingImprove.current) return;
+    if (aiSuggestionBusy) return;
+    if (!aiSuggestion?.text) return;
+    setAiImproveDraft(aiSuggestion.text);
+    pendingImprove.current = false;
+  }, [aiSuggestion, aiSuggestionBusy]);
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [notes, setNotes] = useState("");
@@ -465,35 +470,9 @@ export function ContactProfilePanel({
               aria-label="Rascunho para a assistente melhorar"
             />
             <div className="profile-ai-row">
-              <label>Personalidade
-                <select value={aiPersona} onChange={(e) => setAiPersona(e.target.value)} aria-label="Personalidade da resposta">
-                  <option value="cordial">Cordial</option>
-                  <option value="direto">Direto</option>
-                  <option value="formal">Formal</option>
-                  <option value="informal">Informal</option>
-                  <option value="animado">Animado</option>
-                </select>
-              </label>
-              <button type="button" className="secondary-button" disabled={aiSuggestionBusy || !aiImproveDraft.trim()} onClick={improveWithAi}>{aiSuggestionBusy ? "Gerando…" : "Melhorar com IA"}</button>
+              <button type="button" className="primary-button" disabled={aiSuggestionBusy || !aiImproveDraft.trim()} onClick={improveWithAi} aria-label="Melhorar com IA">{aiSuggestionBusy ? <Sparkles size={13} className="vx-spin" aria-hidden="true" /> : <Sparkles size={13} aria-hidden="true" />} {aiSuggestionBusy ? "Gerando…" : "Melhorar com IA"}</button>
             </div>
-            {aiSuggestion ? <div className="profile-ai-result"><small>Sugestão</small><p>{aiSuggestion.text}</p><button type="button" className="text-button" onClick={() => onUseAiSuggestion?.(aiSuggestion.text)}><Sparkles size={11} aria-hidden="true" /> Inserir na resposta</button></div> : null}
             {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
-          </section>
-          <section className="contact-ai-card" aria-label="Assistente">
-            <header>
-              <span className="contact-ai-title"><Sparkles size={14} aria-hidden="true" /> Assistente</span>
-              <span className="contact-ai-onlyyou">Só você vê</span>
-              <button type="button" className="contact-ai-refresh" onClick={() => onRequestAiSuggestion?.("suggest")} disabled={aiSuggestionBusy} title="Gerar outra sugestão" aria-label="Gerar outra sugestão">{aiSuggestionBusy ? "…" : "↻"}</button>
-            </header>
-            {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
-            {aiSuggestion?.text
-              ? <div className="contact-ai-bubble">{aiSuggestion.text}</div>
-              : <p className="contact-ai-placeholder">{aiSuggestionBusy ? "Lendo o histórico desta conversa." : "Posso sugerir a próxima resposta com base no histórico. Nada é enviado sem sua confirmação."}</p>}
-            <div className="contact-ai-actions">
-              <button type="button" className="contact-ai-primary" onClick={() => aiSuggestion?.text && onUseAiSuggestion?.(aiSuggestion.text)} disabled={!aiSuggestion?.text}><CheckCircle2 size={14} aria-hidden="true" /> Usar na resposta</button>
-              <button type="button" className="contact-ai-ghost" onClick={() => onRequestAiSuggestion?.("improve")} disabled={aiSuggestionBusy}>Reescrever</button>
-            </div>
-            <small className="contact-ai-caption">Você revisa antes de enviar.</small>
           </section>
           <nav className="contact-profile-tabs">
             <button

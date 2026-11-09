@@ -157,7 +157,7 @@ export function AiAgentsWorkspace() {
   useEffect(() => {
     let mounted = true;
     fetch("/api/backend/assistant/config", { cache: "no-store" })
-      .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.message || "Falha ao carregar"); return data; })
+      .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.message || "Não foi possível carregar agora. Recarregue a página; se o problema continuar, a administração precisa conferir a configuração."); return data; })
       .then(data => {
         if (!mounted) return;
         setConfigAvailable(true);
@@ -167,7 +167,7 @@ export function AiAgentsWorkspace() {
           setAgents(items); setSelected(items[0]?.id ?? "");
         }
       })
-      .catch(error => { if (mounted) setNotice(error instanceof Error ? error.message : "Erro ao carregar"); })
+      .catch(error => { if (mounted) setNotice(error instanceof Error ? error.message : "Não foi possível carregar agora. Recarregue a página; se o problema continuar, a administração precisa conferir a configuração."); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
@@ -177,10 +177,10 @@ export function AiAgentsWorkspace() {
     try {
       const response = await fetch("/api/backend/assistant/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: assistantName, stt:globalStt, tts:globalTts, dailyAiLimit, wakeWord, enabled: assistantEnabled, allowedPhones, testAccessEnabled, testPhones, companyRules, companyKnowledge, knowledgeDocuments, ...(primaryModel.model?{llm:primaryModel}:{}), fallbackModels:fallbackModels.filter(m=>m.model.trim()), agents: agents.map(a => ({ ...a, id: String(a.id) })) }) });
       const data = await response.json();
-      if (!response.ok) throw new Error(Array.isArray(data.message) ? data.message.join(" ") : data.message || "Não foi possível salvar");
+      if (!response.ok) throw new Error(Array.isArray(data.message) ? data.message.join(" ") : data.message || "Não foi possível salvar agora. Tente novamente; suas alterações não foram enviadas.");
       setNotice("Configuração salva para esta empresa.");
       await refreshEngineStatus();
-    } catch (error) { setNotice(error instanceof Error ? error.message : "Erro ao salvar"); }
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível salvar agora. Suas alterações não foram enviadas; tente novamente."); }
     finally { setSaving(false); }
   };
   const addPhone = () => { const digits=phoneDraft.replace(/\D/g,""); if(digits.length<8||digits.length>15){setNotice("Informe o número com código do país e DDD.");return;} if(allowedPhones.includes(digits)){setNotice("Esse celular já está autorizado.");return;} if(allowedPhones.length>=50){setNotice("Limite de 50 celulares autorizados.");return;} setAllowedPhones(items=>[...items,digits]);setPhoneDraft("");setNotice("Número adicionado. Salve a configuração para aplicar."); };

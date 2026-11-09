@@ -22,7 +22,7 @@
   --line:var(--ln);--border-subtle:var(--ln);--border-strong:var(--ln2);
   color-scheme:light;
 }
-:root[data-theme=hybrid]{--sb-bg:#0D1512;--sb-bg:color-mix(in srgb,var(--primary) 15%,#0B1210);--sb-tx:#F1F6F2;--sb-mut:#A6B4AC;--sb-ln:#24302A;--sb-ln:color-mix(in srgb,var(--primary) 20%,#1B2822);--sb-on:#18221D;--sb-on:color-mix(in srgb,var(--primary) 24%,#101A15);--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF}
+:root[data-theme=hybrid]{--sb-bg:#0F1D18;--sb-bg:color-mix(in srgb,var(--primary) 15%,#0F1D18);--sb-tx:#F1F6F2;--sb-mut:#A6B4AC;--sb-ln:#24302A;--sb-ln:color-mix(in srgb,var(--primary) 20%,#1B2822);--sb-on:#18221D;--sb-on:color-mix(in srgb,var(--primary) 24%,#101A15);--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF}
 :root[data-theme=dark]{
   --bg:#0A0F0C;--s1:#101713;--s2:#151E18;--s3:#1B261F;--hover:#1F2B23;
   --tx:#F3F7F4;--tx2:#A7B4AC;--ln:#263229;--ln2:#35463C;--thumb:#DCE6DF;
@@ -127,7 +127,7 @@ details>summary::-webkit-details-marker{display:none}
 /* ===== 5. Shell: sidebar, topbar, conteúdo ===== */
 .suite-app{display:flex;min-height:100dvh}
 .suite-app:has(.sidebar-compact){--sb:76px}
-.sidebar{position:fixed;inset:0 auto 0 0;z-index:40;width:var(--sb);display:flex;flex-direction:column;background:linear-gradient(180deg,color-mix(in srgb,var(--sb-bg) 94%,#FFFFFF),var(--sb-bg) 42%);color:var(--sb-tx);border-right:1px solid var(--sb-ln);box-shadow:inset -1px 0 0 color-mix(in srgb,var(--sb-tx) 4%,transparent);--thumb:var(--sb-thumb);--focus:var(--sb-tx);transition:width .2s var(--ease)}
+.sidebar{position:fixed;inset:0 auto 0 0;z-index:40;width:var(--sb);display:flex;flex-direction:column;background:radial-gradient(185px 150px at 2px -22px,color-mix(in srgb,var(--primary) 62%,transparent) 0%,transparent 64%),linear-gradient(180deg,color-mix(in srgb,var(--sb-bg) 94%,#FFFFFF),var(--sb-bg) 42%);color:var(--sb-tx);border-right:1px solid var(--sb-ln);box-shadow:inset -1px 0 0 color-mix(in srgb,var(--sb-tx) 4%,transparent);--thumb:var(--sb-thumb);--focus:var(--sb-tx);transition:width .2s var(--ease)}
 .sidebar-brand-row{display:flex;align-items:center;flex:none;height:var(--top);padding:0 18px;border-bottom:1px solid var(--sb-ln)}
 .brand{display:flex;align-items:center;gap:11px;min-width:0;color:inherit}
 .brand-mark{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:13px;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 68%,#FFFFFF),var(--primary) 62%,color-mix(in srgb,var(--primary) 78%,#000));color:var(--primary-contrast);font:800 17px var(--font-display);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 10px 20px -12px color-mix(in srgb,var(--primary) 85%,transparent)}
@@ -1054,3 +1054,24 @@ details>summary:hover{color:var(--tx)}
 .contact-profile .profile-toggle { width: 27px; height: 27px; border-radius: 7px; }
 /* Compositor: ícones com área de toque uniforme e o Wallet claro como carteira. */
 .composer-icon-button { width: 32px; height: 34px; border-radius: 8px; }
+
+/* ===== Sidebar · rodape (cores do tema, espacamento generoso) ===== */
+.sidebar-bottom { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--sb-ln); }
+.sidebar-collapse { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border: 1px solid var(--sb-ln); border-radius: 8px; background: transparent; color: var(--sb-tx); cursor: pointer; }
+.sidebar-collapse:hover { background: var(--sb-on); border-color: var(--sb-tx); }
+.sidebar-utilities { display: flex; align-items: center; gap: 4px; flex: none; }
+.sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--sb-mut); cursor: pointer; list-style: none; }
+.sidebar-icon::-webkit-details-marker { display: none; }
+.sidebar-icon:hover { background: var(--sb-on); color: var(--sb-tx); }
+.sidebar-help > div { background: var(--sb-bg); border-color: var(--sb-ln); }
+.sidebar-help p { color: var(--sb-mut); font-size: 12.5px; line-height: 1.5; }
+.sidebar-profile-menu { flex: 1; min-width: 0; position: relative; }
+.sidebar-profile-menu > .profile-row { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 10px; list-style: none; cursor: pointer; border: 1px solid transparent; overflow: hidden; }
+.sidebar-profile-menu > .profile-row::-webkit-details-marker { display: none; }
+.sidebar-profile-menu > .profile-row:hover { background: var(--sb-on); border-color: var(--sb-ln); }
+.sidebar-profile-menu[open] > .profile-row { background: var(--sb-on); border-color: var(--sb-ln); }
+.sidebar-profile-menu .profile-avatar { position: relative; width: 34px; height: 34px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--sb-on); color: var(--sb-tx); font-size: 11px; font-weight: 700; }
+.sidebar-profile-menu .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sidebar-profile-menu .profile-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
+.sidebar-profile-menu .profile-copy strong { font-size: 12.5px; font-weight: 600; color: var(--sb-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-profile-menu .profile-copy small { font-size: 10.5px; color: var(--sb-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

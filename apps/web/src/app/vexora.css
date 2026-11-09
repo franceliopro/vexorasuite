@@ -1870,8 +1870,8 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .vx-inbox-card{display:grid;gap:9px;padding:14px 16px;border:1px solid var(--ln);border-radius:15px;background:var(--s1);box-shadow:var(--shadow)}
 .vx-inbox-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .vx-inbox-platform{display:inline-flex;align-items:center;gap:6px;min-height:23px;padding:0 10px;border-radius:99px;background:var(--primary-soft);color:var(--primary-ink);font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.vx-inbox-state{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
-.vx-inbox-state.good{color:#047857;background:color-mix(in srgb,var(--ok) 11%,var(--s1));padding:3px 9px;border-radius:99px}
+.vx-inbox-state{font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--tx2)}
+.vx-inbox-state.good{color:#047857;background:color-mix(in srgb,var(--ok) 11%,var(--s1));padding:3px 10px;border-radius:99px}
 .vx-inbox-card h3{font-size:13.5px;font-weight:800}
 .vx-inbox-identity{font-size:12px;font-weight:750;font-variant-numeric:tabular-nums}
 .vx-inbox-card small{font-size:10px;color:var(--tx2)}

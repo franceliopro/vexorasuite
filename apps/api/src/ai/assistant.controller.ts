@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import { validVoiceId } from './voice-options';
 import { validDraft } from "./chatbot-draft.controller";
 import { modelCatalog } from "./model-catalog";
@@ -35,6 +36,7 @@ function parseConfig(value: unknown): Config {
   return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
 }
 
+@AuditCovered()
 @Controller("assistant")
 @UseGuards(AuthGuard)
 export class AssistantController {

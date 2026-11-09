@@ -1,29 +1,25 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
-import { AuthThrottle, AUTH_MAX_ATTEMPTS, AUTH_WINDOW_MINUTES, AUTH_NOW } from "./auth-throttle";
+import { AuthThrottle } from "./auth-throttle";
+import { RefreshSessionService } from "./refresh-session.service";
+import { MailModule } from "../mail/mail.module";
 
 @Module({
-  imports: [JwtModule.register({}), PrismaModule],
+  imports: [JwtModule.register({}), PrismaModule, forwardRef(() => MailModule)],
   controllers: [AuthController],
   providers: [
     AuthService,
+    RefreshSessionService,
     AuthGuard,
-    AuthThrottle,
     {
-      provide: AUTH_MAX_ATTEMPTS,
-      useFactory: () => Number(process.env.AUTH_MAX_ATTEMPTS ?? 10),
-    },
-    {
-      provide: AUTH_WINDOW_MINUTES,
-      useFactory: () => Number(process.env.AUTH_WINDOW_MINUTES ?? 15),
-    },
-    {
-      provide: AUTH_NOW,
-      useFactory: () => () => Date.now(),
+      // AuthThrottle receives primitive runtime settings. Construct it explicitly
+      // so Nest never tries to resolve those values as injectable providers.
+      provide: AuthThrottle,
+      useFactory: () => new AuthThrottle(),
     },
   ],
   exports: [AuthGuard],

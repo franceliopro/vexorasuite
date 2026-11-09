@@ -20,6 +20,21 @@ services:
       retries: 3
       start_period: 30s
 
+  # Runs schema migrations once before API and workers start. It is intentionally
+  # one-shot so every runtime process uses the same completed migration barrier.
+  migration:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
+
   api:
     volumes:
       - automation_media:/var/lib/vexora/media
@@ -30,6 +45,9 @@ services:
     environment:
       NODE_ENV: production
       API_PORT: "3001"
+      # The HTTP API never runs periodic work in production. The scheduler-worker below owns it.
+      # Override only for a deliberate maintenance or local-development scenario.
+      SCHEDULER_MODE: ${SCHEDULER_MODE:-worker}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://app.vexorasuite.com.br}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://app.vexorasuite.com.br}
@@ -43,6 +61,7 @@ services:
       META_WEBHOOK_APP_SECRET: ${META_WEBHOOK_APP_SECRET:-}
       ZERNIO_API_KEY: ${ZERNIO_API_KEY:-}
       ZERNIO_WEBHOOK_SECRET: ${ZERNIO_WEBHOOK_SECRET:-}
+      WEBHOOK_ENCRYPTION_KEY: ${WEBHOOK_ENCRYPTION_KEY:?Configure WEBHOOK_ENCRYPTION_KEY no Dokploy}
       BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
       SEARXNG_URL: http://searxng:8080
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
@@ -51,20 +70,46 @@ services:
       LOCAL_TTS_VOICE: ${LOCAL_TTS_VOICE:-pf_dora}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Necessária para cadastrar caixas IMAP/SMTP; a API permanece inicializável sem ela para não interromper o deploy existente.
       INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-https://api.vexorasuite.com.br}
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
+      REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
+      REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
+      # Rate limit uses the shared Redis counter and reads the real client IP from the proxy.
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_AUTH_PER_MIN: ${RATE_LIMIT_AUTH_PER_MIN:-10}
+      RATE_LIMIT_AUTH_AUX_PER_MIN: ${RATE_LIMIT_AUTH_AUX_PER_MIN:-60}
+      RATE_LIMIT_READ_PER_MIN: ${RATE_LIMIT_READ_PER_MIN:-900}
+      RATE_LIMIT_WRITE_PER_MIN: ${RATE_LIMIT_WRITE_PER_MIN:-240}
+      RATE_LIMIT_UPLOAD_PER_MIN: ${RATE_LIMIT_UPLOAD_PER_MIN:-60}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Short access token + long rotating refresh token (see docs/sessions.md).
+      AUTH_ACCESS_TTL_SECONDS: ${AUTH_ACCESS_TTL_SECONDS:-1800}
+      AUTH_REFRESH_TTL_DAYS: ${AUTH_REFRESH_TTL_DAYS:-30}
+      # Outgoing e-mail. Without MAIL_HOST the transport stays disabled (log only).
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-}
+      # gmail | zoho | titan | outlook — fills host/port/TLS from the provider preset.
+      MAIL_SERVICE: ${MAIL_SERVICE:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SECURE: ${MAIL_SECURE:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Vexora Suite}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
     expose:
       - "3001"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
@@ -73,6 +118,74 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  webhook-worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
+      WEBHOOK_ENCRYPTION_KEY: ${WEBHOOK_ENCRYPTION_KEY:?Configure WEBHOOK_ENCRYPTION_KEY no Dokploy}
+      WEBHOOK_WORKER_INTERVAL_MS: ${WEBHOOK_WORKER_INTERVAL_MS:-2000}
+      WEBHOOK_WORKER_BATCH_SIZE: ${WEBHOOK_WORKER_BATCH_SIZE:-25}
+      # Local liveness marker; it does not claim database/provider health.
+      WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    command: ["node", "dist/webhook-worker.js"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('node:fs');const p=process.env.WORKER_HEARTBEAT_FILE;try{const age=Date.now()-fs.statSync(p).mtimeMs;process.exit(Number.isFinite(age)&&age>=0&&age<=60000?0:1)}catch{process.exit(1)}"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Periodic jobs (audio triage, workflow cadence, channel health, Asaas reconciliation).
+  # This dedicated process is started by default. It keeps provider calls and cadence work
+  # outside the HTTP API, while database leases keep a second worker replica safe.
+  scheduler-worker:
+    volumes:
+      - automation_media:/var/lib/vexora/media
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SCHEDULER_MODE: worker
+      SCHEDULER_ROLE: worker
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Configure JWT_ACCESS_SECRET no Dokploy}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
+      WAHA_BASE_URL: ${WAHA_BASE_URL:-http://waha:3000}
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WEBHOOK_ENCRYPTION_KEY: ${WEBHOOK_ENCRYPTION_KEY:?Configure WEBHOOK_ENCRYPTION_KEY no Dokploy}
+      # Necessária para cadastrar caixas IMAP/SMTP; a API permanece inicializável sem ela para não interromper o deploy existente.
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      LOCAL_VOICE_URL: ${LOCAL_VOICE_URL:-}
+      LOCAL_TTS_VOICE: ${LOCAL_TTS_VOICE:-pf_dora}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-https://api.vexorasuite.com.br}
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
+      REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
+      REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
+      # Local liveness marker; it does not claim database/provider health.
+      WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    command: ["node", "dist/scheduler-worker.js"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('node:fs');const p=process.env.WORKER_HEARTBEAT_FILE;try{const age=Date.now()-fs.statSync(p).mtimeMs;process.exit(Number.isFinite(age)&&age>=0&&age<=60000?0:1)}catch{process.exit(1)}"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   ollama:
     profiles: ["local-ai"]
@@ -231,13 +344,17 @@ services:
 
 
   waha:
-    image: devlikeapro/waha:gows
+    image: ${WAHA_IMAGE:-devlikeapro/waha:gows}
     restart: unless-stopped
     environment:
       WAHA_API_KEY: ${WAHA_API_KEY:-}
-      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WHATSAPP_DEFAULT_ENGINE: ${WHATSAPP_DEFAULT_ENGINE:-GOWS}
       WHATSAPP_FILES_LIFETIME: ${WHATSAPP_FILES_LIFETIME:-600}
       WAHA_MEDIA_STORAGE: ${WAHA_MEDIA_STORAGE:-LOCAL}
+      # Sem este download, o webhook só informa que existe um anexo e a Véxora não
+      # consegue exibir imagem, áudio, vídeo ou documento. Os arquivos ainda expiram
+      # conforme WHATSAPP_FILES_LIFETIME e não representam sincronização de histórico.
+      WAHA_EVENTS_DOWNLOAD_MEDIA: ${WAHA_EVENTS_DOWNLOAD_MEDIA:-true}
       WAHA_GOWS_DEVICE_REQUIRE_FULL_SYNC: ${WAHA_GOWS_DEVICE_REQUIRE_FULL_SYNC:-false}
       WAHA_GOWS_DEVICE_HISTORY_SYNC_FULL_SYNC_DAYS_LIMIT: ${WAHA_GOWS_DEVICE_HISTORY_SYNC_FULL_SYNC_DAYS_LIMIT:-0}
       WAHA_GOWS_DEVICE_HISTORY_SYNC_RECENT_SYNC_DAYS_LIMIT: ${WAHA_GOWS_DEVICE_HISTORY_SYNC_RECENT_SYNC_DAYS_LIMIT:-0}

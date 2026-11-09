@@ -1,10 +1,11 @@
 import { BadGatewayException, BadRequestException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
-export type GoogleService = 'calendar' | 'drive';
+export type GoogleService = 'calendar' | 'drive' | 'gmail';
 const scopes: Record<GoogleService, string[]> = {
   calendar: ['https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar'],
   drive: ['https://www.googleapis.com/auth/drive.file','https://www.googleapis.com/auth/drive.readonly','https://www.googleapis.com/auth/drive'],
+  gmail: ['https://mail.google.com/'],
 };
 @Injectable()
 export class GoogleAccessService {
@@ -55,3 +56,4 @@ export class GoogleAccessService {
     }, { timeout: 18000, maxWait: 15000 });
   }
 }
+

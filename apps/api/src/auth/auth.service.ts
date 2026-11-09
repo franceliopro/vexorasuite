@@ -1,6 +1,6 @@
 import { AuthThrottle } from "./auth-throttle";
 
-import {BadRequestException,ForbiddenException} from '@nestjs/common';
+import {BadRequestException,ForbiddenException,Optional} from '@nestjs/common';
 import {isUUID} from 'class-validator';
 import {SEGMENTS} from '../operations/business-templates';
 import {provisionCompany} from './company-blueprint';
@@ -8,11 +8,15 @@ import { ConflictException, Injectable, InternalServerErrorException, Unauthoriz
 import { JwtService } from "@nestjs/jwt";
 import { MembershipRole } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { AuthPayload } from "./auth.types";
+import { MailService } from "../mail/mail.service";
+import { RefreshSessionService, SessionReuseError } from "./refresh-session.service";
+import { renderEmail } from "../mail/mail.template";
+import { assertPasswordResetTargetAllowed } from "./password-reset-policy";
 
 @Injectable()
 export class AuthService {
@@ -21,7 +25,123 @@ export class AuthService {
     private readonly jwt: JwtService,
     // Optional so existing unit tests and scripted callers keep working.
     private readonly throttle: AuthThrottle = new AuthThrottle(),
+    @Optional() private readonly mail?: MailService,
+    @Optional() private readonly sessions?: RefreshSessionService,
   ) {}
+
+  /**
+   * Access token lifetime. Short on purpose: the refresh token keeps the session alive, so a leaked
+   * access token is worth minutes instead of hours.
+   */
+  get accessTtlSeconds(): number {
+    const configured = Number(process.env.AUTH_ACCESS_TTL_SECONDS || 1800);
+    return Number.isFinite(configured) && configured >= 300 ? Math.min(28800, Math.floor(configured)) : 1800;
+  }
+
+  private temporaryPassword(): string {
+    return "Vx!" + randomBytes(24).toString("base64url");
+  }
+
+  /** Refresh token fields, omitted when the session service is not wired (unit tests). */
+  private async refreshFields(userId: string, tenantId: string, sessionVersion: number, userAgent?: string) {
+    if (!this.sessions) return {};
+    const issued = await this.sessions.issue({ userId, tenantId, sessionVersion, userAgent });
+    return {
+      refreshToken: issued.token,
+      refreshExpiresIn: Math.max(1, Math.floor((issued.expiresAt.getTime() - Date.now()) / 1000)),
+    };
+  }
+
+  /** Link lifetime; short enough that a leaked mailbox does not stay useful. */
+  private get resetTtlMinutes(): number {
+    const configured = Number(process.env.PASSWORD_RESET_TTL_MINUTES || 30);
+    return Number.isFinite(configured) && configured >= 5 ? Math.min(120, configured) : 30;
+  }
+
+  /**
+   * Starts a password reset.
+   *
+   * The answer is always the same, whether or not the address exists: the endpoint cannot be used
+   * to discover which e-mails have an account. Delivery problems are logged by MailService and
+   * never reported here.
+   */
+  async requestPasswordReset(input: { email: string; tenantSlug?: string }, sourceAddress = "unknown"): Promise<{ accepted: true }> {
+    this.secret();
+    const email = input.email.trim().toLowerCase();
+    // Enforce both dimensions: an attacker cannot invalidate a user's mailbox recovery flow by
+    // rotating IPs, and one origin cannot flood every account. The response stays anonymous-safe.
+    const throttleKeys = [`reset:email:${email}`, `reset:ip:${sourceAddress.slice(0, 120)}`];
+    for (const key of throttleKeys) await this.throttle.assertAllowed(key);
+    for (const key of throttleKeys) await this.throttle.recordFailure(key);
+
+    const slug = input.tenantSlug?.trim().toLowerCase();
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        isActive: true,
+        ...(slug
+          ? { memberships: { some: { tenant: { slug, status: "ACTIVE" } } } }
+          : {}),
+      },
+      select: { id: true, email: true, name: true },
+    });
+    if (!user) return { accepted: true };
+
+    const token = randomBytes(32).toString("base64url");
+    const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
+    const expiresAt = new Date(Date.now() + this.resetTtlMinutes * 60_000);
+    await this.prisma.$transaction(async (tx) => {
+      // Do not invalidate a still-valid link merely because another request was made. This keeps
+      // a legitimate e-mail usable even if someone repeatedly knows the address. Expired links
+      // are harmless and are marked consumed here to keep the token table bounded.
+      await tx.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null, expiresAt: { lte: new Date() } }, data: { usedAt: new Date() } });
+      await tx.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
+    });
+
+    const origin = (process.env.PUBLIC_APP_URL || process.env.WEB_PUBLIC_URL || "http://localhost:3000").replace(/\/+$/, "");
+    const link = `${origin}/?reset=${encodeURIComponent(token)}`;
+    const { html, text } = renderEmail({
+      title: "Redefinir sua senha",
+      intro: `Olá, ${user.name}. Recebemos um pedido para redefinir a senha da sua conta na Véxora Suite.`,
+      action: { label: "Criar nova senha", url: link },
+      footnote: `O link expira em ${this.resetTtlMinutes} minutos e só pode ser usado uma vez. Se não foi você, ignore esta mensagem: sua senha continua a mesma.`,
+    });
+    await this.mail?.send({ to: user.email, subject: "Véxora Suite — redefinição de senha", text, html });
+    return { accepted: true };
+  }
+
+  /**
+   * Completes a reset with a single-use token.
+   *
+   * The token is consumed inside the same transaction that writes the new password, and every
+   * session is invalidated through `authVersion`, so a stolen session cannot outlive the reset.
+   */
+  async resetPassword(input: { token: string; password: string }): Promise<{ reset: true }> {
+    this.secret();
+    const invalid = new BadRequestException("Este link de redefinição expirou ou já foi usado. Solicite outro.");
+    const tokenHash = createHash("sha256").update(input.token, "utf8").digest("hex");
+    const record = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: { select: { id: true, isActive: true } } },
+    });
+    if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now() || !record.user.isActive) throw invalid;
+
+    const passwordHash = await hash(input.password, 12);
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id: record.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      // Losing the race means another request already consumed this token.
+      if (claimed.count !== 1) throw invalid;
+      await tx.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: new Date() } });
+      await tx.user.update({
+        where: { id: record.userId },
+        data: { passwordHash, mustChangePassword: false, authVersion: { increment: 1 } },
+      });
+    });
+    return { reset: true };
+  }
 
   private secret(): string {
     const secret = process.env.JWT_ACCESS_SECRET;
@@ -32,15 +152,15 @@ export class AuthService {
   }
 
   private async issueToken(payload: AuthPayload): Promise<string> {
-    return this.jwt.signAsync(payload, { secret: this.secret(), expiresIn: "8h" });
+    return this.jwt.signAsync(payload, { secret: this.secret(), expiresIn: this.accessTtlSeconds });
   }
 
-  async register(input: RegisterDto) {
+  async register(input: RegisterDto, userAgent?: string) {
     this.secret();
     const email = input.email.trim().toLowerCase();
     const throttleKey = `register:${email}`;
-    this.throttle.assertAllowed(throttleKey);
-    this.throttle.recordFailure(throttleKey);
+    await this.throttle.assertAllowed(throttleKey);
+    await this.throttle.recordFailure(throttleKey);
     const passwordHash = await hash(input.password, 12);
     const baseSlug = input.tenantName
       .normalize("NFKD")
@@ -77,7 +197,8 @@ export class AuthService {
       return {
         accessToken,
         tokenType: "Bearer",
-        expiresIn: 28800,
+        expiresIn: this.accessTtlSeconds,
+        ...(await this.refreshFields(result.user.id, result.tenant.id, result.user.authVersion, userAgent)),
         user: { id: result.user.id, name: result.user.name, email: result.user.email,isPlatformAdmin:result.user.isPlatformAdmin,mustChangePassword:result.user.mustChangePassword },
         tenant: { id: result.tenant.id, name: result.tenant.name, slug: result.tenant.slug,kind:result.tenant.kind },
         role: result.membership.role,
@@ -90,11 +211,11 @@ export class AuthService {
     }
   }
 
-  async login(input: LoginDto) {
+  async login(input: LoginDto, userAgent?: string) {
     this.secret();
     const email = input.email.trim().toLowerCase();
     const throttleKey = `login:${input.tenantSlug.trim().toLowerCase()}:${email}`;
-    this.throttle.assertAllowed(throttleKey);
+    await this.throttle.assertAllowed(throttleKey);
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
@@ -106,7 +227,7 @@ export class AuthService {
     });
 
     if (!user || !user.isActive || !(await compare(input.password, user.passwordHash))) {
-      this.throttle.recordFailure(throttleKey);
+      await this.throttle.recordFailure(throttleKey);
       throw new UnauthorizedException("E-mail ou senha inválidos.");
     }
 
@@ -115,7 +236,7 @@ export class AuthService {
     const prefixMatches = user.memberships.filter((item) => item.tenant.slug.startsWith(`${requestedSlug}-`));
     const matches = exactMatches.length ? exactMatches : prefixMatches;
     if (matches.length !== 1) {
-      this.throttle.recordFailure(throttleKey);
+      await this.throttle.recordFailure(throttleKey);
       throw new UnauthorizedException(
         matches.length > 1
           ? "Há mais de uma empresa com esse início de identificador. Informe o identificador completo."
@@ -124,10 +245,10 @@ export class AuthService {
     }
     const membership = matches[0];
     if (!membership || membership.tenant.status !== "ACTIVE") {
-      this.throttle.recordFailure(throttleKey);
+      await this.throttle.recordFailure(throttleKey);
       throw new UnauthorizedException("E-mail, senha ou identificador da empresa inválidos.");
     }
-    this.throttle.clear(throttleKey);
+    await this.throttle.clear(throttleKey);
 
     const accessToken = await this.issueToken({
       sub: user.id,
@@ -140,7 +261,8 @@ export class AuthService {
     return {
       accessToken,
       tokenType: "Bearer",
-      expiresIn: 28800,
+      expiresIn: this.accessTtlSeconds,
+      ...(await this.refreshFields(user.id, membership.tenantId, user.authVersion, userAgent)),
       user: { id: user.id, name: membership.knownBy?.trim()||user.name, email: user.email,isPlatformAdmin:user.isPlatformAdmin,mustChangePassword:user.mustChangePassword },
       tenant: { id: membership.tenant.id, name: membership.tenant.name, slug: membership.tenant.slug,kind:membership.tenant.kind },
       role: membership.role,
@@ -148,16 +270,123 @@ export class AuthService {
   }
 
 
+  /**
+   * Invalidate every access token issued to this user.
+   * AuthGuard compares the token sessionVersion with authVersion on each request,
+   * so this takes effect immediately without waiting for the JWT expiry.
+   */
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { authVersion: { increment: 1 } },
+    });
+    // Rows are already unusable through sessionVersion, but leaving them behind would keep a usable
+    // secret in the database for the rest of its lifetime.
+    await this.sessions?.revokeAll(userId);
+    return { ok: true };
+  }
+
+  /**
+   * Ends the session identified by the presented credential.
+   *
+   * The refresh token is tried first because it is the durable one — the access token is often
+   * already expired when someone clicks "sair" after a while. An unknown credential still returns
+   * `{ ok: true }`, so the endpoint cannot be used to probe which tokens exist.
+   */
+  async logoutFrom(input: { refreshToken?: string; accessToken?: string }) {
+    let userId: string | undefined;
+    if (input.refreshToken && this.sessions) {
+      const owner = await this.sessions.ownerOf(input.refreshToken);
+      if (owner) {
+        userId = owner.userId;
+        await this.sessions.revokeFamily(owner.familyId);
+      }
+    }
+    if (!userId && input.accessToken) {
+      try {
+        const payload = await this.jwt.verifyAsync<AuthPayload>(input.accessToken, { secret: this.secret() });
+        userId = payload.sub;
+      } catch {
+        // Expired or invalid: there is nothing to end, and the caller still gets a clean logout.
+      }
+    }
+    if (!userId) return { ok: true };
+    return this.logout(userId);
+  }
+
+  /**
+   * Exchanges a refresh token for a new session.
+   *
+   * The tenancy is re-read from the database on every exchange: a user removed from the company, a
+   * deactivated account or a platform tenant without a platform administrator must not be able to
+   * extend a session that the access token still describes.
+   */
+  async refresh(refreshToken: string, userAgent?: string) {
+    this.secret();
+    const sessions = this.sessions;
+    if (!sessions) throw new UnauthorizedException("Atualização de sessão indisponível.");
+
+    let rotated: Awaited<ReturnType<RefreshSessionService["rotate"]>>;
+    try {
+      rotated = await sessions.rotate(refreshToken, { userAgent });
+    } catch (error) {
+      if (error instanceof SessionReuseError) {
+        throw new UnauthorizedException("Sessão encerrada por segurança. Entre novamente.");
+      }
+      throw new UnauthorizedException("Sua sessão expirou. Entre novamente.");
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        userId: rotated.userId,
+        tenantId: rotated.tenantId,
+        tenant: { status: "ACTIVE" },
+        user: { isActive: true },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, isPlatformAdmin: true, mustChangePassword: true, authVersion: true } },
+        tenant: { select: { id: true, name: true, slug: true, kind: true } },
+      },
+    });
+    if (!membership) {
+      await sessions.revokeAll(rotated.userId);
+      throw new UnauthorizedException("Acesso à empresa revogado.");
+    }
+    if (membership.tenant.kind === "PLATFORM" && !membership.user?.isPlatformAdmin) {
+      await sessions.revokeAll(rotated.userId);
+      throw new ForbiddenException("Este painel pertence à administração da Véxora.");
+    }
+
+    const { authVersion, ...user } = membership.user;
+    const accessToken = await this.issueToken({
+      sub: rotated.userId,
+      tenantId: membership.tenant.id,
+      tenantSlug: membership.tenant.slug,
+      role: membership.role,
+      sessionVersion: authVersion ?? 0,
+    });
+    return {
+      accessToken,
+      tokenType: "Bearer",
+      expiresIn: this.accessTtlSeconds,
+      refreshToken: rotated.refreshToken,
+      refreshExpiresIn: Math.max(1, Math.floor((rotated.refreshExpiresAt.getTime() - Date.now()) / 1000)),
+      user: { ...user, name: membership.knownBy?.trim() || user.name },
+      tenant: membership.tenant,
+      role: membership.role,
+    };
+  }
+
   async companies(userId:string){
     return this.prisma.membership.findMany({where:{userId,role:'OWNER',user:{isActive:true},tenant:{status:'ACTIVE'}},select:{tenant:{select:{id:true,name:true,slug:true,kind:true}}},orderBy:{tenant:{name:'asc'}}});
   }
-  async companySession(userId:string,tenantId:unknown){return this.memberSession(userId,tenantId,true);}
-  private async memberSession(userId:string,tenantId:unknown,ownerOnly:boolean){
+  async companySession(userId:string,tenantId:unknown,userAgent?:string){return this.memberSession(userId,tenantId,true,userAgent);}
+  private async memberSession(userId:string,tenantId:unknown,ownerOnly:boolean,userAgent?:string){
     if(typeof tenantId!=='string'||!isUUID(tenantId))throw new BadRequestException('Selecione uma empresa válida.');
     const member=await this.prisma.membership.findFirst({where:{userId,tenantId,...(ownerOnly?{role:'OWNER' as const}:{}),user:{isActive:true},tenant:{status:'ACTIVE'}},include:{user:{select:{id:true,name:true,email:true,isPlatformAdmin:true,mustChangePassword:true,authVersion:true}},tenant:{select:{id:true,name:true,slug:true,kind:true}}}});
-    if(!member||member.tenant.kind==='PLATFORM'&&!member.user.isPlatformAdmin)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
+    if(!member||member.tenant.kind==='PLATFORM'&&!member.user?.isPlatformAdmin)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
     const {authVersion,...user}=member.user;
-    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:28800,user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
+    return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:this.accessTtlSeconds,...(await this.refreshFields(userId,member.tenant.id,authVersion??0,userAgent)),user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
   }
   async changePassword(userId:string,tenantId:string,input:any){
     if(typeof input?.currentPassword!=='string'||typeof input?.newPassword!=='string'||input.newPassword.length<12||input.newPassword.length>128||input.newPassword===input.currentPassword)throw new BadRequestException('Escolha uma nova senha de 12 a 128 caracteres, diferente da temporária.');
@@ -183,15 +412,16 @@ export class AuthService {
     const name=typeof input?.name==="string"?input.name.trim():"";
     const email=typeof input?.email==="string"?input.email.trim().toLowerCase():"";
     const memberRole=["ADMIN","MANAGER","AGENT"].includes(String(input?.role))?String(input.role):"AGENT";
-    if(name.length<2||name.length>120||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
-    const passwordHash=await hash("Senha@123",12);
+    if(name.length<2||name.length>120||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
+    const temporaryPassword=this.temporaryPassword();
+    const passwordHash=await hash(temporaryPassword,12);
     try{
       const created=await this.prisma.$transaction(async tx=>{
         const user=await tx.user.create({data:{name,email,passwordHash,mustChangePassword:true}});
         await tx.membership.create({data:{tenantId,userId:user.id,role:memberRole as MembershipRole,knownBy:name}});
         return user;
       });
-      return {id:created.id,name:created.name,email:created.email,role:memberRole,avatarUrl:created.avatarUrl,mustChangePassword:true,temporaryPassword:"Senha@123"};
+      return {id:created.id,name:created.name,email:created.email,role:memberRole,avatarUrl:created.avatarUrl,mustChangePassword:true,temporaryPassword};
     }catch(error:any){if(error?.code==="P2002")throw new ConflictException("Já existe um usuário com este e-mail.");throw error;}
   }
   async updateUserProfile(userId:string,tenantId:string,input:any){
@@ -199,7 +429,7 @@ export class AuthService {
     const email=typeof input?.email==="string"?input.email.trim().toLowerCase():undefined;
     const avatarUrl=input?.avatarUrl===null?"":typeof input?.avatarUrl==="string"?input.avatarUrl.trim():undefined;
     if(name!==undefined&&(name.length<2||name.length>120))throw new BadRequestException("Informe um nome válido.");
-    if(email!==undefined&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))throw new BadRequestException("Informe um e-mail válido.");
+    if(email!==undefined&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new BadRequestException("Informe um e-mail válido.");
     try{
       const user=await this.prisma.$transaction(async tx=>{
         const membership=await tx.membership.findUnique({where:{tenantId_userId:{tenantId,userId}},select:{id:true}});
@@ -211,11 +441,13 @@ export class AuthService {
   }
   async resetUserPassword(actorTenantId:string,actorRole:string,actorPlatformAdmin:boolean|undefined,userId:string){
     this.assertUserAdministration(actorRole,actorPlatformAdmin);
-    const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true}});
+    const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
     if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
-    const passwordHash=await hash("Senha@123",12);
+    assertPasswordResetTargetAllowed(actorPlatformAdmin,membership.user?.isPlatformAdmin);
+    const temporaryPassword=this.temporaryPassword();
+    const passwordHash=await hash(temporaryPassword,12);
     await this.prisma.user.update({where:{id:userId},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
-    return {ok:true,temporaryPassword:"Senha@123"};
+    return {ok:true,temporaryPassword};
   }
 
   async organization(tenantId:string){const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{name:true,integrations:true}});const root=(tenant.integrations||{}) as Record<string,any>;return {name:tenant.name,cnpj:root.organization?.cnpj||"",legalName:root.organization?.legalName||"",address:root.organization?.address||"",city:root.organization?.city||"",state:root.organization?.state||"",zipCode:root.organization?.zipCode||""};}

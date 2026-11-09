@@ -6,6 +6,7 @@ import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { ZernioService } from "./zernio.service";
+import { resolveContactIdentity } from "./contact-identity";
 
 const zernioProfileId = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -125,31 +126,59 @@ export class ZernioWebhookController {
         const saved = await this.prisma.$transaction(async (tx) => {
           const duplicate = await tx.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, select: { id: true } });
           if (duplicate) return null;
-          let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId } });
           const avatar = sender.profile_pic || sender.profile_picture_url || sender.picture?.data?.url || (typeof sender.picture === "string" ? sender.picture : undefined) || sender.profilePictureUrl || sender.profilePicture || sender.avatarUrl || sender.profileImageUrl || sender.profile?.picture || sender.profile?.avatarUrl;
           const avatarMetadata = typeof avatar === "string" && /^https:\/\//i.test(avatar) ? { avatarUrl: avatar } : {};
-          if (!contact) {
-            contact = await tx.contact.create({ data: { tenantId: channel.tenantId, name: customerName, phone, externalId, source: platform, metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata } } });
-          } else {
+          let contact = await resolveContactIdentity(tx, {
+            tenantId: channel.tenantId,
+            provider: `ZERNIO:${platform}`,
+            externalId,
+            phone,
+            displayName: customerName,
+            metadata: { provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata },
+            createContact: { name: customerName, source: platform },
+          });
+          if (!contact) throw new Error("Não foi possível resolver a identidade social do contato.");
+          {
             const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as JsonObject : {};
             contact = await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, provider: "ZERNIO", accountId, externalConversationId, platform, ...avatarMetadata }, ...(phone && !contact.phone ? { phone } : {}), ...((customerName !== externalId && (!contact.name || contact.name === contact.externalId || /^\d{6,}$/.test(contact.name))) ? { name: customerName } : {}) } });
           }
           let conversation = await tx.conversation.findFirst({ where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } }, orderBy: { updatedAt: "desc" } });
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });
-          const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: customerName, metadata: { provider: "ZERNIO", externalConversationId, platform, attachments: Array.isArray(message.attachments) ? message.attachments : [] } } });
+          const metadata = {
+            provider: "ZERNIO",
+            externalConversationId,
+            platform,
+            attachments: Array.isArray(message.attachments) ? message.attachments : [],
+            ...(conversation.handlingMode === "BOT" ? { engineStatus: "PENDING", engineAttempts: 0 } : {}),
+          };
+          const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: customerName, metadata } });
           await tx.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: created.occurredAt } });
           return { contactId: contact.id, conversationId: conversation.id, message: created };
         });
+        let queuedForRetry = false;
+        const processIntelligence = async (conversationId: string, messageId: string) => {
+          try {
+            await this.engine.receive(channel, conversationId, messageId);
+            const current = await this.prisma.message.findFirst({ where: { id: messageId, tenantId: channel.tenantId }, select: { metadata: true } });
+            const currentMetadata = current?.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata) ? current.metadata as JsonObject : {};
+            if (current) {
+              await this.prisma.message.update({ where: { id: messageId }, data: { metadata: { ...currentMetadata, engineStatus: "DONE", engineNextAttemptAt: null } } });
+            }
+          } catch (error) {
+            queuedForRetry = true;
+            this.logger.warn(`Intelligence Zernio enfileirada message=${messageId} tenant=${channel.tenantId} reason=${error instanceof Error ? error.message.slice(0, 240) : "falha desconhecida"}`);
+          }
+        };
         if (saved) {
           this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
           this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId });
-          await this.engine.receive(channel, saved.conversationId, saved.message.id);
+          await processIntelligence(saved.conversationId, saved.message.id);
         }
         if (!saved) {
           const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
-          if (prior) await this.engine.receive(channel, prior.conversationId, prior.id);
+          if (prior) await processIntelligence(prior.conversationId, prior.id);
         }
-        return { ok: true, duplicate: !saved };
+        return { ok: true, duplicate: !saved, queued: queuedForRetry };
       } catch (error) {
         if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") return { ok: true, duplicate: true };
         throw error;

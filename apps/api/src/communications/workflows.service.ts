@@ -4,12 +4,15 @@ import {
   NotFoundException,
   OnModuleInit,
   OnModuleDestroy,
+  Optional,
 } from "@nestjs/common";
 import { isUUID } from "class-validator";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { mailAdmin } from "./access";
 import { localInstant, repeatInstant, workflowSteps } from "./workflow-time";
+import { JobLeaseService } from "../common/job-lease.service";
+import { schedulersEnabled } from "../common/scheduler-mode";
 import { WahaService } from "../operations/waha.service";
 import { contactMetadata, lockedContact } from "../prisma/contact-metadata";
 import { text } from "./content";
@@ -19,7 +22,7 @@ const WORKFLOW_FINANCIAL_STATUSES = ["OPEN", "PENDING", "PAID", "OVERDUE", "CANC
 
 function parseCustomerField(value: unknown): { key: string; expected: string } | null {
   if (typeof value !== "string" || !value.trim()) return null;
-  const match = value.trim().match(/^([a-zA-Z0-9_.-]{1,80})\\s*=\\s*(.{1,200})$/);
+  const match = value.trim().match(/^([a-zA-Z0-9_.-]{1,80})\s*=\s*(.{1,200})$/);
   return match ? { key: match[1]!, expected: match[2]!.trim() } : null;
 }
 
@@ -49,11 +52,12 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly waha: WahaService,
+    @Optional() private readonly leases?: JobLeaseService,
   ) {}
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
   onModuleInit() {
-    if (process.env.NODE_ENV === "test") return;
+    if (process.env.NODE_ENV === "test" || !schedulersEnabled()) return;
     this.timer = setInterval(() => void this.tick(), 15000);
     this.timer.unref();
   }
@@ -374,6 +378,8 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
+      // Only one replica advances the cadence at a time.
+      if (this.leases && !(await this.leases.claim("workflow-cadence", 14_000))) return;
       await this.prisma.workflowRun.updateMany({
         where: {
           status: "RUNNING",
@@ -607,7 +613,17 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
         if (conversation && step.type === "STAGE") {
           const contact = await lockedContact(tx, rule.tenantId, conversation.contactId);
           const metadata = contactMetadata(contact.metadata);
+          const pipeline = contact.pipelineId
+            ? await tx.crmPipeline.findFirst({
+                where: { id: contact.pipelineId, tenantId: rule.tenantId, enabled: true },
+                select: { id: true, stages: true },
+              })
+            : null;
+          const validStage = Array.isArray(pipeline?.stages) && pipeline.stages.some((item: any) => item && item.id === content);
+          if (!pipeline || !validStage) throw Error("crm_stage");
+          const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
           await tx.contact.update({ where: { id: contact.id }, data: { metadata: { ...metadata, crmStage: content, crmFinalization: null } } });
+          await tx.auditLog.create({ data: { tenantId: rule.tenantId, userId: rule.userId, action: "contact.stage_changed", entityType: "contact", entityId: contact.id, details: { pipelineId: pipeline.id, fromStage: previousStage, toStage: content, source: "workflow", workflowRunId: run.id } } });
         }
         if (conversation && step.type === "PRIORITY")
           await tx.conversation.update({ where: { id: conversation.id }, data: { priority: content } });

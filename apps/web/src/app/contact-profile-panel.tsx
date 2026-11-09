@@ -1,19 +1,36 @@
 "use client";
 
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
+import { tagForeground } from "../lib/tag-contrast";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Clock3,
   Compass,
+  Link2,
   PanelRightClose,
   PanelRightOpen,
   Plus,
   Save,
   StickyNote,
-  Tag,
   UserRound,
   X,
+  CheckCircle2,
+  CalendarDays,
+  Sparkles,
+  Instagram,
+  Facebook,
+  Bot,
+  Mail,
 } from "lucide-react";
+
+function channelGlyph(channel?: string) {
+  const value = (channel || "WHATSAPP").toUpperCase();
+  if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("FACEBOOK") || value === "MESSENGER") return <Facebook size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <Mail size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("CHATBOT") || value.includes("WEBCHAT") || value.includes("WIDGET")) return <Bot size={12} aria-hidden="true" />;
+  return <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg>;
+}
 
 type ContactProfileData = {
   id: string;
@@ -22,7 +39,7 @@ type ContactProfileData = {
   email?: string | null;
   externalId?: string | null;
   source?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
 };
 type Protocol = {
   id: string;
@@ -45,6 +62,9 @@ type ProfileFieldDef = {
   type: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "CHECKBOX";
   options: string[];
 };
+type ContactIdentity = { id: string; provider: string; externalId: string; phone?: string | null; displayName?: string | null; firstSeenAt: string; lastSeenAt: string; revokedAt?: string | null };
+type ProcedureStep = { id: string; label: string; done: boolean };
+type Procedure = { id: string; title: string; description: string; status: string; progress: number; steps: ProcedureStep[]; dueAt?: string | null };
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -60,6 +80,11 @@ export function ContactProfilePanel({
   expanded,
   onExpandedChange,
   displayName,
+  aiSuggestion,
+  aiSuggestionBusy = false,
+  aiSuggestionError,
+  onRequestAiSuggestion,
+  onUseAiSuggestion,
 }: {
   contact: ContactProfileData;
   conversationId: string;
@@ -69,8 +94,13 @@ export function ContactProfilePanel({
   expanded: boolean;
   displayName?: string;
   onExpandedChange: (expanded: boolean) => void;
+  aiSuggestion?: { text: string; provider?: string; model?: string } | null;
+  aiSuggestionBusy?: boolean;
+  aiSuggestionError?: string;
+  onRequestAiSuggestion?: (mode: "suggest" | "improve") => void;
+  onUseAiSuggestion?: (text: string) => void;
 }) {
-  const [tab, setTab] = useState<"dados" | "notas" | "protocolos">("dados");
+  const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [notes, setNotes] = useState("");
@@ -82,9 +112,22 @@ export function ContactProfilePanel({
   const [fieldDraftOptions, setFieldDraftOptions] = useState("");
   const [leadOrigin, setLeadOrigin] = useState("");
   const [leadOriginId, setLeadOriginId] = useState("");
+  const [originEditing, setOriginEditing] = useState(false);
   const [history, setHistory] = useState<Protocol[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [identities, setIdentities] = useState<ContactIdentity[]>([]);
+  const [identityProvider, setIdentityProvider] = useState("WAHA");
+  const [identityExternalId, setIdentityExternalId] = useState("");
+  const [identityPhone, setIdentityPhone] = useState("");
+  const [identitySaving, setIdentitySaving] = useState(false);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [procedureBusy, setProcedureBusy] = useState(false);
+  const [procedureForm, setProcedureForm] = useState(false);
+  const [procedureTitle, setProcedureTitle] = useState("");
+  const [procedureDescription, setProcedureDescription] = useState("");
+  const [procedureSteps, setProcedureSteps] = useState("");
+  const [procedureDueAt, setProcedureDueAt] = useState("");
   useEffect(() => {
     const meta = contact.metadata || {};
     setTags(
@@ -140,6 +183,20 @@ export function ContactProfilePanel({
   }, [contact.id]);
   useEffect(() => {
     let live = true;
+    void request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id))
+      .then((items) => { if (live) setProcedures(items || []); })
+      .catch(() => { if (live) setProcedures([]); });
+    return () => { live = false; };
+  }, [contact.id]);
+  useEffect(() => {
+    let live = true;
+    void request<ContactIdentity[]>("/api/backend/contacts/" + contact.id + "/identities")
+      .then((v) => { if (live) setIdentities(v || []); })
+      .catch(() => { if (live) setIdentities([]); });
+    return () => { live = false; };
+  }, [contact.id]);
+  useEffect(() => {
+    let live = true;
     void request<Protocol[]>("/api/backend/contacts/" + contact.id + "/history")
       .then((v) => {
         if (live) setHistory(v);
@@ -172,22 +229,14 @@ export function ContactProfilePanel({
       setTagDraft("");
       return;
     }
-    setError("");
-    try {
-      let definition = tagCatalog.find((v) => v.name.toLowerCase() === name.toLowerCase());
-      if (!definition) {
-        definition = await request<ProfileTagDef>("/api/backend/contacts/profile-config/tags", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name, color: "#eeecff" }),
-        });
-        setTagCatalog((current) => [...current, definition!]);
-      }
-      setTags((current) => [...current, { name: definition!.name, color: definition!.color }]);
-      setTagDraft("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível criar a etiqueta.");
+    const definition = tagCatalog.find((v) => v.name.toLowerCase() === name.toLowerCase());
+    if (!definition) {
+      setError("Essa etiqueta não está no catálogo. Um administrador deve cadastrá-la em Configurações de CRM.");
+      return;
     }
+    setError("");
+    setTags((current) => [...current, { name: definition.name, color: definition.color }]);
+    setTagDraft("");
   }
   async function createField(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -233,6 +282,65 @@ export function ContactProfilePanel({
       setSaving(false);
     }
   }
+  async function bindIdentity(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const phone = identityPhone.replace(/\D/g, "");
+    const externalId = identityExternalId.trim() || (identityProvider === "WAHA" && phone ? phone + "@c.us" : "");
+    if (!externalId) { setError("Informe o identificador recebido do novo WhatsApp."); return; }
+    setIdentitySaving(true); setError("");
+    try {
+      await request("/api/backend/contacts/" + contact.id + "/identities/rebind", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ provider: identityProvider, externalId, phone: phone || undefined }),
+      });
+      const refreshed = await request<ContactIdentity[]>("/api/backend/contacts/" + contact.id + "/identities");
+      setIdentities(refreshed || []);
+      setIdentityExternalId(""); setIdentityPhone("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível vincular o novo número.");
+    } finally { setIdentitySaving(false); }
+  }
+  async function toggleProcedure(procedure: Procedure, step: ProcedureStep) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/steps/" + step.id, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: !step.done }) });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atualizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function createProcedure(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!procedureTitle.trim()) { setError("Informe o nome do procedimento."); return; }
+    const steps = procedureSteps.split("\n").map((value) => value.trim()).filter(Boolean);
+    if (!steps.length) { setError("Inclua pelo menos uma etapa no procedimento."); return; }
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: procedureTitle.trim(), description: procedureDescription.trim(), contactId: contact.id, dueAt: procedureDueAt ? new Date(procedureDueAt).toISOString() : null, steps }) });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []); setProcedureForm(false); setProcedureTitle(""); setProcedureDescription(""); setProcedureSteps(""); setProcedureDueAt("");
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function finishProcedure(procedure: Procedure) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/complete", { method: "POST" });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível finalizar o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
+  async function reopenProcedure(procedure: Procedure) {
+    setProcedureBusy(true); setError("");
+    try {
+      await request("/api/backend/tasks/" + procedure.id + "/reopen", { method: "POST" });
+      const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
+      setProcedures(next || []);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível reabrir o procedimento."); }
+    finally { setProcedureBusy(false); }
+  }
   const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const statusLabel = (value: string) =>
     ({ OPEN: "Em atendimento", PENDING: "Pendente", RESOLVED: "Finalizado", CLOSED: "Encerrado" })[
@@ -242,6 +350,7 @@ export function ContactProfilePanel({
     contact.metadata?.crmFinalization && typeof contact.metadata.crmFinalization === "object"
       ? (contact.metadata.crmFinalization as { outcome?: string; reason?: string })
       : null;
+  const [photoFailed, setPhotoFailed] = useState(false);
   const asaas =
     contact.metadata?.asaas && typeof contact.metadata.asaas === "object"
       ? (contact.metadata.asaas as {
@@ -267,19 +376,34 @@ export function ContactProfilePanel({
         : value === "ACTIVE"
           ? "Ativo no Asaas"
           : "Status não informado";
+  const initialsOf = (value: string) => {
+    const parts = value.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    const first = parts[0]?.charAt(0) || "";
+    const last = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) || "" : "";
+    return (first + last).toUpperCase() || "?";
+  };
+  const profileLeadSubtitle = () => {
+    if (leadOrigin.trim()) return `Novo contato · ${leadOrigin.trim()}`;
+    return "Lead / cliente";
+  };
   return (
     <aside className={"contact-profile content-card " + (!expanded ? "profile-collapsed" : "")}>
       <div className="contact-profile-heading">
         {expanded ? (
-          <span className="contact-profile-avatar">
-            {(displayName || contactDisplayName(contact)).slice(0, 1).toUpperCase()}
-          </span>
-        ) : null}
-        {expanded ? (
-          <div className="contact-profile-title">
-            <strong>Ficha do contato</strong>
-            <small>Lead / cliente</small>
-          </div>
+          <>
+            <span className="contact-profile-avatar">
+              {!photoFailed ? (
+                <img src={"/api/backend/contacts/" + contact.id + "/avatar"} alt={"Foto de " + (displayName || contactDisplayName(contact))} loading="lazy" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} />
+              ) : (
+                initialsOf(displayName || contactDisplayName(contact))
+              )}
+            </span>
+            <div className="contact-profile-title">
+              <strong>{displayName || contactDisplayName(contact)}<span className="contact-channel-mark" title={channel || "WhatsApp"}>{channelGlyph(channel)}</span></strong>
+              <small>{profileLeadSubtitle()}</small>
+            </div>
+          </>
         ) : null}
         <button
           type="button"
@@ -293,8 +417,7 @@ export function ContactProfilePanel({
       {expanded ? (
         <>
           <div className="contact-profile-identity">
-            <h3>{displayName || contactDisplayName(contact)}</h3>
-            <p>{readablePhone(contact.phone, contact.externalId)}</p>
+            {contact.phone ? <p>{readablePhone(contact.phone, contact.externalId)}</p> : null}
             {contact.email ? <p>{contact.email}</p> : null}
             <span
               className={
@@ -319,6 +442,22 @@ export function ContactProfilePanel({
               </span>
             ) : null}
           </div>
+          <section className="contact-ai-card" aria-label="Assistente">
+            <header>
+              <span className="contact-ai-title"><Sparkles size={14} aria-hidden="true" /> Assistente</span>
+              <span className="contact-ai-onlyyou">Só você vê</span>
+              <button type="button" className="contact-ai-refresh" onClick={() => onRequestAiSuggestion?.("suggest")} disabled={aiSuggestionBusy} title="Gerar outra sugestão" aria-label="Gerar outra sugestão">{aiSuggestionBusy ? "…" : "↻"}</button>
+            </header>
+            {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
+            {aiSuggestion?.text
+              ? <div className="contact-ai-bubble">{aiSuggestion.text}</div>
+              : <p className="contact-ai-placeholder">{aiSuggestionBusy ? "Lendo o histórico desta conversa." : "Posso sugerir a próxima resposta com base no histórico. Nada é enviado sem sua confirmação."}</p>}
+            <div className="contact-ai-actions">
+              <button type="button" className="contact-ai-primary" onClick={() => aiSuggestion?.text && onUseAiSuggestion?.(aiSuggestion.text)} disabled={!aiSuggestion?.text}><CheckCircle2 size={14} aria-hidden="true" /> Usar na resposta</button>
+              <button type="button" className="contact-ai-ghost" onClick={() => onRequestAiSuggestion?.("improve")} disabled={aiSuggestionBusy}>Reescrever</button>
+            </div>
+            <small className="contact-ai-caption">Você revisa antes de enviar.</small>
+          </section>
           <nav className="contact-profile-tabs">
             <button
               type="button"
@@ -341,114 +480,130 @@ export function ContactProfilePanel({
             >
               Protocolos
             </button>
+            <button type="button" className={tab === "procedimentos" ? "active" : ""} onClick={() => setTab("procedimentos")}>Procedimentos</button>
           </nav>
+          <section className="profile-tags-block" aria-label="Etiquetas do contato">
+            <div className="profile-tags">
+              {tags.map((tag, index) => (
+                <span
+                  className="profile-tag"
+                  key={index}
+                  style={{
+                    backgroundColor: tag.color,
+                    color: tagForeground(tag.color),
+                    borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)",
+                  }}
+                >
+                  <span>{tag.name}</span>
+                  <button
+                    type="button"
+                    aria-label={"Remover " + tag.name}
+                    onClick={() => setTags(tags.filter((_, i) => i !== index))}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+              {!tags.length ? <small className="profile-tags-empty">Sem etiquetas neste contato.</small> : null}
+            </div>
+            <form className="profile-add-tag" onSubmit={addTag}>
+              <input
+                list={"crm-tag-catalog-" + contact.id}
+                value={tagDraft}
+                onChange={(e) => setTagDraft(e.target.value)}
+                placeholder="Adicionar etiqueta"
+                maxLength={40}
+                aria-label="Etiqueta do contato"
+              />
+              <datalist id={"crm-tag-catalog-" + contact.id}>
+                {tagCatalog.map((tag) => (
+                  <option key={tag.id} value={tag.name} />
+                ))}
+              </datalist>
+              <button type="submit" aria-label="Adicionar etiqueta cadastrada">
+                <Plus size={14} />
+              </button>
+            </form>
+          </section>
           <div className="contact-profile-body">
             {tab === "dados" ? (
               <>
-                <section className="profile-section">
-                  <strong>
-                    <Tag size={14} /> Etiquetas
-                  </strong>
-                  <div className="profile-tags profile-tags-editable">
-                    {tags.map((tag, index) => (
-                      <span
-                        className="profile-tag profile-tag-editable"
-                        key={index}
-                        style={{
-                          backgroundColor: tag.color,
-                          color: "#334155",
-                          borderColor: "color-mix(in srgb, " + tag.color + " 78%, #334155)",
-                        }}
-                      >
-                        <input
-                          aria-label="Nome da etiqueta"
-                          value={tag.name}
-                          maxLength={40}
-                          onChange={(e) =>
-                            setTags((current) =>
-                              current.map((v, i) =>
-                                i === index ? { ...v, name: e.target.value } : v,
-                              ),
-                            )
-                          }
-                        />
-                        <button
-                          type="button"
-                          aria-label={"Remover " + tag.name}
-                          onClick={() => setTags(tags.filter((_, i) => i !== index))}
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <form className="profile-add-tag" onSubmit={addTag}>
-                    <input
-                      list={"crm-tag-catalog-" + contact.id}
-                      value={tagDraft}
-                      onChange={(e) => setTagDraft(e.target.value)}
-                      placeholder="Nome da etiqueta"
-                      maxLength={40}
-                    />
-                    <datalist id={"crm-tag-catalog-" + contact.id}>
-                      {tagCatalog.map((tag) => (
-                        <option key={tag.id} value={tag.name} />
-                      ))}
-                    </datalist>
-                    <button type="submit" aria-label="Adicionar etiqueta">
-                      <Plus size={14} />
-                    </button>
+                <section className="profile-section contact-identities-section">
+                  <strong><Link2 size={14} /> Identidades de atendimento</strong>
+                  <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="contact-identity-card" key={identity.id}><span className="contact-identity-icon" aria-hidden="true">{isWaha ? <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg> : <Link2 size={18}/>}</span><span className="contact-identity-copy"><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className="profile-status-pill small done">Ativo</span></div>})}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  <form className="contact-identity-form" onSubmit={bindIdentity}>
+                    <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
+                    <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
+                    <label>Identificador do canal<input value={identityExternalId} onChange={(e) => setIdentityExternalId(e.target.value)} placeholder="Ex.: 5511999999999@c.us" /></label>
+                    <button type="submit" className="secondary-button" disabled={identitySaving}>{identitySaving ? "Vinculando…" : "Vincular novo canal"}</button>
                   </form>
                 </section>
                 <section className="profile-section">
                   <strong>
-                    <Compass size={14} /> Origem do lead
-                  </strong>
-                  <select
-                    className="profile-origin-select"
-                    value={leadOrigin}
-                    onChange={(e) => {
-                      setLeadOrigin(e.target.value);
-                      setLeadOriginId("");
-                    }}
-                  >
-                    <option value="">Não identificada</option>
-                    <option>Site/Formulário</option>
-                    <option>Landing Page</option>
-                    <option>Facebook</option>
-                    <option>Instagram</option>
-                    <option>Google</option>
-                    <option>WhatsApp (WAHA)</option>
-                    <option>Campanha de WhatsApp</option>
-                    <option>Campanha de SMS</option>
-                    <option>Campanha de Áudio</option>
-                    <option>Indicação</option>
-                    <option>Evento</option>
-                    <option>Importação</option>
-                    <option>Outra</option>
-                  </select>
-                  {[
-                    "Landing Page",
-                    "Facebook",
-                    "Instagram",
-                    "Google",
-                    "Campanha de WhatsApp",
-                    "Campanha de SMS",
-                    "Campanha de Áudio",
-                  ].includes(leadOrigin) ? (
-                    <input
-                      className="profile-origin-identifier"
-                      value={leadOriginId}
-                      onChange={(e) => setLeadOriginId(e.target.value)}
-                      placeholder="Identificador da landing page/campanha"
-                      maxLength={120}
-                    />
-                  ) : null}
-                  <small>
-                    Use o identificador criado na landing page ou campanha para atribuir
-                    corretamente a origem. O canal de atendimento não define a origem.
-                  </small>
-                </section>
+                     <Compass size={14} /> Origem do lead
+                   </strong>
+                   {!leadOrigin || originEditing ? (
+                     <>
+                       <select
+                         className="profile-origin-select"
+                         value={leadOrigin}
+                         onChange={(e) => {
+                           setLeadOrigin(e.target.value);
+                           setLeadOriginId("");
+                         }}
+                       >
+                         <option value="">Não identificada</option>
+                         <option>Site/Formulário</option>
+                         <option>Landing Page</option>
+                         <option>Facebook</option>
+                         <option>Instagram</option>
+                         <option>Google</option>
+                         <option>WhatsApp (WAHA)</option>
+                         <option>Campanha de WhatsApp</option>
+                         <option>Campanha de SMS</option>
+                         <option>Campanha de Áudio</option>
+                         <option>Indicação</option>
+                         <option>Evento</option>
+                         <option>Importação</option>
+                         <option>Outra</option>
+                       </select>
+                       {[
+                         "Landing Page",
+                         "Facebook",
+                         "Instagram",
+                         "Google",
+                         "Campanha de WhatsApp",
+                         "Campanha de SMS",
+                         "Campanha de Áudio",
+                       ].includes(leadOrigin) ? (
+                         <input
+                           className="profile-origin-identifier"
+                           value={leadOriginId}
+                           onChange={(e) => setLeadOriginId(e.target.value)}
+                           placeholder="Identificador da landing page/campanha"
+                           maxLength={120}
+                         />
+                       ) : null}
+                       <small>Use o identificador criado na landing page ou campanha para atribuir corretamente a origem. O canal de atendimento não define a origem.</small>
+                       <button type="button" className="text-button" onClick={() => setOriginEditing(false)}>Concluir</button>
+                     </>
+                   ) : (
+                     <div className="profile-origin-value">
+                       <span>{leadOrigin}{leadOriginId ? ` · ${leadOriginId}` : ""}</span>
+                       <button type="button" className="text-button" onClick={() => setOriginEditing(true)}>Alterar</button>
+                     </div>
+                   )}
+                 </section>
+                 <section className="profile-section agenda-cobranca-section">
+                   <strong>
+                     <CalendarDays size={14} /> Agenda e cobrança
+                   </strong>
+                   <div className="agenda-cobranca-empty">
+                     <b>Nada agendado ainda</b>
+                     <p>Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
+                   </div>
+                 </section>
                 <section className="profile-section">
                   <strong>
                     <UserRound size={14} /> Campos personalizados
@@ -615,6 +770,23 @@ export function ContactProfilePanel({
                   </div>
                 ))}
                 {!history.length ? <p>Nenhuma conversa registrada para este contato.</p> : null}
+              </section>
+            ) : null}
+            {tab === "procedimentos" ? (
+              <section className="profile-section">
+                <div className="profile-section-heading"><strong><CheckCircle2 size={14} /> Procedimentos do cliente</strong><button type="button" className="secondary-button" onClick={() => setProcedureForm((value) => !value)}><Plus size={13} /> Novo</button></div>
+                <p className="profile-section-hint">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
+                {procedureForm ? <form className="profile-procedure-form" onSubmit={createProcedure}><label>Nome do procedimento<input value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder="Ex.: Documentação de contratação" autoFocus /></label><label>Descrição<textarea value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label><label>Etapas — uma por linha<textarea value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label><label>Prazo<input type="datetime-local" value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="calendar-modal-actions"><button type="button" className="secondary-button" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={procedureBusy}>{procedureBusy ? "Criando…" : "Criar procedimento"}</button></div></form> : null}
+                {procedures.map((procedure) => (
+                  <article className="profile-procedure" key={procedure.id}>
+                    <div className="profile-procedure-heading"><b>{procedure.title}</b><span>{procedure.progress}%</span></div>
+                    {procedure.description ? <p>{procedure.description}</p> : null}
+                    <div className="profile-procedure-progress"><span style={{ width: procedure.progress + "%" }} /></div>
+                    <div className="profile-procedure-steps">{procedure.steps.map((step) => <label key={step.id}><input type="checkbox" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
+                    <div className="profile-procedure-footer">{procedure.status === "DONE" ? <><span className="tasks-done"><CheckCircle2 size={14} /> Finalizado</span><button type="button" className="secondary-button" disabled={procedureBusy} onClick={() => void reopenProcedure(procedure)}>Reabrir</button></> : <button type="button" className="secondary-button" disabled={procedureBusy || procedure.progress < 100} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> Finalizar procedimento</button>}</div>
+                  </article>
+                ))}
+                {!procedures.length ? <p>Nenhum procedimento personalizado registrado para este cliente.</p> : null}
               </section>
             ) : null}
           </div>

@@ -26,6 +26,7 @@ jobs:
       PGADMIN_DEFAULT_EMAIL: ci@example.test
       PGADMIN_DEFAULT_PASSWORD: ci-only-admin-password
       WAHA_API_KEY: ci-only-gateway-key
+      WEBHOOK_ENCRYPTION_KEY: ci-only-webhook-encryption-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,10 +75,14 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+      - name: Validate single Compose migration service
+        run: node apps/api/test/compose-migrations.test.cjs
       - name: Validate Prisma schema
         run: pnpm --filter @vexorasuite/api exec prisma validate
       - name: Generate Prisma client
         run: pnpm --filter @vexorasuite/api exec prisma generate
+      - name: Lint API and web
+        run: pnpm lint
       - name: Retired marketing file cleanup regression
         run: pnpm --filter @vexorasuite/api exec node --test test/marketing-cleanup.test.cjs
       - name: Test

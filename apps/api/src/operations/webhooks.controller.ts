@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get,
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
-import { encryptWebhookSecret, generateWebhookSecret } from "./webhook-crypto";
+import { encryptWebhookSecret, generateWebhookSecret, validateWebhookUrl } from "./webhook-crypto";
 
 const ALLOWED_EVENTS = ["conversation.created", "conversation.updated", "message.received", "contact.updated", "payment.updated"];
 
@@ -29,8 +29,12 @@ export class WebhooksController {
   @Post()
   async create(@Req() req: AuthenticatedRequest, @Body() body: any) {
     this.admin(req);
-    if (typeof body?.url !== "string" || !/^https:\/\//i.test(body.url.trim()) || body.url.length > 500)
-      throw new BadRequestException("Informe uma URL HTTPS válida para o webhook.");
+    if (typeof body?.url !== "string" || body.url.length > 500) throw new BadRequestException("Informe uma URL HTTPS válida para o webhook.");
+    try {
+      validateWebhookUrl(body.url);
+    } catch {
+      throw new BadRequestException("Informe uma URL HTTPS pública para o webhook.");
+    }
     const name = typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 80) : "Webhook";
     const events: string[] = Array.isArray(body.events) ? Array.from(new Set(body.events.filter((value: unknown): value is string => typeof value === "string" && ALLOWED_EVENTS.includes(value)))) as string[] : [...ALLOWED_EVENTS];
     if (!events.length) throw new BadRequestException("Selecione pelo menos um evento.");

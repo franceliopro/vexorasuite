@@ -5,11 +5,22 @@ import {documentDigits} from '../common/documents';
 import { formatDateBR } from '../common/date-format';
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import { Prisma, type ChannelConnection } from "@prisma/client";
+import { MessageStatus, Prisma, type ChannelConnection } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";
 import { AsaasService } from "./asaas.service";
+import { resolveContactIdentity } from "./contact-identity";
+
+function inboundLinkPreview(payload: any): { url: string; title?: string; description?: string; imageUrl?: string } | null {
+  const candidates = [payload?.linkPreview, payload?._data?.linkPreview, payload?._data?.links?.[0]];
+  const raw = candidates.find(value => value && typeof value === "object") as Record<string, unknown> | undefined;
+  const url = [raw?.url, raw?.canonicalUrl, payload?.linkPreviewUrl].find(value => typeof value === "string" && /^https:\/\//i.test(value)) as string | undefined;
+  if (!url) return null;
+  const text = (value: unknown, max: number) => typeof value === "string" && value.trim() ? value.trim().slice(0, max) : undefined;
+  const imageUrl = [raw?.image, raw?.imageUrl, raw?.thumbnail, raw?.thumbnailUrl].find(value => typeof value === "string" && /^https:\/\//i.test(value)) as string | undefined;
+  return { url, ...(text(raw?.title, 180) ? { title: text(raw?.title, 180) } : {}), ...(text(raw?.description, 320) ? { description: text(raw?.description, 320) } : {}), ...(imageUrl ? { imageUrl } : {}) };
+}
 
 @Controller("webhooks/waha")
 export class WahaWebhookController {
@@ -49,8 +60,15 @@ export class WahaWebhookController {
       if (!providerMessageId || !status) return { ok: true, ignored: true };
       const message = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId }, include: { conversation: { select: { id: true, channelConnectionId: true } } } });
       if (!message || message.conversation.channelConnectionId !== channel.id) return { ok: true, ignored: true };
-      const updated = await this.prisma.message.update({ where: { id: message.id }, data: { status } });
-      this.events.publish(channel.tenantId, "message.status", { conversationId: message.conversationId, messageId: updated.id, status: updated.status });
+      const previousStatuses: MessageStatus[] = status === "SENT"
+        ? [MessageStatus.QUEUED]
+        : status === "DELIVERED"
+          ? [MessageStatus.QUEUED, MessageStatus.SENT]
+          : [MessageStatus.QUEUED, MessageStatus.SENT, MessageStatus.DELIVERED];
+      const nextStatus = status as MessageStatus;
+      const updated = await this.prisma.message.updateMany({ where: { id: message.id, status: { in: previousStatuses } }, data: { status: nextStatus } });
+      if (!updated.count) return { ok: true, ignored: true, reason: "ACK_REGRESSION" };
+      this.events.publish(channel.tenantId, "message.status", { conversationId: message.conversationId, messageId: message.id, status: nextStatus });
       return { ok: true };
     }
 
@@ -72,9 +90,13 @@ export class WahaWebhookController {
     const providerMessageId = this.providerMessageId(payload.id);
     if (!providerMessageId) return { ok: true, ignored: true };
 
-    const phone = !isGroup && chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
+    let phone = !isGroup && chatId.endsWith("@c.us") ? chatId.slice(0, -5).replace(/\D/g, "") || null : null;
+    // O WhatsApp pode entregar @lid em vez do número. Resolva somente aquele contato,
+    // preservando privacidade e evitando qualquer sincronização completa.
+    if (!phone && !isGroup) phone = await this.waha.resolveContactPhone(channel, chatId);
     const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
     const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
+    const linkPreview = content.includes("http") ? inboundLinkPreview(payload) : null;
     const mimeType = String(payload.media?.mimetype || "");
     const contentType = inboundKind(payload);
     const timestamp = Number(payload.timestamp);
@@ -85,6 +107,14 @@ export class WahaWebhookController {
     const webhookAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl;
     const recoveredAvatar = !isGroup && !(typeof webhookAvatar === "string" && /^https:\/\//i.test(webhookAvatar))
       ? await this.waha.contactPicture(channel, chatId) : null;
+    const tenantForRuntime = await this.prisma.tenant.findUnique({ where: { id: channel.tenantId }, select: { integrations: true } });
+    const runtimeIntegrations = tenantForRuntime?.integrations && typeof tenantForRuntime.integrations === "object" && !Array.isArray(tenantForRuntime.integrations)
+      ? tenantForRuntime.integrations as Record<string, unknown> : {};
+    const runtimePublications = runtimeIntegrations.intelligencePublications && typeof runtimeIntegrations.intelligencePublications === "object" && !Array.isArray(runtimeIntegrations.intelligencePublications)
+      ? runtimeIntegrations.intelligencePublications as Record<string, any> : {};
+    const companyPublication = runtimeIntegrations.intelligencePublished && typeof runtimeIntegrations.intelligencePublished === "object"
+      ? runtimeIntegrations.intelligencePublished as Record<string, any> : {};
+    const intelligenceEnabled = companyPublication.active === true || Object.values(runtimePublications).some((publication) => publication?.active === true);
 
     let saved: { contactId: string; conversationId: string; isNewConversation: boolean; handlingMode: "BOT" | "HUMAN"; message: { id: string; content: string; contentType: string; status: string; direction: string; occurredAt: Date } } | null;
     try {
@@ -96,13 +126,17 @@ export class WahaWebhookController {
 
         const rawAvatar = payload._data?.chat?.contact?.profilePicUrl || payload._data?.contact?.profilePicUrl || payload.contact?.profilePicUrl || payload.profilePicUrl || payload.profilePictureUrl || payload.avatarUrl || recoveredAvatar;
         const avatarUrl = typeof rawAvatar === "string" && /^https:\/\//i.test(rawAvatar) ? rawAvatar : null;
-        let contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, externalId: chatId } });
-        if (!contact && phone) contact = await tx.contact.findFirst({ where: { tenantId: channel.tenantId, phone } });
-        if (!contact) {
-          contact = await tx.contact.create({
-            data: { tenantId: channel.tenantId, name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), phone, externalId: chatId, source: "WhatsApp", metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) } },
-          });
-        } else {
+        let contact = await resolveContactIdentity(tx, {
+          tenantId: channel.tenantId,
+          provider: "WAHA",
+          externalId: chatId,
+          phone,
+          displayName: notifyName || null,
+          metadata: { provider: "WAHA", channelConnectionId: channel.id, isGroup, ...(avatarUrl ? { avatarUrl } : {}) },
+          createContact: { name: notifyName || (isGroup ? `Grupo ${chatId}` : phone || chatId), source: "WhatsApp" },
+        });
+        if (!contact) throw new Error("Não foi possível resolver a identidade do contato.");
+        {
           const update: { name?: string; phone?: string; externalId?: string; metadata?: Prisma.InputJsonValue } = {};
           if (avatarUrl) {
             const existingMetadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
@@ -110,13 +144,16 @@ export class WahaWebhookController {
           }
           if (notifyName && (!contact.name || contact.name === contact.phone || contact.name === contact.externalId)) update.name = notifyName;
           if (phone && !contact.phone) update.phone = phone;
-          if (!contact.externalId) update.externalId = chatId;
+          if (!contact.externalId || contact.externalId !== chatId) update.externalId = chatId;
           if (Object.keys(update).length) contact = await tx.contact.update({ where: { id: contact.id }, data: update });
         }
 
         let isNewConversation = false;
         let conversation = await tx.conversation.findFirst({
-          where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } },
+          // A contact can have a historical conversation in the trash or archive. Never
+          // append a new inbound message to one of those records: the inbox correctly
+          // hides them, which would make a real new WhatsApp message disappear.
+          where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] }, archivedAt: null, deletedAt: null },
           orderBy: { updatedAt: "desc" },
         });
         if (!conversation) {
@@ -126,7 +163,7 @@ export class WahaWebhookController {
 
         const voiceEntry=conversation.handlingMode==='BOT'&&!isGroup&&(contentType==='audio'||(conversation.botState as any)?.flow==='VOICE_TRIAGE');
         if(voiceEntry&&(conversation.botState as any)?.flow!=='VOICE_TRIAGE'){await tx.conversation.update({where:{id:conversation.id},data:{botState:{flow:'VOICE_TRIAGE',previousState:conversation.botState||{}}}});}
-        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null };
+        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), ...(intelligenceEnabled && conversation.handlingMode === 'BOT' && !voiceEntry ? { engineStatus: 'PENDING', engineAttempts: 0 } : {}), ...(linkPreview ? { linkPreview } : {}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });
@@ -139,8 +176,6 @@ export class WahaWebhookController {
     }
 
     if (!saved) {
-      const prior = await this.prisma.message.findFirst({ where: { tenantId: channel.tenantId, providerMessageId, direction: "INBOUND", conversation: { channelConnectionId: channel.id } } });
-      if(prior&&!(this.audio&&await this.audio.owns(prior.id,channel.tenantId))) await this.engine.receive(channel, prior.conversationId, prior.id);
       return { ok: true, duplicate: true };
     }
     this.logger.log(`Mensagem recebida e gravada: canal=${channelId} conversa=${saved.conversationId} tipo=${contentType}`);
@@ -148,6 +183,7 @@ export class WahaWebhookController {
     this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId, lastMessageAt: saved.message.occurredAt.toISOString() });
     if (saved.handlingMode === "BOT") {
       if(this.audio&&await this.audio.owns(saved.message.id,channel.tenantId))return {ok:true,processing:'audio-triage'};
+      if (intelligenceEnabled) return { ok: true, processing: 'queued' };
       if (!await this.engine.receive(channel, saved.conversationId, saved.message.id)) {
         await this.runMenuBot(channel, chatId, saved.conversationId, saved.isNewConversation, content);
       }
@@ -244,11 +280,43 @@ export class WahaWebhookController {
     const fallback = key.startsWith("COMERCIAL_") ? ["COMERCIAL"] : [];
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
     const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
-    await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+    await this.prisma.$transaction(async tx => {
+      const current = await tx.conversation.findFirst({ where: { id: conversationId, tenantId: channel.tenantId }, select: { handlingMode: true, status: true } });
+      await tx.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: destination?.id ?? null, assigneeId: null, status: "OPEN", botState: { triageComplete: true, sector: key, platform, destinationKey: destination?.key ?? null } } });
+      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: "conversation.guided_handoff", entityType: "conversation", entityId: conversationId, details: { fromHandlingMode: current?.handlingMode || "BOT", fromStatus: current?.status || null, toHandlingMode: "HUMAN", toStatus: "OPEN", sector: key, platform, destination: destination?.name || "Fila geral" } } });
+    });
+    await this.recordGuidedHandoffContext(channel.tenantId, conversationId, key, platform, label, destination?.name || "Fila geral");
     if (destination?.id) await this.distribution.assign(channel.tenantId, conversationId, destination.id);
     this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: destination?.id ?? null, status: "OPEN" });
     const missing = !destination ? " Não encontrei uma fila ativa configurada; a conversa ficou na fila geral." : "";
     await this.sendBotReply(channel, chatId, conversationId, "Certo! Encaminhei sua conversa: " + label + "." + missing + " Um atendente continuará por aqui. 🙌");
+  }
+
+  private async recordGuidedHandoffContext(tenantId: string, conversationId: string, sector: string, platform: string | null, label: string, destination: string): Promise<void> {
+    await this.prisma.$transaction(async tx => {
+      const conversation = await tx.conversation.findFirst({
+        where: { id: conversationId, tenantId },
+        include: { contact: { select: { name: true, phone: true } } },
+      });
+      if (!conversation) return;
+      const latestInternal = await tx.message.findFirst({ where: { tenantId, conversationId, direction: "INTERNAL" }, orderBy: { occurredAt: "desc" }, select: { metadata: true } });
+      const metadata = latestInternal?.metadata && typeof latestInternal.metadata === "object" && !Array.isArray(latestInternal.metadata) ? latestInternal.metadata as Record<string, unknown> : {};
+      if (metadata.kind === "guided_handoff_context") return;
+      const inbound = await tx.message.findFirst({ where: { tenantId, conversationId, direction: "INBOUND" }, orderBy: { occurredAt: "desc" }, select: { content: true } });
+      const content = [
+        "Contexto do transbordo",
+        "Origem: chatbot guiado",
+        "Motivo: " + label,
+        "Setor: " + sector,
+        platform ? "Plataforma: " + platform : "",
+        "Destino: " + destination,
+        conversation.contact?.name ? "Contato: " + conversation.contact.name : "",
+        conversation.contact?.phone ? "Telefone: " + conversation.contact.phone : "",
+        inbound?.content ? "Última mensagem do cliente: " + inbound.content.slice(0, 1000) : "",
+      ].filter(Boolean).join("\n");
+      await tx.message.create({ data: { tenantId, conversationId, direction: "INTERNAL", status: "SENT", content, contentType: "text", senderName: "Contexto do atendimento", metadata: { kind: "guided_handoff_context", sector, platform, destination } } });
+      await tx.auditLog.create({ data: { tenantId, action: "conversation.guided_handoff_context", entityType: "conversation", entityId: conversationId, details: { sector, platform, destination } } });
+    });
   }
 
   private async runMenuBot(channel: ChannelConnection, chatId: string, conversationId: string, isNewConversation: boolean, inboundText: string): Promise<void> {
@@ -274,7 +342,10 @@ export class WahaWebhookController {
       const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
       const normalized = inboundText.trim().toLocaleLowerCase("pt-BR");
       if (!departments.length) {
-        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" } });
+        await this.prisma.$transaction(async tx => {
+          await tx.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" } });
+          await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: "conversation.guided_handoff", entityType: "conversation", entityId: conversationId, details: { fromHandlingMode: "BOT", toHandlingMode: "HUMAN", toStatus: "OPEN", destination: "Fila geral", reason: "no_active_department" } } });
+        });
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: null, assigneeId: null, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, "Obrigado pela mensagem! Vou encaminhar você para a fila geral de atendimento. Um atendente continuará por aqui. 🙌");
         return;
@@ -290,7 +361,10 @@ export class WahaWebhookController {
         ));
       const menu = `Olá! Sou o assistente virtual. 😊\n\nPara encaminhar você à equipe certa, escolha uma opção:\n${options}\n\nVocê também pode escrever brevemente o que precisa, e eu tentarei identificar a área.`;
       if (chosen) {
-        await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
+        await this.prisma.$transaction(async tx => {
+          await tx.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" } });
+          await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: "conversation.guided_handoff", entityType: "conversation", entityId: conversationId, details: { fromHandlingMode: "BOT", toHandlingMode: "HUMAN", toStatus: "OPEN", destination: chosen.name, departmentId: chosen.id, reason: "guided_triage" } } });
+        });
         await this.distribution.assign(channel.tenantId, conversationId, chosen.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: chosen.id, status: "OPEN" });
         await this.sendBotReply(channel, chatId, conversationId, `Certo! Estou encaminhando sua conversa para **${chosen.name}**. Um atendente continuará o atendimento por aqui. 🙌`);

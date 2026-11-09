@@ -58,9 +58,21 @@ describe('company provider credentials',()=>{
     expect(JSON.stringify(result)).not.toContain('company-router-key');expect(JSON.stringify(result)).not.toContain('encryptedKey');
     expect(tx.auditLog.create.mock.calls[0][0].data.details).toEqual({provider:'openrouter'});
   });
+  it('returns a repair state instead of a 503 when usage reads a stale encrypted key',async()=>{
+    const integrations={assistant:{llm:{provider:'openrouter',model:'selected-model'}},aiProviderCredentials:{openrouter:{encryptedKey:'stale-ciphertext'}}};
+    const prisma:any={tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations})}};
+    const result=await new ProviderConnectionsController(prisma).usage(req);
+    expect(result).toEqual({configured:false,needsRepair:true,message:'A chave do OpenRouter desta empresa precisa ser cadastrada novamente em Agentes de IA.'});
+  });
   it('fails closed if the encryption key is not configured',()=>{
     delete process.env.INTEGRATION_ENCRYPTION_KEY;delete process.env.JWT_ACCESS_SECRET;
     expect(()=>encryptProviderKey('company-a','openrouter','company-router-key')).toThrow('proteção');
+  });
+  it('returns a repair state instead of a 503 when usage reads a stale encrypted key',async()=>{
+    const integrations={assistant:{llm:{provider:'openrouter',model:'selected-model'}},aiProviderCredentials:{openrouter:{encryptedKey:'stale-ciphertext'}}};
+    const prisma:any={tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({integrations})}};
+    const result=await new ProviderConnectionsController(prisma).usage(req);
+    expect(result).toEqual({configured:false,needsRepair:true,message:'A chave do OpenRouter desta empresa precisa ser cadastrada novamente em Agentes de IA.'});
   });
   it('rejects ambiguous agent IDs before saving configuration',async()=>{
     const controller=new AssistantController({} as any,{} as any,{} as any,{} as any);

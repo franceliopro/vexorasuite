@@ -14,6 +14,9 @@ function mergedCustomerMetadata(customer: Record<string, string | null>): Record
 export class AsaasService {
   private readonly logger = new Logger(AsaasService.name);
   constructor(private readonly prisma: PrismaService) {}
+  private async auditCustomerSync(tenantId: string, contactId: string, action: string, details: Prisma.InputJsonObject) {
+    await this.prisma.auditLog.create({ data: { tenantId, action, entityType: "contact", entityId: contactId, details } });
+  }
 
   private encryptionKey(): Buffer {
     const secret = process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_ACCESS_SECRET;
@@ -276,9 +279,23 @@ export class AsaasService {
       : paid
         ? { notIn: ["PAID", "CANCELLED"] }
         : { notIn: ["PAID", status] };
-    const changed = await this.prisma.payment.updateMany({
-      where: { id: existing.id, tenantId, status: statusGuard },
-      data: { status },
+    const changed = await this.prisma.$transaction(async tx => {
+      const result = await tx.payment.updateMany({
+        where: { id: existing.id, tenantId, status: statusGuard },
+        data: { status },
+      });
+      if (result.count) {
+        await tx.auditLog.create({
+          data: {
+            tenantId,
+            action: "payment.status_changed",
+            entityType: "payment",
+            entityId: existing.id,
+            details: { provider: "ASAAS", externalId, event, fromStatus: existing.status, toStatus: status, environment: existing.environment },
+          },
+        });
+      }
+      return result;
     });
     if (!changed.count) return null;
     const updated = await this.prisma.payment.findFirst({
@@ -319,6 +336,7 @@ export class AsaasService {
           asaasSync: { ...metadataOf(latestMetadata.asaasSync), status: "PENDING", lastAttemptAt: new Date().toISOString(), lastError: message },
         } as Prisma.InputJsonObject },
       });
+      await this.auditCustomerSync(tenantId, contactId, "payment.customer_sync_pending", { status: "PENDING", message });
       return { status: "PENDING" as const, message };
     };
 
@@ -335,6 +353,7 @@ export class AsaasService {
             asaasSync: { ...existingSync, status: "SYNCED", environment, lastError: null, syncedAt: new Date().toISOString() },
           } as Prisma.InputJsonObject },
         });
+        await this.auditCustomerSync(tenantId, contactId, "payment.customer_sync_succeeded", { status: "SYNCED", customerId: existingAsaas.customerId, environment, source: "existing" });
         return { status: "SYNCED", customerId: existingAsaas.customerId };
       }
 
@@ -399,6 +418,7 @@ export class AsaasService {
           asaasSync: { ...metadataOf(latestMetadata.asaasSync), status: "SYNCED", environment, lastError: null, syncedAt },
         } as Prisma.InputJsonObject },
       });
+      await this.auditCustomerSync(tenantId, contactId, "payment.customer_sync_succeeded", { status: "SYNCED", customerId: remote.id, environment, source: matches.length === 1 ? "ASAAS_MATCH" : "VEXORA" });
       return { status: "SYNCED", customerId: remote.id };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao sincronizar cliente com o Asaas.";
@@ -488,7 +508,7 @@ export class AsaasService {
       if (phone.startsWith("55") && (phone.length === 12 || phone.length === 13)) phone = phone.slice(2);
       return phone.length === 11 && phone[2] === "9" ? phone.slice(0, 2) + phone.slice(3) : phone;
     };
-    const counters = { created: 0, updated: 0, unchanged: 0, notListed: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
+    const counters = { created: 0, updated: 0, unchanged: 0, ambiguous: 0, notListed: 0, pages, total: customers.length, environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION" };
 
     // Load the tenant's contacts once; a query per imported customer would become quadratic.
     const tenantContacts = await this.prisma.contact.findMany({
@@ -540,6 +560,11 @@ export class AsaasService {
           if (byEmail.length === 1) matches = byEmail;
         }
 
+        if (matches.length > 1) {
+          await tx.auditLog.create({ data: { tenantId, action: "payment.customer_reconciliation_ambiguous", entityType: "asaas_customer", entityId: customer.id, details: { candidateContactIds: matches.map((contact) => contact.id), environment: counters.environment } } });
+          counters.ambiguous++;
+          return;
+        }
         if (matches.length === 1) {
           const existing = matches[0];
           if (!existing) throw new ServiceUnavailableException("Não foi possível reconciliar o cadastro Asaas com segurança.");
@@ -570,6 +595,7 @@ export class AsaasService {
             },
             select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
           });
+          await tx.auditLog.create({ data: { tenantId, action: "payment.customer_reconciled", entityType: "contact", entityId: updated.id, details: { customerId: customer.id, environment: counters.environment, mode: "updated" } } });
           Object.assign(existing, updated);
           counters.updated++;
           return;
@@ -594,6 +620,7 @@ export class AsaasService {
           },
           select: { id: true, name: true, phone: true, email: true, source: true, metadata: true },
         });
+        await tx.auditLog.create({ data: { tenantId, action: "payment.customer_reconciled", entityType: "contact", entityId: created.id, details: { customerId: customer.id, environment: counters.environment, mode: "created" } } });
         tenantContacts.push(created);
         counters.created++;
       });

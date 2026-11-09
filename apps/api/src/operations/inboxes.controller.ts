@@ -1,3 +1,4 @@
+import { AuditCovered } from "../common/audit/audit.decorator";
 import {BadRequestException,Body,Controller,ForbiddenException,Get,Param,ParseUUIDPipe,Post,Req,UseGuards} from "@nestjs/common";
 import {settings as stepSettings} from "../ai/flow-runtime";
 import {randomUUID} from "node:crypto";
@@ -8,6 +9,7 @@ import {PrismaService} from "../prisma/prisma.service";
 import {inboxRouting} from "./inbox-routing";
 import {selectPublication,publicationKey} from "./runtime-scope";
 const object=(v:unknown):Record<string,any>=>v&&typeof v==="object"&&!Array.isArray(v)?v as any:{};
+@AuditCovered()
 @Controller("channels") @UseGuards(AuthGuard)
 export class InboxesController{
  constructor(private readonly prisma:PrismaService){}
@@ -17,7 +19,7 @@ export class InboxesController{
   this.authorize(req);const tenantId=req.user.tenantId;
   const [tenant,channels,departments]=await Promise.all([
    this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true,kind:true}}),
-   this.prisma.channelConnection.findMany({where:{tenantId,isActive:true,provider:{in:["WAHA","ZERNIO"]}},orderBy:{createdAt:"asc"}}),
+   this.prisma.channelConnection.findMany({where:{tenantId,isActive:true,provider:{in:["WAHA","ZERNIO","EMAIL"]}},orderBy:{createdAt:"asc"}}),
    this.prisma.department.findMany({where:{tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:"asc"}})
   ]);
   const root=object(tenant.integrations),assistant=object(root.assistant);
@@ -43,7 +45,7 @@ export class InboxesController{
    const last=inbound?.conversation;
    const activeSelection=last?selectPublication(root,{departmentId:last.departmentId,userId:last.assigneeId}):null;
    const lastDecision=!inbound?"Nenhuma mensagem recebida registrada.":last?.handlingMode==="HUMAN"?"Conversa sob atendimento humano; a IA não assume automaticamente.":audit?"Mensagem processada pelo motor.":!activeSelection?.publication?.flow.channelIds?.includes(channel.id)?"Mensagem recebida; não há fluxo vinculado ao contexto desta conversa.":!activeSelection.publication.active?"Mensagem recebida; o fluxo está pausado.":"Mensagem recebida; sem processamento confirmado. Verifique o gatilho e os registros da API.";
-   return {id:channel.id,name:channel.name,provider:channel.provider,platform:channel.provider==="WAHA"?"whatsapp":String(config.platform||"social"),status:channel.status,identity:channel.provider==="WAHA"?config.accountPhone||null:config.username||config.profileName||null,identityCheckedAt:config.identityCheckedAt||null,accountId:channel.provider==="ZERNIO"?config.accountId||null:null,routing,departmentName:departments.find(d=>d.id===routing.departmentId)?.name||null,flow:publication?{name:publication.flow.name,active:publication.active,revision:publication.revision,scopeKey:selection?.key,includesInbox:publication.flow.channelIds?.includes(channel.id)===true,agents}:null,blockers,lastInboundAt:inbound?.occurredAt||null,lastConversationId:last?.id||null,lastDecision,lastProcessing:audit?{at:audit.createdAt,decision:object(audit.details).decision||null,reason:object(audit.details).reason||null}:null,lastDelivery:outbound?{at:outbound.occurredAt,status:outbound.status}:null};
+   return {id:channel.id,name:channel.name,provider:channel.provider,platform:channel.provider==="WAHA"?"whatsapp":channel.provider==="EMAIL"?"email":String(config.platform||"social"),status:channel.status,identity:channel.provider==="WAHA"?config.accountPhone||null:config.username||config.profileName||null,identityCheckedAt:config.identityCheckedAt||null,accountId:channel.provider==="ZERNIO"?config.accountId||null:null,routing,departmentName:departments.find(d=>d.id===routing.departmentId)?.name||null,flow:publication?{name:publication.flow.name,active:publication.active,revision:publication.revision,scopeKey:selection?.key,includesInbox:publication.flow.channelIds?.includes(channel.id)===true,agents}:null,blockers,lastInboundAt:inbound?.occurredAt||null,lastConversationId:last?.id||null,lastDecision,lastProcessing:audit?{at:audit.createdAt,decision:object(audit.details).decision||null,reason:object(audit.details).reason||null}:null,lastDelivery:outbound?{at:outbound.occurredAt,status:outbound.status}:null};
   }));
   return {inboxes:rows,departments};
  }

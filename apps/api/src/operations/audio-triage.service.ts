@@ -1,4 +1,5 @@
 import {
+  Optional,
   Injectable,
   OnModuleInit,
   OnModuleDestroy,
@@ -12,8 +13,16 @@ import { economicalProviders } from "../ai/economical-providers";
 import { reserveAiExecution, dailyAiLimit } from "../ai/ai-budget";
 import { WahaService } from "./waha.service";
 import { EventsService } from "./events.service";
+import { JobLeaseService } from "../common/job-lease.service";
+import { schedulersEnabled } from "../common/scheduler-mode";
+import { inboxRouting } from "./inbox-routing";
 const object = (x: any): Record<string, any> =>
   x && typeof x === "object" && !Array.isArray(x) ? x : {};
+const normalized = (value: unknown) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .trim()
+  .toUpperCase();
 @Injectable()
 export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
   private timer?: ReturnType<typeof setInterval>;
@@ -25,9 +34,10 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
     private readonly ai: AiService,
     private readonly waha: WahaService,
     private readonly events: EventsService,
+    @Optional() private readonly leases?: JobLeaseService,
   ) {}
   onModuleInit() {
-    if (process.env.NODE_ENV === "test") return;
+    if (process.env.NODE_ENV === "test" || !schedulersEnabled()) return;
     this.timer = setInterval(() => void this.tick(), 15000);
     this.timer.unref();
   }
@@ -45,6 +55,8 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
+      // Only one replica triages the queue at a time.
+      if (this.leases && !(await this.leases.claim("audio-triage", 14_000))) return;
       const old = await this.prisma.message.findMany({
         where: { metadata: { path: ["voiceTriageStatus"], equals: "RUNNING" } },
         take: 30,
@@ -141,11 +153,13 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
       !c.contact.externalId?.endsWith("@c.us")
     )
       return this.finish(id, tenantId, "REVIEW");
+    const inbox = inboxRouting(channel.settings),
+      configuredDepartmentId = inbox.departmentId || null;
     const configuration=await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}});
     if(object(object(configuration.integrations).intelligencePublished).active===false)return this.finish(id,tenantId,'SKIPPED');
     let text = claimed.content,
       reply = "",
-      departmentId: string | null = null,
+      departmentId: string | null = c.departmentId || configuredDepartmentId,
       state = object(c.botState),
       transcribed = false;
     try {
@@ -173,9 +187,17 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
       if (!assistant.enabled || published.active === false)
         throw Error("disabled");
       const departments = await this.prisma.department.findMany({
-        where: { tenantId, isActive: true, modules: { has: "INBOX" } },
+        where: {
+          tenantId,
+          isActive: true,
+          OR: [
+            { modules: { has: "INBOX" } },
+            ...(configuredDepartmentId ? [{ id: configuredDepartmentId }] : []),
+          ],
+        },
         select: {
           id: true,
+          key: true,
           name: true,
           keywords: true,
           routingCategory: true,
@@ -193,10 +215,12 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
             text.slice(0, 2000),
           ].slice(-6),
           preferred = String(object(c.contact.metadata).novo_nome || "");
-        if (/^(atendente|humano|pessoa)$/i.test(text.trim())) {
+        if (/\b(atendente|humano|pessoa)\b/i.test(text) || /\b(falar com|me transfira|quero falar)\b/i.test(text)) {
           reply =
             "Vou encaminhar seu atendimento para uma pessoa continuar por aqui.";
-          state = { flow: "VOICE_TRIAGE", requests, handoff: true };
+          if (!departmentId && departments.length === 1)
+            departmentId = departments[0]?.id || null;
+          state = { flow: "VOICE_TRIAGE", requests, handoff: !!departmentId };
         } else {
           const providers = economicalProviders(
             assistant,
@@ -216,7 +240,7 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
           const prompt =
             "Faça somente a triagem da empresa " +
             tenant.name +
-            '. Use apenas os setores fornecidos. Responda JSON: {"reply":"texto curto natural","departmentId":null ou ID fornecido,"preferredName":null ou nome confirmado}. Faça uma pergunta de cada vez, sem listas longas. Não se apresente como robô nem afirme ser humano. Se perguntarem sua identidade, seja transparente. Identifique setor, plataforma/serviço e intenção. Havendo vários setores financeiros ou de suporte, confirme a plataforma antes de escolher. Não consulte cobranças, não peça CPF, não invente resultados. Só retorne um departmentId quando o pedido permitir distinguir o setor. Se não houver nome preferido, pergunte “Identifiquei você pelo nome de ' +
+            '. Use apenas os setores fornecidos. Responda JSON: {"reply":"texto curto natural","departmentId":null ou ID fornecido,"departmentKey":null ou chave fornecida,"departmentName":null ou nome exato fornecido,"handoff":true ou false,"preferredName":null ou nome confirmado}. Faça uma pergunta de cada vez, sem listas longas. Não se apresente como robô nem afirme ser humano. Se perguntarem sua identidade, seja transparente. Identifique setor, plataforma/serviço e intenção. Havendo vários setores financeiros ou de suporte, confirme a plataforma antes de escolher. Não consulte cobranças, não peça CPF, não invente resultados. Se o cliente pedir atendente, humano ou transferência, marque handoff=true e selecione o setor mais adequado. Só retorne um setor quando o pedido permitir distingui-lo. Se não houver nome preferido, pergunte “Identifiquei você pelo nome de ' +
             c.contact.name +
             ". Como gostaria de ser chamado?” e espere confirmação antes de transferir. Nome preferido atual: " +
             preferred +
@@ -252,10 +276,14 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
             generated.text.replace(/^```json\s*|```$/g, ""),
           );
           const selected = departments.find(
-            (d) => d.id === decision.departmentId,
+            (d) => d.id === decision.departmentId ||
+              d.key === decision.departmentKey ||
+              normalized(d.name) === normalized(decision.departmentName || decision.department),
           );
           reply = decision.reply.replace(/\\n/g, "\n");
-          departmentId = selected?.id || null;
+          departmentId = selected?.id || departmentId || null;
+          if (!departmentId && decision.handoff === true && departments.length === 1)
+            departmentId = departments[0]?.id || null;
           state = { flow: "VOICE_TRIAGE", requests, handoff: !!departmentId };
           const proposed =
             typeof decision.preferredName === "string"
@@ -407,3 +435,4 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
       });
   }
 }
+

@@ -26,4 +26,4 @@ RUN mkdir -p /var/lib/vexora/media && chown -R node:node /var/lib/vexora
 ENV AUTOMATION_MEDIA_PATH=/var/lib/vexora/media
 USER node
 EXPOSE 3001
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node scripts/cleanup-retired-marketing.cjs && node dist/main.js"]
+CMD ["sh", "-c", "node scripts/cleanup-retired-marketing.cjs && node dist/main.js"]

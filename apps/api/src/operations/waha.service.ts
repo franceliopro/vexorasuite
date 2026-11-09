@@ -95,6 +95,26 @@ export class WahaService {
     }
   }
 
+  /** Resolve o telefone real quando o WhatsApp entrega um identificador @lid.
+   * A consulta é pontual, não faz sincronização de contatos nem de histórico. */
+  async resolveContactPhone(channel: ChannelConnection, chatId: string): Promise<string | null> {
+    const direct = chatId.match(/^(\d{8,18})@c\.us$/)?.[1];
+    if (direct) return direct;
+    if (!/^\d{8,18}@lid$/.test(chatId)) return null;
+    try {
+      const response = await this.request(
+        `/api/${encodeURIComponent(channel.sessionName)}/lids/${encodeURIComponent(chatId)}`,
+        { redirect: "error" },
+      );
+      if (!response.ok) return null;
+      const payload = await response.json().catch(() => ({})) as { pn?: unknown };
+      const phone = typeof payload.pn === "string" ? payload.pn.replace(/@c\.us$/i, "").replace(/\D/g, "") : "";
+      return /^\d{8,18}$/.test(phone) ? phone : null;
+    } catch {
+      return null;
+    }
+  }
+
   async contactPhoto(channel:ChannelConnection,chatId:string):Promise<Buffer|null>{
     if(!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId))return null;
     try{
@@ -178,8 +198,60 @@ export class WahaService {
     const result = await response.json().catch(() => ({})) as { id?: string | { _serialized?: string } };
     return typeof result.id === "string" ? result.id : result.id?._serialized || null;
   }
- /** Download only the gateway's authenticated file path; never request a webhook-supplied host. */
- async incomingAudio(channel:ChannelConnection,raw:string):Promise<{buffer:Buffer;mimetype:string}>{const {baseUrl}=this.config();let url:URL;try{url=new URL(raw,baseUrl+'/')}catch{throw new BadGatewayException('Áudio indisponível.');}if(!/^\/api\/files\//.test(url.pathname)||url.username||url.password||url.search||url.hash)throw new BadGatewayException('Caminho de áudio inválido.');const response=await this.request(url.pathname,{redirect:'error'});const mime=(response.headers.get('content-type')||'').split(';')[0]!;if(!response.ok||!mime.startsWith('audio/')||Number(response.headers.get('content-length')||0)>12*1024*1024)throw new BadGatewayException('Áudio indisponível ou acima do limite.');const reader=response.body?.getReader();if(!reader)throw new BadGatewayException('Áudio vazio.');const chunks:Buffer[]=[];let size=0;try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>12*1024*1024)throw new BadGatewayException('Áudio acima do limite.');chunks.push(Buffer.from(part.value));}}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}return {buffer:Buffer.concat(chunks),mimetype:mime};}
+ /** Download only an authenticated WAHA file path. Webhook URLs are never fetched directly by the browser. */
+ async downloadMedia(channel: ChannelConnection, raw: string, maxBytes = 25 * 1024 * 1024): Promise<{ buffer: Buffer; mimetype: string }> {
+   const { baseUrl } = this.config();
+   let url: URL;
+   try { url = new URL(raw, baseUrl + "/"); } catch { throw new BadGatewayException("Mídia indisponível."); }
+   if (!/^\/api\/files\//.test(url.pathname) || url.username || url.password || url.search || url.hash) {
+     throw new BadGatewayException("Caminho de mídia inválido.");
+   }
+   const response = await this.request(url.pathname, { redirect: "error" });
+   if (!response) throw new BadGatewayException("Gateway de mídia indisponível.");
+   const mime = ((response.headers.get("content-type") || "application/octet-stream").split(";")[0] || "application/octet-stream").toLowerCase();
+   const declaredSize = Number(response.headers.get("content-length") || 0);
+   if (!response.ok || (!mime.startsWith("audio/") && !mime.startsWith("image/") && !mime.startsWith("video/") && !mime.startsWith("application/")) || declaredSize > maxBytes) {
+     throw new BadGatewayException("Mídia indisponível ou acima do limite.");
+   }
+   const reader = response.body?.getReader();
+   if (!reader) throw new BadGatewayException("Mídia vazia.");
+   const chunks: Buffer[] = [];
+   let size = 0;
+   try {
+     for (;;) {
+       const part = await reader.read();
+       if (part.done) break;
+       size += part.value.length;
+       if (size > maxBytes) throw new BadGatewayException("Mídia acima do limite.");
+       chunks.push(Buffer.from(part.value));
+     }
+   } finally {
+     await reader.cancel().catch(() => {});
+     reader.releaseLock();
+   }
+   return { buffer: Buffer.concat(chunks), mimetype: mime };
+ }
+
+ /** Last-resort recovery for a fresh event that did not include media.url.
+  * WAHA keeps this lookup local to the active session; it does not fetch old history. */
+ async recoverMessageMedia(channel: ChannelConnection, chatId: string, providerMessageId: string): Promise<{ buffer: Buffer; mimetype: string }> {
+   if (!chatId || !providerMessageId) throw new BadGatewayException("Mídia indisponível.");
+   const response = await this.request(
+     `/api/${encodeURIComponent(channel.sessionName)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(providerMessageId)}?downloadMedia=true`,
+     { redirect: "error" },
+   );
+   if (!response.ok) throw new BadGatewayException("Não foi possível recuperar a mídia no WhatsApp.");
+   const payload = await response.json().catch(() => ({})) as { media?: { url?: unknown } };
+   const raw = typeof payload.media?.url === "string" ? payload.media.url : "";
+   if (!raw) throw new BadGatewayException("O WhatsApp não disponibilizou esta mídia.");
+   return this.downloadMedia(channel, raw);
+ }
+
+ async incomingAudio(channel: ChannelConnection, raw: string): Promise<{ buffer: Buffer; mimetype: string }> {
+   const media = await this.downloadMedia(channel, raw, 12 * 1024 * 1024);
+   if (!media.mimetype.startsWith("audio/")) throw new BadGatewayException("Áudio indisponível.");
+   return media;
+ }
  async sendVoice(channel:ChannelConnection,chatId:string,buffer:Buffer):Promise<string|null>{if(!buffer.length||buffer.length>12*1024*1024)throw new BadGatewayException('Áudio inválido.');const response=await this.request('/api/sendVoice',{method:'POST',body:JSON.stringify({session:channel.sessionName,chatId,file:{mimetype:'audio/mpeg',data:buffer.toString('base64'),filename:'resposta.mp3'},convert:true})});if(!response.ok)throw new BadGatewayException('Não foi possível confirmar o áudio.');const result=await response.json() as any;return typeof result.id==='string'?result.id:result.id?._serialized||null;}
 
   private async sendPayload(path: string, payload: Record<string, unknown>): Promise<string | null> {

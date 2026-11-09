@@ -1,5 +1,4 @@
 "use client";
-import { formatDateTimeBR } from "../lib/date-format";
 import {PresentationHome} from "./presentation-home";
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
@@ -7,10 +6,13 @@ import { SettingsCatalog } from "./settings-catalog";
 import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
-import { brandTextColor } from "../lib/tenant-cache";
+import { applyBrandTheme } from "../lib/brand-theme";
+import { applyThemeColor } from "../lib/theme-color";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
+const WebAssetsWorkspace=dynamic(()=>import("./web-assets-workspace").then(module=>module.WebAssetsWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 
 import { WorkspaceAlerts } from "./workspace-alerts";
+import { OverviewIntelligence, type OverviewSnapshot } from "./overview-intelligence";
 import { SidebarProfile } from "./sidebar-profile";
 const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
 import { useEffect, useRef, useState } from "react";
@@ -40,6 +42,9 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Marketing":()=>import("./creative-library-workspace"),
   "Referências criativas":()=>import("./creative-library-workspace"),
   "Google Drive":()=>import("./creative-library-workspace"),
+  "Sites":()=>import("./web-assets-workspace"),
+  "Landing Pages":()=>import("./web-assets-workspace"),
+  "Formulários":()=>import("./web-assets-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
   "Gestão":()=>import("./finance-workspace"),
   "Canais e integrações":()=>import("./channels-integrations"),
@@ -78,7 +83,6 @@ import {
   Plus,
   ArrowRight,
   ArrowUpRight,
-  LayoutGrid,
 } from "lucide-react";
 
 const iconMap = {
@@ -111,7 +115,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }, { label: "Sites", icon: "share" }, { label: "Landing Pages", icon: "layout-dashboard" }, { label: "Formulários", icon: "tasks" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações", icon: "share" }] }, { label: "Configurações", icon: "settings" }] },
@@ -119,21 +123,14 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
   automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
-  marketing: [{ label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }],
+  marketing: [{ label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }, { label: "Sites", target: "Sites" }, { label: "Landing Pages", target: "Landing Pages" }, { label: "Formulários", target: "Formulários" }],
   connections: [{ label: "Conexões", target: "Canais e integrações" }],
 };
 const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de IA"].includes(value)
   ? "automation"
-  : ["Criações", "Referências criativas", "Google Drive"].includes(value)
+  : ["Criações", "Referências criativas", "Google Drive", "Sites", "Landing Pages", "Formulários"].includes(value)
     ? "marketing"
     : value === "Canais e integrações" ? "connections" : null;
-
-const metrics = [
-  { key:"openConversations",label: "Conversas abertas", value: "—", note: "Abertas e pendentes, conforme suas permissões", icon: "messages" },
-  { key:"contacts",label: "Contatos", value: "—", note: "Cadastros desta empresa", icon: "users" },
-  { key:"activeAgents",label: "Agentes ativos", value: "—", note: "Agentes habilitados na configuração", icon: "sparkles" },
-  { key:"completedConversations",label: "Atendimentos finalizados", value: "—", note: "Total atual, conforme suas permissões", icon: "chart-no-axes-combined" },
-] as const;
 
 export default function HomePage() {
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
@@ -179,13 +176,20 @@ export default function HomePage() {
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [active, navigationReady]);
   useEffect(()=>{try{localStorage.removeItem("vexora:quick-replies");localStorage.removeItem("vexora-chatbot-rastreabem-draft-v2")}catch{}},[]);
-  const [overview,setOverview]=useState<{openConversations:number;contacts:number;activeAgents:number;completedConversations:number;recent:{id:string;status:string;updatedAt:string;contact:{name:string}}[]}|null>(null);
+  const [overview,setOverview]=useState<OverviewSnapshot|null>(null);
   const [overviewError,setOverviewError]=useState("");
   useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível atualizar os indicadores.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== "undefined" && window.innerWidth < 981);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 980px)");
+    const update = () => setSidebarCollapsed(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
   useEffect(() => {
@@ -216,9 +220,9 @@ export default function HomePage() {
   const [brandAssets,setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);
   const [greeting,setGreeting] = useState("Bom dia");
   useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if(saved==="dark"||saved==="hybrid"||saved==="light")setTheme(saved); } catch {} finally{setThemeReady(true)} }, []);
-  useEffect(() => { if(!themeReady)return; document.documentElement.dataset.theme = theme; try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme,themeReady]);
+  useEffect(() => { if(!themeReady)return; document.documentElement.dataset.theme = theme; applyThemeColor(theme); try { localStorage.setItem("vexora:theme", theme); } catch {} }, [theme,themeReady]);
   useEffect(() => { const updateGreeting=()=>{const hour=new Date().getHours();setGreeting(hour>=5&&hour<12?"Bom dia":hour>=12&&hour<18?"Boa tarde":hour>=18?"Boa noite":"Boa madrugada");};updateGreeting();const timer=window.setInterval(updateGreeting,60000);return()=>window.clearInterval(timer); }, []);
-  useEffect(() => { if (!session||session.user.mustChangePassword) return; let live=true; const apply=(v:any)=>{if(!live||!v)return;const next={...defaultBrandAssets,...v};if(!/^#[0-9a-fA-F]{6}$/.test(next.primaryColor))next.primaryColor=defaultBrandAssets.primaryColor;setBrandAssets(next);document.documentElement.style.setProperty("--primary",next.primaryColor);const hex=next.primaryColor.slice(1);const rgb={r:parseInt(hex.slice(0,2),16),g:parseInt(hex.slice(2,4),16),b:parseInt(hex.slice(4,6),16)};const luminance=(0.2126*rgb.r+0.7152*rgb.g+0.0722*rgb.b)/255;document.documentElement.style.setProperty("--primary-contrast",brandTextColor(next.primaryColor));document.documentElement.style.setProperty("--primary-soft",`color-mix(in srgb, ${next.primaryColor} 13%, var(--card))`);if(next.favicon){let link=document.querySelector<HTMLLinkElement>('link[rel~="icon"]');if(!link){link=document.createElement("link");link.rel="icon";document.head.appendChild(link);}link.href=next.favicon;}};void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(apply).catch(()=>{});const onBrandUpdate=(event:Event)=>apply((event as CustomEvent).detail);window.addEventListener("vexora:brand-updated",onBrandUpdate);return()=>{live=false;window.removeEventListener("vexora:brand-updated",onBrandUpdate);}; }, [session?.tenant.slug]);
+  useEffect(() => { if (!session||session.user.mustChangePassword) return; let live=true; const apply=(v:any)=>{if(!live||!v)return;const next={...defaultBrandAssets,...v};if(!/^#[0-9a-fA-F]{6}$/.test(next.primaryColor))next.primaryColor=defaultBrandAssets.primaryColor;setBrandAssets(next);applyBrandTheme(next.primaryColor);if(next.favicon){let link=document.querySelector<HTMLLinkElement>('link[rel~="icon"]');if(!link){link=document.createElement("link");link.rel="icon";document.head.appendChild(link);}link.href=next.favicon;}};void fetch("/api/backend/contacts/brand-settings",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(apply).catch(()=>{});const onBrandUpdate=(event:Event)=>apply((event as CustomEvent).detail);window.addEventListener("vexora:brand-updated",onBrandUpdate);return()=>{live=false;window.removeEventListener("vexora:brand-updated",onBrandUpdate);}; }, [session?.tenant.slug]);
   useEffect(()=>{if(!assistantOpen)return;const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape")setAssistantOpen(false)};const outside=(e:MouseEvent)=>{if(e.target instanceof Element&&!e.target.closest(".ai-assistant-panel,.ai-assistant-trigger"))setAssistantOpen(false)};document.addEventListener("keydown",onKey);document.addEventListener("mousedown",outside);return()=>{document.removeEventListener("keydown",onKey);document.removeEventListener("mousedown",outside)}},[assistantOpen]);
   const [globalSearch,setGlobalSearch]=useState("");
   const [crmSearch,setCrmSearch]=useState("");
@@ -236,7 +240,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'MARKETING','Landing Pages':'MARKETING','Formulários':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
@@ -256,7 +260,7 @@ export default function HomePage() {
   if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
   return (
     <div className={"suite-app"+(presentationHome?" home-mode":"")}>
-      <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`}>
+      <aside id="mobile-navigation-menu" className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("");setMenuOpen(false); }}>
           {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+((theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?"has-custom-logo ":"")+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
@@ -276,19 +280,22 @@ export default function HomePage() {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
                       } else {
-                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false); setSidebarCollapsed(true);
+                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
                       }
                     }}>
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); setSidebarCollapsed(true); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
           })}
         </nav>
         <div className="sidebar-bottom">
+          <button type="button" className="sidebar-collapse" aria-label={sidebarCollapsed ? "Expansir menu" : "Recolher menu"} onClick={() => setSidebarCollapsed(v => !v)}>
+            {sidebarCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}
+          </button>
           <div className="sidebar-utilities"><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button><details className="sidebar-help"><summary className="sidebar-icon" aria-label="Ajuda" title="Ajuda"><CircleHelp size={18}/></summary><div><strong>Precisa de ajuda?</strong><p>Consulte as configurações dos canais ou peça orientação no assistente Véxora.</p><button className="text-button" onClick={()=>setAssistantOpen(true)}>Abrir assistente</button></div></details></div>
           {session&&<SidebarProfile user={session.user} canManage={canManage&&moduleVisible("Atendentes")} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
         </div>
@@ -297,7 +304,7 @@ export default function HomePage() {
 
       <main className="main-area">
         <header className="topbar">
-          <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu"><Menu size={20} aria-hidden="true" /></button>
+          <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
           <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className="crumb-slash">/</span><strong>{active}</strong></>}</div>
           <div className="topbar-actions">
             {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
@@ -320,27 +327,15 @@ export default function HomePage() {
 
           {presentationHome?<PresentationHome key={session?.tenant.id}/>:!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p></section>:isOverview ? (
             <>
-              {overviewError&&<p role="status">{overviewError}</p>}<section className="metrics-grid" aria-label="Indicadores da operação">
-                {metrics.map((metric) => <article className="metric-card" key={metric.label}><div className="metric-top"><span>{metric.label}</span><span className="metric-icon"><Icon name={metric.icon} size={17} /></span></div><strong className="metric-value">{overview?overview[metric.key].toLocaleString("pt-BR"):metric.value}</strong><p>{metric.note}</p></article>)}
-              </section>
-              <section className="overview-insights" aria-label="Resumo visual da operação">
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Status da operação</h2><p>Distribuição dos atendimentos atuais</p></div></div><div className="donut-chart donut-open"><strong>{overview?.openConversations ?? "—"}</strong><small>abertas</small></div><div className="chart-legend"><span><i className="legend-dot open"/>Abertas</span><span><i className="legend-dot done"/>Finalizadas</span></div></article>
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Capacidade</h2><p>Contatos e agentes habilitados</p></div></div><div className="bar-chart"><div><span>Contatos</span><b><i style={{width: overview ? `${Math.min(100, Math.max(8, overview.contacts))}%` : "8%"}}/></b><strong>{overview?.contacts ?? "—"}</strong></div><div><span>Agentes</span><b><i className="bar-agents" style={{width: overview ? `${Math.min(100, Math.max(8, overview.activeAgents * 12))}%` : "8%"}}/></b><strong>{overview?.activeAgents ?? "—"}</strong></div></div></article>
-                <article className="content-card insight-chart-card"><div className="card-heading"><div><h2>Atividade recente</h2><p>Volume finalizado e aberto</p></div></div><div className="mini-stat-row"><div><strong>{overview?.completedConversations ?? "—"}</strong><span>finalizados</span></div><div><strong>{overview?.openConversations ?? "—"}</strong><span>em andamento</span></div></div><button className="secondary-button" onClick={() => setActive("Atendimento")}>Abrir atendimento <ArrowRight size={15} aria-hidden="true" /></button></article>
-              </section>
-              <section className="dashboard-grid">
-                <article className="content-card activity-card">
-                  <div className="card-heading"><div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div><button className="text-button" onClick={() => setActive("Atendimento")}>Ver atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>
-                  {overview?.recent.length?<ul className="overview-recent">{overview.recent.map(item=><li key={item.id}><strong>{item.contact.name}</strong><span>{({OPEN:"Aberto",PENDING:"Pendente",RESOLVED:"Finalizado",CLOSED:"Concluído"} as Record<string,string>)[item.status]||item.status}</span><small>{formatDateTimeBR(item.updatedAt)}</small></li>)}</ul>:<div className="empty-state"><span className="empty-illustration"><span><LayoutGrid size={26} aria-hidden="true" /></span><i><Sparkles size={13} aria-hidden="true" /></i></span><h3>Sua operação começa aqui</h3><p>Os atendimentos desta empresa aparecerão aqui conforme suas permissões.</p><button className="secondary-button" onClick={() => setActive("Atendimento")}>Conhecer atendimento <ArrowRight size={15} aria-hidden="true" /></button></div>}
-                </article>
-                <article className="content-card shortcuts-card">
+              {overviewError&&!overview&&<p role="status">{overviewError}</p>}
+              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} shortcuts={
+                <article className="content-card vx-access-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
-                  <div className="shortcut-list">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",target:"Marketing"}].map((item) => <button className="shortcut-item" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className="shortcut-icon"><Icon name={item.icon as keyof typeof iconMap} size={18} /></span><span className="shortcut-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><span className="shortcut-arrow"><ArrowUpRight size={15} aria-hidden="true" /></span></button>)}
+                  <div className="vx-access-grid">
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"green",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
                   </div>
                 </article>
-              </section>
-              <section className="bottom-note"><span className="note-icon">i</span><p><strong>Dados reais:</strong> os indicadores refletem o estado atual da sua empresa. Consulte a Inteligência Operacional para comparar períodos.</p></section>
+              } />
             </>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
@@ -356,6 +351,8 @@ export default function HomePage() {
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+          ) : active === "Sites" || active === "Landing Pages" || active === "Formulários" ? (
+            canManage ? <WebAssetsWorkspace key={active} kind={active==="Sites"?"SITE":active==="Landing Pages"?"LANDING":"FORM"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar sites, landing pages e formulários.</p></section>
           ) : active === "Atendentes" ? (
             canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true}/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (
@@ -385,7 +382,7 @@ export default function HomePage() {
         <button type="button" className={presentationHome ? "active" : ""} onClick={() => { setActive(""); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Início</span></button>
         <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>
         <button type="button" className={active === "CRM" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("CRM")} onFocus={()=>preloadWorkspace("CRM")} onClick={() => { preloadWorkspace("CRM");setActive("CRM"); setMenuOpen(false); }}><Icon name="users" size={20}/><span>CRM</span></button>
-        <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen}><Icon name="more" size={20}/><span>Mais</span></button>
+        <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20}/><span>Mais</span></button>
       </nav>
     </div>
   );

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
 type DistributionStrategy = "QUEUE" | "ROUND_ROBIN" | "LOAD" | "PRIORITY";
+const object = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 
 @Injectable()
 export class ConversationDistributionService {
@@ -17,6 +18,10 @@ export class ConversationDistributionService {
         ? integrations.distributionSettings as Record<string, unknown>
         : {};
       if (settings.enabled !== true) return null;
+
+      // Serializa decisões por departamento para que duas mensagens simultâneas não
+      // escolham o mesmo cursor de rodízio antes de uma delas confirmar a atribuição.
+      await tx.$queryRaw`SELECT id FROM departments WHERE id=${departmentId}::uuid AND tenant_id=${tenantId}::uuid FOR UPDATE`;
 
       const department = await tx.department.findFirst({
         where: { id: departmentId, tenantId, isActive: true },
@@ -58,16 +63,31 @@ export class ConversationDistributionService {
 
       let selected: string;
       if (strategy === "ROUND_ROBIN") {
-        const previous = await tx.conversation.findFirst({
-          where: { tenantId, departmentId, assigneeId: { in: memberIds } },
-          orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-          select: { assigneeId: true },
+        const recentAssignments = await tx.auditLog.findMany({
+          where: { tenantId, action: "conversation.distribution.assigned", entityType: "conversation" },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          select: { details: true },
         });
-        const previousIndex = previous?.assigneeId ? memberIds.indexOf(previous.assigneeId) : -1;
-        selected = eligible.find((id) => memberIds.indexOf(id) > previousIndex) || eligible[0]!;
+        const previousAssignment = recentAssignments
+          .map((row) => object(row.details))
+          .find((details) => details.departmentId === departmentId && typeof details.assigneeId === "string");
+        const previousAssignee = typeof previousAssignment?.assigneeId === "string" ? previousAssignment.assigneeId : null;
+        if (!previousAssignee) {
+          const previous = await tx.conversation.findFirst({
+            where: { tenantId, departmentId, assigneeId: { in: memberIds } },
+            orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+            select: { assigneeId: true },
+          });
+          const previousIndex = previous?.assigneeId ? memberIds.indexOf(previous.assigneeId) : -1;
+          selected = eligible.find((id) => memberIds.indexOf(id) > previousIndex) || eligible[0]!;
+        } else {
+          const previousIndex = memberIds.indexOf(previousAssignee);
+          selected = eligible.find((id) => memberIds.indexOf(id) > previousIndex) || eligible[0]!;
+        }
       } else {
-        // LOAD and PRIORITY both protect capacity; priority is applied by the caller's
-        // ordered handoff and uses load as the deterministic tie-breaker here.
+        // LOAD e PRIORITY protegem a capacidade; a prioridade mantém o desempate
+        // determinístico por carga até existir uma ordem de prioridade por atendente.
         selected = [...eligible].sort((a, b) => (counts.get(a) || 0) - (counts.get(b) || 0) || a.localeCompare(b))[0]!;
       }
 
@@ -83,7 +103,17 @@ export class ConversationDistributionService {
         },
         data: { assigneeId: selected, handlingMode: "HUMAN" },
       });
-      return updated.count ? selected : null;
+      if (!updated.count) return null;
+      await tx.auditLog.create({
+        data: {
+          tenantId,
+          action: "conversation.distribution.assigned",
+          entityType: "conversation",
+          entityId: conversationId,
+          details: { departmentId, assigneeId: selected, strategy },
+        },
+      });
+      return selected;
     });
   }
 }

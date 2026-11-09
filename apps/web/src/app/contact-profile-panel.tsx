@@ -68,7 +68,7 @@ type Procedure = { id: string; title: string; description: string; status: strin
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || "Não foi possível salvar a ficha.");
+  if (!response.ok) throw new Error(data.message || "Não foi possível salvar a ficha agora. Tente novamente; se o problema continuar, avise a administração.");
   return data as T;
 }
 export function ContactProfilePanel({
@@ -293,7 +293,7 @@ export function ContactProfilePanel({
         }),
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao salvar ficha.");
+      setError(e instanceof Error ? e.message : "Não foi possível salvar a ficha agora. Suas alterações continuam nesta tela; toque em Salvar ficha novamente.");
     } finally {
       setSaving(false);
     }

@@ -33,7 +33,7 @@ test("inbox separates loading states from empty states", () => {
 
 test("conversation load failures stop loading and expose a retry", () => {
   assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
-  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Falha ao carregar conversas\."\)/);
+  assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Não foi possível atualizar as conversas\./);
   assert.match(source, /className="inbox-list-error" role="alert"/);
   assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
 });

@@ -905,6 +905,7 @@ details>summary:hover{color:var(--tx)}
 .composer-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:0;border-radius:99px;background:transparent;font-size:12px;font-weight:700;color:var(--tx2);cursor:pointer;transition:background .15s,color .15s}
 .composer-tabs button:hover{color:var(--tx);background:var(--s2)}
 .composer-tabs button.active{background:var(--primary-soft);color:var(--primary-ink)}
+.inbox-workspace .inbox-composer.composer-is-note .composer-tabs button.active{background:color-mix(in srgb,#F7D774 46%,var(--s1));color:color-mix(in srgb,#553803 82%,var(--tx))}
 .inbox-workspace .inbox-composer.composer-is-note { background: color-mix(in srgb, #F7D774 22%, var(--s1)) !important; border: 1.5px dashed color-mix(in srgb, #E8B93B 55%, transparent) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5) !important; }
 
 .ai-message-foot{display:flex;align-items:center;gap:6px;padding:4px 14px 0;font-size:10.5px;color:var(--tx2)}

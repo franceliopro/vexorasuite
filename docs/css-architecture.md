@@ -22,7 +22,7 @@ Em 2026-11-09 removemos integralmente `modules.css`. Auditoria empírica:
 3. O render visual seguia idêntico (sidebar grafite, inbox funcionando, ficha do cliente normal).
 4. O arquivo representava 262 KB de CSS morto — removido sem perda funcional.
 
-O `vexora-design-system.css` e o `globals.css` já tinham sido removidos anteriormente.
+Também em 2026-11-09 confirmamos que `globals.css` e `vexora-design-system.css` (que nunca eram importados por `layout.tsx`) ainda estavam rastreados no repositório. A remoção foi concluída em PR #483: ~3600 e ~2650 linhas de CSS morto eliminadas, sem impacto no build ou na renderização. Nenhum arquivo de estilo permanece no repositório além de `vexora.css`, `vexora-night.css` (experimento noturno, não importado).
 
 ## Como estruturar a folha `vexora.css`
 

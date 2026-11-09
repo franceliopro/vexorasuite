@@ -1783,3 +1783,33 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .workflow-node-trigger small{font-size:11px;opacity:.85}
 
 @media (max-width:1080px){.tasks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ===== Marketing · premium ===== */
+.marketing-creation-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:var(--gap);align-items:start}
+.marketing-composer{display:grid;gap:12px;align-content:start;padding:var(--pad)}
+.marketing-composer label{display:grid;gap:6px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.marketing-composer label input,.marketing-composer label textarea,.marketing-composer label select{min-height:38px;padding:0 12px;border:1px solid var(--ln);border-radius:10px;background:var(--s2);font:500 13px var(--font-body);color:var(--tx)}
+.marketing-composer label textarea{min-height:150px;padding:10px 12px;resize:vertical}
+.marketing-composer fieldset{display:grid;gap:10px;min-width:0;padding:13px 14px;border:1px solid var(--ln);border-radius:13px}
+.marketing-composer fieldset legend{padding:0 8px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--tx2)}
+.marketing-drive-picker-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.marketing-drafts{display:grid;gap:12px;align-content:start;padding:var(--pad)}
+.marketing-draft-row{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--ln);border-radius:14px;background:var(--s2)}
+.marketing-draft-row>div:first-child{display:grid;gap:3px;min-width:0}
+.marketing-draft-row strong{font-size:13px;line-height:1.35;letter-spacing:-.005em}
+.marketing-draft-row small{font-size:11px;color:var(--tx2);line-height:1.45}
+.marketing-draft-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--ln)}
+.marketing-draft-actions .primary-button{min-height:32px;padding:0 13px;font-size:11px}
+.marketing-draft-actions .secondary-button{min-height:32px;padding:0 12px;font-size:11px}
+.marketing-draft-actions .text-button{min-height:32px;font-size:11px}
+.workspace-section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.workspace-section-heading h2{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.workspace-section-heading p{font-size:11.5px;color:var(--tx2);margin-top:2px}
+.status-pill.muted{background:var(--s3);color:var(--tx2);box-shadow:none}
+.creative-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.creative-heading h1{font-size:clamp(26px,2.3vw,34px);letter-spacing:-.03em}
+.creative-workspace .creative-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}
+.creative-reference{display:grid;gap:8px;overflow:hidden}
+.creative-preview{display:grid;place-items:center;min-height:150px;border-radius:12px;background:var(--s2);color:var(--tx2);overflow:hidden}
+.creative-preview img,.creative-preview video{width:100%;height:150px;object-fit:cover}
+@media (max-width:1120px){.marketing-creation-grid{grid-template-columns:1fr}}

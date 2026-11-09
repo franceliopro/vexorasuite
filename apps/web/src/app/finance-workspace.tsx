@@ -3,19 +3,30 @@ import { useEffect, useState } from "react";
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  Banknote,
+  CheckCircle2,
+  Clock3,
+  History,
+  LayoutDashboard,
+  Receipt,
   RefreshCcw,
+  Repeat2,
+  Sparkles,
   Wallet,
+  Workflow,
   X,
+  Zap,
 } from "lucide-react";
-type Dashboard = { source:string;partial:boolean;caveat:string;environment:string[];months:number;totals:{billed:number;paid:number;open:number;count:number};series:{month:string;billed:number;paid:number;open:number}[];outstandingContacts:number;collectionRate:number|null };
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateBR = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split("-").reverse().join("/") : value;
 const statusBR:Record<string,string>={PENDING:"Pendente",OVERDUE:"Vencido",RECEIVED:"Recebido",CONFIRMED:"Confirmado",RECEIVED_IN_CASH:"Recebido em dinheiro",REFUNDED:"Estornado",CANCELLED:"Cancelado",CHARGEBACK_REQUESTED:"Contestação solicitada",CHARGEBACK_DISPUTE:"Em contestação"};
 
 type PortfolioItem = { id:string;customerId:string;customerName?:string|null;customerDocument?:string|null;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null;invoiceUrl?:string|null };
 type Portfolio = {source:string;environment:string;items:PortfolioItem[];hasMore:boolean;offset:number;totalCount:number|null};
-function PortfolioView(){
- const [status,setStatus]=useState("");
+function PortfolioView({initialStatus=""}:{initialStatus?:string}={}){
+ const [status,setStatus]=useState(initialStatus);useEffect(()=>{setStatus(initialStatus);setOffset(0)},[initialStatus]);
  const [dueFrom,setDueFrom]=useState("");
  const [dueTo,setDueTo]=useState("");
  const [offset,setOffset]=useState(0);
@@ -88,18 +99,63 @@ function FinanceAsaasListing({kind}:{kind:"subscriptions"|"detached"}){
 }
 
 type Executive={source:string;environment:string;partial:boolean;from:string;to:string;months:number;totals:{billed:number;paid:number;open:number;overdue:number;count:number;overdueCount:number;customers:number};collectionRate:number|null;series:{month:string;billed:number;paid:number;open:number;overdue:number}[];byStatus:{status:string;count:number;amount:number}[];byBillingType:{type:string;count:number;amount:number}[]};
-function ExecutiveOverview(){
+function ExecutiveOverview({onOpenCharges}:{onOpenCharges:(status:string)=>void}){
  const [months,setMonths]=useState(6),[rangeMode,setRangeMode]=useState<"preset"|"all"|"custom">("preset"),[from,setFrom]=useState(""),[to,setTo]=useState(""),[appliedRange,setAppliedRange]=useState<{from:string;to:string}|null>(null),[rangeError,setRangeError]=useState(""),[data,setData]=useState<Executive|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(""),[refresh,setRefresh]=useState(0);
  useEffect(()=>{let live=true;setLoading(true);setError("");fetch("/api/backend/finance/executive?"+new URLSearchParams(rangeMode==="all"?{months:String(months),all:"true"}:rangeMode==="custom"&&appliedRange?{months:String(months),from:appliedRange.from,to:appliedRange.to}:{months:String(months)}),{cache:"no-store"}).then(async r=>{const v=await r.json();if(!r.ok)throw Error(v.message||"Falha na consulta ao Asaas.");return v as Executive}).then(v=>{if(live)setData(v)}).catch(e=>{if(live){setData(null);setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[months,rangeMode,appliedRange,refresh]);
- const max=Math.max(1,...(data?.series||[]).map(s=>s.billed)),totalStatus=(data?.byStatus||[]).reduce((a,s)=>a+s.amount,0);
- return <div className="finance-executive"><div className="finance-executive-toolbar"><div><strong>Raio-X financeiro</strong><small>{data?data.environment+" · Vencimentos "+dateBR(data.from)+" a "+dateBR(data.to):"Indicadores em tempo real do Asaas"}</small></div><form className="finance-executive-actions" onSubmit={e=>{e.preventDefault();if(rangeMode==="custom"){if(!from||!to||from>to){setRangeError("Informe um intervalo válido.");return;}setAppliedRange({from,to});setRangeError("");setRefresh(n=>n+1)}}}><select aria-label="Período do dashboard" value={rangeMode==="all"?"all":rangeMode==="custom"?"custom":String(months)} onChange={e=>{const value=e.target.value;if(value==="all")setRangeMode("all");else if(value==="custom"){if(!from){const d=new Date();setFrom(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)).toISOString().slice(0,10));setTo(d.toISOString().slice(0,10));}setRangeMode("custom");setAppliedRange(null)}else{setMonths(Number(value));setRangeMode("preset")}}}><option value="all">Todo o período</option><option value="custom">Personalizado</option>{[1,3,6,12].map(n=><option value={String(n)} key={n}>{n===1?"Mês atual":n+" meses"}</option>)}</select>{rangeMode==="custom"?<><label>De <input type="date" value={from} max={to||undefined} onChange={e=>{setFrom(e.target.value);setRangeError("")}}/></label><label>Até <input type="date" value={to} min={from||undefined} onChange={e=>{setTo(e.target.value);setRangeError("")}}/></label><button type="button" className="primary-button" onClick={()=>{if(!from||!to||from>to){setRangeError("Informe um intervalo válido.");return;}setAppliedRange({from,to});setRangeError("");setRefresh(n=>n+1)}}>Aplicar período</button></>:null}<button type="button" className="secondary-button" onClick={()=>{if(rangeMode==="custom"&&(!appliedRange||from!==appliedRange.from||to!==appliedRange.to)){if(!from||!to||from>to){setRangeError("Informe um intervalo válido.");return;}setAppliedRange({from,to})}setRefresh(n=>n+1)}}><RefreshCcw size={15}/> Atualizar</button></form></div>
- {loading?<p role="status">Sincronizando indicadores com o Asaas…</p>:error?<div className="content-card finance-health-note" role="alert"><AlertCircle size={18}/>{error}</div>:data?<>{data.partial?<p role="alert">Consulta parcial: limite de 5.000 cobranças atingido. Indicadores não representam toda a carteira.</p>:null}<div className="finance-executive-metrics">{[{label:"Faturado",value:currency(data.totals.billed),tone:"blue"},{label:"Pago",value:currency(data.totals.paid),tone:"green"},{label:"Em aberto",value:currency(data.totals.open),tone:"indigo"},{label:"Vencido",value:currency(data.totals.overdue),tone:"red"},{label:"Inadimplência",value:data.totals.billed?(data.totals.overdue/data.totals.billed*100).toFixed(1)+"%":"—",tone:"purple"}].map(v=><article className={"content-card finance-executive-metric "+v.tone} key={v.label}><small>{v.label}</small><strong>{v.value}</strong></article>)}</div>
- <div className="finance-executive-grid"><section className="content-card finance-executive-panel finance-executive-wide"><h2>Competências em perspectiva</h2><p>Por vencimento · faturado, recebido e vencido</p>{data.totals.count===0?<div className="finance-executive-empty">Nenhuma cobrança com vencimento no período selecionado. Experimente ampliar as datas ou selecionar Todo o período.</div>:<div className="finance-executive-columns">{data.series.map(s=><div className="finance-executive-column" key={s.month}><div className="finance-executive-column-bars"><i style={{height:s.billed>0?Math.max(2,s.billed/max*100):0+"%"}} title={"Faturado "+currency(s.billed)}/><i style={{height:s.paid>0?Math.max(2,s.paid/max*100):0+"%"}} title={"Pago "+currency(s.paid)}/><i style={{height:s.overdue>0?Math.max(2,s.overdue/max*100):0+"%"}} title={"Vencido "+currency(s.overdue)}/></div><small>{s.month.length===4?s.month:s.month.slice(5)+"/"+s.month.slice(2,4)}</small></div>)}</div>}<div className="finance-executive-legend"><span>● Faturado</span><span>● Pago</span><span>● Vencido</span></div></section>
- <section className="content-card finance-executive-panel finance-status-panel"><h2>Saldo por situação</h2><p>Cada círculo mostra a participação sobre o faturado.</p>{data.totals.billed<=0?<div className="finance-executive-empty">Sem valores para comparar neste período.</div>:<div className="finance-status-donuts">{[{label:"Faturado",value:data.totals.billed,color:"#4f6ff2"},{label:"Pago",value:data.totals.paid,color:"#16a085"},{label:"Vencido",value:data.totals.overdue,color:"#e66b55"}].map(item=>{const percentage=Math.min(100,Math.max(0,item.value/data.totals.billed*100));return <article className="finance-status-donut-card" key={item.label}><div className="finance-status-donut" style={{background:`conic-gradient(${item.color} ${percentage}%, color-mix(in srgb, ${item.color} 12%, var(--card,#fff)) 0)`}}><span>{percentage.toFixed(0)}<small>%</small></span></div><strong>{item.label}</strong><b>{currency(item.value)}</b></article>})}</div>}</section>
- <section className="content-card finance-executive-panel"><h2>Distribuição da carteira</h2><p>Participação dos valores por situação</p><div className="finance-executive-donut" style={{background:totalStatus? "conic-gradient("+data.byStatus.slice(0,6).map((s,i)=>{const colors=["#3b70ee","#17aa8c","#ee8a61","#9664cb","#f0bd5a","#64748b"];const before=data.byStatus.slice(0,i).reduce((a,x)=>a+x.amount,0)/totalStatus*100;return colors[i]+" "+before+"% "+((before+s.amount/totalStatus*100))+"%"}).join(",")+")":"#e5e7eb"}}><span>{data.totals.count}<small>cobranças</small></span></div><div className="finance-executive-donut-legend">{data.byStatus.slice(0,6).map(s=><span key={s.status}>{statusBR[s.status]||s.status}: {s.count}</span>)}</div></section>
- <section className="content-card finance-executive-panel"><h2>Inteligência financeira</h2><p>Alertas da carteira no período</p><dl><div><dt>Cobranças vencidas</dt><dd>{data.totals.overdueCount}</dd></div><div><dt>Clientes com cobranças</dt><dd>{data.totals.customers}</dd></div><div><dt>Taxa de recebimento</dt><dd>{data.collectionRate===null?"—":data.collectionRate+"%"}</dd></div></dl><small>Indicadores calculados pelas cobranças do Asaas com vencimento no período selecionado.</small></section></div></>:null}</div>;
-}
+ const max=Math.max(1,...(data?.series||[]).map(s=>s.billed));
+ const totalStatus=(data?.byStatus||[]).reduce((a,s)=>a+s.amount,0);
+ const totalBilling=(data?.byBillingType||[]).reduce((a,b)=>a+b.amount,0);
+ const billed=data?.totals.billed||0;
+ const paidShare=billed>0?Math.round((data?.totals.paid||0)/billed*100):0;
+ const overdueShare=billed>0?Math.round((data?.totals.overdue||0)/billed*100):0;
+ const openShare=Math.max(0,100-paidShare-overdueShare);
+ const billingName=(v:string)=>(({BOLETO:"Boleto bancário",PIX:"Pix",CREDIT_CARD:"Cartão de crédito",UNDEFINED:"A definir"} as Record<string,string>)[v]||v);
+ const billingPalette:[string,string][]=[["#6366F1","#4338CA"],["#34D399","#0F9D6B"],["#FBBF24","#D97706"],["#F472B6","#BE185D"],["#38BDF8","#0369A1"],["#A78BFA","#6D28D9"]];
+ const insight=data?(data.totals.overdue>0?"Atenção: "+currency(data.totals.overdue)+" em "+data.totals.overdueCount+" cobranças vencidas — priorize a régua de cobrança antes de oferecer novos prazos.":"Nenhuma cobrança vencida no período — carteira em dia."):"";
+ return <div className="finance-executive">
+  <section className="finance-hero" aria-label="Resumo executivo financeiro">
+   <div className="finance-hero-copy">
+    <span className="finance-hero-eyebrow"><Sparkles size={13} aria-hidden="true"/> Raio-X financeiro{data?" · "+data.environment:""}</span>
+    <h2>O caixa decide o ritmo do negócio.</h2>
+    <p>{data?"Vencimentos de "+dateBR(data.from)+" a "+dateBR(data.to)+". Cada valor abaixo veio do Asaas — nada é estimado sem base.":"Sincronizando indicadores em tempo real com o Asaas…"}</p>
+    <div className="finance-hero-chips">
+     <button type="button" className="finance-hero-chip" onClick={()=>onOpenCharges("OVERDUE")}><AlertTriangle size={13} aria-hidden="true"/>{data?data.totals.overdueCount+" cobranças vencidas":"Vencidas"}<ArrowRight size={13} aria-hidden="true"/></button>
+     <button type="button" className="finance-hero-chip" onClick={()=>onOpenCharges("PENDING")}><Clock3 size={13} aria-hidden="true"/>{data?data.totals.count+" cobranças no período":"Em aberto"}<ArrowRight size={13} aria-hidden="true"/></button>
+     <span className="finance-hero-chip is-static"><Banknote size={13} aria-hidden="true"/>{data&&data.collectionRate!==null?data.collectionRate+"% de recebimento":"Recebimento —"}</span>
+    </div>
+   </div>
+   <div className="finance-hero-figure">
+    <span>Total faturado</span>
+    <strong>{data?currency(data.totals.billed):"—"}</strong>
+    <div className="finance-hero-bar" role="img" aria-label="Composição do faturado: pago, em aberto e vencido"><i className="seg-paid" style={{width:paidShare+"%"}}/><i className="seg-open" style={{width:openShare+"%"}}/><i className="seg-overdue" style={{width:overdueShare+"%"}}/></div>
+    <div className="finance-hero-legend"><span><i className="dot paid"/>Pago · {paidShare}%</span><span><i className="dot open"/>Em aberto · {openShare}%</span><span><i className="dot overdue"/>Vencido · {overdueShare}%</span></div>
+   </div>
+  </section>
 
+  <div className="finance-period-bar">
+   <div className="finance-period-chips" role="group" aria-label="Período do dashboard">{[1,3,6,12].map(n=><button type="button" key={n} className={rangeMode==="preset"&&months===n?"active":""} onClick={()=>{setMonths(n);setRangeMode("preset")}}>{n===1?"Mês atual":n+" meses"}</button>)}<button type="button" className={rangeMode==="all"?"active":""} onClick={()=>setRangeMode("all")}>Tudo</button><button type="button" className={rangeMode==="custom"?"active":""} onClick={()=>{if(!from){const d=new Date();setFrom(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)).toISOString().slice(0,10));setTo(d.toISOString().slice(0,10));}setRangeMode("custom");setAppliedRange(null);setRangeError("")}}>Personalizado</button></div>
+   {rangeMode==="custom"?<div className="finance-period-custom"><label>De<input type="date" value={from} max={to||undefined} onChange={e=>{setFrom(e.target.value);setRangeError("")}}/></label><label>Até<input type="date" value={to} min={from||undefined} onChange={e=>{setTo(e.target.value);setRangeError("")}}/></label><button type="button" className="primary-button" onClick={()=>{if(!from||!to||from>to){setRangeError("Informe um intervalo válido.");return;}setAppliedRange({from,to});setRangeError("");setRefresh(n=>n+1)}}>Aplicar período</button>{rangeError?<small role="alert">{rangeError}</small>:null}</div>:null}
+   <button type="button" className="secondary-button" onClick={()=>{if(rangeMode==="custom"&&(!appliedRange||from!==appliedRange.from||to!==appliedRange.to)){if(!from||!to||from>to){setRangeError("Informe um intervalo válido.");return;}setAppliedRange({from,to})}setRefresh(n=>n+1)}}><RefreshCcw size={15} aria-hidden="true"/> Atualizar</button>
+  </div>
+
+  {loading?<p role="status">Sincronizando indicadores com o Asaas…</p>:error?<div className="content-card finance-health-note" role="alert"><AlertCircle size={18}/>{error}</div>:data?<>
+   {data.partial?<p role="alert" className="finance-partial"><AlertTriangle size={15} aria-hidden="true"/> Consulta parcial: limite de 5.000 cobranças atingido. Indicadores não representam toda a carteira.</p>:null}
+   <div className="finance-executive-metrics">{[{id:"billed",icon:Banknote,label:"Faturado",value:currency(data.totals.billed),hint:"Vencimentos do período",tone:"blue",href:null},{id:"paid",icon:CheckCircle2,label:"Pago",value:currency(data.totals.paid),hint:"Confirmado no Asaas",tone:"green",href:null},{id:"open",icon:Clock3,label:"Em aberto",value:currency(data.totals.open),hint:"Aguardando recebimento",tone:"amber",href:"PENDING"},{id:"overdue",icon:AlertTriangle,label:"Vencido",value:currency(data.totals.overdue),hint:data.totals.overdueCount+" cobranças · ver Cobranças",tone:"red",href:"OVERDUE"},{id:"inadimplencia",icon:Activity,label:"Inadimplência",value:data.totals.billed?(data.totals.overdue/data.totals.billed*100).toFixed(1)+"%":"—",hint:"Vencido sobre faturado",tone:"purple",href:null}].map(item=>{const Icon=item.icon;const inner=<><span className="fin-metric-icon"><Icon size={18} aria-hidden="true"/></span><span className="fin-metric-body"><small>{item.label}</small><strong>{item.value}</strong><em>{item.hint}</em></span>{item.href?<ArrowRight size={15} aria-hidden="true" className="fin-metric-arrow"/>:null}</>;return item.href?<button type="button" key={item.id} className={"finance-executive-metric "+item.tone+" is-interactive"} onClick={()=>onOpenCharges(item.href as string)}>{inner}</button>:<article className={"finance-executive-metric "+item.tone} key={item.id}>{inner}</article>})}</div>
+
+   <div className="finance-executive-grid">
+    <section className="content-card finance-executive-panel finance-executive-wide"><h2>Competências em perspectiva</h2><p>Por vencimento · faturado, recebido e vencido</p>{data.totals.count===0?<div className="finance-executive-empty">Nenhuma cobrança com vencimento no período selecionado. Experimente ampliar as datas ou selecionar Todo o período.</div>:<div className="finance-executive-columns">{data.series.map(s=><div className="finance-executive-column" key={s.month}><div className="finance-executive-column-bars"><i className="bar-billed" style={{height:s.billed>0?Math.max(3,s.billed/max*100):0+"%"}} title={"Faturado "+currency(s.billed)}/><i className="bar-paid" style={{height:s.paid>0?Math.max(3,s.paid/max*100):0+"%"}} title={"Pago "+currency(s.paid)}/><i className="bar-overdue" style={{height:s.overdue>0?Math.max(3,s.overdue/max*100):0+"%"}} title={"Vencido "+currency(s.overdue)}/></div><small>{s.month.length===4?s.month:s.month.slice(5)+"/"+s.month.slice(2,4)}</small></div>)}</div>}<div className="finance-executive-legend"><span><i className="dot paid"/>Faturado</span><span><i className="dot open"/>Pago</span><span><i className="dot overdue"/>Vencido</span></div></section>
+
+    <section className="content-card finance-executive-panel finance-status-panel"><h2>Saldo por situação</h2><p>Cada anel mostra a participação sobre o faturado.</p>{data.totals.billed<=0?<div className="finance-executive-empty">Sem valores para comparar neste período.</div>:<div className="finance-status-donuts">{[{label:"Faturado",value:data.totals.billed,color:"#6366F1"},{label:"Pago",value:data.totals.paid,color:"#34D399"},{label:"Vencido",value:data.totals.overdue,color:"#FB7185"}].map(item=>{const percentage=Math.min(100,Math.max(0,item.value/Math.max(1,data.totals.billed)*100));return <article className="finance-status-donut-card" key={item.label}><div className="finance-status-donut" style={{background:"conic-gradient("+item.color+" "+percentage+"%, color-mix(in srgb, "+item.color+" 10%, var(--s2)) 0)"}}><span>{percentage.toFixed(0)}<small>%</small></span></div><strong>{item.label}</strong><b>{currency(item.value)}</b></article>})}</div>}</section>
+
+    <section className="content-card finance-executive-panel finance-billing-panel"><h2>Meios de pagamento</h2><p>Participação dos valores faturados por forma de pagamento</p>{data.byBillingType.length===0?<div className="finance-executive-empty">Nenhuma cobrança com meio de pagamento identificado neste período.</div>:<div className="finance-billing-bars">{[...data.byBillingType].sort((a,b)=>b.amount-a.amount).map((item,index)=>{const share=totalBilling>0?item.amount/totalBilling*100:0;const palette=billingPalette[index%billingPalette.length]??["#6366F1","#4338CA"];return <div className="finance-billing-row" key={item.type}><span className="finance-billing-label">{billingName(item.type)}</span><div className="finance-billing-track"><i style={{width:Math.max(3,share)+"%",background:"linear-gradient(90deg,"+palette[0]+","+palette[1]+")"}}/></div><span className="finance-billing-value"><strong>{share.toFixed(0)}%</strong><small>{item.count}x · {currency(item.amount)}</small></span></div>})}</div>}</section>
+
+    <section className="content-card finance-executive-panel"><h2>Distribuição da carteira</h2><p>Participação dos valores por situação</p><div className="finance-executive-donut" style={{background:totalStatus?"conic-gradient("+data.byStatus.slice(0,6).map((s,i)=>{const colors=["#6366F1","#34D399","#FB7185","#FBBF24","#F472B6","#64748B"];const before=data.byStatus.slice(0,i).reduce((a,x)=>a+x.amount,0)/totalStatus*100;return colors[i]+" "+before+"% "+((before+s.amount/totalStatus*100))+"%"}).join(",")+")":"#e5e7eb"}}><span>{data.totals.count}<small>cobranças</small></span></div><div className="finance-executive-donut-legend">{data.byStatus.slice(0,6).map(s=><span key={s.status}>{statusBR[s.status]||s.status}: {s.count}</span>)}</div></section>
+
+    <section className="content-card finance-executive-panel finance-intelligence-panel"><h2>Inteligência financeira</h2><p>Alertas da carteira no período</p><dl><div><dt>Cobranças vencidas</dt><dd>{data.totals.overdueCount}</dd></div><div><dt>Clientes com cobranças</dt><dd>{data.totals.customers}</dd></div><div><dt>Taxa de recebimento</dt><dd>{data.collectionRate===null?"—":data.collectionRate+"%"}</dd></div></dl><p className="finance-insight"><Sparkles size={13} aria-hidden="true"/>{insight}</p><small>Indicadores calculados pelas cobranças do Asaas com vencimento no período selecionado.</small></section>
+   </div>
+  </>:null}
+ </div>;
+}
 
 const FINANCE_MESSAGE_PRESETS=[
  {name:"Lembrete de vencimento",category:"Cobrança",body:"Olá, {{nome}}! Sua cobrança de {{valor}} vence em {{vencimento}}. Consulte sua fatura: {{fatura}}."},
@@ -121,26 +177,17 @@ function FinanceHistoryWorkspace(){
  return <section className="content-card finance-automation-card finance-history-page"><header className="finance-automation-heading"><div><h2>Histórico de avisos</h2><p>Acompanhamento de tentativas, entregas, falhas e alterações das automações financeiras.</p></div><span className="finance-automation-pill">Aguardando integração com eventos reais</span></header><div className="finance-history-stats">{["Enviados","Entregues","Falhas","Pendentes"].map(label=><div key={label}><small>{label}</small><strong>—</strong></div>)}</div><div className="finance-history-table"><div className="finance-history-row finance-history-head"><span>Data e hora</span><span>Cliente</span><span>Evento</span><span>Status</span><span>Detalhes</span></div><div className="finance-history-empty">Ainda não há um registro de execução auditável conectado a esta tela. Nenhuma entrega ou falha será simulada.</div></div><p className="finance-auto-note">A integração deverá registrar eventos de cobrança, confirmação do provedor, recebimento e leitura quando disponíveis, erros, tentativas e reprocessamentos seguros.</p></section>;
 }
 
+const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export function FinanceWorkspace(){
  const [tab,setTab]=useState<"overview"|"charges"|"subscriptions"|"detached"|"automation"|"history">("overview");
- const [months,setMonths]=useState(1);
- const [custom,setCustom]=useState(false);
- const [allTime,setAllTime]=useState(false);
- const [from,setFrom]=useState("");
- const [to,setTo]=useState("");
- const [data,setData]=useState<Dashboard|null>(null);
- const [loading,setLoading]=useState(true);
- const [error,setError]=useState("");
- const [refresh,setRefresh]=useState(0);
- useEffect(()=>{let live=true;setLoading(true);setError("");fetch("/api/backend/finance/dashboard?"+(allTime?"all=true":custom?"from="+encodeURIComponent(from)+"&to="+encodeURIComponent(to):"months="+months),{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.message||"Falha ao consultar o Financeiro");return d as Dashboard;}).then(d=>{if(live)setData(d)}).catch(e=>{if(live){setData(null);setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[months,custom,allTime,from,to,refresh]);
- const max=Math.max(1,...(data?.series||[]).map(v=>v.billed));
+ const [portfolioStatus,setPortfolioStatus]=useState("");
  return <section className="module-workspace finance-health">
-   <header className="page-heading"><div><h1>Financeiro</h1><p className="page-subtitle">Indicadores e cobranças reais integrados ao Asaas.</p></div></header>
-   <nav className="finance-module-tabs" aria-label="Áreas do Financeiro">{([{id:"overview",label:"Visão geral"},{id:"charges",label:"Cobranças"},{id:"subscriptions",label:"Assinaturas"},{id:"detached",label:"Avulsas"},{id:"automation",label:"Automação"},{id:"history",label:"Histórico de avisos"}] as const).map(item=><button type="button" key={item.id} className={tab===item.id?"active":""} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}>{item.label}</button>)}</nav>
-   {tab==="overview"?<ExecutiveOverview/>:null}
-   {tab==="charges"?<PortfolioView/>:null}
-   {tab==="subscriptions"||tab==="detached"?<FinanceAsaasListing kind={tab}/>:null}
-   {tab==="automation"?<FinanceAutomationWorkspace/>:null}
-   {tab==="history"?<FinanceHistoryWorkspace/>:null}
+  <header className="page-heading"><div><h1>Financeiro</h1><p className="page-subtitle">Indicadores e cobranças reais integrados ao Asaas. Nada é estimado sem base.</p></div></header>
+  <nav className="finance-module-tabs" aria-label="Áreas do Financeiro">{FINANCE_TABS.map(item=>{const Icon=item.icon;return <button type="button" key={item.id} className={tab===item.id?"active":""} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}><Icon size={15} aria-hidden="true"/>{item.label}</button>})}</nav>
+  {tab==="overview"?<ExecutiveOverview onOpenCharges={(status)=>{setPortfolioStatus(status);setTab("charges")}}/>:null}
+  {tab==="charges"?<PortfolioView initialStatus={portfolioStatus}/>:null}
+  {tab==="subscriptions"||tab==="detached"?<FinanceAsaasListing kind={tab}/>:null}
+  {tab==="automation"?<FinanceAutomationWorkspace/>:null}
+  {tab==="history"?<FinanceHistoryWorkspace/>:null}
  </section>;
 }

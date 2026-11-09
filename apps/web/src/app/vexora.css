@@ -277,16 +277,6 @@ details>summary::-webkit-details-marker{display:none}
 .finance-health{display:grid;gap:var(--gap);align-content:start}
 .team-workspace{display:grid;gap:var(--gap);align-content:start}
 .channels-page{display:flex;flex-direction:column;gap:18px}
-.settings-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap);align-content:start}
-.crm-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap);align-content:start}
-.chatbot-workspace{display:grid;gap:var(--gap)}
-.simple-workspace{display:grid;gap:var(--gap);align-content:start}
-.workflows-workspace{display:grid;gap:var(--gap);align-content:start}
-.workflow-studio{display:grid;gap:var(--gap);align-content:start}
-.module-workspace{min-width:0}
-.marketing-creations-workspace{display:grid;gap:var(--gap);align-content:start}
-.finance-health{display:grid;gap:var(--gap);align-content:start}
-.team-workspace{display:grid;gap:var(--gap);align-content:start}
 
 /* ===== 8. Atendimento ===== */
 .inbox-workspace{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}

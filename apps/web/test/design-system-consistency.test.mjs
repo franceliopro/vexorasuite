@@ -70,19 +70,19 @@ test("interface icons come from Lucide instead of typographic glyphs", () => {
 });
 
 test("inbox conversation tags use the shared contrast helper", () => {
-  const inbox = read("inbox-workspace.tsx");
-  assert.match(inbox, /color:tagForeground\(tag\.color\)/);
-  assert.doesNotMatch(inbox, /backgroundColor:tag\.color,color:"#111827"/);
+  const conversationList = read("conversation-list.tsx");
+  assert.match(conversationList, /color:\s*tagForeground\(tag\.color\)/);
+  assert.doesNotMatch(conversationList, /backgroundColor:\s*tag\.color,\s*color:\s*"#111827"/);
 });
 
 test("every contact tag surface uses the shared contrast helper", () => {
-  const inbox = read("inbox-workspace.tsx");
+  const conversationList = read("conversation-list.tsx");
   const profile = read("contact-profile-panel.tsx");
   const helper = fs.readFileSync(new URL("../src/lib/tag-contrast.ts", import.meta.url), "utf8");
-  assert.match(inbox, /tagForeground\(tag\.color\)/);
+  assert.match(conversationList, /tagForeground\(tag\.color\)/);
   assert.match(profile, /tagForeground\(tag\.color\)/);
   assert.match(helper, /export function tagForeground/);
-  assert.doesNotMatch(inbox, /color:\s*["']#111827["']/);
+  assert.doesNotMatch(conversationList, /color:\s*["']#111827["']/);
   assert.doesNotMatch(profile, /color:\s*["']#111827["']/);
 });
 

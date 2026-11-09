@@ -1,5 +1,4 @@
 "use client";
-import { tagForeground } from "../lib/tag-contrast";
 import { formatDateBR } from "../lib/date-format";
 import dynamic from "next/dynamic";
 const InboxAppointments=dynamic(()=>import("./inbox-appointments").then(m=>m.InboxAppointments));
@@ -32,7 +31,6 @@ import {
   MoreHorizontal,
   MessageCircle,
   Bot,
-  AlarmClock,
   Wallet,
   CalendarDays,
   Paperclip,
@@ -53,7 +51,8 @@ type FinanceDebt={id:string;value:number;dueDate:string;status:string;descriptio
 type Channel = { id: string; name: string; provider: string; status: string; lastError?: string | null; healthCheckedAt?: string | null };
 type ServiceProtocol = { code: string; conversationId: string };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean };
-import { ChannelMark, ContactAvatar, contactLabels } from "./inbox-avatars";
+import { ContactAvatar } from "./inbox-avatars";
+import { ConversationList } from "./conversation-list";
 import { MentionPopover } from "./mention-popover";
 import type { Agent, Message, Conversation } from "./inbox-workspace-types";
 function messageDateKey(value: string): string {
@@ -74,19 +73,6 @@ function messageDateLabel(value: string, now = new Date()): string {
     const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(date);
     return weekday.charAt(0).toLocaleUpperCase("pt-BR") + weekday.slice(1);
   }
-  return formatDateBR(date);
-}
-
-function timeShortLabel(value: string | undefined, now = new Date()): string {
-  const date = new Date(value || "");
-  if (!Number.isFinite(date.getTime())) return "";
-  const minutes = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 60000));
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `há ${days} d`;
   return formatDateBR(date);
 }
 
@@ -1097,14 +1083,6 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     if (!conversation.assignee) return "Novo";
     return "Em atendimento";
   }
-  function presenceTone(conversation: Conversation): string | null {
-    if (conversation.isOverdue) return "conversation-presence presence-dot-coral";
-    const age = conversation.updatedAt || conversation.createdAt ? Date.now() - new Date((conversation.updatedAt || conversation.createdAt) as string).getTime() : Number.POSITIVE_INFINITY;
-    const minutes = age / 60000;
-    if (minutes <= 5) return "conversation-presence";
-    if (minutes <= 20) return "conversation-presence presence-dot-amber";
-    return null;
-  }
   function lastInboundContent(): string {
     const last = messages.filter((message) => message.direction === "INBOUND").slice(-1)[0];
     const text = last?.content?.trim() || "Sem mensagens ainda";
@@ -1133,13 +1111,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
           </div>
         </details>
       </nav>
-      <div className="inbox-conversation-list">
-        {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { notificationFocus.current=null;setSelectedId(item.id); setMobileThreadOpen(true); }}>
-          <span className="conversation-avatar-wrap"><ContactAvatar contact={item.contact}/>{presenceTone(item) ? <span className={presenceTone(item) as string} aria-hidden="true" /> : null}</span><span className="conversation-summary"><span className="conversation-title-row"><strong>{contactDisplayName(item.contact,item.botState)}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"}/><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))}/></span><span className="conversation-time">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span></span><small>{item.messages?.[0]?.content || "Sem mensagens"}</small>{contactLabels(item.contact).length ? <span className="conversation-tags">{contactLabels(item.contact).map((tag,index)=><span key={tag.name+index} className="conversation-tag" style={{backgroundColor:tag.color,color:tagForeground(tag.color),borderColor:"color-mix(in srgb, "+tag.color+" 82%, #334155)"}}>{tag.name}</span>)}</span> : null}{item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11}/> Atrasado · sem assistência</span> : (!item.assignee && item.status === "OPEN" ? <span className="conversation-new"><span className="conversation-new-dot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span> : null)}</span>
-        </button>)}
-        {conversationsLoading && conversations.length === 0 ? <div className="inbox-empty" role="status"><strong>Carregando conversas…</strong><p>Buscando as conversas desta fila.</p></div> : null}
-        {!conversationsLoading && !conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
-      </div>
+      <ConversationList conversations={conversations} conversationsLoading={conversationsLoading} selectedId={selectedId} queueView={queueView} onSelect={(item) => { notificationFocus.current = null; setSelectedId(item.id); setMobileThreadOpen(true); }} />
     </aside>
     <div className="inbox-thread content-card">
       {selected ? <>

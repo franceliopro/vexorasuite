@@ -2,7 +2,7 @@
 
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
 import { tagForeground } from "../lib/tag-contrast";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Clock3,
   Compass,
@@ -16,7 +16,6 @@ import {
   X,
   CheckCircle2,
   CalendarDays,
-  Sparkles,
   Instagram,
   Facebook,
   Bot,
@@ -80,11 +79,6 @@ export function ContactProfilePanel({
   expanded,
   onExpandedChange,
   displayName,
-  aiSuggestion,
-  aiSuggestionBusy = false,
-  aiSuggestionError,
-  onRequestAiSuggestion,
-  onUseAiSuggestion,
 }: {
   contact: ContactProfileData;
   conversationId: string;
@@ -94,29 +88,8 @@ export function ContactProfilePanel({
   expanded: boolean;
   displayName?: string;
   onExpandedChange: (expanded: boolean) => void;
-  aiSuggestion?: { text: string; provider?: string; model?: string } | null;
-  aiSuggestionBusy?: boolean;
-  aiSuggestionError?: string;
-  onRequestAiSuggestion?: (mode: "suggest" | "improve", tone?: string, text?: string) => void;
-  onUseAiSuggestion?: (text: string) => void;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
-  const [aiImproveDraft, setAiImproveDraft] = useState("");
-  const pendingImprove = useRef(false);
-  const improveWithAi = () => {
-    const text = aiImproveDraft.trim();
-    if (!text) return;
-    pendingImprove.current = true;
-    onUseAiSuggestion?.(aiImproveDraft);
-    onRequestAiSuggestion?.("improve", undefined, text);
-  };
-  useEffect(() => {
-    if (!pendingImprove.current) return;
-    if (aiSuggestionBusy) return;
-    if (!aiSuggestion?.text) return;
-    setAiImproveDraft(aiSuggestion.text);
-    pendingImprove.current = false;
-  }, [aiSuggestion, aiSuggestionBusy]);
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
   const [tagDraft, setTagDraft] = useState("");
   const [notes, setNotes] = useState("");
@@ -458,22 +431,6 @@ export function ContactProfilePanel({
               </span>
             ) : null}
           </div>
-          <section className="profile-ai-compose" aria-label="Texto com IA">
-            <strong><Sparkles size={12} aria-hidden="true" /> Texto com IA</strong>
-            <textarea
-              className="profile-ai-textarea"
-              rows={3}
-              maxLength={4000}
-              value={aiImproveDraft}
-              onChange={(e) => setAiImproveDraft(e.target.value)}
-              placeholder="Escreva o rascunho que a assistente deve melhorar..."
-              aria-label="Rascunho para a assistente melhorar"
-            />
-            <div className="profile-ai-row">
-              <button type="button" className="primary-button" disabled={aiSuggestionBusy || !aiImproveDraft.trim()} onClick={improveWithAi} aria-label="Melhorar com IA">{aiSuggestionBusy ? <Sparkles size={13} className="vx-spin" aria-hidden="true" /> : <Sparkles size={13} aria-hidden="true" />} {aiSuggestionBusy ? "Gerando…" : "Melhorar com IA"}</button>
-            </div>
-            {aiSuggestionError ? <p className="contact-ai-error" role="alert">{aiSuggestionError}</p> : null}
-          </section>
           <nav className="contact-profile-tabs">
             <button
               type="button"

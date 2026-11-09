@@ -294,12 +294,12 @@ details>summary::-webkit-details-marker{display:none}
 .supervision-metrics .is-alert strong{color:var(--bad)}
 .supervision-oldest{font-size:12px;color:var(--tx2)}
 .inbox-conversation-list{flex:1;overflow-y:auto;display:grid;align-content:start}
-.inbox-conversation{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--ln);text-align:left;border-left:2px solid transparent}
+.inbox-conversation{display:flex;flex-wrap:wrap;align-items:flex-start;row-gap:4px;gap:9px;padding:11px 14px;border-bottom:1px solid var(--ln);text-align:left;border-left:2px solid transparent}
 .inbox-conversation .conversation-avatar-wrap{align-self:flex-start;margin-top:2px}
 .inbox-conversation .conversation-summary{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .inbox-conversation .conversation-channel-marks{display:inline-flex;gap:3px;align-items:center;margin-left:2px}
 .inbox-conversation .conversation-time{margin-left:auto;flex:none;font-size:10px;color:var(--tx3);font-variant-numeric:tabular-nums}
-.inbox-conversation .conversation-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.inbox-conversation .conversation-tags{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:3px;margin:0}
 .inbox-conversation .conversation-tag{font-size:9px;min-height:16px;padding:0 5px;border-radius:4px;gap:2px}
 .inbox-conversation:hover{background:var(--s2)}
 .inbox-conversation.selected{background:var(--primary-soft);border-left-color:var(--primary)}
@@ -512,7 +512,7 @@ details>summary:hover{color:var(--tx)}
   .metrics-grid,.tasks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
 .inbox-workspace,.inbox-workspace:has(.contact-profile){grid-template-columns:1fr;height:auto;min-height:0;align-content:start}
   .inbox-notes-board{max-height:140px;overflow:auto;padding:6px 10px 0}
-  .thread-heading{flex-wrap:wrap;padding:10px 12px;gap:6px}
+  .thread-heading{flex-wrap:wrap;padding:10px 12px;gap:8px;justify-content:flex-start}
   .thread-contact-avatar{width:36px;height:36px;font-size:12px}
   .thread-contact h2{font-size:15px}
   .thread-contact-status{font-size:11px}
@@ -753,6 +753,18 @@ details>summary:hover{color:var(--tx)}
 .thread-action-button{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);font-size:13px}
 .thread-action-button:hover{background:var(--hover);color:var(--tx)}
 .thread-action-button.resolve{background:var(--primary);color:var(--primary-contrast);border-color:var(--primary)}
+.inbox-thread .thread-heading{justify-content:flex-start;gap:8px}
+.thread-header-actions{margin-left:auto;gap:8px}
+.thread-header-actions .thread-icon-action{width:40px;height:40px;border-radius:10px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
+.thread-header-actions .thread-icon-action:hover{background:var(--hover);color:var(--tx);transform:translateY(-1px)}
+.thread-header-actions .thread-icon-action.chatbot-return{color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 30%,var(--ln));background:color-mix(in srgb,var(--accent2) 8%,var(--s1))}
+.thread-header-actions .thread-icon-action.chatbot-return:hover{color:var(--accent2);background:color-mix(in srgb,var(--accent2) 14%,var(--s1));border-color:color-mix(in srgb,var(--accent2) 48%,var(--ln))}
+.thread-header-actions [data-tip]{position:relative}
+.thread-header-actions [data-tip]::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 8px);z-index:60;padding:6px 10px;border-radius:8px;background:var(--s1);color:var(--tx);border:1px solid var(--ln);font-size:10px;font-weight:600;white-space:nowrap;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translate(-50%,-3px);transition:opacity .14s ease,transform .14s ease}
+.thread-header-actions [data-tip]:hover::after,.thread-header-actions [data-tip]:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+.thread-header-actions .thread-transfer-button{width:40px;height:40px;justify-content:center;padding:0;gap:0;color:var(--primary);border-color:color-mix(in srgb,var(--primary) 30%,var(--ln));background:color-mix(in srgb,var(--primary) 9%,var(--s1))}
+.thread-header-actions .thread-transfer-button:hover{background:color-mix(in srgb,var(--primary) 15%,var(--s1));border-color:color-mix(in srgb,var(--primary) 46%,var(--ln));color:var(--primary)}
+.thread-header-actions .handoff-menu[open] > .thread-transfer-button{background:color-mix(in srgb,var(--primary) 20%,var(--s1));border-color:var(--primary)}
 
 /* Ficha do cliente à direita */
 .contact-profile{border-left:1px solid var(--ln)}
@@ -902,6 +914,12 @@ details>summary:hover{color:var(--tx)}
 .composer-chip:hover{background:var(--primary-soft);color:var(--primary-ink);border-color:color-mix(in srgb,var(--primary) 35%,var(--ln))}
 
 .composer-tabs{display:flex;align-items:center;gap:4px;padding:8px 14px 0}
+.composer-tabs-row{display:flex;align-items:center;gap:8px;padding:8px 14px 0}
+.composer-tabs-row .composer-tabs{padding:0}
+.composer-ai-improve{display:inline-flex;align-items:center;gap:5px;margin-left:auto;min-height:26px;padding:0 10px;border:1px solid transparent;border-radius:99px;background:transparent;color:var(--tx2);font-size:11px;font-weight:650;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.composer-ai-improve:hover{background:var(--primary-soft);color:var(--primary-ink);border-color:color-mix(in srgb,var(--primary) 22%,transparent)}
+.composer-ai-improve:disabled{opacity:.45;cursor:not-allowed}
+.composer-ai-error{margin:5px 14px 0;font-size:10.5px;line-height:1.35;color:var(--bad)}
 .composer-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:0;border-radius:99px;background:transparent;font-size:12px;font-weight:700;color:var(--tx2);cursor:pointer;transition:background .15s,color .15s}
 .composer-tabs button:hover{color:var(--tx);background:var(--s2)}
 .composer-tabs button.active{background:var(--primary-soft);color:var(--primary-ink)}
@@ -924,14 +942,25 @@ details>summary:hover{color:var(--tx)}
 .thread-transfer-button::-webkit-details-marker{display:none}
 .thread-transfer-button:hover{background:var(--hover);border-color:color-mix(in srgb,var(--primary) 30%,var(--ln))}
 .thread-transfer-button[aria-expanded],.handoff-menu[open]>.thread-transfer-button{background:color-mix(in srgb,var(--primary) 12%,var(--s1));border-color:color-mix(in srgb,var(--primary) 40%,var(--ln))}
-.thread-finalize-button{display:inline-flex;align-items:center;gap:7px;line-height:1;min-height:32px;padding:0 13px;border:1px solid var(--primary);border-radius:10px;background:var(--primary);color:var(--primary-contrast);font-size:12px;font-weight:800;cursor:pointer}
+.thread-finalize-button{display:inline-flex;align-items:center;justify-content:center;gap:0;line-height:1;width:40px;height:40px;min-height:40px;padding:0;border:1px solid var(--primary);border-radius:10px;background:var(--primary);color:var(--primary-contrast);font-size:12px;font-weight:800;cursor:pointer}
 .thread-finalize-button:hover:not(:disabled){filter:brightness(1.06)}
 
 /* Presence nos avatares da lista */
 .conversation-presence{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;border:2px solid var(--s1);background:#22A57C}
 .conversation-avatar{position:relative}
 .presence-dot-amber{background:#F2A93B}.presence-dot-coral{background:#F0645E}
-.conversation-avatar-wrap{position:relative;display:inline-grid;flex:none}
+.conversation-avatar-wrap{position:relative;display:inline-grid;flex:none;width:49px;height:49px}
+.conversation-avatar{width:49px;height:49px;border-radius:50%;overflow:hidden;display:block}
+.conversation-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.conversation-avatar .avatar-fallback{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;color:#FFFFFF;font-weight:800;font-size:18px;letter-spacing:-.02em;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 82%,#FFFFFF),color-mix(in srgb,var(--primary) 64%,#000))}
+.inbox-conversation .conversation-preview{display:flex;align-items:center;gap:4px;min-width:0;font-size:11.5px;line-height:1.3;color:var(--tx2);white-space:nowrap}
+.inbox-conversation .conversation-preview-text{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conversation-tick{flex:none;font-size:10px;line-height:1;font-variant-numeric:tabular-nums}
+.conversation-tick.tick-read{color:var(--accent2)}
+.conversation-tick.tick-delivered{color:var(--tx)}
+.conversation-tick.tick-sent{color:var(--tx2)}
+.conversation-tick.tick-queued{color:var(--warn)}
+.conversation-tick.tick-failed{color:var(--bad);font-weight:800}
 
 /* ===== 20. Painel de perfil — proposta v3 ===== */
 .contact-profile-avatar{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(150deg,#34D399,#0E9F6E);color:#FFFFFF;font-weight:800;font-size:15px;letter-spacing:-.02em}
@@ -987,14 +1016,14 @@ details>summary:hover{color:var(--tx)}
 }
 /* Botões com rótulo no cabeçalho: pílulas em fonte da tela, texto e ícone alinhados verticalmente. */
 .thread-header-actions .thread-finalize-button,
-.thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 32px; min-height: 32px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; }
+.thread-header-actions .thread-transfer-button { width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; gap: 0; border-radius: 10px; }
 .thread-header-actions .thread-finalize-button { gap: 8px; }
-.thread-header-actions .thread-transfer-button { gap: 8px; }
+.thread-header-actions .thread-transfer-button { gap: 0; }
 /* Filas em uma única linha rolável, como na proposta. */
-.inbox-queues { display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 5px; padding: 9px 10px; scrollbar-width: none; border-bottom: 1px solid var(--ln); overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
+.inbox-queues { display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 6px; padding: 9px 10px; border-bottom: 1px solid var(--ln); overflow: visible; }
 .inbox-queues::-webkit-scrollbar { display: none; }
-.inbox-queue-button { flex: 0 0 auto; min-height: 26px; padding: 0 8px; gap: 4px; font-size: 10px; }
-.inbox-queue-button .inbox-queue-count { min-width: 17px; min-height: 17px; height: 17px; padding: 0 5px; font-size: 9px; gap: 2px; }
+.inbox-queue-button { flex: 0 0 auto; min-height: 25px; padding: 0 7px; gap: 4px; font-size: 9.5px; }
+.inbox-queue-button .inbox-queue-count { min-width: 15px; min-height: 15px; height: 15px; padding: 0 4px; font-size: 8.5px; gap: 2px; }
 @media (max-width: 340px) { .inbox-queues { flex-wrap: wrap; } }
 /* Item da lista: horário à direita do título + linha de status do atendimento. */
 .conversation-title-row { min-width: 0; }
@@ -1067,7 +1096,8 @@ details>summary:hover{color:var(--tx)}
 .inbox-queue-more>summary{list-style:none;cursor:pointer}
 .inbox-queue-more>summary::-webkit-details-marker{display:none}
 .inbox-queue-more[open]>.inbox-queue-more-trigger{background:var(--s3);border-color:var(--ln2);color:var(--tx)}
-.inbox-queue-more-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:50;display:grid;gap:2px;min-width:180px;padding:6px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);box-shadow:var(--shadow-lg)}
+.inbox-queue-more[open] .inbox-queue-more-trigger::after { display: none; }
+.inbox-queue-more-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:50;display:grid;gap:2px;min-width:180px;padding:6px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);box-shadow:var(--shadow-lg)}
 .inbox-queue-more-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--tx);font-size:11.5px;text-align:left;cursor:pointer}
 .inbox-queue-more-menu button:hover{background:var(--s3)}
 
@@ -1102,7 +1132,7 @@ details>summary:hover{color:var(--tx)}
 .profile-ai-result button{margin-top:5px}
 
 /* ===== 3 últimos blocos fixos no rodapé (sticky bottom) ===== */
-.profile-sticky-tail{position:sticky;bottom:0;z-index:5;max-height:56%;overflow:auto;background:var(--s1);border-top:1px solid var(--ln);box-shadow:0 -10px 22px -20px rgba(16,24,40,.4)}
+.profile-sticky-tail{position:sticky;bottom:0;z-index:5;background:var(--s1);border-top:1px solid var(--ln);box-shadow:0 -10px 22px -20px rgba(16,24,40,.4)}
 
 /* ===== Legendas das mensagens com mídia ===== */
 .media-caption { display: block; margin-top: 6px; }
@@ -1110,10 +1140,10 @@ details>summary:hover{color:var(--tx)}
 
 
 /* ===== Botao 'Mais' com balãozinho (tooltip) ===== */
-.inbox-queue-more-trigger { position: relative; width: 26px; min-width: 26px; padding: 0 !important; justify-content: center; }
+.inbox-queue-more-trigger { position: relative; width: 24px; min-width: 24px; padding: 0 !important; justify-content: center; }
 .inbox-queue-more-trigger::after {
   content: attr(data-tip);
-  position: absolute; left: 0; top: calc(100% + 8px); z-index: 60;
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60;
   padding: 6px 10px; border-radius: 8px; background: var(--s1); color: var(--tx);
   border: 1px solid var(--ln); font-size: 10px; font-weight: 600; white-space: nowrap;
   box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none;

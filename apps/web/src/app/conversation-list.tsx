@@ -58,13 +58,14 @@ export function ConversationList({ conversations, conversationsLoading, selected
         const outbound = last?.direction === "OUTBOUND";
         const mark = outbound ? outboundMark(last?.status) : null;
         const preview = last?.content || "Sem mensagens";
+        const previewText = preview.length > 30 ? preview.slice(0, 30) + "…" : preview;
         const tags = contactLabels(item.contact);
         return (
           <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => onSelect(item)}>
             <span className="conversation-avatar-wrap"><ContactAvatar contact={item.contact} />{presenceTone(item) ? <span className={presenceTone(item) as string} aria-hidden="true" /> : null}</span>
             <span className="conversation-summary">
               <span className="conversation-title-row"><strong>{contactDisplayName(item.contact, item.botState)}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"} /><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))} /></span><span className="conversation-time">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span></span>
-              <small className="conversation-preview">{mark ? <span className={"conversation-tick tick-" + mark.tone} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}<span className="conversation-preview-text">{preview}</span></small>
+              <small className="conversation-preview">{mark ? <span className={"conversation-tick tick-" + mark.tone} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}<span className="conversation-preview-text">{previewText}</span></small>
               {item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11} /> Atrasado · sem assistência</span> : (!item.assignee && item.status === "OPEN" ? <span className="conversation-new"><span className="conversation-new-dot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span> : null)}
             </span>
             {tags.length ? <span className="conversation-tags">{tags.map((tag, index) => <span key={tag.name + index} className="conversation-tag" style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)" }}>{tag.name}</span>)}</span> : null}

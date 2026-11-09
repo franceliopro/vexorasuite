@@ -29,8 +29,8 @@ test("the inbox thread fills the remaining viewport instead of magic numbers", (
 });
 
 test("the app shell height uses the --top token", () => {
-  assert.match(vexoraCss, /--top:\s*68px/);
-  assert.match(vexoraCss, /--top:\s*58px/); // mobile cap in @media
+  assert.match(vexoraCss, /--top:\s*56px/);
+  assert.match(vexoraCss, /--top:\s*50px/); // mobile cap in @media
 });
 
 test("fonts are self-hosted and build without network access", () => {

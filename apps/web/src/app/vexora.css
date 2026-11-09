@@ -11,7 +11,7 @@
   --tx:#161A17;--tx2:#5B645D;--ln:#E4E7DF;--ln2:#CDD3C6;--focus:var(--tx);--thumb:#5F6B63;
   --ok:#0E7A5C;--warn:#9A5B09;--bad:#B4402E;--accent2:#2C7BC4;
   --mint:#12A97E;--mint-ink:#0A7A58;--amber:#D08A18;--amber-ink:#8A5A07;--coral:#D9583F;--coral-ink:#A33A26;
-  --sb-bg:#FBFCFA;--sb-bg:color-mix(in srgb,var(--primary) 4%,#FFFFFF);--sb-tx:#1A231E;--sb-mut:#5D6A62;--sb-ln:#E3E7DE;--sb-ln:color-mix(in srgb,var(--primary) 13%,#EDEFEA);--sb-on:#EDF3EE;--sb-on:color-mix(in srgb,var(--primary) 8%,#FFFFFF);--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#5F6B63;
+  --sb-bg:#24262E;--sb-bg:#24262E;--sb-tx:#ECEEF1;--sb-mut:#9CA0AA;--sb-ln:#343740;--sb-ln:#343740;--sb-on:#2C2F38;--sb-on:#2C2F38;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF;
   --shadow:0 1px 2px rgba(17,26,21,.04),0 18px 40px -26px rgba(17,26,21,.30);
   --shadow-sm:0 1px 2px rgba(17,26,21,.05);--shadow-lg:0 4px 10px rgba(17,26,21,.04),0 30px 64px -34px rgba(17,26,21,.34);
   --ring:0 0 0 4px color-mix(in srgb,var(--primary) 16%,transparent);--sheen:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,0));
@@ -22,14 +22,14 @@
   --line:var(--ln);--border-subtle:var(--ln);--border-strong:var(--ln2);
   color-scheme:light;
 }
-:root[data-theme=hybrid]{--sb-bg:#0F1D18;--sb-bg:color-mix(in srgb,var(--primary) 15%,#0F1D18);--sb-tx:#F1F6F2;--sb-mut:#A6B4AC;--sb-ln:#24302A;--sb-ln:color-mix(in srgb,var(--primary) 20%,#1B2822);--sb-on:#18221D;--sb-on:color-mix(in srgb,var(--primary) 24%,#101A15);--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF}
+:root[data-theme=hybrid]{--sb-bg:#24262E;--sb-bg:#24262E;--sb-tx:#ECEEF1;--sb-mut:#9CA0AA;--sb-ln:#343740;--sb-ln:#343740;--sb-on:#2C2F38;--sb-on:#2C2F38;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF}
 :root[data-theme=dark]{
   --bg:#0A0F0C;--s1:#101713;--s2:#151E18;--s3:#1B261F;--hover:#1F2B23;
   --tx:#F3F7F4;--tx2:#A7B4AC;--ln:#263229;--ln2:#35463C;--thumb:#DCE6DF;
   --ok:#3FCE9E;--warn:#F0B25E;--bad:#F0907A;--accent2:#7CB6EF;
   --mint:#3FCE9E;--mint-ink:#7BE3C0;--amber:#F0B25E;--amber-ink:#F6CD93;--coral:#F0907A;--coral-ink:#F7B4A5;
   --primary-soft:#16352A;--primary-soft:color-mix(in srgb,var(--primary) 20%,var(--s1));--primary-ink:#7FC9AF;--primary-ink:color-mix(in srgb,var(--primary) 46%,#FFFFFF);--primary-strong:#0B6249;--primary-strong:color-mix(in srgb,var(--primary) 70%,#FFFFFF);
-  --sb-bg:#0B1210;--sb-bg:color-mix(in srgb,var(--primary) 13%,#080E0B);--sb-tx:#F2F7F3;--sb-mut:#A6B4AC;--sb-ln:#202B25;--sb-ln:color-mix(in srgb,var(--primary) 18%,#17241D);--sb-on:#161F1A;--sb-on:color-mix(in srgb,var(--primary) 22%,#0E1712);--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF;
+  --sb-bg:#24262E;--sb-bg:#24262E;--sb-tx:#ECEEF1;--sb-mut:#9CA0AA;--sb-ln:#343740;--sb-ln:#343740;--sb-on:#2C2F38;--sb-on:#2C2F38;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);--sb-thumb:#FFFFFF;
   --shadow:0 1px 2px rgba(0,0,0,.45),0 22px 48px -28px rgba(0,0,0,.88);--shadow-sm:0 1px 2px rgba(0,0,0,.5);--shadow-lg:0 6px 16px rgba(0,0,0,.26),0 36px 72px -34px rgba(0,0,0,.92);--sheen:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0));color-scheme:dark;
 }
 @media(max-width:760px){:root{--top:58px}}
@@ -1055,23 +1055,23 @@ details>summary:hover{color:var(--tx)}
 /* Compositor: ícones com área de toque uniforme e o Wallet claro como carteira. */
 .composer-icon-button { width: 32px; height: 34px; border-radius: 8px; }
 
-/* ===== Sidebar · rodape (cores do tema, espacamento generoso) ===== */
-.sidebar-bottom { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--sb-ln); }
-.sidebar-collapse { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border: 1px solid var(--sb-ln); border-radius: 8px; background: transparent; color: var(--sb-tx); cursor: pointer; }
+/* ===== Sidebar · rodape em duas linhas (cores do tema, avatar maior) ===== */
+.sidebar-bottom { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; border-top: 1px solid var(--sb-ln); }
+.sidebar-utilities { display: flex; align-items: center; gap: 4px; }
+.sidebar-collapse { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--sb-ln); border-radius: 9px; background: transparent; color: var(--sb-tx); cursor: pointer; }
 .sidebar-collapse:hover { background: var(--sb-on); border-color: var(--sb-tx); }
-.sidebar-utilities { display: flex; align-items: center; gap: 4px; flex: none; }
-.sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--sb-mut); cursor: pointer; list-style: none; }
+.sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--sb-mut); cursor: pointer; list-style: none; }
 .sidebar-icon::-webkit-details-marker { display: none; }
 .sidebar-icon:hover { background: var(--sb-on); color: var(--sb-tx); }
 .sidebar-help > div { background: var(--sb-bg); border-color: var(--sb-ln); }
 .sidebar-help p { color: var(--sb-mut); font-size: 12.5px; line-height: 1.5; }
-.sidebar-profile-menu { flex: 1; min-width: 0; position: relative; }
-.sidebar-profile-menu > .profile-row { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 10px; list-style: none; cursor: pointer; border: 1px solid transparent; overflow: hidden; }
+.sidebar-profile-menu { width: 100%; position: relative; }
+.sidebar-profile-menu > .profile-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 12px; list-style: none; cursor: pointer; border: 1px solid transparent; overflow: hidden; }
 .sidebar-profile-menu > .profile-row::-webkit-details-marker { display: none; }
 .sidebar-profile-menu > .profile-row:hover { background: var(--sb-on); border-color: var(--sb-ln); }
 .sidebar-profile-menu[open] > .profile-row { background: var(--sb-on); border-color: var(--sb-ln); }
-.sidebar-profile-menu .profile-avatar { position: relative; width: 34px; height: 34px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--sb-on); color: var(--sb-tx); font-size: 11px; font-weight: 700; }
+.sidebar-profile-menu .profile-avatar { position: relative; width: 44px; height: 44px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 26%, var(--sb-on)); color: var(--sb-tx); font-size: 13px; font-weight: 700; }
 .sidebar-profile-menu .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .sidebar-profile-menu .profile-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
-.sidebar-profile-menu .profile-copy strong { font-size: 12.5px; font-weight: 600; color: var(--sb-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-profile-menu .profile-copy small { font-size: 10.5px; color: var(--sb-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sidebar-profile-menu .profile-copy strong { font-size: 13px; font-weight: 650; color: var(--sb-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-profile-menu .profile-copy small { font-size: 11px; color: var(--sb-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

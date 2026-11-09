@@ -266,6 +266,15 @@ details>summary::-webkit-details-marker{display:none}
 .settings-catalog-copy strong{font-size:14px}
 .settings-catalog-arrow{color:var(--tx2)}
 .settings-catalog-note{display:flex;align-items:center;gap:8px}
+.chatbot-workspace{display:grid;gap:var(--gap)}
+.simple-workspace{display:grid;gap:var(--gap);align-content:start}
+.workflows-workspace{display:grid;gap:var(--gap);align-content:start}
+.workflow-studio{display:grid;gap:var(--gap);align-content:start}
+.module-workspace{min-width:0}
+.marketing-creations-workspace{display:grid;gap:var(--gap);align-content:start}
+.finance-health{display:grid;gap:var(--gap);align-content:start}
+.team-workspace{display:grid;gap:var(--gap);align-content:start}
+.channels-page{display:flex;flex-direction:column;gap:18px}
 
 /* ===== 8. Atendimento ===== */
 .inbox-workspace{display:grid;grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}

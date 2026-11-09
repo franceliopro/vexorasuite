@@ -1032,6 +1032,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     setActionBusy(true); setError("");
     try {
       await api("/api/backend/conversations/" + selectedId + "/assume?view=" + queueView, { method: "POST" });
+      setQueueView("mine");
       await loadConversations();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível assumir a conversa."); }
     finally { setActionBusy(false); }
@@ -1130,7 +1131,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
       </section> : null}
       {conversationLoadError ? <div className="inbox-list-error" role="alert"><strong>Não foi possível atualizar as conversas.</strong><span>{conversationLoadError}</span><button type="button" onClick={() => void loadConversations()}>Tentar novamente</button></div> : null}
       <nav className="inbox-queues" aria-label="Filas de atendimento">
-        {([{ id: "new", label: "Todas" }, { id: "mine", label: "Novas" }, { id: "team", label: "Minhas" }, { id: "others", label: "Equipe" }, { id: "all-open", label: "Outras" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} aria-current={queueView === item.id ? "page" : undefined} aria-pressed={queueView === item.id} onClick={() => { setQueueView(item.id); setMobileThreadOpen(false); }}><span>{item.label}</span>{item.id !== "others" ? <span className="inbox-queue-count">{queueCounts[item.id] ?? 0}</span> : null}</button>)}
+        {([{ id: "new", label: "Novas" }, { id: "mine", label: "Minhas" }, { id: "team", label: "Equipe" }, { id: "all-open", label: "Todas" }] as const).map((item) => <button key={item.id} type="button" className={"inbox-queue-button " + (queueView === item.id ? "active" : "")} aria-current={queueView === item.id ? "page" : undefined} aria-pressed={queueView === item.id} onClick={() => { setQueueView(item.id); setMobileThreadOpen(false); }}><span>{item.label}</span>{item.id !== "all-open" ? <span className="inbox-queue-count">{queueCounts[item.id] ?? 0}</span> : null}</button>)}
       </nav>
       <div className="inbox-conversation-list">
         {conversations.map((item) => <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => { notificationFocus.current=null;setSelectedId(item.id); setMobileThreadOpen(true); }}>

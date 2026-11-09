@@ -75,11 +75,11 @@ label:has(>input[type=checkbox]),label:has(>input[type=radio]){display:flex;alig
 :is(.search-box,.crm-search,.origin-search,.settings-catalog-search,.composer-search,.vx-flow-library-search) input{border:0;background:none;min-height:0;padding:0;box-shadow:none;outline:0;flex:1;min-width:0}
 :is(.search-box,.crm-search,.origin-search,.settings-catalog-search,.composer-search,.vx-flow-library-search) :focus-visible{outline:0}
 
-.primary-button,.secondary-button,.danger-button,.text-button,.icon-button,button:not([class]){display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--ctl);padding:0 18px;border-radius:var(--r-sm);font-weight:700;font-size:13px;white-space:nowrap;text-align:center;transition:background .16s,border-color .16s,color .16s,transform .16s,box-shadow .16s}
+.primary-button,.secondary-button,.danger-button,.text-button,.icon-button,button:not([class]){display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;border-radius:var(--r-sm);font-weight:700;font-size:13px;white-space:nowrap;text-align:center;transition:background .16s,border-color .16s,color .16s,transform .16s,box-shadow .16s}
 .primary-button{background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 82%,#FFFFFF),var(--primary) 58%,color-mix(in srgb,var(--primary) 86%,#000));color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 22px -12px color-mix(in srgb,var(--primary) 78%,transparent)}
 .primary-button:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 16px 30px -14px color-mix(in srgb,var(--primary) 82%,transparent)}
 .primary-button:active:not(:disabled){transform:none;filter:brightness(.98)}
-.secondary-button,button:not([class]){border:1px solid var(--ln2);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 95%,var(--bg)));color:var(--tx);box-shadow:var(--shadow-sm),inset 0 1px 0 var(--sheen)}
+.secondary-button,button:not([class]){color:var(--tx);box-shadow:var(--shadow-sm),inset 0 1px 0 var(--sheen)}
 .secondary-button:hover,button:not([class]):hover{background:var(--hover);border-color:color-mix(in srgb,var(--ln2) 60%,var(--tx2))}
 .danger-button{border:1px solid color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent)}
 .danger-button:hover{background:color-mix(in srgb,var(--bad) 12%,transparent)}
@@ -289,8 +289,8 @@ details>summary::-webkit-details-marker{display:none}
 .supervision-toggle{color:var(--primary);font-size:12px;font-weight:700}
 .supervision-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .supervision-metrics>span{display:grid}
-.supervision-metrics strong{font-size:18px}
-.supervision-metrics small{font-size:11px}
+.supervision-metrics strong{font-size:17px}
+.supervision-metrics small{font-size:9px}
 .supervision-metrics .is-alert strong{color:var(--bad)}
 .supervision-oldest{font-size:12px;color:var(--tx2)}
 .inbox-conversation-list{flex:1;overflow-y:auto;display:grid;align-content:start}
@@ -923,11 +923,11 @@ details>summary:hover{color:var(--tx)}
 .thread-rare-menu button:hover{background:var(--s2)}
 .thread-rare-menu button.danger{color:var(--bad)}
 
-.thread-transfer-button{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 13px;border:1px solid var(--ln);border-radius:11px;background:var(--s2);font-size:12px;font-weight:700;color:var(--tx);cursor:pointer;list-style:none}
+.thread-transfer-button{display:inline-flex;align-items:center;gap:7px;line-height:1;min-height:32px;padding:0 13px;border:1px solid var(--ln);border-radius:10px;background:var(--s2);font-size:12px;font-weight:700;color:var(--tx);cursor:pointer;list-style:none}
 .thread-transfer-button::-webkit-details-marker{display:none}
 .thread-transfer-button:hover{background:var(--hover);border-color:color-mix(in srgb,var(--primary) 30%,var(--ln))}
 .thread-transfer-button[aria-expanded],.handoff-menu[open]>.thread-transfer-button{background:color-mix(in srgb,var(--primary) 12%,var(--s1));border-color:color-mix(in srgb,var(--primary) 40%,var(--ln))}
-.thread-finalize-button{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 13px;border:1px solid var(--primary);border-radius:11px;background:var(--primary);color:var(--primary-contrast);font-size:12px;font-weight:800;cursor:pointer}
+.thread-finalize-button{display:inline-flex;align-items:center;gap:7px;line-height:1;min-height:32px;padding:0 13px;border:1px solid var(--primary);border-radius:10px;background:var(--primary);color:var(--primary-contrast);font-size:12px;font-weight:800;cursor:pointer}
 .thread-finalize-button:hover:not(:disabled){filter:brightness(1.06)}
 
 /* Presence nos avatares da lista */
@@ -1004,7 +1004,7 @@ details>summary:hover{color:var(--tx)}
 }
 /* Botões com rótulo no cabeçalho: o globals encaixota em 36×36 e esconde o texto. Aqui eles viram pílulas naturais. */
 .thread-header-actions .thread-finalize-button,
-.thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 36px; min-height: 36px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; place-items: initial; white-space: nowrap; }
+.thread-header-actions .thread-transfer-button { width: auto; min-width: 0; height: 32px; min-height: 32px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; place-items: initial; white-space: nowrap; line-height: 1; }
 /* Filas em uma única linha rolável, como na proposta. */
 .inbox-queues { display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 5px; padding: 9px 10px; scrollbar-width: none; border-bottom: 1px solid var(--ln); overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
 .inbox-queues::-webkit-scrollbar { display: none; }

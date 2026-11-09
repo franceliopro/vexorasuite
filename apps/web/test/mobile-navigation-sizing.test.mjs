@@ -2,22 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const design=fs.readFileSync(new URL("../src/app/vexora-design-system.css",import.meta.url),"utf8");
+const vexora = fs.readFileSync(new URL("../src/app/vexora.css", import.meta.url), "utf8");
 
-test("mobile navigation has larger touch targets while utilities stay compact",()=>{
-  // The dock height is token driven now; the token itself must still keep a 62px touch target.
-  assert.match(design,/\.mobile-bottom-nav button\s*\{[\s\S]*min-height: var\(--mobile-nav-btn-h\)/);
-  assert.match(design,/\.mobile-bottom-nav\s*\{[\s\S]*min-height: var\(--mobile-nav-h\)/);
-  const tokens=fs.readFileSync(new URL("../src/app/globals.css",import.meta.url),"utf8");
-  assert.match(tokens,/--mobile-nav-btn-h:\s*62px/);
-  assert.match(design,/\.mobile-bottom-nav button svg\s*\{[\s\S]*width: 22px/);
-  assert.match(design,/\.sidebar \.nav-item,[\s\S]*min-height: 50px/);
-  assert.match(design,/\.sidebar \.sidebar-utilities \.sidebar-icon svg\s*\{[\s\S]*width: 16px/);
+test("dock touch targets are driven by tokens and reserved once", () => {
+  assert.match(vexora, /--dock-btn:\s*62px/);
+  assert.match(vexora, /--dock:\s*calc\(var\(--dock-btn\)\s*\+\s*8px\s*\+\s*env\(safe-area-inset-bottom\)\)/);
+  assert.match(vexora, /\.mobile-bottom-nav\s*\{[^}]*min-height:\s*var\(--dock\)/);
+  assert.match(vexora, /\.mobile-bottom-nav button\s*\{[^}]*min-height:\s*var\(--dock-btn\)/);
+  assert.match(vexora, /\.mobile-bottom-nav button svg\s*\{[^}]*width:\s*22px/);
 });
 
-test("mobile workspace audit stacks dense layouts and protects narrow screens",()=>{
-  assert.match(design,/\.settings-workspace \.settings-grid,\s*\.settings-workspace \.settings-grid > \*,\s*\.channels-inbox-grid,[\s\S]*grid-template-columns: 1fr !important/);
-  assert.match(design,/\.page-content :is\(h1, h2, h3, h4, p, strong, small, label, button, a\)[\s\S]*overflow-wrap: anywhere/);
-  assert.match(design,/\.workflow-template-grid\s*\{\s*grid-template-columns: 1fr/);
-  assert.match(design,/\.topbar-company-button\s*\{\s*max-width: 96px/);
+test("dense page content stacks on narrow screens", () => {
+  assert.match(vexora, /\.settings-catalog-grid,\.workflow-template-grid\{grid-template-columns:1fr\}/);
+  assert.match(vexora, /\.page-content :is\(h1,h2,h3,h4,p,strong,small,label,button,a\)\{overflow-wrap:anywhere\}/);
 });

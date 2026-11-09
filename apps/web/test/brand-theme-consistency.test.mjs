@@ -23,9 +23,9 @@ test("a single applyBrandTheme owns the --primary tokens", () => {
   }
 });
 
-test("design-system theme blocks do not redeclare legacy aliases with literals", () => {
-  const ds = read("vexora-design-system.css");
-  assert.doesNotMatch(ds, /^\s*--(?:page|card|ink|muted|line)\s*:\s*#[0-9a-f]{3,8}/im);
+test("vexora.css does not redeclare local aliases with fixed literals", () => {
+  const css = read("vexora.css");
+  assert.doesNotMatch(css, /^\s*--(?:page|card|ink|muted|line)\s*:\s*#[0-9a-f]{3,8}/im);
 });
 
 test("secondary text tokens meet AA on their surfaces", () => {

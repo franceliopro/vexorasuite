@@ -268,7 +268,7 @@ details>summary::-webkit-details-marker{display:none}
 .settings-catalog-note{display:flex;align-items:center;gap:8px}
 
 /* ===== 8. Atendimento ===== */
-.inbox-workspace{display:grid;grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}
+.inbox-workspace{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}
 @media(max-width:980px){.inbox-workspace{grid-template-columns:minmax(0,1fr)}}
 .inbox-workspace:has(.contact-profile){grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)}
 .inbox-workspace>*{min-height:0;padding:0;overflow:hidden}
@@ -276,7 +276,7 @@ details>summary::-webkit-details-marker{display:none}
 .inbox-list,.inbox-thread,.contact-profile{display:flex;flex-direction:column}
 .inbox-panel-heading,.thread-heading,.contact-profile-heading{flex:none;margin:0;padding:15px 16px;border-bottom:1px solid var(--ln)}
 .inbox-queues{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--ln)}
-.inbox-queue-button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 11px;border:1px solid var(--ln);border-radius:99px;font-size:12px;font-weight:700;color:var(--tx2)}
+.inbox-queue-button{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:0 9px;border:1px solid var(--ln);border-radius:99px;font-size:10px;font-weight:700;color:var(--tx2)}
 .inbox-queue-button:hover{background:var(--s3)}
 .inbox-queue-button.active .inbox-queue-count{background:rgba(255,255,255,.22);color:inherit}
 .inbox-more-queues{position:relative}
@@ -909,7 +909,7 @@ details>summary:hover{color:var(--tx)}
 .composer-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:0;border-radius:99px;background:transparent;font-size:12px;font-weight:700;color:var(--tx2);cursor:pointer;transition:background .15s,color .15s}
 .composer-tabs button:hover{color:var(--tx);background:var(--s2)}
 .composer-tabs button.active{background:var(--primary-soft);color:var(--primary-ink)}
-.inbox-composer.composer-is-note{background:color-mix(in srgb,#F2C94C 8%,var(--bg))}
+.inbox-composer.composer-is-note{background:color-mix(in srgb,#F7D774 22%,var(--s1));border:1.5px dashed color-mix(in srgb,#E8B93B 55%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
 
 .ai-message-foot{display:flex;align-items:center;gap:6px;padding:4px 14px 0;font-size:10.5px;color:var(--tx2)}
 .ai-message-foot em{font-style:normal;font-weight:700;color:#5F54CF}
@@ -1008,7 +1008,7 @@ details>summary:hover{color:var(--tx)}
 /* Filas em uma única linha rolável, como na proposta. */
 .inbox-queues { display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 5px; padding: 9px 10px; scrollbar-width: none; border-bottom: 1px solid var(--ln); overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
 .inbox-queues::-webkit-scrollbar { display: none; }
-.inbox-queue-button { flex: 0 0 auto; min-height: 28px; padding: 0 10px; gap: 5px; font-size: 11px; }
+.inbox-queue-button { flex: 0 0 auto; min-height: 26px; padding: 0 8px; gap: 4px; font-size: 10px; }
 .inbox-queue-button .inbox-queue-count { min-width: 17px; min-height: 17px; height: 17px; padding: 0 5px; font-size: 9px; gap: 2px; }
 @media (max-width: 340px) { .inbox-queues { flex-wrap: wrap; } }
 /* Item da lista: horário à direita do título + linha de status do atendimento. */
@@ -1075,3 +1075,50 @@ details>summary:hover{color:var(--tx)}
 .sidebar-profile-menu .profile-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
 .sidebar-profile-menu .profile-copy strong { font-size: 13px; font-weight: 650; color: var(--sb-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-profile-menu .profile-copy small { font-size: 11px; color: var(--sb-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+
+/* ===== Menu "Mais filas" (Concluídos, Arquivados, Lixeira) ===== */
+.inbox-queue-more{position:relative;display:inline-flex}
+.inbox-queue-more>summary{list-style:none;cursor:pointer}
+.inbox-queue-more>summary::-webkit-details-marker{display:none}
+.inbox-queue-more[open]>.inbox-queue-more-trigger{background:var(--s3);border-color:var(--ln2);color:var(--tx)}
+.inbox-queue-more-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:50;display:grid;gap:2px;min-width:180px;padding:6px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);box-shadow:var(--shadow-lg)}
+.inbox-queue-more-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--tx);font-size:11.5px;text-align:left;cursor:pointer}
+.inbox-queue-more-menu button:hover{background:var(--s3)}
+
+/* ===== Ficha · avatar e telefone bem juntos no topo ===== */
+.contact-profile-heading{padding:12px 12px 10px}
+.contact-profile-identity{padding:10px 12px 8px}
+.contact-profile-identity p{margin:1px 0;font-size:12px;line-height:1.35}
+.contact-profile-identity p:first-child{margin-top:0}
+
+/* ===== Etiqueta: versão compacta ===== */
+.profile-add-tag{display:flex;gap:6px;align-items:center}
+.profile-add-tag input{min-height:26px;padding:0 9px;font-size:11px;border-radius:8px;border:1px solid var(--ln);flex:1;min-width:0}
+.profile-add-tag input:focus-visible{outline:2px solid color-mix(in srgb,var(--primary) 35%,transparent);outline-offset:1px;border-color:color-mix(in srgb,var(--primary) 45%,var(--ln))}
+.profile-add-tag button{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid var(--ln);border-radius:8px;background:transparent;color:var(--tx2);cursor:pointer}
+.profile-add-tag button:hover{background:var(--s3);color:var(--tx)}
+.profile-add-tag button svg{width:12px;height:12px}
+
+/* ===== Seção "Identidades de atendimento": texto explicativo pequeno ===== */
+.contact-identities-section > p { font-size:11px; color:var(--tx2); line-height:1.4; margin:2px 0 7px }
+
+/* ===== Cartão "Texto com IA" ===== */
+.profile-ai-compose{display:grid;gap:7px;padding:9px 12px 11px;border-bottom:1px solid var(--ln);background:color-mix(in srgb,var(--primary) 6%,var(--s1))}
+.profile-ai-compose strong{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);font-weight:650}
+.profile-ai-textarea{min-height:56px;max-height:120px;padding:6px 9px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);color:var(--tx);font:inherit;font-size:11.5px;line-height:1.45;resize:vertical}
+.profile-ai-textarea:focus-visible{outline:2px solid color-mix(in srgb,var(--primary) 35%,transparent);outline-offset:1px}
+.profile-ai-row{display:flex;align-items:center;gap:6px}
+.profile-ai-row label{display:flex;flex-direction:column;gap:2px;font-size:9.5px;font-weight:650;color:var(--tx2)}
+.profile-ai-row select{min-height:26px;max-width:116px;padding:0 5px;font-size:11px;border:1px solid var(--ln);border-radius:6px;background:var(--s1);color:var(--tx)}
+.profile-ai-row button{flex:none;min-height:26px;padding:0 10px;font-size:11px}
+.profile-ai-result{margin-top:4px;padding:7px 8px;border:1px solid color-mix(in srgb,var(--primary) 28%,transparent);border-radius:var(--r-sm);background:color-mix(in srgb,var(--primary) 11%,var(--s1));font-size:11px;line-height:1.45;white-space:pre-wrap}
+.profile-ai-result small{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx2);margin-bottom:3px}
+.profile-ai-result button{margin-top:5px}
+
+/* ===== 3 últimos blocos fixos no rodapé (sticky bottom) ===== */
+.profile-sticky-tail{position:sticky;bottom:0;z-index:5;max-height:56%;overflow:auto;background:var(--s1);border-top:1px solid var(--ln);box-shadow:0 -10px 22px -20px rgba(16,24,40,.4)}
+
+/* ===== Legendas das mensagens com mídia ===== */
+.media-caption { display: block; margin-top: 6px; }
+.media-caption p { margin: 0; font-size: 11px; line-height: 1.4; color: inherit; }

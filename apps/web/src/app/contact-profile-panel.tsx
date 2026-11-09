@@ -17,7 +17,20 @@ import {
   CheckCircle2,
   CalendarDays,
   Sparkles,
+  Instagram,
+  Facebook,
+  Bot,
+  Mail,
 } from "lucide-react";
+
+function channelGlyph(channel?: string) {
+  const value = (channel || "WHATSAPP").toUpperCase();
+  if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("FACEBOOK") || value === "MESSENGER") return <Facebook size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <Mail size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("CHATBOT") || value.includes("WEBCHAT") || value.includes("WIDGET")) return <Bot size={12} aria-hidden="true" />;
+  return <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg>;
+}
 
 type ContactProfileData = {
   id: string;
@@ -337,6 +350,7 @@ export function ContactProfilePanel({
     contact.metadata?.crmFinalization && typeof contact.metadata.crmFinalization === "object"
       ? (contact.metadata.crmFinalization as { outcome?: string; reason?: string })
       : null;
+  const [photoFailed, setPhotoFailed] = useState(false);
   const asaas =
     contact.metadata?.asaas && typeof contact.metadata.asaas === "object"
       ? (contact.metadata.asaas as {
@@ -370,10 +384,7 @@ export function ContactProfilePanel({
     return (first + last).toUpperCase() || "?";
   };
   const profileLeadSubtitle = () => {
-    if (leadOrigin.trim()) {
-      const origin = leadOrigin.trim();
-      return /landing|site|formul[aá]rio|campanha/i.test(origin) ? `Novo contato, veio de uma ${origin.toLowerCase()}` : `Novo contato, veio de ${origin}`;
-    }
+    if (leadOrigin.trim()) return `Novo contato · ${leadOrigin.trim()}`;
     return "Lead / cliente";
   };
   return (
@@ -382,10 +393,14 @@ export function ContactProfilePanel({
         {expanded ? (
           <>
             <span className="contact-profile-avatar">
-              {initialsOf(displayName || contactDisplayName(contact))}
+              {!photoFailed ? (
+                <img src={"/api/backend/contacts/" + contact.id + "/avatar"} alt={"Foto de " + (displayName || contactDisplayName(contact))} loading="lazy" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} />
+              ) : (
+                initialsOf(displayName || contactDisplayName(contact))
+              )}
             </span>
             <div className="contact-profile-title">
-              <strong>{displayName || contactDisplayName(contact)}</strong>
+              <strong>{displayName || contactDisplayName(contact)}<span className="contact-channel-mark" title={channel || "WhatsApp"}>{channelGlyph(channel)}</span></strong>
               <small>{profileLeadSubtitle()}</small>
             </div>
           </>

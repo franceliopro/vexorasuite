@@ -68,7 +68,6 @@ enum ConversationHandlingMode {
 }
 
 model Tenant {
-  homePresentation     HomePresentation?
   pipelines            CrmPipeline[]
   internalWorkflows    InternalWorkflow[]
   pushConfiguration    PushConfiguration?
@@ -649,21 +648,6 @@ model CrmPipeline {
   @@map("crm_pipelines")
 }
 
-model HomePresentation {
-  tenantId     String   @id @map("tenant_id") @db.Uuid
-  desktopColor String?  @map("desktop_color")
-  mobileColor  String?  @map("mobile_color")
-  desktopImage Bytes?   @map("desktop_image")
-  desktopMode  String   @default("center") @map("desktop_mode")
-  mobileImage  Bytes?   @map("mobile_image")
-  mobileMode   String   @default("center") @map("mobile_mode")
-  revision     Int      @default(0)
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@map("home_presentations")
-}
-
 model PublicApiToken {
   id         String    @id @default(uuid()) @db.Uuid
   tenantId   String    @map("tenant_id") @db.Uuid
@@ -768,5 +752,3 @@ model RefreshToken {
   @@index([familyId])
   @@map("refresh_tokens")
 }
-
-

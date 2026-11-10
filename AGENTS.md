@@ -18,9 +18,9 @@
 
 O painel PLATFORM pertence exclusivamente à administração Véxora. OWNER de empresa cliente não é administrador da plataforma. Empresas clientes não herdam os dados/credenciais atuais da Véxora. BOT nunca gera notificações de atendimento; atendentes somente veem atribuições humanas permitidas. Negativas individuais de módulo prevalecem sobre padrões herdados. Leia docs/platform-and-client-contexts.md.
 
-Novos controles de automação ficam abaixo do fluxo/canvas; nunca adicionar cartões acima do título Véxora Intelligence Engine. A Home deve ser uma apresentação sem título acessada pelo logo, distinta de Visão geral, com fundos desktop/mobile por empresa.
+Novos controles de automação ficam abaixo do fluxo/canvas; nunca adicionar cartões acima do título Véxora Intelligence Engine. A página inicial é a Visão geral; o logo leva à Visão geral. (A apresentação com papel de parede foi removida a pedido do produto — não reintroduzir.)
 
-Sidebar desktop fixa no viewport, com rolagem apenas na navegação quando necessário e barra fina chapada na cor do tema. Submenus expandem normalmente, sem rolagem própria. A Home aceita uma cor sólida e um logo pequeno centralizado, com escolhas independentes para desktop e celular.
+Sidebar desktop fixa no viewport, com rolagem apenas na navegação quando necessário e barra fina chapada na cor do tema. Submenus expandem normalmente, sem rolagem própria.
 
 Toda barra de rolagem do produto deve ser fina e chapada: cinza escuro em área clara e branca em área escura, inclusive a sidebar escura do tema híbrido. Aplicar a documentos e regiões internas; evitar barras próprias nos submenus.
 

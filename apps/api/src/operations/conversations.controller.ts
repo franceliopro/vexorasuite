@@ -161,9 +161,13 @@ export class ConversationsController {
       : {};
     const raw = integrations.distributionSettings;
     const settings = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+    // Sem configuração salva, a distribuição é ligada por padrão (rodízio do setor).
+    const enabled = settings.enabled !== false;
+    const configuredStrategy = typeof settings.strategy === "string" ? settings.strategy.toUpperCase() : "";
+    const strategy = ["QUEUE", "ROUND_ROBIN", "LOAD", "PRIORITY"].includes(configuredStrategy) ? configuredStrategy : "ROUND_ROBIN";
     return {
-      enabled: settings.enabled === true,
-      strategy: typeof settings.strategy === "string" ? settings.strategy : "QUEUE",
+      enabled,
+      strategy,
       maxActivePerAgent: typeof settings.maxActivePerAgent === "number" ? settings.maxActivePerAgent : 0,
       priorityOrder: Array.isArray(settings.priorityOrder) ? settings.priorityOrder : ["URGENT", "HIGH", "NORMAL", "LOW"],
     };

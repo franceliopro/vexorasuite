@@ -16,6 +16,7 @@ import { EventsService } from "./events.service";
 import { JobLeaseService } from "../common/job-lease.service";
 import { schedulersEnabled } from "../common/scheduler-mode";
 import { inboxRouting } from "./inbox-routing";
+import { ConversationDistributionService } from "./conversation-distribution.service";
 const object = (x: any): Record<string, any> =>
   x && typeof x === "object" && !Array.isArray(x) ? x : {};
 const normalized = (value: unknown) => String(value || "")
@@ -35,6 +36,7 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
     private readonly waha: WahaService,
     private readonly events: EventsService,
     @Optional() private readonly leases?: JobLeaseService,
+    @Optional() private readonly distribution?: ConversationDistributionService,
   ) {}
   onModuleInit() {
     if (process.env.NODE_ENV === "test" || !schedulersEnabled()) return;
@@ -359,6 +361,14 @@ export class AudioTriageService implements OnModuleInit, OnModuleDestroy {
       const current = await this.prisma.conversation.findUniqueOrThrow({
         where: { id: c.id },
       });
+      // Distribui a conversa para o setor antes de responder, quando for transbordo.
+      if (handoff && departmentId) {
+        try {
+          await this.distribution?.assign(tenantId, c.id, departmentId);
+        } catch {
+          /* distribuição é best-effort */
+        }
+      }
       if (
         current.assigneeId ||
         current.deletedAt ||

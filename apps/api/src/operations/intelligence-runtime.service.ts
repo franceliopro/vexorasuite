@@ -1,5 +1,6 @@
 import {inboxRouting} from "./inbox-routing";
 import {selectPublication,scopedPresetInstructions,publicationKey,RuntimeScope} from './runtime-scope';
+import { ConversationDistributionService } from "./conversation-distribution.service";
 import { searxngSearch } from "../ai/local-services";
 import { documentDigits, isDocumentField } from "../common/documents";
 import { contactMetadata, lockedContact } from "../prisma/contact-metadata";
@@ -40,7 +41,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
 
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService) {}
 
   onModuleInit() {
     if (process.env.NODE_ENV === 'test' || !schedulersEnabled()) return;
@@ -153,6 +154,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
   async receive(channel: ChannelConnection, conversationId: string, messageId: string): Promise<boolean> {
     const crmStageChange: {value:{ id: string; pipelineId: string; stage: string } | null} = {value:null};
     const crmFinalizationChange: {value:{id:string;outcome:string;reason?:string} | null} = {value:null};
+    const handoffDepartment: {value: string | null} = {value:null};
     let crmContactChanged=false;
     let crmContactId:string|null=null;
     const result = await this.prisma.$transaction(async tx => {
@@ -169,6 +171,18 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: channel.tenantId }, select: { name: true, integrations: true } });
       const root=object(tenant.integrations);
       const entry=inboxRouting(channel.settings);
+      // Última linha de defesa: quando o motor não consegue processar a conversa,
+      // encaminha deterministicamente para um atendente em vez de deixar o cliente sem resposta.
+      const degradeToHuman = async (why: string) => {
+        if (conversation.handlingMode !== 'BOT') return [] as Message[];
+        const queuedMessage = await tx.message.create({
+          data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content: 'Recebi sua mensagem e vou encaminhar para nossa equipe de atendimento. Um atendente continuará por aqui. 🙌', contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, sourceMessageId: inbound.id, handoff: true, degraded: why } },
+        });
+        await tx.conversation.update({ where: { id: conversation.id }, data: { handlingMode: 'HUMAN', status: 'OPEN', assigneeId: null, departmentId: conversation.departmentId, botState: { flow: 'INTELLIGENCE', completed: true, degraded: why } } });
+        await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'INTERNAL', status: 'SENT', content: 'Contexto do atendimento\nMotivo: ' + why + '\nÚltima mensagem do cliente: ' + inbound.content.trim().slice(0, 1000), contentType: 'text', senderName: 'Contexto do atendimento', metadata: { kind: 'handoff_context', reason: why, sourceMessageId: inbound.id } } });
+        await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, reason: why, decision: 'human' } } });
+        return [queuedMessage];
+      };
       if(entry.mode==="HUMAN"){
         const department=entry.departmentId?await tx.department.findFirst({where:{id:entry.departmentId,tenantId:channel.tenantId,isActive:true},select:{id:true}}):null;
         await tx.conversation.update({where:{id:conversation.id},data:{handlingMode:"HUMAN",departmentId:conversation.departmentId||department?.id||null}});
@@ -181,11 +195,11 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       }
       let runtimeScope:RuntimeScope={departmentId:conversation.departmentId||null,userId:conversation.assigneeId||null};
       const selection=selectPublication(root,runtimeScope);
-      if(!selection)return entry.mode==="AUTOMATION"?{messages:[],handled:true,handoff:false}:null;
-      if(entry.mode==="AUTOMATION"&&!conversation.assigneeId&&(conversation.departmentId||null)===entry.departmentId&&selection.key!==publicationKey({departmentId:entry.departmentId}))return {messages:[],handled:true,handoff:false};
+      if(!selection){const degraded=await degradeToHuman('no_publication');return {messages:degraded,handled:true,handoff:true,assigned:true};}
+      if(entry.mode==="AUTOMATION"&&!conversation.assigneeId&&(conversation.departmentId||null)===entry.departmentId&&selection.key!==publicationKey({departmentId:entry.departmentId})){const degraded=await degradeToHuman('automation_publication_missing');return {messages:degraded,handled:true,handoff:true,assigned:true};}
       let {key:scopeKey,publication:published}=selection;
       if(conversation.assigneeId&&scopeKey==='default')return null;
-      if(scopeKey!=='default'&&!await this.validContext(tx,channel.tenantId,runtimeScope))return {messages:[],handled:true,handoff:false};
+      if(scopeKey!=='default'&&!await this.validContext(tx,channel.tenantId,runtimeScope)){const degraded=await degradeToHuman('invalid_scope');return {messages:degraded,handled:true,handoff:true,assigned:true};}
       const explicitAgentInboxMatch = Array.isArray(published.flow?.steps) && published.flow.steps.some((step: any) => {
         if (step?.kind !== "agent") return false;
         let config: Record<string, any> = {};
@@ -194,8 +208,8 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         return Array.isArray(agent?.bindings?.inboxes) && agent.bindings.inboxes.includes(channel.id);
       });
       const channelAllowed = Boolean(published.flow) && (published.flow.channelIds?.includes(channel.id) || (Array.isArray(published.flow.channelIds) && published.flow.channelIds.length === 0 && explicitAgentInboxMatch));
-      if (!channelAllowed) return entry.mode==="AUTOMATION"?{messages:[],handled:true,handoff:false}:null;
-      if (!published.active) return { messages: [], handled: true, handoff: false };
+      if (!channelAllowed) {const degraded=await degradeToHuman('channel_not_authorized');return {messages:degraded,handled:true,handoff:true,assigned:true};}
+      if (!published.active) {const degraded=await degradeToHuman('publication_inactive');return {messages:degraded,handled:true,handoff:true,assigned:true};}
       const processed = await tx.auditLog.findFirst({ where: { tenantId: channel.tenantId, action: 'engine.processed', entityId: inbound.id } });
       if (processed) {
         const queued = await tx.message.findMany({ where: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', metadata: { path: ['sourceMessageId'], equals: inbound.id } }, orderBy: { createdAt: 'asc' }, take: 20 });
@@ -272,6 +286,8 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         const belongs = target&&department ? await tx.departmentMember.findFirst({where:{tenantId:channel.tenantId,departmentId:department.id,userId:target.userId},select:{id:true}}) : true;
         if((key&&!department)||(userId&&(!target||!belongs))){reason='handoff_target_unavailable';department=null;target=null;}
         human = true; departmentId = department?.id ?? null; assigneeId=target?.userId??null;
+        // Registra a fila para distribuição automática (sem reintroduzir assignee no fluxo).
+        handoffDepartment.value = department?.id && !target?.userId ? department.id : null;
         state = { flow: 'INTELLIGENCE', revision: published.revision, completed: true, variables };
         skills.push('human.handoff');
         messages.push(target ? 'Encaminhei sua conversa para '+(target.knownBy?.trim()||target.user.name)+(department?', do time '+department.name:'')+'.' : department ? 'Encaminhei sua conversa para o time '+department.name+'. Um atendente continuará por aqui.' : reason==='handoff_target_unavailable'?'O destino configurado está indisponível. Encaminhei sua conversa para a fila geral de atendimento humano.':'Encaminhei sua conversa para a fila geral de atendimento humano.');
@@ -315,7 +331,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                 candidate?.enabled === true &&
                 Array.isArray(candidate?.bindings?.inboxes) &&
                 candidate.bindings.inboxes.includes(channel.id) &&
-                candidate?.bindings?.mode !== 'specialist'
+                candidate?.bindings?.mode === 'principal'
               ) : null;
               if (fallbackAgent) {
                 step = {
@@ -623,6 +639,15 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
     }, { timeout: 120000 });
     if (!result) return false;
     for (const message of result.messages) await this.deliver(channel, conversationId, message.id, message.content, result.handoff);
+    // Distribui a conversa para o setor após entregar o transbordo (a flag de assignee do
+    // claim já foi consumida; definir o responsável agora não invalida a entrega).
+    if (handoffDepartment.value && this.distribution) {
+      try {
+        await this.distribution.assign(channel.tenantId, conversationId, handoffDepartment.value);
+      } catch {
+        /* distribuição é best-effort */
+      }
+    }
     if (crmFinalizationChange.value) await this.prisma.conversation.updateMany({where:{tenantId:channel.tenantId,contactId:crmFinalizationChange.value.id,status:{in:['OPEN','PENDING']},archivedAt:null,deletedAt:null},data:{status:'RESOLVED'}});
     if(crmContactChanged&&crmContactId)this.events.publish(channel.tenantId,'contact.updated',{id:crmContactId});
     this.events.publish(channel.tenantId, 'conversation.updated', { id: conversationId });

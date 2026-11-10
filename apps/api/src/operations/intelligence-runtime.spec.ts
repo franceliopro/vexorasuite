@@ -21,8 +21,8 @@ describe('Intelligence runtime',()=>{
  it('creates an internal handoff context without sending it to the customer',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'input',variables:{}}});x.flow.steps=[{id:'input',title:'Problema',kind:'input.text',config:'{"variable":"solicitacao"}',message:'Descreva',options:['Continuar'],transitions:{Continuar:'handoff'}},{id:'handoff',title:'Suporte',message:'',options:[],action:'human.handoff',config:'{"departmentKey":"SUPORTE"}'}];x.inbound.content='Sem sinal no rastreador';await x.service.receive(x.channel,'conversation','inbound');const internal=x.tx.message.create.mock.calls.map((call:any)=>call[0].data).find((data:any)=>data.direction==='INTERNAL');expect(internal).toEqual(expect.objectContaining({direction:'INTERNAL',senderName:'Contexto do atendimento'}));expect(internal.content).toContain('Sem sinal no rastreador');expect(x.waha.sendText).not.toHaveBeenCalledWith(expect.anything(),expect.anything(),expect.stringContaining('Contexto do transbordo'));});
  it('honors explicit human requests',async()=>{const x=setup();x.inbound.content='atendente';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.conversation.update.mock.calls[0][0].data.handlingMode).toBe('HUMAN');});
  it('uses the inbox department as the default fallback for explicit human requests',async()=>{const x=setup({departmentId:'admin'});x.inbound.content='atendente';x.channel.settings={inboxRouting:{mode:'AUTOMATION',departmentId:'admin',targetType:'DEPARTMENT'}};x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:'Empresa',integrations:{intelligencePublished:x.published,intelligencePublications:{'department:admin':x.published}}});x.tx.department.findFirst.mockImplementation(async({where}:any)=>where.id==='admin'?{id:'admin',name:'Administrativo',key:'ADMINISTRATIVO'}:{id:'support',name:'Suporte',key:'SUPORTE'});await x.service.receive(x.channel,'conversation','inbound');const handoff=x.tx.conversation.update.mock.calls.find((call:any)=>call[0].data.handlingMode==='HUMAN');expect(handoff?.[0].data).toMatchObject({handlingMode:'HUMAN',departmentId:'admin',assigneeId:null});expect(x.waha.sendText).toHaveBeenCalledWith(expect.objectContaining({provider:'WAHA'}),expect.any(String),expect.stringContaining('Administrativo'));});
- it('pauses legacy replies too',async()=>{const x=setup();x.published.active=false;expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.waha.sendText).not.toHaveBeenCalled();});
- it('rejects channels outside binding',async()=>{const x=setup();x.flow.channelIds=['other'];expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(false);});
+ it('pauses legacy replies and degrades to human with a single notice',async()=>{const x=setup();x.published.active=false;expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.tx.message.create).toHaveBeenCalled();});
+ it('rejects channels outside binding by degrading to human, never silent',async()=>{const x=setup();x.flow.channelIds=['other'];expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);});
  it('does not execute in groups',async()=>{const x=setup();x.inbound.metadata.isGroup=true;expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(false);});
  it('records delivery failure',async()=>{const x=setup();x.waha.sendText.mockRejectedValue(new Error('offline'));await x.service.receive(x.channel,'conversation','inbound');expect(x.prisma.message.update).toHaveBeenCalledWith(expect.objectContaining({data:{status:'FAILED'}}));});
  it('captures input before handoff',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'input',variables:{}}});x.flow.steps.push({id:'input',title:'Problema',kind:'input.text',config:'{"variable":"solicitacao"}',message:'Descreva',options:['Continuar'],transitions:{Continuar:'handoff'}});x.inbound.content='Sem sinal';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.solicitacao).toBe('Sem sinal');});
@@ -146,15 +146,15 @@ describe('department and attendant publications in the message engine',()=>{
  it('does not inherit after the attendant has left the department',async()=>{
  const x=scoped({assigneeId:'ana'});x.tx.departmentMember.findFirst.mockResolvedValue(null);
  expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);
- expect(x.tx.message.create).not.toHaveBeenCalled();
+ expect(x.tx.message.create).toHaveBeenCalled();
  });
  it('does not deliver remaining messages when the department changes before dispatch',async()=>{
  const x=scoped();x.prisma.conversation.findFirstOrThrow.mockResolvedValue({...x.conversation,departmentId:'tracking'});
  await x.service.receive(x.channel,'conversation','inbound');expect(x.waha.sendText).not.toHaveBeenCalled();
  });
- it('honors a department pause without using the generic flow',async()=>{
+ it('honors a department pause by degrading to human, never silent',async()=>{
  const x=scoped();x.publications['department:link'].active=false;
- expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.tx.message.create).not.toHaveBeenCalled();
+ expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.tx.message.create).toHaveBeenCalled();
  });
  it('routes a department block into the departments published chatbot',async()=>{
  const x=scoped({departmentId:null,botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
@@ -189,13 +189,13 @@ describe("inbox entry routing",()=>{
   const x=setup({departmentId:"other"});x.channel.settings={inboxRouting:{mode:"AUTOMATION",departmentId:"support"}};
   await x.service.receive(x.channel,"conversation","inbound");expect(x.conversation.departmentId).toBe("other");
  });
- it("does not fall back to the company flow when an explicitly bound department loses its publication",async()=>{
+ it("does not fall back to the company flow and degrades to human instead",async()=>{
   const x=setup();x.channel.settings={inboxRouting:{mode:"AUTOMATION",departmentId:"support"}};
-  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);expect(x.tx.message.create).not.toHaveBeenCalled();
+  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);expect(x.tx.message.create).toHaveBeenCalled();
  });
- it("does not use the legacy bot for an explicitly automated inbox missing a publication",async()=>{
+ it("does not use the legacy bot and degrades to human instead",async()=>{
   const x=setup();x.channel.settings={inboxRouting:{mode:"AUTOMATION"}};x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:"Empresa",integrations:{}});
-  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);expect(x.waha.sendText).not.toHaveBeenCalled();
+  expect(await x.service.receive(x.channel,"conversation","inbound")).toBe(true);expect(x.waha.sendText).toHaveBeenCalled();
  });
  it("cancels queued output when inbox routing changed during generation",async()=>{
   const x=setup();x.prisma.channelConnection.findFirst.mockResolvedValue({id:"channel",tenantId:"tenant",provider:"WAHA",isActive:true,settings:{inboxRouting:{mode:"HUMAN",revision:"changed"}}});

@@ -680,7 +680,7 @@ details>summary:hover{color:var(--tx)}
   .inbox-composer{display:flex;flex-direction:column;gap:8px}
   .composer-toolbar{flex-wrap:wrap}
   .composer-tools{flex-wrap:wrap}
-  .composer-toolbar textarea{order:1;flex:1 1 100%;width:100%;min-height:44px;font-size:16px}
+  .composer-shell .inbox-composer .composer-tools textarea{order:1;flex:1 1 100%;width:100%;min-height:44px;font-size:16px}
   .inbox-workspace.mobile-thread-open{height:calc(100dvh - var(--top) - var(--dock) - 24px);grid-template-rows:minmax(0,1fr) auto}.inbox-workspace.mobile-thread-open .inbox-thread{height:100%}
   .inbox-workspace.mobile-thread-open .contact-profile{max-height:230px}
   .vx-flow-shell{grid-template-columns:1fr;height:auto}

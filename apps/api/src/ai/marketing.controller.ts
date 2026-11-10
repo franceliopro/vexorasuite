@@ -112,15 +112,32 @@ export class MarketingController{
   await this.prisma.auditLog.update({where:{id:row.id},data:{details:{...details,status:nextStatus,publication:{requestedAt:new Date().toISOString(),publishNow:options.publishNow,scheduledFor:options.scheduledFor||null,response:response?.post||response}}}});
   return {id,status:nextStatus,post:response?.post||response};
  }
- @Patch('manual-drafts/:id') async manualUpdate(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
-  this.automation.authorize(req);
-  const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.manual-draft'}});
-  if(!row)throw new BadRequestException('Rascunho não encontrado.');
-  const current=(row.details&&typeof row.details==='object'&&!Array.isArray(row.details)?row.details:{}) as any;
-  const next={...current,...(typeof input?.caption==='string'?{caption:input.caption.trim()}:{}),...(typeof input?.plannedFor==='string'?{plannedFor:input.plannedFor}:{}),...(typeof input?.status==='string'&&['DRAFT','READY'].includes(input.status)?{status:input.status}: {})};
-  await this.prisma.auditLog.update({where:{id},data:{details:next}});
-  return {id,status:next.status};
- }
+  @Patch('manual-drafts/:id') async manualUpdate(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
+    this.automation.authorize(req);
+    const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.manual-draft'}});
+    if(!row)throw new BadRequestException('Rascunho n\u00e3o encontrado.');
+    const current=(row.details&&typeof row.details==='object'&&!Array.isArray(row.details)?row.details:{}) as any;
+    const isHistory=['PUBLISHED','SCHEDULED'].includes(String(current.status));
+    const triesContentChange=(typeof input?.title==='string')||Array.isArray(input?.channels);
+    if(isHistory&&triesContentChange)throw new BadRequestException('Esta publica\u00e7\u00e3o j\u00e1 foi para as redes e faz parte do hist\u00f3rico.');
+    const next={...current,
+      ...(typeof input?.title==='string'&&input.title.trim()&&input.title.trim().length<=180?{title:input.title.trim()}:{}),
+      ...(typeof input?.caption==='string'&&input.caption.trim()&&input.caption.trim().length<=4000?{caption:input.caption.trim()}:{}),
+      ...(Array.isArray(input?.channels)?{channels:input.channels.filter((v:any)=>typeof v==='string'&&v.length<=40).slice(0,12)}:{}),
+      ...(typeof input?.plannedFor==='string'?{plannedFor:input.plannedFor}:{}),
+      ...(typeof input?.status==='string'&&['DRAFT','READY'].includes(input.status)?{status:input.status}: {})};
+    await this.prisma.auditLog.update({where:{id},data:{details:next}});
+    return {id,status:next.status};
+  }
+  @Delete('manual-drafts/:id') async manualRemove(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
+    this.automation.authorize(req);
+    const row=await this.prisma.auditLog.findFirst({where:{id,tenantId:req.user.tenantId,action:'marketing.manual-draft'}});
+    if(!row)throw new BadRequestException('Rascunho n\u00e3o encontrado.');
+    const details=(row.details&&typeof row.details==='object'&&!Array.isArray(row.details)?row.details:{}) as any;
+    if(['PUBLISHED','SCHEDULED'].includes(String(details.status)))throw new BadRequestException('Esta publica\u00e7\u00e3o j\u00e1 foi para as redes e faz parte do hist\u00f3rico.');
+    await this.prisma.auditLog.delete({where:{id:row.id}});
+    return {ok:true};
+  }
  @Get('web-assets') async listWebAssets(@Req() req:AuthenticatedRequest,@Query('kind') kind?:string){
   const requested=normalizeWebAssetKind(kind);
   const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'marketing.web-asset'},orderBy:{createdAt:'desc'},take:200});

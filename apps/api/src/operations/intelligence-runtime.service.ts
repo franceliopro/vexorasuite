@@ -251,8 +251,9 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       for (const [key,value] of Object.entries(profile)) if(typeof value==='string'&&key!=='phone'&&key!=='email'&&!key.startsWith('crm')) variables[key]=value;
       let preferred=[profile.novo_nome,profile.preferredName,object(previous.variables).novo_nome,previous.novo_nome].find(value=>typeof value==='string'&&!!value.trim()&&!value.includes('{{'))?.trim().slice(0,80)||'';
       if(preferred&&!profile.novo_nome){const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),current=contactMetadata(latest.metadata);if(typeof current.novo_nome==='string'&&current.novo_nome.trim())preferred=current.novo_nome.trim().slice(0,80);const canonical={...current,novo_nome:preferred};await tx.contact.update({where:{id:conversation.contactId},data:{metadata:canonical}});conversation.contact.metadata=canonical;}
-      variables.nome = preferred || conversation.contact.name;
-      variables.novo_nome = preferred;
+      variables.nome = preferred || conversation.contact.name || "";
+      // novo_nome nunca fica vazio: sem nome preferido informado, usa o nome identificado do contato.
+      variables.novo_nome = preferred || conversation.contact.name || "";
       const nameReply=/^(sim|s|isso|manter|pode ser)$/i.test(inbound.content.trim())?conversation.contact.name:inbound.content.trim();
       const organization = object(root.organization);
       const address = [organization.address, organization.city, organization.state, organization.zipCode]

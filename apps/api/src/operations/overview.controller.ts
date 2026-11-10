@@ -37,11 +37,12 @@ function channelLabel(channel?: string | null): string {
   return value ? value.charAt(0) + value.slice(1).toLowerCase() : "Canal";
 }
 
+type ContactPreview = { name: string; id: string; phone?: string | null; externalId?: string | null; source?: string | null; metadata?: Record<string, unknown> | null } | null;
 type WaitingRow = {
   id: string;
   createdAt: Date;
   channel: string;
-  contact: { name: string; id: string } | null;
+  contact: ContactPreview;
   department: { name: string } | null;
 };
 
@@ -78,7 +79,7 @@ export class OverviewController {
    this.prisma.conversation.count({where:{...scope,status:{in:['RESOLVED','CLOSED']}}}),
    this.prisma.contact.count({where:{tenantId,conversations:{some:{tenantId,deletedAt:null,...(!admin?assignedConversationScope(tenantId,req.user.sub,teams.map(t=>t.departmentId)):{})}}}}),
    this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}}),
-   this.prisma.conversation.findMany({where:scope,orderBy:{updatedAt:'desc'},take:5,select:{id:true,status:true,updatedAt:true,createdAt:true,handlingMode:true,contact:{select:{name:true,id:true}}}}),
+   this.prisma.conversation.findMany({where:scope,orderBy:{updatedAt:'desc'},take:5,select:{id:true,status:true,updatedAt:true,createdAt:true,handlingMode:true,channel:true,contact:{select:{name:true,id:true,phone:true,externalId:true,source:true,metadata:true}}}}),
   ]);
 
   const now = new Date();
@@ -93,7 +94,7 @@ export class OverviewController {
      where:waitingWhere,
      orderBy:{createdAt:'asc'},
      take:6,
-     select:{id:true,createdAt:true,channel:true,contact:{select:{name:true,id:true}},department:{select:{name:true}}},
+     select:{id:true,createdAt:true,channel:true,contact:{select:{name:true,id:true,phone:true,externalId:true,source:true,metadata:true}},department:{select:{name:true}}},
    }), [] as WaitingRow[]),
    optional(() => this.prisma.conversation.findMany({
      where:{...scope,archivedAt:null,status:{in:OPEN_STATUSES},assigneeId:{not:null}},
@@ -118,10 +119,13 @@ export class OverviewController {
    optional(() => this.prisma.contact.count({where:{tenantId,createdAt:{gte:weekAgo}}}), 0),
   ]);
 
+  const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&typeof contact.metadata==="object"?contact.metadata:{};for(const key of ["handle","username","platformUsername","instagramUsername","pageUsername"]){const v=meta[key];if(typeof v==="string"&&/^[@\w.+-]{2,60}$/.test(v.trim()))return "@"+v.trim().replace(/^@/,"");}return "";};
   const waitingItems = waitingRows.map((row) => ({
     id: row.id,
     contactName: row.contact?.name || "Contato sem nome",
     contactId: row.contact?.id || null,
+    contactPhone: row.contact?.phone || null,
+    contactHandle: socialUsernameOf(row.contact),
     departmentName: row.department?.name || null,
     channel: channelLabel(row.channel),
     waitingMinutes: Math.max(0, Math.floor((now.getTime() - new Date(row.createdAt).getTime()) / 60000)),
@@ -170,16 +174,25 @@ export class OverviewController {
     peakValue,
   };
 
-  const topicMap = new Map<string, number>();
+  const topicMap = new Map<string, { count: number; channels: Map<string, number> }>();
   for (const row of topicRows) {
     const label = (row.subject || "").trim() || row.department?.name || channelLabel(row.channel);
-    topicMap.set(label, (topicMap.get(label) || 0) + 1);
+    const entry = topicMap.get(label) || { count: 0, channels: new Map<string, number>() };
+    entry.count += 1;
+    const ch = channelLabel(row.channel);
+    entry.channels.set(ch, (entry.channels.get(ch) || 0) + 1);
+    topicMap.set(label, entry);
   }
-  const topicTotal = [...topicMap.values()].reduce((sum, value) => sum + value, 0);
+  const topicTotal = [...topicMap.values()].reduce((sum, value) => sum + value.count, 0);
   const topics = [...topicMap.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 5)
-    .map(([label, count]) => ({ label, count, percent: topicTotal ? Math.round((count / topicTotal) * 100) : 0 }));
+    .map(([label, value]) => ({
+      label,
+      count: value.count,
+      percent: topicTotal ? Math.round((value.count / topicTotal) * 100) : 0,
+      channel: [...value.channels.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "",
+    }));
 
   // Channel mix reuses the same 30-day conversation sample already loaded above.
   const channelMap = new Map<string, number>();
@@ -207,7 +220,7 @@ export class OverviewController {
    contacts,
    contactsNewWeek,
    activeAgents:agents.filter((a:any)=>a.enabled===true).length,
-   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, contact: { name: item.contact?.name || 'Contato sem nome', id: item.contact?.id || null } })),
+   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, channel: channelLabel(item.channel), contact: { name: item.contact?.name || 'Contato sem nome', id: item.contact?.id || null, phone: item.contact?.phone || null, handle: socialUsernameOf(item.contact) } })),
    scope:admin?'tenant':'assigned_and_team',
    updatedAt:new Date().toISOString(),
    waiting:{

@@ -26,14 +26,25 @@ type ModelSelection = { provider: string; model: string; tier: string; endpoint?
 type VoiceSelection = { provider: string; model: string; endpoint?: string; voice?: string };
 type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; personalAssistant?: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[]; inboxes: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
 type KnowledgeDocument = { id: string; name: string; content: string };
-type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; allowedPhones?: string[]; testAccessEnabled?: boolean; testPhones?: string[]; companyRules?: string; companyKnowledge?: string; knowledgeDocuments?: KnowledgeDocument[]; dailyAiLimit?: number; fallbackModels?: ModelSelection[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
-const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [], allowedPhones: [], testAccessEnabled: false, testPhones: [], companyRules: "", companyKnowledge: "", knowledgeDocuments: [] };
+type PersonalAssistantRule = { phone: string; allowed?: string; forbidden?: string };
+type Config = { name: string; wakeWord: string; enabled: boolean; agents: AgentConfig[]; allowedPhones?: string[]; testAccessEnabled?: boolean; testPhones?: string[]; companyRules?: string; companyKnowledge?: string; companyProhibitions?: string; personalAssistantRules?: PersonalAssistantRule[]; knowledgeDocuments?: KnowledgeDocument[]; dailyAiLimit?: number; fallbackModels?: ModelSelection[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
+const initial: Config = { name: "Véxora", wakeWord: "Olá Véxora", enabled: false, agents: [], allowedPhones: [], testAccessEnabled: false, testPhones: [], companyRules: "", companyKnowledge: "", companyProhibitions: "", personalAssistantRules: [], knowledgeDocuments: [] };
 function parseConfig(value: unknown): Config {
   if (!value || typeof value !== "object" || Array.isArray(value)) return initial;
   const item = (value as Record<string, unknown>).assistant;
   if (!item || typeof item !== "object" || Array.isArray(item)) return initial;
   const cfg = item as Partial<Config>;
-  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
+  const parsePersonalAssistantRules = (value: unknown): PersonalAssistantRule[] => Array.isArray(value) ? value.flatMap(entry => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const rule = entry as Record<string, unknown>;
+    const phone = normalizeAssistantPhone(rule.phone);
+    if (!phone) return [];
+    const allowed = typeof rule.allowed === "string" ? rule.allowed : "";
+    const forbidden = typeof rule.forbidden === "string" ? rule.forbidden : "";
+    if (!allowed && !forbidden) return [];
+    return [{ phone, allowed, forbidden }];
+  }).slice(0, 50) : [];
+  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", companyProhibitions: typeof cfg.companyProhibitions === "string" ? cfg.companyProhibitions : "", personalAssistantRules: parsePersonalAssistantRules(cfg.personalAssistantRules), knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
 }
 
 @AuditCovered()
@@ -235,15 +246,30 @@ export class AssistantController {
     if (new Set(allowedPhones).size !== allowedPhones.length) throw new BadRequestException("Remova os celulares repetidos");
     const testPhones = (input.testPhones || []).map(value => { const phone = normalizeAssistantPhone(value); if (!phone) throw new BadRequestException("Celular de teste inválido. Use o código do país e DDD."); return phone; });
     if (new Set(testPhones).size !== testPhones.length) throw new BadRequestException("Remova os celulares de teste repetidos");
+    if (input.personalAssistantRules !== undefined && (!Array.isArray(input.personalAssistantRules) || input.personalAssistantRules.length > 50)) throw new BadRequestException("Informe até 50 regras por celular");
+    const allowedSet = new Set(allowedPhones);
+    const personalAssistantRules = (input.personalAssistantRules || []).map(value => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) throw new BadRequestException("Regra de celular inválida");
+      const rule = value as Record<string, unknown>;
+      const phone = normalizeAssistantPhone(rule.phone);
+      if (!phone) throw new BadRequestException("Celular inválido na regra. Use o código do país e DDD.");
+      if (!allowedSet.has(phone)) throw new BadRequestException("Só é possível definir regras para celulares autorizados");
+      const allowed = typeof rule.allowed === "string" ? rule.allowed.trim().slice(0, 2000) : "";
+      const forbidden = typeof rule.forbidden === "string" ? rule.forbidden.trim().slice(0, 2000) : "";
+      return { phone, allowed, forbidden };
+    });
+    if (new Set(personalAssistantRules.map(rule => rule.phone)).size !== personalAssistantRules.length) throw new BadRequestException("Defina apenas uma regra por celular");
+    if (input.companyProhibitions !== undefined && (typeof input.companyProhibitions !== "string" || input.companyProhibitions.length > 4000)) throw new BadRequestException("As regras gerais excederam 4 mil caracteres");
     const companyRules = input.companyRules === undefined ? "" : longText(input.companyRules).slice(0, 4000);
     const companyKnowledge = input.companyKnowledge === undefined ? "" : (typeof input.companyKnowledge === "string" && input.companyKnowledge.length <= 30000 ? input.companyKnowledge : (() => { throw new BadRequestException("As informações da empresa excederam 30 mil caracteres"); })());
+    const companyProhibitions = typeof input.companyProhibitions === "string" ? input.companyProhibitions : ""
     if (input.knowledgeDocuments !== undefined && (!Array.isArray(input.knowledgeDocuments) || input.knowledgeDocuments.length > 10)) throw new BadRequestException("Envie até 10 documentos de texto");
     const knowledgeDocuments = (input.knowledgeDocuments || []).map(doc => {
       if (!doc || typeof doc.id !== "string" || !/^[a-zA-Z0-9-]{1,80}$/.test(doc.id) || typeof doc.name !== "string" || !doc.name.trim() || doc.name.length > 180 || typeof doc.content !== "string" || !doc.content.trim() || doc.content.length > 8000) throw new BadRequestException("Documento de conhecimento inválido ou acima do limite");
       return { id: doc.id, name: doc.name.trim(), content: doc.content.trim() };
     });
     if (new Set(knowledgeDocuments.map(doc => doc.id)).size !== knowledgeDocuments.length || knowledgeDocuments.reduce((total, doc) => total + doc.content.length, 0) > 40000) throw new BadRequestException("Revise documentos repetidos ou acima do limite total");
-    const config = { dailyAiLimit: input.dailyAiLimit ?? 100, fallbackModels, name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, allowedPhones, testAccessEnabled: input.testAccessEnabled === true, testPhones, companyRules, companyKnowledge, knowledgeDocuments, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
+    const config = { dailyAiLimit: input.dailyAiLimit ?? 100, fallbackModels, name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, allowedPhones, testAccessEnabled: input.testAccessEnabled === true, testPhones, companyRules, companyKnowledge, companyProhibitions, personalAssistantRules, knowledgeDocuments, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
     // Transaction locks tenant row to avoid losing concurrent updates to integrations.
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;

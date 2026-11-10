@@ -163,7 +163,7 @@ export function ContactProfilePanel({
     const savedOrigin = typeof lead?.source === "string" ? lead.source : "";
     const channelOrigin =
       contact.source && ["WHATSAPP", "WAHA"].includes(contact.source.toUpperCase())
-        ? "WhatsApp (WAHA)"
+        ? "WhatsApp"
         : "";
     setLeadOrigin(
       savedOrigin ||
@@ -337,7 +337,7 @@ export function ContactProfilePanel({
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível reabrir o procedimento."); }
     finally { setProcedureBusy(false); }
   }
-  const protocol = (id: string) => "VXS-" + id.replace(/-/g, "").slice(0, 8).toUpperCase();
+  const protocol = (id: string) => "Atendimento " + id.replace(/-/g, "").slice(0, 6).toUpperCase();
   const statusLabel = (value: string) =>
     ({ OPEN: "Em atendimento", PENDING: "Pendente", RESOLVED: "Finalizado", CLOSED: "Encerrado" })[
       value
@@ -661,7 +661,7 @@ export function ContactProfilePanel({
                          <option>Facebook</option>
                          <option>Instagram</option>
                          <option>Google</option>
-                         <option>WhatsApp (WAHA)</option>
+                         <option>WhatsApp</option>
                          <option>Campanha de WhatsApp</option>
                          <option>Campanha de SMS</option>
                          <option>Campanha de Áudio</option>

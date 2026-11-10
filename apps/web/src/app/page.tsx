@@ -1,5 +1,4 @@
 "use client";
-import {PresentationHome} from "./presentation-home";
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
 import { SettingsCatalog } from "./settings-catalog";
@@ -150,7 +149,7 @@ export default function HomePage() {
   const refreshProfile=async()=>{const r=await fetch('/api/backend/auth/me',{cache:'no-store'});if(r.ok)setSession(await r.json());};
   useEffect(()=>{const refresh=()=>{void refreshProfile();};window.addEventListener("vexora:team-updated",refresh);return()=>window.removeEventListener("vexora:team-updated",refresh);},[]);
   useEffect(()=>{if(!session||session.user.mustChangePassword)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
-  const [active, setActive] = useState("");
+  const [active, setActive] = useState("Visão geral");
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
@@ -171,7 +170,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!navigationReady) return;
     const url = new URL(window.location.href);
-    if (active === "") url.searchParams.delete("module");
+    if (active === "Visão geral") url.searchParams.delete("module");
     else url.searchParams.set("module", active);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [active, navigationReady]);
@@ -241,12 +240,11 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
   const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'MARKETING','Landing Pages':'MARKETING','Formulários':'MARKETING','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
-  const moduleVisible=(label:string)=>session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
+  const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
   useEffect(() => { if (active !== "Configurações") setSettingsAdvanced(false); }, [active]);
   const currentWorkspaceTab = workspaceTabKey(active);
-  const presentationHome=active==="";
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
 
@@ -259,9 +257,9 @@ export default function HomePage() {
 
   if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
   return (
-    <div className={"suite-app"+(presentationHome?" home-mode":"")}>
+    <div className="suite-app">
       <aside id="mobile-navigation-menu" className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`}>
-        <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("");setMenuOpen(false); }}>
+        <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("Visão geral");setMenuOpen(false); }}>
           {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+((theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?"has-custom-logo ":"")+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
@@ -315,14 +313,14 @@ export default function HomePage() {
           </div>
         </header>
 
-        {!presentationHome && currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
-        <div className={"page-content"+(presentationHome?" presentation-page":"")}>{!presentationHome&&<WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>}
+        {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
+        <div className="page-content"><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className="page-heading">
             <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
 
-          {presentationHome?<PresentationHome key={session?.tenant.id}/>:!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p></section>:isOverview ? (
+          {!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className="secondary-button" onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} shortcuts={
@@ -371,12 +369,12 @@ export default function HomePage() {
               <button className="secondary-button" onClick={() => setActive("Visão geral")}>← Voltar à visão geral</button>
             </section>
           )}
-          {!presentationHome&&active !== "Atendimento" ? <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer> : null}
+          {active !== "Atendimento" ? <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer> : null}
         </div>
       </main>
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <nav className="mobile-bottom-nav" aria-label="Navegação principal no celular">
-        <button type="button" className={presentationHome ? "active" : ""} onClick={() => { setActive(""); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Início</span></button>
+        <button type="button" className={active === "Visão geral" ? "active" : ""} onClick={() => { setActive("Visão geral"); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Visão geral</span></button>
         <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>
         <button type="button" className={active === "CRM" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("CRM")} onFocus={()=>preloadWorkspace("CRM")} onClick={() => { preloadWorkspace("CRM");setActive("CRM"); setMenuOpen(false); }}><Icon name="users" size={20}/><span>CRM</span></button>
         <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20}/><span>Mais</span></button>

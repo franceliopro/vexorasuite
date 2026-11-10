@@ -15,8 +15,8 @@ export class ChannelHealthService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy(){if(this.timer)clearInterval(this.timer);}
   async check(){
     if(this.running)return;this.running=true;
-    if(this.leases&&!(await this.leases.claim('channel-health',14000)))return;
     try {
+      if(this.leases&&!(await this.leases.claim('channel-health',14000)))return;
       const channels=await this.prisma.channelConnection.findMany({where:{provider:'WAHA',isActive:true,tenant:{status:'ACTIVE'}},take:500});
       for(const channel of channels){
         const claimed=await this.prisma.$transaction(async tx=>{
@@ -44,6 +44,7 @@ export class ChannelHealthService implements OnModuleInit, OnModuleDestroy {
         const statusWasConnected=channel.status==='CONNECTED';
         let effectiveStatus=channel.status;
         let changed=false;
+        let freshCheckedAt: string | null = null;
         await this.prisma.$transaction(async tx=>{
           await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid FOR UPDATE`;
           const row=await tx.channelConnection.findUnique({where:{id:channel.id}});if(!row)return;
@@ -54,9 +55,12 @@ export class ChannelHealthService implements OnModuleInit, OnModuleDestroy {
           const nextError=tolerate?null:(healthy?null:nextLastError);
           effectiveStatus=nextStatus;
           changed=row.status!==nextStatus||row.lastError!==nextError||settings.healthProviderStatus!==providerStatus;
-          await tx.channelConnection.update({where:{id:row.id},data:{status:nextStatus,lastError:nextError,settings:{...settings,healthCheckedAt:new Date().toISOString(),healthProviderStatus:providerStatus,healthFailures:failures}}});
+          freshCheckedAt=new Date().toISOString();
+          await tx.channelConnection.update({where:{id:row.id},data:{status:nextStatus,lastError:nextError,settings:{...settings,healthCheckedAt:freshCheckedAt,healthProviderStatus:providerStatus,healthFailures:failures}}});
         });
-        if(changed) this.events.publish(channel.tenantId,'channel.status',{id:channel.id,status:effectiveStatus,providerStatus});
+        const previousCheckedAt=Date.parse(((channel.settings&&typeof channel.settings==='object'?(channel.settings as Record<string,any>).healthCheckedAt:'')||''));
+        const staleRefresh=!Number.isFinite(previousCheckedAt)||Date.now()-previousCheckedAt>60000;
+        if(changed||staleRefresh) this.events.publish(channel.tenantId,'channel.status',{id:channel.id,status:effectiveStatus,providerStatus,healthCheckedAt:freshCheckedAt,lastError:healthy?null:nextLastError,checkedAt:Date.now()});
       }
     }catch{/* Next interval retries; a stale timestamp remains visible to the operator. */}finally{this.running=false;}
   }

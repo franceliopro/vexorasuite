@@ -37,15 +37,26 @@ export class ChannelHealthService implements OnModuleInit, OnModuleDestroy {
         }
         const providerStatus=result.providerStatus||'UNKNOWN';
         if(result.status==='CONNECTED'||result.status==='CONNECTING'||result.status==='QR') nextLastError=null;
+        // Histerese: falhas transitórias não derrubam o canal. Mantém o último
+        // estado conhecido por até 2 verificações seguidas; só propaga
+        // desconexão/erro real a partir da 3ª.
+        const healthy=result.status==='CONNECTED';
+        const statusWasConnected=channel.status==='CONNECTED';
+        let effectiveStatus=channel.status;
         let changed=false;
         await this.prisma.$transaction(async tx=>{
           await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${channel.id}::uuid FOR UPDATE`;
           const row=await tx.channelConnection.findUnique({where:{id:channel.id}});if(!row)return;
           const settings=(row.settings&&typeof row.settings==='object'&&!Array.isArray(row.settings)?row.settings:{}) as Record<string,any>;
-          changed=row.status!==result.status||row.lastError!==nextLastError||settings.healthProviderStatus!==providerStatus;
-          await tx.channelConnection.update({where:{id:row.id},data:{status:result.status,lastError:nextLastError,settings:{...settings,healthCheckedAt:new Date().toISOString(),healthProviderStatus:providerStatus}}});
+          const failures=healthy?0:(Number(settings.healthFailures)||0)+1;
+          const tolerate=!healthy&&statusWasConnected&&failures<3;
+          const nextStatus=tolerate?row.status:result.status;
+          const nextError=tolerate?null:(healthy?null:nextLastError);
+          effectiveStatus=nextStatus;
+          changed=row.status!==nextStatus||row.lastError!==nextError||settings.healthProviderStatus!==providerStatus;
+          await tx.channelConnection.update({where:{id:row.id},data:{status:nextStatus,lastError:nextError,settings:{...settings,healthCheckedAt:new Date().toISOString(),healthProviderStatus:providerStatus,healthFailures:failures}}});
         });
-        if(changed) this.events.publish(channel.tenantId,'channel.status',{id:channel.id,...result});
+        if(changed) this.events.publish(channel.tenantId,'channel.status',{id:channel.id,status:effectiveStatus,providerStatus});
       }
     }catch{/* Next interval retries; a stale timestamp remains visible to the operator. */}finally{this.running=false;}
   }

@@ -1,11 +1,30 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Sparkles, Users } from "lucide-react";
+import { platformColor, platformLabel } from "./platform-icon";
+
+/** Telefone formatado sem o prefixo "+", no padrão pedido: 55 (66) 99999-9999 */
+function phoneBR(phone?: string | null): string {
+  const digits = (phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 13 && digits.startsWith("55")) return "55 (" + digits.slice(2, 4) + ") " + digits.slice(4, 9) + "-" + digits.slice(9);
+  if (digits.length === 12 && digits.startsWith("55")) return "55 (" + digits.slice(2, 4) + ") " + digits.slice(4, 8) + "-" + digits.slice(8);
+  if (digits.length === 11) return "55 (" + digits.slice(0, 2) + ") " + digits.slice(2, 7) + "-" + digits.slice(7);
+  if (digits.length === 10) return "55 (" + digits.slice(0, 2) + ") " + digits.slice(2, 6) + "-" + digits.slice(6);
+  return digits;
+}
+/** Identidade sutil logo abaixo do nome: telefone formatado, ou @ da rede social */
+function contactLine(phone?: string | null, handle?: string | null): string {
+  if (handle) return handle;
+  return phoneBR(phone) || "";
+}
 
 export type OverviewWaitingItem = {
   id: string;
   contactName: string;
   contactId: string | null;
+  contactPhone?: string | null;
+  contactHandle?: string | null;
   departmentName: string | null;
   channel: string;
   waitingMinutes: number;
@@ -17,7 +36,8 @@ export type OverviewRecentItem = {
   updatedAt: string;
   createdAt?: string;
   handlingMode?: string | null;
-  contact: { name: string; id?: string | null };
+  channel?: string;
+  contact: { name: string; id?: string | null; phone?: string | null; handle?: string | null };
 };
 
 export type OverviewTeamMember = {
@@ -43,7 +63,7 @@ export type OverviewSnapshot = {
   waiting?: { total: number; oldestMinutes: number | null; items: OverviewWaitingItem[] };
   team?: OverviewTeamMember[];
   hourly?: { labels: string[]; values: number[]; average: number[]; peakIndex: number | null; peakValue: number };
-  topics?: Array<{ label: string; count: number; percent: number }>;
+  topics?: Array<{ label: string; count: number; percent: number; channel?: string }>;
   channels?: OverviewChannel[];
   kpis?: { resolvedByAi: number; resolvedByAiPercent: number; revenue: number; payments: number; firstResponseSeconds: number | null };
 };
@@ -228,6 +248,7 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
                 <button type="button" className="vx-ring-card" key={item.id} onClick={onOpenQueue} title={`${item.contactName} · espera ${waitText(item.waitingMinutes)}`}>
                   <WaitRing minutes={item.waitingMinutes} id={item.contactId} name={item.contactName} />
                   <b>{item.contactName}</b>
+                  <small className="vx-ring-contact">{contactLine(item.contactPhone, item.contactHandle) || (item.channel ? platformLabel(item.channel) : "Sem telefone")}</small>
                   <span className={`vx-ring-time tone-${waitTone(item.waitingMinutes)}`}>{waitText(item.waitingMinutes)}</span>
                 </button>
               ))}
@@ -311,7 +332,7 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
               {recent.slice(0, 6).map((item) => (
                 <li key={item.id}>
                   <ClientAvatar id={item.contact.id ?? null} name={item.contact.name} className="vx-activity-avatar" />
-                  <span className="vx-activity-copy"><b>{item.contact.name}</b><small>{recentLabel(item)}</small></span>
+                  <span className="vx-activity-copy"><b>{item.contact.name}</b><small className="vx-activity-contact">{contactLine(item.contact.phone, item.contact.handle) || (item.channel ? platformLabel(item.channel) : "")}{contactLine(item.contact.phone, item.contact.handle) ? " · " : ""}{recentLabel(item)}</small></span>
                   <time className="vx-activity-time">{clock(item.updatedAt)}</time>
                 </li>
               ))}
@@ -324,13 +345,17 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
         <header className="vx-card-head"><div><h2>Do que as pessoas falam</h2><p>Assuntos dos últimos 30 dias</p></div><span className="vx-card-badge neutral">Top {topics.length || 0}</span></header>
         {topics.length ? (
           <div className="vx-topics">
-            {topics.map((topic, index) => (
+            {topics.map((topic) => {
+              const channel = topic.channel || "";
+              const color = channel ? platformColor(channel) : "var(--primary)";
+              return (
               <div className="vx-topic" key={topic.label}>
-                <div className="vx-topic-top"><span><i className={`vx-topic-dot tone-${["mint", "blue", "violet", "amber", "coral"][index % 5]}`} />{topic.label}</span><b>{topic.percent}%</b></div>
-                <span className="vx-topic-bar"><i style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
+                <div className="vx-topic-top"><span><i className="vx-topic-dot" style={{ background: color }} />{topic.label}{channel ? <small className="vx-topic-channel">{platformLabel(channel)}</small> : null}</span><b>{topic.percent}%</b></div>
+                <span className="vx-topic-bar"><i style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%`, background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 55%, transparent))` }} /></span>
                 <small>{topic.count} {topic.count === 1 ? "conversa" : "conversas"}</small>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : <p className="vx-card-empty">Os assuntos aparecem aqui conforme as conversas chegam.</p>}
       </article>

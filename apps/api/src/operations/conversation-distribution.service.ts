@@ -17,7 +17,10 @@ export class ConversationDistributionService {
       const settings = integrations.distributionSettings && typeof integrations.distributionSettings === "object" && !Array.isArray(integrations.distributionSettings)
         ? integrations.distributionSettings as Record<string, unknown>
         : {};
-      if (settings.enabled !== true) return null;
+      // Sem configuração explícita, a distribuição é ligada por padrão para que um
+      // responsável seja sempre definido no transbordo (rodízio do departamento).
+      // Quando a empresa salva enabled:false ou estratégia QUEUE, respeitamos.
+      if (settings.enabled === false) return null;
 
       // Serializa decisões por departamento para que duas mensagens simultâneas não
       // escolham o mesmo cursor de rodízio antes de uma delas confirmar a atribuição.

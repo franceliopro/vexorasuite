@@ -58,7 +58,7 @@ export function ChatbotWorkspace({tenantId}:{tenantId:string}){
  const [helpOpen,setHelpOpen]=useState(false);
  const [advancedProperties,setAdvancedProperties]=useState(false);
  const [fullScreen,setFullScreen]=useState(false);
- const [editorOpen,setEditorOpen]=useState(false);
+ const [editorOpen,setEditorOpen]=useState(true);
  const [showLinks,setShowLinks]=useState(true);
  const [destinations,setDestinations]=useState<{departments:{id:string;key:string;name:string;routingCategory?:string;members:string[]}[];agents:{id:string;name:string}[]}>({departments:[],agents:[]});
  useEffect(()=>{const refresh=()=>{void fetch('/api/backend/chatbot/runtime/destinations',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(setDestinations).catch(()=>setNotice('Não foi possível carregar os destinos de transferência.'))};refresh();window.addEventListener('focus',refresh);window.addEventListener('vexora:team-updated',refresh);return()=>{window.removeEventListener('focus',refresh);window.removeEventListener('vexora:team-updated',refresh)}},[]);

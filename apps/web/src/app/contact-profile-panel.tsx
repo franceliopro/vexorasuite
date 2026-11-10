@@ -1,8 +1,9 @@
 "use client";
 
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
+import { WhatsAppGlyph } from "./brand-glyph";
 import { tagForeground } from "../lib/tag-contrast";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   Clock3,
   Compass,
@@ -24,11 +25,11 @@ import {
 
 function channelGlyph(channel?: string) {
   const value = (channel || "WHATSAPP").toUpperCase();
-  if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} aria-hidden="true" />;
-  if (value.includes("FACEBOOK") || value === "MESSENGER") return <Facebook size={12} strokeWidth={2.25} aria-hidden="true" />;
-  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <Mail size={12} strokeWidth={2.25} aria-hidden="true" />;
+  if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} color="#E1306C" aria-hidden="true" />;
+  if (value.includes("FACEBOOK") || value === "MESSENGER") return <Facebook size={12} strokeWidth={2.25} color="#1877F2" aria-hidden="true" />;
+  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <Mail size={12} strokeWidth={2.25} color="#EA4335" aria-hidden="true" />;
   if (value.includes("CHATBOT") || value.includes("WEBCHAT") || value.includes("WIDGET")) return <Bot size={12} aria-hidden="true" />;
-  return <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg>;
+  return <WhatsAppGlyph size={12} />;
 }
 
 type ContactProfileData = {
@@ -79,15 +80,21 @@ export function ContactProfilePanel({
   expanded,
   onExpandedChange,
   displayName,
+  hideToggle = false,
+  bare = false,
+  statusPill,
 }: {
   contact: ContactProfileData;
   conversationId: string;
-  status: string;
+  status?: string;
   createdAt?: string;
   channel?: string;
   expanded: boolean;
   displayName?: string;
   onExpandedChange: (expanded: boolean) => void;
+  hideToggle?: boolean;
+  bare?: boolean;
+  statusPill?: ReactNode;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
@@ -377,7 +384,8 @@ export function ContactProfilePanel({
     return "Lead / cliente";
   };
   return (
-    <aside className={"contact-profile content-card " + (!expanded ? "profile-collapsed" : "")}>
+    <aside className={"contact-profile " + (bare ? "contact-profile-bare" : "content-card") + (!expanded ? " profile-collapsed" : "")}>
+      {bare ? null : (
       <div className="contact-profile-heading">
         {expanded ? (
           <>
@@ -394,33 +402,38 @@ export function ContactProfilePanel({
             </div>
           </>
         ) : null}
-        <button
-          type="button"
-          className="profile-toggle"
-          aria-label={expanded ? "Recolher ficha" : "Expandir ficha"}
-          onClick={() => onExpandedChange(!expanded)}
-        >
-          {expanded ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}
-        </button>
+        {hideToggle ? null : (
+          <button
+            type="button"
+            className="profile-toggle"
+            aria-label={expanded ? "Recolher ficha" : "Expandir ficha"}
+            onClick={() => onExpandedChange(!expanded)}
+          >
+            {expanded ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}
+          </button>
+        )}
       </div>
+      )}
       {expanded ? (
         <>
           <div className="contact-profile-identity">
             {contact.phone ? <p>{readablePhone(contact.phone, contact.externalId)}</p> : null}
             {contact.email ? <p>{contact.email}</p> : null}
-            <span
-              className={
-                "profile-status-pill " + (["RESOLVED", "CLOSED"].includes(status) ? "done" : "")
-              }
-            >
-              {status === "RESOLVED"
-                ? "Resolvido"
-                : status === "CLOSED"
-                  ? "Encerrado"
-                  : status === "PENDING"
-                    ? "Pendente"
-                    : "Em atendimento"}
-            </span>
+            {statusPill ? statusPill : status ? (
+              <span
+                className={
+                  "profile-status-pill " + (["RESOLVED", "CLOSED"].includes(status) ? "done" : "")
+                }
+              >
+                {status === "RESOLVED"
+                  ? "Resolvido"
+                  : status === "CLOSED"
+                    ? "Encerrado"
+                    : status === "PENDING"
+                      ? "Pendente"
+                      : "Em atendimento"}
+              </span>
+            ) : null}
             {finalization ? (
               <span
                 className={"profile-status-pill " + (finalization.outcome === "WON" ? "done" : "")}
@@ -620,7 +633,7 @@ export function ContactProfilePanel({
 <section className="profile-section contact-identities-section">
                   <strong><Link2 size={14} /> Identidades de atendimento</strong>
                   <p>Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="contact-identity-card" key={identity.id}><span className="contact-identity-icon" aria-hidden="true">{isWaha ? <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#25D366" d="M12 1.5a10.5 10.5 0 0 0-9.02 15.88L1.5 22.5l5.27-1.38A10.5 10.5 0 1 0 12 1.5Z"/></svg> : <Link2 size={18}/>}</span><span className="contact-identity-copy"><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className="profile-status-pill small done">Ativo</span></div>})}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
+                  {identities.length ? <div className="contact-identity-list">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="contact-identity-card" key={identity.id}><span className="contact-identity-icon" aria-hidden="true">{isWaha ? <WhatsAppGlyph size={18} /> : <Link2 size={18}/>}</span><span className="contact-identity-copy"><b>{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small>{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className="profile-status-pill small done">Ativo</span></div>})}</div> : <small>Nenhuma identidade sincronizada ainda.</small>}
                   <form className="contact-identity-form" onSubmit={bindIdentity}>
                     <label>Provedor<select value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
                     <label>Número atual<input type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
@@ -720,14 +733,16 @@ export function ContactProfilePanel({
                 <p className="profile-section-hint">
                   Conversas, canais, responsáveis e etapas registradas para auditoria.
                 </p>
-                <div className="protocol-current">
-                  <small>ATENDIMENTO ATUAL</small>
-                  <b>{protocol(conversationId)}</b>
-                  <span>
-                    {new Date(createdAt || Date.now()).toLocaleString("pt-BR")} ·{" "}
-                    {channel || "WhatsApp"}
-                  </span>
-                </div>
+                {conversationId ? (
+                  <div className="protocol-current">
+                    <small>ATENDIMENTO ATUAL</small>
+                    <b>{protocol(conversationId)}</b>
+                    <span>
+                      {new Date(createdAt || Date.now()).toLocaleString("pt-BR")} ·{" "}
+                      {channel || "WhatsApp"}
+                    </span>
+                  </div>
+                ) : null}
                 {history.map((item) => (
                   <div className="protocol-history-item" key={item.id}>
                     <div>

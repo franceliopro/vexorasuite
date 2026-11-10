@@ -230,8 +230,8 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
       <section className="vx-web-ai-card" aria-label="Assistente de criação">
         <span className="vx-web-ai-mark"><Sparkles size={20} aria-hidden="true" /></span>
         <div className="vx-web-ai-copy">
-          <strong>Nossa Véxora — Assistente Pessoal</strong>
-          <p>Descreva o que você precisa e a assistente monta um rascunho de {meta.singular} com título, endereço e texto. Você revisa e salva; nada é publicado automaticamente.</p>
+          <strong>Véxora — sua assistente pessoal</strong>
+          <p>Descreva o que você precisa e a Véxora, a super assistente do Marketing e tudo o mais, monta o rascunho com título, endereço e texto. Você revisa e salva; nada é publicado automaticamente.</p>
         </div>
         <button className="primary-button" type="button" onClick={openAi}><Wand2 size={15} aria-hidden="true" /> Criar tudo com IA</button>
       </section>
@@ -272,7 +272,7 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
       <VexoraDialog
         open={aiOpen}
         title="Criar com a assistente"
-        subtitle={"Nossa Véxora — Assistente Pessoal"}
+        subtitle={"Véxora — sua assistente pessoal do Marketing e tudo o mais"}
         icon={<Sparkles size={20} aria-hidden="true" />}
         onClose={() => { if (!aiBusy) setAiOpen(false); }}
         footer={

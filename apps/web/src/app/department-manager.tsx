@@ -1,6 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ModuleChoices, moduleLabels } from "./module-choices";
+import { Boxes, Building2, Handshake, Headset, Landmark, UsersRound } from "lucide-react";
+const categoryMeta: Record<string, { label: string; icon: typeof Landmark; tone: string }> = {
+  FINANCE: { label: "Financeiro", icon: Landmark, tone: "tone-emerald" },
+  SUPPORT: { label: "Suporte t\u00e9cnico", icon: Headset, tone: "tone-blue" },
+  SALES: { label: "Comercial", icon: Handshake, tone: "tone-amber" },
+  ADMIN: { label: "Administrativo", icon: Building2, tone: "tone-violet" },
+  OTHER: { label: "Outro", icon: Boxes, tone: "tone-slate" },
+};
+const categoryMetaOf = (value?: string) => categoryMeta[value || "OTHER"] || categoryMeta.OTHER!;
+const initialsOf = (name: string) => {
+  const parts = (name || "?").trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || "?";
+  const last = parts.length > 1 ? parts[parts.length - 1]![0] : "";
+  return (first + last).toUpperCase();
+};
 const initial = {
   name: "",
   key: "",
@@ -119,16 +134,16 @@ export function DepartmentManager() {
   }
   return (
     <section className="simple-workspace department-manager">
-      <div className="workspace-section-heading">
-        <h2>Setores da empresa</h2>
+      <div className="workspace-section-heading department-heading">
+        <div>
+          <h2>Setores da empresa</h2>
+          <p>Cada empresa define seus setores; nenhum setor genérico é criado automaticamente.</p>
+        </div>
+        <span className="department-count">{rows.length} {rows.length === 1 ? "setor" : "setores"}</span>
         <button className="primary-button" onClick={() => edit()}>
           + Criar setor
         </button>
       </div>
-      <p>
-        Cada empresa define seus setores. Nenhum setor genérico é criado
-        automaticamente.
-      </p>
       {notice && <p role="status">{notice}</p>}
       {editing && (
         <form
@@ -259,69 +274,70 @@ export function DepartmentManager() {
           </div>
         </form>
       )}
-      {rows.map((d) => (
-        <article className="workspace-surface publication-row" key={d.id}>
-          <div>
-            <strong>{d.name}</strong>
-            <small>
-              {d.isActive ? "Ativo" : "Desativado"}
-              
-            </small>
-            <small>
-              {(d.modules || [])
-                .map((m: string) => moduleLabels[m])
-                .join(" · ") || "Sem módulos habilitados"}
-            </small>
-          </div>
-          <button className="secondary-button" onClick={() => edit(d)}>
-            {d.isActive ? "Editar" : "Reativar"}
-          </button>
-          {d.isActive && (
-            <button
-              className="text-button danger-text"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Desativar " +
-                      d.name +
-                      "? O acesso do setor será revogado e o histórico será preservado.",
-                  )
-                )
-                  void save({}, "DELETE", d.id);
-              }}
-            >
-              Desativar
-            </button>
-          )}
-          {d.isActive && (
-            <div className="department-members-editor">
-              <strong>Atendentes deste setor</strong>
-              <small>Defina quem recebe e pode assumir conversas encaminhadas para este setor.</small>
-              <div className="department-member-options">
-                {agents.length ? agents.map((agent) => (
-                  <label className="ai-toggle" key={agent.id}>
-                    <input
-                      type="checkbox"
-                      checked={(members[d.id] || []).includes(agent.id)}
-                      onChange={(event) => setMembers((current) => ({
-                        ...current,
-                        [d.id]: event.target.checked
-                          ? [...new Set([...(current[d.id] || []), agent.id])]
-                          : (current[d.id] || []).filter((id) => id !== agent.id),
-                      }))}
-                    />
-                    <span>{agent.name}{agent.email ? " · " + agent.email : ""}</span>
-                  </label>
-                )) : <small>Nenhum atendente ativo cadastrado.</small>}
+      <div className="department-grid">
+        {rows.map((d) => {
+          const meta = categoryMetaOf(d.routingCategory);
+          const Icon = meta.icon;
+          const assigned = members[d.id] || [];
+          const assignedAgents = agents.filter((agent) => assigned.includes(agent.id));
+          return (
+            <article className={"department-card" + (d.isActive ? "" : " is-inactive")} key={d.id}>
+              <header className="department-card-head">
+                <span className={"department-card-icon " + meta.tone} aria-hidden="true"><Icon size={20} /></span>
+                <div className="department-card-title">
+                  <strong>{d.name}</strong>
+                  <small>{meta.label}</small>
+                </div>
+                <span className={"department-status " + (d.isActive ? "is-active" : "is-inactive")}>{d.isActive ? "Ativo" : "Desativado"}</span>
+              </header>
+              <div className="department-card-modules">
+                {(d.modules || []).map((module: string) => <span key={module}>{moduleLabels[module]}</span>)}
+                {!d.modules?.length && <span className="is-empty">Sem módulos</span>}
               </div>
-              <button className="secondary-button" type="button" disabled={busy} onClick={() => void saveMembers(d.id)}>
-                {busy ? "Salvando…" : "Salvar atendentes do setor"}
-              </button>
-            </div>
-          )}
-        </article>
-      ))}
+              <div className="department-card-people">
+                <div className="department-avatar-stack">
+                  {assignedAgents.slice(0, 5).map((agent) => <span key={agent.id} title={agent.name}>{initialsOf(agent.name)}</span>)}
+                  {assignedAgents.length > 5 && <span className="is-more">+{assignedAgents.length - 5}</span>}
+                  {!assignedAgents.length && <span className="is-none">Ninguém</span>}
+                </div>
+                <small>{assignedAgents.length} {assignedAgents.length === 1 ? "atendente" : "atendentes"} no setor</small>
+              </div>
+              <div className="department-card-actions">
+                <button className="secondary-button" onClick={() => edit(d)}>{d.isActive ? "Editar" : "Reativar"}</button>
+                {d.isActive && (
+                  <button className="text-button danger-text" disabled={busy} onClick={() => { if (window.confirm("Desativar " + d.name + "? O acesso do setor ser\u00e1 revogado e o hist\u00f3rico ser\u00e1 preservado.")) void save({}, "DELETE", d.id); }}>Desativar</button>
+                )}
+              </div>
+              {d.isActive && (
+                <details className="department-members-details">
+                  <summary><UsersRound size={14} aria-hidden="true" /> Atendentes deste setor · {assignedAgents.length}</summary>
+                  <p>Defina quem recebe e pode assumir conversas encaminhadas para este setor.</p>
+                  <div className="department-member-options">
+                    {agents.length ? agents.map((agent) => (
+                      <label className="ai-toggle" key={agent.id}>
+                        <input
+                          type="checkbox"
+                          checked={assigned.includes(agent.id)}
+                          onChange={(event) => setMembers((current) => ({
+                            ...current,
+                            [d.id]: event.target.checked
+                              ? [...new Set([...(current[d.id] || []), agent.id])]
+                              : (current[d.id] || []).filter((id) => id !== agent.id),
+                          }))}
+                        />
+                        <span>{agent.name}{agent.email ? " · " + agent.email : ""}</span>
+                      </label>
+                    )) : <small>Nenhum atendente ativo cadastrado.</small>}
+                  </div>
+                  <button className="secondary-button" type="button" disabled={busy} onClick={() => void saveMembers(d.id)}>
+                    {busy ? "Salvando…" : "Salvar atendentes do setor"}
+                  </button>
+                </details>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }

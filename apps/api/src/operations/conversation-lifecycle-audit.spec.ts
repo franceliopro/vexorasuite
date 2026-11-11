@@ -13,6 +13,7 @@ describe("conversation lifecycle audit", () => {
       auditLog: { create: jest.fn() },
     };
     const prisma: any = {
+      channelConnection: { findMany: jest.fn().mockResolvedValue([]) },
       conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contactId: "contact", handlingMode: "HUMAN", contact: { metadata: {} } }) },
       contact: { findFirst: jest.fn().mockResolvedValue({ metadata: {} }) },
       $transaction: jest.fn((fn: any) => fn(tx)),

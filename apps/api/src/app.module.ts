@@ -10,9 +10,10 @@ import { AuditInterceptor } from "./common/audit/audit.interceptor";
 import { RateLimitInterceptor } from "./common/rate-limit/rate-limit.interceptor";
 import { RateLimitService } from "./common/rate-limit/rate-limit.service";
 import { MailModule } from "./mail/mail.module";
+import { SitesModule } from "./sites/sites.module";
 
 @Module({
-  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule],
+  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule],
   controllers: [HealthController],
   providers: [
     RateLimitService,

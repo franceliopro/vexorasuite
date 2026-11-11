@@ -165,6 +165,10 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       crmContactId=conversation.contactId;
       const metadata = object(inbound.metadata);
       if (metadata.isGroup || conversation.contact.externalId?.endsWith('@g.us')) return null;
+      // Instância não conectada não roda automação: CHATBOT/IA precisam estar anexos para esta conexão.
+      const attachmentRows=await tx.channelAttachment.findMany({where:{channelConnectionId:channel.id},select:{service:true,attached:true}});
+      const attached=new Set(attachmentRows.filter(a=>a.attached).map(a=>a.service));
+      if(!attached.has("CHATBOT")&&!attached.has("IA"))return null;
       // The established, identity-checked Asaas dialogue owns its subsequent messages.
       const previous = object(conversation.botState);
       

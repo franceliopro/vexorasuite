@@ -1,4 +1,5 @@
 import { socialUsername } from "./social-identity";
+import { isAttachmentService, attachmentsMap, createDefaultAttachments, ATTACHMENT_SERVICES } from "./attachment-helpers";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Query, Res, Post, Patch, Delete, Req, UseGuards } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import type { Response } from "express";
@@ -31,9 +32,10 @@ export class ChannelConnectionsController {
       select: { id: true, name: true, provider: true, sessionName: true, status: true, lastError: true, isActive: true, createdAt: true, updatedAt: true, settings: true },
       orderBy: { createdAt: "desc" },
     });
+    const attachmentMap=await attachmentsMap(this.prisma,request.user.tenantId,rows.map(r=>r.id));
     return rows.map(({ settings, ...channel }) => {
       const safeSettings = settings && typeof settings === "object" && !Array.isArray(settings) ? settings as Record<string, unknown> : {};
-      return { ...channel, healthCheckedAt: typeof safeSettings.healthCheckedAt === 'string' ? safeSettings.healthCheckedAt : null, healthProviderStatus: safeSettings.healthProviderStatus || null, ...(channel.provider === "ZERNIO" ? {
+      return { ...channel, attachments: attachmentMap.get(channel.id) || Object.fromEntries(ATTACHMENT_SERVICES.map(s=>[s,false])), healthCheckedAt: typeof safeSettings.healthCheckedAt === 'string' ? safeSettings.healthCheckedAt : null, healthProviderStatus: safeSettings.healthProviderStatus || null, ...(channel.provider === "ZERNIO" ? {
         platform: typeof safeSettings.platform === "string" ? safeSettings.platform : undefined,
         accountId: typeof safeSettings.accountId === "string" ? safeSettings.accountId : undefined,
         username: typeof safeSettings.username === "string" ? safeSettings.username : undefined,
@@ -114,8 +116,10 @@ export class ChannelConnectionsController {
         await tx.$queryRaw`SELECT id FROM tenants WHERE id=${attempt.tenantId}::uuid FOR UPDATE`;
         const current=await tx.channelConnection.findFirst({where:{provider:"ZERNIO",isActive:true,settings:{path:["accountId"],equals:accountId}}});
         if(current&&current.tenantId!==attempt.tenantId) throw new ForbiddenException("Esta conta social pertence a outra empresa.");
-        if(current) return await tx.channelConnection.update({where:{id:current.id},data:{name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),status:"CONNECTED",lastError:null,settings:{...(current.settings&&typeof current.settings==="object"&&!Array.isArray(current.settings)?current.settings as Record<string,unknown>:{}),...settings,identityCheckedAt:new Date().toISOString()}}});
-        return await tx.channelConnection.create({data:{tenantId:attempt.tenantId,provider:"ZERNIO",name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),sessionName:"zn-"+attempt.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex"),status:"CONNECTED",settings:{...settings,identityCheckedAt:new Date().toISOString()}}});
+        if(current) { await createDefaultAttachments(tx, current.id); return await tx.channelConnection.update({where:{id:current.id},data:{name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),status:"CONNECTED",lastError:null,settings:{...(current.settings&&typeof current.settings==="object"&&!Array.isArray(current.settings)?current.settings as Record<string,unknown>:{}),...settings,identityCheckedAt:new Date().toISOString()}}}); }
+        const createdChannel = await tx.channelConnection.create({data:{tenantId:attempt.tenantId,provider:"ZERNIO",name:String(settings.username?`@${settings.username}`:providerAccount.name||providerAccount.username||attempt.platform).slice(0,100),sessionName:"zn-"+attempt.tenantId.replace(/-/g,"").slice(0,10)+"-"+randomBytes(5).toString("hex"),status:"CONNECTED",settings:{...settings,identityCheckedAt:new Date().toISOString()}}});
+        await createDefaultAttachments(tx, createdChannel.id);
+        return createdChannel;
       });
       this.events.publish(attempt.tenantId,"channel.updated",{id:saved.id,provider:"ZERNIO",status:"CONNECTING"});
       return redirect("connected");
@@ -225,6 +229,7 @@ export class ChannelConnectionsController {
       // A conta pode ter sido conectada diretamente no Zernio, sem passar pelo OAuth da Véxora.
       // Nesse caso, materializamos a conexão como inbox nesta empresa durante a sincronização.
       for (const account of accounts) {
+      // default attachments (all off) are created in the create branch below
         const existing = await tx.channelConnection.findFirst({
           where: { tenantId, provider: "ZERNIO", isActive: true, settings: { path: ["accountId"], equals: account.accountId } },
         });
@@ -232,7 +237,7 @@ export class ChannelConnectionsController {
         const username = String(account.username || "").replace(/^@/, "").trim();
         const profileName = String(account.profileName || "").trim();
         const friendlyName = username ? `@${username}` : String(account.name || profileName || account.platform).slice(0, 100);
-        await tx.channelConnection.create({
+        const createdSync = await tx.channelConnection.create({
           data: {
             tenantId,
             provider: "ZERNIO",
@@ -251,6 +256,7 @@ export class ChannelConnectionsController {
             },
           },
         });
+        await createDefaultAttachments(tx, createdSync.id);
       }
       const rows = await tx.channelConnection.findMany({ where:{tenantId,provider:"ZERNIO",isActive:true}, orderBy:{id:"asc"} });
       for (const channel of rows) {
@@ -280,6 +286,7 @@ export class ChannelConnectionsController {
     const tenantId = request.user.tenantId;
     const sessionName = `vx-${tenantId.replace(/-/g, "").slice(0, 12)}-${randomBytes(4).toString("hex")}`;
     let channel = await this.prisma.channelConnection.create({ data: { tenantId, provider: "WAHA", name: input.name.trim(), sessionName, status: "CONNECTING" } });
+    await createDefaultAttachments(this.prisma, channel.id);
     try { await this.waha.connect(channel); }
     catch {
       channel = await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { status: "ERROR", lastError: "WAHA_CONNECT_FAILED" } });
@@ -311,6 +318,7 @@ export class ChannelConnectionsController {
       const channel=await tx.channelConnection.create({data:{tenantId:request.user.tenantId,provider:"ZERNIO",name:String(owned.name||owned.username||input.name||platform).slice(0,100),sessionName,status:"CONNECTING",settings}});
       return channel;
     });
+    await createDefaultAttachments(this.prisma,created.id);
     this.events.publish(request.user.tenantId,"channel.created",{id:created.id,provider:created.provider,status:created.status});
     return {id:created.id,name:created.name,platform,accountId,status:created.status};
   }
@@ -408,6 +416,29 @@ export class ChannelConnectionsController {
     await this.prisma.channelConnection.update({ where: { id: channel.id }, data: { settings } });
     this.events.publish(request.user.tenantId, "channel.settings.updated", { id: channel.id });
     return { groupsEnabled: input.groupsEnabled, allowedGroupIds };
+  }
+
+  /** Liga/desliga a conexão para um consumidor (Atendimento/IA/Chatbot/Site) — instância nunca atende sozinha. */
+  @Patch(":id/attachments")
+  async updateAttachments(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: { service?: unknown; attached?: unknown },
+  ) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+      throw new ForbiddenException("Somente gestores podem conectar inboxes a Atendimento, IA, Chatbot ou Site.");
+    }
+    const service = body?.service;
+    if (!isAttachmentService(service)) throw new BadRequestException("service deve ser INBOX, IA, CHATBOT ou SITE.");
+    if (typeof body?.attached !== "boolean") throw new BadRequestException("attached deve ser booleano.");
+    const channel = await this.findOwned(request.user.tenantId, id);
+    await this.prisma.channelAttachment.upsert({
+      where: { channelConnectionId_service: { channelConnectionId: channel.id, service } },
+      update: { attached: body.attached },
+      create: { channelConnectionId: channel.id, service, attached: body.attached },
+    });
+    this.events.publish(request.user.tenantId, "channel.attachments.updated", { id: channel.id, service, attached: body.attached });
+    return { id: channel.id, service, attached: body.attached };
   }
 
   private async findOwned(tenantId: string, id: string) {

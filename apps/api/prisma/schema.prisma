@@ -102,6 +102,10 @@ model Tenant {
   webhookSubscriptions WebhookSubscription[]
   webhookDeliveries    WebhookDelivery[]
   integrations         Json                  @default("{}")
+  planId               String?               @map("plan_id") @db.Uuid
+  entitlements         Json                  @default("{}")
+  plan                 Plan?                 @relation(fields: [planId], references: [id], onDelete: SetNull)
+  sites                Site[]
 
   @@map("tenants")
 }
@@ -252,6 +256,7 @@ model ChannelConnection {
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   emailMailbox  EmailMailbox?
+  attachments   ChannelAttachment[]
 
   @@index([tenantId, status])
   @@map("channel_connections")
@@ -751,4 +756,140 @@ model RefreshToken {
   @@index([userId, expiresAt])
   @@index([familyId])
   @@map("refresh_tokens")
+}
+
+model Plan {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  kind        String   @default("PLAN")
+  name        String
+  tagline     String   @default("")
+  description String   @default("")
+  audience    String   @default("")
+  priceCents  Int      @default(0) @map("price_cents")
+  currency    String   @default("BRL")
+  cycle       String   @default("MONTH")
+  limits      Json     @default("{}")
+  isActive    Boolean  @default(true) @map("is_active")
+  isPublic    Boolean  @default(true) @map("is_public")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenants     Tenant[]
+
+  @@map("plans")
+}
+
+model Site {
+  id           String               @id @default(uuid()) @db.Uuid
+  tenantId     String               @map("tenant_id") @db.Uuid
+  slug         String               @unique
+  kind         String               @default("DYNAMIC")
+  businessArea String               @default("") @map("business_area")
+  name         String
+  logoUrl      String?              @map("logo_url")
+  primaryColor String               @default("#0E7A5C") @map("primary_color")
+  accentColor  String               @default("#6258DF") @map("accent_color")
+  departments  Json                 @default("[]")
+  domain       String?              @unique
+  domainStatus String               @default("NONE") @map("domain_status")
+  domainToken  String?              @map("domain_token")
+  published    Boolean              @default(false)
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pages        SitePage[]
+  forms        SiteForm[]
+  items        SiteItem[]
+  submissions  SiteFormSubmission[]
+
+  @@map("sites")
+}
+
+model SitePage {
+  id        String      @id @default(uuid()) @db.Uuid
+  siteId    String      @map("site_id") @db.Uuid
+  kind      String      @default("CUSTOM")
+  slug      String
+  title     String
+  sortOrder Int         @default(0) @map("sort_order")
+  hidden    Boolean     @default(false)
+  blocks    SiteBlock[]
+  site      Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, slug])
+  @@map("site_pages")
+}
+
+model SiteBlock {
+  id        String   @id @default(uuid()) @db.Uuid
+  pageId    String   @map("page_id") @db.Uuid
+  type      String
+  content   Json     @default("{}")
+  sortOrder Int      @default(0) @map("sort_order")
+  hidden    Boolean  @default(false)
+  page      SitePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("site_blocks")
+}
+
+model SiteForm {
+  id          String               @id @default(uuid()) @db.Uuid
+  siteId      String               @map("site_id") @db.Uuid
+  name        String
+  fields      Json                 @default("[]")
+  targets     Json                 @default("[]")
+  isActive    Boolean              @default(true) @map("is_active")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  site        Site                 @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  submissions SiteFormSubmission[]
+
+  @@map("site_forms")
+}
+
+model SiteFormSubmission {
+  id        String   @id @default(uuid()) @db.Uuid
+  formId    String   @map("form_id") @db.Uuid
+  siteId    String   @map("site_id") @db.Uuid
+  pageSlug  String   @map("page_slug")
+  values    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  form      SiteForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@map("site_form_submissions")
+}
+
+model SiteItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  siteId      String   @map("site_id") @db.Uuid
+  kind        String
+  slug        String
+  title       String
+  excerpt     String?
+  coverUrl    String?  @map("cover_url")
+  data        Json     @default("{}")
+  sortOrder   Int      @default(0) @map("sort_order")
+  published   Boolean  @default(true)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, kind, slug])
+  @@map("site_items")
+}
+
+model ChannelAttachment {
+  id                  String             @id @default(uuid()) @db.Uuid
+  channelConnectionId String             @map("channel_connection_id") @db.Uuid
+  service             String
+  attached            Boolean            @default(false)
+  channel             ChannelConnection  @relation(fields: [channelConnectionId], references: [id], onDelete: Cascade)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  @@unique([channelConnectionId, service])
+  @@map("channel_attachments")
 }

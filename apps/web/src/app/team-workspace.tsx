@@ -2,8 +2,11 @@
 import { DepartmentManager } from "./department-manager";
 import { ModuleChoices,moduleLabels } from "./module-choices";
 import { useEffect, useState } from "react";
+import { UserRoundPlus, UsersRound, X } from "lucide-react";
 type AgendaOption = { key: string; accountId: string; calendarId: string; label: string };
 type AgendaAssignment = { id: string; accountId: string; calendarId: string; userId: string | null; departmentId: string | null };
+const ROLE_LABELS: Record<string, string> = { OWNER: "Proprietário", ADMIN: "Administrador", MANAGER: "Gestor", AGENT: "Atendente" };
+const initials = (name: string) => String(name || "?").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((n) => n[0]).join("").toUpperCase();
 export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
   const [editingId,setEditingId]=useState('');
   const [tab, setTab] = useState("agents");
@@ -19,6 +22,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
       agendaKey: "",
     }),
     [photoFile, setPhotoFile] = useState<File | null>(null),
+    [photoPreview, setPhotoPreview] = useState<string | null>(null),
     [editing, setEditing] = useState(false),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
@@ -62,22 +66,25 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
   }, []);
   return (
     <section className="simple-workspace team-workspace">
-      <header className="creative-heading">
-        <div>
+      <header className="team-hero">
+        <div className="team-hero-copy">
+          <span className="team-eyebrow"><UsersRound size={13} aria-hidden="true" /> Equipe</span>
           <h1>Atendentes</h1>
-          <p>
-            Pessoas e setores da sua empresa, integrados às conversas e aos
-            fluxos.
-          </p>
+          <p>Pessoas e setores da sua empresa, integrados às conversas e aos fluxos.</p>
+          <div className="team-hero-stats">
+            <span><b>{rows.filter((r: any) => r.isActive !== false).length}</b> ativos</span>
+            <span><b>{rows.length}</b> cadastrados</span>
+            <span><b>{departments.filter((d: any) => d.isActive).length}</b> setores</span>
+          </div>
         </div>
         <button
-          className="primary-button"
-          onClick={() => {setEditingId('');setPhotoFile(null);setForm({name:'',knownBy:'',email:'',password:'',role:'AGENT',deniedModules:[],departmentIds:[],modules:[],agendaKey:''});setEditing(v=>!v)}}
+          className="primary-button team-hero-cta"
+          onClick={() => {setEditingId('');setPhotoFile(null);setPhotoPreview(null);setForm({name:'',knownBy:'',email:'',password:'',role:'AGENT',deniedModules:[],departmentIds:[],modules:[],agendaKey:''});setEditing(v=>!v)}}
         >
-          {editing ? "Fechar cadastro" : "+ Cadastrar atendente"}
+          {editing ? "Fechar cadastro" : (<><UserRoundPlus size={16} aria-hidden="true" />Cadastrar atendente</>)}
         </button>
       </header>
-      <div className="module-tabs">
+      <div className="module-tabs team-tabs" role="tablist" aria-label="Alternar entre atendentes e setores">
         <button
           onClick={() => {
             setTab("agents");
@@ -101,7 +108,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
           {notice && <p role="status">{notice}</p>}
           {editing && (
             <form
-              className="workspace-surface team-form"
+              className="team-form team-form-premium"
               onSubmit={async (e) => {
                 e.preventDefault();
                 setBusy(true);
@@ -146,6 +153,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   });
                   setEditing(false);
                   setPhotoFile(null);
+                  setPhotoPreview(null);
                   await load();
                   window.dispatchEvent(new Event("vexora:team-updated"));
                   setNotice(temporaryPassword ? "Atendente cadastrado. Senha temporária: " + temporaryPassword + ". Guarde-a agora; ela será exigida apenas no primeiro acesso." : editingId ? "Permissões e setores atualizados." : "Atendente cadastrado e disponível nos fluxos.");setEditingId('');
@@ -160,11 +168,20 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 }
               }}
             >
-              <div className="team-form-grid">
-              <label className="team-photo-field">
-                Foto do atendente
-                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
-                <small>{photoFile ? photoFile.name : "Opcional · até 2 MB"}</small>
+              <header className="team-form-head">
+                <span className="team-form-icon" aria-hidden="true"><UserRoundPlus size={20} /></span>
+                <div>
+                  <h2>{editingId ? "Setores e permissões" : "Cadastrar atendente"}</h2>
+                  <p>{editingId ? "Ajuste os setores e os módulos liberados para esta pessoa." : "Preencha os dados abaixo. Uma senha temporária é gerada no primeiro acesso."}</p>
+                </div>
+                <button type="button" className="team-form-close" aria-label="Fechar cadastro" onClick={() => setEditing(false)}><X size={16} aria-hidden="true" /></button>
+              </header>
+              <div className="team-form-grid team-form-body">
+              <div className="team-identity-block">
+              <label className="team-photo-premium">
+                <span className="team-photo-circle">{photoPreview ? <img src={photoPreview} alt="Pré-visualização da foto" /> : initials(form.name || "Atendente")}</span>
+                <span className="team-photo-cta"><b>{photoFile ? photoFile.name : "Adicionar foto"}</b><small>Opcional · PNG, JPG ou WebP · até 2 MB</small></span>
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { const file = e.target.files?.[0] || null; if (photoPreview) URL.revokeObjectURL(photoPreview); setPhotoFile(file); setPhotoPreview(file ? URL.createObjectURL(file) : null); }} />
               </label>
               <label>
                 Nome
@@ -192,7 +209,6 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   }
                 />
               </label>
-              {!editingId && <p role="status">Uma senha temporária aleatória será gerada após o cadastro e deverá ser trocada no primeiro acesso.</p>}
               <label>Agenda pessoal
                 <select value={form.agendaKey} onChange={e=>setForm(v=>({...v,agendaKey:e.target.value}))}>
                   <option value="">Sem agenda pessoal</option>
@@ -201,7 +217,8 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 <small>O atendente verá somente esta agenda. O nome exibido é o nome amigável do Google.</small>
               </label>
               {platformAdmin&&!editingId&&<label>Perfil<select value={form.role} onChange={e=>setForm(v=>({...v,role:e.target.value,modules:e.target.value==="OWNER"?Object.keys(moduleLabels):v.modules,deniedModules:[]}))}><option value="AGENT">Atendente</option><option value="OWNER">Proprietário da empresa</option></select></label>}
-              <fieldset>
+              </div>
+              <fieldset className="team-sectors-fieldset">
                 <legend>Setores</legend>
                 {departments
                   .filter((d) => d.isActive)
@@ -237,47 +254,39 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 }
                 onChange={(modules) => setForm((v) => ({ ...v, modules,deniedModules:Object.keys(moduleLabels).filter(id=>!modules.includes(id)) }))}
               />
-              <button className="primary-button" disabled={busy}>
-                {editingId?"Salvar permissões":"Cadastrar"}
-              </button>
               </div>
+              <footer className="team-form-footer">
+                <small>{!editingId ? "Uma senha temporária aleatória será gerada e trocada no primeiro acesso." : "Nome e e-mail não podem ser alterados após o cadastro."}</small>
+                <div className="team-form-actions">
+                  <button type="button" className="secondary-button" onClick={() => setEditing(false)}>Cancelar</button>
+                  <button className="primary-button" disabled={busy}>{editingId?"Salvar permissões":"Cadastrar atendente"}</button>
+                </div>
+              </footer>
             </form>
           )}
-          <section className="workspace-surface">
+          <div className="team-list" aria-label="Atendentes cadastrados">
             {rows.map((r) => (
-              <article className="publication-row" key={r.id}>
-                <div className="team-user-summary">
-                  <span className="profile-avatar">{r.avatarUrl?<img src={r.avatarUrl} alt={"Foto de "+r.name}/>:String(r.name||"?").slice(0,2).toUpperCase()}</span>
-                  <div>
-                  <strong>{r.name}</strong>
-                  <small>
-                    {r.email} ·{" "}
-                    {
-                      (
-                        {
-                          OWNER: "Proprietário",
-                          ADMIN: "Administrador",
-                          MANAGER: "Gestor",
-                          AGENT: "Atendente",
-                        } as any
-                      )[r.role]
-                    }
-                  </small>
-                  <small>
-                    {departments
-                      .filter((d) => r.departmentIds.includes(d.id))
-                      .map((d) => d.name)
-                      .join(", ") || "Sem setor definido"}
-                  </small>
+              <article className="team-attendant-card" key={r.id}>
+                <div className="team-card-head">
+                  <span className="team-avatar">{r.avatarUrl?<img src={r.avatarUrl} alt={"Foto de "+r.name}/>:initials(r.name)}</span>
+                  <div className="team-card-id">
+                    <strong>{r.name}</strong>
+                    <small>{r.email}</small>
+                    <span className={"team-role-chip is-"+String(r.role||"AGENT").toLowerCase()}>{ROLE_LABELS[r.role] || r.role}</span>
                   </div>
                 </div>
-<label className="team-known-by">Conhecido por<input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
-{r.canEditAccess&&<button className="text-button" onClick={()=>{setEditingId(r.id);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||""});setEditing(true)}}>Setores e permissões</button>}
+                <div className="team-dept-chips">
+                  {departments.filter((d) => r.departmentIds.includes(d.id)).map((d) => <span key={d.id}>{d.name}</span>)}
+                  {!r.departmentIds.length && <span className="team-dept-empty">Sem setor definido</span>}
+                </div>
+<label className="team-known-by"><span>Conhecido por</span><input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
+<div className="team-card-actions">{r.canEditAccess&&<button className="secondary-button" onClick={()=>{setEditingId(r.id);setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||""});setEditing(true)}}>Setores e permissões</button>}
               {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice(typeof data.temporaryPassword === "string" ? "Senha temporária de "+r.name+": "+data.temporaryPassword+". Guarde-a agora; a troca será obrigatória no próximo acesso." : "Senha redefinida. A troca será obrigatória no próximo acesso.");await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               {r.id!==undefined&&r.isActive&&r.id!==undefined&&<button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Desativar "+r.name+"? O histórico de conversas será preservado."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id,{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível desativar.");setNotice("Usuário desativado. O histórico foi preservado.");await load();}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível desativar.")}finally{setBusy(false)}}}>Desativar</button>}
+              </div>
               </article>
             ))}
-          </section>
+          </div>
         </>
       )}
     </section>

@@ -2840,3 +2840,6 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .client-plan-card footer{display:flex;justify-content:flex-end}
 .client-plans-footnote{margin:0;font-size:10.5px;color:var(--tx2)}
 @media(max-width:900px){.client-plans-hero{flex-direction:column;align-items:flex-start}}
+/* Wizard de sites · portal no body acima de tudo */
+.sites-wizard-backdrop{z-index:2000!important;background:rgba(9,13,11,.35)!important}
+.sites-wizard{z-index:2001!important}

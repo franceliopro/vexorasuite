@@ -1,9 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 
 const AREAS = [
+  { key: "site_simples", label: "Site Simples", hint: "Site institucional sem segmento — você escolhe o conteúdo depois" },
+  { key: "construtora", label: "Construtora", hint: "Obras, portfólio, captação de leads" },
+  { key: "prestacao_servicos", label: "Prestação de Serviços", hint: "Serviços gerais, orçamento e contato rápido" },
+  { key: "vexora", label: "Véxora Suite", hint: "O site da própria Véxora — catálogo de planos e produtos" },
   { key: "clinica_medica", label: "Clínica Médica", hint: "Consultórios, exames, agendamento online" },
   { key: "clinica_estetica", label: "Clínica de Estética", hint: "Procedimentos, pacotes, antes e depois" },
   { key: "estetica_geral", label: "Estética em Geral", hint: "Unhas, cílios, cabelo, sobrancelhas" },
@@ -130,50 +135,7 @@ export function SitesWorkspace() {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site com IA”.</p></div>}
           </div>
         )}
-        {wizardOpen && (
-          <div className="vx-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
-            <section className="vx-dialog sites-wizard" role="dialog" aria-modal="true" aria-label="Criar site com IA">
-              <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2>Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></header>
-              <div className="vx-dialog-body sites-wizard-body">
-                <label className="sites-field"><span>Nome do site</span><input autoFocus value={wizName} onChange={e => { setWizName(e.target.value); if (!wizSlug) setWizSlug(safeSlug(e.target.value)); }} placeholder="Ex.: Clínica Estética Lume" /></label>
-                <p className="sites-field-label">Escolha a área do seu negócio</p>
-                <div className="sites-areas">
-                  {AREAS.map(a => (
-                    <button key={a.key} type="button" aria-pressed={wizArea === a.key} className={"sites-area " + (wizArea === a.key ? "active" : "")} onClick={() => setWizArea(a.key)}>
-                      <strong>{a.label}</strong><small>{a.hint}</small>
-                    </button>
-                  ))}
-                </div>
-                <div className="sites-inline-fields">
-                  <label className="sites-field"><span>Tipo</span><select value={wizKind} onChange={e => setWizKind(e.target.value as any)}><option value="STATIC">Site institucional (páginas)</option><option value="DYNAMIC">Site dinâmico (posts, imóveis)</option></select></label>
-                  <label className="sites-field"><span>Endereço no site (slug)</span><input value={wizSlug} onChange={e => setWizSlug(safeSlug(e.target.value))} placeholder="clinica-lume" /></label>
-                </div>
-                <div className="sites-inline-fields sites-inline-colors">
-                  <label className="sites-field"><span>Cor principal</span><input type="color" value={wizPrimary} onChange={e => setWizPrimary(e.target.value)} /></label>
-                  <label className="sites-field"><span>Cor de destaque</span><input type="color" value={wizAccent} onChange={e => setWizAccent(e.target.value)} /></label>
-                </div>
-                <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
-                  {(wizWhatsapp as { label: string; handle: string }[]).map((w, i) => (
-                    <div key={i} className="sites-row"><input aria-label="Departamento" value={w.label} onChange={e => { const next = [...(wizWhatsapp as { label: string; handle: string }[])]; next[i] = { ...w, label: e.target.value }; setWizWhatsapp(next); }} placeholder="Ex.: Recepção" /><input aria-label="Número (com DDI)" value={w.handle} onChange={e => { const next = [...(wizWhatsapp as { label: string; handle: string }[])]; next[i] = { ...w, handle: e.target.value }; setWizWhatsapp(next); }} placeholder="55 65 99999-0001" inputMode="numeric" /><button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizWhatsapp((wizWhatsapp as { label: string; handle: string }[]).filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button></div>
-                  ))}
-                  <button type="button" className="text-button" onClick={() => setWizWhatsapp([...(wizWhatsapp as { label: string; handle: string }[]), { label: "", handle: "" }])}><Plus size={13} aria-hidden="true" /> Adicionar WhatsApp</button>
-                </fieldset>
-                <fieldset className="sites-block"><legend>Redes sociais (opcional)</legend>
-                  {wizSocials.map((s, i) => (
-                    <div key={i} className="sites-row">
-                      <select aria-label="Rede" value={s.platform} onChange={e => { const next = [...wizSocials]; next[i] = { ...s, platform: e.target.value }; setWizSocials(next); }}>{["instagram","facebook","linkedin","youtube","tiktok","x","telegram"].map(p => <option key={p} value={p}>{p}</option>)}</select>
-                      <input aria-label="Perfil" value={s.handle} onChange={e => { const next = [...wizSocials]; next[i] = { ...s, handle: e.target.value }; setWizSocials(next); }} placeholder="@perfil" />
-                      <button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizSocials(wizSocials.filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button>
-                    </div>
-                  ))}
-                  <button type="button" className="text-button" onClick={() => setWizSocials([...wizSocials, { platform: "instagram", handle: "" }])}><Plus size={13} aria-hidden="true" /> Adicionar rede</button>
-                </fieldset>
-                {wizError && <p role="alert" className="sites-error">{wizError}</p>}
-              </div>
-              <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={closeWizard}>Cancelar</button><button type="button" className="primary-button" disabled={wizSaving || !wizName.trim() || !wizArea} onClick={() => void submitWizard()}>{wizSaving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} Criar site</button></footer>
-            </section>
-          </div>
-        )}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} closeWizard={closeWizard} submitWizard={submitWizard} /> : null}
       </section>
     );
   }
@@ -185,6 +147,66 @@ export function SitesWorkspace() {
       {error && <p className="sites-error" role="alert">{error}</p>}
       {tabDataLoading || !site ? <div className="sites-loading"><Loader2 size={20} className="vx-spin" aria-hidden="true" /> Carregando…</div> : <SiteDetail site={site} tab={tab} setParams={setParams} onSaved={() => { void api<Site>("/sites/" + site.id).then(setSite); }} onNotice={setNotice} />}
     </section>
+  );
+}
+function SitesWizardDialog(props: {
+  wizName: string; setWizName: (v: string) => void;
+  wizArea: string; setWizArea: (v: string) => void;
+  wizKind: "STATIC" | "DYNAMIC"; setWizKind: (v: "STATIC" | "DYNAMIC") => void;
+  wizPrimary: string; setWizPrimary: (v: string) => void;
+  wizAccent: string; setWizAccent: (v: string) => void;
+  wizSlug: string; setWizSlug: (v: string) => void;
+  wizWhatsapp: { label: string; handle: string }[]; setWizWhatsapp: (v: { label: string; handle: string }[]) => void;
+  wizSocials: { platform: string; handle: string }[]; setWizSocials: (v: { platform: string; handle: string }[]) => void;
+  wizSaving: boolean; wizError: string;
+  closeWizard: () => void; submitWizard: () => Promise<void>;
+}) {
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, closeWizard, submitWizard } = props;
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
+      <section className="vx-dialog sites-wizard" role="dialog" aria-modal="true" aria-labelledby="sites-wizard-title">
+        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></header>
+        <div className="vx-dialog-body sites-wizard-body">
+          <label className="sites-field"><span>Nome do site</span><input autoFocus value={wizName} onChange={e => { setWizName(e.target.value); if (!wizSlug) setWizSlug(safeSlug(e.target.value)); }} placeholder="Ex.: Clínica Estética Lume" /></label>
+          <p className="sites-field-label">Escolha o template do site</p>
+          <div className="sites-areas">
+            {AREAS.map(a => (
+              <button key={a.key} type="button" aria-pressed={wizArea === a.key} className={"sites-area " + (wizArea === a.key ? "active" : "")} onClick={() => setWizArea(a.key)}>
+                <strong>{a.label}</strong><small>{a.hint}</small>
+              </button>
+            ))}
+          </div>
+          <div className="sites-inline-fields">
+            <label className="sites-field"><span>Tipo</span><select value={wizKind} onChange={e => setWizKind(e.target.value as any)}><option value="STATIC">Site institucional (páginas)</option><option value="DYNAMIC">Site dinâmico (posts/imóveis)</option></select></label>
+            <label className="sites-field"><span>Endereço no site (slug)</span><input value={wizSlug} onChange={e => setWizSlug(safeSlug(e.target.value))} placeholder="clinica-lume" /></label>
+          </div>
+          <div className="sites-inline-fields sites-inline-colors">
+            <label className="sites-field"><span>Cor principal</span><input type="color" value={wizPrimary} onChange={e => setWizPrimary(e.target.value)} /></label>
+            <label className="sites-field"><span>Cor de destaque</span><input type="color" value={wizAccent} onChange={e => setWizAccent(e.target.value)} /></label>
+          </div>
+          <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
+            {wizWhatsapp.map((w, i) => (
+              <div key={i} className="sites-row"><input aria-label="Departamento" value={w.label} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, label: e.target.value }; setWizWhatsapp(next); }} placeholder="Ex.: Recepção" /><input aria-label="Número (com DDI)" value={w.handle} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, handle: e.target.value }; setWizWhatsapp(next); }} placeholder="55 65 99999-0001" inputMode="numeric" /><button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizWhatsapp(wizWhatsapp.filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button></div>
+            ))}
+            <button type="button" className="text-button" onClick={() => setWizWhatsapp([...wizWhatsapp, { label: "", handle: "" }])}><Plus size={13} aria-hidden="true" /> Adicionar WhatsApp</button>
+          </fieldset>
+          <fieldset className="sites-block"><legend>Redes sociais (opcional)</legend>
+            {wizSocials.map((s, i) => (
+              <div key={i} className="sites-row">
+                <select aria-label="Rede" value={s.platform} onChange={e => { const next = [...wizSocials]; next[i] = { ...s, platform: e.target.value }; setWizSocials(next); }}>{["instagram","facebook","linkedin","youtube","tiktok","x","telegram"].map(p => <option key={p} value={p}>{p}</option>)}</select>
+                <input aria-label="Perfil" value={s.handle} onChange={e => { const next = [...wizSocials]; next[i] = { ...s, handle: e.target.value }; setWizSocials(next); }} placeholder="@perfil" />
+                <button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizSocials(wizSocials.filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button>
+              </div>
+            ))}
+            <button type="button" className="text-button" onClick={() => setWizSocials([...wizSocials, { platform: "instagram", handle: "" }])}><Plus size={13} aria-hidden="true" /> Adicionar rede</button>
+          </fieldset>
+          {wizError && <p role="alert" className="sites-error">{wizError}</p>}
+        </div>
+        <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={closeWizard}>Cancelar</button><button type="button" className="primary-button" disabled={wizSaving || !wizName.trim() || !wizArea} onClick={() => void submitWizard()}>{wizSaving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} Criar site</button></footer>
+      </section>
+    </div>,
+    document.body,
   );
 }
 function SiteMonogram({ name }: { name: string }) {

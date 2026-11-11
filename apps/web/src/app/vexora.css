@@ -2919,3 +2919,9 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .drive-limited-note strong{color:var(--tx)}
 .drive-limited-note .primary-button{justify-self:start;min-height:36px}
 .channels-renewable-warning{display:block;margin:2px 0 0;font-size:10px;line-height:1.45;color:#8a6d1f;font-weight:600}
+
+/* ===== 52. Atendentes premium — ajustes finos do bloco de identidade ===== */
+.team-identity-block{align-content:start}
+.team-identity-block>.team-photo-premium{grid-column:1;grid-row:1/span 8}
+.team-identity-block>label,.team-identity-block>p{grid-column:2}
+@media (max-width:720px){.team-identity-block>.team-photo-premium{grid-column:1/-1;grid-row:auto}.team-identity-block>label,.team-identity-block>p{grid-column:1/-1}}

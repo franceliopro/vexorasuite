@@ -64,3 +64,15 @@ A partir desta entrega o desenvolvimento ocorre diretamente no GitHub, com uma b
 
 ## Escopo reduzido aprovado
 O proprietário substituiu as expansões acima pelo escopo de docs/product-focus.md. Telefonia, SMS, campanhas em massa, anúncios, WordPress, vídeo automático e publicação social automática saem da aplicação ativa. WhatsApp e chat no site permanecem prioritários; não tratar widget público como entregue sem teste real. Marketing mantém criação e organização manual. Backlog histórico acima é referência, não autorização para retomar funcionalidades retiradas.
+## Entregue no PR #509+ (rodada de 2026-11-10, telÃ£o comercial + sites + planos)
+
+- **VÃ©xora Sites** (produto isolÃ¡vel): API `/api/sites` com wizard de Ã¡rea de negÃ³cio (12 Ã¡reas), blueprint IA de pÃ¡ginas completas (home/serviÃ§os/quem somos/contato/imÃ³veis/notÃ­cias), editor visual de blocos com reordenaÃ§Ã£o, publicaÃ§Ã£o/despublicaÃ§Ã£o com slug Ãºnico, formulÃ¡rios arrastÃ¡veis com destinos (prÃ©-cadastro/e-mail/WhatsApp), agendamento 1:1 no site, domÃ­nio prÃ³prio com verificaÃ§Ã£o TXT via DNS, render pÃºblico em `/sites/<slug>` e snippet de chatbot pÃºblico.
+- **Chatbot em tela cheia**: janela de teste de celular realista com status bar, dynamic island, wallpaper WhatsApp dark, bolhas/ticks, quick-replies; portal no `document.body`; novos controles de zoom com `fitCanvas` recentralizado.
+- **Planos e pacotes (administraÃ§Ã£o VÃ©xora)**: catÃ¡logo completo com preÃ§os, limites, mÃ³dulos, ciclo e MRR do cliente em painel prÃ³prio (`/api/backend/plans`), com criaÃ§Ã£o/ediÃ§Ã£o/arquivamento.
+- **CatÃ¡logo de planos visÃ­vel no painel do cliente** ("Planos e preÃ§os") com MRR exibido e CTA para o comercial.
+- **ConexÃµes desacopladas**: canais WhatsApp/Instagram/Facebook/et al. passam a anexar a consumidores (`INBOX | IA | CHATBOT | SITE`) por toggle â€” o padrÃ£o Ã© desligado, a sequÃªncia "tela cheia ativada automaticamente" acabou; `channel_attachments` com migraÃ§Ã£o e `GET /channels` expondo o estado.
+- **ConexÃ£o â†’ atendimento filtrado**: `accessWhere` na fila exclui canais sem anexo INBOX; runtime de IA idem (CHATBOT/IA).
+- **RelatÃ³rios executivos** (pÃ¡gina nova, 1339 linhas): abas VisÃ£o geral/Atendimento/Equipe/CRM/Financeiro/IA & AutomaÃ§Ã£o com KPIs, grÃ¡fico de rosca, SVG direto, exporta CSV e PDF nativo (`window.print`) com capa institucional.
+- **Sites (round 2, entrega incremental)**: catÃ¡logo de 12 Ã¡reas com textos prÃ³prios, hero/CTA/galeria/depoimentos/FAQ/posts/imÃ³veis, editor de blocos com reordenaÃ§Ã£o acima; pÃºblico acessÃ­vel em `/sites/<slug>` (SSR + fonte Inter nÃ£o usada â€” sistema com `Georgia`/`system-ui`).
+- **CI verde**: `tsc`, ESLint, testes de contrato (130 web, 560 api).
+

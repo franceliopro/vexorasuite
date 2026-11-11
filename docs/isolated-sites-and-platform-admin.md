@@ -25,7 +25,7 @@ Adicionar `tenants.entitlements: { modules: ["SITES"] }` (ou enum estreito no `o
 - O delta é de navegação e deautorização, não de infraestrutura: mesmos serviços, mesmos dados, mesmos backups — menos superfície, não menos segurança.
 
 ### Fase 5.3 — Subdomínios `s-<empresa>` / `bot-<empresa>`
-Ativação do wildcard `*.vexorasuite.com.br` no Dokploy + Traefik (router para o app, HostRegexp). A Véxora Cloud passa a servir `s-clinicaexemplo.vexorasuite.com.br` (sites/lpegage/formulário) e `bot-*` (robôs). Sem o wildcard nada disso resolve — esta fase é de infraestrutura, não de código, e deve ser feita na mesma janela em que a Fase 5.1 entrar em produção.
+Ativação do wildcard `*.vexorasuite.com.br` na Cloudflare (CNAME wildcard para o Dokploy + certificado adequado) e mapeamento de Host no Traefik. A Véxora Cloud passa a servir `s-clinicaexemplo.vexorasuite.com.br` (sites/landing/formulário) e `bot-*` (robôs). Instruções passo a passo, pendências e cert TLS: `docs/isolated-hosts.md`. A implementação em código do roteamento por Host no app — middleware com Host→tenant e ausência de barra moldura da Véxora — ainda não foi entregue; os URLs públicos por `/sites/<slug>` e `/p/<token>` funcionam hoje sem nenhum ajuste.
 
 ### Fase 5.4 — Marketing que publica (o que do Tomik vale adaptar)
 Estudado em tomik.com.br (novembro/2026): promessa de "poste todo dia sem virar escravo do Instagram", IA escreve/agenda/publica, aprovação pelo WhatsApp (ou piloto automático), DNA de voz, ~5 min de setup, plano grátis + Pro 14 dias, 4.9/5 (1.783 avaliações). O dinheiro deles está em Instagram↔WhatsApp↔IA, não em sites.

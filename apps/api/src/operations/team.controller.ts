@@ -4,6 +4,7 @@ import { MODULES,moduleSelection,effectiveModules,patternModules } from "../auth
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
@@ -103,7 +104,7 @@ export class TeamController {
       })
     )
       throw new BadRequestException(
-        "Este e-mail já possui uma conta. Use outro e-mail ou o vínculo existente da empresa.",
+        "Este e-mail já possui uma conta. Se ela foi desativada, use o botão Reativar na lista de atendentes para habilitá-la com uma nova senha temporária.",
       );
     let modules: string[],deniedModules:string[];
     try {
@@ -200,6 +201,51 @@ export class TeamController {
   });
   this.events.publish(req.user.tenantId,'team.updated',{id});return {deactivated:true};
  }
+
+  @Delete(':id/permanent') async permanentRemove(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    this.admin(req);
+    if (id === req.user.sub) throw new BadRequestException('Você não pode excluir o próprio acesso.');
+    try {
+      const remaining = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM users WHERE id = ${id}::uuid FOR UPDATE`;
+        const member = await tx.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: id }, include: { user: { select: { isPlatformAdmin: true, isActive: true } } } });
+        if (!member) throw new BadRequestException('Usuário não encontrado nesta empresa.');
+        if (member.user.isPlatformAdmin && !req.user.isPlatformAdmin) throw new ForbiddenException('A administração Véxora não pode ser excluída pela empresa.');
+        await tx.departmentMember.deleteMany({ where: { tenantId: req.user.tenantId, userId: id } });
+        try { await tx.calendarAssignment.deleteMany({ where: { tenantId: req.user.tenantId, userId: id } }); } catch { /* agenda opcional */ }
+        await tx.pushSubscription.deleteMany({ where: { userId: id } });
+        await tx.refreshToken.deleteMany({ where: { userId: id } });
+        await tx.passwordResetToken.deleteMany({ where: { userId: id } });
+        await tx.membership.deleteMany({ where: { tenantId: req.user.tenantId, userId: id } });
+        const left = await tx.membership.count({ where: { userId: id } });
+        if (left === 0) await tx.user.delete({ where: { id } });
+        await tx.auditLog.create({ data: { tenantId: req.user.tenantId, userId: req.user.sub, action: 'team.user.deleted', entityType: 'user', entityId: id } });
+        return left;
+      });
+      this.events.publish(req.user.tenantId, 'team.updated', { id });
+      return { deleted: true, emailFreed: remaining === 0 };
+    } catch (e) {
+      const code = (e as any)?.code as string | undefined;
+      if (code === 'P2003' || code === 'P2014') throw new ConflictException('Este atendente tem registros vinculados (ex.: tarefas criadas por ele) e não pode ser excluído definitivamente. Ele foi mantido apenas desativado.');
+      throw e;
+    }
+  }
+  @Patch(':id/reactivate') async reactivate(@Req() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    this.admin(req);
+    const member = await this.prisma.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: id }, include: { user: { select: { isPlatformAdmin: true, isActive: true } } } });
+    if (!member) throw new BadRequestException('Usuário não encontrado nesta empresa.');
+    if (member.user.isPlatformAdmin && !req.user.isPlatformAdmin) throw new ForbiddenException('A administração Véxora não pode ser reativada pela empresa.');
+    if (member.user.isActive) throw new BadRequestException('Este atendente já está ativo.');
+    const password = 'Vx!' + randomBytes(24).toString('base64url');
+    const passwordHash = await hash(password, 12);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${id}::uuid FOR UPDATE`;
+      await tx.user.update({ where: { id }, data: { isActive: true, passwordHash, mustChangePassword: true, authVersion: { increment: 1 } } });
+      await tx.auditLog.create({ data: { tenantId: req.user.tenantId, userId: req.user.sub, action: 'team.user.reactivated', entityType: 'user', entityId: id } });
+    });
+    this.events.publish(req.user.tenantId, 'team.updated', { id });
+    return { reactivated: true, temporaryPassword: password };
+  }
 
  @Post(':id/photo')
  @UseInterceptors(FileInterceptor('file',{limits:{fileSize:2*1024*1024,files:1,fields:0}}))

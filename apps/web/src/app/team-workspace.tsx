@@ -266,13 +266,13 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
           )}
           <div className="team-list" aria-label="Atendentes cadastrados">
             {rows.map((r) => (
-              <article className="team-attendant-card" key={r.id}>
+              <article className={"team-attendant-card"+(r.isActive===false?" is-inactive":"")} key={r.id}>
                 <div className="team-card-head">
                   <span className="team-avatar">{r.avatarUrl?<img src={r.avatarUrl} alt={"Foto de "+r.name}/>:initials(r.name)}</span>
                   <div className="team-card-id">
                     <strong>{r.name}</strong>
                     <small>{r.email}</small>
-                    <span className={"team-role-chip is-"+String(r.role||"AGENT").toLowerCase()}>{ROLE_LABELS[r.role] || r.role}</span>
+                    <span className={"team-role-chip is-"+String(r.role||"AGENT").toLowerCase()}>{ROLE_LABELS[r.role] || r.role}</span>{r.isActive === false && <span className="team-role-chip is-inactive">Desativada</span>}
                   </div>
                 </div>
                 <div className="team-dept-chips">
@@ -280,9 +280,14 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   {!r.departmentIds.length && <span className="team-dept-empty">Sem setor definido</span>}
                 </div>
 <label className="team-known-by"><span>Conhecido por</span><input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
-<div className="team-card-actions">{r.canEditAccess&&<button className="secondary-button" onClick={()=>{setEditingId(r.id);setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||""});setEditing(true)}}>Setores e permissões</button>}
+<div className="team-card-actions">{r.isActive === false ? (<>
+              <button className="secondary-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/reactivate",{method:"PATCH"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível reativar.");setNotice("Atendente reativado. Senha temporária: "+(data.temporaryPassword||"")+". Troca obrigatória no próximo acesso.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível reativar.")}finally{setBusy(false)}}}>Reativar</button>
+              <button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Excluir definitivamente "+r.name+" da empresa? O e-mail fica liberado e o vínculo é desfeito; quando possível, o histórico é preservado. Esta ação não pode ser desfeita."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/permanent",{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível excluir definitivamente.");setNotice(data.emailFreed?"Atendente excluído definitivamente: e-mail liberado para novo cadastro.":"Vínculo do atendente removido desta empresa.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível excluir definitivamente.")}finally{setBusy(false)}}}>Excluir definitivamente</button>
+              </>) : (<>
+              {r.canEditAccess&&<button className="secondary-button" onClick={()=>{setEditingId(r.id);setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||""});setEditing(true)}}>Setores e permissões</button>}
               {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice(typeof data.temporaryPassword === "string" ? "Senha temporária de "+r.name+": "+data.temporaryPassword+". Guarde-a agora; a troca será obrigatória no próximo acesso." : "Senha redefinida. A troca será obrigatória no próximo acesso.");await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               {r.id!==undefined&&r.isActive&&r.id!==undefined&&<button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Desativar "+r.name+"? O histórico de conversas será preservado."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id,{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível desativar.");setNotice("Usuário desativado. O histórico foi preservado.");await load();}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível desativar.")}finally{setBusy(false)}}}>Desativar</button>}
+                            </>)}
               </div>
               </article>
             ))}

@@ -224,7 +224,7 @@ function SiteDetail({ site, tab, setParams, onSaved, onNotice }: { site: Site; t
         <div className="sites-detail-actions"><a className="secondary-button" href={"/sites/" + site.slug} target="_blank" rel="noopener noreferrer"><Eye size={15} aria-hidden="true" /> Visualizar</a></div>
       </header>
       <nav className="sites-tabs" aria-label="Editor do site">{tabs.map(([key, label]) => <button key={key} type="button" aria-pressed={tab === key} className={tab === key ? "active" : ""} onClick={() => setParams({ tab: key })}>{label}</button>)}</nav>
-      {tab === "pages" ? <PagesEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "posts" ? <ItemsEditor site={site} kind="post" onSaved={onSaved} onNotice={onNotice} /> : tab === "imoveis" ? <ItemsEditor site={site} kind="property" onSaved={onSaved} onNotice={onNotice} /> : tab === "forms" ? <FormsEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "appear" ? <Appearance site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "publish" ? <PublishPanel site={site} onSaved={onSaved} onNotice={onNotice} /> : <SettingsPanel site={site} onSaved={onSaved} />}
+      {tab === "pages" ? <PagesEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "posts" ? <ItemsEditor site={site} kind="post" onSaved={onSaved} onNotice={onNotice} /> : tab === "imoveis" ? <ItemsEditor site={site} kind="property" onSaved={onSaved} onNotice={onNotice} /> : tab === "forms" ? <FormsEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "appear" ? <Appearance site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "publish" ? <PublishPanel site={site} onSaved={onSaved} onNotice={onNotice} /> : <SettingsPanel site={site} onSaved={onSaved} onNotice={onNotice} />}
     </>
   );
 }
@@ -457,8 +457,19 @@ function PublishPanel({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   </div>);
 }
 
-function SettingsPanel({ site }: { site: Site; onSaved: () => void }) {
+function SettingsPanel({ site, onSaved, onNotice }: { site: Site; onSaved: () => void; onNotice: (v: string) => void }) {
   const [confirm, setConfirm] = useState(false);
-  const remove = async () => { if (!confirm) return; await api(`/sites/${site.id}`, { method: "DELETE" }); window.location.assign("/sites"); };
-  return (<div className="sites-danger"><h3>Zona de risco</h3><p>Exclui o site, todas as páginas, formulários, cadastros e pré-submissões. Esta ação não pode ser desfeita.</p><label className="sites-confirm"><input type="checkbox" checked={confirm} onChange={e => setConfirm(e.target.checked)} /> Entendo e quero excluir o site “{site.name}”</label><button type="button" className="danger-button" disabled={!confirm} onClick={() => void remove()}><Trash2 size={15} aria-hidden="true" /> Excluir site permanentemente</button><p className="sites-field-hint">Dica: despublicar não apaga nada e pode ser desfeito a qualquer momento em Publicar.</p></div>);
+  const [busy, setBusy] = useState(false);
+  const remove = async () => {
+    if (!confirm) return;
+    setBusy(true);
+    try {
+      await api(`/sites/${site.id}`, { method: "DELETE" });
+      window.location.assign("/?module=Sites");
+    } catch (e) {
+      onNotice(e instanceof Error ? e.message : "Não foi possível excluir o site.");
+      setBusy(false);
+    }
+  };
+  return (<div className="sites-danger"><h3>Zona de risco</h3><p>Exclui o site, todas as páginas, formulários, cadastros e pré-submissões. Esta ação não pode ser desfeita.</p><label className="sites-confirm"><input type="checkbox" checked={confirm} onChange={e => setConfirm(e.target.checked)} /> Entendo e quero excluir o site “{site.name}”</label><button type="button" className="danger-button" disabled={!confirm||busy} onClick={() => void remove()}><Trash2 size={15} aria-hidden="true" /> Excluir site permanentemente</button><p className="sites-field-hint">Dica: despublicar não apaga nada e pode ser desfeito a qualquer momento em Publicar.</p></div>);
 }

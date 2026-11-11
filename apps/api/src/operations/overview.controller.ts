@@ -119,10 +119,21 @@ export class OverviewController {
    optional(() => this.prisma.contact.count({where:{tenantId,createdAt:{gte:weekAgo}}}), 0),
   ]);
 
-  const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&typeof contact.metadata==="object"?contact.metadata:{};for(const key of ["handle","username","platformUsername","instagramUsername","pageUsername"]){const v=meta[key];if(typeof v==="string"&&/^[@\w.+-]{2,60}$/.test(v.trim()))return "@"+v.trim().replace(/^@/,"");}return "";};
+  /** Detecta nomes que são apenas números de telefone (importados do WhatsApp sem nome). */
+function looksLikePhone(value?: string | null): boolean {
+  const text = String(value || "").trim();
+  if (!text) return false;
+  const digits = text.replace(/\D/g, "");
+  if (digits.length < 8) return false;
+  return /^[+()\-.\s\d]+$/.test(text);
+}
+function displayContactName(name?: string | null): string {
+  return looksLikePhone(name) ? "Contato não identificado" : String(name || "Contato sem nome");
+}
+const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&typeof contact.metadata==="object"?contact.metadata:{};for(const key of ["handle","username","platformUsername","instagramUsername","pageUsername"]){const v=meta[key];if(typeof v==="string"&&/^[@\w.+-]{2,60}$/.test(v.trim()))return "@"+v.trim().replace(/^@/,"");}return "";};
   const waitingItems = waitingRows.map((row) => ({
     id: row.id,
-    contactName: row.contact?.name || "Contato sem nome",
+    contactName: displayContactName(row.contact?.name),
     contactId: row.contact?.id || null,
     contactPhone: row.contact?.phone || null,
     contactHandle: socialUsernameOf(row.contact),
@@ -220,7 +231,7 @@ export class OverviewController {
    contacts,
    contactsNewWeek,
    activeAgents:agents.filter((a:any)=>a.enabled===true).length,
-   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, channel: channelLabel(item.channel), contact: { name: item.contact?.name || 'Contato sem nome', id: item.contact?.id || null, phone: item.contact?.phone || null, handle: socialUsernameOf(item.contact) } })),
+   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, channel: channelLabel(item.channel), contact: { name: displayContactName(item.contact?.name), id: item.contact?.id || null, phone: item.contact?.phone || null, handle: socialUsernameOf(item.contact) } })),
    scope:admin?'tenant':'assigned_and_team',
    updatedAt:new Date().toISOString(),
    waiting:{

@@ -24,7 +24,19 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
 
   useEffect(() => {
     fetch("/api/backend/public/sites/" + encodeURIComponent(slug), { cache: "no-store" })
-      .then(async r => { const data = await r.json().catch(() => ({})); if (!r.ok) throw new Error(data.message || "Este site não está disponível no momento."); return data as Site; })
+      .then(async r => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data?.site ? "Este site não está disponível no momento." : data?.message || "Este site não está disponível no momento.");
+        const normalized = (data?.site && typeof data.site === "object" ? data.site : data) as Site | null;
+        if (!normalized) throw new Error("Este site não está disponível no momento.");
+        return {
+          ...normalized,
+          pages: Array.isArray(normalized.pages) ? normalized.pages : [],
+          forms: Array.isArray(normalized.forms) ? normalized.forms : [],
+          items: Array.isArray(normalized.items) ? normalized.items : [],
+          departments: Array.isArray(normalized.departments) ? normalized.departments : [],
+        } as Site;
+      })
       .then(setSite)
       .catch(e => setError(e instanceof Error ? e.message : "Este site não está disponível no momento."));
   }, [slug]);

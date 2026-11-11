@@ -322,7 +322,7 @@ export default function HomePage() {
         </header>
 
         {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
-        <div className="page-content"><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
+        <div className={"page-content" + (active === "Atendimento" ? " page-content--fixed" : "")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className="page-heading">
             <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>

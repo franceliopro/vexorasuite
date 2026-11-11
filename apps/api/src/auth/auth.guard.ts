@@ -1,5 +1,6 @@
 import {assertProductRoute} from './product-scope';
 import {administrative,effectiveModules,routeModules,patternModules} from './module-policy';
+import {allowedModulesOf} from './entitlements';
 import { CanActivate, ExecutionContext, Injectable, ForbiddenException, UnauthorizedException, SetMetadata } from "@nestjs/common";
 
 export const PUBLIC_ROUTE = "public_route";
@@ -47,7 +48,7 @@ export class AuthGuard implements CanActivate {
         tenant: { status: "ACTIVE" },
         user: { isActive: true },
       },
-      select: { role: true, modules:true,deniedModules:true,user:{select:{isPlatformAdmin:true,mustChangePassword:true,authVersion:true}},tenant:{select:{kind:true,integrations:true}} },
+      select: { role: true, modules:true,deniedModules:true,user:{select:{isPlatformAdmin:true,mustChangePassword:true,authVersion:true}},tenant:{select:{kind:true,integrations:true,entitlements:true}} },
     });
 
     if (!membership) {
@@ -59,7 +60,10 @@ export class AuthGuard implements CanActivate {
     const path=String(request.path||"").replace(/^\/api\//,"").replace(/^\//,"").split("?")[0]||"";
     if(membership.user?.mustChangePassword&&!["auth/me","auth/change-password"].includes(path))throw new ForbiddenException("Altere sua senha temporária para continuar.");
     const departments=administrative(membership.role)?[]:await this.prisma.departmentMember.findMany({where:{tenantId:payload.tenantId,userId:payload.sub,department:{isActive:true}},select:{department:{select:{id:true,modules:true,isActive:true}}}});
-    const allowedModules=effectiveModules(membership.role,membership.modules||[],departments.map(d=>d.department),patternModules(membership.tenant?.integrations,payload.sub,departments.map(d=>d.department.id)),membership.deniedModules||[]);
+    // Teto da empresa: os módulos contratados (entitlements) limitam todos os papéis, inclusive OWNER/ADMIN.
+    const tenantModules=allowedModulesOf(membership.tenant?.kind||"CLIENT", membership.tenant?.entitlements);
+    const effective=effectiveModules(membership.role,membership.modules||[],departments.map(d=>d.department),patternModules(membership.tenant?.integrations,payload.sub,departments.map(d=>d.department.id)),membership.deniedModules||[]).filter(m=>tenantModules.includes(m));
+    const allowedModules=effective;
     const needed=typeof request.path==='string'?routeModules(request.path,request.method||'GET'):[];
     if(!membership.user?.isPlatformAdmin&&needed.length&&!needed.some(m=>allowedModules.includes(m)))throw new ForbiddenException('Este módulo não está habilitado para seu perfil e departamento.');
     assertProductRoute(path,request.method||'GET');

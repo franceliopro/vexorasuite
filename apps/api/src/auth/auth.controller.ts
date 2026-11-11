@@ -105,7 +105,7 @@ export class AuthController {
     });
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: request.user.tenantId },
-      select: { id: true, name: true, slug: true,kind:true },
+      select: { id: true, name: true, slug: true,kind:true, planId:true, plan:{select:{name:true,code:true,priceCents:true,cycle:true}} },
     });
     const membership=await this.prisma.membership.findFirst({where:{tenantId:request.user.tenantId,userId:request.user.sub},select:{knownBy:true}});
     return { user:user?{...user,fullName:user.name,knownBy:membership?.knownBy||"",name:membership?.knownBy?.trim()||user.name}:user, tenant, role: request.user.role, allowedModules:request.user.allowedModules||[], departmentIds:request.user.departmentIds||[] };

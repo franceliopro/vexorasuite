@@ -6,7 +6,7 @@ import { passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
 export interface AuthSession {
   allowedModules?:string[]; departmentIds?:string[];
   user: { id: string; name: string; email: string; avatarUrl?:string|null; avatarSource?:string|null;isPlatformAdmin?:boolean;mustChangePassword?:boolean };
-  tenant: { id: string; name: string; slug: string;kind?:string };
+  tenant: { id: string; name: string; slug: string;kind?:string; plan?: { name: string; code: string; priceCents: number; cycle: string } | null };
   role: string;
 }
 

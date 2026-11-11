@@ -3,7 +3,7 @@ describe("private conversation collaboration",()=>{
  const req:any={user:{tenantId:"tenant",sub:"author",role:"OWNER"}};
  function setup(){
   const tx:any={internalMention:{createMany:jest.fn()},membership:{findFirst:jest.fn().mockResolvedValue({id:"member"})},department:{findFirst:jest.fn().mockResolvedValue({name:"Atual"})},departmentMember:{findFirst:jest.fn().mockResolvedValue({id:"department-member"})},conversationParticipant:{upsert:jest.fn()},$queryRaw:jest.fn(),conversation:{findFirst:jest.fn().mockResolvedValue({id:"conversation",status:"OPEN",handlingMode:"HUMAN"}),update:jest.fn().mockResolvedValue({id:"conversation",status:"OPEN",department:{name:"Financeiro"},assignee:{name:"Ana"}})},message:{create:jest.fn().mockImplementation(async({data}:any)=>({id:"note",...data}))},auditLog:{create:jest.fn()}};
-  const prisma:any={...tx,$transaction:jest.fn((fn:any)=>fn(tx)),user:{findUnique:jest.fn().mockResolvedValue({name:"João"})},departmentMember:{findMany:jest.fn().mockResolvedValue([]),findFirst:jest.fn().mockResolvedValue({id:"department-member"})}};
+  const prisma:any={channelConnection:{findMany:jest.fn().mockResolvedValue([])},...tx,$transaction:jest.fn((fn:any)=>fn(tx)),user:{findUnique:jest.fn().mockResolvedValue({name:"João"})},departmentMember:{findMany:jest.fn().mockResolvedValue([]),findFirst:jest.fn().mockResolvedValue({id:"department-member"})}};
   const events:any={publish:jest.fn()},waha:any={sendText:jest.fn()},zernio:any={request:jest.fn()};
   return {tx,prisma,events,waha,zernio,controller:new ConversationsController(prisma,events,waha,zernio)};
  }
@@ -14,7 +14,7 @@ describe("private conversation collaboration",()=>{
   expect(x.tx.auditLog.create).toHaveBeenCalled();expect(x.events.publish).toHaveBeenCalledWith("tenant","conversation.updated",{id:"conversation",internalNote:true});
  });
  it("rejects missing, blank, oversized and non-text notes",async()=>{const x=setup();for(const content of [undefined," ","x".repeat(4001),42])await expect(x.controller.addInternalNote(req,"conversation",{content})).rejects.toThrow();expect(x.tx.message.create).not.toHaveBeenCalled();});
- it("checks current tenant and conversation access under the lock",async()=>{const x=setup();x.tx.conversation.findFirst.mockResolvedValue(null);await expect(x.controller.addInternalNote(req,"foreign",{content:"private"})).rejects.toThrow();expect(x.tx.conversation.findFirst).toHaveBeenCalledWith({where:{id:"foreign",tenantId:"tenant"}});expect(x.tx.message.create).not.toHaveBeenCalled();});
+ it("checks current tenant and conversation access under the lock",async()=>{const x=setup();x.tx.conversation.findFirst.mockResolvedValue(null);await expect(x.controller.addInternalNote(req,"foreign",{content:"private"})).rejects.toThrow();expect(x.tx.conversation.findFirst).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({id:"foreign",tenantId:"tenant"})}));expect(x.tx.message.create).not.toHaveBeenCalled();});
  it("applies human assignment visibility for regular attendants",async()=>{const x=setup();await x.controller.addInternalNote({user:{...req.user,role:"AGENT"}} as any,"conversation",{content:"private"});const where=x.tx.conversation.findFirst.mock.calls[0][0].where;expect(where.handlingMode).toBe("HUMAN");expect(where.OR).toContainEqual({assigneeId:"author"});});
  it("rejects notes on archived or deleted conversations",async()=>{for(const state of [{archivedAt:new Date()},{deletedAt:new Date()}]){const x=setup();x.tx.conversation.findFirst.mockResolvedValue({status:"OPEN",...state});await expect(x.controller.addInternalNote(req,"conversation",{content:"private"})).rejects.toThrow();expect(x.tx.message.create).not.toHaveBeenCalled();}});
  it("persists handoff and private context together before notifying the destination",async()=>{const x=setup();await x.controller.handoff(req,"conversation",{note:"Cliente aguarda retorno"});expect(x.tx.conversation.update).toHaveBeenCalled();expect(x.tx.message.create.mock.calls[0][0].data).toMatchObject({direction:"INTERNAL",content:"Transferência para Financeiro · Ana\n\nCliente aguarda retorno",metadata:{kind:"handoff_context"}});expect(x.events.publish).toHaveBeenCalled();expect(x.waha.sendText).not.toHaveBeenCalled();});
@@ -36,7 +36,7 @@ describe("conversation lifecycle audit", () => {
       conversation: { update: jest.fn().mockResolvedValue({ id: "conversation", status: "RESOLVED", handlingMode: "BOT", departmentId: null, assigneeId: null }) },
       auditLog: { create: jest.fn() },
     };
-    const prisma: any = {
+    const prisma: any = { channelConnection:{findMany:jest.fn().mockResolvedValue([])},
       conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contactId: "contact", handlingMode: "HUMAN" }) },
       contact: { findFirst: jest.fn().mockResolvedValue({ metadata: {} }) },
       $transaction: jest.fn((fn: any) => fn(tx)),
@@ -64,7 +64,7 @@ describe("guided chatbot handoff context", () => {
       message: { findFirst: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ content: "Preciso de suporte" }), create: jest.fn().mockResolvedValue({ id: "context" }) },
       auditLog: { create: jest.fn() },
     };
-    const prisma: any = { $transaction: jest.fn((fn: any) => fn(tx)) };
+    const prisma: any = { channelConnection:{findMany:jest.fn().mockResolvedValue([])}, $transaction: jest.fn((fn: any) => fn(tx)) };
     const { WahaWebhookController } = await import("./waha-webhook.controller");
     const controller = new WahaWebhookController(prisma, {} as any, {} as any, {} as any, {} as any, {} as any);
     await (controller as any).recordGuidedHandoffContext("tenant", "conversation", "SUPORTE", "RASTREABEM", "Suporte · Rastreabem", "Suporte");
@@ -82,7 +82,7 @@ describe("conversation lifecycle audit: archive and recovery", () => {
   const request: any = { user: { tenantId: "tenant", sub: "agent", role: "OWNER" } };
   it("audits archive, restore and trash", async () => {
     const tx: any = { conversation: { update: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN" }) }, auditLog: { create: jest.fn() } };
-    const prisma: any = { conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contact: { metadata: {} } }) }, $transaction: jest.fn((fn: any) => fn(tx)) };
+    const prisma: any = { channelConnection:{findMany:jest.fn().mockResolvedValue([])}, conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contact: { metadata: {} } }) }, $transaction: jest.fn((fn: any) => fn(tx)) };
     const controller = new ConversationsController(prisma, { publish: jest.fn() } as any, {} as any, {} as any);
     await controller.archive(request, "conversation");
     await controller.restore(request, "conversation");
@@ -96,7 +96,7 @@ describe("conversation collaboration audit", () => {
   it("audits assume, assign and invite actions", async () => {
     const request: any = { user: { tenantId: "tenant", sub: "agent", role: "OWNER" } };
     const tx: any = { conversation: { updateMany: jest.fn().mockResolvedValue({ count: 1 }), update: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN" }) }, conversationParticipant: { upsert: jest.fn().mockResolvedValue({ id: "participant" }) }, auditLog: { create: jest.fn() } };
-    const prisma: any = { conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", assigneeId: null, departmentId: null, contact: { metadata: {} } }) }, membership: { findFirst: jest.fn().mockResolvedValue({ id: "membership" }) }, $transaction: jest.fn((fn: any) => fn(tx)) };
+    const prisma: any = { channelConnection:{findMany:jest.fn().mockResolvedValue([])}, conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", assigneeId: null, departmentId: null, contact: { metadata: {} } }) }, membership: { findFirst: jest.fn().mockResolvedValue({ id: "membership" }) }, $transaction: jest.fn((fn: any) => fn(tx)) };
     const controller = new ConversationsController(prisma, { publish: jest.fn() } as any, {} as any, {} as any);
     await controller.assume(request, "conversation");
     await controller.assign(request, "conversation", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");

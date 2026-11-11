@@ -6,11 +6,12 @@ import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { AuthThrottle } from "./auth-throttle";
 import { RefreshSessionService } from "./refresh-session.service";
+import { PlansController } from "./plans.controller";
 import { MailModule } from "../mail/mail.module";
 
 @Module({
   imports: [JwtModule.register({}), PrismaModule, forwardRef(() => MailModule)],
-  controllers: [AuthController],
+  controllers: [AuthController, PlansController],
   providers: [
     AuthService,
     RefreshSessionService,

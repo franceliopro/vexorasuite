@@ -10,6 +10,7 @@ export const MODULES = [
   "FINANCE",
   "CHANNELS",
   "SETTINGS",
+  "SITES",
 ] as const;
 export type ModuleKey = (typeof MODULES)[number];
 export const administrative = (role: string) =>
@@ -70,7 +71,7 @@ export function routeModules(path: string, method: string): string[] {
     )
   )
     return ["MARKETING"];
-  if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
+  if (/^sites(?:\/|$)/.test(p)) return ["SITES"];   if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
   if (/^integrations|^communications/.test(p)) return ["CHANNELS"];
   if (/^push/.test(p)) return ["INBOX"];
   return ["SETTINGS"];

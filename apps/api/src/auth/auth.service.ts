@@ -4,6 +4,7 @@ import {BadRequestException,ForbiddenException,Optional} from '@nestjs/common';
 import {isUUID} from 'class-validator';
 import {SEGMENTS} from '../operations/business-templates';
 import {provisionCompany} from './company-blueprint';
+import {entitlementsFromPlanLimits} from './entitlements';
 import { ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { MembershipRole } from "@prisma/client";
@@ -459,16 +460,20 @@ export class AuthService {
   async createCompany(userId:string,sourceTenantId:string,input:any){
     this.secret();
     if(typeof input?.name!=='string'||input.name.trim().length<2||input.name.trim().length>100||!SEGMENTS.some(s=>s.id===input.segmentId)||!isUUID(input.requestId||''))throw new BadRequestException('Informe nome, segmento e identificador da solicitação.');
+    const planCode=typeof input?.planCode==='string'?input.planCode.trim().toLowerCase():'';
+    if(planCode&&!/^[a-z0-9_-]{2,40}$/.test(planCode))throw new BadRequestException('Plano inválido.');
     const platforms=Array.isArray(input.platforms)?input.platforms:[];
     if(input.platforms!==undefined&&!Array.isArray(input.platforms)||platforms.length>10||platforms.some((p:any)=>typeof p!=='string'||p.trim().length<2||p.trim().length>60)||new Set(platforms.map((p:string)=>p.trim().toLocaleLowerCase('pt-BR'))).size!==platforms.length)throw new BadRequestException('Informe até dez plataformas com nomes diferentes.');
     const tenant=await this.prisma.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
       if(!await tx.membership.findFirst({where:{userId,tenantId:sourceTenantId,role:'OWNER',user:{isActive:true,isPlatformAdmin:true},tenant:{status:'ACTIVE'}},select:{id:true}}))throw new ForbiddenException('Somente a administração da Véxora pode criar empresas.');
+      const plan=planCode?await tx.plan.findUnique({where:{code:planCode}}):null;
+      if(planCode&&(!plan||!plan.isActive))throw new BadRequestException('Plano inválido ou indisponível.');
       const existing=await tx.tenant.findFirst({where:{memberships:{some:{userId,role:'OWNER'}},integrations:{path:['onboarding','requestId'],equals:input.requestId}}});
       if(existing)return existing;
       if(await tx.membership.count({where:{userId,role:'OWNER'}})>=25)throw new BadRequestException('Limite de empresas atingido. Entre em contato com a administração.');
       const base=input.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||'empresa';
-      const tenant=await tx.tenant.create({data:{name:input.name.trim(),slug:base+'-'+randomBytes(5).toString('hex')}});
+      const tenant=await tx.tenant.create({data:{name:input.name.trim(),slug:base+'-'+randomBytes(5).toString('hex'),...(plan?{planId:plan.id,entitlements:entitlementsFromPlanLimits(plan.limits as any) as any}:{})}});
       await tx.membership.create({data:{tenantId:tenant.id,userId,role:'OWNER'}});
       await provisionCompany(tx,tenant,userId,input.segmentId,input.requestId,platforms.map((p:string)=>p.trim()));
       await tx.auditLog.create({data:{tenantId:tenant.id,userId,action:'company.created',entityType:'tenant',entityId:tenant.id,details:{segmentId:input.segmentId}}});

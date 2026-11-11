@@ -833,10 +833,19 @@ export class ConversationsController {
     return rows.map((row) => row.departmentId);
   }
 
+  private async attachmentScope(tenantId: string) {
+    // Conexões instância não viram automaticamente atendimento: só aparecem na fila quando o INBOX está anexo.
+    // Conversas sem canal (web chat público) continuam visíveis.
+    const attached = await this.prisma.channelConnection.findMany({ where: { tenantId, attachments: { some: { service: "INBOX", attached: true } } }, select: { id: true } });
+    return { OR: [{ channelConnectionId: null }, { channelConnectionId: { in: attached.map(r => r.id) } }] };
+  }
+
   private async accessWhere(request: AuthenticatedRequest, view = "new"): Promise<Record<string, any>> {
-    if (["OWNER", "ADMIN"].includes(request.user.role)) return {};
+    const attachmentScope = await this.attachmentScope(request.user.tenantId);
+    if (["OWNER", "ADMIN"].includes(request.user.role)) return attachmentScope;
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
-    return assignedConversationScope(request.user.tenantId,request.user.sub,departmentIds);
+    const scope = assignedConversationScope(request.user.tenantId,request.user.sub,departmentIds);
+    return { ...scope, AND: [ ...((scope as any).AND || []), attachmentScope ] };
   }
 
   private async assertCanAccess(request: AuthenticatedRequest, conversationId: string, view = "new"): Promise<void> {

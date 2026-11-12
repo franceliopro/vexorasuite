@@ -243,7 +243,7 @@ export class AsaasService {
     if (!nextDueDate) { const d = new Date(); d.setMonth(d.getMonth() + 1); nextDueDate = d.toISOString().slice(0, 10); }
     const allowedBilling = ["BOLETO", "PIX", "CREDIT_CARD", "UNDEFINED"];
     const billingType = allowedBilling.includes(String(input.billingType)) ? String(input.billingType) : "BOLETO";
-    let contactId = typeof input.contactId === "string" && input.contactId ? input.contactId : "";
+    const contactId = typeof input.contactId === "string" && input.contactId ? input.contactId : "";
     let customerId = typeof input.customerId === "string" ? input.customerId.trim() : "";
     if (customerId && !/^cus_[A-Za-z0-9_-]{4,}$/.test(customerId)) throw new BadRequestException("Identificador de cliente inválido.");
     const environment = (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION";

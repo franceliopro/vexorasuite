@@ -311,10 +311,9 @@ function HorizontalBars({ rows, format }: { rows: Array<{ label: string; value: 
         return (
           <div className="rw-hbar-row" key={row.label}>
             <span className="rw-hbar-label" title={row.label}>{row.label}</span>
-            <svg className="rw-hbar-track" viewBox="0 0 100 12" preserveAspectRatio="none" role="img" aria-label={row.label + ": " + render(row.value)}>
-              <rect x="0" y="0" width="100" height="12" rx="6" className="rw-hbar-bg" />
-              {row.value > 0 ? <rect x="0" y="0" width={width} height="12" rx="6" className="rw-hbar-fill" style={{ fill }} /> : null}
-            </svg>
+            <div className="rw-hbar-track" role="img" aria-label={row.label + ": " + render(row.value)}>
+              {row.value > 0 ? <i className="rw-hbar-fill" style={{ width: width + "%", background: fill }} /> : null}
+            </div>
             <span className="rw-hbar-value">{render(row.value)}</span>
           </div>
         );
@@ -1199,13 +1198,12 @@ const REPORTS_CSS = `
 .rw-grid-2{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:14px;align-items:stretch}
 .rw-grid-2>.rw-card{display:flex;flex-direction:column}
 
-/* ---------- Barras horizontais SVG ---------- */
+/* ---------- Barras horizontais (estilo Meios de pagamento) ---------- */
 .rw-hbars{display:flex;flex-direction:column;gap:9px}
 .rw-hbar-row{display:grid;grid-template-columns:minmax(88px,180px) minmax(0,1fr) 52px;align-items:center;gap:10px;min-width:0}
 .rw-hbar-label{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rw-hbar-track{width:100%;height:12px;display:block}
-.rw-hbar-bg{fill:var(--s3)}
-.rw-hbar-fill{fill:var(--primary)}
+.rw-hbar-track{position:relative;height:10px;border-radius:99px;background:var(--s3);overflow:hidden}
+.rw-hbar-fill{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .35s var(--ease)}
 .rw-hbar-value{text-align:right;font:700 12px var(--font-ui);color:var(--tx2);font-variant-numeric:tabular-nums}
 
 /* ---------- Rosca SVG ---------- */
@@ -1235,8 +1233,8 @@ const REPORTS_CSS = `
 .rw-gridline{stroke:var(--ln);stroke-width:1}
 .rw-ylabel{fill:var(--tx2);font:600 9px var(--font-ui);font-variant-numeric:tabular-nums}
 .rw-xlabel{fill:var(--tx2);font:600 9px var(--font-ui)}
-.rw-line-billed{stroke:var(--primary);stroke-width:2.4;stroke-linecap:butt;stroke-linejoin:round}
-.rw-line-paid{stroke:#FBBF24;stroke-width:2.2;stroke-linecap:butt;stroke-linejoin:round}
+.rw-line-billed{stroke:var(--primary);stroke-width:2.4;stroke-linecap:butt;stroke-linejoin:miter}
+.rw-line-paid{stroke:#FBBF24;stroke-width:2.2;stroke-linecap:butt;stroke-linejoin:miter}
 .rw-line-area{fill:color-mix(in srgb,var(--primary) 8%,transparent)}
 .rw-dot-billed{fill:var(--primary)}
 .rw-dot-paid{fill:#FBBF24}
@@ -1354,8 +1352,8 @@ const REPORTS_CSS = `
   .rw-table tr{break-inside:avoid;page-break-inside:avoid}
   .rw-table th{background:#f2f3ef !important}
   .rw-delta{border:0.5pt solid currentColor;background:transparent !important}
-  .rw-hbar-fill{fill:#164E8A !important}
-  .rw-hbar-bg{fill:#eaece7 !important}
+  .rw-hbar-fill{background:#164E8A !important}
+  .rw-hbar-track{background:#eaece7 !important}
   .rw-donut-track{stroke:#eaece7 !important}
   .rw-legend-dot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rw-legend-dot.rw-dot-billed{background:#164E8A !important}

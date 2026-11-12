@@ -3499,3 +3499,112 @@ body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(-
   .mobile-bottom-nav{background:color-mix(in srgb,var(--sb-bg) 88%,transparent);backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15)}
   .mobile-bottom-nav button{border-radius:16px}
 }
+
+/* ===== 84. Visual premium — Marketing, heading, toggles compactos, calendário, Finance Automação ===== */
+/* Heading shared — igual ao hero de Planos e Pacotes (card + gradiente) */
+.creative-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:2px;padding:19px 22px;border:1px solid var(--ln);border-radius:var(--r-lg);background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 9%,var(--s1)),var(--s1));box-shadow:var(--shadow-sm)}
+.creative-heading h1{margin:5px 0 3px;font:800 clamp(22px,2.1vw,28px)/1.1 var(--font-display);letter-spacing:-.024em;color:var(--tx)}
+.creative-heading p{margin:0;max-width:56ch;font-size:12px;line-height:1.55;color:var(--tx2)}
+.creative-heading .eyebrow,.marketing-creations-workspace .eyebrow{display:inline-flex;align-items:center;gap:6px;font:800 10px/1 var(--font-display);letter-spacing:.11em;text-transform:uppercase;color:var(--primary-ink)}
+.creative-heading .workspace-actions{display:flex;align-items:center;gap:10px;flex:none}
+.creative-heading .workspace-actions .secondary-button{min-width:38px;min-height:38px;padding:0;border-radius:11px}
+.workflow-studio-heading{align-items:flex-start}
+
+/* Inbox toggle — layout vertical compacto: logo | nome/@/estado | ✓ */
+.marketing-inbox-toggle{grid-template-columns:auto minmax(0,1fr) auto;gap:9px;min-height:0;padding:8px 9px}
+.marketing-inbox-logo{width:36px;height:36px;border-radius:11px}
+.marketing-inbox-copy{display:grid;gap:2px;min-width:0}
+.marketing-inbox-copy strong{font-size:11px;line-height:1.22;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marketing-inbox-copy small{font-size:9px;color:var(--tx2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marketing-inbox-state{display:inline-flex;align-items:center;gap:5px;padding:0;background:transparent;font:800 8px/1 var(--font-display);letter-spacing:.09em;text-transform:uppercase;color:var(--tx2);white-space:nowrap}
+.marketing-inbox-state i{width:6px;height:6px;border-radius:99px;background:var(--ln2)}
+.marketing-inbox-state.is-ok{background:transparent;color:var(--primary-ink)}
+.marketing-inbox-state.is-ok i{background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent)}
+.marketing-inbox-state.is-pending{background:transparent;color:var(--amber-ink)}
+.marketing-inbox-state.is-pending i{background:var(--amber)}
+.marketing-inbox-state.is-error{background:transparent;color:var(--bad)}
+.marketing-inbox-state.is-error i{background:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 14%,transparent)}
+.marketing-inbox-check{width:17px;height:17px}
+
+/* Espaçamento entre blocos do composer */
+.marketing-composer{gap:13px}
+.marketing-files-fieldset{margin-top:2px}
+.marketing-accounts-fieldset{margin-top:11px}
+.marketing-drive-picker-actions .secondary-button{min-height:38px}
+
+/* Calendário editorial — premium (duas colunas + mini card visual) */
+.marketing-calendar-premium{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:26px;align-items:center;padding:30px 34px;border:1px solid var(--ln);border-radius:var(--r-lg);background:linear-gradient(155deg,color-mix(in srgb,var(--primary) 8%,var(--s1)),var(--s1));position:relative;overflow:hidden;box-shadow:var(--shadow-sm)}
+@media (max-width:1000px){.marketing-calendar-premium{grid-template-columns:1fr;padding:24px}}
+.marketing-calendar-copy{display:grid;gap:12px;align-content:start;justify-items:start}
+.marketing-calendar-copy .eyebrow{display:inline-flex;align-items:center;gap:8px;font:800 10px/1 var(--font-display);letter-spacing:.14em;text-transform:uppercase;color:var(--primary-ink)}
+.marketing-calendar-copy h2{margin:0;font:800 clamp(26px,2.6vw,36px)/1.05 var(--font-display);letter-spacing:-.035em;color:var(--tx)}
+.marketing-calendar-copy p{margin:0;max-width:46ch;font-size:12.5px;line-height:1.7;color:var(--tx2)}
+.marketing-calendar-copy ul{display:grid;gap:8px;margin:2px 0 0;padding:0;list-style:none}
+.marketing-calendar-copy li{position:relative;padding-left:17px;font-size:11.5px;line-height:1.55;color:var(--tx)}
+.marketing-calendar-copy li::before{content:"";position:absolute;left:2px;top:6px;width:6px;height:6px;border-radius:99px;background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent)}
+.marketing-calendar-copy li strong{color:var(--tx);font-weight:800}
+.marketing-calendar-premium .primary-button{min-height:42px;padding:0 20px;border-radius:12px}
+.marketing-calendar-footnote{margin:0;font-size:10px;color:var(--tx2);max-width:46ch;line-height:1.5}
+.marketing-calendar-visual{display:grid;justify-items:center}
+.marketing-calendar-card{display:grid;gap:13px;width:min(340px,100%);padding:17px 18px;border:1px solid var(--ln);border-radius:var(--r-lg);background:var(--s1);box-shadow:var(--shadow-lg);transform:rotate(1.6deg)}
+.marketing-calendar-card-head{display:flex;gap:5px}
+.marketing-calendar-dot{width:8px;height:8px;border-radius:99px;background:var(--s3)}
+.marketing-calendar-week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding-bottom:4px;border-bottom:1px solid var(--ln)}
+.marketing-calendar-week span{display:grid;place-items:center;height:22px;font:800 9px/1 var(--font-display);letter-spacing:.07em;color:var(--tx2)}
+.marketing-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.marketing-calendar-grid span{aspect-ratio:1/1;border-radius:9px;background:var(--s2);border:1px solid var(--ln)}
+.marketing-calendar-grid span.is-marked{background:color-mix(in srgb,var(--primary) 26%,var(--s1));border-color:color-mix(in srgb,var(--primary) 55%,var(--ln));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--primary) 32%,transparent)}
+.marketing-calendar-legend{display:flex;gap:14px}
+.marketing-calendar-legend span{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:700;color:var(--tx2)}
+.marketing-calendar-legend i{width:9px;height:9px;border-radius:99px;background:var(--ln2)}
+.marketing-calendar-legend .is-ready i{background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent)}
+.marketing-calendar-legend .is-auto i{background:#22D3EE}
+
+/* ===== Finance — Automação premium (a janela estava sem CSS: palavras coladas) ===== */
+.finance-automation-page{display:grid;gap:var(--gap);align-content:start}
+.finance-automation-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:21px 24px;border:1px solid var(--ln);border-radius:var(--r-lg);background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 10%,var(--s1)),var(--s1))}
+.finance-automation-heading div{display:grid;gap:5px;min-width:0}
+.finance-automation-heading h2{margin:0;font:800 clamp(21px,1.9vw,27px)/1.1 var(--font-display);letter-spacing:-.02em;color:var(--tx)}
+.finance-automation-heading p{margin:0;max-width:64ch;font-size:12px;line-height:1.6;color:var(--tx2)}
+.finance-automation-pill{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:27px;padding:0 13px;border:1px solid color-mix(in srgb,var(--amber) 36%,var(--ln));border-radius:99px;background:color-mix(in srgb,var(--amber) 12%,var(--s1));color:var(--amber-ink);font:800 9.5px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase}
+.finance-automation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap);align-items:start}
+@media (max-width:1100px){.finance-automation-grid{grid-template-columns:1fr}}
+.finance-automation-card{display:grid;gap:13px;align-content:start;padding:17px 19px}
+.finance-automation-card h3{display:flex;align-items:center;gap:9px;margin:0;font:800 13px/1.2 var(--font-display);letter-spacing:-.005em;color:var(--tx)}
+.finance-auto-wide{grid-column:1/-1}
+.finance-auto-check{display:flex!important;align-items:center;gap:10px!important;padding:11px 13px;border:1px solid var(--ln);border-radius:12px;background:var(--s2);font-size:12px;font-weight:650;color:var(--tx);cursor:pointer;transition:all .14s}
+.finance-auto-check:hover{border-color:var(--ln2)}
+.finance-automation-card label{display:grid;gap:6px;font:800 10px/1 var(--font-display);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+.finance-automation-card label input,.finance-automation-card label select,.finance-automation-card label textarea{min-height:38px;padding:0 12px;font-size:13px;min-width:0}
+.finance-auto-note{margin:0;font-size:10.5px;line-height:1.55;color:var(--tx2)}
+.finance-auto-strategy{margin:0;padding:12px 13px;border:1px solid var(--ln);border-left:3px solid var(--primary);border-radius:12px;background:var(--s2)}
+.finance-auto-strategy strong{display:block;margin-bottom:3px;font:800 11px/1.3 var(--font-display);color:var(--tx)}
+.finance-auto-strategy p{margin:0;font-size:11px;line-height:1.6;color:var(--tx2)}
+.finance-auto-templates-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.finance-auto-templates-heading div{display:grid;gap:2px;min-width:0}
+.finance-auto-templates-heading p{margin:0;font-size:11px;color:var(--tx2)}
+.finance-auto-templates-heading span{flex:none;font:800 9px/1 var(--font-display);letter-spacing:.1em;text-transform:uppercase;color:var(--primary-ink);background:var(--primary-soft);padding:7px 12px;border-radius:99px}
+.finance-auto-template-grid{display:grid;grid-template-columns:minmax(170px,.72fr) minmax(0,1.28fr);gap:12px;min-width:0}
+@media (max-width:900px){.finance-auto-template-grid{grid-template-columns:1fr}}
+.finance-auto-template-list{display:grid;gap:6px;max-height:380px;overflow-y:auto;align-content:start}
+.finance-auto-template-list button{display:grid;gap:2px;padding:9px 12px;border:1px solid var(--ln);border-radius:12px;background:var(--s1);text-align:left;cursor:pointer;transition:all .14s;min-width:0}
+.finance-auto-template-list button:hover{border-color:var(--ln2);box-shadow:var(--shadow-sm)}
+.finance-auto-template-list button.active{border-color:color-mix(in srgb,var(--primary) 48%,var(--ln));background:var(--primary-soft);box-shadow:var(--shadow-sm)}
+.finance-auto-template-list strong{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.finance-auto-template-list small{font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+.finance-auto-template-editor{display:grid;gap:10px;align-content:start;min-width:0}
+.finance-auto-preview{padding:12px 14px;border:1px dashed var(--ln2);border-radius:12px;background:color-mix(in srgb,var(--primary) 5%,var(--s2))}
+.finance-auto-preview strong{display:block;margin-bottom:4px;font:800 9.5px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--primary-ink)}
+.finance-auto-preview p{margin:0;font-size:12px;line-height:1.6;color:var(--tx)}
+.finance-history-page{display:grid;gap:13px;align-content:start}
+.finance-history-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+@media (max-width:900px){.finance-history-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.finance-history-stats>div{display:grid;gap:3px;padding:12px;border:1px solid var(--ln);border-radius:13px;background:var(--s2)}
+.finance-history-stats small{font:800 9px/1 var(--font-display);letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
+.finance-history-stats strong{font:800 24px/1.1 var(--font-display);color:var(--tx);font-variant-numeric:tabular-nums}
+.finance-history-table{display:grid;border:1px solid var(--ln);border-radius:13px;overflow:hidden}
+.finance-history-row{display:grid;grid-template-columns:1.1fr 1.2fr 1.1fr .8fr 1.4fr;gap:10px;padding:10px 14px;border-bottom:1px solid var(--ln);font-size:11.5px;background:var(--s2)}
+.finance-history-row:last-child{border-bottom:0}
+.finance-history-head{background:color-mix(in srgb,var(--primary) 6%,var(--s2));font:800 9px/1 var(--font-display);letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
+.finance-history-empty{padding:22px;font-size:11.5px;line-height:1.6;color:var(--tx2);text-align:center}
+.finance-auto-select{display:flex;gap:9px}

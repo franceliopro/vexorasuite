@@ -3951,15 +3951,20 @@ input[type=tel]{letter-spacing:.02em}
   .voice-hint{display:none}
   .voice-wave{display:none}
   .voice-cancel,.voice-send{width:36px!important;height:36px!important}
-  .inbox-composer .composer-toolbar{flex-wrap:nowrap!important;padding:2px 4px!important;gap:4px!important}
-  .composer-tools{flex:0 1 auto;min-width:0;flex-wrap:nowrap!important;overflow:hidden}
-  .composer-shell .inbox-composer .composer-tools textarea{flex:1 1 0!important;min-width:0!important;width:auto!important}
+  /* app nativo: textarea em linha própria; ícones + mic + enviar abaixo, enviar à direita */
+  .inbox-composer .composer-toolbar{flex-wrap:wrap!important;padding:2px 4px 4px!important;gap:4px 6px!important}
+  .composer-toolbar>textarea{order:-1;flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .composer-tools{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;justify-content:flex-start}
+  .composer-toolbar>button[class*=voice],.composer-send-button{flex:none!important}
+  .composer-toolbar>.composer-icon-button{margin-left:auto}
   /* hambúrguer quadrado, sem esticar */
   .topbar .mobile-menu{flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;padding:0!important}
   .topbar .mobile-menu svg{width:20px!important;height:20px!important;display:block!important}
 }
-/* toolbar nunca quebra — enviar sempre na mesma linha */
-.inbox-composer .composer-toolbar{flex-wrap:nowrap!important}
+@media (min-width:761px){
+  /* desktop normal: tudo na mesma linha */
+  .inbox-composer .composer-toolbar{flex-wrap:nowrap!important}
+}
 .composer-send-button{flex:none!important}
 /* CRM — identidade por etapa: título, bolinha, contagem, pill no mesmo tom */
 .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)}
@@ -3970,4 +3975,3 @@ input[type=tel]{letter-spacing:.02em}
 :root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
 :root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
 :root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}
-

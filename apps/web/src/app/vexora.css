@@ -3188,7 +3188,7 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .vx-dialog-body::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--tx) 32%,transparent);border-radius:99px}
 .vx-dialog-body::-webkit-scrollbar-track{background:transparent}
 /* Corpos internos não criam suas próprias barras — a rolagem acontece num único lugar: o diálogo */
-.sites-wizard-body,.platform-admin-editor-body,.sites-studio-panel,.sites-studio-blocks,.sites-items-grid,.sites-forms-grid,.sites-items-list,.sites-item-form{overflow:visible;max-height:none}
+.sites-wizard-body{overflow-y:auto!important;max-height:none}.platform-admin-editor-body,.sites-studio-panel,.sites-studio-blocks,.sites-items-grid,.sites-forms-grid,.sites-items-list,.sites-item-form{overflow-y:auto;max-height:none}
 .calendar-modal{overflow:visible}
 /* Abas em diálogo alto (setup, preferências, criação) — criar site usa abas quando há muito conteúdo */
 .sites-wizard-body{display:flex;flex-direction:column;gap:14px;padding:16px 20px}
@@ -3698,7 +3698,7 @@ body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(-
   .topbar .mobile-menu{width:36px;height:36px;border-radius:10px}
   .mobile-bottom-nav{background:color-mix(in srgb,var(--sb-bg) 86%,transparent)!important;border-top:1px solid var(--sb-ln);backdrop-filter:blur(18px) saturate(1.18)!important;-webkit-backdrop-filter:blur(18px) saturate(1.18)!important}
   .mobile-bottom-nav button{border-radius:14px!important;padding:6px 4px!important;min-height:var(--dock-btn)!important}
-  .inbox-composer{margin:4px 4px 6px!important;border-radius:16px!important;padding:6px!important}
+  .inbox-composer{margin:4px 4px 6px!important;border-radius:7px!important;padding:6px!important}
   .composer-tabs-row{padding:2px 6px 4px!important;gap:5px!important}
   .composer-tabs button{min-height:25px!important;padding:0 10px!important;font-size:10.5px!important}
   .composer-toolbar{gap:4px!important}

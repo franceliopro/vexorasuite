@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SitePreview } from "./site-preview";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Plus, Sparkles, Mic, Trash2, X } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Plus, Sparkles, Mic, Trash2, X } from "lucide-react";
 
 const AREAS = [
   { key: "site_simples", label: "Site Simples", hint: "Site institucional sem segmento — você escolhe o conteúdo depois" },
@@ -40,6 +40,7 @@ const BLOCKS_META: Record<string, { label: string; hint: string }> = {
 };
 
 type Site = any; type Form = any; type Item = any; type Page = any; type Block = any;
+let sitesCache: Site[] | null = null;
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch("/api/backend" + path, { cache: "no-store", headers: { "content-type": "application/json" }, ...init });
   const data = r.status === 204 ? null : await r.json().catch(() => ({}));
@@ -59,8 +60,8 @@ export function SitesWorkspace() {
     for (const [k, v] of Object.entries(patch)) { if (v === null || v === "") next.delete(k); else next.set(k, v); }
     router.replace(pathname + (next.toString() ? "?" + next.toString() : ""), { scroll: false });
   };
-  const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sites, setSites] = useState<Site[]>(() => sitesCache ?? []);
+  const [loading, setLoading] = useState(!sitesCache);
   const [site, setSite] = useState<Site | null>(null);
   const [tabDataLoading, setTabDataLoading] = useState(false);
   const [error, setError] = useState("");
@@ -68,7 +69,7 @@ export function SitesWorkspace() {
 
   const loadSites = async () => {
     setLoading(true);
-    try { setSites(await api<Site[]>("/sites")); setError(""); }
+    try { const data = await api<Site[]>("/sites"); sitesCache = data; setSites(data); setError(""); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível carregar os sites."); }
     finally { setLoading(false); }
   };
@@ -247,31 +248,190 @@ function SitesWizardDialog(props: {
     document.body,
   );
 }
+const STUDIO_FIELD_DEFS: Record<string, { fields: { key: string; label: string; area?: boolean }[]; array?: { key: string; label: string; itemLabel: string; fields: { key: string; label: string; area?: boolean }[] } }> = {
+  hero: { fields: [
+    { key: "badge", label: "Selo acima do título" },
+    { key: "headline", label: "Título principal", area: true },
+    { key: "sub", label: "Texto de apoio", area: true },
+    { key: "ctaLabel", label: "Texto do botão" },
+    { key: "ctaUrl", label: "Link do botão" },
+  ] },
+  richText: { fields: [
+    { key: "title", label: "Título" },
+    { key: "body", label: "Conteúdo", area: true },
+  ] },
+  services: { fields: [{ key: "title", label: "Título da seção" }], array: { key: "items", label: "Serviços", itemLabel: "Serviço", fields: [{ key: "title", label: "Título" }, { key: "text", label: "Texto", area: true }] } },
+  testimonials: { fields: [{ key: "title", label: "Título da seção" }], array: { key: "items", label: "Depoimentos", itemLabel: "Depoimento", fields: [{ key: "text", label: "Texto", area: true }, { key: "name", label: "Nome" }] } },
+  faq: { fields: [{ key: "title", label: "Título da seção" }], array: { key: "items", label: "Perguntas", itemLabel: "Pergunta", fields: [{ key: "question", label: "Pergunta" }, { key: "answer", label: "Resposta", area: true }] } },
+  cta: { fields: [
+    { key: "title", label: "Título" },
+    { key: "sub", label: "Texto de apoio", area: true },
+    { key: "ctaLabel", label: "Texto do botão" },
+    { key: "ctaUrl", label: "Link do botão" },
+  ] },
+  gallery: { fields: [{ key: "title", label: "Título da seção" }], array: { key: "items", label: "Imagens", itemLabel: "Imagem", fields: [{ key: "url", label: "URL da imagem" }] } },
+  posts: { fields: [{ key: "title", label: "Título da seção" }] },
+  properties: { fields: [{ key: "title", label: "Título da seção" }] },
+  contact: { fields: [{ key: "title", label: "Título da seção" }] },
+  spacer: { fields: [{ key: "size", label: "Altura em px" }] },
+  divider: { fields: [] },
+};
+
 function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => void; onNotice: (v: string) => void }) {
   const [device, setDevice] = useState<"pc" | "phone">("pc");
   const [selected, setSelected] = useState<string>("");
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState<Record<string, true>>({});
   const [model, setModel] = useState<PreviewSite>(() => JSON.parse(JSON.stringify(site)) as PreviewSite);
   useEffect(() => { setModel(JSON.parse(JSON.stringify(site)) as PreviewSite); }, [site]);
   const allBlocks = model.pages.flatMap((p: any) => p.blocks.map((b: any) => ({ ...b, pageId: p.id, pageTitle: p.title })));
   const selectedBlock = allBlocks.find((b: any) => b.id === selected) || null;
+  const dirtyCount = Object.keys(dirty).length;
+  const fieldDefs: { fields: { key: string; label: string; area?: boolean }[]; array?: { key: string; label: string; itemLabel: string; fields: { key: string; label: string; area?: boolean }[] } } =
+    (selectedBlock ? STUDIO_FIELD_DEFS[selectedBlock.type] : undefined) || { fields: [] };
+  const markDirty = (blockId: string) => setDirty((prev) => (prev[blockId] ? prev : { ...prev, [blockId]: true }));
+  const clearDirty = (blockId?: string) => setDirty((prev) => { if (!blockId) return {}; const next = { ...prev }; delete next[blockId]; return next; });
+  const setField = (field: string, value: string) => {
+    if (!selectedBlock) return;
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === selectedBlock.pageId ? { ...p, blocks: p.blocks.map((b: any) => b.id === selectedBlock.id ? { ...b, content: { ...b.content, [field]: value } } : b) } : p) }));
+    markDirty(selectedBlock.id);
+  };
+  const setArrayField = (arrayKey: string, index: number, field: string, value: string) => {
+    if (!selectedBlock) return;
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === selectedBlock.pageId ? { ...p, blocks: p.blocks.map((b: any) => {
+      if (b.id !== selectedBlock.id) return b;
+      const items = Array.isArray(b.content[arrayKey]) ? b.content[arrayKey].slice() : [];
+      if (!items[index]) return b;
+      items[index] = { ...items[index], [field]: value };
+      return { ...b, content: { ...b.content, [arrayKey]: items } };
+    }) } : p) }));
+    markDirty(selectedBlock.id);
+  };
+  const moveArrayItem = (arrayKey: string, index: number, dir: -1 | 1) => {
+    if (!selectedBlock) return;
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === selectedBlock.pageId ? { ...p, blocks: p.blocks.map((b: any) => {
+      if (b.id !== selectedBlock.id) return b;
+      const items = (b.content[arrayKey] || []).slice();
+      const target = index + dir;
+      if (target < 0 || target >= items.length) return b;
+      const [item] = items.splice(index, 1);
+      items.splice(target, 0, item);
+      return { ...b, content: { ...b.content, [arrayKey]: items } };
+    }) } : p) }));
+    markDirty(selectedBlock.id);
+  };
+  const addArrayItem = (arrayKey: string) => {
+    if (!selectedBlock) return;
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === selectedBlock.pageId ? { ...p, blocks: p.blocks.map((b: any) => {
+      if (b.id !== selectedBlock.id) return b;
+      const items = (b.content[arrayKey] || []).slice();
+      items.push({ title: "Novo item", text: "", name: "", question: "Nova pergunta", answer: "Resposta..." });
+      return { ...b, content: { ...b.content, [arrayKey]: items } };
+    }) } : p) }));
+    markDirty(selectedBlock.id);
+  };
+  const deleteArrayItem = (arrayKey: string, index: number) => {
+    if (!selectedBlock) return;
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === selectedBlock.pageId ? { ...p, blocks: p.blocks.map((b: any) => {
+      if (b.id !== selectedBlock.id) return b;
+      const items = (b.content[arrayKey] || []).slice();
+      items.splice(index, 1);
+      return { ...b, content: { ...b.content, [arrayKey]: items } };
+    }) } : p) }));
+    markDirty(selectedBlock.id);
+  };
+  const moveBlock = (block: any, dir: -1 | 1) => {
+    const page = model.pages.find((p: any) => p.id === block.pageId);
+    if (!page) return;
+    const pageBlocks = [...page.blocks].sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+    const idx = pageBlocks.findIndex((b: any) => b.id === block.id);
+    const target = idx + dir;
+    if (idx < 0 || target < 0 || target >= pageBlocks.length) return;
+    const a = pageBlocks[idx], b = pageBlocks[target];
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === page.id ? { ...p, blocks: p.blocks.map((x: any) => x.id === a.id ? { ...x, sortOrder: b.sortOrder } : x.id === b.id ? { ...x, sortOrder: a.sortOrder } : x) } : p) }));
+    setDirty((prev) => ({ ...prev, [a.id]: true, [b.id]: true }));
+  };
+  const toggleHidden = async (block: any) => {
+    const next = !block.hidden;
+    try {
+      await api("/sites/pages/" + block.pageId + "/blocks/" + block.id, { method: "PATCH", body: JSON.stringify({ hidden: next }) });
+      setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === block.pageId ? { ...p, blocks: p.blocks.map((b: any) => b.id === block.id ? { ...b, hidden: next } : b) } : p) }));
+      onNotice(next ? "Bloco oculto na página." : "Bloco visível novamente.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível alterar a visibilidade."); }
+  };
+  const deleteBlock = async (block: any) => {
+    const label = (block.content?.title || block.content?.headline || block.type || "bloco").toString().slice(0, 48);
+    if (!window.confirm("Excluir o bloco “" + label + "”?")) return;
+    try {
+      await api("/sites/pages/" + block.pageId + "/blocks/" + block.id, { method: "DELETE" });
+      clearDirty(block.id);
+      setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === block.pageId ? { ...p, blocks: p.blocks.filter((b: any) => b.id !== block.id) } : p) }));
+      if (selected === block.id) setSelected("");
+      onNotice("Bloco excluído.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível excluir o bloco."); }
+  };
+  const duplicateBlock = async (block: any) => {
+    try {
+      await api("/sites/pages/" + block.pageId + "/blocks", { method: "POST", body: JSON.stringify({ type: block.type, content: block.content }) });
+      onSaved();
+      onNotice("Bloco duplicado.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível duplicar o bloco."); }
+  };
+  const addBlock = async (type: string) => {
+    const page = model.pages[0]; if (!page) return;
+    const meta = BLOCKS_META[type];
+    try {
+      const baseContent = type === "hero"
+        ? { headline: "Um título claro e direto", sub: "Apoio curto que explica o benefício.", ctaLabel: "Quero conversar" }
+        : type === "richText"
+          ? { title: "Título da seção", body: "Escreva aqui o texto desta seção." }
+          : type === "services"
+            ? { title: "O que fazemos", items: [{ title: "Serviço um", text: "Descrição curta do serviço." }] }
+            : type === "cta"
+              ? { title: "Pronto para começar?", sub: "Chama agora — é rápido.", ctaLabel: "Quero conversar" }
+              : type === "testimonials"
+                ? { title: "Quem confia na Véxora", items: [{ text: "Depoimento real de um cliente.", name: "Nome do cliente" }] }
+                : type === "faq"
+                  ? { title: "Perguntas frequentes", items: [{ question: "Quanto custa?", answer: "Varia por projeto — fale com a equipe." }] }
+                  : {};
+      await api("/sites/pages/" + page.id + "/blocks", { method: "POST", body: JSON.stringify({ type, content: baseContent }) });
+      onSaved();
+      onNotice("Bloco “" + (meta?.label ?? type) + "” adicionado.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível adicionar o bloco."); }
+  };
   const applyAi = async (block: any, text: string) => {
     setBusy(true);
     try {
-      const res = await api<{ blockId: string; content: any }>(`/sites/pages/${block.pageId}/blocks/${block.id}/ai`, { method: "POST", body: JSON.stringify({ instruction: text }) });
+      const res = await api<{ blockId: string; content: any }>("/sites/pages/" + block.pageId + "/blocks/" + block.id + "/ai", { method: "POST", body: JSON.stringify({ instruction: text }) });
       setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === block.pageId ? { ...p, blocks: p.blocks.map((b: any) => b.id === block.id ? { ...b, content: res.content } : b) } : p) }));
+      clearDirty(block.id);
       onSaved();
       onNotice("Bloco atualizado pela IA.");
     } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível aplicar a mudança."); }
     finally { setBusy(false); }
   };
+  const saveAll = async () => {
+    if (saving || dirtyCount === 0) return;
+    setSaving(true);
+    try {
+      for (const id of Object.keys(dirty)) {
+        const block = allBlocks.find((b: any) => b.id === id); if (!block) continue;
+        await api("/sites/pages/" + block.pageId + "/blocks/" + block.id, { method: "PATCH", body: JSON.stringify({ content: block.content, sortOrder: block.sortOrder, hidden: block.hidden }) });
+      }
+      setDirty({});
+      onSaved();
+      onNotice("Alterações salvas.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível salvar."); }
+    finally { setSaving(false); }
+  };
   const skills = [
-    { label: "Hero premium", instruction: "Reescreva por completo: tom premium e direto, destaque o preço só se for o diferencial, e mude o CTA com urgência honesta." },
-    { label: "FAQ robusto", instruction: "Troque as perguntas e respostas por 4 perguntas reais que clientes costumam fazer, com respostas confiantes mas sem prometer o que a empresa não entrega." },
-    { label: "Depoimentos vivos", instruction: "Substitua os depoimentos por 3 depoimentos de clientes reais (nome, contexto, resultado). Tom humano, sem exageros." },
-    { label: "Paleta Hope Diamond", instruction: "Mantenha o texto EXATAMENTE como está; não mude o conteúdo, apenas confirme o contraste das cores do bloco (priorize #2E7CF6 e #22D3EE)." },
-    { label: "Clareza de valor", instruction: "Reescreva os textos do bloco deixando mais claro o benefício principal para o cliente (resultado, não o processo)." },
+    { label: "Hero premium", instruction: "Reescreva por completo: tom premium e direto, destaque o entregável, não o processo, e mude o CTA com urgência honesta." },
+    { label: "FAQ robusto", instruction: "Troque as perguntas e respostas por 5 perguntas reais que clientes costumam fazer antes de contratar, com respostas confiantes mas sem prometer o que a empresa não entrega." },
+    { label: "Depoimentos vivos", instruction: "Substitua os depoimentos por 3 depoimentos de clientes reais citando nome, contexto e resultado. Tom humano, sem exageros." },
+    { label: "Clareza de valor", instruction: "Reescreva os textos do bloco deixando mais claro o benefício principal para o cliente: resultado, prazo e prova — não processo." },
+    { label: "Adaptar ao WhatsApp", instruction: "Reescreva no tom de WhatsApp direto, sem formalidade de site, focando na conversa: resposta em minutos, orçamento sem compromisso." },
   ];
   return (
     <div className="sites-studio">
@@ -280,35 +440,64 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <button type="button" aria-pressed={device === "pc"} className={device === "pc" ? "active" : ""} onClick={() => setDevice("pc")}>PC</button>
           <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}>Celular</button>
         </div>
-        <small className="sites-field-hint">🎨 A IA edita o bloco selecionado; nada é publicado sem você revisar.</small>
+        <div className="sites-studio-toolbar-right">
+          {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}
+        </div>
       </div>
       <div className="sites-studio-body">
         <aside className="sites-studio-blocks" aria-label="Blocos da página">
           <h3>Blocos</h3>
           {allBlocks.length === 0 ? <p className="sites-field-hint">Este site ainda não tem blocos.</p> : allBlocks.map((b: any) => (
-            <button key={b.id} type="button" className={"sites-studio-block" + (selected === b.id ? " active" : "")} onClick={() => setSelected(b.id)}>
-              <b>{(b.content?.title || b.content?.headline || b.type).slice(0, 48)}</b>
-              <small>{b.type} · {b.pageTitle}</small>
-            </button>
+            <div key={b.id} className={"sites-studio-item" + (selected === b.id ? " active" : "") + (b.hidden ? " is-hidden" : "")}>
+              <button type="button" className="sites-studio-block-select" onClick={() => setSelected(b.id)}>
+                <b>{(b.content?.title || b.content?.headline || b.type).toString().slice(0, 44)}</b>
+                <small>{b.type} · {b.pageTitle}{b.hidden ? " · oculto" : ""}</small>
+              </button>
+              <div className="sites-studio-block-tools">
+                <button type="button" aria-label="Mover acima" title="Mover para cima" onClick={() => moveBlock(b, -1)}><ChevronUp size={13} aria-hidden="true" /></button>
+                <button type="button" aria-label="Mover abaixo" title="Mover para baixo" onClick={() => moveBlock(b, 1)}><ChevronDown size={13} aria-hidden="true" /></button>
+                <button type="button" aria-label={b.hidden ? "Mostrar bloco" : "Ocultar bloco"} title={b.hidden ? "Mostrar" : "Ocultar"} onClick={() => void toggleHidden(b)}>{b.hidden ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}</button>
+                <button type="button" aria-label="Duplicar bloco" title="Duplicar" onClick={() => void duplicateBlock(b)}><Copy size={13} aria-hidden="true" /></button>
+                <button type="button" aria-label="Excluir bloco" title="Excluir" onClick={() => void deleteBlock(b)}><Trash2 size={13} aria-hidden="true" /></button>
+              </div>
+            </div>
           ))}
+          <div className="sites-studio-add">
+            <p className="sites-field-label">Adicionar bloco</p>
+            <div className="sites-studio-add-grid">{["hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
+          </div>
         </aside>
         <div className="sites-studio-preview">
           <div className={"sites-studio-frame" + (device === "phone" ? " is-phone" : "")}>
-            <SitePreview site={model} highlightBlockId={selected} />
+            <SitePreview site={model} highlightBlockId={selected} onBlockClick={(id) => setSelected(id)} />
           </div>
         </div>
         <div className="sites-studio-panel">
-          <h3>Editar com IA</h3>
-          <p className="sites-field-hint">Selecione um bloco no lado esquerdo e peça a mudança. A IA reescreve o conteúdo do bloco; você revisa antes de publicar.</p>
           {selectedBlock ? <>
-            <label className="sites-field"><span>Bloco selecionado</span><input readOnly value={(selectedBlock.content?.title || selectedBlock.content?.headline || selectedBlock.type).toString().slice(0, 120)} /></label>
-            <label className="sites-field"><span>O que mudar?</span>
-              <textarea rows={4} value={instruction} onChange={e => setInstruction(e.target.value)} placeholder="Ex.: relacione o serviço a uma dor concreta do cliente e destaque o resultado em 60 dias." />
-            </label>
-            <button type="button" className="primary-button" disabled={busy || instruction.trim().length < 3} onClick={() => applyAi(selectedBlock, instruction.trim())}>{busy ? "Aplicando…" : "Aplicar com IA"}</button>
-            <p className="sites-field-label">Skills rápidas</p>
-            <div className="sites-studio-skills">{skills.map(s => <button key={s.label} type="button" disabled={busy} onClick={() => { setInstruction(s.instruction); }}>{s.label}</button>)}</div>
-          </> : <p className="sites-field-hint">Selecione um bloco à esquerda para editar com IA.</p>}
+            <div className="sites-studio-panel-head">
+              <h3>Editar bloco</h3>
+              <span className="sites-studio-panel-type">{BLOCKS_META[selectedBlock.type]?.label ?? selectedBlock.type}</span>
+            </div>
+            <div className="sites-studio-fields">
+              {fieldDefs.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} /> : <input value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} />}</label>)}
+              {fieldDefs.array ? <div className="sites-studio-array">
+                <div className="sites-studio-array-head"><span className="sites-field-label">{fieldDefs.array.label}</span><button type="button" className="text-button sites-studio-add-item" onClick={() => addArrayItem(fieldDefs.array!.key)}>+ {fieldDefs.array.itemLabel}</button></div>
+                {(Array.isArray(selectedBlock.content?.[fieldDefs.array.key]) ? selectedBlock.content[fieldDefs.array.key] : []).map((item: any, index: number) => <div key={index} className="sites-studio-array-item">
+                  <div className="sites-studio-array-item-head"><span className="sites-studio-array-index">{fieldDefs.array!.itemLabel} {index + 1}</span><div className="sites-studio-array-tools"><button type="button" aria-label="Mover item acima" onClick={() => moveArrayItem(fieldDefs.array!.key, index, -1)}><ChevronUp size={13} aria-hidden="true" /></button><button type="button" aria-label="Mover item abaixo" onClick={() => moveArrayItem(fieldDefs.array!.key, index, 1)}><ChevronDown size={13} aria-hidden="true" /></button><button type="button" aria-label="Remover item" onClick={() => deleteArrayItem(fieldDefs.array!.key, index)}><Trash2 size={13} aria-hidden="true" /></button></div></div>
+                  {fieldDefs.array!.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(item?.[f.key] ?? "").toString()} onChange={(e) => setArrayField(fieldDefs.array!.key, index, f.key, e.target.value)} /> : <input value={(item?.[f.key] ?? "").toString()} onChange={(e) => setArrayField(fieldDefs.array!.key, index, f.key, e.target.value)} />}</label>)}
+                </div>)}
+              </div> : null}
+            </div>
+            <div className="sites-studio-ai">
+              <h4>Reescrever com IA</h4>
+              <label className="sites-field"><span>O que mudar?</span>
+                <textarea rows={3} value={instruction} onChange={e => setInstruction(e.target.value)} placeholder="Ex.: destaque o benefício principal e cite 1 prova real (número de clientes, prazo, resultado)." />
+              </label>
+              <button type="button" className="primary-button" disabled={busy || instruction.trim().length < 3} onClick={() => applyAi(selectedBlock, instruction.trim())}>{busy ? "Aplicando…" : "Aplicar com IA"}</button>
+              <p className="sites-field-label">Skills rápidas</p>
+              <div className="sites-studio-skills">{skills.map(s => <button key={s.label} type="button" disabled={busy} onClick={() => setInstruction(s.instruction)}>{s.label}</button>)}</div>
+            </div>
+          </> : <p className="sites-field-hint">Selecione um bloco no preview ou na lista à esquerda para editar.</p>}
         </div>
       </div>
     </div>

@@ -3608,3 +3608,43 @@ body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(-
 .finance-history-head{background:color-mix(in srgb,var(--primary) 6%,var(--s2));font:800 9px/1 var(--font-display);letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
 .finance-history-empty{padding:22px;font-size:11.5px;line-height:1.6;color:var(--tx2);text-align:center}
 .finance-auto-select{display:flex;gap:9px}
+
+/* ===== 85. Sites Studio v2 — Elementor-lite ===== */
+.sites-studio-toolbar-right{display:flex;align-items:center;gap:12px;margin-left:auto}
+.sites-studio-save{min-height:34px;padding:0 15px;font-size:12px;border-radius:11px}
+.sites-studio-saved{color:var(--primary-ink);font-weight:800}
+.sites-studio-item{display:grid;gap:6px;padding:8px 9px;border:1px solid transparent;border-radius:10px;background:transparent;transition:background .12s,border-color .12s}
+.sites-studio-item:hover{background:var(--s2)}
+.sites-studio-item.active{background:color-mix(in srgb,var(--primary) 10%,var(--s2));border-color:color-mix(in srgb,var(--primary) 42%,var(--ln))}
+.sites-studio-item.is-hidden{opacity:.62}
+.sites-studio-block-select{display:grid;gap:2px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;width:100%}
+.sites-studio-block-select b{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx);letter-spacing:-.005em}
+.sites-studio-block-select small{font-size:9px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sites-studio-block-tools{display:flex;gap:3px;opacity:0;transition:opacity .15s;width:max-content}
+.sites-studio-item:hover .sites-studio-block-tools,.sites-studio-item.active .sites-studio-block-tools,.sites-studio-item:focus-within .sites-studio-block-tools{opacity:1}
+.sites-studio-block-tools button{display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--ln);border-radius:7px;background:var(--s1);color:var(--tx2);cursor:pointer;transition:all .12s}
+.sites-studio-block-tools button:hover{background:var(--hover);color:var(--tx);border-color:var(--ln2)}
+.sites-studio-add{margin-top:2px;padding-top:10px;border-top:1px solid var(--ln);display:grid;gap:7px}
+.sites-studio-add-grid{display:flex;flex-wrap:wrap;gap:5px}
+.sites-studio-add-chip{min-height:26px;padding:0 10px;border:1px dashed var(--ln2);border-radius:99px;background:transparent;font-size:9.5px;font-weight:700;color:var(--tx2);cursor:pointer;transition:all .13s}
+.sites-studio-add-chip:hover{border-color:var(--primary);color:var(--primary-ink)}
+.sites-studio-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sites-studio-panel-type{font:800 9px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--primary-ink);background:var(--primary-soft);padding:6px 10px;border-radius:99px}
+.sites-studio-fields{display:grid;gap:9px}
+.sites-studio-fields .sites-field{display:grid;gap:5px}
+.sites-studio-fields .sites-field span,.sites-studio-ai .sites-field span{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2)}
+.sites-studio-fields .sites-field textarea{min-height:54px}
+.sites-studio-array{display:grid;gap:9px;padding-top:7px;border-top:1px solid var(--ln)}
+.sites-studio-array-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sites-studio-add-item{min-height:26px;font-size:11px;padding:0 4px}
+.sites-studio-array-item{display:grid;gap:7px;padding:10px 11px;border:1px solid var(--ln);border-radius:12px;background:var(--s2)}
+.sites-studio-array-item-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sites-studio-array-index{font:800 8.5px/1 var(--font-display);letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
+.sites-studio-array-tools{display:flex;gap:3px}
+.sites-studio-array-tools button{display:grid;place-items:center;width:23px;height:23px;border:1px solid var(--ln);border-radius:6px;background:var(--s1);color:var(--tx2);cursor:pointer;transition:all .12s}
+.sites-studio-array-tools button:hover{background:var(--hover);color:var(--tx)}
+.sites-studio-ai{display:grid;gap:9px;margin-top:2px;padding-top:11px;border-top:1px solid var(--ln)}
+.sites-studio-ai h4{margin:0;font:800 11px/1 var(--font-display);letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
+.ps-block-select{cursor:pointer}
+.ps-block-select:hover{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--primary) 55%,transparent)}
+.ps-block-select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}

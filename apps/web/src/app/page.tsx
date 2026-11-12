@@ -17,7 +17,7 @@ import { WorkspaceAlerts } from "./workspace-alerts";
 import { OverviewIntelligence, type OverviewSnapshot } from "./overview-intelligence";
 import { SidebarProfile } from "./sidebar-profile";
 const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AuthScreen, type AuthSession } from "./auth-screen";
 const InboxWorkspace=dynamic(()=>import("./inbox-workspace").then(module=>module.InboxWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -357,7 +357,7 @@ export default function HomePage() {
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Sites" || active === "Landing Pages" || active === "Formulários" ? (
-            moduleVisible("Sites") ? <SitesWorkspace key={active} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
+            moduleVisible("Sites") ? <Suspense fallback={<p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando Sites…</p>}><SitesWorkspace key={active} /></Suspense> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
           ) : active === "Relatórios" ? (
             canManage ? <ReportsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
           ) : active === "Planos e pacotes" || active === "Clientes" ? (

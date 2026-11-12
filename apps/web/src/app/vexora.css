@@ -139,7 +139,7 @@ details>summary::-webkit-details-marker{display:none}
 /* ===== 5. Shell: sidebar, topbar, conteúdo ===== */
 .suite-app{display:flex;min-height:100dvh}
 .suite-app:has(.sidebar-compact){--sb:76px}
-.sidebar{position:fixed;inset:0 auto 0 0;z-index:40;width:var(--sb);display:flex;flex-direction:column;background:radial-gradient(185px 150px at 2px -22px,color-mix(in srgb,var(--primary) 62%,transparent) 0%,transparent 64%),linear-gradient(180deg,color-mix(in srgb,var(--sb-bg) 94%,#FFFFFF),var(--sb-bg) 42%);color:var(--sb-tx);border-right:1px solid var(--sb-ln);box-shadow:inset -1px 0 0 color-mix(in srgb,var(--sb-tx) 4%,transparent);--thumb:var(--sb-thumb);--focus:var(--sb-tx);transition:width .2s var(--ease)}
+.sidebar{position:fixed;inset:0 auto 0 0;z-index:40;width:var(--sb);display:flex;flex-direction:column;background:var(--sb-bg);color:var(--sb-tx);border-right:1px solid var(--sb-ln);box-shadow:inset -1px 0 0 color-mix(in srgb,var(--sb-tx) 4%,transparent);--thumb:var(--sb-thumb);--focus:var(--sb-tx);transition:width .2s var(--ease)}
 .sidebar-brand-row{display:flex;align-items:center;flex:none;height:var(--top);padding:0 18px;border-bottom:1px solid var(--sb-ln)}
 .brand{display:flex;align-items:center;gap:11px;min-width:0;color:inherit}
 .brand-mark{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:13px;background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 68%,#FFFFFF),var(--primary) 62%,color-mix(in srgb,var(--primary) 78%,#000));color:var(--primary-contrast);font:800 17px var(--font-display);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 10px 20px -12px color-mix(in srgb,var(--primary) 85%,transparent)}
@@ -3073,8 +3073,8 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 /* Sidebar: feixes diagonais de luz azul + brilho do diamante */
 .sidebar{background:#FBFCFE;border-right:1px solid var(--sb-ln)}
 :root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{background:var(--sb-bg);border-right:1px solid var(--sb-ln)}
-.sidebar::before{content:"";position:absolute;top:-110px;left:-70px;right:-70px;height:240px;background:radial-gradient(240px 190px at 50% 0%,color-mix(in srgb,var(--primary) 14%,transparent) 0%,transparent 72%);filter:blur(26px);pointer-events:none;opacity:.9}
-:root[data-theme=hybrid] .sidebar::before,:root[data-theme=dark] .sidebar::before{content:"";position:absolute;top:-130px;left:-90px;right:-90px;height:300px;background:radial-gradient(320px 230px at 50% 0%,color-mix(in srgb,var(--primary) 46%,transparent) 0%,transparent 72%);filter:blur(30px);pointer-events:none;opacity:1}
+.sidebar::before{content:"";position:absolute;top:-135px;left:-85px;right:-85px;height:290px;background:radial-gradient(300px 225px at 50% 0%,color-mix(in srgb,var(--primary) 18%,transparent) 0%,transparent 74%);filter:blur(30px);pointer-events:none;opacity:.95}
+:root[data-theme=hybrid] .sidebar::before,:root[data-theme=dark] .sidebar::before{content:"";position:absolute;top:-175px;left:-120px;right:-120px;height:360px;background:radial-gradient(400px 270px at 50% 0%,color-mix(in srgb,var(--primary) 60%,transparent) 0%,transparent 74%);filter:blur(34px);pointer-events:none;opacity:1}
 /* Botões primários: degradê safira + brilho */
 .primary-button{background:linear-gradient(155deg,#5FA8FF 0%,#2E7CF6 38%,#1B53C6 100%);color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 6px rgba(4,18,42,.35),0 14px 34px -12px color-mix(in srgb,var(--primary) 85%,transparent),0 0 0 1px color-mix(in srgb,var(--accent2) 40%,transparent);text-shadow:0 1px 2px rgba(4,18,42,.45)}
 .primary-button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 20px 44px -12px color-mix(in srgb,var(--primary) 90%,transparent),0 0 0 1px color-mix(in srgb,var(--accent2) 60%,transparent)}

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Save, Search, Trash2, X, ExternalLink, Building2, CircleDollarSign, ShieldCheck, Boxes } from "lucide-react";
+import { createPortal } from "react-dom";
 
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isActive: boolean; isPublic: boolean; sortOrder: number };
 type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; monthlyPriceCents: number };
@@ -131,8 +132,9 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
   const upd = (patch: Partial<Omit<Plan, "id">>) => setDraft({ ...draft, ...patch });
   const setLimit = (key: string, value: any) => setDraft({ ...draft, limits: { ...draft.limits, [key]: value } });
   const modulesStr = strArr(draft.limits?.modules).join(", ");
-  return (
-    <div className="vx-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="vx-dialog-backdrop platform-admin-editor-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="vx-dialog platform-admin-editor" role="dialog" aria-modal="true" aria-label={editing ? "Editar plano" : "Novo plano"}>
         <header className="vx-dialog-heading"><span className="vx-dialog-icon"><CircleDollarSign size={18} aria-hidden="true" /></span><div><h2>{editing ? "Editar plano" : "Novo plano / pacote"}</h2><p>{editing ? "Alterações passam a valer na próxima atribuição." : "Defina nome, preço, ciclo e limites."}</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={onClose}><X size={17} aria-hidden="true" /></button></header>
         <div className="vx-dialog-body platform-admin-editor-body">
@@ -152,6 +154,7 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
         </div>
         <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="button" className="primary-button" disabled={saving || !draft.name.trim() || !draft.code.trim()} onClick={() => void onSave()}>{saving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />} Salvar</button></footer>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

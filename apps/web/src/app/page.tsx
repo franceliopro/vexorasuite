@@ -272,7 +272,8 @@ export default function HomePage() {
           {navigation.map((group) => {
             const visibleItems = group.items.filter((item) => (!platformPanel || item.label !== "Planos e preços") && moduleVisible(item.label) && (!["Financeiro","Marketing","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
             if (group.section === "ADMINISTRAÇÃO" && platformPanel) {
-              visibleItems.unshift({ label: "Planos e pacotes", icon: "sparkles" }, { label: "Clientes", icon: "users" });            }
+              visibleItems.unshift({ label: "Planos e pacotes", icon: "sparkles" });
+            }
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
@@ -359,7 +360,7 @@ export default function HomePage() {
           ) : active === "Relatórios" ? (
             canManage ? <ReportsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
           ) : active === "Planos e pacotes" || active === "Clientes" ? (
-            platformPanel ? <PlatformAdminWorkspace initialTab={active === "Planos e pacotes" ? "plans" : "customers"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este painel pertence à administração da Véxora.</p></section>
+            platformPanel ? <PlatformAdminWorkspace initialTab="plans" /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este painel pertence à administração da Véxora.</p></section>
           ) : active === "Planos e preços" ? (
             !platformPanel ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className="content-card"><h2>Este painel é para clientes</h2></section>
           ) : active === "Atendentes" ? (

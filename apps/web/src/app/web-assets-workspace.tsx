@@ -17,7 +17,7 @@ type WebAsset = {
   updatedAt: string;
 };
 
-let assetsCache: Partial<Record<WebAssetKind, WebAsset[]>> = {};
+const assetsCache: Partial<Record<WebAssetKind, WebAsset[]>> = {};
 const FIELD_TYPES = [
   ["text", "Texto curto"],
   ["textarea", "Texto longo"],

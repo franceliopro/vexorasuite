@@ -3855,7 +3855,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;bo
   .composer-tabs{gap:0!important}
   .composer-tabs button{min-height:29px!important;padding:0 12px!important;font-size:11.5px!important;border:0!important;background:transparent!important;color:var(--tx2)!important;border-radius:0!important;min-width:0!important;flex:none!important;border-bottom:2px solid transparent!important}
   .composer-tabs button.active{color:var(--tx)!important;border-bottom-color:var(--primary)!important;background:transparent!important}
-  .composer-ai-improve{display:none!important}
   .inbox-composer{padding:6px 8px 8px!important;margin:0!important;border-radius:0!important;border-left:none!important;border-right:none!important;border-bottom:none!important;border-top:1px solid var(--ln)!important;background:var(--bg)!important;gap:6px!important}
   .composer-toolbar{flex-wrap:nowrap!important;justify-content:flex-start!important;gap:2px!important;padding:2px 4px 4px!important}
   .composer-tools>button,.composer-tools>.voice-recordings{width:30px!important;height:30px!important;min-height:30px!important;display:grid!important;place-items:center!important;border-radius:8px!important}
@@ -3940,3 +3939,40 @@ input[type=tel]{letter-spacing:.02em}
 .crm-form .settings-card-heading{margin-bottom:4px}
 @media (max-width:760px){.crm-form-grid{grid-template-columns:1fr}}
 
+/* ===== 98. Composer mobile v2 + identidade por etapa do CRM ===== */
+@media (max-width:760px){
+  /* o composer não tem mais arredondamento inferior */
+  .composer-shell>.inbox-composer{border-radius:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important}
+  /* "Melhorar com IA" visível e compacto ao lado de Nota privada */
+  .composer-ai-improve{display:inline-flex!important;align-items:center!important;gap:5px!important;height:26px!important;min-height:26px!important;padding:0 9px!important;font-size:10.5px!important;font-weight:750!important;border-radius:99px!important;flex:none!important}
+  .composer-ai-improve svg{width:12px!important;height:12px!important}
+  /* gravação de áudio cabe na tela — sem estourar pela direita */
+  .voice-recording{flex-wrap:wrap;max-width:calc(100vw - 10px);min-width:0;gap:8px;padding:6px 9px}
+  .voice-hint{display:none}
+  .voice-wave{display:none}
+  .voice-cancel,.voice-send{width:36px!important;height:36px!important}
+  /* app nativo: textarea em linha própria; ícones + mic + enviar abaixo, enviar à direita */
+  .inbox-composer .composer-toolbar{flex-wrap:wrap!important;padding:2px 4px 4px!important;gap:4px 6px!important}
+  .composer-toolbar>textarea{flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .composer-tools{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;justify-content:flex-start}
+  .composer-toolbar>button[class*=voice],.composer-send-button{flex:none!important}
+  .composer-toolbar>.composer-icon-button{margin-left:auto}
+  /* hambúrguer quadrado, sem esticar */
+  .topbar .mobile-menu{flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;padding:0!important}
+  .topbar .mobile-menu svg{width:20px!important;height:20px!important;display:block!important}
+}
+@media (min-width:761px){
+  /* desktop normal: ícones antes do campo, tudo na mesma linha */
+  .inbox-composer .composer-toolbar{flex-wrap:nowrap!important}
+  .composer-toolbar>.composer-tools{order:-1!important}
+}
+.composer-send-button{flex:none!important}
+/* CRM — identidade por etapa: título, bolinha, contagem, pill no mesmo tom */
+.crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)}
+.crm-stage-pill{padding:3px 6px 3px 10px;border-radius:99px;background:color-mix(in srgb,var(--tone) 10%,var(--s1));border:1px solid color-mix(in srgb,var(--tone) 26%,transparent)}
+.crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)!important}
+.crm-stage-pill.tone-rose>span{color:#DB2777!important}
+.crm-stage-pill select{min-height:27px!important;border:0!important;background:transparent!important;color:var(--tx)!important;font-size:10.5px!important;font-weight:800!important;padding:0 16px 0 2px!important;box-shadow:none!important}
+:root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
+:root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
+:root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}

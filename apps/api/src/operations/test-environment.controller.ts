@@ -27,4 +27,11 @@ export class TestEnvironmentController {
   }) {
     return this.resetService.resetPlatform(request, body);
   }
+
+  @Post("tenant-purge")
+  purgeTenant(@Req() request: AuthenticatedRequest, @Body() body: {
+    confirmation?: unknown;
+  }) {
+    return this.resetService.purgeTenant(request, body);
+  }
 }

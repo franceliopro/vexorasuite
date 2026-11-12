@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -132,6 +132,22 @@ export class TestEnvironmentResetService {
     this.events.publish(platform.id, "test.environment.reset", { clientSlug: client.slug, company: deleteCompany ? "removed" : "preserved", providers, conversationsDeleted: result.conversationsDeleted, providerResults });
     return { ok: true, company: deleteCompany ? "removed" : "preserved", client: { name: client.name, slug: client.slug }, ...result, providers, providerResults, hiddenAutomationDisabled: true };
   }
+  async purgeTenant(request: AuthenticatedRequest, body: { confirmation?: unknown }) {
+    if (!["OWNER", "ADMIN"].includes(request.user.role)) throw new ForbiddenException("Apenas a administração desta empresa pode executar a limpeza total.");
+    if (body.confirmation !== "PURGAR") throw new BadRequestException("Digite PURGAR para confirmar.");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const tasks = await tx.workTask.deleteMany({ where: { tenantId: request.user.tenantId } });
+      const conversations = await tx.conversation.deleteMany({ where: { tenantId: request.user.tenantId } });
+      const notes = await tx.message.deleteMany({ where: { tenantId: request.user.tenantId } });
+      const contactScoped = await tx.contact.deleteMany({ where: { tenantId: request.user.tenantId } });
+      const memberships = await tx.membership.deleteMany({ where: { tenantId: request.user.tenantId, userId: { not: request.user.sub } } });
+      const deactivated = await tx.user.updateMany({ where: { isActive: true, memberships: { none: {} } }, data: { isActive: false } });
+      return { tasks: tasks.count, conversations: conversations.count, messages: notes.count, contacts: contactScoped.count, memberships: memberships.count, usersDeactivated: deactivated.count };
+    });
+    this.events.publish(request.user.tenantId, "purge.tenant", { actorId: request.user.sub, ...result });
+    return result;
+  }
+
   async resetPlatform(request: AuthenticatedRequest, body: { confirmation?: unknown; disconnectProviders?: unknown; deleteData?: unknown }) {
     if (!request.user.isPlatformAdmin) throw new BadRequestException("A operação só pode ser executada pela administração da plataforma.");
     if (body.confirmation !== "REINICIAR PLATAFORMA DE TESTE") throw new BadRequestException("Digite REINICIAR PLATAFORMA DE TESTE para confirmar.");

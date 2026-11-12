@@ -11,6 +11,7 @@ import {
   Clock3,
   History,
   LayoutDashboard,
+  Plus,
   Receipt,
   RefreshCcw,
   Repeat2,
@@ -93,11 +94,12 @@ function FinanceAsaasListing({kind}:{kind:"subscriptions"|"detached"}){
  const shown=(data?.items||[]).filter(x=>(!search||[x.customerName,x.description,x.id].some(v=>v.toLowerCase().includes(search.toLowerCase())))&&(!status||x.status===status)&&(!cycle||x.cycle===cycle));
  const cycleName=(v:string|null)=>({MONTHLY:"Mensal",WEEKLY:"Semanal",BIWEEKLY:"Quinzenal",QUARTERLY:"Trimestral",SEMIANNUALLY:"Semestral",YEARLY:"Anual"} as Record<string,string>)[v||""]||v||"Avulsa";
  const paymentName=(v:string|null)=>({BOLETO:"Boleto bancário",PIX:"Pix",CREDIT_CARD:"Cartão de crédito",UNDEFINED:"A definir"} as Record<string,string>)[v||""]||v||"Não informado";
- const title=kind==="subscriptions"?"Assinaturas":"Cobranças avulsas";
- return <section className="content-card finance-asaas-listing"><div className="finance-asaas-listing-heading"><div><h2>{title}</h2><p>Sincronização direta · {data?.environment||"Asaas"}</p></div><button type="button" className="secondary-button" onClick={()=>setRefresh(v=>v+1)}><RefreshCcw size={15}/> Sincronizar</button></div>
+ const [newSubscriptionOpen,setNewSubscriptionOpen]=useState(false),[createdNotice,setCreatedNotice]=useState("");
+  const title=kind==="subscriptions"?"Assinaturas":"Cobranças avulsas";
+ return <section className="content-card finance-asaas-listing"><div className="finance-asaas-listing-heading"><div><h2>{title}</h2><p>Sincronização direta · {data?.environment||"Asaas"}</p></div><div className="finance-asaas-listing-heading-actions">{kind==="subscriptions"?<button type="button" className="primary-button" onClick={()=>{setCreatedNotice("");setNewSubscriptionOpen(true)}}><Plus size={15} aria-hidden="true"/> Nova assinatura</button>:null}<button type="button" className="secondary-button" onClick={()=>setRefresh(v=>v+1)}><RefreshCcw size={15}/> Sincronizar</button></div></div>
  <div className="finance-asaas-listing-toolbar"><label className="finance-asaas-search"><span>Buscar</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nome do cliente ou descrição"/></label><button type="button" className="secondary-button" aria-expanded={filters} onClick={()=>setFilters(v=>!v)}>Filtros {filters?"−":"+"}</button><small>Busca e filtros na página atual</small></div>
  {filters?<div className="finance-asaas-filters"><label>Situação<select value={status} onChange={e=>setStatus(e.target.value)}><option value="">Todas</option>{["ACTIVE","INACTIVE","EXPIRED","PENDING","OVERDUE","RECEIVED","CONFIRMED"].map(s=><option key={s} value={s}>{statusBR[s]||s}</option>)}</select></label>{kind==="subscriptions"?<label>Periodicidade<select value={cycle} onChange={e=>setCycle(e.target.value)}><option value="">Todas</option>{["MONTHLY","WEEKLY","BIWEEKLY","QUARTERLY","SEMIANNUALLY","YEARLY"].map(s=><option key={s} value={s}>{cycleName(s)}</option>)}</select></label>:null}<button type="button" className="secondary-button" onClick={()=>{setStatus("");setCycle("");setSearch("")}}>Limpar filtros</button></div>:null}
- {loading?<p role="status">Consultando dados reais do Asaas…</p>:error?<p role="alert">{error}</p>:<><div className="finance-asaas-table-wrap"><table><thead><tr><th>Cliente</th><th>Valor</th><th>Descrição</th><th>Forma de pagamento</th>{kind==="detached"?<th>Vencimento</th>:null}<th>Situação</th><th>Ações</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><strong>{x.customerName}</strong></td><td><strong>{currency(x.value)}</strong>{kind==="subscriptions"?<small>/ {cycleName(x.cycle)}</small>:null}</td><td>{x.description||<span className="finance-asaas-muted">Não informada</span>}</td><td>{paymentName(x.billingType)}</td>{kind==="detached"?<td>{x.dueDate?dateBR(x.dueDate):"—"}</td>:null}<td><span className={"finance-asaas-status "+(x.status==="ACTIVE"||x.status==="RECEIVED"?"positive":x.status==="OVERDUE"?"negative":"")}>{statusBR[x.status]||({ACTIVE:"Ativa",INACTIVE:"Inativa",EXPIRED:"Expirada"} as Record<string,string>)[x.status]||x.status}</span></td><td>{x.invoiceUrl?<a href={x.invoiceUrl} target="_blank" rel="noopener noreferrer" className="finance-asaas-link">Fatura</a>:<span className="finance-asaas-muted">—</span>}</td></tr>)}</tbody></table></div>{!shown.length?<p className="finance-asaas-empty">Nenhum registro encontrado nesta página.</p>:null}<div className="finance-asaas-listing-footer"><span>{shown.length} registros exibidos · página {Math.floor(offset/50)+1}{data?.totalCount!==null?" · "+data?.totalCount+" registros informados pelo Asaas":""}</span><div><button type="button" className="secondary-button" disabled={!offset} onClick={()=>setOffset(v=>Math.max(0,v-50))}>Anterior</button><button type="button" className="secondary-button" disabled={!data?.hasMore} onClick={()=>setOffset(v=>v+50)}>Próxima</button></div></div>{kind==="detached"?<p className="finance-catalog-note">Somente cobranças sem assinatura vinculada. O resultado é paginado conforme o retorno do Asaas.</p>:null}</>}
+ {loading?<p role="status">Consultando dados reais do Asaas…</p>:error?<p role="alert">{error}</p>:<><div className="finance-asaas-table-wrap"><table><thead><tr><th>Cliente</th><th>Valor</th><th>Descrição</th><th>Forma de pagamento</th>{kind==="detached"?<th>Vencimento</th>:null}<th>Situação</th><th>Ações</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><strong>{x.customerName}</strong></td><td><strong>{currency(x.value)}</strong>{kind==="subscriptions"?<small>/ {cycleName(x.cycle)}</small>:null}</td><td>{x.description||<span className="finance-asaas-muted">Não informada</span>}</td><td>{paymentName(x.billingType)}</td>{kind==="detached"?<td>{x.dueDate?dateBR(x.dueDate):"—"}</td>:null}<td><span className={"finance-asaas-status "+(x.status==="ACTIVE"||x.status==="RECEIVED"?"positive":x.status==="OVERDUE"?"negative":"")}>{statusBR[x.status]||({ACTIVE:"Ativa",INACTIVE:"Inativa",EXPIRED:"Expirada"} as Record<string,string>)[x.status]||x.status}</span></td><td>{x.invoiceUrl?<a href={x.invoiceUrl} target="_blank" rel="noopener noreferrer" className="finance-asaas-link">Fatura</a>:<span className="finance-asaas-muted">—</span>}</td></tr>)}</tbody></table></div>{!shown.length?<p className="finance-asaas-empty">Nenhum registro encontrado nesta página.</p>:null}<div className="finance-asaas-listing-footer"><span>{shown.length} registros exibidos · página {Math.floor(offset/50)+1}{data?.totalCount!==null?" · "+data?.totalCount+" registros informados pelo Asaas":""}</span><div><button type="button" className="secondary-button" disabled={!offset} onClick={()=>setOffset(v=>Math.max(0,v-50))}>Anterior</button><button type="button" className="secondary-button" disabled={!data?.hasMore} onClick={()=>setOffset(v=>v+50)}>Próxima</button></div></div>{kind==="detached"?<p className="finance-catalog-note">Somente cobranças sem assinatura vinculada. O resultado é paginado conforme o retorno do Asaas.</p>:null}{createdNotice?<p role="status" className="finance-subscription-notice">{createdNotice}<button type="button" aria-label="Fechar" onClick={()=>setCreatedNotice("")}><X size={14} aria-hidden="true"/></button></p>:null}{newSubscriptionOpen?<NewSubscriptionModal onClose={()=>setNewSubscriptionOpen(false)} onCreated={(message)=>{setNewSubscriptionOpen(false);setCreatedNotice(message);setRefresh(v=>v+1)}}/>:null}</>}
  </section>;
 }
 
@@ -191,6 +193,65 @@ function FinanceHistoryWorkspace(){
  return <section className="content-card finance-automation-card finance-history-page"><header className="finance-automation-heading"><div><h2>Histórico de avisos</h2><p>Acompanhamento de tentativas, entregas, falhas e alterações das automações financeiras.</p></div><span className="finance-automation-pill">Aguardando integração com eventos reais</span></header><div className="finance-history-stats">{["Enviados","Entregues","Falhas","Pendentes"].map(label=><div key={label}><small>{label}</small><strong>—</strong></div>)}</div><div className="finance-history-table"><div className="finance-history-row finance-history-head"><span>Data e hora</span><span>Cliente</span><span>Evento</span><span>Status</span><span>Detalhes</span></div><div className="finance-history-empty">Ainda não há um registro de execução auditável conectado a esta tela. Nenhuma entrega ou falha será simulada.</div></div><p className="finance-auto-note">A integração deverá registrar eventos de cobrança, confirmação do provedor, recebimento e leitura quando disponíveis, erros, tentativas e reprocessamentos seguros.</p></section>;
 }
 
+type ServiceCatalogItem={id:string;name:string;value:number};
+type LookupMatch={id:string;name:string;email:string|null;phone:string|null};
+function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;onClose:()=>void;onCreated:(message:string)=>void}){
+  const [document,setDocument]=useState("");
+  const [name,setName]=useState("");
+  const [email,setEmail]=useState("");
+  const [phone,setPhone]=useState("");
+  const [service,setService]=useState("");
+  const [value,setValue]=useState("");
+  const [cycle,setCycle]=useState("MONTHLY");
+  const [billingType,setBillingType]=useState("BOLETO");
+  const [nextDueDate,setNextDueDate]=useState(()=>{const d=new Date();d.setDate(d.getDate()+30);return d.toISOString().slice(0,10)});
+  const [catalog,setCatalog]=useState<ServiceCatalogItem[]>([]);
+  const [lookupBusy,setLookupBusy]=useState(false);
+  const [matches,setMatches]=useState<LookupMatch[]|null>(null);
+  const [createNew,setCreateNew]=useState(false);
+  const [customerId,setCustomerId]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState("");
+  useEffect(()=>{let live=true;fetch("/api/backend/finance/services",{cache:"no-store"}).then(r=>r.json()).then(v=>{if(live&&Array.isArray(v.services))setCatalog(v.services)}).catch(()=>{});return()=>{live=false}},[]);
+  const documentDigits=document.replace(/\D+/g,"");
+  const documentValid=/^(\d{11}|\d{14})$/.test(documentDigits);
+  async function lookup(){if(!documentValid){setError("CPF ou CNPJ inválido.");return;}setLookupBusy(true);setError("");setMatches(null);setCreateNew(false);setCustomerId("");try{const r=await fetch("/api/backend/finance/customer-lookup?document="+encodeURIComponent(documentDigits),{cache:"no-store"});const body=await r.json();if(!r.ok)throw Error(body.message||"Falha ao consultar o Asaas.");const found:LookupMatch[]=Array.isArray(body.customers)?body.customers:[];setMatches(found);if(found.length===1)setCustomerId(found[0]!.id);else if(!found.length)setCreateNew(true);}catch(e){setError(e instanceof Error?e.message:"Não foi possível consultar o Asaas.");setMatches([]);}finally{setLookupBusy(false)}}
+  const selectedCustomer=matches?.find(item=>item.id===customerId)||null;
+  const canCreate=Boolean(service.trim()&&Number(value)>0&&documentValid&&(selectedCustomer||customerId||(createNew&&name.trim().length>2)));
+  async function submit(){
+    if(!canCreate){setError("Preencha serviço, valor e cliente.");return;}
+    setBusy(true);setError("");
+    try{
+      const body:Record<string,unknown>={service:service.trim(),value:Number(String(value).replace(",",".")),cycle,billingType,nextDueDate};
+      if(selectedCustomer||customerId)body.customerId=selectedCustomer?.id||customerId;
+      else if(createNew){body.document=documentDigits;body.customerName=name.trim();if(email.trim())body.customerEmail=email.trim();if(phone.trim())body.customerPhone=phone.replace(/\D+/g,"")}
+      if(contactId)body.contactId=contactId;
+      const r=await fetch("/api/backend/finance/subscriptions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+      const result=await r.json().catch(()=>({}));
+      if(!r.ok)throw Error(result.message||"Não foi possível criar a assinatura.");
+      const numericValue=Number(String(value).replace(",","."));
+      onCreated("Assinatura criada: "+service.trim()+" · "+currency(numericValue)+" · primeira cobrança em "+result.subscription.nextDueDate);
+    }catch(e){setError(e instanceof Error?e.message:"Falha ao criar a assinatura.");setBusy(false)}
+  }
+  return <div className="vx-dialog-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}><div className="vx-dialog vx-dialog-wide finance-subscription-dialog" role="dialog" aria-modal="true" aria-labelledby="new-sub-title"><header className="vx-dialog-heading"><div><h2 id="new-sub-title">Nova assinatura</h2><p>A descrição será o nome do serviço. Um serviço novo é criado e fica gravado no catálogo automaticamente — como as Tags.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true"/></button></header><div className="vx-dialog-body">
+    <form className="finance-subscription-form" onSubmit={(event)=>{event.preventDefault();void submit()}}>
+      <section><strong>Cliente</strong><label className="settings-field"><span>CPF ou CNPJ</span><div className="finance-subscription-lookup"><input inputMode="numeric" autoComplete="off" value={document} onChange={e=>{setDocument(e.target.value);setMatches(null);setCreateNew(false);setCustomerId("");updateSelectionFromDocument(e.target.value)}} placeholder="Somente números"/><button type="button" className="secondary-button" disabled={!documentValid||lookupBusy} onClick={()=>void lookup()}>{lookupBusy?"Consultando…":"Buscar cliente"}</button></div></label>
+      {matches!==null?(matches.length?<fieldset className="finance-subscription-matches"><legend>Selecione o cadastro no Asaas</legend>{matches.map(item=><label key={item.id} className={"finance-subscription-customer"+(customerId===item.id?" is-selected":"")}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span><strong>{item.name}</strong><small>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className="finance-subscription-matches"><legend>Novo cadastro no Asaas</legend><div className="finance-subscription-new"><label className="settings-field"><span>Nome do cliente *</span><input required autoFocus={createNew} value={name} onChange={e=>setName(e.target.value)} placeholder="Nome completo ou razão social"/></label><label className="settings-field"><span>E-mail (opcional)</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@empresa.com"/></label><label className="settings-field"><span>Telefone (opcional)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(00) 00000-0000"/></label></div></fieldset>):null}
+      </section>
+      <section><strong>Serviço e cobrança</strong><label className="settings-field"><span>Serviço (nome da assinatura no Asaas) *</span><input required list="finance-services" autoFocus={!createNew} value={service} onChange={e=>setService(e.target.value)} placeholder="Ex.: Plano clube mensal" maxLength={120}/><datalist id="finance-services">{catalog.map(item=><option key={item.id} value={item.name}>{item.name}</option>)}</datalist>{service.trim()&&catalog.some(item=>item.name.toLocaleLowerCase("pt-BR")===service.trim().toLocaleLowerCase("pt-BR"))?<small>Este serviço já está no catálogo e será reaproveitado.</small>:catalog.length?<small>{catalog.length} serviços no catálogo — um nome novo é criado aqui mesmo.</small>:null}</label>
+      <div className="finance-subscription-grid">
+        <label className="settings-field"><span>Valor *</span><input required inputMode="decimal" value={value} onChange={e=>setValue(e.target.value)} placeholder="0,00"/></label>
+        <label className="settings-field"><span>Periodicidade</span><select value={cycle} onChange={e=>setCycle(e.target.value)}><option value="WEEKLY">Semanal</option><option value="BIWEEKLY">Quinzenal</option><option value="MONTHLY">Mensal</option><option value="QUARTERLY">Trimestral</option><option value="SEMIANNUALLY">Semestral</option><option value="YEARLY">Anual</option></select></label>
+        <label className="settings-field"><span>Forma de pagamento</span><select value={billingType} onChange={e=>setBillingType(e.target.value)}><option value="BOLETO">Boleto bancário</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão de crédito</option><option value="UNDEFINED">A definir</option></select></label>
+        <label className="settings-field"><span>Primeira cobrança</span><input type="date" value={nextDueDate} onChange={e=>setNextDueDate(e.target.value)}/></label>
+      </div>
+      </section>
+      {error?<p role="alert" className="finance-subscription-error">{error}</p>:null}
+      <div className="vx-dialog-footer finance-subscription-footer"><button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" className="primary-button" disabled={busy||!canCreate}>{busy?"Criando…":"Criar assinatura"}</button></div>
+    </form>
+  </div></div></div>;
+}
+function updateSelectionFromDocument(value: string){/* helper placeholder noop for clarity */}
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export function FinanceWorkspace(){
  const [tab,setTab]=useState<"overview"|"charges"|"subscriptions"|"detached"|"automation"|"history">("overview");

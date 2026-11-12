@@ -227,7 +227,7 @@ export function ContactProfilePanel({
     }
     const definition = tagCatalog.find((v) => v.name.toLowerCase() === name.toLowerCase());
     if (!definition) {
-      setError("Essa etiqueta não está no catálogo. Um administrador deve cadastrá-la em Configurações de CRM.");
+      setError("Essa tag não está no catálogo. Um administrador deve cadastrá-la em Configurações de CRM.");
       return;
     }
     setError("");
@@ -468,7 +468,7 @@ export function ContactProfilePanel({
             </button>
             <button type="button" className={tab === "procedimentos" ? "active" : ""} onClick={() => setTab("procedimentos")}>Procedimentos</button>
           </nav>
-          <section className="profile-tags-block" aria-label="Etiquetas do contato">
+          <section className="profile-tags-block" aria-label="Tags do contato">
             <div className="profile-tags">
               {tags.map((tag, index) => (
                 <span
@@ -490,23 +490,23 @@ export function ContactProfilePanel({
                   </button>
                 </span>
               ))}
-              {!tags.length ? <small className="profile-tags-empty">Sem etiquetas neste contato.</small> : null}
+              {!tags.length ? <small className="profile-tags-empty">Sem tags neste contato.</small> : null}
             </div>
             <form className="profile-add-tag" onSubmit={addTag}>
               <input
                 list={"crm-tag-catalog-" + contact.id}
                 value={tagDraft}
                 onChange={(e) => setTagDraft(e.target.value)}
-                placeholder="Adicionar etiqueta"
+                placeholder="Adicionar tag"
                 maxLength={40}
-                aria-label="Etiqueta do contato"
+                aria-label="Tag do contato"
               />
               <datalist id={"crm-tag-catalog-" + contact.id}>
                 {tagCatalog.map((tag) => (
                   <option key={tag.id} value={tag.name} />
                 ))}
               </datalist>
-              <button type="submit" aria-label="Adicionar etiqueta cadastrada">
+              <button type="submit" aria-label="Adicionar tag cadastrada">
                 <Plus size={14} />
               </button>
             </form>

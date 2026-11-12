@@ -92,7 +92,7 @@ export class AssistantController {
       { id: "asaas.pix.create", name: "Gerar PIX", category: "Financeiro", cost: "external", implemented: false, permission: "finance.write", confirmationRequired: true },
       { id: "crm.opportunity.create", name: "Criar oportunidade", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
       { id: "crm.lead.qualify", name: "Qualificar lead", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
-      { id: "crm.tag.apply", name: "Aplicar etiqueta", category: "CRM", cost: "zero", implemented: true, permission: "contacts.write" },
+      { id: "crm.tag.apply", name: "Aplicar tag", category: "CRM", cost: "zero", implemented: true, permission: "contacts.write" },
       { id: "inbox.transfer", name: "Transferir para humano ou equipe", category: "Atendimento", cost: "zero", implemented: true, permission: "inbox.transfer" },
       { id: "inbox.agent.route", name: "Encaminhar para agente de IA", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.route" },
       { id: "inbox.participant.invite", name: "Convidar participante", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.invite" },

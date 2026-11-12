@@ -887,7 +887,7 @@ details>summary:hover{color:var(--tx)}
 .inbox-attendant-note-list small{font-size:10px;color:#7A5F16}
 @media(max-width:760px){.inbox-notes-board{grid-template-columns:minmax(0,1fr);padding:8px 10px 0}.inbox-ai-note-text{max-height:84px}}
 
-/* Ficha do contato: cartão da assistente + etiquetas fixas */
+/* Ficha do contato: cartão da assistente + tags fixas */
 .profile-tags-block{display:grid;gap:8px;padding:10px 16px 12px;border-bottom:1px solid var(--ln)}
 .profile-tags-block .profile-tags{gap:6px}
 .profile-tags-block .profile-add-tag{display:flex;gap:6px}
@@ -1258,7 +1258,7 @@ details>summary:hover{color:var(--tx)}
 .contact-profile .mini-fields,
 .contact-profile .contact-identity-form,
 .contact-profile .profile-custom-fields { gap: 6px; }
-/* Etiquetas menores, com × mínimo. */
+/* Tags menores, com × mínimo. */
 .contact-profile .profile-tag { min-height: 18px; padding: 0 5px; gap: 3px; font-size: 10px; font-weight: 600; border-radius: 6px; }
 .contact-profile .profile-tag button { width: 12px; height: 12px; padding: 0; border-radius: 3px; }
 .contact-profile .profile-tag button svg { width: 9px; height: 9px; }
@@ -1307,7 +1307,7 @@ details>summary:hover{color:var(--tx)}
 .contact-profile-identity p{margin:0;font-size:11.5px;line-height:1.3}
 .contact-profile-identity p:first-child{margin-top:0}
 
-/* ===== Etiqueta: versão compacta ===== */
+/* ===== Tag: versão compacta ===== */
 .profile-add-tag{display:flex;gap:6px;align-items:center}
 .profile-add-tag input{min-height:26px;padding:0 9px;font-size:11px;border-radius:8px;border:1px solid var(--ln);flex:1;min-width:0}
 .profile-add-tag input:focus-visible{outline:2px solid color-mix(in srgb,var(--primary) 35%,transparent);outline-offset:1px;border-color:color-mix(in srgb,var(--primary) 45%,var(--ln))}
@@ -2494,7 +2494,7 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .thread-more-item svg{flex:none;color:var(--primary);margin-top:1px}
 .thread-more-item small{display:block;font-size:10.5px;font-weight:500;color:var(--tx2);margin-top:2px}
 
-/* ===== 41. CRM · etiquetas menores nas cores originais + linha social ===== */
+/* ===== 41. CRM · tags menores nas cores originais + linha social ===== */
 .crm-contact-tags span{font-size:8px!important;padding:1px 6px!important;letter-spacing:.05em;text-transform:none;font-weight:800;border-radius:6px!important;border-width:1px!important}
 .crm-card-name svg,.crm-contact-main strong svg{flex:none;vertical-align:-2px;margin-right:5px}
 .crm-social-line{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--tx2)}
@@ -3976,3 +3976,28 @@ input[type=tel]{letter-spacing:.02em}
 :root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
 :root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
 :root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}
+
+/* ===== 99. Nova assinatura Asaas + catálogo de serviços ===== */
+.vx-dialog-backdrop.finance-subscription-backdrop,.finance-subscription-dialog{display:flex}
+.finance-subscription-dialog{flex-direction:column}
+.finance-subscription-form{display:grid;gap:18px}
+.finance-subscription-form section{display:grid;gap:10px}
+.finance-subscription-form section>strong{font-size:12px;letter-spacing:.02em;text-transform:uppercase;color:var(--tx2)}
+.finance-subscription-lookup{display:flex;gap:8px}
+.finance-subscription-lookup input{flex:1;min-width:0}
+.finance-subscription-matches{display:grid;gap:8px;margin:0;border:1px solid var(--ln);border-radius:12px;padding:12px;background:var(--s2);max-height:220px;overflow:auto}
+.finance-subscription-matches legend{font-size:11px;font-weight:750;color:var(--tx2);padding:0 4px}
+.finance-subscription-customer{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid var(--ln);cursor:pointer;background:var(--s1)}
+.finance-subscription-customer.is-selected{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 10%,var(--s1));box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 18%,transparent)}
+.finance-subscription-customer input{accent-color:var(--primary)}
+.finance-subscription-new{display:grid;gap:10px}
+.finance-subscription-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:1080px){.finance-subscription-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.finance-subscription-grid{grid-template-columns:1fr}}
+.finance-subscription-error{margin:0;color:var(--bad);font-size:12.5px;font-weight:650}
+.vx-dialog-footer.finance-subscription-footer{display:flex;justify-content:flex-end;gap:10px}
+.finance-subscription-notice{display:flex;align-items:center;gap:10px;border:1px solid color-mix(in srgb,#16A34A 38%,var(--ln));background:color-mix(in srgb,#16A34A 9%,var(--s1));color:var(--tx);border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:650}
+.finance-subscription-notice button{margin-left:auto;display:inline-grid;place-items:center;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--tx2);cursor:pointer}
+.finance-asaas-listing-heading-actions{display:flex;align-items:center;gap:8px;flex:none}
+@media (max-width:760px){.finance-asaas-listing-heading-actions{flex-direction:column;align-items:stretch;width:100%}.finance-asaas-listing-heading-actions .primary-button,.finance-asaas-listing-heading-actions .secondary-button{width:100%;justify-content:center}}
+

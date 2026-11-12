@@ -52,7 +52,7 @@ Em caso de falha, a Véxora tenta novamente conforme a política de retentativas
 
 1. Webhook ou agendamento externo.
 2. Consulta de conversas abertas.
-3. Filtro por etapa, etiqueta ou tempo.
+3. Filtro por etapa, tag ou tempo.
 4. Envio para a ação aprovada no workflow da Véxora.
 
 ## Isolamento

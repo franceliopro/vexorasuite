@@ -104,7 +104,7 @@ function relativeTime(value?: string | null): string {
 
 const defaultStages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
   { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
-  { id: "qualification", label: "Qualificação", hint: "Entenda a oportunidade", tone: "blue" },
+  { id: "qualification", label: "Qualificação", hint: "Entenda a oportunidade", tone: "rose" },
   { id: "proposal", label: "Proposta", hint: "Em negociação", tone: "amber" },
   { id: "finalization", label: "Finalização", hint: "Registrar o resultado", tone: "green" },
 ];
@@ -299,7 +299,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
         <div className="settings-card-heading"><span className="settings-icon"><UsersRound size={18} /></span><div><h2>Novo contato</h2><p>Os dados ficam isolados na empresa da sua sessão.</p></div></div>
         <div className="crm-form-grid">
           <label className="settings-field">Nome *<input required autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome do contato" /></label>
-          <label className="settings-field">Telefone<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+55 (00) 00000-0000" /></label>
+          <label className="settings-field">Telefone<input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="(00) 00000-0000" /></label>
           <label className="settings-field">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nome@empresa.com" /></label>
           <label className="settings-field">Origem do lead<select value={leadOrigin} onChange={(event) => { setLeadOrigin(event.target.value); setLeadOriginId(""); }}><option value="">Não identificada</option><option value="Site/Formulário">Site/Formulário</option><option value="Landing Page">Landing Page</option><option value="Facebook">Facebook</option><option value="Instagram">Instagram</option><option value="Google">Google</option><option value="Campanha de WhatsApp">Campanha de WhatsApp</option><option value="Campanha de SMS">Campanha de SMS</option><option value="Campanha de Áudio">Campanha de Áudio</option><option value="Indicação">Indicação</option><option value="Evento">Evento</option><option value="Importação">Importação</option><option value="Outra">Outra</option></select>{["Landing Page","Facebook","Instagram","Google","Campanha de WhatsApp","Campanha de SMS","Campanha de Áudio"].includes(leadOrigin) ? <input value={leadOriginId} onChange={(event) => setLeadOriginId(event.target.value)} placeholder="Identificador da landing page/campanha" maxLength={120}/> : null}<small>Landing pages e campanhas usam um identificador próprio para atribuição. O canal de atendimento não define a origem automaticamente.</small></label>
         </div>

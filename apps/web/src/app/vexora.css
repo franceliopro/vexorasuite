@@ -319,7 +319,7 @@ details>summary::-webkit-details-marker{display:none}
 .crm-search{width:min(100%,320px)}
 .crm-pipeline{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:var(--gap);overflow-x:auto;align-items:start;padding-bottom:4px}
 .crm-pipeline-column{--tone:var(--primary);display:flex;flex-direction:column;gap:10px;min-height:320px;padding:12px;border:1px solid var(--ln);border-top:3px solid var(--tone);border-radius:var(--r);background:var(--s2)}
-.tone-violet{--tone:#8B79E8}.tone-blue{--tone:#2C7BC4}.tone-amber{--tone:#C98A2E}.tone-green{--tone:#2E7CF6}.tone-rose{--tone:#C2607F}
+.tone-violet{--tone:#8B5CF6}.tone-blue{--tone:#2E7CF6}.tone-amber{--tone:#F59E0B}.tone-green{--tone:#22C55E}.tone-rose{--tone:#EC4899}
 .crm-stage-heading{display:flex;align-items:center;gap:8px;margin:0;padding-bottom:10px;border-bottom:1px solid var(--ln);text-align:left}
 .crm-stage-heading>div{flex:1;min-width:0}
 .crm-stage-heading p{font-size:12px}
@@ -3927,4 +3927,16 @@ input[type=tel]{letter-spacing:.02em}
 :root[data-theme=light] .sidebar .sidebar-icon:hover,:root[data-theme=light] .sidebar .sidebar-icon:focus-visible{color:#0B1F3A!important;background:var(--hover)!important}
 :root[data-theme=light] .sidebar .sidebar-collapse{color:#52608C!important}
 :root[data-theme=light] .sidebar .sidebar-collapse:hover{color:#0B1F3A!important;background:var(--hover)!important}
+
+/* ===== 97. CRM — pipeline 4 cores bem distintas + formulário contido ===== */
+.crm-pipeline-column.tone-violet,.crm-stage-pill.tone-violet{--tone:#8B5CF6!important}
+.crm-pipeline-column.tone-rose,.crm-stage-pill.tone-rose{--tone:#EC4899!important}
+.crm-pipeline-column.tone-amber,.crm-stage-pill.tone-amber{--tone:#F59E0B!important}
+.crm-pipeline-column.tone-green,.crm-stage-pill.tone-green{--tone:#22C55E!important}
+.crm-pipeline-column.tone-blue,.crm-stage-pill.tone-blue{--tone:#2E7CF6!important}
+.crm-form-grid{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px;max-width:1180px}
+@media (max-width:1180px){.crm-form-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));max-width:920px}}
+.crm-form-grid .settings-field input,.crm-form-grid .settings-field select,.crm-form-grid .settings-field textarea{width:100%;max-width:100%;min-height:36px;padding:6px 10px;font-size:12px;border-radius:8px}
+.crm-form .settings-card-heading{margin-bottom:4px}
+@media (max-width:760px){.crm-form-grid{grid-template-columns:1fr}}
 

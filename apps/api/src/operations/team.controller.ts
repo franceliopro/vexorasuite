@@ -39,6 +39,26 @@ export class TeamController {
         "Somente administradores podem cadastrar atendentes.",
       );
   }
+  @Post("claim") async claim(@Req() req: AuthenticatedRequest, @Body() input: any) {
+    this.admin(req);
+    const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+    if (!/^[-\w.+]+@[\w.-]+\.[a-z]{2,}$/i.test(email)) throw new BadRequestException("Informe o e-mail.");
+    const knownBy = knownByValue(input.knownBy || "");
+    const temporaryPassword = "Vx!" + randomBytes(24).toString("base64url");
+    const passwordHash = await hash(temporaryPassword, 12);
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { email }, select: { id: true, name: true, isActive: true } });
+      if (!user) throw new BadRequestException("Não existe conta com este e-mail.");
+      if (user.isActive) throw new ForbiddenException("Esta conta está ativa em outra empresa da Véxora. Peça ao administrador da plataforma para transferir a conta para esta empresa.");
+      const existing = await tx.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: user.id }, select: { id: true } });
+      if (existing) throw new BadRequestException("Esta conta já está vinculada a esta empresa. Use o botão Reativar na lista.");
+      await tx.user.update({ where: { id: user.id }, data: { isActive: true, mustChangePassword: true, passwordHash } });
+      await tx.membership.create({ data: { tenantId: req.user.tenantId, userId: user.id, role: "AGENT", modules: [], deniedModules: [], knownBy } });
+      return { temporaryPassword, name: user.name, email };
+    });
+    return { ok: true, temporaryPassword: result.temporaryPassword, name: result.name, email: result.email };
+  }
+
   @Get() async list(@Req() req: AuthenticatedRequest) {
     this.admin(req);
     const rows = await this.prisma.membership.findMany({

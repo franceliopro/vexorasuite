@@ -64,6 +64,13 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
   useEffect(() => {
     void load().catch((e) => setNotice(e.message));
   }, []);
+  const [claimEmail, setClaimEmail] = useState<string | null>(null);
+  async function claimSameAccount(){
+  if(!claimEmail) return;
+  setBusy(true);
+  try { const r = await fetch("/api/backend/team/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: claimEmail, knownBy: form.knownBy }) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw Error(d.message || "Não foi possível ativar a conta."); setNotice("Conta ativada. Senha temporária: " + (d.temporaryPassword || "") + ". Anote para o primeiro acesso."); setClaimEmail(null); setForm({ ...form, name: "", email: "", knownBy: "", departmentIds: [], modules: [], deniedModules: [] }); await load(); window.dispatchEvent(new Event("vexora:team-updated")); } catch (e) { setNotice(e instanceof Error ? e.message : "Não foi possível ativar a conta."); } finally { setBusy(false); }
+}
+
   return (
     <section className="simple-workspace team-workspace">
       <header className="team-hero">
@@ -106,6 +113,15 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
       ) : (
         <>
           {notice && <p role="status">{notice}</p>}
+          {claimEmail ? (
+  <div role="alert" className="team-claim-box">
+    <p>A conta <strong>{claimEmail}</strong> existe no sistema, mas está desativada ou não vinculada a esta empresa. Deseja ativar com uma senha temporária para ela entrar?</p>
+    <div className="team-claim-actions">
+      <button type="button" className="secondary-button" onClick={() => setClaimEmail(null)}>Cancelar</button>
+      <button type="button" className="primary-button" onClick={() => void claimSameAccount()}>Ativar a conta com senha temporária</button>
+    </div>
+  </div>
+) : null}
           {editing && (
             <form
               className="team-form team-form-premium"
@@ -158,11 +174,10 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   window.dispatchEvent(new Event("vexora:team-updated"));
                   setNotice(temporaryPassword ? "Atendente cadastrado. Senha temporária: " + temporaryPassword + ". Guarde-a agora; ela será exigida apenas no primeiro acesso." : editingId ? "Permissões e setores atualizados." : "Atendente cadastrado e disponível nos fluxos.");setEditingId('');
                 } catch (e) {
-                  setNotice(
-                    e instanceof Error
-                      ? e.message
-                      : "Não foi possível cadastrar.",
-                  );
+                  const msg = e instanceof Error ? e.message : "Não foi possível cadastrar.";
+                  setNotice(msg);
+                  if (!editingId) { const lower = msg.toLowerCase(); if (lower.includes("já possui") || lower.includes("já existe")) setClaimEmail(form.email); }
+                  else setClaimEmail(null);
                 } finally {
                   setBusy(false);
                 }

@@ -3792,3 +3792,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;bo
 ::-webkit-scrollbar-thumb{border-radius:99px!important}
 .sidebar{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--sb-tx) 26%,transparent) transparent!important}
 .sidebar::-webkit-scrollbar-thumb,.sidebar *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--sb-tx) 18%,transparent)!important}
+
+/* ===== 92. Calendário — criador + avatar ===== */
+.calendar-source-avatar{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px;font:800 9px/1 var(--font-display);letter-spacing:0}
+.calendar-source-creator{margin-left:auto;font:800 8px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--primary-ink);background:color-mix(in srgb,var(--primary) 14%,var(--s2));padding:4px 8px;border-radius:99px}

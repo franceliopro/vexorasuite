@@ -3648,3 +3648,107 @@ body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(-
 .ps-block-select{cursor:pointer}
 .ps-block-select:hover{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--primary) 55%,transparent)}
 .ps-block-select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* ===== 86. Dark — "forçados claros" viram ciências do tema ===== */
+/* Glass base claro apenas fora do escuro; no escuro vira grafite-vidro */
+:root:not([data-theme=dark]) [class$="-card"],:root:not([data-theme=dark]) .content-card,:root:not([data-theme=dark]) .content-card.ai-admin-fields{background:linear-gradient(165deg,rgba(255,255,255,.72),rgba(246,250,255,.55));border:1px solid color-mix(in srgb,var(--primary) 12%,var(--ln));box-shadow:var(--shadow-sm,0 1px 3px rgba(4,10,30,.08)),inset 0 1px 0 rgba(255,255,255,.8);backdrop-filter:blur(8px) saturate(1.05);-webkit-backdrop-filter:blur(8px) saturate(1.05)}
+:root[data-theme=dark] [class$="-card"],:root[data-theme=dark] .content-card,:root[data-theme=dark] .content-card.ai-admin-fields{background:linear-gradient(165deg,rgba(30,39,66,.94),rgba(24,31,54,.88));border:1px solid color-mix(in srgb,var(--primary) 24%,#2B3A5C);box-shadow:var(--shadow)}
+/* Hybrid: vidro claro leve */
+:root[data-theme=hybrid] .content-card{background:linear-gradient(165deg,rgba(255,255,255,.80),rgba(248,250,253,.66));border:1px solid color-mix(in srgb,var(--primary) 12%,var(--ln))}
+/* Heróis claro vidro apenas fora do escuro */
+:root:not([data-theme=dark]) .vx-hero,:root:not([data-theme=dark]) .team-hero,:root:not([data-theme=dark]) .platform-admin-hero,:root:not([data-theme=dark]) .client-plans-hero,:root:not([data-theme=dark]) .sites-hero,:root:not([data-theme=dark]) .channels-configuration-shell,:root:not([data-theme=dark]) .creative-workspace.simple-workspace>.creative-heading{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--primary) 16%,var(--ln));border-radius:var(--r-xl);background:radial-gradient(1000px 480px at 88% -30%,color-mix(in srgb,var(--primary) 11%,transparent) 0%,transparent 62%),radial-gradient(750px 420px at 12% 118%,color-mix(in srgb,var(--accent2) 10%,transparent) 0%,transparent 60%),linear-gradient(155deg,#FFFFFF 0%,#F3F8FF 100%);backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 22px 48px -26px rgba(23,37,66,.35);color:var(--tx)}
+:root:not([data-theme=dark]) .vx-hero::before,:root:not([data-theme=dark]) .team-hero::before,:root:not([data-theme=dark]) .platform-admin-hero::before,:root:not([data-theme=dark]) .client-plans-hero::before,:root:not([data-theme=dark]) .sites-hero::before{content:"";position:absolute;inset:-34% -16% auto auto;width:560px;height:560px;background:conic-gradient(from 190deg,transparent 0deg,color-mix(in srgb,#7DD3FC 30%,transparent) 78deg,transparent 170deg,color-mix(in srgb,#2E7CF6 34%,transparent) 300deg,transparent 360deg);filter:blur(46px);opacity:.38;pointer-events:none}
+/* KPI cells: claro fora do escuro; escuro com texto branco, títulos claros */
+:root:not([data-theme=dark]) .vx-kpi-cell{background:linear-gradient(180deg,#FFFFFF 0%,#F6FAFF 100%)!important;border-color:color-mix(in srgb,var(--primary) 14%,var(--ln))!important}
+:root[data-theme=dark] .vx-kpi-cell{background:linear-gradient(180deg,color-mix(in srgb,var(--s1) 94%,var(--primary) 6%),var(--s1))!important;border-color:var(--ln2)!important}
+:root:not([data-theme=dark]) .vx-kpi-cell-label{color:#57606F!important}
+:root[data-theme=dark] .vx-kpi-cell-label{color:var(--tx2)!important}
+/* vx-topics: escuro via tema */
+:root:not([data-theme=dark]) .vx-topics .content-card{background:linear-gradient(180deg,#FFFFFF 0%,#F6FAFF 100%)!important;border-color:color-mix(in srgb,var(--primary) 14%,var(--ln))!important}
+:root[data-theme=dark] .vx-topics .content-card{background:var(--s1)!important;border-color:var(--ln2)!important}
+/* vx-team-card / ring-card: mesmos tratamentos */
+:root:not([data-theme=dark]) .vx-team-card{background:linear-gradient(168deg,#FFFFFF 0%,#F5F8FF 100%)!important;border-color:color-mix(in srgb,var(--primary) 14%,var(--ln))!important}
+:root[data-theme=dark] .vx-team-card{background:var(--s1)!important;border-color:var(--ln2)!important}
+:root:not([data-theme=dark]) .vx-hero .vx-ring-card{border-color:color-mix(in srgb,var(--primary) 24%,var(--ln))!important;background:linear-gradient(170deg,#FFFFFF 0%,#F4F8FF 100%)!important;box-shadow:0 14px 30px -18px color-mix(in srgb,var(--primary) 45%,transparent)!important}
+:root[data-theme=dark] .vx-hero .vx-ring-card{border-color:var(--ln2)!important;background:var(--s2)!important;box-shadow:var(--shadow-sm)!important}
+/* Legendas financeiras no escuro */
+:root[data-theme=dark] .finance-hero-figure>span,:root[data-theme=dark] .finance-hero-figure>strong{color:#EAF0FF!important}
+:root[data-theme=dark] .finance-hero-legend{color:var(--tx2)!important}
+:root[data-theme=dark] .finance-hero-chip{border-color:var(--ln2)!important;background:var(--s2)!important;color:var(--tx)!important}
+/* Identidades: contraste total */
+:root[data-theme=dark] .contact-identity-card{background:var(--s2)!important;border-color:var(--ln2)!important}
+:root[data-theme=dark] .contact-identity-icon{background:color-mix(in srgb,var(--primary) 18%,var(--s1))!important}
+/* ===== 87. Mobile — app nativo, espaço real ===== */
+.thread-contact-department{display:none}
+@media (max-width:1100px){
+  .thread-heading{gap:8px;padding:8px 10px}
+  .thread-contact h2{font-size:13px;line-height:1.15}
+  .thread-contact-department{display:block;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--primary-ink)}
+  .thread-protocol-row{display:none}
+  .thread-header-actions button,.thread-icon-action{width:31px!important;height:31px!important;border-radius:9px!important}
+  .thread-action-button{min-height:31px!important;min-width:31px!important;padding:0!important}
+  .thread-back{width:32px!important;height:32px!important}
+  .inbox-list .inbox-conversation{padding:9px 10px;gap:7px;border-radius:11px}
+  .inbox-list .inbox-panel-heading h2{font-size:13px}
+  .inbox-list{border-radius:14px}
+  :root{--top:48px;--dock:calc(61px + env(safe-area-inset-bottom))}
+  .topbar{padding:0 10px;height:var(--top);gap:5px}
+  .search-box,.breadcrumbs{display:none}
+  .topbar .ai-assistant-trigger,.topbar .logout-button,.topbar .icon-button.theme-toggle{min-height:32px;min-width:32px;padding:0 9px;border-radius:9px;font-size:11px}
+  .topbar .mobile-menu{width:36px;height:36px;border-radius:10px}
+  .mobile-bottom-nav{background:color-mix(in srgb,var(--sb-bg) 86%,transparent)!important;border-top:1px solid var(--sb-ln);backdrop-filter:blur(18px) saturate(1.18)!important;-webkit-backdrop-filter:blur(18px) saturate(1.18)!important}
+  .mobile-bottom-nav button{border-radius:14px!important;padding:6px 4px!important;min-height:var(--dock-btn)!important}
+  .inbox-composer{margin:4px 4px 6px!important;border-radius:16px!important;padding:6px!important}
+  .composer-tabs-row{padding:2px 6px 4px!important;gap:5px!important}
+  .composer-tabs button{min-height:25px!important;padding:0 10px!important;font-size:10.5px!important}
+  .composer-toolbar{gap:4px!important}
+  .composer-send-button{min-width:40px!important;min-height:40px!important;border-radius:11px!important}
+  .composer-icon-button{width:36px!important;height:36px!important;border-radius:10px!important}
+  .inbox-composer-input,.composer-input{min-height:40px!important;font-size:16px;padding:9px 12px!important;border-radius:12px!important}
+  .message{font-size:12.5px!important;max-width:86%}
+  .messages-scroll{padding:9px 8px 8px!important}
+  .message-bubble{border-radius:14px!important;padding:8px 11px!important}
+  .internal-note-card{width:100%!important;font-size:11px!important}
+  .inbox-list .conversation-avatar-wrap{width:38px!important;height:38px!important}
+  .inbox-list .conversation-avatar{width:38px!important;height:38px!important}
+  .conversation-preview-text{font-size:10.5px!important}
+  .inbox-empty{padding:20px 14px!important}
+  /* telas densas: sem arredondamento de cards no mobile */
+  .inbox-list,.inbox-list .inbox-conversation,.inbox-thread,.thread-heading,.composer-shell>.inbox-composer{border-radius:10px!important}
+}
+/* Reduzir arredondamentos globais no modo mobile (app-like) */
+@media (max-width:760px){
+  :root{--r:9px;--r-sm:8px;--r-lg:10px;--r-xl:10px;--r-xs:8px}
+}
+/* ===== 88. Tela cheia da conversa ===== */
+body.inbox-fullscreen .sidebar,body.inbox-fullscreen .topbar,body.inbox-fullscreen .mobile-bottom-nav{display:none!important}
+body.inbox-fullscreen{overflow:hidden}
+body.inbox-fullscreen .main-area{padding:0!important}
+body.inbox-fullscreen .page-content{padding:0!important}
+.inbox-workspace.inbox-full-screen{position:fixed;inset:0;z-index:130;height:100dvh;grid-template-columns:1fr!important;background:var(--bg)}
+.inbox-workspace.inbox-full-screen .inbox-list,.inbox-workspace.inbox-full-screen .contact-profile{display:none!important}
+.inbox-workspace.inbox-full-screen .inbox-thread{border-radius:0!important;border:0!important}
+.inbox-workspace.inbox-full-screen .thread-heading{padding-top:10px;padding-bottom:10px}
+.inbox-workspace.inbox-full-screen .messages-scroll{padding:14px 16px}
+@media (max-width:1100px){.inbox-workspace.inbox-full-screen .thread-heading{gap:8px}}
+.fullscreen-toggle{display:inline-grid!important}
+/* Sender line no balão outgoing */
+.message-sender-line{display:none}
+@media (max-width:1100px){
+  .message-sender-line{display:flex;align-items:center;gap:5px;margin-bottom:2px;font-size:10.5px;color:var(--tx2)}
+  .message-sender-line b{color:var(--tx);font-weight:800}
+  .message-sender-line span{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--primary-ink)}
+}
+/* ===== 89. Settings — Limpar cache ===== */
+.settings-catalog-clearcache{display:flex;align-items:center;gap:12px;width:100%;margin:18px 0 6px;padding:14px 16px;border:1px dashed var(--ln2);border-radius:var(--r-m);background:transparent;color:var(--tx2);cursor:pointer;text-align:left;transition:all .15s;min-height:54px}
+.settings-catalog-clearcache:hover{border-color:var(--primary);color:var(--primary-ink);background:color-mix(in srgb,var(--primary) 5%,var(--s2))}
+.settings-catalog-clearcache svg{flex:none;color:var(--primary-ink)}
+.settings-catalog-clearcache span{display:grid;gap:1px;min-width:0}
+.settings-catalog-clearcache strong{font:800 12px/1.3 var(--font-display);color:var(--tx);letter-spacing:-.005em}
+.settings-catalog-clearcache small{font-size:10.5px;color:var(--tx2)}
+
+/* ===== 90. Nome - Setor no balão outgoing ===== */
+.attendant-identity{display:flex;align-items:center;gap:7px;margin-bottom:2px}
+.attendant-identity b{font:800 12px/1 var(--font-display);color:var(--tx);letter-spacing:-.005em}
+.attendant-identity small{font:800 8.5px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--primary-ink);background:color-mix(in srgb,var(--primary) 10%,var(--s2));padding:3px 8px;border-radius:99px;white-space:nowrap}
+:root[data-theme=dark] .attendant-identity small{background:color-mix(in srgb,var(--primary) 20%,var(--s1));color:var(--accent3)}

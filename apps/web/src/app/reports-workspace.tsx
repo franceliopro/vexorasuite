@@ -1092,7 +1092,7 @@ function ReportsWorkspaceInner() {
                   {overview.topics?.length ? (
                     <section className="rw-card">
                       <CardHead title="Temas mais frequentes" hint="Baseado em assunto e departamento" />
-                      <HorizontalBars rows={overview.topics.map((topic, index) => ({ label: topic.label, value: topic.count, fill: CHART_PALETTE[index % CHART_PALETTE.length] }))} />
+                      <HorizontalBars rows={overview.topics.map((topic, index) => ({ label: topic.label, value: topic.count, fill: networkColor(topic.label) ?? CHART_PALETTE[index % CHART_PALETTE.length] }))} />
                     </section>
                   ) : null}
                 </>

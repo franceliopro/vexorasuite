@@ -3953,7 +3953,7 @@ input[type=tel]{letter-spacing:.02em}
   .voice-cancel,.voice-send{width:36px!important;height:36px!important}
   /* app nativo: textarea em linha própria; ícones + mic + enviar abaixo, enviar à direita */
   .inbox-composer .composer-toolbar{flex-wrap:wrap!important;padding:2px 4px 4px!important;gap:4px 6px!important}
-  .composer-toolbar>textarea{order:-1;flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .composer-toolbar>textarea{flex:1 1 100%!important;width:100%!important;min-width:0!important}
   .composer-tools{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;justify-content:flex-start}
   .composer-toolbar>button[class*=voice],.composer-send-button{flex:none!important}
   .composer-toolbar>.composer-icon-button{margin-left:auto}
@@ -3962,8 +3962,9 @@ input[type=tel]{letter-spacing:.02em}
   .topbar .mobile-menu svg{width:20px!important;height:20px!important;display:block!important}
 }
 @media (min-width:761px){
-  /* desktop normal: tudo na mesma linha */
+  /* desktop normal: ícones antes do campo, tudo na mesma linha */
   .inbox-composer .composer-toolbar{flex-wrap:nowrap!important}
+  .composer-toolbar>.composer-tools{order:-1!important}
 }
 .composer-send-button{flex:none!important}
 /* CRM — identidade por etapa: título, bolinha, contagem, pill no mesmo tom */

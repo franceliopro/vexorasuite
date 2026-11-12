@@ -63,19 +63,19 @@ export function SitesWorkspace() {
     router.replace(pathname + (next.toString() ? "?" + next.toString() : ""), { scroll: false });
   };
   const [sites, setSites] = useState<Site[]>(() => sitesCache ?? []);
-  const [loading, setLoading] = useState(!sitesCache);
+  const [loading, setLoading] = useState(() => !sitesCache); // sem cache local: skeleton; com cache: pinta instantâneo e atualiza em background
   const [site, setSite] = useState<Site | null>(null);
   const [tabDataLoading, setTabDataLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const loadSites = async () => {
-    setLoading(true);
-    try { const data = await api<Site[]>("/sites"); sitesCache = data; setSites(data); setError(""); }
+  const loadSites = async (background = false) => {
+    if (!background) setLoading(true);
+    try { const data = await api<Site[]>("/sites"); sitesCache = data; if (typeof window !== "undefined") { try { window.localStorage.setItem("vx:sites-cache", JSON.stringify(data)); } catch { /* ignore */ } } setSites(data); setError(""); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível carregar os sites."); }
-    finally { setLoading(false); }
+    finally { if (!background) setLoading(false); }
   };
-  useEffect(() => { void loadSites(); }, []);
+  useEffect(() => { void loadSites(!!sitesCache); }, []);
   useEffect(() => {
     if (!selectedSiteId) { setSite(null); return; }
     setTabDataLoading(true);

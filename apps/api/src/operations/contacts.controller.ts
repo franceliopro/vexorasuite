@@ -31,7 +31,7 @@ export function canManageProfileCatalog(role: string): boolean {
 }
 
 export function normalizeProfileTags(input: unknown, catalog: unknown, existing: Prisma.JsonValue): Prisma.InputJsonValue {
-  if (!Array.isArray(input)) throw new BadRequestException("Etiquetas inválidas.");
+  if (!Array.isArray(input)) throw new BadRequestException("Tags inválidas.");
   const configured = Array.isArray(catalog)
     ? catalog.flatMap((tag) => {
       if (!tag || typeof tag !== "object" || Array.isArray(tag)) return [];
@@ -48,7 +48,7 @@ export function normalizeProfileTags(input: unknown, catalog: unknown, existing:
     const value = typeof tag === "string" ? { name: tag, color: "#eeecff" } : tag as Record<string, unknown>;
     const name = String(value.name || "").trim();
     const definition = configured.find((candidate) => candidate.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
-    if (!definition && !currentNames.has(name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("A etiqueta precisa estar cadastrada no catálogo do CRM.");
+    if (!definition && !currentNames.has(name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("A tag precisa estar cadastrada no catálogo do CRM.");
     return definition ? { ...value, name: definition.name, color: definition.color } : value;
   }) as Prisma.InputJsonValue;
 }
@@ -171,23 +171,23 @@ export class ContactsController {
 
   @Post("profile-config/tags")
   async createProfileTag(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; color?: unknown }) {
-    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
+    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar tags e campos.");
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const color = typeof input.color === "string" ? input.color : "";
-    if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a etiqueta.");
+    if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a tag.");
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
     const config = integrations.crmProfileConfig && typeof integrations.crmProfileConfig === "object" && !Array.isArray(integrations.crmProfileConfig) ? integrations.crmProfileConfig as Record<string, unknown> : {};
     const tags = Array.isArray(config.tags) ? config.tags as Array<Record<string, unknown>> : [];
     const existing = tags.find(tag => typeof tag.name === "string" && tag.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
     if (existing) return existing;
-    if (tags.length >= 100) throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
+    if (tags.length >= 100) throw new BadRequestException("O limite de tags desta empresa foi atingido.");
     const tag = { id: randomUUID(), name, color, createdBy: request.user.sub, createdAt: new Date().toISOString() };
     const updated=await mutateTenantSetting(this.prisma,request.user.tenantId,"crmProfileConfig",current=>{
       const value=current&&typeof current==="object"&&!Array.isArray(current)?current as Record<string,any>:{};
       const latest=Array.isArray(value.tags)?value.tags:[];
       if(latest.some((t:any)=>typeof t.name==="string"&&t.name.toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR")))return value;
-      if(latest.length>=100)throw new BadRequestException("O limite de etiquetas desta empresa foi atingido.");
+      if(latest.length>=100)throw new BadRequestException("O limite de tags desta empresa foi atingido.");
       return {...value,tags:[...latest,tag]};
     });
     await this.auditProfileCatalog(request, "crm.profile_tag_created", { tagId: tag.id, name: tag.name, color: tag.color });
@@ -196,16 +196,16 @@ export class ContactsController {
 
   @Patch("profile-config/tags/:tagId")
   async updateProfileTag(@Req() request: AuthenticatedRequest, @Param("tagId", ParseUUIDPipe) tagId: string, @Body() input: { name?: unknown; color?: unknown }) {
-    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
+    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar tags e campos.");
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const color = typeof input.color === "string" ? input.color : "";
-    if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a etiqueta.");
+    if (!name || name.length > 40 || !/^#[0-9a-fA-F]{6}$/.test(color)) throw new BadRequestException("Informe nome e cor válida para a tag.");
     const updated = await mutateTenantSetting(this.prisma, request.user.tenantId, "crmProfileConfig", current => {
       const value = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
       const latest = Array.isArray(value.tags) ? value.tags as Array<Record<string, unknown>> : [];
       const index = latest.findIndex(tag => tag.id === tagId);
-      if (index < 0) throw new BadRequestException("Etiqueta não encontrada.");
-      if (latest.some((tag, tagIndex) => tagIndex !== index && typeof tag.name === "string" && tag.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("Já existe uma etiqueta com esse nome.");
+      if (index < 0) throw new BadRequestException("Tag não encontrada.");
+      if (latest.some((tag, tagIndex) => tagIndex !== index && typeof tag.name === "string" && tag.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"))) throw new BadRequestException("Já existe uma tag com esse nome.");
       const tags = latest.map((tag, tagIndex) => tagIndex === index ? { ...tag, name, color } : tag);
       return { ...value, tags } as any;
     });
@@ -215,11 +215,11 @@ export class ContactsController {
 
   @Delete("profile-config/tags/:tagId")
   async deleteProfileTag(@Req() request: AuthenticatedRequest, @Param("tagId", ParseUUIDPipe) tagId: string) {
-    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
+    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar tags e campos.");
     const updated = await mutateTenantSetting(this.prisma, request.user.tenantId, "crmProfileConfig", current => {
       const value = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
       const latest = Array.isArray(value.tags) ? value.tags as Array<Record<string, unknown>> : [];
-      if (!latest.some(tag => tag.id === tagId)) throw new BadRequestException("Etiqueta não encontrada.");
+      if (!latest.some(tag => tag.id === tagId)) throw new BadRequestException("Tag não encontrada.");
       return { ...value, tags: latest.filter(tag => tag.id !== tagId) } as any;
     });
     await this.auditProfileCatalog(request, "crm.profile_tag_deleted", { tagId });
@@ -228,7 +228,7 @@ export class ContactsController {
 
   @Post("profile-config/fields")
   async createProfileField(@Req() request: AuthenticatedRequest, @Body() input: { name?: unknown; type?: unknown; options?: unknown }) {
-    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar etiquetas e campos.");
+    if (!canManageProfileCatalog(request.user.role)) throw new ForbiddenException("Somente administradores podem configurar tags e campos.");
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const type = typeof input.type === "string" ? input.type.toUpperCase() : "TEXT";
     const allowed = ["TEXT", "NUMBER", "DATE", "SELECT", "CHECKBOX"];
@@ -329,7 +329,7 @@ export class ContactsController {
   @Patch(":id/profile")
   async updateProfile(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { tags?: unknown; notes?: unknown; customFields?: unknown; leadOrigin?: unknown }) {
     await contactPipelineAccess(this.prisma, request, id);
-    if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Etiquetas inválidas.");
+    if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > 50 || input.tags.some((tag) => typeof tag === "string" ? tag.length > 40 : !tag || typeof tag !== "object" || Array.isArray(tag) || typeof (tag as Record<string, unknown>).name !== "string" || ((tag as Record<string, unknown>).name as string).trim().length < 1 || ((tag as Record<string, unknown>).name as string).length > 40 || typeof (tag as Record<string, unknown>).color !== "string" || !/^#[0-9a-fA-F]{6}$/.test((tag as Record<string, unknown>).color as string)))) throw new BadRequestException("Tags inválidas.");
     const configuredTags = input.tags !== undefined
       ? await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } }).then((tenant) => {
         const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};

@@ -48,7 +48,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
       if (s.kind === 'agent' && !config.agentId) errors.push(`${s.id}: selecione agentId de um agente configurado`);
       if (['variable','condition'].includes(s.kind || '') && (!/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '') || typeof config.value !== 'string')) errors.push(`${s.id}: configure variable e value`);
       if (s.kind === 'condition' && (!s.options.includes('Sim') || !s.options.includes('Não') || s.options.length !== 2)) errors.push(`${s.id}: condição exige saídas Sim e Não`);
-      if (s.kind === 'tag' && (!config.name?.trim() || config.name.length > 40 || !/^#[a-f\d]{6}$/i.test(config.color || ''))) errors.push(`${s.id}: configure name e color da etiqueta`);
+      if (s.kind === 'tag' && (!config.name?.trim() || config.name.length > 40 || !/^#[a-f\d]{6}$/i.test(config.color || ''))) errors.push(`${s.id}: configure name e color da tag`);
     } catch { errors.push(`${s.id}: configuração JSON inválida`); }
   }
   for (const s of f.steps) {

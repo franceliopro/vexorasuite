@@ -92,7 +92,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Biblioteca de fluxos reutilizáveis.
 - [x] Destinos de departamento, atendente e agente de IA filtrados por tenant.
 - [x] Validação de departamento e atendente ativo no backend.
-- [x] Ações de etapa, etiqueta, prioridade, CRM e tarefa cobertas por código/testes.
+- [x] Ações de etapa, tag, prioridade, CRM e tarefa cobertas por código/testes.
 - [x] Cancelamento de automação quando a conversa muda de departamento ou atendente.
 - [x] Fallback de transbordo usa o departamento da inbox para áudio e pedido de atendente; evita fila geral quando há destino configurado.
 - [x] Testes locais do Flow Studio e opções passaram.
@@ -133,7 +133,7 @@ Este arquivo é o painel de acompanhamento do produto. Ele separa código existe
 - [x] Tokens e regras de design documentados.
 - [x] Tema escuro/híbrido e direção visual premium registrados no blueprint.
 - [x] Ícones Lucide e fontes locais validados por testes.
-- [x] Contraste de etiquetas e controles acessíveis validado.
+- [x] Contraste de tags e controles acessíveis validado.
 - [x] Responsividade mobile/tablet e navegação PWA cobertas por testes.
 - [~] Auditoria visual manual no ambiente publicado.
 - [ ] Cards expansíveis, setas e navegação animada da apresentação aplicados globalmente.

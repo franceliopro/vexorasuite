@@ -23,6 +23,7 @@ import {
   Search,
   X,
   ArrowUpRight,
+  Trash2,
 } from "lucide-react";
 
 type CatalogProps = {
@@ -85,6 +86,7 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
   },
 ];
 
+async function clearSystemCache(){try{const keys=Object.keys(localStorage).filter(k=>/^(vx|vexora)/i.test(k));for(const k of keys)localStorage.removeItem(k);if(typeof caches!=="undefined"){const names=await caches.keys();await Promise.all(names.map(n=>caches.delete(n)));}if(typeof navigator!=="undefined"&&navigator.serviceWorker){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()));}}catch{/* prosseguir */}finally{window.location.reload();}}
 export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: CatalogProps) {
   const [query, setQuery] = useState("");
   const [metrics, setMetrics] = useState<Record<string, number | string>>({});
@@ -169,6 +171,7 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
         </section>
       )) : <div className="settings-catalog-empty"><Search size={20} /><strong>Nenhuma configuração encontrada</strong><span>Tente buscar por conexão, usuário, Asaas, Waha, saudação ou automação.</span></div>}
       <p className="settings-catalog-note"><Settings2 size={15} /> Os ajustes avançados continuam disponíveis pelos cartões correspondentes.</p>
+      <button type="button" className="settings-catalog-clearcache" onClick={() => void clearSystemCache()}><Trash2 size={17} aria-hidden="true" /><span><strong>Limpar cache</strong><small>Apaga o cache local (Service Worker + Cache Storage + localStorage) e recarrega a página.</small></span></button>
     </section>
   );
 }

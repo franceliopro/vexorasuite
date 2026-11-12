@@ -88,6 +88,7 @@ import {
   Plus,
   ArrowRight,
   ArrowUpRight,
+  ArrowRightLeft,
 } from "lucide-react";
 
 const iconMap = {
@@ -107,6 +108,7 @@ const iconMap = {
   sparkles: Sparkles,
   share: Share2,
   more: MoreHorizontal,
+  transfer: ArrowRightLeft,
   image: Image,
 };
 
@@ -390,9 +392,8 @@ export default function HomePage() {
       </main>
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <nav className="mobile-bottom-nav" aria-label="Navegação principal no celular">
-        <button type="button" className={active === "Visão geral" ? "active" : ""} onClick={() => { setActive("Visão geral"); setMenuOpen(false); }}><Icon name="layout-dashboard" size={20}/><span>Visão geral</span></button>
-        <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversas</span></button>
-        <button type="button" className={active === "CRM" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("CRM")} onFocus={()=>preloadWorkspace("CRM")} onClick={() => { preloadWorkspace("CRM");setActive("CRM"); setMenuOpen(false); }}><Icon name="users" size={20}/><span>CRM</span></button>
+        <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
+        <button type="button" className={active === "Atendimento" ? "active" : ""} onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
         <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20}/><span>Mais</span></button>
       </nav>
     </div>

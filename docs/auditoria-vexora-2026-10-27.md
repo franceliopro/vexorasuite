@@ -30,7 +30,7 @@ O tema inicial Híbrido foi restaurado ao concluir os testes de alternância. O 
 | Prioridade | Problema | Correção |
 |---|---|---|
 | P1 | Respostas rápidas e rascunho em cache global de navegador | Chaves por tenant; descarte do cache legado sem origem comprovada; remount dos workspaces por empresa |
-| P1 | Escritas concorrentes no JSON de integrações sobrescreviam outros módulos | Mutação de chave sob lock do tenant para branding, respostas rápidas, etiquetas/campos CRM e configuração Asaas; Engine/assistente já usam lock |
+| P1 | Escritas concorrentes no JSON de integrações sobrescreviam outros módulos | Mutação de chave sob lock do tenant para branding, respostas rápidas, tags/campos CRM e configuração Asaas; Engine/assistente já usam lock |
 | P1 | Google renovava token a cada chamada após expiração | Serviço compartilhado Agenda/Drive com validação de tenant/escopo, refresh serializado e persistência criptografada |
 | P1 | Autorização Google podia terminar após revogação do acesso administrativo | Callback revalida vínculo, empresa/usuário ativos e papel antes de concluir a autorização |
 | P1 | Chamadas de IA sem limite diário por empresa | Limite configurável de execuções/dia, padrão 100; zero bloqueia modelos. Cada execução admite até três tentativas configuradas; regras/Skills continuam disponíveis |

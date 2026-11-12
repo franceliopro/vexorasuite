@@ -19,7 +19,7 @@ Três ideias simples sustentam tudo:
 |---|---|---|
 | **Visão geral** | Painel ao vivo: conversas na fila NOW, atividade recente, KPIs de IA, horas de pico e assuntos do mês | O gestor abre o dia sabendo o que está atrasado, sem precisar perguntar |
 | **Atendimento** | Caixa de entrada única com filas por setor/pessoa, notas privadas, protocolos, ficha viva do cliente com todas as redes conectadas e Asaas sincronizado | Nenhum cliente espera sem nome, sem contexto, sem responsável |
-| **CRM** | Pipeline arrastável com cards enriquecidos (nome real, @ da rede, etiquetas nas cores originais), qualificação com histórico completo, propostas | O vendedor sabe em 2 segundos em que etapa está cada negócio |
+| **CRM** | Pipeline arrastável com cards enriquecidos (nome real, @ da rede, tags nas cores originais), qualificação com histórico completo, propostas | O vendedor sabe em 2 segundos em que etapa está cada negócio |
 | **Agenda** | Agendamento 1:1 direto do atendimento com mini-calendário e status | Menos desencontro, mais comparecimento |
 | **Tarefas** | Checklist operacional com prioridades, lembretes e responsáveis | Nada depende da memória de ninguém |
 | **Automação — Chatbots** | Robôs com IA montados por fluxo visual ou por linguagem natural ("Crie com IA" com ditado por voz), tela de celular de teste, publicação com um clique, página pública do robô | O cliente se autoatende 24h — e a sua equipe só entra quando precisa |

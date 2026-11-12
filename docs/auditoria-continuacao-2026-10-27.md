@@ -12,13 +12,13 @@
 
 ### Edições concorrentes no CRM
 
-Perfil, etapa e finalização liam metadados antes da operação de escrita. Duas alterações simultâneas podiam substituir notas, campos, etiquetas ou vínculo financeiro gravados pela outra operação.
+Perfil, etapa e finalização liam metadados antes da operação de escrita. Duas alterações simultâneas podiam substituir notas, campos, tags ou vínculo financeiro gravados pela outra operação.
 
-Agora essas rotas leem o contato depois de obter bloqueio de linha no PostgreSQL, com filtro obrigatório de empresa, e aplicam as alterações sobre esse estado. O bloco de etiquetas do Engine também relê o contato sob o mesmo bloqueio, em vez de reutilizar o snapshot da conversa. A finalização bloqueia primeiro as conversas, em ordem estável, e depois o contato, para respeitar a ordem usada pelo Engine.
+Agora essas rotas leem o contato depois de obter bloqueio de linha no PostgreSQL, com filtro obrigatório de empresa, e aplicam as alterações sobre esse estado. O bloco de tags do Engine também relê o contato sob o mesmo bloqueio, em vez de reutilizar o snapshot da conversa. A finalização bloqueia primeiro as conversas, em ordem estável, e depois o contato, para respeitar a ordem usada pelo Engine.
 
 A validação de etapa é feita dentro da transação: uma etapa não pode ressuscitar o pipeline de um contato já finalizado. Identificadores nas rotas de contato passam por validação UUID; resultado de finalização com tipo incorreto retorna erro de entrada.
 
-Escopo: isso protege as rotas citadas e a escrita de etiquetas pelo Engine. Os importadores Asaas e webhooks ainda têm outras escritas de metadados a consolidar; não representa a solução de toda a concorrência da aplicação.
+Escopo: isso protege as rotas citadas e a escrita de tags pelo Engine. Os importadores Asaas e webhooks ainda têm outras escritas de metadados a consolidar; não representa a solução de toda a concorrência da aplicação.
 
 ### Autorização de respostas pendentes
 
@@ -42,7 +42,7 @@ Não trocar INTEGRATION_ENCRYPTION_KEY de instalações existentes sem recriptog
 ## Validação
 
 A CI foi ampliada com regressão sobre PostgreSQL após migrações e build da API:
-- dez rodadas de edições concorrentes em notas, campos e etiquetas, preservando vínculo Asaas;
+- dez rodadas de edições concorrentes em notas, campos e tags, preservando vínculo Asaas;
 - rejeição de acesso ao contato com outra empresa;
 - corrida entre finalização e mudança de etapa, incluindo resolução da conversa.
 

@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -98,5 +98,35 @@ export class FinanceController {
       months: bucketCount, from: from.toISOString().slice(0,10), to: until.toISOString().slice(0,10), totals, series: buckets, outstandingContacts: outstandingByContact.size,
       collectionRate: totals.billed > 0 ? Math.round(totals.paid / totals.billed * 1000) / 10 : null,
     };
+  }
+
+  @Get("services")
+  services(@Req() req: AuthenticatedRequest) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.listServices(req.user.tenantId);
+  }
+
+  @Post("services")
+  createService(@Req() req: AuthenticatedRequest, @Body() body: { name?: unknown; value?: unknown }) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.createService(req.user.tenantId, body || {}, req.user.sub);
+  }
+
+  @Delete("services/:serviceId")
+  deleteService(@Req() req: AuthenticatedRequest, @Param("serviceId") serviceId: string) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.deleteService(req.user.tenantId, serviceId);
+  }
+
+  @Get("customer-lookup")
+  customerLookup(@Req() req: AuthenticatedRequest, @Query("document") document?: string) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.customerLookup(req.user.tenantId, document || "");
+  }
+
+  @Post("subscriptions")
+  createSubscription(@Req() req: AuthenticatedRequest, @Body() body: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; billingType?: unknown }) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.createSubscription(req.user.tenantId, { ...(body || {}), userId: req.user.sub });
   }
 }

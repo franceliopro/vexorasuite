@@ -18,7 +18,7 @@
 - [ ] Integração WAHA por adapter.
 - [ ] Webhooks autenticados, idempotência e logs de diagnóstico.
 - [ ] Entrega em tempo real com recuperação após reconexão.
-- [ ] Atribuição de atendente, status, etiquetas e histórico.
+- [ ] Atribuição de atendente, status, tags e histórico.
 - [~] Fluxo WhatsApp -> resposta -> transferência humana -> encerramento; fallback por departamento da inbox implementado, pendente aceite real no Dokploy.
 - [x] Compositor de áudio: gravação real pelo microfone, envio como mídia WAHA e leitura com waveform/progresso no histórico.
 

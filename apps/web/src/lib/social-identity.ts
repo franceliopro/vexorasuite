@@ -76,7 +76,7 @@ export function socialHandleLabel(contact: { metadata?: Record<string, unknown> 
   return handle ? "@" + handle : "";
 }
 
-/** Melhor contraste (texto escuro/claro) sobre o fundo de uma etiqueta. */
+/** Melhor contraste (texto escuro/claro) sobre o fundo de uma tag. */
 export function tagForeground(hex: string): string {
   const value = (hex || "").trim().replace(/^#/, "");
   const full = value.length === 3 ? value.split("").map((c) => c + c).join("") : value.length === 6 ? value : "eeecff";

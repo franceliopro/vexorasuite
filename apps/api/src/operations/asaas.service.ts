@@ -2,7 +2,7 @@ import { documentDigits } from "../common/documents";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual, randomUUID } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 
 type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string; encryptedWebhookToken?: string };
@@ -183,6 +183,106 @@ export class AsaasService {
       this.credentials(tenantId)
     ]);
     return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
+  }
+
+  async listServices(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
+    const catalog = all.serviceCatalog && typeof all.serviceCatalog === "object" && !Array.isArray(all.serviceCatalog) ? all.serviceCatalog as Record<string, unknown> : {};
+    const services = Array.isArray(catalog.services) ? catalog.services as Array<Record<string, unknown>> : [];
+    return { source: "VEXORA" as const, services: services.map(s => ({ id: String(s.id || ""), name: String(s.name || ""), value: Number(s.value) || 0, createdAt: typeof s.createdAt === "string" ? s.createdAt : undefined })).filter(s => s.name) };
+  }
+
+  async createService(tenantId: string, input: { name?: unknown; value?: unknown }, userId: string) {
+    const name = typeof input.name === "string" ? input.name.trim().slice(0, 80) : "";
+    if (!name) throw new BadRequestException("Informe o nome do serviço (máx. 80 caracteres).");
+    const rawValue = input.value;
+    const value = rawValue === undefined || rawValue === null || rawValue === "" ? 0 : Number(rawValue);
+    if (!Number.isFinite(value) || value < 0 || value > 99999999) throw new BadRequestException("Informe um valor válido (ou deixe zero).");
+    const result = await mutateTenantSetting(this.prisma, tenantId, "serviceCatalog", current => {
+      const owned = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
+      const latest = Array.isArray(owned.services) ? owned.services as Array<Record<string, any>> : [];
+      const match = latest.find((s) => typeof s.name === "string" && s.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
+      if (match) return {
+        ...owned,
+        services: latest.map((s) => s === match ? { ...s, value: value || s.value } : s),
+      };
+      if (latest.length >= 200) throw new BadRequestException("O limite de serviços desta empresa foi atingido.");
+      return { ...owned, services: [...latest, { id: randomUUID(), name, value, createdBy: userId, createdAt: new Date().toISOString() }] };
+    });
+    const services = Array.isArray((result as any)?.services) ? (result as any).services as Array<Record<string, unknown>> : [];
+    return services.find((s) => typeof s.name === "string" && (s.name as string).toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR")) ?? { name, value };
+  }
+
+  async deleteService(tenantId: string, serviceId: string) {
+    await mutateTenantSetting(this.prisma, tenantId, "serviceCatalog", current => {
+      const owned = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
+      const latest = Array.isArray(owned.services) ? owned.services as Array<Record<string, any>> : [];
+      if (!latest.some((s) => s.id === serviceId)) throw new BadRequestException("Serviço não encontrado.");
+      return { ...owned, services: latest.filter((s) => s.id !== serviceId) };
+    });
+    return { deleted: true, serviceId };
+  }
+
+  async customerLookup(tenantId: string, document: string) {
+    const doc = this.digits(document || "");
+    if (!/^\d{11}$|^\d{14}$/.test(doc) || !this.validDocument(doc)) throw new BadRequestException("CPF/CNPJ inválido.");
+    const result = await this.request<{ data?: Array<{ id: string; name: string; email?: string | null; mobilePhone?: string | null; phone?: string | null; cpfCnpj?: string | null }> }>(tenantId, "/customers?" + new URLSearchParams({ cpfCnpj: doc, limit: "100" }));
+    const matches = (result.data || []).filter((x) => this.digits(x.cpfCnpj || "") === doc);
+    return { environment: (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION", customers: matches.map((x) => ({ id: x.id, name: x.name, email: x.email || null, phone: x.mobilePhone || x.phone || null })) };
+  }
+
+  async createSubscription(tenantId: string, input: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; billingType?: unknown; userId?: string }) {
+    const service = typeof input.service === "string" ? input.service.trim().slice(0, 120) : "";
+    if (!service) throw new BadRequestException("Informe o serviço — o nome será usado como descrição da assinatura no Asaas.");
+    const value = Number(input.value);
+    if (!Number.isFinite(value) || value <= 0 || value > 99999999) throw new BadRequestException("Informe um valor maior que zero.");
+    const allowedCycles = ["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "SEMIANNUALLY", "YEARLY"];
+    const cycle = allowedCycles.includes(String(input.cycle)) ? String(input.cycle) : "MONTHLY";
+    let nextDueDate = typeof input.nextDueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.nextDueDate) ? input.nextDueDate : null;
+    if (!nextDueDate) { const d = new Date(); d.setMonth(d.getMonth() + 1); nextDueDate = d.toISOString().slice(0, 10); }
+    const allowedBilling = ["BOLETO", "PIX", "CREDIT_CARD", "UNDEFINED"];
+    const billingType = allowedBilling.includes(String(input.billingType)) ? String(input.billingType) : "BOLETO";
+    let contactId = typeof input.contactId === "string" && input.contactId ? input.contactId : "";
+    let customerId = typeof input.customerId === "string" ? input.customerId.trim() : "";
+    if (customerId && !/^cus_[A-Za-z0-9_-]{4,}$/.test(customerId)) throw new BadRequestException("Identificador de cliente inválido.");
+    const environment = (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION";
+
+    if (!customerId && contactId) {
+      const res = await this.syncCustomerByContact(tenantId, contactId);
+      if (res.status !== "SYNCED" || !res.customerId) throw new ServiceUnavailableException(res.message || "Não foi possível sincronizar o cliente com o Asaas.");
+      customerId = res.customerId;
+    }
+    if (!customerId) {
+      const document = this.digits(typeof input.document === "string" ? input.document : "");
+      if (!/^\d{11}$|^\d{14}$/.test(document) || !this.validDocument(document)) throw new BadRequestException("Informe um CPF ou CNPJ válido do cliente.");
+      const found = await this.request<{ data?: Array<{ id: string; name: string }> }>(tenantId, "/customers?" + new URLSearchParams({ cpfCnpj: document, limit: "100" }));
+      const matches = found.data || [];
+      if (matches.length === 1) {
+        customerId = matches[0]!.id;
+      } else if (matches.length > 1) {
+        throw new BadRequestException("Há mais de um cadastro com esse documento no Asaas. Revise antes de criar a assinatura.");
+      } else {
+        const name = typeof input.customerName === "string" ? input.customerName.trim() : "";
+        if (!name || name.length < 2) throw new BadRequestException("Cliente não encontrado no Asaas. Informe o nome para criar o cadastro.");
+        const payload: Record<string, string> = { name, cpfCnpj: document, externalReference: "vexora:manual" };
+        if (typeof input.customerEmail === "string" && input.customerEmail.trim()) payload.email = input.customerEmail.trim();
+        if (typeof input.customerPhone === "string" && input.customerPhone.trim()) payload.mobilePhone = this.digits(input.customerPhone);
+        const created = await this.request<{ id?: string }>(tenantId, "/customers", { method: "POST", body: JSON.stringify(payload) });
+        if (!created?.id) throw new ServiceUnavailableException("O Asaas não retornou o identificador do novo cliente.");
+        customerId = created.id;
+      }
+    }
+    const result = await this.request<{ id?: string; description?: string; value?: number; cycle?: string; status?: string; nextDueDate?: string }>(tenantId, "/subscriptions", {
+      method: "POST",
+      body: JSON.stringify({ customer: customerId, billingType, value, cycle, nextDueDate, description: service, externalReference: contactId ? "vexora:" + contactId : undefined }),
+    });
+    if (!result?.id) throw new ServiceUnavailableException("O Asaas não retornou o identificador da assinatura.");
+    const resolvedService = await this.createService(tenantId, { name: service, value }, input.userId || "system").catch(() => null);
+    const subscription = { id: result.id, customerId, description: result.description || service, value: Number(result.value) || value, cycle: result.cycle || cycle, status: result.status || "ACTIVE", nextDueDate: result.nextDueDate || nextDueDate, billingType, environment };
+    await this.prisma.auditLog.create({ data: { tenantId, action: "payment.subscription_created", entityType: "asaas_subscription", entityId: result.id, details: { customerId, value, cycle, service, billingType, environment, actorId: input.userId || null } } });
+    const catalog = await this.listServices(tenantId);
+    return { subscription, catalog: catalog.services, serviceSaved: Boolean(resolvedService) };
   }
 
   async debtsByDocument(tenantId:string,rawDocument:string){

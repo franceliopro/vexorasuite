@@ -46,7 +46,7 @@ Sem auditar concorrentes item a item, mas com honestidade de engenharia: há tr�
 
 1. **CRMs com botão de WhatsApp** (Kommo, Botconversa-likes): cobrem recepção e automação, mas raramente a **ficha do cliente viva** integrada com agenda real, cobrança e contexto financeiro.
 2. **Chamadas e omnichannel enterprise** (Zendesk, Octadesk): cobrem madurez e SLAs, mas com complexidade e custo que uma clínica de 4 pessoas não absorve.
-3. **WhatsApp Business API puro + etiqueta**: barato e estável, mas sem inteligência nem coordenação de equipe.
+3. **WhatsApp Business API puro + tag**: barato e estável, mas sem inteligência nem coordenação de equipe.
 
 A vantagem real do Véxora é **camada humana assistida por determinismo + IA sob controle**, com a **ficha viva** (tags, protocolos, dados financeiros Asaas, agenda) no centro da conversa e **conta de empresa limpa** — nada da credencial da Véxora vaza para tenants. Esse é um posicionamento honesto e defensável de PMEs brasileiras.
 

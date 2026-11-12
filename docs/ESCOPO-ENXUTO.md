@@ -5,7 +5,7 @@ Decisão de produto: construir uma plataforma operacional que resolva o trabalho
 ## Navegação principal
 
 1. **Visão geral** — resumo operacional com dados reais, sem métricas fictícias.
-2. **Atendimento** — caixa de entrada omnichannel, mensagens em tempo real, filas/atribuição, histórico, etiquetas, notas internas e passagem segura entre automação e humano.
+2. **Atendimento** — caixa de entrada omnichannel, mensagens em tempo real, filas/atribuição, histórico, tags, notas internas e passagem segura entre automação e humano.
 3. **CRM** — contatos, oportunidades, funis, tarefas/follow-ups e contexto do cliente. Origem do lead é um campo/contexto do contato e da oportunidade, não um módulo independente.
 4. **Agenda** — agendamentos de atendimento, reuniões, chamadas e retornos; visualização de disponibilidade, responsável, lembretes, reagendamento e cancelamento. Deve funcionar internamente e sincronizar com Google Agenda quando conectado.
 5. **Automação** — fluxos, regras e agentes de IA no mesmo espaço de trabalho. IA é opcional e deve respeitar o botão de ativação/desativação do servidor. Execuções e falhas precisam ser visíveis.

@@ -1,6 +1,6 @@
 # Rotinas operacionais da Véxora
 
-A versão atual mantém Workflows internos com espera persistida, tarefas, notas, etiquetas e mensagens na própria conversa. Filas, atribuição e cancelamento após resposta continuam parte do atendimento.
+A versão atual mantém Workflows internos com espera persistida, tarefas, notas, tags e mensagens na própria conversa. Filas, atribuição e cancelamento após resposta continuam parte do atendimento.
 
 Campanhas/e-mail, SMS, telefonia, publicação social e vídeo automático foram retirados a pedido do proprietário. Os respectivos controllers, workers, dependências e tabelas foram excluídos. O histórico de criações de Marketing e as mídias geradas também são removidos na atualização autorizada. Referências e arquivos originais no Drive permanecem.
 

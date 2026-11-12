@@ -127,7 +127,7 @@ export class WorkflowsService implements OnModuleInit, OnModuleDestroy {
     if (f.customerField && !parseCustomerField(f.customerField))
       throw new BadRequestException("Dado do cliente inválido. Use o formato campo = valor.");
     if (f.tag && (typeof f.tag !== "string" || f.tag.trim().length > 80))
-      throw new BadRequestException("Etiqueta inválida.");
+      throw new BadRequestException("Tag inválida.");
     if (
       input.trigger === "SCHEDULE" &&
       steps.some((s) => s.type !== "TASK" && s.type !== "WAIT")

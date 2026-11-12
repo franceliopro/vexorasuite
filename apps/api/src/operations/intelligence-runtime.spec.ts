@@ -65,7 +65,7 @@ describe('delivery authorization at dispatch time', () => {
  });
  it('does not use a stale contact snapshot when an engine tag is applied', async () => {
    const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
-   x.flow.steps.splice(1,0,{id:'tag',kind:'tag',title:'Etiqueta',message:'',options:['Continuar'],transitions:{Continuar:'handoff'},config:'{"name":"VIP","color":"#123456"}'});
+   x.flow.steps.splice(1,0,{id:'tag',kind:'tag',title:'Tag',message:'',options:['Continuar'],transitions:{Continuar:'handoff'},config:'{"name":"VIP","color":"#123456"}'});
    x.flow.steps[0].transitions.Suporte='tag';
    x.tx.contact.findFirst.mockResolvedValue({id:'contact',metadata:{notes:'Updated elsewhere',asaas:{customerId:'cus_1'},tags:[]}});
    x.inbound.content='1';

@@ -7,7 +7,7 @@ Execução operacional por regras e Skills antes de modelos. Esta entrega conect
 | Pedido / evento | Executor | Tokens de LLM |
 |---|---|---|
 | Menu, escolhas, entrada de texto, condição, variável | Runtime determinístico | 0 |
-| Aplicação de etiqueta no contato da conversa | Skill CRM | 0 |
+| Aplicação de tag no contato da conversa | Skill CRM | 0 |
 | Transferência para equipe ativa da mesma empresa | Skill atendimento | 0 |
 | Consulta e envio de boleto/PIX de cobrança existente | Diálogo Asaas já implementado, com verificação de telefone | 0 |
 | Resumo de desempenho, PDF com gráfico e CSV | Módulo Inteligência Operacional + exportador | 0 |
@@ -31,7 +31,7 @@ Configurações JSON nos blocos:
 - Entrada: `{"variable":"solicitacao"}`; exatamente uma saída de continuação.
 - Variável: `{"variable":"setor","value":"FINANCEIRO"}`; uma saída.
 - Condição de igualdade exata: `{"variable":"setor","value":"FINANCEIRO"}`; saídas `Sim` e `Não`.
-- Etiqueta: `{"name":"Novo Lead","color":"#5865da"}`; uma saída.
+- Tag: `{"name":"Novo Lead","color":"#5865da"}`; uma saída.
 - Transferência: `{"departmentKey":"FINANCEIRO_CEEB_VISION"}`. A equipe precisa existir e estar ativa. Sem destino explícito, usa contexto disponível ou fila geral; nunca busca equipes de outra empresa.
 - Agente: `{"agentId":"1"}`; deve estar habilitado na configuração da empresa com modelo suportado. O agente responde, sem ferramentas arbitrárias; operações continuam nas Skills.
 

@@ -145,7 +145,7 @@ export function SitesWorkspace() {
       <button type="button" className="text-button sites-back" onClick={() => setParams({ site: null, tab: null })}><ChevronLeft size={14} aria-hidden="true" /> Sites</button>
       {notice && <p className="sites-notice" role="status">{notice}</p>}
       {error && <p className="sites-error" role="alert">{error}</p>}
-      {tabDataLoading || !site ? <div className="sites-loading"><Loader2 size={20} className="vx-spin" aria-hidden="true" /> Carregando…</div> : <SiteDetail site={site} tab={tab} setParams={setParams} onSaved={() => { void api<Site>("/sites/" + site.id).then(setSite); }} onNotice={setNotice} />}
+      {tabDataLoading ? <div className="sites-loading"><Loader2 size={20} className="vx-spin" aria-hidden="true" /> Carregando.</div> : !site ? (error ? <div className="content-card sites-detail-missing" role="alert"><h2>Site não encontrado nesta empresa.</h2><p>{error}</p><button type="button" className="primary-button" onClick={() => setParams({ site: null, tab: null })}>Voltar para Sites</button></div> : <div className="sites-loading"><Loader2 size={20} className="vx-spin" aria-hidden="true" /> Carregando.</div>) : <SiteDetail site={site} tab={tab} setParams={setParams} onSaved={() => { void api<Site>("/sites/" + site.id).then(setSite); }} onNotice={setNotice} />}
     </section>
   );
 }

@@ -119,21 +119,31 @@ export class OverviewController {
    optional(() => this.prisma.contact.count({where:{tenantId,createdAt:{gte:weekAgo}}}), 0),
   ]);
 
-  /** Detecta nomes que são apenas números de telefone (importados do WhatsApp sem nome). */
-function looksLikePhone(value?: string | null): boolean {
+  /** Detecta nomes que são apenas números de telefone/JID/LID (importados do WhatsApp sem nome). */
+function technicalIdentifier(value?: string | null): boolean {
   const text = String(value || "").trim();
-  if (!text) return false;
+  if (!text) return true;
+  if (/@(lid|g\.us|broadcast)$/i.test(text)) return true;
   const digits = text.replace(/\D/g, "");
   if (digits.length < 8) return false;
-  return /^[+()\-.\s\d]+$/.test(text);
+  return /^[+()\-.\s\d@a-z]+$/i.test(text);
 }
-function displayContactName(name?: string | null): string {
-  return looksLikePhone(name) ? "Contato não identificado" : String(name || "Contato sem nome");
+function displayContactName(name?: string | null, metadata?: unknown): string {
+  const meta = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata as Record<string, any> : {};
+  const fields = meta.customFields && typeof meta.customFields === "object" && !Array.isArray(meta.customFields) ? meta.customFields as Record<string, any> : {};
+  const customPreferred = Object.entries(fields).filter(([key]) => ["novonome", "nomepreferido", "nomedepreferencia", "preferredname", "triagename"].includes(key.toLowerCase().replace(/[\s_-]/g, ""))).map(([, value]) => value);
+  const preferred = [meta.novo_nome, meta.preferredName, meta.newName, meta.triageName, meta.nomePreferido, ...customPreferred]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .find(Boolean);
+  if (preferred) return preferred.slice(0, 120);
+  const raw = String(name || "").trim();
+  if (technicalIdentifier(raw)) return "Cliente";
+  return raw;
 }
 const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&typeof contact.metadata==="object"?contact.metadata:{};for(const key of ["handle","username","platformUsername","instagramUsername","pageUsername"]){const v=meta[key];if(typeof v==="string"&&/^[@\w.+-]{2,60}$/.test(v.trim()))return "@"+v.trim().replace(/^@/,"");}return "";};
   const waitingItems = waitingRows.map((row) => ({
     id: row.id,
-    contactName: displayContactName(row.contact?.name),
+    contactName: displayContactName(row.contact?.name, row.contact?.metadata),
     contactId: row.contact?.id || null,
     contactPhone: row.contact?.phone || null,
     contactHandle: socialUsernameOf(row.contact),
@@ -231,7 +241,7 @@ const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&type
    contacts,
    contactsNewWeek,
    activeAgents:agents.filter((a:any)=>a.enabled===true).length,
-   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, channel: channelLabel(item.channel), contact: { name: displayContactName(item.contact?.name), id: item.contact?.id || null, phone: item.contact?.phone || null, handle: socialUsernameOf(item.contact) } })),
+   recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, channel: channelLabel(item.channel), contact: { name: displayContactName(item.contact?.name, item.contact?.metadata), id: item.contact?.id || null, phone: item.contact?.phone || null, handle: socialUsernameOf(item.contact) } })),
    scope:admin?'tenant':'assigned_and_team',
    updatedAt:new Date().toISOString(),
    waiting:{

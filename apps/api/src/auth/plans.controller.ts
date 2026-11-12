@@ -11,7 +11,8 @@ function parseLimits(input: any): Record<string, unknown> {
   try { const parsed = JSON.parse(String(input ?? "{}")); if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed; } catch {}
   throw new BadRequestException("limits deve ser um objeto JSON válido (ex.: {\"attendants\":5,\"bots\":1,\"modules\":[\"INBOX\"]}).");
 }
-/** Catálogo de planos e pacotes — administração Véxora (PLATFORM) e leitura pública para o cliente. */
+/** Catálogo de planos e pacotes — administração Véxora (PLATFORM) e leitura para clientes autenticados. */
+@UseGuards(AuthGuard)
 @Controller("plans")
 export class PlansController {
   constructor(private readonly prisma: PrismaService) {}

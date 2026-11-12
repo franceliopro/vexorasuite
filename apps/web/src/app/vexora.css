@@ -3003,3 +3003,39 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
   .mobile-bottom-nav button.active{color:var(--primary);background:color-mix(in srgb,var(--primary) 12%,transparent)}
   .mobile-bottom-nav button svg{width:21px;height:21px}
 }
+
+/* ===== 60. Admin Véxora — diálogos acima do topbar ===== */
+.platform-admin-editor-backdrop{z-index:2100!important;background:rgba(9,13,11,.34)!important;backdrop-filter:blur(3px)!important}
+.sites-detail-missing{display:grid;gap:10px;justify-items:start;padding:22px;border:1px dashed var(--ln2);border-radius:var(--r-lg);background:var(--s2)}
+.sites-detail-missing h2{margin:0;font-size:15px}
+.sites-detail-missing p{margin:0;color:var(--tx2);font-size:12px}
+
+/* ===== 61. Atendimento — moldura flex de verdade (mobile domina o viewport) ===== */
+@media(max-width:760px){
+  .page-content--fixed{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:6px 8px 8px!important;gap:0}
+  .page-content--fixed>*{flex:none;margin:0!important;width:100%}
+  .page-content--fixed .inbox-workspace{flex:1 1 auto;min-height:0!important;height:auto!important;display:flex!important;flex-direction:column!important;gap:6px!important;overflow:hidden!important}
+  .page-content--fixed .persistent-module-tabs{display:none}
+  .page-content--fixed .inbox-list,.page-content--fixed .inbox-thread,.page-content--fixed .contact-profile{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column!important;border-radius:16px!important;overflow:hidden!important}
+  .page-content--fixed .inbox-workspace:not(.mobile-thread-open) .inbox-thread,.page-content--fixed .inbox-workspace:not(.mobile-thread-open) .contact-profile,.page-content--fixed .inbox-workspace.mobile-thread-open .inbox-list,.page-content--fixed .inbox-workspace.mobile-thread-open .contact-profile{display:none!important}
+  .page-content--fixed .contact-profile{display:none!important}
+  .page-content--fixed .thread-messages{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
+  .page-content--fixed .thread-heading{flex:none;width:100%}
+  .page-content--fixed .inbox-composer{flex:none}
+  .page-content--fixed .inbox-workspace>.inbox-thread{border:0}
+  .page-content--fixed .whatsapp-bridge-bar,.page-content--fixed .thread-context-bar,.page-content--fixed .inbox-queues{display:none}
+  /* Força full-height mesmo com qualquer altura calc anterior */
+  .page-content--fixed .inbox-workspace .inbox-thread{height:100%!important}
+  .page-content--fixed .inbox-list{height:100%!important}
+  /* Menu superior do atendimento no celular como alvo favorável */
+  .page-content--fixed .thread-heading .thread-back{width:36px!important;height:36px!important}
+  /* Grelha de conversa mais justa no phone */
+  .page-content--fixed .message{max-width:88%!important}
+  .page-content--fixed .internal-note-card{width:100%!important}
+  .page-content--fixed .message-date-separator{margin:6px 0!important}
+  /* Scroll interno do thread preguiça-menos com alturas fixas de campo */
+  .page-content--fixed .inbox-composer-input,.page-content--fixed .composer-input{min-height:40px;font-size:16px}
+}
+@media(min-width:761px) and (max-width:1180px){
+  .page-content--fixed .inbox-workspace{height:calc(100dvh - var(--top) - 56px)!important;min-height:0!important}
+}

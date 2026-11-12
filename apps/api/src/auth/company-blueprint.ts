@@ -8,7 +8,7 @@ export async function provisionCompany(tx:any,tenant:any,ownerId:string,segmentI
  const entries:{presetKey:keyof typeof DEPARTMENT_PRESETS;key:string;name:string;platform?:string}[]=platforms.length?[
   ...platforms.flatMap((name,index)=>(['FINANCE','SUPPORT'] as const).map(presetKey=>({presetKey,key:presetKey+'_P'+(index+1),name:DEPARTMENT_PRESETS[presetKey].name+' · '+name,platform:name}))),
   {presetKey:'SALES',key:'SALES',name:'Comercial'},{presetKey:'GENERAL',key:'ADMINISTRATION',name:'Administrativo'}
- ]:(Object.keys(DEPARTMENT_PRESETS) as (keyof typeof DEPARTMENT_PRESETS)[]).map(key=>({presetKey:key,key,name:DEPARTMENT_PRESETS[key].name}));
+ ]:(['SALES','FINANCE','SUPPORT'] as (keyof typeof DEPARTMENT_PRESETS)[]).map(key=>({presetKey:key,key,name:DEPARTMENT_PRESETS[key].name}));
  for(const entry of entries){
   const {presetKey:key}=entry,preset=DEPARTMENT_PRESETS[key];
   const department=await tx.department.create({data:{tenantId:tenant.id,key:entry.key,name:entry.name,modules:preset.modules,routingCategory:preset.category,routingPlatform:entry.platform||null,isActive:true}});

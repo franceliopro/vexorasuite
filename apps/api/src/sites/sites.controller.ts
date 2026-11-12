@@ -130,7 +130,7 @@ export class SitesController {
     if (!BUSINESS_AREAS[area]) throw new BadRequestException("Escolha a área do negócio (ex.: clinica_medica).");
     const kind = String(body?.kind) === "DYNAMIC" ? "DYNAMIC" : "STATIC";
     const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#0E7A5C";
-    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#6258DF";
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#22D3EE";
     const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
     const blueprintResult = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC" });

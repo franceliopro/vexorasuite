@@ -5,6 +5,9 @@ import { PrismaService } from "../prisma/prisma.service";
 import { blueprintFor, BUSINESS_AREAS } from "./blueprint";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
+import { AiService } from "../ai/ai.service";
+import { economicalProviders } from "../ai/economical-providers";
+import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 const isHttp = (v: unknown) => typeof v === "string" && /^https?:\/\//i.test(v.trim());
 function str(v: unknown, max: number, fallback = "") { return typeof v === "string" ? v.trim().slice(0, max) : fallback; }
 function list(v: unknown, maxItems: number, map: (x: any) => any): any[] {
@@ -29,7 +32,7 @@ const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq"
 @Controller("sites")
 @UseGuards(AuthGuard)
 export class SitesController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly ai: AiService) {}
   private tenantOf(req: AuthenticatedRequest) { return req.user.tenantId; }
   private modules(req: AuthenticatedRequest): string[] {
     // NOTE: role OWNER/ADMIN keep all modules; the enforcement here is per-tenant plan.
@@ -61,6 +64,57 @@ export class SitesController {
     return item;
   }
 
+  private async enrichBlueprintWithAi(tenantId: string, userId: string, area: string, companyName: string, blueprint: any, aiPrompt: string, referenceUrl: string, cloneUrl: string) {
+    if (!aiPrompt && !referenceUrl && !cloneUrl) return blueprint;
+    const out = { ...blueprint, pages: blueprint.pages.map((p: any) => ({ ...p, blocks: p.blocks.map((b: any) => ({ ...b, content: { ...b.content } })) })) };
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
+    const assistant = integrations?.assistant;
+    if (!assistant || assistant.enabled !== true) return out;
+    const brief: string[] = [`Empresa: ${companyName}. Área do negócio: ${area}.`];
+    if (aiPrompt) brief.push(`Pedido do dono da empresa: ${aiPrompt}`);
+    if (referenceUrl) brief.push(`Link de referência trazido pelo dono (não copie conteúdo nem marcas; use apenas como inspiração de visão): ${referenceUrl}`);
+    if (cloneUrl) {
+      try {
+        const response = await fetch(cloneUrl, { signal: AbortSignal.timeout(12000), headers: { "user-agent": "Mozilla/5.0 (compatible; VexoraBot/1.0; +https://vexorasuite.com.br)" } });
+        if (response.ok) {
+          const html = (await response.text()).slice(0, 150000);
+          const pull = (re: RegExp) => (html.match(re)?.[1] || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
+          const title = pull(/<title[^>]*>([\s\S]*?)<\/title>/i);
+          const desc = (html.match(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']{0,300})["']/i)?.[1] || "").trim();
+          const sections = [...html.matchAll(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/gi)].map((m) => (m[1] || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 12).join(" | ");
+          brief.push(`Clone de frontend — conteúdo do site de referência (${cloneUrl}):\nTÍTULO: ${title}\nDESCRIÇÃO: ${desc}\nSEÇÕES: ${sections}\nAdapte o MESMO TIPO de conteúdo para a empresa acima — NÃO copie marcas nem logos registrados.`);
+        }
+      } catch { brief.push(`Clone de frontend — o dono apontou o site: ${cloneUrl}. Improvise conteúdo coerente com o negócio.`); }
+    }
+    const providers = economicalProviders(assistant, undefined, integrations, tenantId);
+    if (providers.length === 0) return out;
+    try {
+      await this.prisma.$transaction((tx) => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant.dailyAiLimit), "sites.generate", userId));
+      const result = await this.ai.generate([
+        { role: "system", content: "Você é um redator sênior brasileiro. Devolva SOMENTE JSON válido: {\"headline\":\"...\",\"sub\":\"...\",\"services\":[{\"title\":\"...\",\"text\":\"...\"} x6],\"faq\":[{\"question\":\"...\",\"answer\":\"...\"} x3],\"testimonials\":[{\"name\":\"...\",\"text\":\"...\"} x3],\"cta\":{\"title\":\"...\",\"sub\":\"...\"}}. Sem markdown, sem comentários, sem chaves extras." },
+        { role: "user", content: brief.join("\n") },
+      ], [providers[0]!, ...providers.slice(1, 3)]);
+      const text = String(result?.text || "");
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const json: any = JSON.parse(jsonMatch[0]);
+        if (json && json.headline) {
+          for (const page of out.pages) for (const block of page.blocks) {
+            const c: any = block.content || {};
+            if (block.type === "hero") block.content = { ...c, headline: String(json.headline).slice(0, 120), sub: String(json.sub || c.sub || "").slice(0, 300) };
+            else if (block.type === "services" && Array.isArray(json.services) && json.services.length) block.content = { ...c, items: json.services.slice(0, 8).map((s: any) => ({ title: String(s?.title || "Serviço").slice(0, 80), text: String(s?.text || "").slice(0, 240) })) };
+            else if (block.type === "faq" && Array.isArray(json.faq)) block.content = { ...c, items: json.faq.slice(0, 6).map((f: any) => ({ question: String(f?.question || "Pergunta").slice(0, 140), answer: String(f?.answer || "").slice(0, 600) })) };
+            else if (block.type === "testimonials" && Array.isArray(json.testimonials)) block.content = { ...c, items: json.testimonials.slice(0, 6).map((t: any) => ({ name: String(t?.name || "Cliente").slice(0, 80), text: String(t?.text || "").slice(0, 400) })) };
+            else if (block.type === "cta" && json.cta) block.content = { ...c, title: String(json.cta.title || c.title || "").slice(0, 120), sub: String(json.cta.sub || c.sub || "").slice(0, 240) };
+          }
+          if (out.meta) out.meta = { headline: String(json.headline).slice(0, 120), sub: String(json.sub || "").slice(0, 300) };
+        }
+      }
+    } catch { /* mantém o determinístico */ }
+    return out;
+  }
+
   @Get("catalog") catalog() {
     return Object.fromEntries(Object.entries(BUSINESS_AREAS).map(([key, v]) => [key, { label: v.label, headline: v.headline, sub: v.sub, services: v.services }]));
   }
@@ -79,7 +133,8 @@ export class SitesController {
     const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#6258DF";
     const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
-    const blueprint = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC" });
+    const blueprintResult = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC" });
+    const blueprint = await this.enrichBlueprintWithAi(this.tenantOf(req), req.user.sub, area, name, blueprintResult, str(body?.aiPrompt, 2500), str(body?.referenceUrl, 300), str(body?.cloneUrl, 300));
     const slug = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
     let finalSlug = slug, attempt = 0;
     while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slug + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }

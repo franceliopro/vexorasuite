@@ -209,7 +209,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   }
                 />
               </label>
-              <label>Agenda pessoal
+              <label>Calendário pessoal
                 <select value={form.agendaKey} onChange={e=>setForm(v=>({...v,agendaKey:e.target.value}))}>
                   <option value="">Sem agenda pessoal</option>
                   {agendaOptions.map(option=><option key={option.key} value={option.key}>{option.label}</option>)}

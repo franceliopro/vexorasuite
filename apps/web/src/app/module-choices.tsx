@@ -2,7 +2,7 @@
 export const moduleLabels: Record<string, string> = {
   INBOX: "Atendimento",
   CRM: "CRM",
-  CALENDAR: "Agenda",
+  CALENDAR: "Calendários",
   TASKS: "Tarefas",
   AUTOMATION: "Automação e agentes de IA",
   MARKETING: "Marketing e Drive",

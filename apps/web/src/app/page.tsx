@@ -220,7 +220,7 @@ export default function HomePage() {
   }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
   type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean;fontScalePercent?:number};
-  const defaultBrandAssets:BrandAssets={primaryColor:"#6258DF",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100};
+  const defaultBrandAssets:BrandAssets={primaryColor:"#2E7CF6",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100};
   const [theme, setTheme] = useState<ThemeMode>("hybrid");
   const [themeReady,setThemeReady]=useState(false);
   const [brandAssets,setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);

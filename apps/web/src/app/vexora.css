@@ -3071,10 +3071,10 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
   --sb-bg:#0E1530;--sb-on:#162040;--sb-ln:#212E52;--sb-mut:#B9CCF0;--sb-tx:#FAFCFF;--sb-thumb:#5B8DEF;--sb-active:var(--primary);--sb-active-tx:#04122A;
 }
 /* Sidebar: feixes diagonais de luz azul + brilho do diamante */
-.sidebar{background:radial-gradient(320px 280px at -16% -12%,color-mix(in srgb,var(--primary) 11%,transparent) 0%,transparent 58%),radial-gradient(300px 340px at 112% 112%,color-mix(in srgb,var(--accent2) 12%,transparent) 0%,transparent 62%),linear-gradient(180deg,#FFFFFF 0%,#F7F9FE 55%,#EFF3FB 100%);border-right:1px solid var(--sb-ln)}
-:root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{background:radial-gradient(200px 180px at 6px -36px,color-mix(in srgb,var(--primary) 54%,transparent) 0%,transparent 64%),radial-gradient(260px 230px at 104% 6%,color-mix(in srgb,var(--accent2) 26%,transparent) 0%,transparent 70%),radial-gradient(150px 380px at -48% 44%,color-mix(in srgb,var(--primary) 24%,transparent) 0%,transparent 62%),linear-gradient(180deg,#0A1330 0%,var(--sb-bg) 48%,#050B1E 100%);border-right:1px solid var(--sb-ln)}
-.sidebar::before{content:none;pointer-events:none}
-:root[data-theme=hybrid] .sidebar::before,:root[data-theme=dark] .sidebar::before{content:"";position:absolute;top:-15%;left:-12%;width:72%;height:135%;background:linear-gradient(112deg,transparent 32%,color-mix(in srgb,#9CD0FF 17%,transparent) 48%,color-mix(in srgb,#FFFFFF 20%,transparent) 53%,transparent 66%);filter:blur(3px);opacity:.6}
+.sidebar{background:#FBFCFE;border-right:1px solid var(--sb-ln)}
+:root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{background:var(--sb-bg);border-right:1px solid var(--sb-ln)}
+.sidebar::before{content:"";position:absolute;top:-110px;left:-70px;right:-70px;height:240px;background:radial-gradient(240px 190px at 50% 0%,color-mix(in srgb,var(--primary) 14%,transparent) 0%,transparent 72%);filter:blur(26px);pointer-events:none;opacity:.9}
+:root[data-theme=hybrid] .sidebar::before,:root[data-theme=dark] .sidebar::before{content:"";position:absolute;top:-130px;left:-90px;right:-90px;height:300px;background:radial-gradient(320px 230px at 50% 0%,color-mix(in srgb,var(--primary) 46%,transparent) 0%,transparent 72%);filter:blur(30px);pointer-events:none;opacity:1}
 /* Botões primários: degradê safira + brilho */
 .primary-button{background:linear-gradient(155deg,#5FA8FF 0%,#2E7CF6 38%,#1B53C6 100%);color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 6px rgba(4,18,42,.35),0 14px 34px -12px color-mix(in srgb,var(--primary) 85%,transparent),0 0 0 1px color-mix(in srgb,var(--accent2) 40%,transparent);text-shadow:0 1px 2px rgba(4,18,42,.45)}
 .primary-button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 20px 44px -12px color-mix(in srgb,var(--primary) 90%,transparent),0 0 0 1px color-mix(in srgb,var(--accent2) 60%,transparent)}
@@ -3396,3 +3396,43 @@ a:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--p
 .marketing-preview-modal-thumbs button{flex:none;width:62px;height:62px;border:2px solid transparent;border-radius:11px;overflow:hidden;padding:0;background:#0B1526;cursor:pointer;opacity:.62;transition:all .14s}
 .marketing-preview-modal-thumbs button.active{opacity:1;border-color:#2E7CF6;box-shadow:0 0 0 3px rgba(46,124,246,.45)}
 .marketing-preview-modal-thumbs img{width:100%;height:100%;object-fit:cover}
+
+/* ===== 82. Acabamento fino — perfil, tabs, contadores, ficha do cliente ===== */
+/* Botão “recolher ficha” — menor, nítido, com hover azul */
+.contact-profile .profile-toggle{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--ln2);border-radius:10px;background:var(--s1);color:var(--tx2);cursor:pointer;transition:background .14s,color .14s,border-color .14s,box-shadow .14s}
+.contact-profile .profile-toggle:hover{background:var(--hover);color:var(--tx);border-color:var(--ln2);box-shadow:var(--shadow-sm)}
+.contact-profile .profile-toggle:focus-visible{outline:var(--ring);border-color:var(--primary)}
+.contact-profile .profile-toggle svg{width:16px;height:16px}
+
+/* Tabs ativas — gradê vertical consistente com os botões primários */
+[class$="-tabs"] button.active,.crm-view-switch button.active,.persistent-module-tabs button.active,.inbox-queue-button.active{background:linear-gradient(180deg,color-mix(in srgb,var(--primary) 92%,#FFFFFF) 0%,var(--primary) 52%,color-mix(in srgb,var(--primary) 84%,#000) 100%);border-color:color-mix(in srgb,var(--primary) 74%,#0B2740);color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 10px 22px -12px color-mix(in srgb,var(--primary) 72%,transparent)}
+[class$="-tabs"] button:focus-visible,.crm-view-switch button:focus-visible,.persistent-module-tabs button:focus-visible,.inbox-queue-button:focus-visible,.composer-tabs button:focus-visible{outline:var(--ring);outline-offset:2px}
+
+/* Bolinhas de números — Novas/Minhas/Equipes etc. */
+.inbox-queue-count{min-width:17px!important;min-height:17px!important;height:17px!important;padding:0 5px!important;border-radius:99px!important;background:color-mix(in srgb,var(--primary) 11%,var(--s1))!important;color:var(--primary-ink)!important;font:800 9px/1 var(--font-display)!important;letter-spacing:.03em!important;font-variant-numeric:tabular-nums!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 20%,transparent)!important}
+.inbox-queue-button.active .inbox-queue-count{background:rgba(255,255,255,.24)!important;color:#FFFFFF!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)!important}
+.inbox-queue-button{min-height:28px!important;padding:0 10px!important;gap:6px!important;font-size:10px!important;border-radius:99px!important}
+.status-pill,.profile-status-pill,.conversation-tag,.profile-tag,.vx-status-chip{font-variant-numeric:tabular-nums}
+
+/* thread-status-pill — selado e com menu refinado */
+.thread-status-pill summary{border-color:color-mix(in srgb,var(--primary) 34%,var(--ln));background:color-mix(in srgb,var(--primary) 9%,var(--s2));color:var(--primary-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.thread-status-pill summary:hover{border-color:color-mix(in srgb,var(--primary) 52%,var(--ln));background:color-mix(in srgb,var(--primary) 14%,var(--s2))}
+.thread-status-pill-menu{border-radius:14px;padding:9px;gap:5px;box-shadow:var(--shadow-lg)}
+.thread-status-pill-menu button{min-height:36px;padding:0 12px;font-size:12px;border-radius:10px;transition:background .13s}
+.thread-status-pill-menu button svg{color:var(--primary-ink)}
+.thread-status-pill-menu button:hover{background:var(--s2)}
+
+/* Ficha do cliente / avatares — anel nítido e proporção */
+.conversation-avatar-wrap{width:44px!important;height:44px!important}
+.conversation-avatar{width:44px!important;height:44px!important}
+.conversation-avatar-wrap .conversation-avatar img,.thread-contact-avatar img,.contact-photo img{box-shadow:0 0 0 2px var(--s1),0 0 0 3px color-mix(in srgb,var(--primary) 30%,var(--ln2))}
+.thread-contact-avatar{transition:transform .16s var(--ease),box-shadow .16s var(--ease)}
+.thread-contact-avatar:hover{transform:scale(1.05)}
+.contact-profile{border-left:1px solid var(--ln)}
+.thread-protocol{font-variant-numeric:tabular-nums}
+
+/* Lista de conversas — item com borda sutil e sombra suave no selecionado */
+.inbox-conversation.selected{box-shadow:inset 3px 0 0 var(--primary),inset 0 0 0 1px color-mix(in srgb,var(--primary) 26%,transparent)!important}
+
+/* body — wash fora tonalizado, mais frio e sutil */
+body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(--primary) 5%,transparent),transparent 62%),var(--bg)!important}

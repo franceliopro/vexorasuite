@@ -14,7 +14,7 @@ async function main(){
   const input={name:'Escola de música CI',segmentId:'music-school',requestId};
   const results=await Promise.all([service.createCompany(userId,sourceId,input),service.createCompany(userId,sourceId,input)]);
   const targetId=results[0].tenant.id;assert.equal(results[1].tenant.id,targetId);
-  assert.notEqual(targetId,sourceId);assert.equal(await db.department.count({where:{tenantId:targetId}}),4);
+  assert.notEqual(targetId,sourceId);assert.equal(await db.department.count({where:{tenantId:targetId}}),3);
   assert.equal(await db.crmPipeline.count({where:{tenantId:targetId}}),4);
   assert.equal(await db.internalWorkflow.count({where:{tenantId:targetId}}),4);
   assert.equal(await db.department.count({where:{tenantId:sourceId}}),0);

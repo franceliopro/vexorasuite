@@ -23,7 +23,7 @@ const deptHref = (d: { platform: string; handle: string; url?: string }) => d.ur
 const safeImg = (url?: string | null) => url && (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) ? url : null;
 
 /** In-memory preview of the site — same look as the public renderer, no server round trip. */
-export function SitePreview({ site, highlightBlockId }: { site: PreviewSite; highlightBlockId?: string | null }) {
+export function SitePreview({ site, highlightBlockId, onBlockClick }: { site: PreviewSite; highlightBlockId?: string | null; onBlockClick?: (blockId: string) => void }) {
   if (!site) return null;
   const primary = site.primaryColor;
   const accent = site.accentColor;
@@ -73,7 +73,13 @@ export function SitePreview({ site, highlightBlockId }: { site: PreviewSite; hig
         <span className="ps-brand">{safeImg(site.logoUrl) ? <img src={site.logoUrl!} alt={"Logo " + site.name} /> : <span className="ps-monogram">{initials(site.name)}</span>}<strong>{site.name}</strong></span>
         <nav className="ps-nav">{(site.pages || []).filter(p => p.slug !== "inicio").map(p => <a key={p.slug} href="#" onClick={e => e.preventDefault()}>{p.title}</a>)}</nav>
       </header>
-      {(page?.blocks || []).sort((a, b) => a.sortOrder - b.sortOrder).map(block => <div key={block.id}>{renderBlock(block)}</div>)}
+      {(page?.blocks || []).sort((a, b) => a.sortOrder - b.sortOrder).map(block => {
+        const element = renderBlock(block);
+        if (onBlockClick) {
+          return <div key={block.id} className="ps-block-select" role="button" tabIndex={0} title="Clique para selecionar o bloco" onClick={() => onBlockClick(block.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onBlockClick(block.id); } }}>{element}</div>;
+        }
+        return <div key={block.id}>{element}</div>;
+      })}
       <footer className="ps-footer"><p>{site.name} · Desenvolvido por <a href="https://vexorasuite.com.br" target="_blank" rel="noreferrer">Véxora Suite</a></p></footer>
     </main>
   );

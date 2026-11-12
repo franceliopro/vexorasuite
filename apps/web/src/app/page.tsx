@@ -17,7 +17,7 @@ import { WorkspaceAlerts } from "./workspace-alerts";
 import { OverviewIntelligence, type OverviewSnapshot } from "./overview-intelligence";
 import { SidebarProfile } from "./sidebar-profile";
 const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AuthScreen, type AuthSession } from "./auth-screen";
 const InboxWorkspace=dynamic(()=>import("./inbox-workspace").then(module=>module.InboxWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -337,7 +337,7 @@ export default function HomePage() {
                 <article className="content-card vx-access-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="vx-access-grid">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"green",target:"CRM"},{name:"Calendários",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Calendários"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"amber",target:"CRM"},{name:"Calendários",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Calendários"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
                   </div>
                 </article>
               } />
@@ -357,7 +357,7 @@ export default function HomePage() {
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Sites" || active === "Landing Pages" || active === "Formulários" ? (
-            moduleVisible("Sites") ? <SitesWorkspace key={active} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
+            moduleVisible("Sites") ? <Suspense fallback={<p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando Sites…</p>}><SitesWorkspace key={active} /></Suspense> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
           ) : active === "Relatórios" ? (
             canManage ? <ReportsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
           ) : active === "Planos e pacotes" || active === "Clientes" ? (

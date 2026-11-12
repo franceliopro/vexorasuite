@@ -189,8 +189,26 @@ const BILLING_BR: Record<string, string> = {
   UNDEFINED: "Não informado", OTHER: "Outro", DEPOSIT: "Depósito", TRANSFER: "Transferência", PAYMENT_ORDER: "Ordem de pagamento",
 };
 const TONE_COLOR: Record<string, string> = {
-  violet: "#8B5CF6", blue: "#2C7BC4", amber: "#D08A18", green: "#1F5FD0", rose: "#D9583F",
+  violet: "#8B5CF6", blue: "#3B82F6", amber: "#F59E0B", green: "#10B981", rose: "#F43F5E", pink: "#EC4899",
+  cyan: "#22D3EE", orange: "#F97316", lilac: "#C084FC", lime: "#84CC16", fuchsia: "#D946EF", teal: "#14B8A6",
 };
+/* Paleta diversificada — vizinhos sempre distantes */
+const CHART_PALETTE = ["#8B5CF6", "#F59E0B", "#22D3EE", "#F43F5E", "#10B981", "#3B82F6", "#EC4899", "#FB7185", "#84CC16", "#C084FC", "#F97316", "#FDE047"];
+const STAGE_FALLBACK = ["#8B5CF6", "#22D3EE", "#F43F5E", "#F59E0B", "#10B981", "#EC4899", "#3B82F6", "#C084FC", "#F97316", "#84CC16"];
+const networkColor = (label: string): string | null => {
+  const v = label.toLowerCase();
+  if (v.includes("instagram")) return "url(#rw-instagram)";
+  if (v.includes("facebook") || v.includes("meta")) return "#1877F2";
+  if (v.includes("whatsapp")) return "#25D366";
+  if (v.includes("tiktok")) return "#111111";
+  if (v.includes("linkedin")) return "#0A66C2";
+  if (v.includes("google") || v.includes("gmail")) return "#4285F4";
+  if (v.includes("email") || v.includes("e-mail")) return "#0EA5E9";
+  if (v.includes("landing") || v.includes("site")) return "#8B5CF6";
+  if (v.includes("form") || v.includes("formul")) return "#E9A13B";
+  return null;
+};
+const barColor = (label: string, index: number): string => networkColor(label) ?? CHART_PALETTE[index % CHART_PALETTE.length] ?? "#2E7CF6";
 
 /* ================================================================== */
 /* Blocos visuais                                                      */
@@ -280,21 +298,22 @@ function DataTable({ caption, columns, rows }: { caption: string; columns: strin
     </div>
   );
 }
-function HorizontalBars({ rows, format }: { rows: Array<{ label: string; value: number }>; format?: (value: number) => string }) {
+function HorizontalBars({ rows, format }: { rows: Array<{ label: string; value: number; fill?: string }>; format?: (value: number) => string }) {
   const visible = rows.slice(0, 8);
   const max = Math.max(1, ...visible.map((row) => row.value));
   const render = format ?? numberBR;
   if (!visible.length) return <EmptyBlock title="Sem dados para exibir" hint="Nenhum registro encontrado no período selecionado." />;
   return (
     <div className="rw-hbars">
-      {visible.map((row) => {
+      {visible.map((row, index) => {
         const width = Math.max(row.value > 0 ? 3 : 0, (row.value / max) * 100);
+        const fill = row.fill ?? barColor(row.label, index);
         return (
           <div className="rw-hbar-row" key={row.label}>
             <span className="rw-hbar-label" title={row.label}>{row.label}</span>
             <svg className="rw-hbar-track" viewBox="0 0 100 12" preserveAspectRatio="none" role="img" aria-label={row.label + ": " + render(row.value)}>
               <rect x="0" y="0" width="100" height="12" rx="6" className="rw-hbar-bg" />
-              {row.value > 0 ? <rect x="0" y="0" width={width} height="12" rx="6" className="rw-hbar-fill" /> : null}
+              {row.value > 0 ? <rect x="0" y="0" width={width} height="12" rx="6" className="rw-hbar-fill" style={{ fill }} /> : null}
             </svg>
             <span className="rw-hbar-value">{render(row.value)}</span>
           </div>
@@ -539,7 +558,7 @@ function ReportsWorkspaceInner() {
   const composition = summary
     ? [
         { label: "Humano", value: summary.human, color: "var(--primary)" },
-        { label: "IA / Bot", value: summary.bot, color: "var(--accent2)" },
+        { label: "IA / Bot", value: summary.bot, color: "#8B5CF6" },
         { label: "Sem modo registrado", value: Math.max(0, summary.total - summary.human - summary.bot), color: "var(--ln2)" },
       ]
     : [];
@@ -804,7 +823,7 @@ function ReportsWorkspaceInner() {
               <div className="rw-grid-2">
                 <section className="rw-card">
                   <CardHead title="Volume por canal" hint="Conversas criadas por canal no período" />
-                  <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total }))} />
+                  <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total, fill: networkColor(row.name) ?? undefined }))} />
                 </section>
                 <section className="rw-card">
                   <CardHead title="Top atendentes" hint="Maior volume de conversas no período" />
@@ -836,7 +855,7 @@ function ReportsWorkspaceInner() {
                 </section>
                 <section className="rw-card">
                   <CardHead title="Volume por canal" hint="Em que canais as conversas nasceram" />
-                  <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total }))} />
+                  <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total, fill: networkColor(row.name) ?? undefined }))} />
                 </section>
               </div>
               <section className="rw-card">
@@ -916,7 +935,7 @@ function ReportsWorkspaceInner() {
                   <div className="rw-grid-2">
                     <section className="rw-card">
                       <CardHead title="Leads por origem" hint="Canais que trouxeram oportunidades" />
-                      <HorizontalBars rows={byOrigin.map((origin) => ({ label: origin.name, value: origin.total }))} />
+                      <HorizontalBars rows={byOrigin.map((origin) => ({ label: origin.name, value: origin.total, fill: networkColor(origin.name) ?? undefined }))} />
                     </section>
                     <section className="rw-card">
                       <CardHead title="Leads por etapa" hint="Distribuição no funil" />
@@ -967,7 +986,7 @@ function ReportsWorkspaceInner() {
                                 const count = typeof stage.count === "number" ? stage.count : typeof stage.cards === "number" ? stage.cards : null;
                                 return (
                                   <span className="rw-stage-chip" key={(stage.id ?? "stage") + "-" + index}>
-                                    <i className="rw-stage-dot" style={{ background: TONE_COLOR[String(stage.tone ?? "")] ?? "var(--primary)" }} aria-hidden="true" />
+                                    <i className="rw-stage-dot" style={{ background: TONE_COLOR[String(stage.tone ?? "")] ?? STAGE_FALLBACK[index % STAGE_FALLBACK.length] }} aria-hidden="true" />
                                     {stage.label ?? stage.id ?? "Etapa " + (index + 1)}
                                     {count !== null ? <strong>{numberBR(count)}</strong> : null}
                                   </span>
@@ -1073,7 +1092,7 @@ function ReportsWorkspaceInner() {
                   {overview.topics?.length ? (
                     <section className="rw-card">
                       <CardHead title="Temas mais frequentes" hint="Baseado em assunto e departamento" />
-                      <HorizontalBars rows={overview.topics.map((topic) => ({ label: topic.label, value: topic.count }))} />
+                      <HorizontalBars rows={overview.topics.map((topic, index) => ({ label: topic.label, value: topic.count, fill: CHART_PALETTE[index % CHART_PALETTE.length] }))} />
                     </section>
                   ) : null}
                 </>
@@ -1094,6 +1113,7 @@ function ReportsWorkspaceFallback() {
     <div className="reports-print-root">
       <style>{REPORTS_CSS}</style>
       <PanelSkeleton />
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true"><defs><linearGradient id="rw-instagram" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FEDA77" /><stop offset=".25" stopColor="#FD1D1D" /><stop offset=".6" stopColor="#D6249F" /><stop offset="1" stopColor="#833AB4" /></linearGradient></defs></svg>
     </div>
   );
 }
@@ -1198,7 +1218,7 @@ const REPORTS_CSS = `
 .rw-legend-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--tx2)}
 .rw-legend-dot{width:11px;height:11px;border-radius:3.5px;flex:none;display:inline-block}
 .rw-legend-dot.rw-dot-billed{background:var(--primary);border-radius:99px}
-.rw-legend-dot.rw-dot-paid{background:var(--accent2);border-radius:99px}
+.rw-legend-dot.rw-dot-paid{background:#FBBF24;border-radius:99px}
 .rw-legend-label{flex:1;min-width:0}
 .rw-legend-value{color:var(--tx);font-variant-numeric:tabular-nums}
 
@@ -1216,10 +1236,10 @@ const REPORTS_CSS = `
 .rw-ylabel{fill:var(--tx2);font:600 9px var(--font-ui);font-variant-numeric:tabular-nums}
 .rw-xlabel{fill:var(--tx2);font:600 9px var(--font-ui)}
 .rw-line-billed{stroke:var(--primary);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.rw-line-paid{stroke:var(--accent2);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 0}
+.rw-line-paid{stroke:#FBBF24;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .rw-line-area{fill:color-mix(in srgb,var(--primary) 8%,transparent)}
 .rw-dot-billed{fill:var(--primary)}
-.rw-dot-paid{fill:var(--accent2)}
+.rw-dot-paid{fill:#FBBF24}
 .rw-linechart-legend{display:flex;gap:16px;font-size:11.5px;color:var(--tx2)}
 .rw-linechart-legend span{display:inline-flex;align-items:center;gap:7px}
 
@@ -1339,11 +1359,11 @@ const REPORTS_CSS = `
   .rw-donut-track{stroke:#eaece7 !important}
   .rw-legend-dot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rw-legend-dot.rw-dot-billed{background:#164E8A !important}
-  .rw-legend-dot.rw-dot-paid{background:#2C7BC4 !important}
+  .rw-legend-dot.rw-dot-paid{background:#FBBF24 !important}
   .rw-line-billed{stroke:#164E8A !important}
-  .rw-line-paid{stroke:#2C7BC4 !important}
+  .rw-line-paid{stroke:#FBBF24 !important}
   .rw-dot-billed{fill:#164E8A !important}
-  .rw-dot-paid{fill:#2C7BC4 !important}
+  .rw-dot-paid{fill:#FBBF24 !important}
   .rw-line-area{fill:#eef4f0 !important}
   .rw-gridline,.rw-hour-bar{stroke:#D8DEE9}
   .rw-hour-bar{fill:#c3c8bd !important}

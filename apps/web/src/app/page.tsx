@@ -9,6 +9,7 @@ import { applyBrandTheme } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const SitesWorkspace=dynamic(()=>import("./sites-workspace").then(module=>module.SitesWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
+const WebAssetsWorkspace=dynamic(()=>import("./web-assets-workspace").then((module)=>module.WebAssetsWorkspace),{loading:()=> <p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando módulo…</p>});
 const ClientPlansWorkspace=dynamic(()=>import("./client-plans-workspace").then(module=>module.ClientPlansWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ReportsWorkspace=dynamic(()=>import("./reports-workspace").then(module=>module.ReportsWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const PlatformAdminWorkspace=dynamic(()=>import("./platform-admin-workspace").then(module=>module.PlatformAdminWorkspace),{loading:()=> <p role="status">Carregando painel…</p>});
@@ -358,8 +359,12 @@ export default function HomePage() {
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
-          ) : active === "Sites" || active === "Landing Pages" || active === "Formulários" ? (
-            moduleVisible("Sites") ? <Suspense fallback={<p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando Sites…</p>}><SitesWorkspace key={active} /></Suspense> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
+          ) : active === "Sites" ? (
+            moduleVisible("Sites") ? <Suspense fallback={<p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando Sites…</p>}><SitesWorkspace /></Suspense> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
+          ) : active === "Landing Pages" ? (
+            moduleVisible("Sites") ? <WebAssetsWorkspace key="landing" kind="LANDING" /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
+          ) : active === "Formulários" ? (
+            moduleVisible("Sites") ? <WebAssetsWorkspace key="form" kind="FORM" /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
           ) : active === "Relatórios" ? (
             canManage ? <ReportsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
           ) : active === "Planos e pacotes" || active === "Clientes" ? (

@@ -17,6 +17,7 @@ type WebAsset = {
   updatedAt: string;
 };
 
+const assetsCache: Partial<Record<WebAssetKind, WebAsset[]>> = {};
 const FIELD_TYPES = [
   ["text", "Texto curto"],
   ["textarea", "Texto longo"],
@@ -69,8 +70,8 @@ function blankField(): WebAssetField {
 export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
   const meta = META[kind];
   const Icon = meta.icon;
-  const [items, setItems] = useState<WebAsset[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<WebAsset[]>(() => assetsCache[kind] ?? []);
+  const [loading, setLoading] = useState(() => !assetsCache[kind]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [dialog, setDialog] = useState<"create" | WebAsset | null>(null);
@@ -90,6 +91,7 @@ export function WebAssetsWorkspace({ kind }: { kind: WebAssetKind }) {
     setError("");
     try {
       const rows = await api<WebAsset[]>(`marketing/web-assets?kind=${kind}`);
+      assetsCache[kind] = rows;
       setItems(rows);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar os itens.");

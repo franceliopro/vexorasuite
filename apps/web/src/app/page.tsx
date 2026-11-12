@@ -17,6 +17,7 @@ const PlatformAdminWorkspace=dynamic(()=>import("./platform-admin-workspace").th
 import { WorkspaceAlerts } from "./workspace-alerts";
 import { OverviewIntelligence, type OverviewSnapshot } from "./overview-intelligence";
 import { SidebarProfile } from "./sidebar-profile";
+import { useGlobalPhoneMask } from "../hooks/useGlobalPhoneMask";
 const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
 import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -142,6 +143,7 @@ const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de
     : value === "Conexões" || value === "Canais e integrações" ? "connections" : null;
 
 export default function HomePage() {
+  useGlobalPhoneMask();
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
   const [session, setSession] = useState<AuthSession | null>(null);
   useEffect(() => {

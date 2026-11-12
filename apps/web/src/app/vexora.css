@@ -3436,3 +3436,58 @@ a:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--p
 
 /* body — wash fora tonalizado, mais frio e sutil */
 body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(--primary) 5%,transparent),transparent 62%),var(--bg)!important}
+
+/* ===== 83. Mobile — app nativo (iOS/Android feel) + ficha sob demanda ===== */
+/* Identidades do contato — contraste total no escuro */
+:root[data-theme=dark] .contact-identity-card{background:var(--s2);border-color:var(--ln2)}
+:root[data-theme=dark] .contact-identity-icon{background:color-mix(in srgb,var(--primary) 16%,var(--s1))}
+:root[data-theme=dark] .contact-identity-copy small{color:var(--tx2)}
+.contact-identity-card{border-color:var(--ln2)}
+.contact-identity-list{display:grid;gap:8px}
+.contact-identity-copy b{color:var(--tx)}
+
+/* Ficha oculta fora do desktop; abre como painel deslizante */
+@media (max-width:1100px){
+  .page-content--fixed .contact-profile{display:none!important}
+  .page-content--fixed .inbox-workspace{position:relative}
+  .page-content--fixed .inbox-workspace.ficha-open .contact-profile{display:flex!important;position:absolute;top:0;right:0;bottom:0;z-index:60;width:min(330px,88vw);max-width:88vw;border-left:1px solid var(--ln);background:var(--s1);box-shadow:-18px 0 48px rgba(2,6,20,.32);overflow-y:auto;border-radius:0}
+}
+@media (min-width:1101px){.ficha-toggle{display:none!important}}
+.ficha-toggle{display:inline-grid}
+
+/* ===== Celular — app nativo ===== */
+@media (max-width:760px){
+  :root{--top:48px;--dock:calc(60px + env(safe-area-inset-bottom))}
+  /* Topbar mais compacta e com translucidez nativa */
+  .topbar{height:var(--top);padding:0 8px;gap:4px;background:color-mix(in srgb,var(--bg) 84%,transparent)}
+  .topbar .search-box,.topbar .breadcrumbs,.topbar .logout-button span,.topbar .ai-assistant-trigger span{display:none!important}
+  .topbar .mobile-menu,.topbar .logout-button,.topbar .ai-assistant-trigger,.topbar .icon-button{min-height:34px;min-width:34px;padding:0 8px;border-radius:10px}
+  .topbar .icon-button{padding:0}
+  .topbar .avatar{width:32px;height:32px;font-size:11px}
+  /* Cabeçalho da conversa — compacto, uma linha */
+  .thread-heading{padding:8px 10px;gap:8px}
+  .thread-contact-avatar{width:34px;height:34px;font-size:11px}
+  .thread-contact{gap:1px}
+  .thread-contact h2{font-size:13px;line-height:1.15}
+  .thread-contact-status{font-size:9.5px}
+  .thread-protocol{display:none}
+  .thread-status-pill summary{min-height:22px;padding:0 8px;font-size:10px}
+  .thread-icon-action{width:32px;height:32px;border-radius:10px}
+  /* Mensagens com respiração natural */
+  .messages-scroll{padding:10px 8px 8px}
+  .message{font-size:13px;line-height:1.55;max-width:86%}
+  .internal-note-card{width:100%;font-size:12px}
+  /* Composer nativo — maiores alvos, raio generoso, flutuante */
+  .inbox-composer{margin:4px 4px 4px;border-radius:18px;padding:6px;box-shadow:0 -4px 22px rgba(6,12,9,.12)}
+  .composer-tabs-row{padding:2px 6px 4px;gap:6px}
+  .composer-tabs button{min-height:26px;padding:0 10px;font-size:11px}
+  .inbox-composer-input,.composer-input{min-height:42px;font-size:16px;padding:10px 12px;border-radius:14px}
+  .composer-icon-button{width:40px;height:40px;border-radius:12px}
+  /* Lista de conversas nativa */
+  .inbox-list{padding:4px;border-radius:14px}
+  .inbox-conversation{padding:9px 10px;gap:8px;border-radius:12px}
+  .inbox-panel-heading{padding:8px 10px}
+  /* Dock translúcido estilo app */
+  .mobile-bottom-nav{background:color-mix(in srgb,var(--sb-bg) 88%,transparent);backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15)}
+  .mobile-bottom-nav button{border-radius:16px}
+}

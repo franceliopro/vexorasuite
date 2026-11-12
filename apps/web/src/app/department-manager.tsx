@@ -189,7 +189,7 @@ export function DepartmentManager() {
               }
             >
               <option value="FINANCE">Financeiro</option>
-              <option value="SUPPORT">Suporte técnico</option>
+              <option value="SUPPORT">Suporte</option>
               <option value="SALES">Comercial</option>
               <option value="ADMIN">Administrativo</option>
               <option value="OTHER">Outro</option>
@@ -251,7 +251,7 @@ export function DepartmentManager() {
               >
                 <option value="GENERAL">Geral</option>
                 <option value="FINANCE">Financeiro</option>
-                <option value="SUPPORT">Suporte técnico</option>
+                <option value="SUPPORT">Suporte</option>
                 <option value="SALES">Comercial</option>
               </select>
             </label>

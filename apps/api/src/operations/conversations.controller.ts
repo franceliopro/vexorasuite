@@ -813,10 +813,12 @@ export class ConversationsController {
         providerMessageId = await this.waha.sendMedia(conversation.channelConnection, chatId, kind, { mimetype: input.mimetype!, filename: input.filename, base64: input.data!, caption: input.caption });
       }
     }
-    catch {
-      const failed = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "FAILED", metadata: { provider: isZernio ? "ZERNIO" : "WAHA", errorCode: "SEND_FAILED" } } });
+    catch (error) {
+      const underlying = error && typeof error === "object" && "message" in error && typeof (error as any).message === "string" ? String((error as any).message) : "";
+      const detail = underlying ? " (" + underlying.slice(0, 300) + ")" : "";
+      const failed = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "FAILED", metadata: { provider: isZernio ? "ZERNIO" : "WAHA", errorCode: "SEND_FAILED", providerDetail: underlying.slice(0, 500) || null } } });
       this.events.publish(tenantId, "message.failed", { conversationId: conversation.id, message: { id: failed.id, status: failed.status, content: failed.content } });
-      throw new BadGatewayException("A mensagem não foi enviada. A falha ficou registrada no histórico.");
+      throw new BadGatewayException("A mensagem não foi enviada." + detail + " A falha ficou registrada no histórico.");
     }
     const sent = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "SENT", providerMessageId } });
     await this.prisma.$transaction(async tx => {

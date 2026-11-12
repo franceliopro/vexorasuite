@@ -9,12 +9,12 @@ describe('company onboarding and switching',()=>{
  it('prepares isolated departments and drafts without copying credentials',async()=>{
   const tx:any={department:{create:jest.fn(async({data})=>({id:randomUUID(),...data}))},departmentMember:{create:jest.fn()},crmPipeline:{create:jest.fn(async()=>({id:randomUUID()}))},internalWorkflow:{create:jest.fn(async()=>({id:randomUUID()}))},tenant:{update:jest.fn()}};
   await provisionCompany(tx,{id:randomUUID()},randomUUID(),'music-school',randomUUID());
-  expect(tx.department.create).toHaveBeenCalledTimes(4);
-  expect(tx.departmentMember.create).toHaveBeenCalledTimes(4);
+  expect(tx.department.create).toHaveBeenCalledTimes(3);
+  expect(tx.departmentMember.create).toHaveBeenCalledTimes(3);
   const root=tx.tenant.update.mock.calls[0][0].data.integrations;
   expect(root.onboarding.segmentId).toBe('music-school');
-  expect(Object.keys(root.businessFlows)).toHaveLength(4);
-  expect(root.assistant.agents).toHaveLength(4);expect(root.assistant.enabled).toBe(false);
+  expect(Object.keys(root.businessFlows)).toHaveLength(3);
+  expect(root.assistant.agents).toHaveLength(3);expect(root.assistant.enabled).toBe(false);
   expect(root.google).toBeUndefined();expect(root.asaas).toBeUndefined();
   const saved:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations:root})),update:jest.fn()}};
   const db:any={$transaction:(fn:any)=>fn(saved)};

@@ -3648,4 +3648,3 @@ body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(-
 .ps-block-select{cursor:pointer}
 .ps-block-select:hover{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--primary) 55%,transparent)}
 .ps-block-select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
- 1c8e1c6a (feat(sites): Elementor-lite — Studio v2 com IA, ficha inline e ordenação de blocos)

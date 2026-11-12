@@ -55,11 +55,11 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
   {
     title: "Conexões",
     cards: [
-      { title: "Conexões e inboxes", description: "Veja e conecte todos os canais da empresa em um só lugar.", icon: Network, action: "module", target: "Canais e integrações", tone: "green", metricKey: "inboxes" },
-      { title: "Redes sociais · Zernio", description: "Instagram, Facebook e outras contas sociais conectadas.", icon: Radio, action: "module", target: "Canais e integrações", tone: "purple", metricKey: "zernio" },
-      { title: "WhatsApp · Waha", description: "Números do WhatsApp conectados por QR Code.", icon: MessageSquareText, action: "module", target: "Canais e integrações", tone: "teal", metricKey: "waha" },
-      { title: "Meta Oficial", description: "WhatsApp, Instagram e Messenger quando habilitados.", icon: PanelTop, action: "module", target: "Canais e integrações", tone: "blue", metricKey: "meta" },
-      { title: "Google Drive e Calendários", description: "Contas e calendários usados pela empresa.", icon: FileSliders, action: "module", target: "Canais e integrações", tone: "yellow", metricKey: "google" },
+      { title: "Conexões e inboxes", description: "Veja e conecte todos os canais da empresa em um só lugar.", icon: Network, action: "module", target: "Conexões", tone: "green", metricKey: "inboxes" },
+      { title: "Redes sociais · Zernio", description: "Instagram, Facebook e outras contas sociais conectadas.", icon: Radio, action: "module", target: "Conexões", tone: "purple", metricKey: "zernio" },
+      { title: "WhatsApp · Waha", description: "Números do WhatsApp conectados por QR Code.", icon: MessageSquareText, action: "module", target: "Conexões", tone: "teal", metricKey: "waha" },
+      { title: "Meta Oficial", description: "WhatsApp, Instagram e Messenger quando habilitados.", icon: PanelTop, action: "module", target: "Conexões", tone: "blue", metricKey: "meta" },
+      { title: "Google Drive e Calendários", description: "Contas e calendários usados pela empresa.", icon: FileSliders, action: "module", target: "Conexões", tone: "yellow", metricKey: "google" },
       { title: "Asaas", description: "Credenciais, cobrança e sincronização financeira.", icon: CircleDollarSign, action: "module", target: "Financeiro", tone: "orange", metricKey: "asaas" },
       { title: "Planos e cobranças", description: "Planos da Véxora, assinaturas e regras de vencimento.", icon: CircleDollarSign, action: "module", target: "Financeiro", tone: "orange" },
     ],

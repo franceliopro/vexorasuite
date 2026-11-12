@@ -52,7 +52,7 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Formulários":()=>import("./web-assets-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
   "Gestão":()=>import("./finance-workspace"),
-  "Canais e integrações":()=>import("./channels-integrations"),
+  "Conexões":()=>import("./channels-integrations"),
   "Configurações":()=>import("./operations-settings"),
   "Atendentes":()=>import("./team-workspace"),
 };
@@ -124,19 +124,19 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
     { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }, { label: "Sites", icon: "share" }, { label: "Landing Pages", icon: "layout-dashboard" }, { label: "Formulários", icon: "tasks" }] },
     { label: "Financeiro", icon: "wallet" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share", children: [{ label: "Canais e integrações", icon: "share" }] }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
   automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
   marketing: [{ label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }, { label: "Sites", target: "Sites" }, { label: "Landing Pages", target: "Landing Pages" }, { label: "Formulários", target: "Formulários" }],
-  connections: [{ label: "Conexões", target: "Canais e integrações" }],
+  connections: [{ label: "Conexões", target: "Conexões" }],
 };
 const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de IA"].includes(value)
   ? "automation"
   : ["Criações", "Referências criativas", "Google Drive", "Sites", "Landing Pages", "Formulários"].includes(value)
     ? "marketing"
-    : value === "Canais e integrações" ? "connections" : null;
+    : value === "Conexões" || value === "Canais e integrações" ? "connections" : null;
 
 export default function HomePage() {
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
@@ -161,7 +161,7 @@ export default function HomePage() {
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
-    const validModules = new Set(["Atendentes","Canais e integrações","Relatórios","Planos e pacotes","Clientes","Planos e preços","Sites","Landing Pages","Formulários",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
+    const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Planos e pacotes","Clientes","Planos e preços","Sites","Landing Pages","Formulários",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Gestão") setActive("Financeiro");
@@ -184,7 +184,7 @@ export default function HomePage() {
   useEffect(()=>{try{localStorage.removeItem("vexora:quick-replies");localStorage.removeItem("vexora-chatbot-rastreabem-draft-v2")}catch{}},[]);
   const [overview,setOverview]=useState<OverviewSnapshot|null>(null);
   const [overviewError,setOverviewError]=useState("");
-  useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível carregar os indicadores. O painel tenta de novo em 60 segundos; se o problema continuar, verifique a conexão do WhatsApp em Canais e integrações.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
+  useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível carregar os indicadores. O painel tenta de novo em 60 segundos; se o problema continuar, verifique a conexão do WhatsApp em Conexões.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== "undefined" && window.innerWidth < 981);
@@ -246,7 +246,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'SITES','Landing Pages':'SITES','Formulários':'SITES','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'SITES','Landing Pages':'SITES','Formulários':'SITES','Financeiro':'FINANCE','Conexões':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
@@ -372,7 +372,7 @@ export default function HomePage() {
             canManage ? <WorkflowsWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Atendimento" ? (
             <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} canManageChannels={canConfigure} />
-          ) : active === "Canais e integrações" ? (
+          ) : active === "Conexões" || active === "Canais e integrações" ? (
             canConfigure ? <ChannelsIntegrations /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (
             canConfigure ? (settingsAdvanced ? <><button type="button" className="settings-back-link" onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></> : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} />) : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>

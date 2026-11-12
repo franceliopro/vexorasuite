@@ -223,6 +223,36 @@ export class SitesController {
     return { deleted: true };
   }
 
+  @Post("pages/:pageId/blocks/:blockId/ai") async aiEditBlock(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string, @Body() body: any) {
+    const page = await this.ownPage(req, pageId);
+    const block = await this.prisma.siteBlock.findFirst({ where: { id: blockId, pageId: page.id } });
+    if (!block) throw new NotFoundException("Bloco não encontrado.");
+    const instruction = str(body?.instruction, 800).trim();
+    if (instruction.length < 3) throw new BadRequestException("Descreva o que mudar neste bloco (ex.: 'destaque o preço com um CTA de agendar').");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
+    const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
+    const assistant = integrations?.assistant;
+    if (!assistant || assistant.enabled !== true) throw new BadRequestException("Ative a IA desta empresa em Configurações → Configuração geral antes de pedir alterações por IA.");
+    const providers = economicalProviders(assistant, undefined, integrations, this.tenantOf(req));
+    if (!providers.length) throw new BadRequestException("Nenhum provedor de IA configurado para esta empresa.");
+    await this.prisma.$transaction((tx) => reserveAiExecution(tx, this.tenantOf(req), dailyAiLimit(assistant.dailyAiLimit), "sites.block_edit", req.user.sub));
+    const current = block.content || {};
+    const result = await this.ai.generate([
+      { role: "system", content: "Você é um designer sênior e redator web brasileiro. Devolva SOMENTE JSON válido: {\"content\":{...}}. Mantenha as mesmas CHAVES já existentes em content (headline, sub, items, title, body, ctaLabel, ctaUrl, question, answer, name, text, caption, size etc.) e só mude os valores pedidos. Sem markdown. Nada de novas chaves além destas." },
+      { role: "user", content: "Bloco atual (tipo " + block.type + "):\n" + JSON.stringify(current, null, 2) + "\n\nPedido do dono: " + instruction + "\n\nDevolva o MESMO objeto JSON com os valores alterados, no formato {\"content\":{...}}." },
+    ], [providers[0]!, ...providers.slice(1, 3)]);
+    const text = String(result?.text || "");
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new BadRequestException("A IA não devolveu um JSON válido. Tente reformular o pedido.");
+    let parsed: any;
+    try { parsed = JSON.parse(match[0]); } catch { throw new BadRequestException("A IA devolveu conteúdo inválido. Tente um pedido mais simples."); }
+    const next = parsed?.content ?? parsed;
+    if (!next || typeof next !== "object" || Array.isArray(next)) throw new BadRequestException("A IA devolveu um formato inesperado. Tente um pedido mais específico.");
+    const safe = sanitizeContent(next);
+    await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: safe } });
+    return { blockId: block.id, content: safe };
+  }
+
   @Post(":id/items") async createItem(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string, @Body() body: any) {
     const site = await this.ownSite(req, siteId);
     const kind = String(body?.kind) === "property" ? "property" : "post";

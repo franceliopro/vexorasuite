@@ -7,7 +7,7 @@ export const moduleLabels: Record<string, string> = {
   AUTOMATION: "Automação e agentes de IA",
   MARKETING: "Marketing e Drive",
   FINANCE: "Financeiro",
-  CHANNELS: "Canais e integrações",
+  CHANNELS: "Conexões",
   SETTINGS: "Configurações",
 };
 export function ModuleChoices({

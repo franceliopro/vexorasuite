@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
+const RichPromptEditor=dynamic(()=>import("./rich-prompt-editor").then(m=>m.RichPromptEditor),{ssr:false});
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SitePreview } from "./site-preview";
 import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Plus, Sparkles, Mic, Trash2, X } from "lucide-react";
@@ -104,8 +106,8 @@ export function SitesWorkspace() {
     if (wizRecognition.current) { wizRecognition.current.stop(); wizRecognition.current = null; setWizAiDictating(false); setWizAiDictateStatus(""); return; }
     const recognition = new Speech();
     recognition.lang = "pt-BR";
-    recognition.interimResults = false;
-    recognition.onresult = (event: any) => { const transcript = event.results[0][0].transcript; setWizAiPrompt(current => current.trim() ? current.trim() + " " + transcript : transcript); setWizAiDictateStatus("Ditado recebido. Revise antes de criar."); };
+    recognition.interimResults = true; recognition.continuous = true; recognition.maxAlternatives = 1;
+    recognition.onresult = (event: any) => { let finalText = ""; for (let i = event.resultIndex; i < event.results.length; i++) { if (event.results[i].isFinal) finalText += event.results[i][0].transcript; } if (finalText.trim()) setWizAiPrompt(current => current.trim() ? current.trim() + " " + finalText.trim() : finalText.trim()); setWizAiDictateStatus("Ditado recebido. Continue tocando para mais texto, ou toque em Parar."); };
     recognition.onerror = () => setWizAiDictateStatus("Não foi possível receber o ditado. Confira a permissão do microfone.");
     recognition.onend = () => { setWizAiDictating(false); };
     wizRecognition.current = recognition;
@@ -218,12 +220,10 @@ function SitesWizardDialog(props: {
             <p className="sites-field-hint">Descreva o negócio, o público, o tom e o que o site precisa. Se houver IA configurada na empresa, ela redige o conteúdo; sem IA, o template cria o site com os dados acima.</p>
             <div className="sites-ai-prompt">
               <div className="sites-ai-prompt-head"><span>Pedido para a IA</span><button type="button" className={"sites-ai-dictate" + (wizAiDictating ? " is-listening" : "")} onClick={dictateWizardPrompt} aria-pressed={wizAiDictating} title="Ditar o pedido com o microfone"><Mic size={14} aria-hidden="true" />{wizAiDictating ? "Parar" : "Ditar"}</button></div>
-              <textarea rows={3} maxLength={2500} value={wizAiPrompt} onChange={e => setWizAiPrompt(e.target.value)} placeholder="Ex.: Clínica estética Lume em Cuiabá, foco em limpeza de pele e Botox para mulheres 30–55. Tom: acolhedor, profissional. Quero agendar pelo WhatsApp." />
+              <RichPromptEditor label={"Comando para a IA (opcional)"} documentKey={"wizard:ai-prompt"} rows={4} maxLength={2500} placeholder="Ex.: Clínica estética Lume em Cuiabá, foco em limpeza de pele e Botox para mulheres 30–55. Tom: acolhedor, profissional. Quero agendar pelo WhatsApp. Cole aqui também links e URLs de imagens — o editor entende markdown." value={wizAiPrompt} onChange={setWizAiPrompt} />
               {wizAiDictateStatus ? <small className="sites-ai-dictate-status" role="status">{wizAiDictateStatus}</small> : null}
             </div>
-            <label className="sites-field"><span>Imagem de referência (link opcional)</span><input value={wizReferenceUrl} onChange={e => setWizReferenceUrl(e.target.value)} placeholder="https://site-ou-imagem.com.br/referencia" autoCapitalize="none" autoCorrect="off" spellCheck={false} /><small>Cole o link de uma imagem, de um site inspirador ou de um arquivo do Google Drive — a IA usa como referência visual.</small></label>
-            <label className="sites-field"><span>Clonar um site (URL opcional)</span><input value={wizCloneUrl} onChange={e => setWizCloneUrl(e.target.value)} placeholder="https://www.empresaexemplo.com.br" autoCapitalize="none" autoCorrect="off" spellCheck={false} /><small>A IA lê o conteúdo (título, seções e textos) e adapta o tipo de conteúdo para a sua empresa — nunca copia marcas ou logos. Revise antes de publicar.</small></label>
-          </details>
+                                  </details>
           <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
             {wizWhatsapp.map((w, i) => (
               <div key={i} className="sites-row"><input aria-label="Departamento" value={w.label} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, label: e.target.value }; setWizWhatsapp(next); }} placeholder="Ex.: Recepção" /><input aria-label="Número (com DDI)" value={w.handle} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, handle: e.target.value }; setWizWhatsapp(next); }} placeholder="55 65 99999-0001" inputMode="numeric" /><button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizWhatsapp(wizWhatsapp.filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button></div>

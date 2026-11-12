@@ -3752,3 +3752,43 @@ body.inbox-fullscreen .page-content{padding:0!important}
 .attendant-identity b{font:800 12px/1 var(--font-display);color:var(--tx);letter-spacing:-.005em}
 .attendant-identity small{font:800 8.5px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--primary-ink);background:color-mix(in srgb,var(--primary) 10%,var(--s2));padding:3px 8px;border-radius:99px;white-space:nowrap}
 :root[data-theme=dark] .attendant-identity small{background:color-mix(in srgb,var(--primary) 20%,var(--s1));color:var(--accent3)}
+
+/* ===== 91. Ultra-clean — leve, chapado, bordas clean ===== */
+:root{--shadow:0 1px 2px rgba(17,24,39,.045),0 0 0 0 transparent!important;--shadow-sm:0 1px 1.5px rgba(17,24,39,.05)!important;--shadow-lg:0 1px 2px rgba(17,24,39,.05)!important;--r:10px;--r-sm:8px;--r-lg:12px;--r-xl:12px;--r-m:10px;--r-xs:7px}
+*{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+/* Heroes: flat */
+.vx-hero,.team-hero,.platform-admin-hero,.client-plans-hero,.sites-hero,.channels-configuration-shell,.creative-workspace.simple-workspace>.creative-heading{background:transparent!important;border:1px solid var(--ln)!important;box-shadow:none!important;color:var(--tx)!important;border-radius:var(--r-lg)!important}
+.vx-hero::before,.team-hero::before,.platform-admin-hero::before,.client-plans-hero::before,.sites-hero::before{display:none!important}
+.vx-hero p,.team-hero p,.platform-admin-hero p,.client-plans-hero p,.sites-hero p{color:var(--tx2)!important}
+.vx-hero .vx-eyebrow,.vx-eyebrow,.team-eyebrow,.sites-eyebrow,.platform-admin-eyebrow,.client-plans-eyebrow{color:var(--primary)!important}
+.client-plans-hero h1,.sites-hero h1,.team-hero h1,.platform-admin-hero h1,.creative-heading h1{background:none!important;-webkit-background-clip:unset!important;background-clip:unset!important;color:var(--tx)!important;letter-spacing:-.03em!important}
+.vx-hero-copy h2,.vx-hero h2{background:none;-webkit-background-clip:unset;background-clip:unset;color:var(--tx)!important}
+:root[data-theme=dark] .vx-hero-copy h2,:root[data-theme=dark] .vx-hero h2{color:#FAFCFF!important}
+:root[data-theme=dark] .vx-hero p,:root[data-theme=dark] .team-hero p,:root[data-theme=dark] .platform-admin-hero p,:root[data-theme=dark] .client-plans-hero p,:root[data-theme=dark] .sites-hero p{color:var(--tx2)!important}
+/* Cards: flat, hairline only */
+.content-card,.workspace-surface,.vx-inbox-card,.channels-inbox-card,.sites-card,.sites-item-card,.sites-publish-card,.sites-detail-head,.sites-canvas-head,.sites-studio-frame,.sites-studio-panel,.sites-studio-blocks,.creative-grid,.creative-field,.structured-skeleton,.sites-block-card,.client-plan-card,.platform-admin-plan,.team-attendant-card,.department-card,.client-plans-card,.subscription-card,.workflow-template-card,.report-kpi,.report-kpi,.finance-status-donut-card,.finance-period-bar,.sites-item-form,.finance-billing-row,.workflow-list-row,.sites-publish-domain,.sites-studio-add-chip,.ps-item-card,.ps-contact-item,.ps-service,.ps-gallery-item,.ps-testimonial,.ps-faq{background:var(--s3)!important;border:1px solid var(--ln)!important;box-shadow:none!important}
+:root[data-theme=dark] .content-card,:root[data-theme=dark] .workspace-surface,:root[data-theme=dark] .vx-inbox-card,:root[data-theme=dark] .client-plan-card{background:var(--s2)!important;border-color:var(--ln2)!important}
+.sites-ai-card,.sites-ai-prompt,.structured-skeleton,.sites-ai-flow,.sites-block{display:grid;gap:var(--gap);min-width:0}
+.content-card,.workspace-surface,[class$="-card"],.sites-item-card,.sites-publish-card,.sites-studio-panel,.sites-studio-blocks,.finance-period-bar,.finance-billing-row,.tasks-item{background:var(--s2)!important;border:1px solid var(--ln)!important;box-shadow:none!important;border-radius:var(--r-lg)!important}
+/* Listas e internos */
+.sites-block-card,.sites-block-form,.finance-billing-track{background:var(--s3)!important;border-color:var(--ln2)!important;box-shadow:none!important}
+/* Shadows off */
+.primary-button,.secondary-button,.icon-button,.sites-aperture,.team-icon-button,.inbox-thread,.sites-hero-badge{box-shadow:none!important}
+.primary-button{background:var(--primary)!important;color:var(--primary-contrast)!important;border:1px solid transparent!important}
+.primary-button:hover:not(:disabled){background:var(--primary-strong)!important;box-shadow:none!important;transform:none!important;filter:none!important}
+.secondary-button{background:var(--s2)!important;color:var(--tx)!important;border:1px solid var(--ln)!important}
+.secondary-button:hover{background:var(--hover)!important;border-color:var(--ln2)!important}
+.danger-button{background:color-mix(in srgb,var(--bad) 8%,var(--s2))!important;color:var(--bad)!important;border-color:color-mix(in srgb,var(--bad) 40%,var(--ln))!important}
+.icon-button,.sidebar-icon,.sites-studio-device-toggle,.drive-file,.drive-files,.sites-icon-button,.creative-file,.public-flow-composer{background:var(--s2)!important;border:1px solid var(--ln)!important;box-shadow:none!important}
+/* Tabs: flat */
+.module-tabs,.persistent-module-tabs,.finance-module-tabs,.ai-workspace-tabs,.crm-view-switch,.calendar-view-switch,.marketing-mode-tabs,.vx-flow-panel-tabs,.sites-tabs,.platform-admin-tabs{background:transparent!important;border:0!important;box-shadow:none!important}
+.module-tabs button.active,.persistent-module-tabs button.active,.finance-module-tabs button.active,.ai-workspace-tabs button.active,.crm-view-switch button.active,.calendar-view-switch button.active,.marketing-mode-tabs button.active,.vx-flow-panel-tabs button.active,.sites-tabs button.active,.platform-admin-tabs button.active{background:var(--s1)!important;color:var(--tx)!important;border:1px solid var(--ln)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 10%,transparent)!important}
+/* Inputs flat */
+input,select,textarea{border-radius:var(--r-sm)!important;background:var(--s2)!important;border:1px solid var(--ln)!important;box-shadow:none!important}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 18%,transparent)!important}
+/* Ícones dos campos / tag chips — flat */
+.sites-field-label,.sales-funnel-chevron{display:none!important}/* preferir linhas/espirais nenhumas ópticas */
+/* Scrollbar mínima */
+::-webkit-scrollbar-thumb{border-radius:99px!important}
+.sidebar{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--sb-tx) 26%,transparent) transparent!important}
+.sidebar::-webkit-scrollbar-thumb,.sidebar *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--sb-tx) 18%,transparent)!important}

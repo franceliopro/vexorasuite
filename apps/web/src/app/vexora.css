@@ -3691,7 +3691,7 @@ body{background:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(-
   .inbox-list .inbox-conversation{padding:9px 10px;gap:7px;border-radius:11px}
   .inbox-list .inbox-panel-heading h2{font-size:13px}
   .inbox-list{border-radius:14px}
-  :root{--top:48px;--dock:calc(56px + env(safe-area-inset-bottom))}
+  :root{--top:48px;--dock:calc(61px + env(safe-area-inset-bottom))}
   .topbar{padding:0 10px;height:var(--top);gap:5px}
   .search-box,.breadcrumbs{display:none}
   .topbar .ai-assistant-trigger,.topbar .logout-button,.topbar .icon-button.theme-toggle{min-height:32px;min-width:32px;padding:0 9px;border-radius:9px;font-size:11px}

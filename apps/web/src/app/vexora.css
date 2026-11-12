@@ -3268,3 +3268,7 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .vx-kpi-cell-value{color:var(--tx)!important}
 .vx-topics .content-card{background:linear-gradient(180deg,#FFFFFF 0%,#F6FAFF 100%)!important;border-color:color-mix(in srgb,var(--primary) 14%,var(--ln))!important}
 .vx-topic-dot{background:var(--primary)!important}
+
+/* ===== 78. Sidebar: logo sem fundo ===== */
+.sidebar .brand-mark{background:transparent!important;box-shadow:none!important;color:var(--sb-tx)!important;font-weight:800!important;font-size:20px}
+.sidebar .brand-mark.has-custom-logo{background:transparent!important}

@@ -3253,3 +3253,18 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .auth-brand-points li::before{background:#2E7CF6!important;box-shadow:0 0 0 4px rgba(46,124,246,.18)!important}
 .auth-brand-foot{color:#8CA6D6!important}
 .auth-panel .auth-submit,.auth-panel button[type=submit]{background:linear-gradient(180deg,#3A87FB,#2E7CF6 46%,#2563EB)!important;color:#04122A!important;border:1px solid color-mix(in srgb,#2E7CF6 70%,#0B2740);box-shadow:0 10px 26px -12px color-mix(in srgb,#2E7CF6 65%,transparent),inset 0 1px 0 rgba(255,255,255,.35)!important}
+
+/* ===== 77. Hero do dashboard — azul vivo e contraste (vs amarelo “estranho”) ===== */
+.vx-hero{background:linear-gradient(168deg,#0B1636 0%,#13252F 38%,#0E2E8A 100%)!important;border-color:color-mix(in srgb,#5FA8FF 35%,#16233D)!important}
+.vx-hero-copy h2{max-width:22ch}
+.vx-hero .vx-hero-clear-icon,.vx-hero .vx-eyebrow,.vx-hero .vx-live-dot{color:#7DD3FC!important}
+.vx-hero-progress-ring{border-color:color-mix(in srgb,#7DD3FC 45%,#16233D)!important}
+.vx-hero .vx-ring-card{border-color:color-mix(in srgb,#7DD3FC 38%,#16233D)!important;background:rgba(10,20,45,.72)!important;box-shadow:0 18px 40px -18px rgba(7,20,55,.6)!important}
+.vx-team-card{background:linear-gradient(168deg,#0B1636 0%,#121F3E 100%)!important;border-color:color-mix(in srgb,#5FA8FF 18%,#16233D)!important}
+.vx-team-card h2,.vx-team-card .vx-card-head p{color:#E7EEFF!important}
+.vx-team-card p,.vx-team-card small{color:#A9BFE3!important}
+.vx-kpi-cell-note,.vx-kpi-cell-label{color:#53688F!important}
+.vx-kpi-cell{background:linear-gradient(180deg,#FFFFFF 0%,#F6FAFF 100%)!important;border-color:color-mix(in srgb,var(--primary) 14%,var(--ln))!important}
+.vx-kpi-cell-value{color:var(--tx)!important}
+.vx-topics .content-card{background:linear-gradient(180deg,#FFFFFF 0%,#F6FAFF 100%)!important;border-color:color-mix(in srgb,var(--primary) 14%,var(--ln))!important}
+.vx-topic-dot{background:var(--primary)!important}

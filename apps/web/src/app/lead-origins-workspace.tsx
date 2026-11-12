@@ -29,6 +29,23 @@ type Origins = {
   recent: Lead[];
   basis: string;
 };
+const originLabel = (value: string): string => {
+  const v = value.toLowerCase();
+  if (v.includes("instagram")) return "Instagram";
+  if (v.includes("facebook")) return "Facebook";
+  if (v.includes("whatsapp")) return "WhatsApp";
+  if (v.includes("google")) return "Google";
+  if (v.includes("form")) return "Formulário";
+  if (v.includes("landing")) return "Landing";
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+};
+const displayName = (item: Lead): string => {
+  const name = item.name.trim();
+  if (!name) return "Cliente";
+  const digits = name.replace(/[^\d]/g, "");
+  if (/^[+]?[\d\s().-]{8,}$/.test(name) && digits.length >= 8) return "Cliente";
+  return name;
+};
 const day = 86400000;
 function dateValue(value: Date) {
   return (
@@ -165,7 +182,7 @@ export function LeadOriginsWorkspace() {
                 data.byOrigin.map((item) => (
                   <div className={"origin-bar-row " + originClass(item.name)} key={item.name}>
                     <div className="origin-bar-label">
-                      <span>{item.name}</span>
+                      <span>{originLabel(item.name)}</span>
                       <strong>{item.total}</strong>
                     </div>
                     <div className="origin-bar-track">
@@ -238,11 +255,11 @@ export function LeadOriginsWorkspace() {
                     {visible.map((item) => (
                       <tr key={item.id}>
                         <td>
-                          <strong>{item.name}</strong>
+                          <strong>{displayName(item)}</strong>
                         </td>
                         <td>
-                          <span className={"origin-badge " + originClass(item.source)}>
-                            {item.source}
+                          <span className={"origin-badge " + originClass(item.source)} title={originLabel(item.source)}>
+                            {originLabel(item.source)}
                           </span>
                         </td>
                         <td>{item.campaign || "—"}</td>

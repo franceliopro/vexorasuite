@@ -990,7 +990,7 @@ function ReportsWorkspaceInner() {
           financeSection.error ? (
             <SectionError
               title="Não foi possível carregar os dados financeiros"
-              message={financeSection.error + " Verifique a conexão com o Asaas em Canais e integrações."}
+              message={financeSection.error + " Verifique a conexão com o Asaas em Conexões."}
               onRetry={financeSection.retry}
             />
           ) : financeSection.data ? (() => {

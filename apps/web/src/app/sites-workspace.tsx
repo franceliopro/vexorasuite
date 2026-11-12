@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { SitePreview } from "./site-preview";
 import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Plus, Sparkles, Mic, Trash2, X } from "lucide-react";
 
 const AREAS = [
@@ -51,7 +52,7 @@ export function SitesWorkspace() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const tab = (searchParams.get("tab") || "sites") as "sites" | "pages" | "posts" | "imoveis" | "forms" | "appear" | "publish" | "settings";
+  const tab = (searchParams.get("tab") || "sites") as "sites" | "pages" | "posts" | "imoveis" | "forms" | "appear" | "publish" | "settings" | "studio";
   const selectedSiteId = searchParams.get("site") || "";
   const setParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams.toString());
@@ -246,13 +247,82 @@ function SitesWizardDialog(props: {
     document.body,
   );
 }
+function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => void; onNotice: (v: string) => void }) {
+  const [device, setDevice] = useState<"pc" | "phone">("pc");
+  const [selected, setSelected] = useState<string>("");
+  const [instruction, setInstruction] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [model, setModel] = useState<PreviewSite>(() => JSON.parse(JSON.stringify(site)) as PreviewSite);
+  useEffect(() => { setModel(JSON.parse(JSON.stringify(site)) as PreviewSite); }, [site]);
+  const allBlocks = model.pages.flatMap((p: any) => p.blocks.map((b: any) => ({ ...b, pageId: p.id, pageTitle: p.title })));
+  const selectedBlock = allBlocks.find((b: any) => b.id === selected) || null;
+  const applyAi = async (block: any, text: string) => {
+    setBusy(true);
+    try {
+      const res = await api<{ blockId: string; content: any }>(`/sites/pages/${block.pageId}/blocks/${block.id}/ai`, { method: "POST", body: JSON.stringify({ instruction: text }) });
+      setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === block.pageId ? { ...p, blocks: p.blocks.map((b: any) => b.id === block.id ? { ...b, content: res.content } : b) } : p) }));
+      onSaved();
+      onNotice("Bloco atualizado pela IA.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível aplicar a mudança."); }
+    finally { setBusy(false); }
+  };
+  const skills = [
+    { label: "Hero premium", instruction: "Reescreva por completo: tom premium e direto, destaque o preço só se for o diferencial, e mude o CTA com urgência honesta." },
+    { label: "FAQ robusto", instruction: "Troque as perguntas e respostas por 4 perguntas reais que clientes costumam fazer, com respostas confiantes mas sem prometer o que a empresa não entrega." },
+    { label: "Depoimentos vivos", instruction: "Substitua os depoimentos por 3 depoimentos de clientes reais (nome, contexto, resultado). Tom humano, sem exageros." },
+    { label: "Paleta Hope Diamond", instruction: "Mantenha o texto EXATAMENTE como está; não mude o conteúdo, apenas confirme o contraste das cores do bloco (priorize #2E7CF6 e #22D3EE)." },
+    { label: "Clareza de valor", instruction: "Reescreva os textos do bloco deixando mais claro o benefício principal para o cliente (resultado, não o processo)." },
+  ];
+  return (
+    <div className="sites-studio">
+      <div className="sites-studio-toolbar">
+        <div className="sites-studio-device-toggle" role="group" aria-label="Visualizar em">
+          <button type="button" aria-pressed={device === "pc"} className={device === "pc" ? "active" : ""} onClick={() => setDevice("pc")}>PC</button>
+          <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}>Celular</button>
+        </div>
+        <small className="sites-field-hint">🎨 A IA edita o bloco selecionado; nada é publicado sem você revisar.</small>
+      </div>
+      <div className="sites-studio-body">
+        <aside className="sites-studio-blocks" aria-label="Blocos da página">
+          <h3>Blocos</h3>
+          {allBlocks.length === 0 ? <p className="sites-field-hint">Este site ainda não tem blocos.</p> : allBlocks.map((b: any) => (
+            <button key={b.id} type="button" className={"sites-studio-block" + (selected === b.id ? " active" : "")} onClick={() => setSelected(b.id)}>
+              <b>{(b.content?.title || b.content?.headline || b.type).slice(0, 48)}</b>
+              <small>{b.type} · {b.pageTitle}</small>
+            </button>
+          ))}
+        </aside>
+        <div className="sites-studio-preview">
+          <div className={"sites-studio-frame" + (device === "phone" ? " is-phone" : "")}>
+            <SitePreview site={model} highlightBlockId={selected} />
+          </div>
+        </div>
+        <div className="sites-studio-panel">
+          <h3>Editar com IA</h3>
+          <p className="sites-field-hint">Selecione um bloco no lado esquerdo e peça a mudança. A IA reescreve o conteúdo do bloco; você revisa antes de publicar.</p>
+          {selectedBlock ? <>
+            <label className="sites-field"><span>Bloco selecionado</span><input readOnly value={(selectedBlock.content?.title || selectedBlock.content?.headline || selectedBlock.type).toString().slice(0, 120)} /></label>
+            <label className="sites-field"><span>O que mudar?</span>
+              <textarea rows={4} value={instruction} onChange={e => setInstruction(e.target.value)} placeholder="Ex.: relacione o serviço a uma dor concreta do cliente e destaque o resultado em 60 dias." />
+            </label>
+            <button type="button" className="primary-button" disabled={busy || instruction.trim().length < 3} onClick={() => applyAi(selectedBlock, instruction.trim())}>{busy ? "Aplicando…" : "Aplicar com IA"}</button>
+            <p className="sites-field-label">Skills rápidas</p>
+            <div className="sites-studio-skills">{skills.map(s => <button key={s.label} type="button" disabled={busy} onClick={() => { setInstruction(s.instruction); }}>{s.label}</button>)}</div>
+          </> : <p className="sites-field-hint">Selecione um bloco à esquerda para editar com IA.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type PreviewSite = any;
 function SiteMonogram({ name }: { name: string }) {
   const initials = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || "").join("") || "S";
   return <b>{initials}</b>;
 }
 
 function SiteDetail({ site, tab, setParams, onSaved, onNotice }: { site: Site; tab: string; setParams: (p: Record<string, string | null>) => void; onSaved: () => void; onNotice: (v: string) => void }) {
-  const tabs = [["pages","Páginas"],["posts","Posts"],["imoveis","Imóveis"],["forms","Formulários"],["appear","Aparência"],["publish","Publicar"],["settings","Site"]] as const;
+  const tabs = [["studio","Studio"],["pages","Páginas"],["posts","Posts"],["imoveis","Imóveis"],["forms","Formulários"],["appear","Aparência"],["publish","Publicar"],["settings","Site"]] as const;
   return (
     <>
       <header className="sites-detail-head">
@@ -261,7 +331,7 @@ function SiteDetail({ site, tab, setParams, onSaved, onNotice }: { site: Site; t
         <div className="sites-detail-actions"><a className="secondary-button" href={"/sites/" + site.slug} target="_blank" rel="noopener noreferrer"><Eye size={15} aria-hidden="true" /> Visualizar</a></div>
       </header>
       <nav className="sites-tabs" aria-label="Editor do site">{tabs.map(([key, label]) => <button key={key} type="button" aria-pressed={tab === key} className={tab === key ? "active" : ""} onClick={() => setParams({ tab: key })}>{label}</button>)}</nav>
-      {tab === "pages" ? <PagesEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "posts" ? <ItemsEditor site={site} kind="post" onSaved={onSaved} onNotice={onNotice} /> : tab === "imoveis" ? <ItemsEditor site={site} kind="property" onSaved={onSaved} onNotice={onNotice} /> : tab === "forms" ? <FormsEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "appear" ? <Appearance site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "publish" ? <PublishPanel site={site} onSaved={onSaved} onNotice={onNotice} /> : <SettingsPanel site={site} onSaved={onSaved} onNotice={onNotice} />}
+      {tab === "studio" ? <StudioEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "pages" ? <PagesEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "posts" ? <ItemsEditor site={site} kind="post" onSaved={onSaved} onNotice={onNotice} /> : tab === "imoveis" ? <ItemsEditor site={site} kind="property" onSaved={onSaved} onNotice={onNotice} /> : tab === "forms" ? <FormsEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "appear" ? <Appearance site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "publish" ? <PublishPanel site={site} onSaved={onSaved} onNotice={onNotice} /> : <SettingsPanel site={site} onSaved={onSaved} onNotice={onNotice} />}
     </>
   );
 }

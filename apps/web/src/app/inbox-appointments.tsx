@@ -39,7 +39,7 @@ export function InboxAppointments({contact,onConfirm}:{contact:{id:string;name:s
  return <div className="inbox-appointments ai-admin-fields">
  <p>Cliente: <strong>{contact.name}</strong></p><small>Horários em {Intl.DateTimeFormat().resolvedOptions().timeZone}.</small>
  {error&&<p role="alert">{error}</p>}
- {!loading&&!accounts.length?<p>Conecte uma conta Google Agenda em Canais e integrações. O atendimento pode continuar normalmente.</p>:<>
+ {!loading&&!accounts.length?<p>Conecte uma conta Google Agenda em Conexões. O atendimento pode continuar normalmente.</p>:<>
  <label>Conta<select disabled={busy} value={account} onChange={e=>setAccount(e.target.value)}>{accounts.map(a=><option key={a.id} value={a.id}>{a.email}</option>)}</select></label>
  <label>Agenda<select disabled={busy} value={calendar} onChange={e=>setCalendar(e.target.value)}>{calendars.map(c=><option key={c.id} value={c.id}>{c.summary}</option>)}</select></label>
  <label>Consultar dia<input type="date" required value={day} disabled={busy} onChange={e=>{setDay(e.target.value);setSaved(null)}}/></label>

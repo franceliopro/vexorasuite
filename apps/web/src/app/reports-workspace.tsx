@@ -1235,8 +1235,8 @@ const REPORTS_CSS = `
 .rw-gridline{stroke:var(--ln);stroke-width:1}
 .rw-ylabel{fill:var(--tx2);font:600 9px var(--font-ui);font-variant-numeric:tabular-nums}
 .rw-xlabel{fill:var(--tx2);font:600 9px var(--font-ui)}
-.rw-line-billed{stroke:var(--primary);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.rw-line-paid{stroke:#FBBF24;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.rw-line-billed{stroke:var(--primary);stroke-width:2.4;stroke-linecap:butt;stroke-linejoin:round}
+.rw-line-paid{stroke:#FBBF24;stroke-width:2.2;stroke-linecap:butt;stroke-linejoin:round}
 .rw-line-area{fill:color-mix(in srgb,var(--primary) 8%,transparent)}
 .rw-dot-billed{fill:var(--primary)}
 .rw-dot-paid{fill:#FBBF24}

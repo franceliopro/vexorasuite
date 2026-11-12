@@ -699,7 +699,7 @@ export function ContactProfilePanel({
                  </section>
                  <section className="profile-section agenda-cobranca-section">
                    <strong>
-                     <CalendarDays size={14} /> Agenda e cobrança
+                     <CalendarDays size={14} /> Calendário e cobrança
                    </strong>
                    <div className="agenda-cobranca-empty">
                      <b>Nada agendado ainda</b>

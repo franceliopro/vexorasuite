@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isActive: boolean; isPublic: boolean; sortOrder: number };
 type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; monthlyPriceCents: number };
 const PRICE = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const MODULE_LABELS: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", CALENDAR: "Agenda", TASKS: "Tarefas", AUTOMATION: "Automação / Chatbot", MARKETING: "Marketing", FINANCE: "Financeiro", CHANNELS: "Canais e redes", SETTINGS: "Configurações", SITES: "Sites" };
+const MODULE_LABELS: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", CALENDAR: "Calendários", TASKS: "Tarefas", AUTOMATION: "Automação / Chatbot", MARKETING: "Marketing", FINANCE: "Financeiro", CHANNELS: "Canais e redes", SETTINGS: "Configurações", SITES: "Sites" };
 const LIMIT_FIELDS: Array<{ key: string; label: string; kind: "number" | "bool" | "text" | "modules"; placeholder?: string; hint?: string }> = [
   { key: "attendants", label: "Atendentes (usuários)", kind: "number", placeholder: "5" },
   { key: "bots", label: "Robôs com IA", kind: "number", placeholder: "1" },

@@ -150,7 +150,7 @@ details>summary::-webkit-details-marker{display:none}
 .brand-copy{display:flex;align-items:baseline;gap:6px;min-width:0}
 .brand-copy strong{font:800 20px/1 var(--font-display);letter-spacing:-.03em;color:var(--sb-tx)}
 .brand-copy small{font-size:9px;font-weight:800;letter-spacing:.22em;color:var(--sb-mut)}
-.side-nav{flex:1;min-height:0;overflow:hidden auto;padding:8px 10px 12px;display:grid;align-content:start;gap:2px;scrollbar-color:var(--sb-thumb) transparent;scrollbar-width:thin} .side-nav::-webkit-scrollbar{width:5px} .side-nav::-webkit-scrollbar-thumb{background:var(--sb-thumb);border-radius:99px} .side-nav::-webkit-scrollbar-track{background:transparent}
+.side-nav{flex:1;min-height:0;overflow:hidden auto;padding:8px 10px 12px;display:grid;align-content:start;gap:2px;scrollbar-color:transparent transparent;scrollbar-width:thin} .side-nav::-webkit-scrollbar{width:5px} .side-nav::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--sb-thumb) 25%,transparent);border-radius:99px} .side-nav::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--sb-thumb) 45%,transparent)} .side-nav::-webkit-scrollbar-track{background:transparent} .side-nav:hover::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--sb-thumb) 30%,transparent)}
 .nav-group{display:grid;gap:2px;padding:6px 0 10px;border-bottom:1px solid var(--sb-ln)}
 .nav-group:last-child{border:0}
 .nav-section{display:block;margin:8px 0 4px;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--sb-mut)}
@@ -3039,3 +3039,92 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 @media(min-width:761px) and (max-width:1180px){
   .page-content--fixed .inbox-workspace{height:calc(100dvh - var(--top) - 56px)!important;min-height:0!important}
 }
+
+/* ===== 62. Hope Diamond — paleta nova da Véxora (sem fins violeta) ===== */
+:root{
+  --primary:#2E7CF6;--primary-soft:#E7EFFC;--primary-soft:color-mix(in srgb,var(--primary) 13%,#EEF4FF);--primary-ink:#164E8A;--primary-ink:color-mix(in srgb,var(--primary) 72%,#0B2740);--primary-strong:#1F5FD0;--primary-strong:color-mix(in srgb,var(--primary) 78%,#0A2E63);--primary-contrast:#FFFFFF;
+  --accent2:#22D3EE;--accent3:#7DD3FC;--accent4:#0EA5E9;
+  --ok:#2E7CF6;--warn:#B4690E;--bad:#B4402E;
+  --bg:#F3F7FE;--s1:#FFFFFF;--s2:#F6FAFF;--s3:#E9F0FA;--hover:#E7F0FE;
+  --tx:#0B1F3A;--tx2:#53688F;--ln:#DCE7F7;--ln2:#C3D4EC;--focus:var(--tx);--thumb:#2E7CF6;
+  --sb-bg:#060D20;--sb-on:#0C1730;--sb-ln:#142242;--sb-mut:#8CA6D6;--sb-tx:#E7EEFF;--sb-thumb:#5B8DEF;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast);
+  --glow:color-mix(in srgb,var(--primary) 34%,transparent);--glow2:color-mix(in srgb,var(--accent2) 30%,transparent);
+  color-scheme:light;
+}
+:root[data-theme=hybrid]{--sb-bg:#060D20;--sb-on:#0C1730;--sb-ln:#142242;--sb-mut:#8CA6D6;--sb-tx:#E7EEFF;--sb-thumb:#5B8DEF;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast)}
+:root[data-theme=dark]{
+  --bg:#050B18;--s1:#0B1526;--s2:#101D33;--s3:#16233D;--hover:#12203A;
+  --tx:#E7EEFF;--tx2:#93A8CC;--ln:#182742;--ln2:#22365A;--thumb:#5B8DEF;
+  --ok:#38BDF8;--warn:#F0B25E;--bad:#F0907A;--accent2:#22D3EE;--accent3:#7DD3FC;--accent4:#38BDF8;
+  --mint:#38BDF8;--mint-ink:#8AE3FD;--amber:#F0B25E;--amber-ink:#F6CD93;--coral:#F0907A;--coral-ink:#F7B4A5;
+  --primary-soft:#0D1D36;--primary-soft:color-mix(in srgb,var(--primary) 22%,var(--s1));--primary-ink:#8AE3FD;--primary-ink:color-mix(in srgb,var(--primary) 72%,#8AE3FD);--primary-strong:#4A8FFF;--primary-strong:color-mix(in srgb,var(--primary) 78%,#22365A);--primary-contrast:#04122A;
+  --sb-bg:#050B18;--sb-on:#0C1730;--sb-ln:#142242;--sb-mut:#8CA6D6;--sb-tx:#E7EEFF;--sb-thumb:#5B8DEF;--sb-active:var(--primary);--sb-active-tx:#04122A;
+}
+/* Sidebar: feixes diagonais de luz azul + brilho do diamante */
+.sidebar{background:radial-gradient(190px 165px at 8px -30px,color-mix(in srgb,var(--primary) 55%,transparent) 0%,transparent 66%),radial-gradient(250px 220px at 103% 8%,color-mix(in srgb,var(--accent2) 30%,transparent) 0%,transparent 70%),radial-gradient(140px 340px at -40% 42%,color-mix(in srgb,var(--primary) 24%,transparent) 0%,transparent 60%),linear-gradient(180deg,#081026 0%,var(--sb-bg) 52%,#040A19 100%);border-right:1px solid var(--sb-ln)}
+.sidebar::before{content:"";position:absolute;top:-15%;left:-12%;width:72%;height:135%;background:linear-gradient(112deg,transparent 30%,color-mix(in srgb,#7DD3FC 20%,transparent) 48%,color-mix(in srgb,#FFFFFF 24%,transparent) 52%,transparent 66%);pointer-events:none;filter:blur(2px);opacity:.82}
+/* Botões primários: degradê safira + brilho */
+.primary-button{background:linear-gradient(155deg,#5FA8FF 0%,#2E7CF6 38%,#1B53C6 100%);color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 6px rgba(4,18,42,.35),0 14px 34px -12px color-mix(in srgb,var(--primary) 85%,transparent),0 0 0 1px color-mix(in srgb,var(--accent2) 40%,transparent);text-shadow:0 1px 2px rgba(4,18,42,.45)}
+.primary-button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 20px 44px -12px color-mix(in srgb,var(--primary) 90%,transparent),0 0 0 1px color-mix(in srgb,var(--accent2) 60%,transparent)}
+/* ===== 63. Heroes em vidro (conceito BizNext / hope diamond) ===== */
+.vx-hero,.team-hero,.platform-admin-hero,.client-plans-hero,.sites-hero,.channels-configuration-shell,.creative-workspace.simple-workspace>.creative-heading{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,#9CD0FF 22%,var(--ln));border-radius:var(--r-xl);background:radial-gradient(1000px 480px at 88% -30%,color-mix(in srgb,var(--primary) 32%,transparent) 0%,transparent 62%),radial-gradient(750px 420px at 12% 118%,color-mix(in srgb,var(--accent2) 26%,transparent) 0%,transparent 60%),linear-gradient(155deg,#0A142E 0%,#0C1A36 46%,#080F26 100%);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 30px 60px -28px rgba(4,10,30,.65);color:#E7EEFF}
+.vx-hero::before,.team-hero::before,.platform-admin-hero::before,.client-plans-hero::before,.sites-hero::before{content:"";position:absolute;inset:-34% -16% auto auto;width:560px;height:560px;background:conic-gradient(from 190deg,transparent 0deg,color-mix(in srgb,#7DD3FC 24%,transparent) 78deg,transparent 170deg,color-mix(in srgb,#2E7CF6 30%,transparent) 300deg,transparent 360deg);filter:blur(42px);opacity:.6;pointer-events:none}
+.vx-hero-copy h2,.vx-hero h2,.team-hero h1,.platform-admin-hero h1,.client-plans-hero h1,.sites-hero h1{background:linear-gradient(160deg,#FFFFFF 12%,#BFE3FF 44%,#5FB2FF 82%,#2E7CF6 100%);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.04em;font-weight:800}
+.vx-hero p,.team-hero p,.platform-admin-hero p,.client-plans-hero p,.sites-hero p{color:#9DB4D8}
+.team-eyebrow,.sites-eyebrow,.platform-admin-eyebrow,.client-plans-eyebrow,.vx-eyebrow{color:#7DD3FC}
+/* Cards em vidro (frosted) premium */
+.content-card,.content-card.ai-admin-fields,[class$="-card"]{background:linear-gradient(165deg,rgba(255,255,255,.72),rgba(246,250,255,.55));border:1px solid color-mix(in srgb,var(--primary) 12%,var(--ln));box-shadow:var(--shadow-sm,0 1px 3px rgba(4,10,30,.08)),inset 0 1px 0 rgba(255,255,255,.8);backdrop-filter:blur(8px) saturate(1.05);-webkit-backdrop-filter:blur(8px) saturate(1.05)}
+:root[data-theme=dark] .content-card,:root[data-theme=dark] .content-card.ai-admin-fields{background:linear-gradient(165deg,rgba(16,29,51,.82),rgba(11,21,38,.72));border:1px solid color-mix(in srgb,var(--primary) 22%,#16233D)}
+:root[data-theme=hybrid] .content-card{background:linear-gradient(165deg,rgba(16,29,51,.85),rgba(11,21,38,.78));border:1px solid color-mix(in srgb,var(--primary) 22%,#182742)}
+/* Compact inbox card: tipografia respirável */
+.vx-inbox-card-compact{padding:11px 12px;gap:7px}
+.vx-inbox-card-compact h3{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vx-inbox-card-compact .vx-inbox-identity{font-size:10.5px;margin:0}
+.vx-inbox-card-compact header{margin:0;gap:8px}
+.vx-inbox-compact-meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:6px;padding:7px 9px;border:1px solid var(--ln);border-radius:10px;background:var(--s2)}
+.vx-inbox-compact-meta span{display:grid;gap:1px;min-width:0;font-size:9.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vx-inbox-compact-meta b{font:800 8.5px/1.2 var(--font-display);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+.vx-inbox-details{font-size:10.5px}
+.vx-inbox-details summary{cursor:pointer;font-weight:700;color:var(--tx2);list-style:none;display:flex;align-items:center;gap:6px}
+.vx-inbox-details summary::before{content:"+";display:grid;place-items:center;width:16px;height:16px;border-radius:6px;background:var(--s3);color:var(--tx2);font-size:11px}
+.vx-inbox-details[open] summary::before{content:"–";background:var(--primary-soft);color:var(--primary-ink)}
+.vx-inbox-details dl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 0}
+.vx-inbox-details dt{font:800 9px/1.2 var(--font-display);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+.vx-inbox-details dd{margin:0;font-size:10px;color:var(--tx)}
+.calendar-manage-button{margin-left:auto;min-height:34px;padding:0 12px;font-size:11.5px;gap:7px;border-radius:10px}
+
+/* ===== 64. Sites — card de IA no wizard ===== */
+.sites-ai-card{display:grid;gap:10px;padding:13px 14px;border:1px solid color-mix(in srgb,#7DD3FC 40%,var(--ln));border-radius:var(--r-m);background:linear-gradient(160deg,color-mix(in srgb,var(--primary) 7%,var(--s2)),var(--s2))}
+.sites-ai-card summary{display:flex;align-items:center;gap:8px;cursor:pointer;font:800 11.5px/1 var(--font-display);color:var(--primary-ink);letter-spacing:.04em;list-style:none}
+.sites-ai-card summary::-webkit-details-marker{display:none}
+.sites-ai-prompt{display:grid;gap:8px;padding:10px;border:1px solid var(--ln);border-radius:12px;background:var(--s1)}
+.sites-ai-prompt-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sites-ai-prompt-head span{font:800 10px/1 var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.sites-ai-dictate{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 12px;border:1px solid var(--ln2);border-radius:99px;background:var(--s2);color:var(--tx);font-size:10.5px;font-weight:800;cursor:pointer;transition:all .14s}
+.sites-ai-dictate:hover{border-color:var(--primary);color:var(--primary-ink)}
+.sites-ai-dictate.is-listening{background:color-mix(in srgb,#E5484D 12%,var(--s2));border-color:#E5484D;color:#C2494E;animation:phone-pulse 1.6s ease-in-out infinite}
+.sites-ai-prompt textarea{min-height:82px;padding:10px 11px;border:1px solid var(--ln);border-radius:10px;background:var(--s2);color:var(--tx);font-size:12.5px;line-height:1.55;resize:vertical}
+.sites-ai-prompt textarea:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.sites-ai-dictate-status{font-size:10.5px;color:var(--tx2)}
+.sites-ai-card .sites-field-hint{margin:0}
+
+/* ===== 65. Sites públicos — hero BizNext (vidro + feixes) ===== */
+.ps-hero{background:radial-gradient(1100px 620px at 15% -10%, color-mix(in srgb,var(--site-primary) 34%,transparent), transparent 55%), radial-gradient(900px 620px at 85% 110%, color-mix(in srgb,var(--site-accent) 30%,transparent), transparent 58%), linear-gradient(160deg,#050D22 0%,#0A1730 48%,#040A1C 100%);color:#E7EEFF;position:relative;overflow:hidden}
+.ps-hero::after{content:"";position:absolute;top:-22%;right:-12%;width:62%;height:140%;background:linear-gradient(115deg,transparent 32%,color-mix(in srgb,#7DD3FC 17%,transparent) 46%,color-mix(in srgb,#FFFFFF 16%,transparent) 52%,transparent 66%);filter:blur(18px);opacity:.8;pointer-events:none}
+.ps-hero h1{background:linear-gradient(155deg,#FFFFFF 10%,#C4E2FF 42%,#6FB4FF 86%);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.035em}
+.ps-hero p{color:#A9BFE3}
+.ps-badge{border-color:color-mix(in srgb,var(--site-accent) 55%,transparent);color:#7DD3FC;background:color-mix(in srgb,var(--site-primary) 12%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--site-primary) 40%,transparent)}
+.ps-btn{background:linear-gradient(150deg,#5FA8FF,#2E7CF6 45%,#1B53C6);box-shadow:0 12px 34px -10px color-mix(in srgb,var(--site-primary) 80%,transparent),0 0 0 1px color-mix(in srgb,var(--site-accent) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.45);color:#04122A;text-shadow:none}
+.ps-section h2{color:#EAF2FF}
+.ps-service,.ps-faq,.ps-testimonial,.ps-item-card,.ps-contact-item,.ps-gallery-item{background:color-mix(in srgb,#0C1730 88%,transparent);border-color:color-mix(in srgb,#7DD3FC 18%,#16233D);color:#E7EEFF;backdrop-filter:blur(8px)}
+.ps-service p,.ps-testimonial blockquote,.ps-faq p,.ps-item-card p,.ps-contact-item small{color:#A9BFE3}
+.ps-service-check{color:#04122A;background:color-mix(in srgb,var(--site-primary) 30%,#FFFFFF)}
+.public-site-shell{--site-ink:#EAF2FF;--site-muted:#A9BFE3;background:#060D22}
+.ps-header{background:color-mix(in srgb,#060D22 78%,transparent);border-bottom:1px solid color-mix(in srgb,#7DD3FC 16%,#101D33);backdrop-filter:blur(12px)}
+.ps-brand strong{color:#EAF2FF}
+.ps-nav a{color:#A9BFE3}
+.ps-nav a:hover{background:color-mix(in srgb,#7DD3FC 14%,#101D33);color:#EAF2FF}
+.ps-nav-cta{background:linear-gradient(150deg,#5FA8FF,#2E7CF6 45%,#1B53C6)!important;box-shadow:0 10px 28px -10px color-mix(in srgb,var(--site-primary) 80%,transparent)!important}
+.ps-divider{border-color:color-mix(in srgb,#7DD3FC 16%,#101D33)}
+.ps-footer{border-top-color:color-mix(in srgb,#7DD3FC 16%,#101D33);color:#8CA6D6}
+.ps-footer a{color:#7DD3FC}

@@ -34,6 +34,7 @@ const PersonalAssistantPanel=dynamic(()=>import("./ai-agents-workspace").then(mo
 const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Atendimento":()=>import("./inbox-workspace"),
   "CRM":()=>import("./crm-workspace"),
+  "Calendários":()=>import("./calendar-workspace"),
   "Agenda":()=>import("./calendar-workspace"),
   "Tarefas":()=>import("./tasks-workspace"),
   "Chatbots":()=>import("./chatbot-workspace"),
@@ -117,7 +118,7 @@ function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }
 type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Agenda", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
     { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }, { label: "Sites", icon: "share" }, { label: "Landing Pages", icon: "layout-dashboard" }, { label: "Formulários", icon: "tasks" }] },
@@ -245,7 +246,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'SITES','Landing Pages':'SITES','Formulários':'SITES','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'SITES','Landing Pages':'SITES','Formulários':'SITES','Financeiro':'FINANCE','Canais e integrações':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
@@ -336,14 +337,14 @@ export default function HomePage() {
                 <article className="content-card vx-access-card">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
                   <div className="vx-access-grid">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"green",target:"CRM"},{name:"Agenda",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Agenda"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"green",target:"CRM"},{name:"Calendários",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Calendários"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
                   </div>
                 </article>
               } />
             </>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
-          ) : active === "Agenda" ? (
+          ) : active === "Calendários" || active === "Agenda" ? (
             <CalendarWorkspace />
           ) : active === "CRM" ? (
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />

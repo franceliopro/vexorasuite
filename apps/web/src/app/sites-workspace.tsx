@@ -84,7 +84,7 @@ export function SitesWorkspace() {
   const [wizName, setWizName] = useState("");
   const [wizArea, setWizArea] = useState<string>("");
   const [wizKind, setWizKind] = useState<"STATIC" | "DYNAMIC">("STATIC");
-  const [wizPrimary, setWizPrimary] = useState("#0E7A5C");
+  const [wizPrimary, setWizPrimary] = useState("#2E7CF6");
   const [wizAccent, setWizAccent] = useState("#6258DF");
   const [wizSlug, setWizSlug] = useState("");
   const [wizWhatsapp, setWizWhatsapp] = useState<{ label: string; handle: string }[]>([{ label: "Principal", handle: "" }]);

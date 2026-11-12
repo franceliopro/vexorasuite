@@ -189,7 +189,7 @@ const BILLING_BR: Record<string, string> = {
   UNDEFINED: "Não informado", OTHER: "Outro", DEPOSIT: "Depósito", TRANSFER: "Transferência", PAYMENT_ORDER: "Ordem de pagamento",
 };
 const TONE_COLOR: Record<string, string> = {
-  violet: "#8B5CF6", blue: "#2C7BC4", amber: "#D08A18", green: "#0E7A5C", rose: "#D9583F",
+  violet: "#8B5CF6", blue: "#2C7BC4", amber: "#D08A18", green: "#1F5FD0", rose: "#D9583F",
 };
 
 /* ================================================================== */
@@ -1271,7 +1271,7 @@ const REPORTS_CSS = `
 /* ---------- Capa institucional (somente impressão) ---------- */
 .reports-print-only{display:none}
 .rw-print-cover{align-items:center;gap:12pt}
-.rw-print-mark{display:grid;place-items:center;width:34pt;height:34pt;border-radius:9pt;background:#0E7A5C;color:#fff;font:800 17pt var(--font-display)}
+.rw-print-mark{display:grid;place-items:center;width:34pt;height:34pt;border-radius:9pt;background:#164E8A;color:#fff;font:800 17pt var(--font-display)}
 .rw-print-text{display:flex;flex-direction:column;gap:2pt}
 .rw-print-text strong{font:800 13pt var(--font-display);color:#14171a;letter-spacing:-.01em}
 .rw-print-text small{font-size:8pt;color:#454f47}
@@ -1309,17 +1309,17 @@ const REPORTS_CSS = `
   .reports-print-root{
     display:block;
     --s1:#ffffff;--s2:#f6f7f5;--s3:#eaece7;--hover:#eaece7;
-    --tx:#14171a;--tx2:#454f47;--ln:#dedfd9;--ln2:#c3c8bd;
-    --primary:#0E7A5C;--primary-ink:#0A5B45;--primary-contrast:#ffffff;--primary-soft:#e9f2ed;
-    --ok:#0E7A5C;--bad:#B4402E;--warn:#9A5B09;--accent2:#2C7BC4;--ln-soft:#dedfd9;
+    --tx:#14171a;--tx2:#454f47;--ln:#D8DEE9;--ln2:#c3c8bd;
+    --primary:#164E8A;--primary-ink:#0B2740;--primary-contrast:#ffffff;--primary-soft:#E7EFFC;
+    --ok:#164E8A;--bad:#B4402E;--warn:#9A5B09;--accent2:#2C7BC4;--ln-soft:#D8DEE9;
     background:#fff !important;color:#14171a !important;
     font-size:10.5pt;gap:8pt !important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
   }
-  .rw-print-cover{display:flex !important;align-items:center;gap:12pt;padding-bottom:10pt;margin-bottom:12pt;border-bottom:2.5pt solid #0E7A5C;break-after:avoid}
+  .rw-print-cover{display:flex !important;align-items:center;gap:12pt;padding-bottom:10pt;margin-bottom:12pt;border-bottom:2.5pt solid #164E8A;break-after:avoid}
   .rw-panel,.rw-panels{display:block !important}
   .rw-panel > * + *{margin-top:8pt}
-  .rw-card{box-shadow:none !important;border:1pt solid #dedfd9 !important;background:#fff !important;break-inside:avoid;page-break-inside:avoid;padding:9pt 11pt !important}
+  .rw-card{box-shadow:none !important;border:1pt solid #D8DEE9 !important;background:#fff !important;break-inside:avoid;page-break-inside:avoid;padding:9pt 11pt !important}
   .rw-card-head{margin-bottom:6pt}
   .rw-card-title{font-size:10.5pt}
   .rw-card-hint{display:none}
@@ -1328,26 +1328,26 @@ const REPORTS_CSS = `
   .rw-kpi-label{font-size:7pt !important}
   .rw-grid-2{grid-template-columns:1fr 1fr !important;gap:6pt !important}
   .rw-footnote{border-top:0.5pt solid #c3c8bd;font-size:7.5pt}
-  .rw-scope-note{border:0.5pt solid #dedfd9;font-size:8pt}
+  .rw-scope-note{border:0.5pt solid #D8DEE9;font-size:8pt}
   .rw-table{font-size:8pt}
   .rw-table thead{display:table-header-group}
   .rw-table tr{break-inside:avoid;page-break-inside:avoid}
   .rw-table th{background:#f2f3ef !important}
   .rw-delta{border:0.5pt solid currentColor;background:transparent !important}
-  .rw-hbar-fill{fill:#0E7A5C !important}
+  .rw-hbar-fill{fill:#164E8A !important}
   .rw-hbar-bg{fill:#eaece7 !important}
   .rw-donut-track{stroke:#eaece7 !important}
   .rw-legend-dot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .rw-legend-dot.rw-dot-billed{background:#0E7A5C !important}
+  .rw-legend-dot.rw-dot-billed{background:#164E8A !important}
   .rw-legend-dot.rw-dot-paid{background:#2C7BC4 !important}
-  .rw-line-billed{stroke:#0E7A5C !important}
+  .rw-line-billed{stroke:#164E8A !important}
   .rw-line-paid{stroke:#2C7BC4 !important}
-  .rw-dot-billed{fill:#0E7A5C !important}
+  .rw-dot-billed{fill:#164E8A !important}
   .rw-dot-paid{fill:#2C7BC4 !important}
   .rw-line-area{fill:#eef4f0 !important}
-  .rw-gridline,.rw-hour-bar{stroke:#dedfd9}
+  .rw-gridline,.rw-hour-bar{stroke:#D8DEE9}
   .rw-hour-bar{fill:#c3c8bd !important}
-  .rw-hour-peak{fill:#0E7A5C !important}
+  .rw-hour-peak{fill:#164E8A !important}
   .rw-hour-peak,.rw-dot-billed,.rw-dot-paid,.rw-stage-dot,.rw-print-mark{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   h1,h2,h3{page-break-after:avoid;break-after:avoid}
 }

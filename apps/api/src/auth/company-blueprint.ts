@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {DEPARTMENT_PRESETS,SEGMENTS,segmentAgentPrompt,templateFlow} from '../operations/business-templates';
 import {pipelineStages} from '../operations/departments.controller';
+import {webDesignerAgent} from '../ai/web-designer-agent';
 
 export async function provisionCompany(tx:any,tenant:any,ownerId:string,segmentId:string,requestId:string,platforms:string[]=[]){
  const segment=SEGMENTS.find(s=>s.id===segmentId)!;
@@ -22,5 +23,6 @@ export async function provisionCompany(tx:any,tenant:any,ownerId:string,segmentI
   flows[id]={version:1,draft:flow};
   agents.push({id:agentId,name:'Assistente '+department.name,role:preset.name,tier:'Econômico',enabled:false,instructions:segmentAgentPrompt(segmentId,key),profile:{tone:'Natural e objetivo',channels:[]},behavior:{rules:'Confirme dados antes de agir. Encaminhe dúvidas à equipe.',prohibitions:'Não inventar consultas ou operações.'},allowedActions:[],bindings:{mode:'specialist',specialists:[],flows:[id],pipelines:[pipeline.id],externalSystems:[],modules:preset.modules}});
  }
+ agents.push(webDesignerAgent()); // Design Gráfico & Web — agente padrão em toda nova empresa
  await tx.tenant.update({where:{id:tenant.id},data:{integrations:{onboarding:{requestId,segmentId,platforms,version:2},businessPresets:presets,businessFlows:flows,assistant:{name:'Véxora',wakeWord:'Olá Véxora',enabled:false,agents,dailyAiLimit:100}}}});
 }

@@ -2613,7 +2613,7 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .sites-row--compact input,.sites-row--compact select{font-size:11.5px;min-height:30px}
 .sites-wizard{width:min(720px,calc(100vw - 28px));max-height:88dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
 .sites-wizard-body{overflow-y:auto}
-.sites-areas{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:230px;overflow-y:auto;padding:2px}
+.sites-areas{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:120px;max-height:420px;overflow-y:auto;padding:2px}
 .sites-area{display:grid;gap:3px;padding:10px 12px;border:1px solid var(--ln);border-radius:12px;background:var(--s1);text-align:left;cursor:pointer;transition:all .15s}
 .sites-area strong{font:700 12px/1.3 var(--font-display);color:var(--tx)}
 .sites-area small{font-size:10.5px;color:var(--tx2)}
@@ -3789,7 +3789,7 @@ body.inbox-fullscreen .page-content{padding:0!important}
 input,select,textarea{border-radius:var(--r-sm)!important;background:var(--s2)!important;border:1px solid var(--ln)!important;box-shadow:none!important}
 input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 18%,transparent)!important}
 /* Ícones dos campos / tag chips — flat */
-.sites-field-label,.sales-funnel-chevron{display:none!important}/* preferir linhas/espirais nenhumas ópticas */
+.sales-funnel-chevron{display:none!important}/* preferir linhas/espirais nenhumas ópticas */
 /* Scrollbar mínima */
 ::-webkit-scrollbar-thumb{border-radius:99px!important}
 .sidebar{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--sb-tx) 26%,transparent) transparent!important}

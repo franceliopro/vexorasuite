@@ -82,6 +82,31 @@ export function DepartmentManager() {
     );
     setEditing(true);
   }
+
+  async function purgeDepartment(department: any) {
+    const response = window.confirm("Excluir o setor \"" + department.name + "\"? Esta ação é irreversível e removerá o setor de todo o sistema.");
+    if (!response) return;
+    window.alert("Confirmação copiada: EXCLUIR-SETOR. Cole no prompt que abrir.");
+    const value = window.prompt("Digite EXCLUIR-SETOR no campo abaixo:");
+    if (value !== "EXCLUIR-SETOR") { setNotice("Operação cancelada. Digite EXCLUIR-SETOR exatamente."); return; }
+    setNotice(""); setBusy(true);
+    try {
+      const r = await fetch("/api/backend/departments/" + department.id + "/purge", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirmation: "EXCLUIR-SETOR" }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw Error(data.message || "Não foi possível excluir o setor.");
+      setNotice("Setor \"" + department.name + "\" excluído. Recarregando a lista…");
+      await load();
+      window.dispatchEvent(new Event("vexora:team-updated"));
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Falha ao excluir setor.");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function save(body: any, method = "POST", target = id) {
     setBusy(true);
     try {
@@ -307,6 +332,7 @@ export function DepartmentManager() {
                 {d.isActive && (
                   <button className="text-button danger-text" disabled={busy} onClick={() => { if (window.confirm("Desativar " + d.name + "? O acesso do setor ser\u00e1 revogado e o hist\u00f3rico ser\u00e1 preservado.")) void save({}, "DELETE", d.id); }}>Desativar</button>
                 )}
+                <button className="danger-button" disabled={busy} onClick={() => void purgeDepartment(d)}>Excluir setor</button>
               </div>
               {d.isActive && (
                 <details className="department-members-details">

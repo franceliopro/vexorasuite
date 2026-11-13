@@ -209,6 +209,33 @@ export class DepartmentsController {
   ) {
     return this.save(req, input || {}, id);
   }
+  @Post(":id/purge") async purge(
+    @Req() req: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: { confirmation?: unknown },
+  ) {
+    if (!administrative(req.user.role)) throw new ForbiddenException("Somente administradores podem excluir o setor da empresa.");
+    if (body?.confirmation !== "EXCLUIR-SETOR") throw new BadRequestException("Digite EXCLUIR-SETOR para confirmar.");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const department = await tx.department.findFirst({ where: { id, tenantId: req.user.tenantId }, select: { id: true, name: true } });
+      if (!department) throw new BadRequestException("Setor não encontrado nesta empresa.");
+      const pipeline = await tx.crmPipeline.findUnique({ where: { departmentId: department.id }, select: { id: true } });
+      // detach contacts from the pipeline so we can delete it (schema sets onDelete: Restrict)
+      if (pipeline) await tx.contact.updateMany({ where: { tenantId: req.user.tenantId, pipelineId: pipeline.id }, data: { pipelineId: null } });
+      if (pipeline) await tx.crmPipeline.delete({ where: { id: pipeline.id } });
+      // calendar assignments reference departmentId but have no FK; remove explicitly
+      await tx.calendarAssignment.deleteMany({ where: { tenantId: req.user.tenantId, departmentId: department.id } });
+      // conversations: schema onDelete SetNull — automatic
+      // members: cascade from department delete
+      // tasks/workflows stored as JSON config — no FK, remain intact
+      const deleted = await tx.department.delete({ where: { id: department.id } });
+      await tx.auditLog.create({ data: { tenantId: req.user.tenantId, userId: req.user.sub, action: "department.purged", entityType: "department", entityId: department.id, details: { name: department.name, pipelineId: pipeline?.id ?? null } } });
+      return { deleted: deleted.name };
+    });
+    this.events.publish(req.user.tenantId, "team.updated", { departmentId: id, purged: true });
+    return result;
+  }
+
   @Delete(":id") remove(
     @Req() req: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,

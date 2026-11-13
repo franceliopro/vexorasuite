@@ -18,6 +18,11 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 };
 const safeImg = (url?: string | null) => url && (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) ? url : null;
 const initials = (n: string) => n.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || "").join("") || "I";
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  SOLD: { label: "Vendido", className: "ps-badge-sold" },
+  RENTED: { label: "Alugado", className: "ps-badge-rented" },
+  UNAVAILABLE: { label: "Indisponível", className: "ps-badge-unavailable" },
+};
 const waHref = (h: string) => "https://wa.me/" + h.replace(/\D/g, "");
 const formatDate = (iso: string) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }); };
 
@@ -97,6 +102,7 @@ export default function SitePropertyPage({ params }: { params: Promise<{ slug: s
 
           <aside className="ps-property-details">
             {data?.price && <p className="ps-property-price">{formatBRL(String(data.price))}</p>}
+            {STATUS_BADGE[String(data?.status || "")] && <span className={"ps-status-badge ps-property-detail-badge " + STATUS_BADGE[String(data?.status || "")]!.className}>{STATUS_BADGE[String(data?.status || "")]!.label}</span>}
             {data?.location && <p className="ps-property-location"><MapPin size={16} aria-hidden="true" /> {String(data.location)}</p>}
             <ul className="ps-property-facts">
               {data?.beds !== undefined && data?.beds !== "" && <li><BedDouble size={18} aria-hidden="true" /><span><b>{data.beds}</b> quartos</span></li>}

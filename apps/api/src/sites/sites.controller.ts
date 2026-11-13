@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, ServiceUnavailableException, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, ServiceUnavailableException, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -14,6 +14,10 @@ import { skillInstructions } from "../ai/product-skills";
 import { searxngSearch } from "../ai/local-services";
 import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import { sanitizeRelayoutBlocks, RELAYOUT_SYSTEM } from "./relayout";
+import { readPropertyLists, sanitizePropertyData, sanitizePropertyLists, scopeForRequest, assertItemInScope, itemCategory, DEFAULT_LISTS, PROPERTY_STATUS, STATUS_LABEL } from "./real-estate";
+import { WahaService } from "../operations/waha.service";
+import { MailService } from "../mail/mail.service";
+import { Optional } from "@nestjs/common";
 const isHttp = (v: unknown) => typeof v === "string" && /^https?:\/\//i.test(v.trim());
 function str(v: unknown, max: number, fallback = "") { return typeof v === "string" ? v.trim().slice(0, max) : fallback; }
 function list(v: unknown, maxItems: number, map: (x: any) => any): any[] {
@@ -38,12 +42,15 @@ const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq"
 @Controller("sites")
 @UseGuards(AuthGuard)
 export class SitesController {
-  constructor(private readonly prisma: PrismaService, private readonly ai: AiService) {}
+  constructor(private readonly prisma: PrismaService, private readonly ai: AiService, @Optional() private readonly waha?: WahaService, @Optional() private readonly mail?: MailService) {}
   private tenantOf(req: AuthenticatedRequest) { return req.user.tenantId; }
   private modules(req: AuthenticatedRequest): string[] {
     // NOTE: role OWNER/ADMIN keep all modules; the enforcement here is per-tenant plan.
     // Membership-level restriction acontece no AuthGuard (effectiveModules).
     return ["SITES"];
+  }
+  private admin(req: AuthenticatedRequest) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Somente administração pode gerenciar as listas e os gestores de categoria do imóvel.");
   }
   private async assertCanDesign(req: AuthenticatedRequest) {
     if (["OWNER","ADMIN","MANAGER","AGENT"].includes(req.user.role)) return;
@@ -213,6 +220,8 @@ export class SitesController {
   @Get(":id") async get(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
     const site = await this.prisma.site.findFirst({ where: { id, tenantId: this.tenantOf(req) }, include: { pages: { include: { blocks: true }, orderBy: { sortOrder: "asc" } }, forms: true, items: { orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] }, _count: { select: { submissions: true } } } });
     if (!site) throw new NotFoundException("Site não encontrado nesta empresa.");
+    const scopes = await scopeForRequest(this.prisma as any, req);
+    if (scopes) site.items = site.items.filter(item => { const cat = itemCategory(item); return cat === null ? false : scopes.has(cat); });
     return site;
   }
 
@@ -366,6 +375,119 @@ export class SitesController {
     return { blocks: safeBlocks.length };
   }
 
+  private async propertyListsFor(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    return readPropertyLists(tenant?.integrations);
+  }
+  private async scopeGuard(req: AuthenticatedRequest, item: any) {
+    const scopes = await scopeForRequest(this.prisma as any, req);
+    assertItemInScope(scopes, item);
+    if (scopes && itemCategory(item) === null) {
+      // Imóvel sem categoria não entra em escopo restrito de gestor.
+      throw new ForbiddenException("Este imóvel ainda não tem categoria (Urbano/Rural). Peça ao administrador para classificar antes de editar.");
+    }
+  }
+
+  @Get("real-estate/options")
+  async realEstateOptions(@Req() req: AuthenticatedRequest) {
+    return this.propertyListsFor(this.tenantOf(req));
+  }
+
+  @Put("real-estate/options")
+  async setRealEstateOptions(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    this.admin(req);
+    const lists = sanitizePropertyLists(body);
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${this.tenantOf(req)}::uuid FOR UPDATE`;
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
+      const root = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, any> : {};
+      await tx.tenant.update({ where: { id: this.tenantOf(req) }, data: { integrations: { ...root, realEstateLists: lists } as any } });
+    });
+    return lists;
+  }
+
+  @Get("real-estate/scopes")
+  async realEstateScopes(@Req() req: AuthenticatedRequest) {
+    this.admin(req);
+    const [memberships, scopes] = await Promise.all([
+      this.prisma.membership.findMany({ where: { tenantId: this.tenantOf(req), user: { isActive: true } }, select: { id: true, userId: true, role: true, user: { select: { name: true, email: true } } } }),
+      this.prisma.propertyScope.findMany({ where: { tenantId: this.tenantOf(req) }, select: { membershipId: true, category: true } }),
+    ]);
+    return { memberships: memberships.map(m => ({ ...m, scopes: scopes.filter(s => s.membershipId === m.id).map(s => s.category) })) };
+  }
+
+  @Post("real-estate/scopes")
+  async setRealEstateScope(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    this.admin(req);
+    const membershipId = String(body?.membershipId || "");
+    const category = String(body?.category || "");
+    if (!/^[0-9a-f-]{36}$/i.test(membershipId)) throw new BadRequestException("Membro inválido.");
+    const enable = body?.enable !== false;
+    if (!["Urbano", "Rural"].includes(category)) throw new BadRequestException("Categoria deve ser Urbano ou Rural.");
+    const membership = await this.prisma.membership.findFirst({ where: { id: membershipId, tenantId: this.tenantOf(req) }, select: { id: true } });
+    if (!membership) throw new BadRequestException("Membro não pertence a esta empresa.");
+    if (enable) await this.prisma.propertyScope.upsert({ where: { membershipId_category: { membershipId, category } }, create: { tenantId: this.tenantOf(req), membershipId, category }, update: {} });
+    else await this.prisma.propertyScope.deleteMany({ where: { tenantId: this.tenantOf(req), membershipId, category } });
+    return { membershipId, category, enable };
+  }
+
+  @Get(":id/property-applications")
+  async propertyApplications(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string, @Query("status") status: string) {
+    const site = await this.ownSite(req, siteId);
+    const filter = String(status || "PENDING").toUpperCase();
+    const scopes = await scopeForRequest(this.prisma as any, req);
+    const rows = await this.prisma.propertyApplication.findMany({ where: { tenantId: this.tenantOf(req), siteId: site.id, ...(filter === "ALL" ? {} : { status: filter }) }, orderBy: { createdAt: "desc" }, take: 200 });
+    const visible = scopes ? rows.filter(r => !r.category || scopes.has(r.category as any)) : rows;
+    return visible.map(r => ({ id: r.id, name: r.name, email: r.email, phone: r.phone, city: r.city, pretension: r.pretension, category: r.category, propertyType: r.propertyType, region: r.region, neighborhood: r.neighborhood, bedrooms: r.bedrooms, bathrooms: r.bathrooms, parkingSpaces: r.parkingSpaces, areaM2: r.areaM2, price: r.price, description: r.description, status: r.status, reason: r.reason, createdAt: r.createdAt }));
+  }
+
+  private async notifyAdvertiser(tenantId: string, siteName: string, app: { name: string; email: string; phone: string }, approved: boolean, reason: string | null) {
+    const subject = approved ? `Anúncio aprovado · ${siteName}` : `Anúncio não aprovado · ${siteName}`;
+    const text = approved
+      ? `Olá, ${app.name}!\n\nBoa notícia: o seu anúncio em ${siteName} foi aprovado. Em breve a equipe confere as fotos e publica.\n\n— Equipe ${siteName}`
+      : `Olá, ${app.name}!\n\nNão foi possível aprovar o seu anúncio em ${siteName}.\n\nMotivo: ${reason || "Não informado"}\n\nSe quiser corrigir e reenviar, é só responder este e-mail ou chamar pelo WhatsApp.\n\n— Equipe ${siteName}`;
+    try { await this.mail?.send({ to: app.email, subject, text, html: `<p>${text.replace(/\n/g, "<br>")}</p>` }); } catch { /* SMTP pode não estar configurado — não bloqueia o fluxo */ }
+    if (this.waha) {
+      try {
+        const channel = await this.prisma.channelConnection.findFirst({ where: { tenantId, provider: "WAHA", isActive: true, status: "CONNECTED" }, select: { id: true, provider: true, sessionName: true, status: true, name: true, isActive: true, settings: true } });
+        if (channel) await this.waha.sendText(channel as any, app.phone.replace(/\D/g, "") + "@c.us", `${subject}\n\n${reason ? "Motivo: " + reason : "Seu anúncio foi aprovado. Em breve a equipe confere as fotos e publica."}`);
+      } catch { /* sem WhatsApp conectado — não bloqueia */ }
+    }
+  }
+
+  @Post(":id/property-applications/:applicationId/approve")
+  async approvePropertyApplication(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string, @Param("applicationId", ParseUUIDPipe) applicationId: string) {
+    const site = await this.ownSite(req, siteId);
+    const app = await this.prisma.propertyApplication.findFirst({ where: { id: applicationId, tenantId: this.tenantOf(req), siteId: site.id } });
+    if (!app) throw new NotFoundException("Solicitação não encontrada.");
+    const scopes = await scopeForRequest(this.prisma as any, req);
+    if (scopes && app.category && !scopes.has(app.category as any)) throw new ForbiddenException("Sem permissão para aprovar anúncio de outra categoria.");
+    const title = `${app.propertyType || "Imóvel"} · ${app.neighborhood || app.city || "Anunciado"}`.slice(0, 160);
+    const count = await this.prisma.siteItem.count({ where: { siteId: site.id, kind: "property" } });
+    const code = "IMO-" + String(count + 1).padStart(4, "0");
+    const created = await this.prisma.$transaction(async tx => {
+      const item = await tx.siteItem.create({ data: { siteId: site.id, kind: "property", slug: safeSlug(title) + "-" + randomBytes(2).toString("hex"), title, excerpt: app.description.slice(0, 300) || null, data: { price: app.price, city: app.city, pretension: app.pretension, category: app.category, propertyType: app.propertyType, region: app.region, neighborhood: app.neighborhood, beds: app.bedrooms, baths: app.bathrooms, parkingSpaces: app.parkingSpaces, area: app.areaM2, code, status: "AVAILABLE", advertiserName: app.name, advertiserPhone: app.phone }, published: false, sortOrder: count } });
+      await tx.propertyApplication.update({ where: { id: app.id }, data: { status: "APPROVED", reviewedById: req.user.sub, reviewedAt: new Date(), reason: "" } });
+      return item;
+    });
+    await this.notifyAdvertiser(this.tenantOf(req), site.name, { name: app.name, email: app.email, phone: app.phone }, true, null);
+    return { approved: true, itemId: created.id };
+  }
+
+  @Post(":id/property-applications/:applicationId/reject")
+  async rejectPropertyApplication(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string, @Param("applicationId", ParseUUIDPipe) applicationId: string, @Body() body: any) {
+    const site = await this.ownSite(req, siteId);
+    const reason = str(body?.reason, 500).trim();
+    if (reason.length < 3) throw new BadRequestException("Explique o motivo da reprovação (ex.: faltam fotos do imóvel).");
+    const app = await this.prisma.propertyApplication.findFirst({ where: { id: applicationId, tenantId: this.tenantOf(req), siteId: site.id, status: "PENDING" } });
+    if (!app) throw new NotFoundException("Solicitação não encontrada ou já analisada.");
+    const scopes = await scopeForRequest(this.prisma as any, req);
+    if (scopes && app.category && !scopes.has(app.category as any)) throw new ForbiddenException("Sem permissão para reprovar anúncio de outra categoria.");
+    await this.prisma.propertyApplication.update({ where: { id: app.id }, data: { status: "REJECTED", reason, reviewedById: req.user.sub, reviewedAt: new Date() } });
+    await this.notifyAdvertiser(this.tenantOf(req), site.name, { name: app.name, email: app.email, phone: app.phone }, false, reason);
+    return { rejected: true };
+  }
+
   @Post(":id/items") async createItem(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string, @Body() body: any) {
     const site = await this.ownSite(req, siteId);
     const kind = String(body?.kind) === "property" ? "property" : "post";
@@ -373,20 +495,47 @@ export class SitesController {
     const slugBase = safeSlug(str(body?.slug, 80)) || safeSlug(title) || "item";
     let slug = slugBase, attempt = 0;
     while (await this.prisma.siteItem.findFirst({ where: { siteId: site.id, kind, slug } })) { slug = slugBase + "-" + randomBytes(2).toString("hex"); if (++attempt > 20) throw new BadRequestException("Slugs esgotados."); }
+    const lists = await this.propertyListsFor(this.tenantOf(req));
+    const scopes = await scopeForRequest(this.prisma as any, req);
     const data = sanitizeContent(body?.data || {});
     if (data && typeof data === "object" && !Array.isArray(data)) {
+      if (kind === "property") {
+        const propertyData = sanitizePropertyData(data, lists);
+        Object.assign(data, propertyData);
+      }
       data.price = normalizePrice(data.price);
     }
+    if (kind === "property" && scopes) {
+      const category = itemCategory({ data });
+      if (category && !scopes.has(category)) throw new ForbiddenException("Sem permissão para criar imóvel nesta categoria.");
+      if (!category) throw new BadRequestException("Escolha a categoria do imóvel (Urbano ou Rural).");
+    }
+    if (kind === "property" && !data.code) { const count = await this.prisma.siteItem.count({ where: { siteId: site.id, kind: "property" } }); data.code = "IMO-" + String(count + 1).padStart(4, "0"); }
+    if (kind === "property" && !data.status) data.status = "AVAILABLE";
     return this.prisma.siteItem.create({ data: { siteId: site.id, kind, slug, title, excerpt: str(body?.excerpt, 300) || null, coverUrl: safeUrl(body?.coverUrl), data, sortOrder: Number(body?.sortOrder) || 0, published: body?.published !== false, publishedAt: body?.published === false ? null : new Date() } });
   }
 
   @Patch("items/:itemId") async updateItem(@Req() req: AuthenticatedRequest, @Param("itemId", ParseUUIDPipe) itemId: string, @Body() body: any) {
     const item = await this.ownItem(req, itemId);
+    await this.scopeGuard(req, item);
     const data: any = {};
     if (body?.title !== undefined) { const title = str(body.title, 160); if (title.length < 2) throw new BadRequestException("Título inválido."); data.title = title; }
     if (body?.excerpt !== undefined) data.excerpt = str(body.excerpt, 300) || null;
     if (body?.coverUrl !== undefined) data.coverUrl = safeUrl(body.coverUrl);
-    if (body?.data !== undefined) { data.data = sanitizeContent(body.data); if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) data.data.price = normalizePrice(data.data.price); }
+    if (body?.data !== undefined) {
+      const merged = { ...(item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data as Record<string, any> : {}), ...(typeof body.data === "object" && body.data !== null ? body.data : {}) };
+      const lists = await this.propertyListsFor(this.tenantOf(req));
+      if (item.kind === "property") {
+        const propertyData = sanitizePropertyData(merged, lists);
+        Object.assign(merged, propertyData);
+        const scopes = await scopeForRequest(this.prisma as any, req);
+        if (scopes) { const category = itemCategory({ data: merged }); if (category && !scopes.has(category)) throw new ForbiddenException("Sem permissão para mudar a categoria deste imóvel."); }
+        if (!merged.status) merged.status = "AVAILABLE";
+        if (!merged.code) { const count = await this.prisma.siteItem.count({ where: { siteId: item.siteId, kind: "property" } }); merged.code = "IMO-" + String(count + 1).padStart(4, "0"); }
+      }
+      merged.price = normalizePrice(merged.price);
+      data.data = sanitizeContent(merged);
+    }
     if (body?.sortOrder !== undefined) data.sortOrder = Math.max(0, Math.min(999, Number(body.sortOrder) || 0));
     if (body?.published !== undefined) { data.published = body.published === true; data.publishedAt = data.published ? (item.publishedAt || new Date()) : null; }
     return this.prisma.siteItem.update({ where: { id: item.id }, data });
@@ -394,6 +543,7 @@ export class SitesController {
 
   @Delete("items/:itemId") async deleteItem(@Req() req: AuthenticatedRequest, @Param("itemId", ParseUUIDPipe) itemId: string) {
     const item = await this.ownItem(req, itemId);
+    await this.scopeGuard(req, item);
     const tenantId = this.tenantOf(req);
     // Ajuda em deixar o servidor limpo: coleta ids de site-assets referenciados e remove as linhas.
     const assetIds = collectAssetIds(item.data as any, item.coverUrl);

@@ -5,7 +5,7 @@
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "node -e \"console.log('native scaffold is not built in CI; use macOS/Xcode for Apple targets')\"",
     "build:android": "tauri android build",
     "build:ios": "tauri ios build",
     "icon": "node scripts/gen-icon.mjs"

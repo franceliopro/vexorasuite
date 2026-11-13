@@ -29,7 +29,7 @@ export function webDesignerAgent(): WebDesignerAgent {
       rules: 'Confirme marca, cores e diferenciais antes de publicar. Gere direção original inspirada em referências públicas; nunca reproduza peças existentes.',
       prohibitions: 'Não copie ou redistribua ativos de Behance, Dribbble, Envato, Pinterest, Awwwards ou similares. Não invente faturamento, clientes ou certificações. Não publique nada sem revisão humana.',
     },
-    allowedActions: ['creative.design.director', 'web.design.premium', 'web.research', 'drive.files.search', 'media.carousel.generate', 'voice.stt', 'voice.tts'],
+    allowedActions: ['creative.design.director', 'web.design.premium', 'media.instagram.redesign', 'web.research', 'drive.files.search', 'media.carousel.generate', 'voice.stt', 'voice.tts'],
     bindings: { mode: 'specialist', specialists: [], flows: [], pipelines: [], externalSystems: [], modules: ['MARKETING', 'SITES'], inboxes: [] },
     // Escolha recomendada da plataforma: GPT-5 (OpenAI) — o mais forte da família em código front-end e
     // sensibilidade visual de design, e compatível com a verificação de visão do modelo. O tenant pode

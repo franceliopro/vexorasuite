@@ -90,6 +90,7 @@ export class AssistantController {
       { id: "web.research", name: "Pesquisa na internet", category: "Conhecimento", cost: "external", implemented: true, permission: "research.admin", requiresConfiguration: "BRAVE_SEARCH_API_KEY" },
       { id: "creative.design.director", name: "Designer de referências e direção visual", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
       { id: "web.design.premium", name: "Web Designer Premium — pesquisa e sites", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
+      { id: "media.instagram.redesign", name: "Recriar carrossel do Instagram", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
       { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
       { id: "assistant.contacts.read", name: "Consultar contatos", category: "CRM", cost: "zero", implemented: true, permission: "contacts.read" },
       { id: "assistant.tasks.read", name: "Consultar tarefas", category: "Operações", cost: "zero", implemented: true, permission: "tasks.read" },

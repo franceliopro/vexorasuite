@@ -26,8 +26,11 @@ import { AssistantController } from "./assistant.controller";
 import { ChatbotDraftController } from "./chatbot-draft.controller";
 import { ChatbotAsaasPreviewController } from "./chatbot-asaas-preview.controller";
 import { ChatbotTriggerPreviewController } from "./chatbot-trigger-preview.controller";
+import { DesignApprovalsController } from "./design-approvals.controller";
+import { PublicDesignApprovalsController } from "./public-design-approvals.controller";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
+import { WahaService } from "../operations/waha.service";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController, WahaService], exports: [AiService] })
 export class AiModule {}
 

@@ -837,6 +837,8 @@ model SiteBlock {
 model SiteAsset {
   id         String   @id @default(uuid()) @db.Uuid
   tenantId   String   @map("tenant_id") @db.Uuid
+  name       String   @default("")
+  kind       String   @default("image")
   mimeType   String   @map("mime_type")
   width      Int
   height     Int
@@ -844,7 +846,7 @@ model SiteAsset {
   createdAt  DateTime @default(now()) @map("created_at")
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId, createdAt])
+  @@index([tenantId, kind, createdAt])
   @@map("site_assets")
 }
 

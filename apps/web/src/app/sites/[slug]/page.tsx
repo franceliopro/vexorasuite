@@ -139,7 +139,7 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
         const published = site.items.filter(i => i.kind === "post");
         return (
           <section className="ps-section"><h2>{c.title || "Últimas matérias"}</h2>
-            {published.length ? <div className="ps-items">{published.slice(0, 6).map(item => (<article key={item.id} className="ps-item-card">{safeImg(item.coverUrl) && <img src={item.coverUrl!} alt={item.title} loading="lazy" />}<div><h3>{item.title}</h3>{item.excerpt && <p>{item.excerpt}</p>}</div></article>))}</div> : <p className="ps-field-hint">Nenhuma matéria publicada ainda.</p>}
+            {published.length ? <div className="ps-items">{published.slice(0, 6).map(item => (<a key={item.id} className="ps-item-card" href={"/sites/" + slug + "/posts/" + item.slug} style={{ textDecoration: "none", color: "inherit" }}>{safeImg(item.coverUrl) && <img src={item.coverUrl!} alt={item.title} loading="lazy" />}<div><h3>{item.title}</h3>{item.excerpt && <p>{item.excerpt}</p>}<small className="ps-read-link">Ler matéria →</small></div></a>))}</div> : <p className="ps-field-hint">Nenhuma matéria publicada ainda.</p>}
           </section>
         );
       }

@@ -1,0 +1,19 @@
+{
+  "name": "@vexorasuite/native",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:android": "tauri android build",
+    "build:ios": "tauri ios build",
+    "icon": "node scripts/gen-icon.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.7"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.7"
+  }
+}

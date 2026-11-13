@@ -131,7 +131,7 @@ details>summary::-webkit-details-marker{display:none}
 .vx-dialog-footer,.finalization-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 [class$="-close"]{position:absolute;top:12px;right:12px;z-index:5;display:grid;place-items:center;width:34px;height:34px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:11px;background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
 [class$="-close"]:hover{background:var(--hover);color:var(--tx);border-color:var(--ln2);transform:scale(1.06)}
-[class$="-popover"],[class$="-menu"]:not(.nav-submenu,.nav-submenu-panel,.sidebar-profile-menu,.mobile-menu,.vx-flow-command-menu,.handoff-menu,.invite-menu,.inbox-more-queues-menu),.handoff-menu{position:absolute;z-index:50;min-width:200px;padding:8px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);box-shadow:var(--shadow)}
+[class$="-popover"],[class$="-menu"]:not(.nav-submenu,.nav-submenu-panel,.sidebar-profile-menu,.mobile-menu,.vx-flow-command-menu,.handoff-menu,.invite-menu,.inbox-more-queues-menu),.handoff-menu{position:absolute;z-index:50;background:var(--s1);box-shadow:var(--shadow)}
 .is-collapsed>:not(:first-child){display:none}
 .vx-spin{animation:vx-spin 1s linear infinite}
 @keyframes vx-spin{to{transform:rotate(360deg)}}
@@ -4034,4 +4034,14 @@ input[type=tel]{letter-spacing:.02em}
 :root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
 :root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
 :root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}
+
+/* ===== 103. AI-improve icon-only + mobile-menu 40px quadrado ===== */
+.composer-ai-improve{margin-left:auto;padding:0;width:28px;height:28px;min-height:28px;border-radius:9px;justify-content:center}
+.composer-ai-improve svg{width:17px!important;height:17px!important}
+@media (max-width:760px){
+  .composer-ai-improve{width:30px;height:30px;min-height:30px;flex:0 0 auto!important}
+  .composer-ai-improve svg{width:18px!important;height:18px!important}
+  .topbar .mobile-menu{flex:0 0 40px!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;padding:0!important;border-radius:12px!important}
+  .topbar .mobile-menu svg{width:20px!important;height:20px!important;display:block!important}
+}
 

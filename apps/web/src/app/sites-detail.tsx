@@ -481,7 +481,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}><Smartphone size={13} aria-hidden="true" /> Celular</button>
         </div>
         <div className="sites-studio-toolbar-right">
-          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.type === "layout"); if (target) { setSelected(target.id); } else { void addBlock("layout"); } }} title="Selecionar (ou criar) a seção de colunas para editar o layout"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
+          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.type === "layout"); if (target) { setSelected(target.id); } else { onNotice("Esta página ainda não tem uma Seção de colunas. Adicione em “Adicionar bloco” para editar visualmente."); } }} title="Selecionar a seção de colunas existente para editar (nunca cria um bloco novo)"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
           <button type="button" className="secondary-button" onClick={() => setRelayoutOpen(true)} title="A IA transforma a página em uma versão premium — com prompt, link de referência, imagem ou sem nada"><Wand2 size={14} aria-hidden="true" /> Relayout premium</button>
           <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar isolado de tudo"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
           {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}
@@ -526,6 +526,33 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
                 <LayoutBlockEditor block={selectedBlock} onChange={(content) => replaceBlockContent(selectedBlock, content)} />
               ) : (<>
               {fieldDefs.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} /> : <input value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} />}</label>)}
+              {selectedBlock?.type === "hero" && (() => {
+                const design = (selectedBlock.content?.design || {}) as Record<string, unknown>;
+                const setDesign = (key: string, value: unknown) => replaceBlockContent(selectedBlock, { ...(selectedBlock.content || {}), design: { ...design, [key]: value } });
+                const colorValue = (key: string, fallback: string) => /^#[0-9a-f]{6}$/i.test(String(design[key] || "")) ? String(design[key]) : fallback;
+                return (
+                  <div className="sites-design-block">
+                    <p className="sites-field-label">Design do hero — ao vivo</p>
+                    <div className="layout-element-row">
+                      <label className="sites-field"><span>Fundo (cor)</span><input type="color" value={colorValue("background", "#0A1730")} onChange={e => setDesign("background", e.target.value)} /></label>
+                      <label className="sites-field"><span>Gradiente pronto</span><select value="" onChange={e => e.target.value && setDesign("background", e.target.value)}><option value="">Escolher…</option>{GRADIENTS.map(([label, value]) => <option key={label} value={value}>{label}</option>)}</select></label>
+                      <label className="sites-field"><span>Fundo livre (CSS)</span><input value={String(design.background || "")} onChange={e => setDesign("background", e.target.value || undefined)} placeholder="linear-gradient(…)" /></label>
+                    </div>
+                    <div className="layout-element-row">
+                      <label className="sites-field"><span>Alinhamento</span><select value={String(design.textAlign || "center")} onChange={e => setDesign("textAlign", e.target.value)}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></label>
+                      <label className="sites-field"><span>Altura</span><select value={String(design.minHeight || "md")} onChange={e => setDesign("minHeight", e.target.value)}><option value="sm">Média</option><option value="md">Padrão</option><option value="lg">Tela cheia</option></select></label>
+                      <label className="sites-field"><span>Cor do título</span><input type="color" value={colorValue("headlineColor", "#FFFFFF")} onChange={e => setDesign("headlineColor", e.target.value)} /></label>
+                      <label className="sites-field"><span>Cor do subtítulo</span><input type="color" value={colorValue("subColor", "#A9BFE3")} onChange={e => setDesign("subColor", e.target.value)} /></label>
+                    </div>
+                    <div className="layout-element-row">
+                      <label className="sites-field"><span>Cor do botão</span><input type="color" value={colorValue("buttonBackground", "#2E7CF6")} onChange={e => setDesign("buttonBackground", e.target.value)} /></label>
+                      <label className="sites-field"><span>Texto do botão</span><input type="color" value={colorValue("buttonColor", "#FFFFFF")} onChange={e => setDesign("buttonColor", e.target.value)} /></label>
+                      <label className="sites-field"><span>Selo (fundo)</span><input type="color" value={colorValue("badgeBackground", "#2E7CF6")} onChange={e => setDesign("badgeBackground", e.target.value)} /></label>
+                      <button type="button" className="text-button" onClick={() => replaceBlockContent(selectedBlock, { ...(selectedBlock.content || {}), design: undefined })}>Limpar design</button>
+                    </div>
+                  </div>
+                );
+              })()}
               {fieldDefs.array ? <div className="sites-studio-array">
                 <div className="sites-studio-array-head"><span className="sites-field-label">{fieldDefs.array.label}</span><button type="button" className="text-button sites-studio-add-item" onClick={() => addArrayItem(fieldDefs.array!.key)}>+ {fieldDefs.array.itemLabel}</button></div>
                 {(Array.isArray(selectedBlock.content?.[fieldDefs.array.key]) ? selectedBlock.content[fieldDefs.array.key] : []).map((item: any, index: number) => <div key={index} className="sites-studio-array-item">

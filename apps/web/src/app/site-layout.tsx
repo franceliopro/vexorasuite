@@ -92,6 +92,27 @@ function renderElement(el: any, key: number): ReactNode {
   }
 }
 
+export type HeroDesign = {
+  background?: string; textAlign?: "left" | "center" | "right";
+  headlineColor?: string; subColor?: string; badgeBackground?: string;
+  buttonBackground?: string; buttonColor?: string; minHeight?: "sm" | "md" | "lg";
+};
+export type HeroDesignCss = { section: CSSProperties; badge?: CSSProperties; headline?: CSSProperties; sub?: CSSProperties; button?: CSSProperties };
+/** Converte o bloco `design` do hero em estilos inline — usado na prévia, no editor e no tema público. */
+export function heroDesignCss(design: unknown): HeroDesignCss {
+  const d = design && typeof design === "object" ? (design as Record<string, unknown>) : {};
+  const out: HeroDesignCss = { section: {} };
+  const bg = validColor(d.background); if (bg) out.section.background = bg;
+  const textAlign = validAlign(d.textAlign); if (textAlign === "center") { out.section.textAlign = "center"; out.section.justifyItems = "center"; } else if (textAlign === "left") { out.section.textAlign = "left"; out.section.justifyItems = "start"; } else if (textAlign === "right") { out.section.textAlign = "right"; out.section.justifyItems = "end"; }
+  if (d.minHeight === "sm") out.section.minHeight = "42vh"; else if (d.minHeight === "lg") out.section.minHeight = "76vh"; else if (d.minHeight === "md") out.section.minHeight = "58vh";
+  const headline = validColor(d.headlineColor); if (headline) out.headline = { color: headline };
+  const sub = validColor(d.subColor); if (sub) out.sub = { color: sub };
+  const badge = validColor(d.badgeBackground); if (badge) out.badge = { color: "#FFFFFF", background: badge, borderColor: badge };
+  const btnBg = validColor(d.buttonBackground); const btnFg = validColor(d.buttonColor);
+  if (btnBg || btnFg) { out.button = {}; if (btnBg) out.button.background = btnBg; if (btnFg) out.button.color = btnFg; }
+  return out;
+}
+
 /** Seção em colunas (layout) — usada em prévia, tema público e editor. */
 export function LayoutBlock({ content }: { content: any }) {
   const columns = (Array.isArray(content?.columns) ? content.columns : []).slice(0, 4);

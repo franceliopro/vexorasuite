@@ -9,7 +9,7 @@ import { FileManager } from "./file-manager";
 import { PostBodyEditor } from "./post-body-editor";
 import { FileImagePicker } from "./file-image-picker";
 import { SitePreview } from "./site-preview";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Trash2, Wand2, Mic, X } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -735,9 +735,11 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
   const [editing, setEditing] = useState<Item | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
-  const reset = (i: Item | null) => { setEditing(i); setForm(i ? { title: i.title, excerpt: i.excerpt || "", coverUrl: i.coverUrl || "", price: i.data?.price || "", location: i.data?.location || "", body: i.data?.body || "", beds: i.data?.beds || "", baths: i.data?.baths || "", area: i.data?.area || "" } : { title: "", excerpt: "", coverUrl: "", price: "", location: "", body: "", beds: "", baths: "", area: "" }); };
+  const reset = (i: Item | null) => { setEditing(i); const existingImages = Array.isArray(i?.data?.images) ? (i.data.images as any[]).map((img: any) => ({ url: String(img?.url || ""), alt: String(img?.alt || "") })).filter(img => img.url) : (i?.coverUrl ? [{ url: i.coverUrl, alt: "" }] : []); setForm(i ? { title: i.title, excerpt: i.excerpt || "", coverUrl: existingImages[0]?.url || i.coverUrl || "", price: i.data?.price || "", location: i.data?.location || "", body: i.data?.body || "", beds: i.data?.beds || "", baths: i.data?.baths || "", area: i.data?.area || "", images: existingImages } : { title: "", excerpt: "", coverUrl: "", price: "", location: "", body: "", beds: "", baths: "", area: "", images: [] }); };
   const save = async () => {
-    const payload = { title: form.title, excerpt: form.excerpt, coverUrl: form.coverUrl, data: kind === "property" ? { price: form.price, location: form.location, beds: form.beds, baths: form.baths, area: form.area, body: form.body } : { body: form.body } };
+    const images = Array.isArray(form.images) ? form.images.filter((img: any) => img?.url) : [];
+    const cover = images[0]?.url || form.coverUrl || undefined;
+    const payload = { title: form.title, excerpt: form.excerpt, coverUrl: cover, data: kind === "property" ? { price: form.price, location: form.location, beds: form.beds, baths: form.baths, area: form.area, body: form.body, images } : { body: form.body, images } };
     if (editing) await api(`/sites/items/${editing.id}`, { method: "PATCH", body: JSON.stringify(payload) }); else await api(`/sites/${site.id}/items`, { method: "POST", body: JSON.stringify({ ...payload, kind }) });
     onNotice(editing ? "Atualizado." : "Criado."); onSaved();
   };
@@ -757,16 +759,55 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
           <div className="sites-inline-fields"><label><span>Quartos</span><input type="number" min={0} value={form.beds || ""} onChange={e => setForm(v => ({ ...v, beds: e.target.value }))} /></label><label><span>Banheiros</span><input type="number" min={0} value={form.baths || ""} onChange={e => setForm(v => ({ ...v, baths: e.target.value }))} /></label><label><span>Área (m²)</span><input type="number" min={0} value={form.area || ""} onChange={e => setForm(v => ({ ...v, area: e.target.value }))} /></label></div>
         </>}
         <label><span>Resumo</span><input value={form.excerpt || ""} onChange={e => setForm(v => ({ ...v, excerpt: e.target.value }))} placeholder="Uma frase vendendo a matéria/imóvel" /></label>
-        <label><span>Capa do {kind === "post" ? "post" : "imóvel"} (File manager)</span>
-          <div className="cover-picker">
-            {form.coverUrl ? <img src={form.coverUrl} alt="Imagem de capa" /> : <div className="cover-picker-empty"><ImagePlus size={22} aria-hidden="true" /><span>Escolha do File manager ou envie do PC/celular — sem links externos.</span></div>}
-            <div className="cover-picker-actions">
-              <button type="button" className="secondary-button" onClick={() => setCoverPickerOpen(true)}>{form.coverUrl ? "Trocar imagem" : "Escolher imagem"}</button>
-              {form.coverUrl && <button type="button" className="text-button" onClick={() => setForm(v => ({ ...v, coverUrl: "" }))}>Remover capa</button>}
+        {kind === "property" ? (() => {
+          const images: { url: string; alt: string }[] = Array.isArray(form.images) ? form.images : [];
+          const setImages = (next: { url: string; alt: string }[]) => setForm(v => ({ ...v, images: next, coverUrl: next[0]?.url || "" }));
+          const setCover = (index: number) => { if (index <= 0) return; const next = images.slice(); const [picked] = next.splice(index, 1); if (picked) next.unshift(picked); setImages(next); };
+          const moveImage = (index: number, dir: -1 | 1) => { const target = index + dir; if (target < 0 || target >= images.length) return; const next = images.slice(); const [item] = next.splice(index, 1); if (!item) return; next.splice(target, 0, item); setImages(next); };
+          const removeImage = async (index: number) => {
+            const target = images[index];
+            setImages(images.filter((_, j) => j !== index));
+            const match = typeof target?.url === "string" ? target.url.match(/\/site-assets\/([0-9a-f-]{36})/i) : null;
+            if (match && window.confirm("Excluir também do servidor? A imagem sumirá de qualquer lugar onde foi usada.")) {
+              try { await api(`/sites/assets/${match[1]}`, { method: "DELETE" }); onNotice("Imagem excluída do servidor."); }
+              catch { onNotice("Não foi possível excluir do servidor — exclua em Arquivos."); }
+            }
+          };
+          return (
+            <div className="property-images">
+              <p className="sites-field-label">Imagens do imóvel {images.length ? `· ${images.length} no total` : ""}</p>
+              <p className="sites-field-hint">A <b>primeira</b> imagem vira a capa e o fundo do topo. Use “Definir capa” para escolher outra. Excluir remove do post — com a opção de sumir também do servidor.</p>
+              <div className="property-images-grid">
+                {images.map((img, index) => (
+                  <figure key={index} className="property-image-card">
+                    <img src={img.url} alt={img.alt || "Foto do imóvel"} loading="lazy" />
+                    {index === 0 && <span className="property-cover-badge">CAPA</span>}
+                    <div className="property-image-card-actions">
+                      {index > 0 && <button type="button" className="icon-button" title="Definir como capa" aria-label="Definir como capa" onClick={() => setCover(index)}><Star size={13} aria-hidden="true" /></button>}
+                      <button type="button" className="icon-button" title="Mover para a esquerda" aria-label="Mover para a esquerda" onClick={() => moveImage(index, -1)}><ChevronUp size={13} aria-hidden="true" /></button>
+                      <button type="button" className="icon-button" title="Mover para a direita" aria-label="Mover para a direita" onClick={() => moveImage(index, 1)}><ChevronDown size={13} aria-hidden="true" /></button>
+                      <button type="button" className="icon-button" title="Excluir (com opção de remover também do servidor)" aria-label="Excluir imagem" onClick={() => void removeImage(index)}><Trash2 size={13} aria-hidden="true" /></button>
+                    </div>
+                  </figure>
+                ))}
+                <button type="button" className="property-image-add" onClick={() => setCoverPickerOpen(true)}><Plus size={18} aria-hidden="true" /><span>Adicionar imagens</span></button>
+              </div>
+              <FileImagePicker open={coverPickerOpen} onClose={() => setCoverPickerOpen(false)} multiple title="File manager · Imagens do imóvel" onSelect={(urls) => { const added = urls.map(u => ({ url: u, alt: decodeURIComponent(u.split("/").pop() || "Imagem").replace(/\.[a-z0-9]+$/i, "") })); setImages([...images, ...added]); }} />
             </div>
-          </div>
-        </label>
-        <FileImagePicker open={coverPickerOpen} onClose={() => setCoverPickerOpen(false)} title="File manager · capa do post" onSelect={(urls) => { const url = urls[0]; if (url) setForm(v => ({ ...v, coverUrl: url })); }} />
+          );
+        })()
+        : (<>
+          <label><span>Capa do post (File manager)</span>
+            <div className="cover-picker">
+              {form.coverUrl ? <img src={form.coverUrl} alt="Imagem de capa" /> : <div className="cover-picker-empty"><ImagePlus size={22} aria-hidden="true" /><span>Escolha do File manager ou envie do PC/celular — sem links externos.</span></div>}
+              <div className="cover-picker-actions">
+                <button type="button" className="secondary-button" onClick={() => setCoverPickerOpen(true)}>{form.coverUrl ? "Trocar imagem" : "Escolher imagem"}</button>
+                {form.coverUrl && <button type="button" className="text-button" onClick={() => setForm(v => ({ ...v, coverUrl: "" }))}>Remover capa</button>}
+              </div>
+            </div>
+          </label>
+          <FileImagePicker open={coverPickerOpen} onClose={() => setCoverPickerOpen(false)} title="File manager · capa do post" onSelect={(urls) => { const url = urls[0]; if (url) setForm(v => ({ ...v, coverUrl: url })); }} />
+        </>)}
         <label><span>Corpo do texto</span><PostBodyEditor value={form.body || ""} onChange={html => setForm(v => ({ ...v, body: html }))} aria-label={kind === "post" ? "Corpo do post" : "Descrição do imóvel"} placeholder="Escreva o conteúdo completo…" /></label>
         <button type="submit" className="primary-button">{editing ? "Salvar alterações" : "Publicar"}</button>
       </form>

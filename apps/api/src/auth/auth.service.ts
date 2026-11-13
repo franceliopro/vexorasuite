@@ -383,7 +383,9 @@ export class AuthService {
   private async memberSession(userId:string,tenantId:unknown,ownerOnly:boolean,userAgent?:string){
     if(typeof tenantId!=='string'||!isUUID(tenantId))throw new BadRequestException('Selecione uma empresa válida.');
     const member=await this.prisma.membership.findFirst({where:{userId,tenantId,...(ownerOnly?{role:'OWNER' as const}:{}),user:{isActive:true},tenant:{status:'ACTIVE'}},include:{user:{select:{id:true,name:true,email:true,isPlatformAdmin:true,mustChangePassword:true,authVersion:true}},tenant:{select:{id:true,name:true,slug:true,kind:true}}}});
-    if(!member||member.tenant.kind==='PLATFORM'&&!member.user?.isPlatformAdmin)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
+    // Troca de senha (ownerOnly=false) funciona para qualquer membro ativo — inclusive staff interno não-admin
+    // do workspace PLATFORM. O bloqueio de PLATFORM só vale para o "switch de empresa" (ownerOnly=true).
+    if(!member||ownerOnly&&member.tenant.kind==='PLATFORM'&&!member.user?.isPlatformAdmin)throw new ForbiddenException('Esta empresa não está vinculada à sua conta proprietária.');
     const {authVersion,...user}=member.user;
     return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:this.accessTtlSeconds,...(await this.refreshFields(userId,member.tenant.id,authVersion??0,userAgent)),user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
   }

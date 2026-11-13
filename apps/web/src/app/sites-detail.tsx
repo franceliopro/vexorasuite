@@ -8,6 +8,7 @@ import { AREAS, BLOCKS_META, api, safeSlug, type Site, type Form, type Item, typ
 import { FileManager } from "./file-manager";
 import { PostBodyEditor } from "./post-body-editor";
 import { FileImagePicker } from "./file-image-picker";
+import { maskBRLInput, formatBRL } from "../lib/money";
 import { SitePreview } from "./site-preview";
 import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, X } from "lucide-react";
 
@@ -747,14 +748,14 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
   return (
     <div className="sites-items-grid">
       <div className="sites-items-list">
-        {items.length ? items.map((i: Item) => (<article key={i.id} className="sites-item-card"><div><strong>{i.title}</strong><small>{kind === "post" ? (i.excerpt || "Sem resumo") : [i.data?.price, i.data?.location].filter(Boolean).join(" · ") || "Sem detalhes"}</small></div><span><button type="button" className="text-button" onClick={() => reset(i)}>Editar</button><button type="button" className="icon-button" aria-label="Excluir" onClick={() => void remove(i)}><Trash2 size={14} aria-hidden="true" /></button></span></article>)) : <p className="sites-field-hint">{kind === "post" ? "Nenhuma matéria publicada." : "Nenhum imóvel publicado."}</p>}
+        {items.length ? items.map((i: Item) => (<article key={i.id} className="sites-item-card"><div><strong>{i.title}</strong><small>{kind === "post" ? (i.excerpt || "Sem resumo") : [i.data?.price ? formatBRL(i.data.price) : null, i.data?.location].filter(Boolean).join(" · ") || "Sem detalhes"}</small></div><span><button type="button" className="text-button" onClick={() => reset(i)}>Editar</button><button type="button" className="icon-button" aria-label="Excluir" onClick={() => void remove(i)}><Trash2 size={14} aria-hidden="true" /></button></span></article>)) : <p className="sites-field-hint">{kind === "post" ? "Nenhuma matéria publicada." : "Nenhum imóvel publicado."}</p>}
         <button type="button" className="primary-button" onClick={() => reset(null)}><Plus size={15} aria-hidden="true" /> {kind === "post" ? "Nova matéria" : "Novo imóvel"}</button>
       </div>
       <form className="sites-item-form" onSubmit={e => { e.preventDefault(); void save(); }}>
         <h3>{editing ? "Editar" : "Novo"} {kind === "post" ? "matéria" : "imóvel"}</h3>
         <label><span>Título</span><input value={form.title || ""} onChange={e => setForm(v => ({ ...v, title: e.target.value }))} placeholder={kind === "post" ? "Título da matéria" : "Apartamento 3 quartos · Jardins"} required /></label>
         {kind === "property" && <>
-          <label><span>Preço</span><input value={form.price || ""} onChange={e => setForm(v => ({ ...v, price: e.target.value }))} placeholder="R$ 650.000" /></label>
+          <label><span>Preço</span><input inputMode="numeric" value={form.price || ""} onChange={e => setForm(v => ({ ...v, price: maskBRLInput(e.target.value) }))} placeholder="1.220.345,56" /></label>
           <label><span>Localização</span><input value={form.location || ""} onChange={e => setForm(v => ({ ...v, location: e.target.value }))} placeholder="Jardins, São Paulo" /></label>
           <div className="sites-inline-fields"><label><span>Quartos</span><input type="number" min={0} value={form.beds || ""} onChange={e => setForm(v => ({ ...v, beds: e.target.value }))} /></label><label><span>Banheiros</span><input type="number" min={0} value={form.baths || ""} onChange={e => setForm(v => ({ ...v, baths: e.target.value }))} /></label><label><span>Área (m²)</span><input type="number" min={0} value={form.area || ""} onChange={e => setForm(v => ({ ...v, area: e.target.value }))} /></label></div>
         </>}

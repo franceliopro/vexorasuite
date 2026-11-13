@@ -21,7 +21,6 @@ const LIMIT_FIELDS: Array<{ key: string; label: string; kind: "number" | "bool" 
   { key: "finance", label: "Financeiro Asaas", kind: "bool" },
   { key: "followups", label: "Follow-ups / cobrança", kind: "bool" },
   { key: "marketingPublishing", label: "Publicação de conteúdo", kind: "bool" },
-  { key: "modules", label: "Módulos liberados", kind: "modules", hint: "Elenque: SITES, INBOX, CRM, AUTOMATION, MARKETING, FINANCE…" },
 ];
 const EMPTY_PLAN: Omit<Plan, "id"> = { code: "", kind: "PLAN", name: "", tagline: "", description: "", audience: "", priceCents: 0, currency: "BRL", cycle: "MONTH", limits: { attendants: 1, bots: 1, ia: 100, iaTier: "eco", sites: 0, dynamic: false, forms: false, socialAccounts: 2, whatsapp: true, crm: false, finance: false, followups: false, marketingPublishing: false, modules: ["SITES"] }, isActive: true, isPublic: true, sortOrder: 0 };
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -31,6 +30,13 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 const strArr = (v: unknown) => Array.isArray(v) ? v.filter(x => typeof x === "string") : [];
+const MODULE_ORDER = ["SITES", "INBOX", "CRM", "CALENDAR", "TASKS", "AUTOMATION", "MARKETING", "FINANCE", "CHANNELS", "SETTINGS"] as const;
+const PLAN_PRESETS: { label: string; modules: string[] }[] = [
+  { label: "Só Sites", modules: ["SITES"] },
+  { label: "Sites + Social", modules: ["SITES", "MARKETING"] },
+  { label: "Sites + Social + Atendimento", modules: ["SITES", "MARKETING", "INBOX", "CHANNELS", "CRM"] },
+  { label: "Operação completa", modules: ["SITES", "INBOX", "CRM", "CALENDAR", "TASKS", "AUTOMATION", "MARKETING", "FINANCE", "CHANNELS"] },
+];
 
 export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | "customers" }) {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -131,7 +137,6 @@ function renderLimit(p: Plan, key: string): string {
 function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: Omit<Plan, "id">; setDraft: (d: Omit<Plan, "id">) => void; editing: Plan | null; onClose: () => void; onSave: () => Promise<void>; saving: boolean }) {
   const upd = (patch: Partial<Omit<Plan, "id">>) => setDraft({ ...draft, ...patch });
   const setLimit = (key: string, value: any) => setDraft({ ...draft, limits: { ...draft.limits, [key]: value } });
-  const modulesStr = strArr(draft.limits?.modules).join(", ");
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop platform-admin-editor-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -149,7 +154,22 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
             <label className="platform-admin-field platform-admin-field-wide"><span>Descrição</span><textarea rows={2} value={draft.description} onChange={e => upd({ description: e.target.value })} placeholder="O que está incluído, benefícios, garantias…" /></label>
             <label className="platform-admin-field platform-admin-field-wide"><span>Público-alvo</span><input value={draft.audience} onChange={e => upd({ audience: e.target.value })} placeholder="Restaurantes, clínicas…" /></label>
           </div>
-          <fieldset className="platform-admin-limits-fieldset"><legend>Limites e recursos</legend><div className="platform-admin-limits-grid">{LIMIT_FIELDS.map(f => f.kind === "bool" ? (<label key={f.key} className="platform-admin-check"><input type="checkbox" checked={!!draft.limits?.[f.key]} onChange={e => upd({ limits: { ...draft.limits, [f.key]: e.target.checked } })} /> <span>{f.label}</span></label>) : f.kind === "modules" ? (<label key={f.key} className="platform-admin-field platform-admin-field-wide"><span>{f.label}</span><input value={modulesStr} onChange={e => upd({ limits: { ...draft.limits, modules: strArr(e.target.value.split(",").map(s => s.trim().toUpperCase()).filter(Boolean)) } })} placeholder="SITES, INBOX, CRM, AUTOMATION…" /></label>) : (<label key={f.key} className="platform-admin-field"><span>{f.label}</span><input type={f.kind === "number" ? "number" : "text"} min={0} value={draft.limits?.[f.key] ?? ""} onChange={e => setLimit(f.key, f.kind === "number" ? Number(e.target.value) || 0 : e.target.value)} placeholder={f.placeholder} /></label>))}</div></fieldset>
+          <fieldset className="platform-admin-limits-fieldset"><legend>Limites e recursos</legend><div className="platform-admin-limits-grid">{LIMIT_FIELDS.map(f => f.kind === "bool" ? (<label key={f.key} className="platform-admin-check"><input type="checkbox" checked={!!draft.limits?.[f.key]} onChange={e => upd({ limits: { ...draft.limits, [f.key]: e.target.checked } })} /> <span>{f.label}</span></label>) : (<label key={f.key} className="platform-admin-field"><span>{f.label}</span><input type={f.kind === "number" ? "number" : "text"} min={0} value={draft.limits?.[f.key] ?? ""} onChange={e => setLimit(f.key, f.kind === "number" ? Number(e.target.value) || 0 : e.target.value)} placeholder={f.placeholder} /></label>))}</div>
+            <div className="platform-admin-modules-block">
+              <div className="platform-admin-modules-head"><span className="platform-admin-field-wide"><strong>Módulos liberados</strong><small>Landing Pages e Formulários entram no pacote <em>Sites</em>. Publicação social fica só com <em>Marketing</em>.</small></span><div className="platform-admin-presets">{PLAN_PRESETS.map(preset => <button key={preset.label} type="button" className="secondary-button" onClick={() => upd({ limits: { ...draft.limits, modules: [...preset.modules, "SETTINGS"] } })} title={"Preencher com " + preset.label}>{preset.label}</button>)}</div></div>
+              <div className="platform-admin-modules-grid" role="group" aria-label="Módulos liberados">
+                {MODULE_ORDER.filter(m => m !== "SETTINGS").map(m => {
+                  const checked = strArr(draft.limits?.modules).includes(m);
+                  return (
+                    <label key={m} className={"platform-admin-module-check" + (checked ? " is-checked" : "")}>
+                      <input type="checkbox" checked={checked} onChange={e => { const current = strArr(draft.limits?.modules).filter(x => x !== "SETTINGS"); const next = e.target.checked ? [...current, m] : current.filter(x => x !== m); upd({ limits: { ...draft.limits, modules: [...next, "SETTINGS"] } }); }} />
+                      <span>{MODULE_LABELS[m] || m}<small>{m}</small></span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </fieldset>
           <div className="platform-admin-flags"><label className="platform-admin-check"><input type="checkbox" checked={draft.isActive} onChange={e => upd({ isActive: e.target.checked })} /> <span>Plano ativo</span></label><label className="platform-admin-check"><input type="checkbox" checked={draft.isPublic} onChange={e => upd({ isPublic: e.target.checked })} /> <span>Visível no catálogo público</span></label></div>
         </div>
         <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="button" className="primary-button" disabled={saving || !draft.name.trim() || !draft.code.trim()} onClick={() => void onSave()}>{saving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />} Salvar</button></footer>

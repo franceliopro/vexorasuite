@@ -3,6 +3,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import sanitizeHtml from "sanitize-html";
 import { ArrowLeft, BedDouble, Bath, Ruler, MapPin, X, ChevronLeft, ChevronRight, MessageCircle, CalendarDays } from "lucide-react";
+import { formatBRL } from "../../../../../lib/money";
 
 type ItemImage = { url: string; alt?: string };
 type Item = { id: string; kind: string; slug: string; title: string; excerpt?: string | null; coverUrl?: string | null; data: any; publishedAt?: string | null; createdAt?: string };
@@ -95,7 +96,7 @@ export default function SitePropertyPage({ params }: { params: Promise<{ slug: s
           </div>
 
           <aside className="ps-property-details">
-            {data?.price && <p className="ps-property-price">{String(data.price)}</p>}
+            {data?.price && <p className="ps-property-price">{formatBRL(String(data.price))}</p>}
             {data?.location && <p className="ps-property-location"><MapPin size={16} aria-hidden="true" /> {String(data.location)}</p>}
             <ul className="ps-property-facts">
               {data?.beds !== undefined && data?.beds !== "" && <li><BedDouble size={18} aria-hidden="true" /><span><b>{data.beds}</b> quartos</span></li>}

@@ -115,6 +115,24 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
     setWizAiDictateStatus("Ouvindo. Toque em Parar para finalizar.");
   };
   const closeWizard = () => setParams({ new: null });
+  const [wizCloning, setWizCloning] = useState(false);
+  const cloneSiteNow = async () => {
+    const url = (wizCloneUrl || "").trim();
+    if (!/^https:\/\//i.test(url)) { setWizError("Cole a URL pública do site, começando com https://."); return; }
+    setWizError(""); setWizCloning(true);
+    try {
+      const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
+      const socials = wizSocials.filter(s => s.handle.trim());
+      const created = await api<any>("/sites/clone", { method: "POST", body: JSON.stringify({ url, name: wizName.trim() || undefined, businessArea: wizArea || undefined, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug.trim() || undefined, whatsapps, socials }) });
+      const report = created?.report as { source?: string; pagesImported?: number; postsImported?: number; propertiesImported?: number } | undefined;
+      const origin = report?.source === "wordpress" ? "WordPress" : "HTML";
+      setNotice(`Site clonado (${origin}): ${report?.pagesImported ?? 0} páginas, ${report?.postsImported ?? 0} posts, ${report?.propertiesImported ?? 0} imóveis. Revise no Studio e publique quando quiser.`);
+      try { window.localStorage.removeItem("vx:sites-wizard-draft"); } catch { /* ignore */ }
+      await loadSites();
+      setParams({ new: null, site: created?.id || null, tab: "studio" });
+    } catch (e) { setWizError(e instanceof Error ? e.message : "Não foi possível clonar o site."); }
+    finally { setWizCloning(false); }
+  };
   const submitWizard = async () => {
     setWizError(""); setWizSaving(true);
     try {
@@ -160,7 +178,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site com IA”.</p></div>}
           </div>
         )}
-        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} /> : null}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} /> : null}
       </section>
     );
   }

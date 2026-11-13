@@ -4106,3 +4106,20 @@ input[type=tel]{letter-spacing:.02em}
 .sites-relayout-backdrop{z-index:2500!important;background:rgba(9,13,11,.42)!important}
 .ai-assistant-pill{font:800 11px/1 var(--font-display);padding:7px 12px;border-radius:99px;letter-spacing:.04em}.ai-assistant-pill.is-on{color:#14532D;background:#DCFCE7;border:1px solid #BBE7C8}.ai-assistant-pill.is-off{color:#7F1D1D;background:#FEE2E2;border:1px solid #F5B5B5}
 .sites-design-block{display:grid;gap:10px;padding:12px;border:1px dashed var(--ln2);border-radius:12px;background:var(--s2)}
+.reminder-center{position:fixed;inset:0;z-index:2600;display:grid;place-items:center;padding:20px}
+.reminder-center-backdrop{position:absolute;inset:0;background:rgba(4,8,16,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.reminder-center-card{position:relative;width:min(560px,100%);background:var(--s1);border:1px solid var(--ln);border-radius:18px;box-shadow:0 30px 80px -20px rgba(4,10,30,.55);padding:22px;display:grid;gap:16px;animation:vx-scrim-in .25s ease both}
+.reminder-center-card header{display:flex;align-items:center;gap:14px}
+.reminder-center-card h2{margin:0;font:800 18px/1.2 var(--font-display);color:var(--tx)}
+.reminder-center-card p{margin:2px 0 0;color:var(--tx2);font-size:12.5px}
+.reminder-center-icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--primary) 15%,var(--s2));color:var(--primary)}
+.reminder-center-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.reminder-center-item{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--ln);border-radius:12px;background:var(--s2)}
+.reminder-center-item.is-overdue{border-color:color-mix(in srgb,#EF4444 45%,var(--ln));background:color-mix(in srgb,#EF4444 8%,var(--s2))}
+.reminder-center-item-icon{color:var(--primary);margin-top:2px}
+.reminder-center-item.is-overdue .reminder-center-item-icon{color:#EF4444}
+.reminder-center-item strong{display:block;font-size:13.5px;color:var(--tx)}
+.reminder-center-item small{display:block;margin-top:4px;color:var(--tx2);font-size:11.5px}
+.reminder-center-card footer{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.reminders-card{display:grid;gap:14px;margin-bottom:14px;padding:16px}.reminders-card header{display:flex;gap:12px;align-items:center}.reminders-card h2{margin:0;font:800 15px/1.2 var(--font-display);color:var(--tx)}.reminders-card p{margin:4px 0 0;color:var(--tx2);font-size:12.5px}.reminders-toggles{display:flex;gap:14px;flex-wrap:wrap}.reminders-toggles .ai-toggle{margin:0}.reminders-minutes{display:flex;gap:6px;flex-wrap:wrap}.chip{min-height:30px;padding:0 14px;border-radius:99px;border:1px solid var(--ln2);background:var(--s2);color:var(--tx2);font:800 11px/1 var(--font-display);cursor:pointer}.chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.department-card-agendas{display:grid;gap:2px;padding:8px 10px;border:1px dashed var(--ln2);border-radius:10px;background:var(--s2);font-size:11.5px;color:var(--tx)}.department-card-agendas small{color:var(--tx2);font-size:10.5px}

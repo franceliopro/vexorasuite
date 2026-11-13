@@ -19,6 +19,29 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { administrative, moduleSelection } from "../auth/module-policy";
 import { EventsService } from "./events.service";
+/** Utilidades de nome/chave únicos e de duplicação de setor. */
+const normalizeName = (s: string) => s.trim().replace(/\s+/g, " ");
+const nextFreeName = (base: string, taken: string[]): string => {
+  const norm = normalizeName(base);
+  const takenLower = new Set(taken.map((n) => n.toLowerCase()));
+  if (!takenLower.has(norm.toLowerCase())) return norm;
+  for (let n = 2; n <= 99; n += 1) {
+    const candidate = norm + " " + n;
+    if (!takenLower.has(candidate.toLowerCase())) return candidate;
+  }
+  return norm + " " + Date.now().toString(36);
+};
+const nextFreeKey = (base: string, taken: string[]): string => {
+  const cleaned = normalizeName(base).toUpperCase().replace(/[^A-Z0-9_-]/g, "_").slice(0, 38) || "SETOR";
+  const takenLower = new Set(taken.map((k) => k.toLowerCase()));
+  if (!takenLower.has(cleaned.toLowerCase())) return cleaned;
+  for (let n = 2; n <= 99; n += 1) {
+    const candidate = cleaned + "_" + n;
+    if (!takenLower.has(candidate.toLowerCase())) return candidate;
+  }
+  return cleaned + "_" + Date.now().toString(36).toUpperCase();
+};
+
 export const PIPELINE_TEMPLATES = {
   GENERAL: ["Novos", "Em andamento", "Aguardando retorno", "Finalização"],
   FINANCE: ["Solicitações", "Em análise", "Em negociação", "Finalização"],
@@ -152,6 +175,18 @@ export class DepartmentsController {
         : null;
       if (id && !old)
         throw new BadRequestException("Setor não encontrado nesta empresa.");
+      if (data.name !== undefined) {
+        const siblingNames = (await tx.department.findMany({ where: { tenantId: req.user.tenantId }, select: { name: true } })).map((d) => d.name);
+        const clash = siblingNames.find((n) => n.toLowerCase() === String(data.name).toLowerCase() && (!old || n.toLowerCase() !== old.name.toLowerCase()));
+        if (clash && id) throw new BadRequestException(`Já existe um setor chamado "${clash}". Escolha outro nome.`);
+        data.name = id ? normalizeName(String(data.name)) : nextFreeName(String(data.name), siblingNames);
+      }
+      if (data.key !== undefined) {
+        const siblingKeys = (await tx.department.findMany({ where: { tenantId: req.user.tenantId }, select: { key: true } })).map((d) => d.key);
+        const clash = siblingKeys.find((k) => k.toLowerCase() === String(data.key).toLowerCase() && (!old || k.toLowerCase() !== old.key.toLowerCase()));
+        if (clash && id) throw new BadRequestException(`A chave "${clash}" já está em uso. Escolha outra.`);
+        if (clash && !id) data.key = nextFreeKey(String(data.key), siblingKeys);
+      }
       const row = old
         ? await tx.department.update({ where: { id: old.id }, data })
         : await tx.department.create({
@@ -233,6 +268,46 @@ export class DepartmentsController {
       return { deleted: deleted.name };
     });
     this.events.publish(req.user.tenantId, "team.updated", { departmentId: id, purged: true });
+    return result;
+  }
+
+  /**
+   * Duplica um setor inteiro: nome/chave únicos, módulos, membros, funil de CRM,
+   * workflows internos e agendas vinculadas. Ideal para "Financeiro 2".
+   */
+  @Post(":id/duplicate") async duplicate(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() body: any) {
+    this.admin(req);
+    const tenantId = req.user.tenantId;
+    const result = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id=${tenantId}::uuid FOR UPDATE`;
+      const source = await tx.department.findFirst({ where: { id, tenantId }, include: { pipeline: { select: { template: true } } } });
+      if (!source) throw new BadRequestException("Setor não encontrado nesta empresa.");
+      const siblings = await tx.department.findMany({ where: { tenantId }, select: { name: true, key: true } });
+      const requestedName = typeof body?.name === "string" && body.name.trim() ? normalizeName(body.name).slice(0, 80) : null;
+      const requestedKey = typeof body?.key === "string" && body.key.trim() ? body.key.trim().toUpperCase().slice(0, 38) : null;
+      if (requestedKey && !/^[A-Z0-9_-]+$/.test(requestedKey)) throw new BadRequestException("Use uma chave com letras maiúsculas, números e sublinhado.");
+      const name = requestedName ? nextFreeName(requestedName, siblings.map(s => s.name)) : nextFreeName(source.name, siblings.map(s => s.name));
+      const key = requestedKey ? nextFreeKey(requestedKey, siblings.map(s => s.key)) : nextFreeKey(source.key, siblings.map(s => s.key));
+      const created = await tx.department.create({ data: { tenantId, name, key, keywords: source.keywords, modules: source.modules, routingCategory: source.routingCategory, routingPlatform: source.routingPlatform, routingStrategy: source.routingStrategy, maxOpenConversations: source.maxOpenConversations, isActive: source.isActive } });
+      const memberRows = await tx.departmentMember.findMany({ where: { tenantId, departmentId: source.id }, select: { userId: true } });
+      if (memberRows.length) await tx.departmentMember.createMany({ data: memberRows.map(r => ({ tenantId, departmentId: created.id, userId: r.userId })) });
+      if (source.modules.includes("CRM")) {
+        const template = source.pipeline?.template && Object.hasOwn(PIPELINE_TEMPLATES, source.pipeline.template) ? source.pipeline.template as keyof typeof PIPELINE_TEMPLATES : "GENERAL";
+        await tx.crmPipeline.create({ data: { tenantId, departmentId: created.id, name: "CRM · " + created.name, template, stages: pipelineStages(template), enabled: created.isActive } });
+      }
+      const workflows = await tx.$queryRawUnsafe<{ id: string; name: string; trigger: string; timezone: string; repeatDays: number; filters: any; steps: any }[]>(
+        "SELECT id, name, trigger, timezone, repeat_days AS \"repeatDays\", filters, steps FROM internal_workflows WHERE tenant_id = $1::uuid AND filters->>'departmentId' = $2",
+        tenantId, source.id,
+      );
+      for (const workflow of workflows) {
+        await tx.internalWorkflow.create({ data: { tenantId, userId: req.user.sub, name: (String(workflow.name).replace(source.name, "").trim() ? workflow.name.replace(source.name, created.name) : workflow.name + " · " + created.name).slice(0, 120), enabled: false, trigger: workflow.trigger, timezone: workflow.timezone, nextRunAt: new Date(), repeatDays: workflow.repeatDays, filters: { ...(workflow.filters as any), departmentId: created.id }, steps: workflow.steps as any } });
+      }
+      const assignments = await tx.calendarAssignment.findMany({ where: { tenantId, departmentId: source.id } });
+      if (assignments.length) await tx.calendarAssignment.createMany({ data: assignments.map(a => ({ tenantId, accountId: a.accountId, calendarId: a.calendarId, userId: null, departmentId: created.id })) });
+      await tx.auditLog.create({ data: { tenantId, userId: req.user.sub, action: "department.duplicated", entityType: "department", entityId: created.id, details: { sourceId: source.id, name: created.name, key: created.key, members: memberRows.length, workflows: workflows.length, calendars: assignments.length } } });
+      return created;
+    });
+    this.events.publish(tenantId, "team.updated", { departmentId: result.id, duplicated: true });
     return result;
   }
 

@@ -4,6 +4,7 @@ import {CompanySwitcher} from "./company-switcher";
 import { SettingsCatalog } from "./settings-catalog";
 import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
+import { ReminderCenter } from "./reminder-center";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { applyBrandTheme } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
@@ -194,6 +195,7 @@ export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== "undefined" && window.innerWidth < 981);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
+  useEffect(() => { const handler=(event: Event) => { const name = (event as CustomEvent<string>).detail; if (typeof name === "string" && name.trim()) { preloadWorkspace(name); setActive(name); } }; window.addEventListener("vexora:open-module", handler); return () => window.removeEventListener("vexora:open-module", handler); }, []);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 980px)");
     const update = () => setSidebarCollapsed(mq.matches);
@@ -319,6 +321,7 @@ export default function HomePage() {
           <div className="topbar-actions">
             {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
+            <ReminderCenter />
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
             <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>

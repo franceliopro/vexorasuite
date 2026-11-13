@@ -58,7 +58,7 @@ export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
   return url;
 }
 
-async function fetchTextGuarded(startUrl: string, maxBytes: number, timeoutMs: number, accept: string): Promise<{ text: string; finalUrl: string }> {
+export async function fetchTextGuarded(startUrl: string, maxBytes: number, timeoutMs: number, accept: string): Promise<{ text: string; finalUrl: string }> {
   let current = startUrl;
   for (let hop = 0; hop < 3; hop++) {
     await assertPublicHttpsUrl(current);

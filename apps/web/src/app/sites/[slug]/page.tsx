@@ -1,6 +1,6 @@
 "use client";
 import { use, useEffect, useState } from "react";
-import { LayoutBlock } from "../../site-layout";
+import { LayoutBlock, heroDesignCss } from "../../site-layout";
 import { MapPin, MessageCircle, Phone, Mail, ArrowRight, Star, Globe, ChevronDown } from "lucide-react";
 
 type Block = { id: string; type: string; content: any; sortOrder: number };
@@ -63,13 +63,19 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
     const c = block.content || {};
     switch (block.type) {
       case "hero": {
-        const heroStyle: React.CSSProperties | undefined = (c.imageUrl as string | undefined)?.match(/^https?:\/\//) ? { backgroundImage: `linear-gradient(135deg, rgba(5,13,34,0.78), rgba(10,23,48,0.55)), url("${String(c.imageUrl)}")`, backgroundSize: "cover", backgroundPosition: "center", color: "#E7EEFF" } : undefined;
+        const design = heroDesignCss(c.design);
+        const imageUrl = typeof c.imageUrl === "string" ? c.imageUrl : undefined;
+        const hasImage = !!imageUrl && /^https?:\/\//.test(imageUrl);
+        const heroStyle: React.CSSProperties = { ...design.section };
+        if (hasImage && !design.section.background) heroStyle.backgroundImage = `linear-gradient(135deg, rgba(5,13,34,0.78), rgba(10,23,48,0.55)), url("${imageUrl}")`;
+        if (hasImage) { heroStyle.backgroundSize = "cover"; heroStyle.backgroundPosition = "center"; heroStyle.color = "#E7EEFF"; }
+        const badgeStyle = design.badge ? design.badge : (hasImage || design.section.background ? { color: "#FFFFFF", background: "rgba(255,255,255,.14)" } : undefined);
         return (
           <section className="ps-hero" style={heroStyle}>
-            {c.badge && <span className="ps-badge" style={heroStyle?{color:"#FFFFFF",background:"rgba(255,255,255,.14)"}:undefined}>{c.badge}</span>}
-            <h1>{c.headline || site.name}</h1>
-            {c.sub && <p>{c.sub}</p>}
-            {c.ctaLabel && c.ctaUrl && <a className="ps-btn" href={c.ctaUrl} target="_blank" rel="noopener noreferrer">{c.ctaLabel}<ArrowRight size={16} aria-hidden="true" /></a>}
+            {c.badge && <span className="ps-badge" style={badgeStyle}>{c.badge}</span>}
+            <h1 style={design.headline}>{c.headline || site.name}</h1>
+            {c.sub && <p style={design.sub}>{c.sub}</p>}
+            {c.ctaLabel && c.ctaUrl && <a className="ps-btn" style={design.button} href={c.ctaUrl} target="_blank" rel="noopener noreferrer">{c.ctaLabel}<ArrowRight size={16} aria-hidden="true" /></a>}
           </section>
         );
       }

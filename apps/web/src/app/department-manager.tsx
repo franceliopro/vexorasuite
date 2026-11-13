@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ModuleChoices, moduleLabels } from "./module-choices";
-import { Boxes, Building2, Handshake, Headset, Landmark, UsersRound } from "lucide-react";
+import { Boxes, Building2, Copy, Handshake, Headset, Landmark, UsersRound } from "lucide-react";
 const categoryMeta: Record<string, { label: string; icon: typeof Landmark; tone: string }> = {
   FINANCE: { label: "Financeiro", icon: Landmark, tone: "tone-emerald" },
   SUPPORT: { label: "Suporte t\u00e9cnico", icon: Headset, tone: "tone-blue" },
@@ -36,11 +36,13 @@ export function DepartmentManager() {
     [editing, setEditing] = useState(false),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
+  const [assignments, setAssignments] = useState<{ departmentId: string | null; userId: string | null }[]>([]);
   async function load() {
     const [r, teamResponse] = await Promise.all([
       fetch("/api/backend/departments", { cache: "no-store" }),
       fetch("/api/backend/team", { cache: "no-store" }),
     ]);
+    fetch("/api/backend/integrations/google/calendar/assignments", { cache: "no-store" }).then(x => x.ok ? x.json() : []).then((rows: any[]) => setAssignments(Array.isArray(rows) ? rows.map((row: any) => ({ departmentId: row.departmentId ?? null, userId: row.userId ?? null })) : [])).catch(() => setAssignments([]));
     if (!r.ok) throw Error("Não foi possível carregar setores.");
     if (!teamResponse.ok) throw Error("Não foi possível carregar os atendentes.");
     const departments = await r.json();
@@ -83,6 +85,21 @@ export function DepartmentManager() {
     setEditing(true);
   }
 
+  async function duplicateDepartment(department: any) {
+    setNotice(""); setBusy(true);
+    try {
+      const response = await fetch("/api/backend/departments/" + department.id + "/duplicate", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Não foi possível duplicar o setor.");
+      setNotice("Setor duplicado como \"" + data.name + "\" — mesmos módulos, atendentes, funil, workflows e agendas.");
+      await load();
+      window.dispatchEvent(new Event("vexora:team-updated"));
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Não foi possível duplicar o setor.");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function purgeDepartment(department: any) {
     const response = window.confirm("Excluir o setor \"" + department.name + "\"? Esta ação é irreversível e removerá o setor de todo o sistema.");
     if (!response) return;
@@ -315,6 +332,12 @@ export function DepartmentManager() {
                 </div>
                 <span className={"department-status " + (d.isActive ? "is-active" : "is-inactive")}>{d.isActive ? "Ativo" : "Desativado"}</span>
               </header>
+              {assignments.filter(a => a.departmentId === d.id).length > 0 && (
+                <p className="department-card-agendas">
+                  <span>📅 {assignments.filter(a => a.departmentId === d.id).length} {assignments.filter(a => a.departmentId === d.id).length === 1 ? "agenda vinculada" : "agendas vinculadas"}</span>
+                  <small>Todos os atendentes deste setor veem {assignments.filter(a => a.departmentId === d.id).length === 1 ? "esta agenda" : "essas agendas"} no calendário deles.</small>
+                </p>
+              )}
               <div className="department-card-modules">
                 {(d.modules || []).map((module: string) => <span key={module}>{moduleLabels[module]}</span>)}
                 {!d.modules?.length && <span className="is-empty">Sem módulos</span>}
@@ -329,6 +352,9 @@ export function DepartmentManager() {
               </div>
               <div className="department-card-actions">
                 <button className="secondary-button" onClick={() => edit(d)}>{d.isActive ? "Editar" : "Reativar"}</button>
+                {d.isActive && (
+                  <button className="secondary-button" disabled={busy} onClick={() => void duplicateDepartment(d)} title="Criair uma cópia: mesmos módulos, atendentes, funil de CRM, workflows e agendas"><Copy size={13} aria-hidden="true" /> Duplicar</button>
+                )}
                 {d.isActive && (
                   <button className="text-button danger-text" disabled={busy} onClick={() => { if (window.confirm("Desativar " + d.name + "? O acesso do setor ser\u00e1 revogado e o hist\u00f3rico ser\u00e1 preservado.")) void save({}, "DELETE", d.id); }}>Desativar</button>
                 )}

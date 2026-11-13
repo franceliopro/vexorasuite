@@ -3939,44 +3939,6 @@ input[type=tel]{letter-spacing:.02em}
 .crm-form .settings-card-heading{margin-bottom:4px}
 @media (max-width:760px){.crm-form-grid{grid-template-columns:1fr}}
 
-/* ===== 98. Composer mobile v2 + identidade por etapa do CRM ===== */
-@media (max-width:760px){
-  /* o composer não tem mais arredondamento inferior */
-  .composer-shell>.inbox-composer{border-radius:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important}
-  /* "Melhorar com IA" visível e compacto ao lado de Nota privada */
-  .composer-ai-improve{display:inline-flex!important;align-items:center!important;gap:5px!important;height:26px!important;min-height:26px!important;padding:0 9px!important;font-size:10.5px!important;font-weight:750!important;border-radius:99px!important;flex:none!important}
-  .composer-ai-improve svg{width:12px!important;height:12px!important}
-  /* gravação de áudio cabe na tela — sem estourar pela direita */
-  .voice-recording{flex-wrap:wrap;max-width:calc(100vw - 10px);min-width:0;gap:8px;padding:6px 9px}
-  .voice-hint{display:none}
-  .voice-wave{display:none}
-  .voice-cancel,.voice-send{width:36px!important;height:36px!important}
-  /* app nativo: textarea em linha própria; ícones + mic + enviar abaixo, enviar à direita */
-  .inbox-composer .composer-toolbar{flex-wrap:wrap!important;padding:2px 4px 4px!important;gap:4px 6px!important}
-  .composer-toolbar>textarea{flex:1 1 100%!important;width:100%!important;min-width:0!important}
-  .composer-tools{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;justify-content:flex-start}
-  .composer-toolbar>button[class*=voice],.composer-send-button{flex:none!important}
-  .composer-toolbar>.composer-icon-button{margin-left:auto}
-  /* hambúrguer quadrado, sem esticar */
-  .topbar .mobile-menu{flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;padding:0!important}
-  .topbar .mobile-menu svg{width:20px!important;height:20px!important;display:block!important}
-}
-@media (min-width:761px){
-  /* desktop normal: ícones antes do campo, tudo na mesma linha */
-  .inbox-composer .composer-toolbar{flex-wrap:nowrap!important}
-  .composer-toolbar>.composer-tools{order:-1!important}
-}
-.composer-send-button{flex:none!important}
-/* CRM — identidade por etapa: título, bolinha, contagem, pill no mesmo tom */
-.crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)}
-.crm-stage-pill{padding:3px 6px 3px 10px;border-radius:99px;background:color-mix(in srgb,var(--tone) 10%,var(--s1));border:1px solid color-mix(in srgb,var(--tone) 26%,transparent)}
-.crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)!important}
-.crm-stage-pill.tone-rose>span{color:#DB2777!important}
-.crm-stage-pill select{min-height:27px!important;border:0!important;background:transparent!important;color:var(--tx)!important;font-size:10.5px!important;font-weight:800!important;padding:0 16px 0 2px!important;box-shadow:none!important}
-:root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
-:root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
-:root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}
-
 /* ===== 99. Nova assinatura Asaas + catálogo de serviços ===== */
 .vx-dialog-backdrop.finance-subscription-backdrop,.finance-subscription-dialog{display:flex}
 .finance-subscription-dialog{flex-direction:column}
@@ -4001,44 +3963,36 @@ input[type=tel]{letter-spacing:.02em}
 .finance-asaas-listing-heading-actions{display:flex;align-items:center;gap:8px;flex:none}
 @media (max-width:760px){.finance-asaas-listing-heading-actions{flex-direction:column;align-items:stretch;width:100%}.finance-asaas-listing-heading-actions .primary-button,.finance-asaas-listing-heading-actions .secondary-button{width:100%;justify-content:center}}
 
-/* ===== 100. Bottom nav escura (branding sidebar) + composer 1 linha + topbar sem quebra ===== */
+/* ===== 102. Mobile — dock escura, topbar 1 linha, composer chapado ===== */
 @media (max-width:760px){
-  /* Bottom nav: sempre escura, flat, ativo = pílula primaria */
-  .mobile-bottom-nav{background:color-mix(in srgb,var(--sb-bg) 92%,transparent)!important;border-top:1px solid var(--sb-ln)!important;backdrop-filter:blur(18px) saturate(1.18)!important;-webkit-backdrop-filter:blur(18px) saturate(1.18)!important;border-radius:0!important;padding:5px 6px calc(6px + env(safe-area-inset-bottom))!important;height:auto!important}
-  .mobile-bottom-nav button{border-radius:13px!important;color:var(--sb-mut)!important;background:transparent!important;border:0!important;border-bottom:0!important;padding:2px 4px!important;font-size:10px!important;font-weight:600!important;gap:2px!important;letter-spacing:.03em!important}
+  /* Bottom nav — sempre escura, flat, pílula de marca no item ativo */
+  .mobile-bottom-nav{background:color-mix(in srgb,var(--sb-bg) 92%,transparent)!important;border-top:1px solid var(--sb-ln)!important;backdrop-filter:blur(18px) saturate(1.18)!important;-webkit-backdrop-filter:blur(18px) saturate(1.18)!important;border-radius:0!important;padding-left:6px!important;padding-right:6px!important}
+  .mobile-bottom-nav button{color:var(--sb-mut)!important;background:transparent!important;border:0!important;border-radius:13px!important;font-weight:600!important}
   .mobile-bottom-nav button.active{color:var(--sb-tx)!important;background:color-mix(in srgb,var(--primary) 22%,transparent)!important;border-bottom:0!important;font-weight:800!important}
-  .mobile-bottom-nav button svg{width:19px!important;height:19px!important}
-  /* Topbar: sempre uma única linha, sem estourar */
+  .mobile-bottom-nav button svg{width:20px!important;height:20px!important}
+  /* Topbar: uma única linha compacta — busca some no mobile, Assistente vira ícone */
   .topbar{flex-wrap:nowrap!important;overflow:hidden!important;gap:4px!important;height:46px!important;min-height:46px!important;padding:0 6px!important}
-  .topbar .topbar-actions{display:flex!important;gap:4px!important;align-items:center!important;min-width:0!important;flex:none!important}
-  .topbar .ai-assistant-trigger{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;gap:0!important;border-radius:11px!important}
+  .topbar .search-box{display:none!important}
+  .topbar .ai-assistant-trigger{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;border-radius:11px!important}
   .topbar .ai-assistant-trigger span{display:none!important}
-  .topbar .search-box{width:40px!important;min-width:40px!important;flex:0 0 40px!important;height:40px!important;min-height:40px!important;border-radius:11px!important}
-  .topbar .logout-button:not(.icon-only){height:40px!important;min-height:40px!important;padding:0 10px!important;font-size:12px!important;gap:6px!important}
-  .topbar .icon-button.theme-toggle{width:40px!important;height:40px!important;min-height:40px!important;min-width:40px!important;border-radius:11px!important}
-  .topbar .mobile-menu{flex:0 0 40px!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;border-radius:11px!important}
-  /* Composer: UMA linha — [+] [textarea] [mic] [enviar] */
-  .composer-shell,.composer-shell>.inbox-composer{border-radius:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-color:var(--ln)!important;box-shadow:none!important}
-  .inbox-composer .composer-toolbar{flex-wrap:nowrap!important;gap:6px!important;padding:2px 4px!important;align-items:center!important}
-  .inbox-composer .composer-toolbar>textarea{flex:1 1 0!important;min-width:0!important;width:auto!important;max-height:120px!important}
-  .composer-tools{display:none!important}
-  .composer-tools.is-open{display:flex!important;flex:0 0 100%!important;order:-1!important;flex-wrap:nowrap!important;gap:4px!important;padding:4px 2px 8px!important;border-bottom:1px solid var(--ln)!important;overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}
-  .composer-tools.is-open::-webkit-scrollbar{display:none}
-  .composer-tools.is-open>.composer-tool-wrap{flex:none!important}
-  .composer-more-button{display:inline-grid!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;flex:0 0 40px!important;place-items:center!important;border-radius:12px!important}
-  .inbox-composer .composer-send-button{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;flex:0 0 42px!important;border-radius:50%!important}
-  .inbox-composer .composer-toolbar>.composer-icon-button{width:34px!important;height:34px!important;min-width:34px!important;flex:0 0 34px!important}
+  .topbar .topbar-actions{display:flex!important;gap:4px!important;align-items:center!important;flex:none!important}
+  .topbar .topbar-actions button{flex:0 0 auto!important}
+  .topbar .logout-button:not(.icon-only){height:40px!important;min-height:40px!important;padding:0 10px!important;font-size:12px!important}
+  /* Composer: chapado, sem raio inferior, cabido na tela */
+  .composer-shell,.composer-shell>.inbox-composer{border-radius:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;box-shadow:none!important}
+  .composer-ai-improve{display:inline-flex!important;align-items:center!important;gap:5px!important;height:26px!important;min-height:26px!important;padding:0 8px!important;font-size:10px!important;font-weight:750!important;border-radius:99px!important}
+  .voice-recording{flex-wrap:wrap;max-width:calc(100vw - 10px);min-width:0;gap:8px;padding:6px 9px}
+  .voice-hint{display:none}
+  .voice-wave{display:none}
+  .voice-cancel,.voice-send{width:36px!important;height:36px!important}
 }
-@media (min-width:761px){
-  .composer-more-button{display:none!important}
-}
+/* ===== 103. CRM — identidade por etapa, texto AA ===== */
+.crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)}
+.crm-stage-pill{padding:3px 6px 3px 10px;border-radius:99px;background:color-mix(in srgb,var(--tone) 10%,var(--s1));border:1px solid color-mix(in srgb,var(--tone) 26%,transparent)}
+.crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 55%,#0B1F3A)!important}
+.crm-stage-pill.tone-rose>span{color:#DB2777!important}
+.crm-stage-pill select{min-height:27px!important;border:0!important;background:transparent!important;color:var(--tx)!important;font-size:10.5px!important;font-weight:800!important;padding:0 16px 0 2px!important;box-shadow:none!important}
+:root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
+:root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
+:root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}
 
-/* ===== 101. Composer mobile — grid por números, ordem fixa ===== */
-@media (max-width:760px){
-  .inbox-composer .composer-toolbar{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto auto!important;gap:6px!important;align-items:center!important;flex-wrap:nowrap!important;padding:2px 4px!important}
-  .inbox-composer .composer-toolbar>textarea{grid-column:2!important;grid-row:1!important;flex:none!important;width:100%!important;min-width:0!important;max-width:100%!important;order:0!important}
-  .inbox-composer .composer-toolbar>.composer-more-button{grid-column:1!important;grid-row:1!important;order:0!important;margin:0!important}
-  .inbox-composer .composer-toolbar>.composer-icon-button:not(.composer-more-button){grid-column:3!important;grid-row:1!important;order:0!important;margin:0!important;width:34px!important;height:34px!important;min-width:34px!important;flex:none!important}
-  .inbox-composer .composer-send-button{grid-column:4!important;grid-row:1!important;order:0!important;margin:0!important;flex:none!important}
-  .inbox-composer .composer-tools{grid-column:1/-1!important;grid-row:2!important}
-}

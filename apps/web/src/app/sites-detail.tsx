@@ -6,7 +6,7 @@ const RichPromptEditor = dynamic(() => import("./rich-prompt-editor").then((m) =
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AREAS, BLOCKS_META, api, safeSlug, type Site, type Form, type Item, type Page, type Block } from "./sites-shared";
 import { SitePreview } from "./site-preview";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Mic, Trash2, X } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Trash2, Wand2, Mic, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -121,9 +121,176 @@ const STUDIO_FIELD_DEFS: Record<string, { fields: { key: string; label: string; 
   divider: { fields: [] },
 };
 
+const LAYOUT_TAGS = ["p", "h1", "h2", "h3", "h4"] as const;
+const GRADIENTS: [string, string][] = [
+  ["Escuro cinematográfico", "linear-gradient(160deg,#050D22 0%,#0A1730 55%,#040A1C 100%)"],
+  ["Azul premium", "linear-gradient(150deg,#0B2A4A 0%,#113B5E 100%)"],
+  ["Champanhe", "linear-gradient(150deg,#3B2B1A 0%,#6B4F2A 100%)"],
+  ["Neutro claro", "linear-gradient(160deg,#F7F7F7 0%,#ECEEF2 100%)"],
+  ["Verde esmeralda", "linear-gradient(150deg,#06281F 0%,#0E4B3A 100%)"],
+  ["Rosa terracota", "linear-gradient(150deg,#3A1F1F 0%,#6E342E 100%)"],
+];
+const newLayoutId = () => Math.random().toString(36).slice(2, 10);
+const layoutDefaults = (type: string): any => {
+  if (type === "text") return { id: newLayoutId(), type, tag: "p", text: "Escreva aqui o seu texto. Use **negrito** e *itálico*.", align: "left" };
+  if (type === "image") return { id: newLayoutId(), type, url: "", alt: "Imagem", width: 100, radius: 12, align: "center" };
+  if (type === "button") return { id: newLayoutId(), type, label: "Quero conversar", href: "https://wa.me/5500000000000", target: "_blank", background: "#2E7CF6", color: "#FFFFFF", radius: 12, size: "lg", variant: "solid", fullWidth: false };
+  return { id: newLayoutId(), type: "spacer", height: 32 };
+};
+const LAYOUT_ELEMENT_LABEL: Record<string, string> = { text: "Texto", image: "Imagem", button: "Botão", spacer: "Espaço" };
+
+function LayoutBlockEditor({ block, onChange }: { block: any; onChange: (nextContent: any) => void }) {
+  const content = block?.content || {};
+  const columns: any[] = Array.isArray(content.columns) ? content.columns : [];
+  const [uploading, setUploading] = useState<string>("");
+  const [aiText, setAiText] = useState<Record<string, string>>({});
+  const [aiBusy, setAiBusy] = useState<string>("");
+  const [aiError, setAiError] = useState<Record<string, string>>({});
+  const [assets, setAssets] = useState<any[] | null>(null);
+  const [assetsOpen, setAssetsOpen] = useState(false);
+
+  const setContent = (next: any) => onChange(next);
+  const patchColumn = (index: number, patch: any) => setContent({ ...content, columns: columns.map((col, i) => i === index ? { ...col, ...patch } : col) });
+  const patchElement = (colIndex: number, elIndex: number, patch: any) => patchColumn(colIndex, { elements: (columns[colIndex]?.elements || []).map((el: any, j: number) => j === elIndex ? { ...el, ...patch } : el) });
+  const moveElement = (colIndex: number, elIndex: number, dir: -1 | 1) => {
+    const list = [...(columns[colIndex]?.elements || [])]; const target = elIndex + dir;
+    if (target < 0 || target >= list.length) return;
+    const [item] = list.splice(elIndex, 1); list.splice(target, 0, item);
+    patchColumn(colIndex, { elements: list });
+  };
+  const removeElement = (colIndex: number, elIndex: number) => patchColumn(colIndex, { elements: (columns[colIndex]?.elements || []).filter((_: any, j: number) => j !== elIndex) });
+  const addElement = (colIndex: number, type: string) => patchColumn(colIndex, { elements: [...(columns[colIndex]?.elements || []), layoutDefaults(type)] });
+  const addColumn = () => { if (columns.length >= 4) return; setContent({ ...content, columns: [...columns, { id: newLayoutId(), span: 6, direction: "column", align: "stretch", justify: "start", gap: 12, elements: [layoutDefaults("text")] }] }); };
+  const removeColumn = (index: number) => { if (columns.length <= 1) return; setContent({ ...content, columns: columns.filter((_, i) => i !== index) }); };
+
+  const uploadImage = async (colIndex: number, elIndex: number, file: File) => {
+    const key = colIndex + ":" + elIndex; setUploading(key);
+    try {
+      const data = new FormData(); data.append("file", file);
+      const response = await fetch("/api/backend/sites/assets", { method: "POST", body: data });
+      const json = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(json?.message || "Falha no upload.");
+      patchElement(colIndex, elIndex, { url: String(json?.url || ""), alt: file.name.replace(/\.[a-z0-9]+$/i, "") });
+    } catch { /* upload failure is surfaced through the disabled button */ } finally { setUploading(""); }
+  };
+  const loadAssets = async () => {
+    if (assets) { setAssetsOpen(v => !v); return; }
+    try { const response = await fetch("/api/backend/sites/assets"); const json = await response.json(); setAssets(Array.isArray(json?.assets) ? json.assets : []); setAssetsOpen(true); } catch { setAssets([]); setAssetsOpen(true); }
+  };
+  const askAiForElement = async (colIndex: number, elIndex: number, instruction: string) => {
+    const el = columns[colIndex]?.elements?.[elIndex]; if (!el) return;
+    const key = colIndex + ":" + elIndex; setAiBusy(key); setAiError({});
+    try {
+      const response = await api<{ content: any }>("/sites/pages/" + block.pageId + "/blocks/" + block.id + "/ai", { method: "POST", body: JSON.stringify({ instruction: `Reescreva APENAS o elemento de índice ${elIndex} da coluna ${colIndex} (tipo ${el.type}, conteúdo atual: ${JSON.stringify(el).slice(0, 800)}). Mantenha TODOS os outros elementos exatamente iguais e as mesmas chaves. O que o dono pediu: ${instruction}` }) });
+      if (response?.content) onChange(response.content);
+      setAiText(v => ({ ...v, [key]: "" }));
+    } catch (e) { setAiError(v => ({ ...v, [key]: e instanceof Error ? e.message : "A IA não conseguiu alterar." })); }
+    finally { setAiBusy(""); }
+  };
+
+  return (
+    <div className="sites-block-form layout-editor">
+      <p className="sites-field-hint">Seção em colunas — cada coluna é um stack (ou linha) de elementos. Desktop vira 1 coluna no celular automaticamente.</p>
+      <div className="layout-section-settings">
+        <label className="sites-field"><span>Cor de fundo</span><input type="color" value={(/^#[0-9a-f]{6}$/i.test(content.background || "") ? content.background : "#0A1730") as string} onChange={e => setContent({ ...content, background: e.target.value })} /></label>
+        <label className="sites-field"><span>Gradiente pronto</span><select value="" onChange={e => e.target.value && setContent({ ...content, background: e.target.value })}><option value="">Escolher…</option>{GRADIENTS.map(([label, value]) => <option key={label} value={value}>{label}</option>)}</select></label>
+        <label className="sites-field"><span>Fundo (CSS livre)</span><input value={typeof content.background === "string" ? content.background : ""} onChange={e => setContent({ ...content, background: e.target.value })} placeholder="#0A1730 ou linear-gradient(…)" /></label>
+        <label className="sites-field"><span>Padding (px)</span><input type="number" min={0} max={200} value={content.padding ?? 48} onChange={e => setContent({ ...content, padding: Number(e.target.value) || 0 })} /></label>
+        <label className="sites-field"><span>Espaço entre colunas (px)</span><input type="number" min={0} max={96} value={content.gap ?? 24} onChange={e => setContent({ ...content, gap: Number(e.target.value) || 0 })} /></label>
+      </div>
+      <div className="layout-columns-head"><span className="sites-field-label">Colunas ({columns.length}/4)</span><button type="button" className="text-button" onClick={addColumn} disabled={columns.length >= 4}><Plus size={13} aria-hidden="true" /> Coluna</button></div>
+      {columns.map((col: any, colIndex: number) => (
+        <fieldset key={col.id || colIndex} className="layout-column">
+          <legend>Coluna {colIndex + 1} · {col.span ?? 6}fr</legend>
+          <div className="layout-column-controls">
+            <label className="sites-field"><span>Largura</span><select value={col.span ?? 6} onChange={e => patchColumn(colIndex, { span: Number(e.target.value) })}>{[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}fr</option>)}</select></label>
+            <label className="sites-field"><span>Direção</span><select value={col.direction === "row" ? "row" : "column"} onChange={e => patchColumn(colIndex, { direction: e.target.value })}><option value="column">Empilhar</option><option value="row">Lado a lado</option></select></label>
+            <label className="sites-field"><span>Alinhar</span><select value={col.align || "stretch"} onChange={e => patchColumn(colIndex, { align: e.target.value })}><option value="stretch">Esticar</option><option value="start">Início</option><option value="center">Centro</option><option value="end">Fim</option></select></label>
+            <label className="sites-field"><span>Justificar</span><select value={col.justify || "start"} onChange={e => patchColumn(colIndex, { justify: e.target.value })}><option value="start">Início</option><option value="center">Centro</option><option value="end">Fim</option><option value="between">Espaço entre</option></select></label>
+            <label className="sites-field"><span>Gap</span><input type="number" min={0} max={64} value={col.gap ?? 12} onChange={e => patchColumn(colIndex, { gap: Number(e.target.value) || 0 })} /></label>
+            <button type="button" className="icon-button" title="Remover coluna" aria-label="Remover coluna" onClick={() => removeColumn(colIndex)} disabled={columns.length <= 1}><Trash2 size={14} aria-hidden="true" /></button>
+          </div>
+          <div className="layout-add"><span>Adicionar elemento:</span>{Object.entries(LAYOUT_ELEMENT_LABEL).map(([type, label]) => <button key={type} type="button" className="sites-add-chip" onClick={() => addElement(colIndex, type)}><Plus size={11} aria-hidden="true" /> {label}</button>)}</div>
+          <div className="layout-elements">
+            {(col.elements || []).map((el: any, elIndex: number) => {
+              const key = colIndex + ":" + elIndex;
+              return (
+              <div key={el.id || elIndex} className="layout-element">
+                <header><b>{LAYOUT_ELEMENT_LABEL[el.type] || el.type}</b>
+                  <span className="sites-block-actions"><button type="button" className="icon-button" title="Mover para cima" aria-label="Mover para cima" onClick={() => moveElement(colIndex, elIndex, -1)}><ChevronUp size={13} aria-hidden="true" /></button><button type="button" className="icon-button" title="Mover para baixo" aria-label="Mover para baixo" onClick={() => moveElement(colIndex, elIndex, 1)}><ChevronDown size={13} aria-hidden="true" /></button><button type="button" className="icon-button" title="Remover elemento" aria-label="Remover elemento" onClick={() => removeElement(colIndex, elIndex)}><Trash2 size={13} aria-hidden="true" /></button></span>
+                </header>
+                {el.type === "text" && (<>
+                  <div className="layout-element-row">
+                    <label className="sites-field"><span>Tag</span><select value={el.tag || "p"} onChange={e => patchElement(colIndex, elIndex, { tag: e.target.value })}>{LAYOUT_TAGS.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}</select></label>
+                    <label className="sites-field"><span>Alinhar</span><select value={el.align || "left"} onChange={e => patchElement(colIndex, elIndex, { align: e.target.value })}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option><option value="justify">Justificado</option></select></label>
+                    <label className="sites-field"><span>Cor</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(el.style?.color || "") ? el.style.color : "#E7EEFF"} onChange={e => patchElement(colIndex, elIndex, { style: { ...(el.style || {}), color: e.target.value } })} /></label>
+                    <label className="sites-field"><span>Tamanho (px)</span><input type="number" min={10} max={96} value={el.style?.fontSize ?? ""} placeholder="auto" onChange={e => { const v = e.target.value; const style = { ...(el.style || {}) }; if (v) style.fontSize = Number(v); else delete style.fontSize; patchElement(colIndex, elIndex, { style }); }} /></label>
+                  </div>
+                  <label className="sites-field"><span>Texto (**negrito**, *itálico*)</span><textarea rows={3} value={el.text || ""} onChange={e => patchElement(colIndex, elIndex, { text: e.target.value })} /></label>
+                </>)}
+                {el.type === "image" && (<>
+                  {el.url ? <img className="layout-thumb" src={el.url} alt={el.alt || ""} /> : null}
+                  <label className="sites-field"><span>URL da imagem</span><input value={el.url || ""} onChange={e => patchElement(colIndex, elIndex, { url: e.target.value })} placeholder="https://…" /></label>
+                  <div className="layout-element-row">
+                    <label className="layout-upload">{uploading === key ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />} Enviar do dispositivo<input type="file" accept="image/*" disabled={uploading === key} hidden onChange={e => { const file = e.target.files?.[0]; if (file) void uploadImage(colIndex, elIndex, file); }} /></label>
+                    <button type="button" className="text-button" onClick={() => void loadAssets()}><LayoutGrid size={13} aria-hidden="true" /> File manager</button>
+                  </div>
+                  {assetsOpen && (<div className="layout-assets">{(assets || []).length ? (assets || []).map(a => <button key={a.id} type="button" title={a.mimeType} onClick={() => { patchElement(colIndex, elIndex, { url: a.url, alt: "" }); setAssetsOpen(false); }}><img src={a.url} alt="" loading="lazy" /></button>) : <p className="sites-field-hint">Nenhuma imagem enviada ainda — envie pelo botão ao lado.</p>}</div>)}
+                  <div className="layout-element-row">
+                    <label className="sites-field"><span>Largura %</span><select value={el.width ?? 100} onChange={e => patchElement(colIndex, elIndex, { width: Number(e.target.value) })}>{[100, 75, 66, 50, 33, 25].map(n => <option key={n} value={n}>{n}%</option>)}</select></label>
+                    <label className="sites-field"><span>Cantos (px)</span><input type="number" min={0} max={64} value={el.radius ?? 12} onChange={e => patchElement(colIndex, elIndex, { radius: Number(e.target.value) || 0 })} /></label>
+                    <label className="sites-field"><span>Alinhar</span><select value={el.align || "center"} onChange={e => patchElement(colIndex, elIndex, { align: e.target.value })}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></label>
+                  </div>
+                  <label className="sites-field"><span>Texto alternativo (alt)</span><input value={el.alt || ""} onChange={e => patchElement(colIndex, elIndex, { alt: e.target.value })} /></label>
+                  <label className="sites-field"><span>Legenda</span><input value={el.caption || ""} onChange={e => patchElement(colIndex, elIndex, { caption: e.target.value })} /></label>
+                  <div className="layout-element-row">
+                    <label className="sites-field"><span>Link da imagem</span><input value={el.linkUrl || ""} onChange={e => patchElement(colIndex, elIndex, { linkUrl: e.target.value })} placeholder="https://… ou #" /></label>
+                    <label className="sites-field"><span>Abrir em</span><select value={el.linkTarget === "_blank" ? "_blank" : "_self"} onChange={e => patchElement(colIndex, elIndex, { linkTarget: e.target.value })}><option value="_self">Mesma aba</option><option value="_blank">Nova aba</option></select></label>
+                  </div>
+                </>)}
+                {el.type === "button" && (<>
+                  <div className="layout-element-row">
+                    <label className="sites-field"><span>Texto do botão</span><input value={el.label || ""} onChange={e => patchElement(colIndex, elIndex, { label: e.target.value })} /></label>
+                    <label className="sites-field"><span>Cor do botão</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(el.background || "") ? el.background : "#2E7CF6"} onChange={e => patchElement(colIndex, elIndex, { background: e.target.value })} /></label>
+                    <label className="sites-field"><span>Cor do texto</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(el.color || "") ? el.color : "#FFFFFF"} onChange={e => patchElement(colIndex, elIndex, { color: e.target.value })} /></label>
+                  </div>
+                  <label className="sites-field"><span>Link (WhatsApp, URL ou #)</span><input value={el.href || ""} onChange={e => patchElement(colIndex, elIndex, { href: e.target.value })} placeholder="https://wa.me/55…" /></label>
+                  <div className="layout-element-row">
+                    <label className="sites-field"><span>Abrir em</span><select value={el.target === "_blank" ? "_blank" : "_self"} onChange={e => patchElement(colIndex, elIndex, { target: e.target.value })}><option value="_blank">Nova aba</option><option value="_self">Mesma aba</option></select></label>
+                    <label className="sites-field"><span>Tamanho</span><select value={el.size || "md"} onChange={e => patchElement(colIndex, elIndex, { size: e.target.value })}><option value="sm">Pequeno</option><option value="md">Médio</option><option value="lg">Grande</option></select></label>
+                    <label className="sites-field"><span>Estilo</span><select value={el.variant || "solid"} onChange={e => patchElement(colIndex, elIndex, { variant: e.target.value })}><option value="solid">Sólido</option><option value="outline">Contorno</option><option value="ghost">Fantasma</option></select></label>
+                    <label className="sites-field"><span>Cantos (px)</span><input type="number" min={0} max={64} value={el.radius ?? 10} onChange={e => patchElement(colIndex, elIndex, { radius: Number(e.target.value) || 0 })} /></label>
+                  </div>
+                  <label className="sites-toggle"><input type="checkbox" checked={el.fullWidth === true} onChange={e => patchElement(colIndex, elIndex, { fullWidth: e.target.checked })} /> Largura total</label>
+                </>)}
+                {el.type === "spacer" && (
+                  <label className="sites-field"><span>Altura (px)</span><input type="number" min={1} max={240} value={el.height ?? 32} onChange={e => patchElement(colIndex, elIndex, { height: Number(e.target.value) || 32 })} /></label>
+                )}
+                <div className="layout-element-ai">
+                  <input value={aiText[key] || ""} onChange={e => setAiText(v => ({ ...v, [key]: e.target.value }))} placeholder="Pedido para a IA… (ex.: destaque o prazo)" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const t = (aiText[key] || "").trim(); if (t) void askAiForElement(colIndex, elIndex, t); } }} />
+                  <button type="button" className="icon-button" title="Aplicar na IA" aria-label="Aplicar na IA" disabled={aiBusy === key} onClick={() => { const t = (aiText[key] || "").trim(); if (t) void askAiForElement(colIndex, elIndex, t); }}>{aiBusy === key ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <Sparkles size={13} aria-hidden="true" />}</button>
+                </div>
+                {aiError[key] ? <p role="alert" className="sites-error">{aiError[key]}</p> : null}
+              </div>
+              );
+            })}
+          </div>
+        </fieldset>
+      ))}
+    </div>
+  );
+}
+
 function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => void; onNotice: (v: string) => void }) {
   const [device, setDevice] = useState<"pc" | "phone">("pc");
   const [fullscreen, setFullscreen] = useState(false);
+  const [relayoutOpen, setRelayoutOpen] = useState(false);
+  const [relayoutPrompt, setRelayoutPrompt] = useState("");
+  const [relayoutReferenceUrl, setRelayoutReferenceUrl] = useState("");
+  const [relayoutImageUrl, setRelayoutImageUrl] = useState("");
+  const [relayoutUploading, setRelayoutUploading] = useState(false);
+  const [relayoutBusy, setRelayoutBusy] = useState(false);
+  const [relayoutError, setRelayoutError] = useState("");
   const [selected, setSelected] = useState<string>("");
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
@@ -143,6 +310,10 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   const fieldDefs: { fields: { key: string; label: string; area?: boolean }[]; array?: { key: string; label: string; itemLabel: string; fields: { key: string; label: string; area?: boolean }[] } } =
     (selectedBlock ? STUDIO_FIELD_DEFS[selectedBlock.type] : undefined) || { fields: [] };
   const markDirty = (blockId: string) => setDirty((prev) => (prev[blockId] ? prev : { ...prev, [blockId]: true }));
+  const replaceBlockContent = (block: any, content: any) => {
+    setModel((m: any) => ({ ...m, pages: m.pages.map((p: any) => p.id === block.pageId ? { ...p, blocks: p.blocks.map((b: any) => b.id === block.id ? { ...b, content } : b) } : p) }));
+    markDirty(block.id);
+  };
   const clearDirty = (blockId?: string) => setDirty((prev) => { if (!blockId) return {}; const next = { ...prev }; delete next[blockId]; return next; });
   const setField = (field: string, value: string) => {
     if (!selectedBlock) return;
@@ -238,12 +409,16 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
         ? { headline: "Um título claro e direto", sub: "Apoio curto que explica o benefício.", ctaLabel: "Quero conversar" }
         : type === "richText"
           ? { title: "Título da seção", body: "Escreva aqui o texto desta seção." }
-          : type === "services"
-            ? { title: "O que fazemos", items: [{ title: "Serviço um", text: "Descrição curta do serviço." }] }
+          : type === "layout"
+            ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] }
+            : type === "services"
+              ? { title: "O que fazemos", items: [{ title: "Serviço um", text: "Descrição curta do serviço." }] }
             : type === "cta"
               ? { title: "Pronto para começar?", sub: "Chama agora — é rápido.", ctaLabel: "Quero conversar" }
-              : type === "testimonials"
-                ? { title: "Quem confia na Véxora", items: [{ text: "Depoimento real de um cliente.", name: "Nome do cliente" }] }
+              : type === "layout"
+                ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] }
+                : type === "testimonials"
+                  ? { title: "Quem confia na Véxora", items: [{ text: "Depoimento real de um cliente.", name: "Nome do cliente" }] }
                 : type === "faq"
                   ? { title: "Perguntas frequentes", items: [{ question: "Quanto custa?", answer: "Varia por projeto — fale com a equipe." }] }
                   : {};
@@ -284,7 +459,21 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     { label: "Clareza de valor", instruction: "Reescreva os textos do bloco deixando mais claro o benefício principal para o cliente: resultado, prazo e prova — não processo." },
     { label: "Adaptar ao WhatsApp", instruction: "Reescreva no tom de WhatsApp direto, sem formalidade de site, focando na conversa: resposta em minutos, orçamento sem compromisso." },
   ];
-  return (
+  const relayout = async () => {
+    if (relayoutBusy) return;
+    const homePage = (site.pages || []).find((p: any) => p.kind === "HOME") || (site.pages || [])[0];
+    if (!homePage) { setRelayoutError("Nenhuma página encontrada."); return; }
+    setRelayoutBusy(true); setRelayoutError("");
+    try {
+      const res = await api<{ blocks: number }>("/sites/" + site.id + "/pages/" + homePage.id + "/relayout", { method: "POST", body: JSON.stringify({ prompt: relayoutPrompt.trim(), referenceUrl: relayoutReferenceUrl.trim(), imageUrl: relayoutImageUrl }) });
+      setRelayoutOpen(false);
+      setRelayoutPrompt(""); setRelayoutReferenceUrl(""); setRelayoutImageUrl("");
+      onNotice("Página transformada em premium (" + (res?.blocks ?? "?") + " blocos). Revise o resultado e salve o que quiser.");
+      onSaved();
+    } catch (e) { setRelayoutError(e instanceof Error ? e.message : "Não foi possível transformar a página."); }
+    finally { setRelayoutBusy(false); }
+  };
+  const studio = (
     <div className={"sites-studio" + (fullscreen ? " is-fullscreen" : "")}>
       <div className="sites-studio-toolbar">
         <div className="sites-studio-device-toggle" role="group" aria-label="Visualizar em">
@@ -292,7 +481,9 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}><Smartphone size={13} aria-hidden="true" /> Celular</button>
         </div>
         <div className="sites-studio-toolbar-right">
-          <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar sem distração"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
+          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.type === "layout"); if (target) { setSelected(target.id); } else { void addBlock("layout"); } }} title="Selecionar (ou criar) a seção de colunas para editar o layout"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
+          <button type="button" className="secondary-button" onClick={() => setRelayoutOpen(true)} title="A IA transforma a página em uma versão premium — com prompt, link de referência, imagem ou sem nada"><Wand2 size={14} aria-hidden="true" /> Relayout premium</button>
+          <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar isolado de tudo"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
           {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}
         </div>
       </div>
@@ -316,7 +507,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           ))}
           <div className="sites-studio-add">
             <p className="sites-field-label">Adicionar bloco</p>
-            <div className="sites-studio-add-grid">{["hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
+            <div className="sites-studio-add-grid">{["layout","hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
           </div>
         </aside>
         <div className="sites-studio-preview">
@@ -331,6 +522,9 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
               <span className="sites-studio-panel-type">{BLOCKS_META[selectedBlock.type]?.label ?? selectedBlock.type}</span>
             </div>
             <div className="sites-studio-fields">
+              {selectedBlock?.type === "layout" ? (
+                <LayoutBlockEditor block={selectedBlock} onChange={(content) => replaceBlockContent(selectedBlock, content)} />
+              ) : (<>
               {fieldDefs.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} /> : <input value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} />}</label>)}
               {fieldDefs.array ? <div className="sites-studio-array">
                 <div className="sites-studio-array-head"><span className="sites-field-label">{fieldDefs.array.label}</span><button type="button" className="text-button sites-studio-add-item" onClick={() => addArrayItem(fieldDefs.array!.key)}>+ {fieldDefs.array.itemLabel}</button></div>
@@ -339,6 +533,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
                   {fieldDefs.array!.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(item?.[f.key] ?? "").toString()} onChange={(e) => setArrayField(fieldDefs.array!.key, index, f.key, e.target.value)} /> : <input value={(item?.[f.key] ?? "").toString()} onChange={(e) => setArrayField(fieldDefs.array!.key, index, f.key, e.target.value)} />}</label>)}
                 </div>)}
               </div> : null}
+              </>)}
             </div>
             <div className="sites-studio-ai">
               <h4>Reescrever com IA</h4>
@@ -352,8 +547,34 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           </> : <p className="sites-field-hint">Selecione um bloco no preview ou na lista à esquerda para editar.</p>}
         </div>
       </div>
+      {relayoutOpen && (
+        <div className="vx-dialog-backdrop sites-relayout-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !relayoutBusy) { setRelayoutOpen(false); } }}>
+          <section className="vx-dialog sites-relayout" role="dialog" aria-modal="true" aria-labelledby="sites-relayout-title">
+            <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Wand2 size={20} aria-hidden="true" /></span><div><h2 id="sites-relayout-title">Relayout premium</h2><p>A IA transforma esta página em uma versão premium — com ou sem o seu pedido.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={() => !relayoutBusy && setRelayoutOpen(false)}><X size={18} aria-hidden="true" /></button></header>
+            <div className="vx-dialog-body">
+              <label className="sites-field"><span>O que melhorar? (opcional)</span><textarea rows={3} value={relayoutPrompt} onChange={e => setRelayoutPrompt(e.target.value)} disabled={relayoutBusy} placeholder="Ex.: deixe mais premium e confiante, foco em agendar pelo WhatsApp, tom sério mas acolhedor." /></label>
+              <label className="sites-field"><span>Link de referência (opcional)</span><input type="url" value={relayoutReferenceUrl} onChange={e => setRelayoutReferenceUrl(e.target.value)} disabled={relayoutBusy} placeholder="https://awwwards.com/sites/… ou qualquer site que você admira" /></label>
+              <label className="sites-field"><span>Imagem de referência (opcional)</span>
+                <span className="sites-relayout-image">
+                  {relayoutImageUrl ? <img src={relayoutImageUrl} alt="Referência enviada" /> : null}
+                  <input type="file" accept="image/*" disabled={relayoutBusy || relayoutUploading} onChange={async e => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setRelayoutUploading(true); setRelayoutError("");
+                    try { const data = new FormData(); data.append("file", file); const response = await fetch("/api/backend/sites/assets", { method: "POST", body: data }); const json = await response.json().catch(() => null); if (!response.ok) throw new Error(json?.message || "Falha no upload."); setRelayoutImageUrl(String(json?.url || "")); } catch (err) { setRelayoutError(err instanceof Error ? err.message : "Não foi possível enviar a imagem."); } finally { setRelayoutUploading(false); }
+                  }} />
+                  {relayoutImageUrl ? <button type="button" className="text-button" onClick={() => setRelayoutImageUrl("")}>Remover imagem</button> : null}
+                </span>
+              </label>
+              {relayoutError ? <p role="alert" className="sites-error">{relayoutError}</p> : null}
+              <p className="sites-field-hint">A IA mantém fatos, preços e contatos intactos e devolve blocos novos. A página é substituída atomically — se a IA falhar, nada muda.</p>
+            </div>
+            <footer className="vx-dialog-footer"><button type="button" className="secondary-button" disabled={relayoutBusy} onClick={() => setRelayoutOpen(false)}>Cancelar</button><button type="button" className="primary-button" disabled={relayoutBusy || relayoutUploading} onClick={() => void relayout()}>{relayoutBusy ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Wand2 size={15} aria-hidden="true" />} {relayoutBusy ? "Transformando…" : "Transformar em premium"}</button></footer>
+          </section>
+        </div>
+      )}
     </div>
   );
+  return fullscreen ? createPortal(studio, document.body) : studio;
 }
 
 type PreviewSite = any;
@@ -405,7 +626,7 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
     await Promise.all([api(`/sites/pages/${block.pageId}/blocks/${block.id}`, { method: "PATCH", body: JSON.stringify({ sortOrder: other.sortOrder }) }), api(`/sites/pages/${other.pageId}/blocks/${other.id}`, { method: "PATCH", body: JSON.stringify({ sortOrder: block.sortOrder }) })]);
     onSaved();
   };
-  const addBlock = async (type: string) => { await api(`/sites/pages/${page!.id}/blocks`, { method: "POST", body: JSON.stringify({ type, content: {} }) }); onSaved(); onNotice("Bloco adicionado."); };
+  const addBlock = async (type: string) => { await api(`/sites/pages/${page!.id}/blocks`, { method: "POST", body: JSON.stringify({ type, content: type === "layout" ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] } : {} }) }); onSaved(); onNotice("Bloco adicionado."); };
   const removeBlock = async (block: Block) => { await api(`/sites/pages/${block.pageId}/blocks/${block.id}`, { method: "DELETE" }); onSaved(); onNotice("Bloco removido."); };
   if (!page) return <div className="sites-empty"><LayoutTemplate size={24} aria-hidden="true" /><h2>Nenhuma página</h2></div>;
   return (
@@ -448,6 +669,8 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) 
     </div>
   );
   switch (block.type) {
+    case "layout":
+      return <LayoutBlockEditor block={block} onChange={(content) => onChange(content)} />;
     case "hero":
       return (<div className="sites-block-form"><label><span>Título</span><input value={c.headline || ""} onChange={e => set({ headline: e.target.value })} placeholder="Título principal da página" /></label><label><span>Subtítulo</span><input value={c.sub || ""} onChange={e => set({ sub: e.target.value })} placeholder="Texto de apoio" /></label><label><span>Selo (eyebrow)</span><input value={c.badge || ""} onChange={e => set({ badge: e.target.value })} placeholder="City · Segmento" /></label><label><span>Imagem de fundo (URL https)</span><input value={c.imageUrl || ""} onChange={e => set({ imageUrl: e.target.value })} placeholder="https://images.unsplash.com/…" /></label><label><span>Botão (texto)</span><input value={c.ctaLabel || ""} onChange={e => set({ ctaLabel: e.target.value })} placeholder="Quero conversar" /></label><label><span>Botão (link)</span><input value={c.ctaUrl || ""} onChange={e => set({ ctaUrl: e.target.value })} placeholder="https://wa.me/55…" /></label></div>);
     case "richText":

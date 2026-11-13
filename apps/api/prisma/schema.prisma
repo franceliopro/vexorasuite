@@ -106,6 +106,7 @@ model Tenant {
   entitlements         Json                  @default("{}")
   plan                 Plan?                 @relation(fields: [planId], references: [id], onDelete: SetNull)
   sites                Site[]
+  siteAssets           SiteAsset[]
 
   @@map("tenants")
 }
@@ -831,6 +832,20 @@ model SiteBlock {
   page      SitePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@map("site_blocks")
+}
+
+model SiteAsset {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  mimeType   String   @map("mime_type")
+  width      Int
+  height     Int
+  bytes      Bytes
+  createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("site_assets")
 }
 
 model SiteForm {

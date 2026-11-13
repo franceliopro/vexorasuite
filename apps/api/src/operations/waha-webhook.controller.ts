@@ -215,19 +215,19 @@ export class WahaWebhookController {
     const choice = /^\d+$/.test(normalized) ? Number(normalized) : 0;
     const step = String(raw.step || "");
     if (step === "SECTOR") {
-      const sectors: Record<number, string> = { 1: "SUPORTE", 2: "FINANCEIRO", 3: "COMERCIAL", 4: "ADMINISTRATIVO" };
+      const sectors: Record<number, string> = { 1: "SUPPORT", 2: "FINANCE", 3: "SALES", 4: "ADMINISTRATION" };
       const sector = sectors[choice];
       if (!sector) { await this.sendBotReply(channel, chatId, conversationId, "Escolha 1 Suporte, 2 Financeiro, 3 Comercial ou 4 Administrativo."); return true; }
-      if (sector === "COMERCIAL") { await send("COMMERCIAL_TYPE", { sector }, "O atendimento Comercial é para:\n1. Pessoa Física\n2. Pessoa Jurídica"); return true; }
-      if (sector === "ADMINISTRATIVO") { await this.handoffGuided(channel, conversationId, chatId, "ADMINISTRATIVO", null, "Administrativo"); return true; }
+      if (sector === "SALES") { await send("COMMERCIAL_TYPE", { sector }, "O atendimento Comercial é para:\n1. Pessoa Física\n2. Pessoa Jurídica"); return true; }
+      if (sector === "ADMINISTRATION") { await this.handoffGuided(channel, conversationId, chatId, "ADMINISTRATION", null, "Administrativo"); return true; }
       await send("PLATFORM", { sector }, "Qual plataforma?\n1. Ceeb Vision\n2. Link\n3. Rastreabem"); return true;
     }
     if (step === "PLATFORM") {
       const platforms: Record<number, string> = { 1: "CEEB_VISION", 2: "LINK", 3: "RASTREABEM" }; const platform = platforms[choice];
       if (!platform) { await this.sendBotReply(channel, chatId, conversationId, "Escolha 1 Ceeb Vision, 2 Link ou 3 Rastreabem."); return true; }
       const sector = String(raw.sector || "");
-      if (sector === "FINANCEIRO") { await send("FINANCE_ACTION", { sector, platform }, "Como deseja continuar?\n1. Falar com atendente financeira\n2. Pagar"); return true; }
-      await this.handoffGuided(channel, conversationId, chatId, "SUPORTE", platform, "Suporte · " + platform.replace("_", " ")); return true;
+      if (sector === "FINANCE") { await send("FINANCE_ACTION", { sector, platform }, "Como deseja continuar?\n1. Falar com atendente financeira\n2. Pagar"); return true; }
+      await this.handoffGuided(channel, conversationId, chatId, "SUPPORT", platform, "Suporte · " + platform.replace("_", " ")); return true;
     }
     if (step === "FINANCE_ACTION") {
       const platform = String(raw.platform || "");
@@ -236,27 +236,27 @@ export class WahaWebhookController {
         const settings = await this.asaas.publicSettings(channel.tenantId);
         if (!settings.enabled || !settings.configured) {
           await this.sendBotReply(channel, chatId, conversationId, "A consulta financeira está temporariamente indisponível. Vou encaminhar você ao Financeiro.");
-          await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, "Financeiro · pagamento · " + platform.replace("_", " "));
+          await this.handoffGuided(channel, conversationId, chatId, "FINANCE", platform, "Financeiro · pagamento · " + platform.replace("_", " "));
           return true;
         }
         await this.prisma.department.upsert({
-          where: { tenantId_key: { tenantId: channel.tenantId, key: "FINANCEIRO" } },
-          create: { tenantId: channel.tenantId, key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "cobrança", "cobranca"] },
+          where: { tenantId_key: { tenantId: channel.tenantId, key: "FINANCE" } },
+          create: { tenantId: channel.tenantId, key: "FINANCE", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "cobrança", "cobranca"] },
           update: {},
         });
         await this.prisma.conversation.update({
           where: { id: conversationId },
-          data: { handlingMode: "BOT", botState: { flow: "ASAAS", step: "DOCUMENT", platform, sector: "FINANCEIRO" } },
+          data: { handlingMode: "BOT", botState: { flow: "ASAAS", step: "DOCUMENT", platform, sector: "FINANCE" } },
         });
         await this.sendBotReply(channel, chatId, conversationId, "Para consultar suas cobranças, envie o CPF ou CNPJ do titular. Pode enviar com pontos, traços ou espaços.\n\nDigite *cancelar* para sair.");
         return true;
       }
-      await this.handoffGuided(channel, conversationId, chatId, "FINANCEIRO", platform, "Financeiro · " + platform.replace("_", " "));
+      await this.handoffGuided(channel, conversationId, chatId, "FINANCE", platform, "Financeiro · " + platform.replace("_", " "));
       return true;
     }
     if (step === "COMMERCIAL_TYPE") {
       if (choice !== 1 && choice !== 2) { await this.sendBotReply(channel, chatId, conversationId, "Responda 1 para Pessoa Física ou 2 para Pessoa Jurídica."); return true; }
-      const key = choice === 1 ? "COMERCIAL_PF" : "COMERCIAL_PJ";
+      const key = choice === 1 ? "SALES_PF" : "SALES_PJ";
       await this.handoffGuided(channel, conversationId, chatId, key, null, choice === 1 ? "Comercial · Pessoa Física" : "Comercial · Pessoa Jurídica"); return true;
     }
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } }); return false;
@@ -264,10 +264,10 @@ export class WahaWebhookController {
 
   private async handoffGuided(channel: ChannelConnection, conversationId: string, chatId: string, key: string, platform: string | null, label: string): Promise<void> {
     const defaults = [
-      { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "cobrança", "cobranca"] },
-      { key: "COMERCIAL", name: "Comercial", keywords: ["preço", "preco", "vendas", "comercial"] },
-      { key: "SUPORTE", name: "Suporte", keywords: ["problema", "erro", "ajuda", "suporte"] },
-      { key: "ADMINISTRATIVO", name: "Administrativo", keywords: ["documento", "contrato", "cadastro"] },
+      { key: "FINANCE", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "cobrança", "cobranca"] },
+      { key: "SALES", name: "Comercial", keywords: ["preço", "preco", "vendas", "comercial"] },
+      { key: "SUPPORT", name: "Suporte", keywords: ["problema", "erro", "ajuda", "suporte"] },
+      { key: "ADMINISTRATION", name: "Administrativo", keywords: ["documento", "contrato", "cadastro"] },
     ];
     for (const department of defaults) {
       await this.prisma.department.upsert({
@@ -277,7 +277,7 @@ export class WahaWebhookController {
       });
     }
     const specific = platform ? [platform + "_" + key, key + "_" + platform] : [];
-    const fallback = key.startsWith("COMERCIAL_") ? ["COMERCIAL"] : [];
+    const fallback = key.startsWith("COMERCIAL_") ? ["SALES"] : [];
     const departments = await this.prisma.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
     const destination = [...specific, key, ...fallback].map(candidate => departments.find(d => d.key.toUpperCase() === candidate)).find(Boolean) || null;
     await this.prisma.$transaction(async tx => {
@@ -326,10 +326,10 @@ export class WahaWebhookController {
     if (await this.runGuidedTriage(channel, chatId, conversationId, isNewConversation, inboundText)) return;
     if (await this.runAsaasFlow(channel, chatId, conversationId, inboundText)) return;
     const defaults = [
-      { key: "FINANCEIRO", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "nota fiscal", "reembolso", "cobrança", "cobranca", "financeiro"] },
-      { key: "COMERCIAL", name: "Comercial (Vendas)", keywords: ["preço", "preco", "orçamento", "orcamento", "comprar", "venda", "vendas", "plano", "comercial"] },
-      { key: "SUPORTE", name: "Suporte", keywords: ["problema", "erro", "ajuda", "suporte", "não funciona", "nao funciona", "suporte técnico", "suporte tecnico"] },
-      { key: "ADMINISTRATIVO", name: "Administrativo", keywords: ["documento", "contrato", "cadastro", "administrativo"] },
+      { key: "FINANCE", name: "Financeiro", keywords: ["boleto", "pagamento", "fatura", "nota fiscal", "reembolso", "cobrança", "cobranca", "financeiro"] },
+      { key: "SALES", name: "Comercial", keywords: ["preço", "preco", "orçamento", "orcamento", "comprar", "venda", "vendas", "plano", "comercial"] },
+      { key: "SUPPORT", name: "Suporte", keywords: ["problema", "erro", "ajuda", "suporte", "não funciona", "nao funciona", "suporte técnico", "suporte tecnico"] },
+      { key: "ADMINISTRATION", name: "Administrativo", keywords: ["documento", "contrato", "cadastro", "administrativo"] },
     ];
     try {
       for (const department of defaults) {
@@ -414,7 +414,7 @@ export class WahaWebhookController {
         const message = error instanceof Error ? error.message : "";
         const invalid = message.toLocaleLowerCase("pt-BR").includes("cpf/cnpj inválido");
         if (message.toLocaleLowerCase("pt-BR").includes("confirmar o telefone")) {
-          const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
+          const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCE" }, { name: { contains: "finance", mode: "insensitive" } }] } });
           await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
           if (finance?.id) await this.distribution.assign(channel.tenantId, conversationId, finance.id);
           this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
@@ -441,7 +441,7 @@ export class WahaWebhookController {
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: { flow: "ASAAS", step: "DOCUMENT" } } });
         await this.sendBotReply(channel, chatId, conversationId, "Envie o CPF ou CNPJ do titular (com ou sem pontuação).");
       } else if (/^1$/.test(normalized)) {
-        const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
+        const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCE" }, { name: { contains: "finance", mode: "insensitive" } }] } });
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
           if (finance?.id) await this.distribution.assign(channel.tenantId, conversationId, finance.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });
@@ -497,7 +497,7 @@ export class WahaWebhookController {
         await this.sendBotReply(channel, chatId, conversationId, response);
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { botState: {} } });
       } catch {
-        const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCEIRO" }, { name: { contains: "finance", mode: "insensitive" } }] } });
+        const finance = await this.prisma.department.findFirst({ where: { tenantId: channel.tenantId, isActive: true, OR: [{ key: "FINANCE" }, { name: { contains: "finance", mode: "insensitive" } }] } });
         await this.prisma.conversation.update({ where: { id: conversationId }, data: { handlingMode: "HUMAN", departmentId: finance?.id ?? null, assigneeId: null, status: "OPEN", botState: {} } });
           if (finance?.id) await this.distribution.assign(channel.tenantId, conversationId, finance.id);
         this.events.publish(channel.tenantId, "conversation.updated", { id: conversationId, handlingMode: "HUMAN", departmentId: finance?.id ?? null, status: "OPEN" });

@@ -61,15 +61,17 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
   const renderBlock = (block: Block) => {
     const c = block.content || {};
     switch (block.type) {
-      case "hero":
+      case "hero": {
+        const heroStyle: React.CSSProperties | undefined = (c.imageUrl as string | undefined)?.match(/^https?:\/\//) ? { backgroundImage: `linear-gradient(135deg, rgba(5,13,34,0.78), rgba(10,23,48,0.55)), url("${String(c.imageUrl)}")`, backgroundSize: "cover", backgroundPosition: "center", color: "#E7EEFF" } : undefined;
         return (
-          <section className="ps-hero">
-            {c.badge && <span className="ps-badge">{c.badge}</span>}
+          <section className="ps-hero" style={heroStyle}>
+            {c.badge && <span className="ps-badge" style={heroStyle?{color:"#FFFFFF",background:"rgba(255,255,255,.14)"}:undefined}>{c.badge}</span>}
             <h1>{c.headline || site.name}</h1>
             {c.sub && <p>{c.sub}</p>}
             {c.ctaLabel && c.ctaUrl && <a className="ps-btn" href={c.ctaUrl} target="_blank" rel="noopener noreferrer">{c.ctaLabel}<ArrowRight size={16} aria-hidden="true" /></a>}
           </section>
         );
+      }
       case "richText":
         return <section className="ps-section"><h2>{c.title || ""}</h2>{String(c.body || "").split("\n").filter(Boolean).map((line, i) => <p key={i}>{line}</p>)}</section>;
       case "services":

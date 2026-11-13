@@ -23,6 +23,51 @@ export const BUSINESS_AREAS: Record<string, { label: string; headline: string; s
 
 /** Blueprint determinístico (sem IA): funciona sempre, mesmo sem LLM habilitado. */
 export type Blueprint = { pages: { slug: string; kind: string; title: string; blocks: { type: string; content: any }[] }[]; meta: { headline: string; sub: string } };
+
+const HERO_IMAGES: Record<string, string> = {
+  clinica_medica: "photo-1576091160399-112ba8d25d1d",
+  clinica_estetica: "photo-1570172619644-dfd03a3d97b7",
+  estetica_geral: "photo-1522337664840-dc4e3f3f5f52",
+  advocacia: "photo-1589829545856-d10d557cf95f",
+  imobiliaria: "photo-1560518883-ce09059eeffa",
+  rastreamento: "photo-1503376780353-7e6692767b70",
+  protecao: "photo-1503376780353-7e6692767b70",
+  ecommerce: "photo-1472851294608-062f824d29cc",
+  blog: "photo-1504711434969-e33886168f5c",
+  escola_musica: "photo-1511379938419-80f5c44b8d2a",
+  escola_teologia: "photo-1447069387593-a5de086248b0",
+  escola_cursos: "photo-1503676260728-1c00da094a0b",
+  construtora: "photo-1541888946425-d81bb19240f5",
+  prestacao_servicos: "photo-1581578731548-c64695cc6952",
+  vexora: "photo-1551288049-bebda4e38f71",
+};
+
+const GALLERY_IMAGES: Record<string, string[]> = {
+  clinica_medica: ["photo-1579684385127-1ef15d508118", "photo-1551076805-e1869033e561", "photo-1584515933487-779824d29309", "photo-1581595219315-a1870e15eb5e", "photo-1538108149393-fbbd81895907", "photo-1505751172876-fa1923c5c528"],
+  clinica_estetica: ["photo-1616394584738-fc6e612e71b9", "photo-1556228720-195a672e8a03", "photo-1519823551278-64ac92734fb1", "photo-1570172619644-dfd03a3d97b7", "photo-1616239535176-b85a6831a48b", "photo-1542601906990-b4d3fb778b09"],
+  estetica_geral: ["photo-1600948836101-f9ffda59d250", "photo-1616394584738-fc6e612e71b9", "photo-1607749092859-5f9d5e8f4a8b", "photo-1487412947147-5cebf100ffc2", "photo-1522337664840-dc4e3f3f5f52", "photo-1500917293891-ef795e70e35e"],
+  advocacia: ["photo-1505664194779-8beaceb9126c", "photo-1589829545856-d10d557cf95f", "photo-1577360243199-110d6e8e1b5a", "photo-1589829085413-56de8ae18c73", "photo-1525008411-c42ae53b0d3a", "photo-1521791136064-9f8a1d0bcf4e"],
+  imobiliaria: ["photo-1560518883-ce09059eeffa", "photo-1512917774080-9991f1c4c750", "photo-1600596542815-ff5c4fffda7b", "photo-1449844908441-8829872d2607", "photo-1600585154340-be6161a56a0c", "photo-1600607687939-ce8a6c25118c"],
+  rastreamento: ["photo-1503376780353-7e6692767b70", "photo-1552519507-da3b142c6e3d", "photo-1552519184-5c9b6d92d4b0", "photo-1549490349-8643362247b5", "photo-1533486159905-30ade13492c7", "photo-1516949005880-6d1b3f6d6d87"],
+  protecao: ["photo-1503376780353-7e6692767b70", "photo-1552519507-da3b142c6e3d", "photo-1542362567-b07e54358753", "photo-1519245659620-e859806a8d3b", "photo-1516575150278-71b1f5e37d90", "photo-1578415357472-454ed03a8f90"],
+  ecommerce: ["photo-1472851294608-062f824d29cc", "photo-1556742049-0cfed4f6a45a", "photo-1516867249638-787c39cd3dbe", "photo-1481437156560-3205f6a55735", "photo-1563013544-824ae1b704d3", "photo-1483985988355-763728e1935b"],
+  blog: ["photo-1504711434969-e33886168f5c", "photo-1485320806297-9794b3e4eeae", "photo-1451244479748-0f85c40e9c68", "photo-1524995997946-a1c2e315a42f", "photo-1434030216411-0b793f4b4173", "photo-1471540198582-04c19d2f5e7d"],
+  escola_musica: ["photo-1511379938419-80f5c44b8d2a", "photo-1508700115892-45ecd05ae2ad", "photo-1520520806055-27df51b06305", "photo-1471472255008-ccc6dc3c5fce", "photo-1444325121542-e4c16c9a6326", "photo-1484702245493-2d75f70b31fc"],
+  escola_teologia: ["photo-1447069387593-a5de086248b0", "photo-1504052434569-70d36f95d8c4", "photo-1507692049790-de8dbc9b9a8a", "photo-1445840373809-e8f5d94a7d12", "photo-1505667009673-af8b6a2c0e13", "photo-1471562355752-f6b8c3b1b2b3"],
+  escola_cursos: ["photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1427504494785-3a9ca4da8acf", "photo-1524178232363-1fb2b075b655", "photo-1531482615713-2afd69097998", "photo-1513258496099-481653133dee"],
+  construtora: ["photo-1541888946425-d81bb19240f5", "photo-1503387762-64747c30dae2", "photo-1504307651254-35680f356dfd", "photo-1486325212027-8081e485255e", "photo-1484158894343-4f338f2a6b14", "photo-1574362840593-af63b0f26e72"],
+  prestacao_servicos: ["photo-1581578731548-c64695cc6952", "photo-1581093458791-9f3c9562c9a3", "photo-1521791136064-9f8a1d0bcf4e", "photo-1504148455328-c376907d081c", "photo-1581094271901-8022dfdd0982", "photo-1560250097-0b93528c311a"],
+  vexora: ["photo-1551288049-bebda4e38f71", "photo-1460925895917-afbed7d5911d", "photo-1550751827-4bd374c3f58b", "photo-1551434678-e077c223a692", "photo-1518770660439-4636190af475", "photo-1542744095-291d1f432c42"],
+};
+
+export const heroImageFor = (area: string): string => {
+  const id = HERO_IMAGES[area] || HERO_IMAGES.clinica_estetica!;
+  return "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=1600&q=80";
+};
+export const galleryImagesFor = (area: string): string[] => {
+  const list = GALLERY_IMAGES[area] || GALLERY_IMAGES.clinica_estetica!;
+  return list.map(id => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=1200&q=80");
+};
 export function blueprintFor(area: string, companyName: string, opts: { primaryColor: string; accentColor: string; whatsapps: { label: string; handle: string }[]; socials: { platform: string; handle: string }[]; dynamic: boolean }): Blueprint {
   const pack = BUSINESS_AREAS[area] || BUSINESS_AREAS["clinica_estetica"]!;
   const wa = opts.whatsapps[0]?.handle || "5562999990000";
@@ -30,13 +75,15 @@ export function blueprintFor(area: string, companyName: string, opts: { primaryC
   const waLink = `https://wa.me/${phoneOf(wa)}`;
   const pages = [
     { slug: "inicio", kind: "HOME", title: "Início", blocks: [
-      { type: "hero", content: { headline: pack.headline, sub: pack.sub, ctaLabel: "Quero conversar", ctaUrl: waLink, badge: pack.label } },
+      { type: "hero", content: { headline: pack.headline, sub: pack.sub, ctaLabel: "Quero conversar", ctaUrl: waLink, badge: pack.label, imageUrl: heroImageFor(area) } },
       { type: "services", content: { title: "O que fazemos", items: pack.services.map(s => ({ title: s.title, text: s.text })) } },
-      { type: "testimonials", content: { title: "O que dizem de nós", items: [ { name: "Cliente Satisfeito", text: "Atendimento nota 10, do início ao fim. Recomendo de olhos fechados." }, { name: "Cliente Bem Atendido", text: "Tudo explicado, sem enrolação. Já voltei três vezes." }, { name: "Cliente Feliz", text: "Qualidade e preço justo. Não troco por nenhum outro." } ] } },
+      { type: "gallery", content: { title: "Ambiente e detalhes", items: galleryImagesFor(area).map((url, i) => ({ url, caption: i === 0 ? "Nosso espaço principal" : "Detalhe " + (i + 1) })) } },
+      { type: "testimonials", content: { title: "O que dizem de nós", items: [ { name: "Ana Paula", text: "Atendimento nota 10, do início ao fim. Recomendo de olhos fechados." }, { name: "Roberto Menezes", text: "Tudo explicado, sem enrolação. Já voltei três vezes." }, { name: "Cláudia Regina", text: "Qualidade e preço justo. Não troco por nenhum outro." }, { name: "Juliana Paixão", text: "A equipe é espetacular. Sucesso total toda vez." }, { name: "Marcos Vinicius", text: "Profissionalismo sem par. Fecharam antes do prazo." }, { name: "Beatriz Lima", text: "Atendimento humanizado e resultado impecável." } ] } },
       { type: "cta", content: { title: "Pronto para começar?", sub: "Fale agora com a nossa equipe.", ctaLabel: "Chamar no WhatsApp", ctaUrl: waLink } },
     ] },
     { slug: "servicos", kind: "SERVICES", title: "Serviços", blocks: [
       { type: "richText", content: { title: "Nossos serviços", body: pack.services.map(s => `• **${s.title}** — ${s.text}`).join("\n") } },
+      { type: "gallery", content: { title: "Nossos espaços", items: galleryImagesFor(area).slice(0, 6).map((url, i) => ({ url, caption: "Espaço " + (i + 1) })) } },
       { type: "faq", content: { title: "Perguntas frequentes", items: pack.faq } },
       { type: "contact", content: { title: "Fale com a gente", items: opts.whatsapps.map(w => ({ label: w.label, handle: w.handle })), socials: opts.socials } },
     ] },

@@ -43,6 +43,8 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
 
   const wizardOpen = searchParams.get("new") === "1";
   const openWizard = () => setParams({ new: "1" });
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(false);
   const [wizName, setWizName] = useState("");
   const [wizArea, setWizArea] = useState<string>("");
   const [wizKind, setWizKind] = useState<"STATIC" | "DYNAMIC">("STATIC");
@@ -59,6 +61,44 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   const [wizAiDictating, setWizAiDictating] = useState(false);
   const [wizAiDictateStatus, setWizAiDictateStatus] = useState("");
   const wizRecognition = useRef<any>(null);
+  const wizardSnapshot = { name: wizName, area: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps: wizWhatsapp, socials: wizSocials, aiPrompt: wizAiPrompt, referenceUrl: wizReferenceUrl, cloneUrl: wizCloneUrl };
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const anyFilled = Object.values(wizardSnapshot).some((v) => Array.isArray(v) ? v.some(Boolean) : Boolean(v));
+    try { if (!anyFilled) window.localStorage.removeItem("vx:sites-wizard-draft"); else window.localStorage.setItem("vx:sites-wizard-draft", JSON.stringify(wizardSnapshot)); } catch { /* ignore */ }
+  }, [draftHydrated, wizName, wizArea, wizKind, wizPrimary, wizAccent, wizSlug, wizWhatsapp, wizSocials, wizAiPrompt, wizReferenceUrl, wizCloneUrl]);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("vx:sites-wizard-draft");
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (typeof draft.name === "string") setWizName(draft.name);
+        if (typeof draft.area === "string") setWizArea(draft.area);
+        if (draft.kind === "STATIC" || draft.kind === "DYNAMIC") setWizKind(draft.kind);
+        if (typeof draft.primaryColor === "string") setWizPrimary(draft.primaryColor);
+        if (typeof draft.accentColor === "string") setWizAccent(draft.accentColor);
+        if (typeof draft.slug === "string") setWizSlug(draft.slug);
+        if (Array.isArray(draft.whatsapps)) setWizWhatsapp(draft.whatsapps);
+        if (Array.isArray(draft.socials)) setWizSocials(draft.socials);
+        if (typeof draft.aiPrompt === "string") setWizAiPrompt(draft.aiPrompt);
+        if (typeof draft.referenceUrl === "string") setWizReferenceUrl(draft.referenceUrl);
+        if (typeof draft.cloneUrl === "string") setWizCloneUrl(draft.cloneUrl);
+      }
+    } catch { /* ignore */ }
+    setDraftHydrated(true);
+  }, []);
+  const saveDraft = () => {
+    try {
+      const snapshot = { name: wizName, area: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps: wizWhatsapp, socials: wizSocials, aiPrompt: wizAiPrompt, referenceUrl: wizReferenceUrl, cloneUrl: wizCloneUrl };
+      window.localStorage.setItem("vx:sites-wizard-draft", JSON.stringify(snapshot));
+      setSavedDraft(true);
+      setNotice("Rascunho salvo neste navegador. Você pode fechar e continuar depois.");
+      window.setTimeout(() => setSavedDraft(false), 4000);
+    } catch {
+      setNotice("Não foi possível salvar o rascunho agora. Tente de novo.");
+    }
+  };
+
   const dictateWizardPrompt = () => {
     const Speech = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!Speech) { setWizAiDictateStatus("Ditado indisponível neste navegador. Use o campo de texto."); return; }
@@ -82,6 +122,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
       const socials = wizSocials.filter(s => s.handle.trim());
       const created = await api<Site>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
       setNotice("Site criado. Agora é só editar os blocos e publicar.");
+      try { window.localStorage.removeItem("vx:sites-wizard-draft"); } catch { /* ignore */ }
       await loadSites();
       closeWizard();
       setParams({ site: created.id, tab: "pages" });
@@ -119,7 +160,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site com IA”.</p></div>}
           </div>
         )}
-        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} /> : null}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} /> : null}
       </section>
     );
   }

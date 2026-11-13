@@ -19,6 +19,7 @@ import { AiService } from "./ai.service";
 import { economicalProviders } from "./economical-providers";
 import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { searxngSearch } from "./local-services";
+import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
 import { FileInterceptor } from "@nestjs/platform-express";
 
 const object=(value:unknown):Record<string,any>=>value&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,any>:{};
@@ -34,6 +35,10 @@ function parseConfig(value: unknown): Config {
   const item = (value as Record<string, unknown>).assistant;
   if (!item || typeof item !== "object" || Array.isArray(item)) return initial;
   const cfg = item as Partial<Config>;
+  const withDefaultDesigner = (agents: unknown): AgentConfig[] => {
+    const list = Array.isArray(agents) ? agents : [];
+    return list.some((agent: any) => agent && agent.id === WEB_DESIGNER_AGENT_ID) ? list as AgentConfig[] : [...list as AgentConfig[], webDesignerAgent() as AgentConfig];
+  };
   const parsePersonalAssistantRules = (value: unknown): PersonalAssistantRule[] => Array.isArray(value) ? value.flatMap(entry => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
     const rule = entry as Record<string, unknown>;
@@ -44,7 +49,7 @@ function parseConfig(value: unknown): Config {
     if (!allowed && !forbidden) return [];
     return [{ phone, allowed, forbidden }];
   }).slice(0, 50) : [];
-  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: Array.isArray(cfg.agents) ? cfg.agents : [], allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", companyProhibitions: typeof cfg.companyProhibitions === "string" ? cfg.companyProhibitions : "", personalAssistantRules: parsePersonalAssistantRules(cfg.personalAssistantRules), knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
+  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: withDefaultDesigner(cfg.agents), allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", companyProhibitions: typeof cfg.companyProhibitions === "string" ? cfg.companyProhibitions : "", personalAssistantRules: parsePersonalAssistantRules(cfg.personalAssistantRules), knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
 }
 
 @AuditCovered()
@@ -83,7 +88,9 @@ export class AssistantController {
     return { version: 2, executionEnabled: true, skills: [
       { id: "reports.export", name: "Relatórios PDF e CSV", category: "Operações", cost: "zero", implemented: true, permission: "reports.admin" },
       { id: "web.research", name: "Pesquisa na internet", category: "Conhecimento", cost: "external", implemented: true, permission: "research.admin", requiresConfiguration: "BRAVE_SEARCH_API_KEY" },
-        { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
+      { id: "creative.design.director", name: "Designer de referências e direção visual", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
+      { id: "web.design.premium", name: "Web Designer Premium — pesquisa e sites", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
+      { id: "media.carousel.generate", name: "Roteiro e artes de carrossel", category: "Marketing", cost: "model", implemented: true, permission: "marketing.admin" },
       { id: "assistant.contacts.read", name: "Consultar contatos", category: "CRM", cost: "zero", implemented: true, permission: "contacts.read" },
       { id: "assistant.tasks.read", name: "Consultar tarefas", category: "Operações", cost: "zero", implemented: true, permission: "tasks.read" },
       { id: "assistant.calendar.read", name: "Consultar agenda", category: "Agenda", cost: "external", implemented: true, permission: "calendar.read" },
@@ -234,6 +241,7 @@ export class AssistantController {
       if (!a || typeof a.id !== "string" || !a.id.trim() || a.id.length > 80 || typeof a.name !== "string" || !a.name.trim() || a.name.length > 80 || typeof a.role !== "string" || a.role.length > 120 || !["Econômico", "Equilíbrio", "Inteligente"].includes(a.tier) || typeof a.enabled !== "boolean" || typeof a.instructions !== "string" || a.instructions.length > 6000) throw new BadRequestException("Agente inválido");
       return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, personalAssistant: a.personalAssistant === true || a.id === "1", instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules), inboxes: strings(a.bindings?.inboxes, 100) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
     });
+    if (!agents.some(agent => agent.id === WEB_DESIGNER_AGENT_ID)) agents.push(webDesignerAgent() as unknown as (typeof agents)[number]);
     if (new Set(agents.map(agent=>agent.id)).size !== agents.length) throw new BadRequestException("IDs de agentes duplicados");
     if (agents.filter(agent => agent.personalAssistant).length > 1) throw new BadRequestException("Selecione somente um agente como Assistente Pessoal");
     if (input.fallbackModels !== undefined && (!Array.isArray(input.fallbackModels) || input.fallbackModels.length > 2)) throw new BadRequestException("Use no máximo dois modelos de contingência");

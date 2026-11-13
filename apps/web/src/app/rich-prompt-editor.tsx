@@ -2,9 +2,10 @@
 import {useEffect,useRef,useState} from "react";
 import {EditorContent,useEditor} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
 import {Markdown} from "@tiptap/markdown";
 import Placeholder from "@tiptap/extension-placeholder";
-import {Bold,Italic,Heading2,List,ListOrdered,Quote,Code2,Undo2,Redo2,Maximize2,FileText,Link2} from "lucide-react";
+import {Bold,Italic,Heading2,List,ListOrdered,Quote,Code2,Undo2,Redo2,Maximize2,FileText,Link2,ImagePlus} from "lucide-react";
 import {VexoraDialog} from "./vexora-dialog";
 export function RichPromptEditor({label,value,onChange,maxLength=6000,placeholder="Escreva as orientações da sua equipe…",rows=6,documentKey=""}:{label:string;value:string;onChange:(value:string)=>void;maxLength?:number;placeholder?:string;rows?:number;documentKey?:string}){
  const [expanded,setExpanded]=useState(false),[source,setSource]=useState(false),[linkOpen,setLinkOpen]=useState(false),[url,setUrl]=useState(""),[notice,setNotice]=useState("");
@@ -12,7 +13,7 @@ export function RichPromptEditor({label,value,onChange,maxLength=6000,placeholde
  const [,render]=useState(0),lastEmitted=useRef(value);
  const editor=useEditor({
   immediatelyRender:false,
-  extensions:[StarterKit.configure({heading:{levels:[2,3]},link:{openOnClick:false,autolink:false}}),Markdown,Placeholder.configure({placeholder})],
+  extensions:[StarterKit.configure({heading:{levels:[2,3]},link:{openOnClick:false,autolink:false}}),Image.configure({inline:true,allowBase64:true}),Markdown,Placeholder.configure({placeholder})],
   content:value,contentType:"markdown",
   editorProps:{attributes:{role:"textbox","aria-label":label,"aria-multiline":"true",class:"vx-rich-content"}},
   onUpdate:({editor})=>{const markdown=editor.getMarkdown();lastEmitted.current=markdown;if(markdown.length>current.current.maxLength){setNotice("O limite deste campo é "+current.current.maxLength.toLocaleString("pt-BR")+" caracteres.");editor.commands.setContent(current.current.value,{contentType:"markdown",emitUpdate:false});return;}setNotice("");current.current.onChange(markdown);},
@@ -32,6 +33,7 @@ export function RichPromptEditor({label,value,onChange,maxLength=6000,placeholde
    {name:"Refazer",icon:<Redo2 size={16}/>,run:()=>editor?.chain().focus().redo().run()},
   ].map(item=><button type="button" key={item.name} title={item.name} aria-label={item.name} aria-pressed={!!item.active} disabled={!editor||source} onMouseDown={e=>e.preventDefault()} onClick={item.run}>{item.icon}</button>)}
   <button type="button" aria-label="Inserir link" title="Inserir link" disabled={source} onMouseDown={e=>e.preventDefault()} onClick={()=>setLinkOpen(v=>!v)}><Link2 size={16}/></button>
+  <label className="vx-rich-image-button" title="Inserir imagem do PC ou celular" aria-label="Inserir imagem do PC ou celular" onMouseDown={e=>e.preventDefault()}><ImagePlus size={16}/><input type="file" accept="image/*" style={{display:"none"}} onChange={(event)=>{const file=event.target.files?.[0];if(!file)return;if(file.size>4*1024*1024){setNotice("A imagem excede 4 MB. Escolha uma menor.");event.target.value="";return;}const reader=new FileReader();reader.onload=()=>{editor?.chain().focus().setImage({src:String(reader.result),alt:file.name}).run();};reader.readAsDataURL(file);event.target.value="";}}/></label>
   <span className="vx-toolbar-spacer"/><button type="button" className={source?"active":""} onClick={()=>setSource(v=>!v)} aria-label="Alternar texto de origem" title="Texto de origem"><Code2 size={16}/></button>
   {!expanded&&<button type="button" aria-label={"Ampliar "+label} title="Ampliar editor" onClick={()=>setExpanded(true)}><Maximize2 size={16}/></button>}
  </div>;

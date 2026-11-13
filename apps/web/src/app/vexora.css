@@ -3184,9 +3184,11 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 /* ===== 70. Scroll único em diálogo/tela — remove barras duplas ===== */
 .vx-dialog,[class$="-dialog"],[class$="-modal"]{overflow:hidden}
 .vx-dialog-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}
-.vx-dialog-body::-webkit-scrollbar{width:6px}
-.vx-dialog-body::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--tx) 32%,transparent);border-radius:99px}
+.vx-dialog-body{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tx) 45%,transparent) transparent}
+.vx-dialog-body::-webkit-scrollbar{width:8px}
+.vx-dialog-body::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--tx) 45%,transparent);border-radius:99px;min-height:48px}
 .vx-dialog-body::-webkit-scrollbar-track{background:transparent}
+.vx-dialog-body::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--tx) 65%,transparent)}
 /* Corpos internos não criam suas próprias barras — a rolagem acontece num único lugar: o diálogo */
 .sites-wizard-body{overflow-y:auto!important;max-height:none}.platform-admin-editor-body,.sites-studio-panel,.sites-studio-blocks,.sites-items-grid,.sites-forms-grid,.sites-items-list,.sites-item-form{overflow-y:auto;max-height:none}
 .calendar-modal{overflow:visible}

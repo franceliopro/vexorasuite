@@ -1,0 +1,8 @@
+{
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:event:default",
+    "shell:allow-open"
+  ]
+}

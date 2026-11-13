@@ -1,5 +1,6 @@
 "use client";
 import { use, useEffect, useState } from "react";
+import { LayoutBlock } from "../../site-layout";
 import { MapPin, MessageCircle, Phone, Mail, ArrowRight, Star, Globe, ChevronDown } from "lucide-react";
 
 type Block = { id: string; type: string; content: any; sortOrder: number };
@@ -72,6 +73,8 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
           </section>
         );
       }
+      case "layout":
+        return <LayoutBlock content={c} />;
       case "richText":
         return <section className="ps-section"><h2>{c.title || ""}</h2>{String(c.body || "").split("\n").filter(Boolean).map((line, i) => <p key={i}>{line}</p>)}</section>;
       case "services":

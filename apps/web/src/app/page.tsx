@@ -362,7 +362,7 @@ export default function HomePage() {
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Sites" ? (
-            moduleVisible("Sites") ? <Suspense fallback={<p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando Sites…</p>}><SitesWorkspace /></Suspense> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
+            moduleVisible("Sites") ? <Suspense fallback={<p role="status" className="content-card" style={{ padding: 28, textAlign: "center", color: "var(--tx2)" }}>Carregando Sites…</p>}><SitesWorkspace tenantId={session?.tenant?.id} /></Suspense> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
           ) : active === "Landing Pages" ? (
             moduleVisible("Sites") ? <WebAssetsWorkspace key="landing" kind="LANDING" /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este plano não inclui o módulo Sites. Fale com a Véxora para ativar.</p></section>
           ) : active === "Formulários" ? (

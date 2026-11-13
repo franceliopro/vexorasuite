@@ -40,8 +40,7 @@ export class EventsAuthorizationService {
     const [member, rows] = await Promise.all([memberPromise, departmentsPromise]);
     if (
       !member ||
-      (user.sessionVersion ?? 0) !== member.user.authVersion ||
-      (member.tenant.kind === "PLATFORM" && !member.user.isPlatformAdmin)
+      (user.sessionVersion ?? 0) !== member.user.authVersion
     ) {
       return null;
     }

@@ -3,6 +3,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { blueprintFor, BUSINESS_AREAS } from "./blueprint";
+import { normalizePrice } from "./money";
 import { buildSiteClone } from "./clone-site";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
@@ -373,6 +374,9 @@ export class SitesController {
     let slug = slugBase, attempt = 0;
     while (await this.prisma.siteItem.findFirst({ where: { siteId: site.id, kind, slug } })) { slug = slugBase + "-" + randomBytes(2).toString("hex"); if (++attempt > 20) throw new BadRequestException("Slugs esgotados."); }
     const data = sanitizeContent(body?.data || {});
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      data.price = normalizePrice(data.price);
+    }
     return this.prisma.siteItem.create({ data: { siteId: site.id, kind, slug, title, excerpt: str(body?.excerpt, 300) || null, coverUrl: safeUrl(body?.coverUrl), data, sortOrder: Number(body?.sortOrder) || 0, published: body?.published !== false, publishedAt: body?.published === false ? null : new Date() } });
   }
 
@@ -382,7 +386,7 @@ export class SitesController {
     if (body?.title !== undefined) { const title = str(body.title, 160); if (title.length < 2) throw new BadRequestException("Título inválido."); data.title = title; }
     if (body?.excerpt !== undefined) data.excerpt = str(body.excerpt, 300) || null;
     if (body?.coverUrl !== undefined) data.coverUrl = safeUrl(body.coverUrl);
-    if (body?.data !== undefined) data.data = sanitizeContent(body.data);
+    if (body?.data !== undefined) { data.data = sanitizeContent(body.data); if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) data.data.price = normalizePrice(data.data.price); }
     if (body?.sortOrder !== undefined) data.sortOrder = Math.max(0, Math.min(999, Number(body.sortOrder) || 0));
     if (body?.published !== undefined) { data.published = body.published === true; data.publishedAt = data.published ? (item.publishedAt || new Date()) : null; }
     return this.prisma.siteItem.update({ where: { id: item.id }, data });

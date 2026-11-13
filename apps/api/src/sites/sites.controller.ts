@@ -3,6 +3,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { blueprintFor, BUSINESS_AREAS } from "./blueprint";
+import { buildSiteClone } from "./clone-site";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
 import { AiService } from "../ai/ai.service";
@@ -165,6 +166,40 @@ export class SitesController {
       include: { pages: { include: { blocks: true } }, forms: true },
     });
     return site;
+  }
+
+  /**
+   * Clona um site público existente (conteúdo, não o tema) para um novo Site Véxora.
+   * WordPress: importa páginas, posts e imóveis via REST API pública. Não-WordPress: monta hero/galeria a partir do HTML.
+   * Tudo em uma transação — ou clona completo, ou não cria nada.
+   */
+  @Post("clone") async cloneSite(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    const tenantId = this.tenantOf(req);
+    const rawUrl = str(body?.url ?? body?.cloneUrl, 400);
+    if (!rawUrl) throw new BadRequestException("Informe a URL pública do site, por exemplo https://cliente.com.br");
+    const areaInput = str(body?.businessArea, 40);
+    const area = BUSINESS_AREAS[areaInput] ? areaInput : "site_simples";
+    const kindInput = String(body?.kind || "").toUpperCase();
+    const kind: "STATIC" | "DYNAMIC" | null = kindInput === "DYNAMIC" || kindInput === "STATIC" ? kindInput : null;
+    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#0E7A5C";
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#22D3EE";
+    const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
+    const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
+    const built = await buildSiteClone({ url: rawUrl, area, name: str(body?.name, 80) || undefined, whatsapps, socials, kind });
+    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(built.name) || "site-" + randomBytes(4).toString("hex");
+    let finalSlug = slugBase, attempt = 0;
+    while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slugBase + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
+    const site = await this.prisma.site.create({
+      data: {
+        tenantId, slug: finalSlug, kind: built.kind, businessArea: area, name: built.name, primaryColor, accentColor,
+        departments: whatsapps.map(w => ({ platform: "whatsapp", label: w.label, handle: w.handle })) as any,
+        pages: { create: built.pages.map(p => ({ kind: p.kind, slug: p.slug, title: p.title, sortOrder: p.sortOrder, blocks: { create: p.blocks.map(b => ({ type: b.type, content: b.content, sortOrder: b.sortOrder })) } })) },
+        items: built.items.length ? { create: built.items.map(i => ({ kind: i.kind, slug: i.slug, title: i.title, excerpt: i.excerpt ?? null, coverUrl: i.coverUrl ?? null, data: i.data as any, published: true, publishedAt: i.publishedAt, sortOrder: 0 })) } : undefined,
+        forms: { create: [{ name: "Fale conosco", fields: [ { id: "nome", label: "Seu nome", type: "text", required: true }, { id: "telefone", label: "WhatsApp", type: "phone", required: true }, { id: "mensagem", label: "Como podemos ajudar?", type: "textarea", required: true } ], targets: [{ kind: "precadastro" }] }] },
+      },
+      include: { pages: { include: { blocks: true }, orderBy: { sortOrder: "asc" } }, forms: true, items: true },
+    });
+    return { ...site, report: built.report };
   }
 
   @Get(":id") async get(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {

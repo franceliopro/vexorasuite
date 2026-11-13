@@ -6,7 +6,7 @@ const RichPromptEditor = dynamic(() => import("./rich-prompt-editor").then((m) =
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AREAS, BLOCKS_META, api, safeSlug, type Site, type Form, type Item, type Page, type Block } from "./sites-shared";
 import { SitePreview } from "./site-preview";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Plus, Sparkles, Mic, Trash2, X } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Copy, Eye, EyeOff, Globe, LayoutTemplate, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Mic, Trash2, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -25,8 +25,9 @@ export function SitesWizardDialog(props: {
   wizCloneUrl: string; setWizCloneUrl: (v: string) => void;
   closeWizard: () => void; submitWizard: () => Promise<void>;
   onSaveDraft: () => void; savedDraft: boolean;
+  onCloneSite: () => void; wizCloning: boolean;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, onCloneSite, wizCloning } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
@@ -59,6 +60,14 @@ export function SitesWizardDialog(props: {
               {wizAiDictateStatus ? <small className="sites-ai-dictate-status" role="status">{wizAiDictateStatus}</small> : null}
             </div>
                                   </details>
+          <details className="sites-ai-card">
+            <summary><Globe size={14} aria-hidden="true" /> Clonar um site existente (WordPress)</summary>
+            <p className="sites-field-hint">Cole a URL pública do site do cliente (ex.: https://rastreabem.com.br). O Véxora importa páginas, posts e imóveis via WordPress REST API — o site entra como rascunho para você revisar e publicar. O tema visual não é copiado: o conteúdo vem estruturado e o design é aplicado pelo Véxora Sites, editável depois no editor.</p>
+            <div className="sites-ai-prompt">
+              <label className="sites-field"><span>URL do site a clonar</span><input type="url" inputMode="url" value={wizCloneUrl} onChange={e => setWizCloneUrl(e.target.value)} placeholder="https://cliente.com.br" /></label>
+              <button type="button" className="secondary-button" disabled={wizSaving || wizCloning || !/^https:\/\/.+\..+/i.test((wizCloneUrl || "").trim())} onClick={onCloneSite} title="Importa páginas, posts e imóveis de um site WordPress público">{wizCloning ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {wizCloning ? "Clonando…" : "Clonar site inteiro"}</button>
+            </div>
+          </details>
           <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
             {wizWhatsapp.map((w, i) => (
               <div key={i} className="sites-row"><input aria-label="Departamento" value={w.label} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, label: e.target.value }; setWizWhatsapp(next); }} placeholder="Ex.: Recepção" /><input aria-label="Número (com DDI)" value={w.handle} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, handle: e.target.value }; setWizWhatsapp(next); }} placeholder="55 65 99999-0001" inputMode="numeric" /><button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizWhatsapp(wizWhatsapp.filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button></div>
@@ -114,6 +123,7 @@ const STUDIO_FIELD_DEFS: Record<string, { fields: { key: string; label: string; 
 
 function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => void; onNotice: (v: string) => void }) {
   const [device, setDevice] = useState<"pc" | "phone">("pc");
+  const [fullscreen, setFullscreen] = useState(false);
   const [selected, setSelected] = useState<string>("");
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
@@ -121,6 +131,12 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   const [dirty, setDirty] = useState<Record<string, true>>({});
   const [model, setModel] = useState<PreviewSite>(() => JSON.parse(JSON.stringify(site)) as PreviewSite);
   useEffect(() => { setModel(JSON.parse(JSON.stringify(site)) as PreviewSite); }, [site]);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
   const allBlocks = model.pages.flatMap((p: any) => p.blocks.map((b: any) => ({ ...b, pageId: p.id, pageTitle: p.title })));
   const selectedBlock = allBlocks.find((b: any) => b.id === selected) || null;
   const dirtyCount = Object.keys(dirty).length;
@@ -269,13 +285,14 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     { label: "Adaptar ao WhatsApp", instruction: "Reescreva no tom de WhatsApp direto, sem formalidade de site, focando na conversa: resposta em minutos, orçamento sem compromisso." },
   ];
   return (
-    <div className="sites-studio">
+    <div className={"sites-studio" + (fullscreen ? " is-fullscreen" : "")}>
       <div className="sites-studio-toolbar">
         <div className="sites-studio-device-toggle" role="group" aria-label="Visualizar em">
-          <button type="button" aria-pressed={device === "pc"} className={device === "pc" ? "active" : ""} onClick={() => setDevice("pc")}>PC</button>
-          <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}>Celular</button>
+          <button type="button" aria-pressed={device === "pc"} className={device === "pc" ? "active" : ""} onClick={() => setDevice("pc")}><Monitor size={13} aria-hidden="true" /> PC</button>
+          <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}><Smartphone size={13} aria-hidden="true" /> Celular</button>
         </div>
         <div className="sites-studio-toolbar-right">
+          <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar sem distração"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
           {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}
         </div>
       </div>

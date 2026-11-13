@@ -42,7 +42,23 @@ const BLOCKS_META: Record<string, { label: string; hint: string }> = {
 };
 
 type Site = any; type Form = any; type Item = any; type Page = any; type Block = any;
-let sitesCache: Site[] | null = null;
+const sitesCache = new Map<string, Site[]>();
+const readCache = (tenantId?: string): Site[] | null => {
+  const key = tenantId || "__default__";
+  const cached = sitesCache.get(key);
+  if (cached) return cached;
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem("vx:sites-cache:" + key);
+    if (stored) { const parsed = JSON.parse(stored); sitesCache.set(key, parsed); return parsed; }
+  } catch { /* ignore */ }
+  return null;
+};
+const writeCache = (tenantId: string | undefined, data: Site[]) => {
+  const key = tenantId || "__default__";
+  sitesCache.set(key, data);
+  if (typeof window !== "undefined") { try { window.localStorage.setItem("vx:sites-cache:" + key, JSON.stringify(data)); } catch { /* ignore */ } }
+};
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch("/api/backend" + path, { cache: "no-store", headers: { "content-type": "application/json" }, ...init });
   const data = r.status === 204 ? null : await r.json().catch(() => ({}));
@@ -51,7 +67,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 const safeSlug = (v: string) => v.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
 
-export function SitesWorkspace() {
+export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -62,8 +78,8 @@ export function SitesWorkspace() {
     for (const [k, v] of Object.entries(patch)) { if (v === null || v === "") next.delete(k); else next.set(k, v); }
     router.replace(pathname + (next.toString() ? "?" + next.toString() : ""), { scroll: false });
   };
-  const [sites, setSites] = useState<Site[]>(() => sitesCache ?? []);
-  const [loading, setLoading] = useState(() => !sitesCache); // sem cache local: skeleton; com cache: pinta instantâneo e atualiza em background
+  const [sites, setSites] = useState<Site[]>(() => readCache(tenantId) ?? []);
+  const [loading, setLoading] = useState(() => !readCache(tenantId)); // sem cache: skeleton; com cache: pinta instantâneo
   const [site, setSite] = useState<Site | null>(null);
   const [tabDataLoading, setTabDataLoading] = useState(false);
   const [error, setError] = useState("");
@@ -71,11 +87,11 @@ export function SitesWorkspace() {
 
   const loadSites = async (background = false) => {
     if (!background) setLoading(true);
-    try { const data = await api<Site[]>("/sites"); sitesCache = data; if (typeof window !== "undefined") { try { window.localStorage.setItem("vx:sites-cache", JSON.stringify(data)); } catch { /* ignore */ } } setSites(data); setError(""); }
+    try { const data = await api<Site[]>("/sites"); writeCache(tenantId, data); setSites(data); setError(""); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível carregar os sites."); }
     finally { if (!background) setLoading(false); }
   };
-  useEffect(() => { void loadSites(!!sitesCache); }, []);
+  useEffect(() => { void loadSites(!!readCache(tenantId)); }, [tenantId]);
   useEffect(() => {
     if (!selectedSiteId) { setSite(null); return; }
     setTabDataLoading(true);

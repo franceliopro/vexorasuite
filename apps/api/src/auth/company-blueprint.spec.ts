@@ -14,7 +14,7 @@ describe('company onboarding and switching',()=>{
   const root=tx.tenant.update.mock.calls[0][0].data.integrations;
   expect(root.onboarding.segmentId).toBe('music-school');
   expect(Object.keys(root.businessFlows)).toHaveLength(3);
-  expect(root.assistant.agents).toHaveLength(3);expect(root.assistant.enabled).toBe(false);
+  expect(root.assistant.agents).toHaveLength(4);expect(root.assistant.agents.some((a:any)=>a.id==='vexora:web-designer')).toBe(true);expect(root.assistant.enabled).toBe(false);
   expect(root.google).toBeUndefined();expect(root.asaas).toBeUndefined();
   const saved:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations:root})),update:jest.fn()}};
   const db:any={$transaction:(fn:any)=>fn(saved)};

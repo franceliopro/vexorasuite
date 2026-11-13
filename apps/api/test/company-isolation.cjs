@@ -19,7 +19,7 @@ async function main(){
   assert.equal(await db.internalWorkflow.count({where:{tenantId:targetId}}),3);
   assert.equal(await db.department.count({where:{tenantId:sourceId}}),0);
   const tenant=await db.tenant.findUniqueOrThrow({where:{id:targetId}});
-  assert.equal(tenant.integrations.onboarding.segmentId,'music-school');assert.equal(tenant.integrations.assistant.agents.length,3);
+  assert.equal(tenant.integrations.onboarding.segmentId,'music-school');assert.equal(tenant.integrations.assistant.agents.length,4);assert.equal(tenant.integrations.assistant.agents.some(a=>a.id==='vexora:web-designer'),true);
   await assert.rejects(()=>service.companySession(userId,randomUUID()));
   console.log('Company creation, concurrent idempotency and isolation OK');
  }finally{

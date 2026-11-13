@@ -4203,3 +4203,42 @@ input[type=tel]{letter-spacing:.02em}
 .ps-post-footer{padding:24px clamp(18px,5vw,56px);border-top:1px solid #ECE9E2;color:#5B6472}
 .ps-post-footer a{color:var(--site-primary)}
 .ps-post-error{max-width:560px;margin:12vh auto;text-align:center;display:grid;gap:12px;justify-items:center}
+/* ===== Imóveis: página pública + galeria lightbox ===== */
+.ps-property-article{max-width:1100px;margin:0 auto;padding:26px clamp(18px,4vw,32px) 60px}
+.ps-property-article h1{font:800 clamp(26px,4.6vw,40px)/1.13 Manrope,system-ui;letter-spacing:-.02em;margin:10px 0 6px}
+.ps-property-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;margin:18px 0 26px}
+@media(max-width:860px){.ps-property-grid{grid-template-columns:1fr}}
+.ps-property-gallery{display:grid;gap:10px}
+.ps-property-main{position:relative;border:0;border-radius:16px;overflow:hidden;padding:0;cursor:zoom-in;display:block;background:#0B1020}
+.ps-property-main img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.ps-property-counter{position:absolute;bottom:10px;right:12px;background:rgba(5,10,22,.72);color:#fff;padding:4px 10px;border-radius:99px;font:800 11px/1 var(--font-display);letter-spacing:.08em}
+.ps-property-thumbs{display:grid;grid-auto-flow:column;grid-auto-columns:96px;gap:8px;overflow-x:auto;padding-bottom:4px}
+.ps-property-thumb{border:2px solid transparent;border-radius:12px;overflow:hidden;padding:0;background:#0B1020;cursor:pointer}
+.ps-property-thumb.active{border-color:var(--site-primary)}
+.ps-property-thumb img{display:block;width:100%;height:76px;object-fit:cover}
+.ps-property-details{display:grid;gap:14px;align-content:start;border:1px solid #EAE6DE;border-radius:16px;padding:18px;background:#FFFFFF}
+.ps-property-price{margin:0;font:800 clamp(24px,3vw,32px)/1.1 Manrope;color:var(--site-primary);letter-spacing:-.02em}
+.ps-property-location{display:flex;align-items:center;gap:8px;margin:0;color:#5B6472;font-size:14.5px}
+.ps-property-facts{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ps-property-facts li{display:flex;align-items:center;gap:10px;color:#10141A;font-size:14.5px}
+.ps-property-facts svg{color:var(--site-primary)}
+.ps-property-cta{width:100%;justify-content:center;font-size:15px;display:inline-flex;gap:8px}
+.ps-property-disclaimer{margin:0;color:#8A8F98;font-size:11px}
+.ps-lightbox{position:fixed;inset:0;z-index:3000;background:rgba(4,8,16,.92);display:grid;place-items:center;padding:24px}
+.ps-lightbox-image{max-width:min(1100px,92vw);max-height:82vh;object-fit:contain;border-radius:12px}
+.ps-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:99px;width:52px;height:52px;display:grid;place-items:center;cursor:pointer}
+.ps-lightbox-prev{left:18px}.ps-lightbox-next{right:18px}
+.ps-lightbox-nav:disabled{opacity:.25;cursor:default}
+.ps-lightbox-close{position:absolute;top:16px;right:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:12px;width:46px;height:46px;display:grid;place-items:center;cursor:pointer}
+.ps-lightbox-counter{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#E7EEFF;font:800 12px/1 var(--font-display);letter-spacing:.1em}
+/* ===== Editor de imóveis: grid de imagens ===== */
+.property-images{display:grid;gap:10px}
+.property-images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.property-image-card{position:relative;margin:0;border-radius:12px;overflow:hidden;border:1px solid var(--ln);background:var(--s2)}
+.property-image-card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.property-cover-badge{position:absolute;top:6px;left:6px;background:var(--primary);color:#fff;border-radius:99px;padding:3px 10px;font:800 9.5px/1 var(--font-display);letter-spacing:.12em}
+.property-image-card-actions{position:absolute;bottom:6px;right:6px;display:flex;gap:4px;background:rgba(5,10,22,.6);border-radius:8px;padding:3px}
+.property-image-card-actions button{color:#fff;border:0;background:transparent;width:26px;height:26px;display:grid;place-items:center;border-radius:6px;cursor:pointer}
+.property-image-card-actions button:hover{background:rgba(255,255,255,.15)}
+.property-image-add{display:grid;place-items:center;gap:6px;border:1px dashed var(--ln2);border-radius:12px;min-height:140px;background:transparent;color:var(--tx2);cursor:pointer;font:700 12px/1.3 var(--font-display)}
+.property-image-add:hover{border-color:var(--primary);color:var(--primary-strong)}

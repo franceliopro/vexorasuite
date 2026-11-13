@@ -147,7 +147,7 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
         const published = site.items.filter(i => i.kind === "property");
         return (
           <section className="ps-section"><h2>{c.title || "Imóveis disponíveis"}</h2>
-            {published.length ? <div className="ps-items">{published.slice(0, 9).map(item => (<article key={item.id} className="ps-item-card">{safeImg(item.coverUrl) && <img src={item.coverUrl!} alt={item.title} loading="lazy" />}<div><h3>{item.title}</h3>{item.excerpt && <p>{item.excerpt}</p>}{item.data?.price && <b className="ps-price">{item.data.price}</b>}</div></article>))}</div> : <p className="ps-field-hint">Nenhum imóvel publicado ainda.</p>}
+            {published.length ? <div className="ps-items">{published.slice(0, 9).map(item => (<a key={item.id} className="ps-item-card" href={"/sites/" + slug + "/imoveis/" + item.slug} style={{ textDecoration: "none", color: "inherit" }}>{safeImg(item.coverUrl) && <img src={item.coverUrl!} alt={item.title} loading="lazy" />}<div><h3>{item.title}</h3>{item.excerpt && <p>{item.excerpt}</p>}{item.data?.price && <b className="ps-price">{item.data.price}</b>}<small className="ps-read-link">Ver imóvel →</small></div></a>))}</div> : <p className="ps-field-hint">Nenhum imóvel publicado ainda.</p>}
           </section>
         );
       }

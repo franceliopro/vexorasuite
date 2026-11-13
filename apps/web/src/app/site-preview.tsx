@@ -1,5 +1,6 @@
 "use client";
 import { MapPin, Phone, Mail, ArrowRight, Star, ChevronDown } from "lucide-react";
+import { LayoutBlock } from "./site-layout";
 import type { CSSProperties } from "react";
 
 export type PreviewSite = {
@@ -36,6 +37,8 @@ export function SitePreview({ site, highlightBlockId, onBlockClick }: { site: Pr
     switch (block.type) {
       case "hero":
         { const heroStyle: CSSProperties | undefined = (c.imageUrl as string | undefined)?.match(/^https?:\/\//) ? { backgroundImage: `linear-gradient(135deg, rgba(5,13,34,0.78), rgba(10,23,48,0.55)), url("${String(c.imageUrl)}")`, backgroundSize: "cover", backgroundPosition: "center", color: "#E7EEFF" } : undefined; return <section className="ps-hero" style={{...common, ...heroStyle}}><span className="ps-badge" style={heroStyle?{color:"#FFFFFF",background:"rgba(255,255,255,.14)"}:undefined}>{c.badge || site.businessArea || "Site"}</span><h1>{c.headline || site.name}</h1><p>{c.sub}</p><a className="ps-btn" href={c.ctaUrl || "#"} target="_self">{c.ctaLabel || "Quero conversar"}<ArrowRight size={16} aria-hidden="true" /></a></section>; }
+      case "layout":
+        return <LayoutBlock content={c} />;
       case "richText":
         return <section className="ps-section" style={common}><h2>{c.title || ""}</h2>{String(c.body || "").split("\n").filter(Boolean).map((line: string, i: number) => <p key={i}>{line}</p>)}</section>;
       case "services":

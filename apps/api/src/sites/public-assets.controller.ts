@@ -2,18 +2,19 @@ import { Controller, Get, NotFoundException, Param, ParseUUIDPipe, Res } from "@
 import type { Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 
-/** GET público (sem autenticação) de imagens de site — ids são UUIDs não adivinháveis, cache imutável. */
+/** GET público (sem autenticação) de arquivos de site — ids são UUIDs não adivinháveis, cache imutável. */
 @Controller("public")
 export class PublicAssetsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get("site-assets/:id")
   async asset(@Param("id", ParseUUIDPipe) id: string, @Res() res: Response) {
-    const asset = await this.prisma.siteAsset.findUnique({ where: { id }, select: { mimeType: true, bytes: true } });
+    const asset = await this.prisma.siteAsset.findUnique({ where: { id }, select: { mimeType: true, bytes: true, name: true } });
     if (!asset) throw new NotFoundException();
-    res.setHeader("Content-Type", asset.mimeType);
+    res.setHeader("Content-Type", asset.mimeType || "application/octet-stream");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(asset.name || "arquivo")}`);
     res.send(Buffer.from(asset.bytes));
   }
 }

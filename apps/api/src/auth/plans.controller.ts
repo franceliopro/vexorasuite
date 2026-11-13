@@ -17,11 +17,13 @@ function parseLimits(input: any): Record<string, unknown> {
 export class PlansController {
   constructor(private readonly prisma: PrismaService) {}
   private admin(request: AuthenticatedRequest) {
-    if (request.user.role !== "OWNER" && !request.user.isPlatformAdmin) throw new ForbiddenException("Apenas a administração da Véxora gerencia planos.");
+    // Somente administradores da plataforma (isPlatformAdmin) gerenciam o catálogo — papel OWNER de
+    // uma empresa cliente nunca é administrador da Véxora.
+    if (request.user.isPlatformAdmin !== true) throw new ForbiddenException("Apenas a administração da Véxora gerencia planos.");
   }
   @Get() async list(@Req() req: AuthenticatedRequest) {
-    // PLATFORM e clientes: clientes veem só ativos e apenas o catálogo; PLATFORM vê tudo.
-    const platform = req.user.role === "OWNER" || !!req.user.isPlatformAdmin;
+    // PLATFORM + isPlatformAdmin veem tudo; clientes veem só o catálogo ativo.
+    const platform = req.user.isPlatformAdmin === true;
     const rows = await this.prisma.plan.findMany({ where: platform ? {} : { isActive: true }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
     const shaped = rows.map(row => ({ ...row, limits: typeof row.limits === "string" ? safeParse(row.limits) : row.limits }));
     return platform ? { plans: shaped, full: FULL_ENTITLEMENTS, currentTenantPlan: null } : { plans: shaped.filter(p => p.isPublic) };

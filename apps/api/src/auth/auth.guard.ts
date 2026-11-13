@@ -56,7 +56,9 @@ export class AuthGuard implements CanActivate {
     }
 
     if ((payload.sessionVersion ?? 0) !== (membership.user?.authVersion ?? 0)) throw new UnauthorizedException("Sua sessão foi encerrada. Entre novamente.");
-    if(membership.tenant?.kind==="PLATFORM"&&!membership.user?.isPlatformAdmin)throw new ForbiddenException("Este painel pertence à administração da Véxora.");
+    // Membros não-admin do workspace PLATFORM (ex.: atendentes internos da Véxora) usam o aplicativo
+    // normalmente, com os mesmos limites de papel, setores e módulos de qualquer membro. As superfícies
+    // administrativas verificam isPlatformAdmin individualmente (planos, e-mail, reset, etc.).
     const path=String(request.path||"").replace(/^\/api\//,"").replace(/^\//,"").split("?")[0]||"";
     if(membership.user?.mustChangePassword&&!["auth/me","auth/change-password"].includes(path))throw new ForbiddenException("Altere sua senha temporária para continuar.");
     const departments=administrative(membership.role)?[]:await this.prisma.departmentMember.findMany({where:{tenantId:payload.tenantId,userId:payload.sub,department:{isActive:true}},select:{department:{select:{id:true,modules:true,isActive:true}}}});

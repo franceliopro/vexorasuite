@@ -1,4 +1,4 @@
-import { ForbiddenException, UnauthorizedException } from "@nestjs/common";
+import { UnauthorizedException } from "@nestjs/common";
 import { hash } from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { AuthService } from "./auth.service";
@@ -90,12 +90,11 @@ describe("refresh", () => {
     expect(sessions.revokeAll).toHaveBeenCalledWith("user-1");
   });
 
-  it("does not let a non-administrator refresh into the platform panel", async () => {
-    const { service, sessions } = setup({
+  it("lets an internal non-admin member of the PLATFORM workspace renew the session", async () => {
+    const { service } = setup({
       membership: { ...MEMBERSHIP, tenant: { ...MEMBERSHIP.tenant, kind: "PLATFORM" } },
     });
-    await expect(service.refresh("token")).rejects.toBeInstanceOf(ForbiddenException);
-    expect(sessions.revokeAll).toHaveBeenCalledWith("user-1");
+    await expect(service.refresh("token")).resolves.toMatchObject({ accessToken: "access.jwt" });
   });
 
   it("respects a configured access token lifetime", async () => {

@@ -353,10 +353,8 @@ export class AuthService {
       await sessions.revokeAll(rotated.userId);
       throw new UnauthorizedException("Acesso à empresa revogado.");
     }
-    if (membership.tenant.kind === "PLATFORM" && !membership.user?.isPlatformAdmin) {
-      await sessions.revokeAll(rotated.userId);
-      throw new ForbiddenException("Este painel pertence à administração da Véxora.");
-    }
+    // Membros não-admin do workspace PLATFORM (staff interno da Véxora) renovam a sessão normalmente;
+    // as rotas administrativas continuam protegidas individualmente por isPlatformAdmin.
 
     const { authVersion, ...user } = membership.user;
     const accessToken = await this.issueToken({

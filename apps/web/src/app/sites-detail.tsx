@@ -24,13 +24,14 @@ export function SitesWizardDialog(props: {
   wizReferenceUrl: string; setWizReferenceUrl: (v: string) => void;
   wizCloneUrl: string; setWizCloneUrl: (v: string) => void;
   closeWizard: () => void; submitWizard: () => Promise<void>;
+  onSaveDraft: () => void; savedDraft: boolean;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
       <section className="vx-dialog sites-wizard" role="dialog" aria-modal="true" aria-labelledby="sites-wizard-title">
-        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></header>
+        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><div style={{display:"flex",gap:8,marginLeft:"auto"}}><button type="button" className="secondary-button" onClick={onSaveDraft} title="Salvar rascunho deste formulário para continuar depois">{savedDraft ? "Salvo como rascunho" : "Salvar como rascunho"}</button><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></div></header>
         <div className="vx-dialog-body sites-wizard-body">
           <label className="sites-field"><span>Nome do site</span><input autoFocus value={wizName} onChange={e => { setWizName(e.target.value); if (!wizSlug) setWizSlug(safeSlug(e.target.value)); }} placeholder="Ex.: Clínica Estética Lume" /></label>
           <p className="sites-field-label">Escolha o template do site</p>
@@ -431,7 +432,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) 
   );
   switch (block.type) {
     case "hero":
-      return (<div className="sites-block-form"><label><span>Título</span><input value={c.headline || ""} onChange={e => set({ headline: e.target.value })} placeholder="Título principal da página" /></label><label><span>Subtítulo</span><input value={c.sub || ""} onChange={e => set({ sub: e.target.value })} placeholder="Texto de apoio" /></label><label><span>Botão (texto)</span><input value={c.ctaLabel || ""} onChange={e => set({ ctaLabel: e.target.value })} placeholder="Quero conversar" /></label><label><span>Botão (link)</span><input value={c.ctaUrl || ""} onChange={e => set({ ctaUrl: e.target.value })} placeholder="https://wa.me/55…" /></label></div>);
+      return (<div className="sites-block-form"><label><span>Título</span><input value={c.headline || ""} onChange={e => set({ headline: e.target.value })} placeholder="Título principal da página" /></label><label><span>Subtítulo</span><input value={c.sub || ""} onChange={e => set({ sub: e.target.value })} placeholder="Texto de apoio" /></label><label><span>Selo (eyebrow)</span><input value={c.badge || ""} onChange={e => set({ badge: e.target.value })} placeholder="City · Segmento" /></label><label><span>Imagem de fundo (URL https)</span><input value={c.imageUrl || ""} onChange={e => set({ imageUrl: e.target.value })} placeholder="https://images.unsplash.com/…" /></label><label><span>Botão (texto)</span><input value={c.ctaLabel || ""} onChange={e => set({ ctaLabel: e.target.value })} placeholder="Quero conversar" /></label><label><span>Botão (link)</span><input value={c.ctaUrl || ""} onChange={e => set({ ctaUrl: e.target.value })} placeholder="https://wa.me/55…" /></label></div>);
     case "richText":
       return <div className="sites-block-form"><label><span>Título</span><input value={c.title || ""} onChange={e => set({ title: e.target.value })} placeholder="Título da seção" /></label><label><span>Texto (uma linha por parágrafo)</span><textarea rows={4} value={c.body || ""} onChange={e => set({ body: e.target.value })} placeholder="Escreva o texto aqui…" /></label></div>;
     case "services":

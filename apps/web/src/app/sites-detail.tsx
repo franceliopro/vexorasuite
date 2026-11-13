@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 const RichPromptEditor = dynamic(() => import("./rich-prompt-editor").then((m) => m.RichPromptEditor), {});
@@ -10,7 +10,7 @@ import { PostBodyEditor } from "./post-body-editor";
 import { FileImagePicker } from "./file-image-picker";
 import { maskBRLInput, formatBRL } from "../lib/money";
 import { SitePreview } from "./site-preview";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, X } from "lucide-react";
+import { Building2, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -731,16 +731,138 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) 
   }
 }
 
+function RealEstateTools({ onClose, siteId, onSaved, onNotice }: { onClose: () => void; siteId: string; onSaved: () => void; onNotice: (v: string) => void }) {
+  const [options, setOptions] = useState<any>(null);
+  const [scopes, setScopes] = useState<any[] | null>(null);
+  const [newItems, setNewItems] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void Promise.all([
+      api<any>("/sites/real-estate/options").then(setOptions).catch(e => setError(e instanceof Error ? e.message : "Não foi possível carregar as listas.")),
+      api<{ memberships: any[] }>("/sites/real-estate/scopes").then(d => setScopes(d.memberships || [])).catch(() => setScopes([])),
+    ]).finally(() => setLoaded(true));
+  }, []);
+  const lists = options || { pretensions: [], types: { Urbano: [], Rural: [] }, regions: [], neighborhoods: [] };
+  const updateList = (path: string, value: any) => setOptions((current: any) => {
+    const next = JSON.parse(JSON.stringify(current || lists));
+    const keys = path.split(".");
+    let target = next;
+    if (keys.length >= 1) target = next;
+    for (let i = 0; i < keys.length - 1; i += 1) { const key = keys[i]!; target = target[key] ?? (target[key] = {}); }
+    target[keys[keys.length - 1]!] = value;
+    return next;
+  });
+  const addItem = (path: string) => {
+    const value = (newItems[path] || "").trim();
+    if (!value) return;
+    const keys = path.split(".");
+    const list = getPath(lists, path) || [];
+    if (list.some((x: string) => x.toLowerCase() === value.toLowerCase())) { setError(`"${value}" já existe nesta lista.`); return; }
+    if (keys.length === 2 && keys[0] === "types") updateList(path, [...list, value]);
+    else updateList(path, [...list, value]);
+    setNewItems(v => ({ ...v, [path]: "" }));
+    setError("");
+  };
+  const removeItem = (path: string, index: number) => updateList(path, (getPath(lists, path) || []).filter((_: string, i: number) => i !== index));
+  const saveOptions = async () => {
+    setBusy(true); setError("");
+    try { const saved = await api<any>("/sites/real-estate/options", { method: "PUT", body: JSON.stringify(lists) }); setOptions(saved); onNotice("Listas salvas. Tanto o site quanto os filtros públicos usam estas opções."); onSaved(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); } finally { setBusy(false); }
+  };
+  const toggleScope = async (membershipId: string, category: "Urbano" | "Rural", enable: boolean) => {
+    setBusy(true); setError("");
+    try { await api("/sites/real-estate/scopes", { method: "POST", body: JSON.stringify({ membershipId, category, enable }) }); const d = await api<{ memberships: any[] }>("/sites/real-estate/scopes"); setScopes(d.memberships || []); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar o gestor."); } finally { setBusy(false); }
+  };
+  if (!loaded) return <div className="sites-field-hint" style={{ padding: 16 }}><Loader2 size={18} className="vx-spin" aria-hidden="true" /> Carregando listas…</div>;
+  const listSection = (title: string, path: string, placeholder: string) => (
+    <fieldset key={path} className="real-estate-list-section"><legend>{title}</legend>
+      <div className="real-estate-list-chips">{(getPath(lists, path) || []).map((item: string, i: number) => (<span key={i} className="real-estate-chip">{item}<button type="button" aria-label={"Remover " + item} onClick={() => removeItem(path, i)}><X size={12} aria-hidden="true" /></button></span>))}</div>
+      <div className="real-estate-list-add"><input value={newItems[path] || ""} onChange={e => setNewItems(v => ({ ...v, [path]: e.target.value }))} placeholder={placeholder} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addItem(path); } }} /><button type="button" className="secondary-button" onClick={() => addItem(path)}>Adicionar</button></div>
+    </fieldset>
+  );
+  return (
+    <div className="vx-dialog-body real-estate-tools" style={{ maxHeight: "78vh", overflowY: "auto" }}>
+      {error && <p role="alert" className="sites-error">{error}</p>}
+      <p className="sites-field-hint">Crie novas categorias, pretensões e tipos sempre que precisar — eles valem para o cadastro, para os filtros do site público e para a pré-aprovação de anúncios.</p>
+      {listSection("Pretensões (o que o anunciante quer)", "pretensions", "Ex.: Alugar")}
+      {listSection("Tipos de imóveis — Urbano", "types.Urbano", "Ex.: Casa")}
+      {listSection("Tipos de imóveis — Rural", "types.Rural", "Ex.: Chácara")}
+      {listSection("Regiões / Bairros (agrupamentos)", "regions", "Ex.: Centro")}
+      {listSection("Bairros (lista livre, se quiser)", "neighborhoods", "Ex.: Jardim América")}
+      <div className="real-estate-tools-foot"><button type="button" className="primary-button" disabled={busy} onClick={() => void saveOptions()}>{busy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Salvar listas</button></div>
+
+      <p className="sites-field-label" style={{ marginTop: 14 }}>Gestores por categoria (quem gerencia o quê)</p>
+      <p className="sites-field-hint">Sem escopo marcado, o membro enxerga tudo (conforme o papel). Marque <b>Urbano</b> e/ou <b>Rural</b> para restringir um gestor àquelas categorias — ele não verá, editará ou excluirá dados da outra. Admin continua vendo tudo.</p>
+      <div className="real-estate-scopes">
+        {(scopes || []).map(m => (
+          <div key={m.id} className="real-estate-scope-row">
+            <span><strong>{m.user?.name || m.userId}</strong><small>{m.role}</small></span>
+            <label className="ai-toggle"><input type="checkbox" checked={(m.scopes || []).includes("Urbano")} onChange={e => void toggleScope(m.id, "Urbano", e.target.checked)} /> Urbano</label>
+            <label className="ai-toggle"><input type="checkbox" checked={(m.scopes || []).includes("Rural")} onChange={e => void toggleScope(m.id, "Rural", e.target.checked)} /> Rural</label>
+          </div>
+        ))}
+        {scopes && !scopes.length && <p className="sites-field-hint">Nenhum membro ativo na empresa.</p>}
+      </div>
+    </div>
+  );
+}
+function getPath(obj: any, path: string): any {
+  return path.split(".").reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : []), obj) as any;
+}
+
+function PropertyApplications({ siteId, onNotice }: { siteId: string; onNotice: (v: string) => void }) {
+  const [apps, setApps] = useState<any[] | null>(null);
+  const [busyId, setBusyId] = useState("");
+  const [reason, setReason] = useState<Record<string, string>>({});
+  const load = useCallback(async () => {
+    try { const list = await api<any[]>("/sites/" + siteId + "/property-applications?status=PENDING"); setApps(Array.isArray(list) ? list : []); }
+    catch { setApps([]); }
+  }, [siteId]);
+  useEffect(() => { void load(); }, [load]);
+  const approve = async (id: string) => { setBusyId(id); try { await api("/sites/" + siteId + "/property-applications/" + id + "/approve", { method: "POST" }); onNotice("Anúncio aprovado — o imóvel foi criado como rascunho (sem publicar) e o anunciante foi notificado por e-mail/WhatsApp."); await load(); } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível aprovar."); } finally { setBusyId(""); } };
+  const reject = async (id: string) => { const r = (reason[id] || "").trim(); if (r.length < 3) { onNotice("Escreva o motivo da reprovação (ex.: faltam fotos do imóvel) para o anunciante entender."); return; } setBusyId(id); try { await api("/sites/" + siteId + "/property-applications/" + id + "/reject", { method: "POST", body: JSON.stringify({ reason: r }) }); onNotice("Anúncio reprovado. O motivo foi enviado por e-mail" + (true ? " e WhatsApp (se conectado)" : "") + "."); await load(); } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível reprovar."); } finally { setBusyId(""); } };
+  if (apps === null) return <p className="sites-field-hint"><Loader2 size={15} className="vx-spin" aria-hidden="true" /> Carregando solicitações…</p>;
+  if (!apps.length) return <p className="sites-field-hint">Nenhuma solicitação de anúncio pendente. Quando alguém pedir para anunciar em “{siteId ? "anunciar" : "anunciar"}”, ela aparece aqui.</p>;
+  return (
+    <div className="property-applications">
+      <p className="sites-field-label">Anúncios pré-aprovados aguardando análise · {apps.length}</p>
+      {apps.map(app => (
+        <article key={app.id} className="property-application">
+          <div className="property-application-head">
+            <div><strong>{app.name}</strong><small>{app.phone} · {app.email}</small></div>
+            <span className="status-pill">{app.pretension} · {app.propertyType}</span>
+          </div>
+          <p className="property-application-meta">{app.category}{app.region ? " · " + app.region : ""}{app.neighborhood ? " · " + app.neighborhood : ""}{app.city ? " · " + app.city : ""} · {app.bedrooms ?? app.beds ?? 0} dorm · {app.bathrooms ?? app.baths ?? 0} ban{app.parkingSpaces ? " · " + app.parkingSpaces + " vagas" : ""}{app.areaM2 ? " · " + app.areaM2 + " m²" : ""}{app.price ? " · " + app.price : ""}</p>
+          {app.description && <p className="property-application-desc">{app.description}</p>}
+          <textarea rows={2} placeholder="Motivo da reprovação (obrigatório para reprovar)…" value={reason[app.id] || ""} onChange={e => setReason(v => ({ ...v, [app.id]: e.target.value }))} />
+          <div className="property-application-actions">
+            <button type="button" className="secondary-button" disabled={busyId === app.id} onClick={() => void reject(app.id)}>{busyId === app.id ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : null} Reprovar</button>
+            <button type="button" className="primary-button" disabled={busyId === app.id} onClick={() => void approve(app.id)}>{busyId === app.id ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : null} Aprovar anúncio</button>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "post" | "property"; onSaved: () => void; onNotice: (v: string) => void }) {
   const items = (site.items || []).filter((i: Item) => i.kind === kind);
   const [editing, setEditing] = useState<Item | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
-  const reset = (i: Item | null) => { setEditing(i); const existingImages = Array.isArray(i?.data?.images) ? (i.data.images as any[]).map((img: any) => ({ url: String(img?.url || ""), alt: String(img?.alt || "") })).filter(img => img.url) : (i?.coverUrl ? [{ url: i.coverUrl, alt: "" }] : []); setForm(i ? { title: i.title, excerpt: i.excerpt || "", coverUrl: existingImages[0]?.url || i.coverUrl || "", price: i.data?.price || "", location: i.data?.location || "", body: i.data?.body || "", beds: i.data?.beds || "", baths: i.data?.baths || "", area: i.data?.area || "", images: existingImages } : { title: "", excerpt: "", coverUrl: "", price: "", location: "", body: "", beds: "", baths: "", area: "", images: [] }); };
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const [options, setOptions] = useState<any>(null);
+  useEffect(() => { if (kind === "property") { void api("/sites/real-estate/options").then(setOptions).catch(() => setOptions({})); } }, [kind]);
+  const reset = (i: Item | null) => { setEditing(i); const existingImages = Array.isArray(i?.data?.images) ? (i.data.images as any[]).map((img: any) => ({ url: String(img?.url || ""), alt: String(img?.alt || "") })).filter(img => img.url) : (i?.coverUrl ? [{ url: i.coverUrl, alt: "" }] : []); setForm(i ? { title: i.title, excerpt: i.excerpt || "", coverUrl: existingImages[0]?.url || i.coverUrl || "", price: i.data?.price || "", location: i.data?.location || "", body: i.data?.body || "", beds: i.data?.beds || "", baths: i.data?.baths || "", area: i.data?.area || "", parkingSpaces: i.data?.parkingSpaces || "", city: i.data?.city || "", pretension: i.data?.pretension || "", category: i.data?.category || "", propertyType: i.data?.propertyType || "", region: i.data?.region || "", neighborhood: i.data?.neighborhood || "", code: i.data?.code || "", status: i.data?.status || "AVAILABLE", images: existingImages } : { title: "", excerpt: "", coverUrl: "", price: "", location: "", body: "", beds: "", baths: "", area: "", parkingSpaces: "", city: "", pretension: "", category: "", propertyType: "", region: "", neighborhood: "", code: "", status: "AVAILABLE", images: [] }); };
+  const propertyPayload = () => ({ price: form.price, location: form.location, beds: form.beds, baths: form.baths, area: form.area, parkingSpaces: form.parkingSpaces, city: form.city, pretension: form.pretension, category: form.category, propertyType: form.propertyType, region: form.region, neighborhood: form.neighborhood, code: form.code, status: form.status || "AVAILABLE", body: form.body, images: Array.isArray(form.images) ? form.images : [] });
   const save = async () => {
     const images = Array.isArray(form.images) ? form.images.filter((img: any) => img?.url) : [];
     const cover = images[0]?.url || form.coverUrl || undefined;
-    const payload = { title: form.title, excerpt: form.excerpt, coverUrl: cover, data: kind === "property" ? { price: form.price, location: form.location, beds: form.beds, baths: form.baths, area: form.area, body: form.body, images } : { body: form.body, images } };
+    const payload = { title: form.title, excerpt: form.excerpt, coverUrl: cover, data: kind === "property" ? propertyPayload() : { body: form.body, images } };
     if (editing) await api(`/sites/items/${editing.id}`, { method: "PATCH", body: JSON.stringify(payload) }); else await api(`/sites/${site.id}/items`, { method: "POST", body: JSON.stringify({ ...payload, kind }) });
     onNotice(editing ? "Atualizado." : "Criado."); onSaved();
   };
@@ -748,16 +870,34 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
   return (
     <div className="sites-items-grid">
       <div className="sites-items-list">
-        {items.length ? items.map((i: Item) => (<article key={i.id} className="sites-item-card"><div><strong>{i.title}</strong><small>{kind === "post" ? (i.excerpt || "Sem resumo") : [i.data?.price ? formatBRL(i.data.price) : null, i.data?.location].filter(Boolean).join(" · ") || "Sem detalhes"}</small></div><span><button type="button" className="text-button" onClick={() => reset(i)}>Editar</button><button type="button" className="icon-button" aria-label="Excluir" onClick={() => void remove(i)}><Trash2 size={14} aria-hidden="true" /></button></span></article>)) : <p className="sites-field-hint">{kind === "post" ? "Nenhuma matéria publicada." : "Nenhum imóvel publicado."}</p>}
+        {kind === "property" && <div className="property-manage-toolbar">
+          <button type="button" className="secondary-button" onClick={() => setToolsOpen(true)}><LayoutGrid size={14} aria-hidden="true" /> Listas e gestores</button>
+          <button type="button" className="secondary-button" onClick={() => setAppsOpen(v => !v)}><Bell size={14} aria-hidden="true" /> Anúncios {appsOpen ? "▲" : "▼"}</button>
+        </div>}
+        {kind === "property" && appsOpen && <PropertyApplications siteId={site.id} onNotice={onNotice} />}
+        {items.length ? items.map((i: Item) => (<article key={i.id} className="sites-item-card"><div><strong>{i.title}</strong><small>{kind === "post" ? (i.excerpt || "Sem resumo") : [i.data?.price ? formatBRL(i.data.price) : null, i.data?.neighborhood, i.data?.city, i.data?.status && i.data.status !== "AVAILABLE" ? ({ SOLD: "Vendido", RENTED: "Alugado", UNAVAILABLE: "Indisponível" } as Record<string, string>)[i.data.status] || null : null].filter(Boolean).join(" · ") || "Sem detalhes"}</small></div><span><button type="button" className="text-button" onClick={() => reset(i)}>Editar</button><button type="button" className="icon-button" aria-label="Excluir" onClick={() => void remove(i)}><Trash2 size={14} aria-hidden="true" /></button></span></article>)) : <p className="sites-field-hint">{kind === "post" ? "Nenhuma matéria publicada." : "Nenhum imóvel publicado."}</p>}
         <button type="button" className="primary-button" onClick={() => reset(null)}><Plus size={15} aria-hidden="true" /> {kind === "post" ? "Nova matéria" : "Novo imóvel"}</button>
       </div>
       <form className="sites-item-form" onSubmit={e => { e.preventDefault(); void save(); }}>
         <h3>{editing ? "Editar" : "Novo"} {kind === "post" ? "matéria" : "imóvel"}</h3>
         <label><span>Título</span><input value={form.title || ""} onChange={e => setForm(v => ({ ...v, title: e.target.value }))} placeholder={kind === "post" ? "Título da matéria" : "Apartamento 3 quartos · Jardins"} required /></label>
         {kind === "property" && <>
-          <label><span>Preço</span><input inputMode="numeric" value={form.price || ""} onChange={e => setForm(v => ({ ...v, price: maskBRLInput(e.target.value) }))} placeholder="1.220.345,56" /></label>
-          <label><span>Localização</span><input value={form.location || ""} onChange={e => setForm(v => ({ ...v, location: e.target.value }))} placeholder="Jardins, São Paulo" /></label>
-          <div className="sites-inline-fields"><label><span>Quartos</span><input type="number" min={0} value={form.beds || ""} onChange={e => setForm(v => ({ ...v, beds: e.target.value }))} /></label><label><span>Banheiros</span><input type="number" min={0} value={form.baths || ""} onChange={e => setForm(v => ({ ...v, baths: e.target.value }))} /></label><label><span>Área (m²)</span><input type="number" min={0} value={form.area || ""} onChange={e => setForm(v => ({ ...v, area: e.target.value }))} /></label></div>
+          <div className="sites-inline-fields property-management">
+            <label><span>Preço</span><input inputMode="numeric" value={form.price || ""} onChange={e => setForm(v => ({ ...v, price: maskBRLInput(e.target.value) }))} placeholder="1.220.345,56" /></label>
+            <label><span>Código</span><input value={form.code || ""} onChange={e => setForm(v => ({ ...v, code: e.target.value.slice(0, 40) }))} placeholder="IMO-0001 (auto se vazio)" /></label>
+            <label><span>Status</span><select value={form.status || "AVAILABLE"} onChange={e => setForm(v => ({ ...v, status: e.target.value }))}><option value="AVAILABLE">Disponível</option><option value="SOLD">Vendido</option><option value="RENTED">Alugado</option><option value="UNAVAILABLE">Indisponível</option></select></label>
+          </div>
+          <div className="sites-inline-fields property-segmentation">
+            <label><span>Cidade</span><input value={form.city || ""} onChange={e => setForm(v => ({ ...v, city: e.target.value }))} placeholder="Alto Araguaia" /></label>
+            <label><span>Pretensão</span><select value={form.pretension || ""} onChange={e => setForm(v => ({ ...v, pretension: e.target.value }))}><option value="">—</option>{((options?.pretensions) || ["Comprar","Alugar","Vender","Emprestar","Trocar","Doar"]).map((p: string) => <option key={p} value={p}>{p}</option>)}</select></label>
+            <label><span>Categoria</span><select value={form.category || ""} onChange={e => { const category = e.target.value; const firstType = category === "Rural" ? (options?.types?.Rural || ["Chácara"])[0] : (options?.types?.Urbano || ["Casa"])[0]; setForm(v => ({ ...v, category, propertyType: category && !v.propertyType ? firstType : v.propertyType })); }}><option value="">—</option><option value="Urbano">Urbano</option><option value="Rural">Rural</option></select></label>
+            <label><span>Tipo</span><select value={form.propertyType || ""} onChange={e => setForm(v => ({ ...v, propertyType: e.target.value }))}><option value="">—</option>{((options?.types?.[form.category]) || (form.category === "Rural" ? ["Área","Chácara","Fazenda","Terreno","Gado"] : ["Salão","Sobrado","Casa","Kitnet","Terreno","Galpão","Prédio","Sala","Apartamento","Sala Comercial"])).map((t: string) => <option key={t} value={t}>{t}</option>)}</select></label>
+          </div>
+          <div className="sites-inline-fields property-segmentation">
+            <label><span>Região</span><input list="real-estate-regions" value={form.region || ""} onChange={e => setForm(v => ({ ...v, region: e.target.value }))} placeholder="Centro" /><datalist id="real-estate-regions">{(options?.regions || []).map((r: string) => <option key={r} value={r} />)}</datalist></label>
+            <label><span>Bairro</span><input list="real-estate-neighborhoods" value={form.neighborhood || ""} onChange={e => setForm(v => ({ ...v, neighborhood: e.target.value }))} placeholder="Jardim América" /><datalist id="real-estate-neighborhoods">{(options?.neighborhoods || []).map((r: string) => <option key={r} value={r} />)}</datalist></label>
+          </div>
+          <div className="sites-inline-fields property-details"><label><span>Quartos</span><input type="number" min={0} value={form.beds || ""} onChange={e => setForm(v => ({ ...v, beds: e.target.value }))} /></label><label><span>Banheiros</span><input type="number" min={0} value={form.baths || ""} onChange={e => setForm(v => ({ ...v, baths: e.target.value }))} /></label><label><span>Vagas</span><input type="number" min={0} value={form.parkingSpaces || ""} onChange={e => setForm(v => ({ ...v, parkingSpaces: e.target.value }))} /></label><label><span>Área (m²)</span><input type="number" min={0} value={form.area || ""} onChange={e => setForm(v => ({ ...v, area: e.target.value }))} /></label></div>
         </>}
         <label><span>Resumo</span><input value={form.excerpt || ""} onChange={e => setForm(v => ({ ...v, excerpt: e.target.value }))} placeholder="Uma frase vendendo a matéria/imóvel" /></label>
         {kind === "property" ? (() => {
@@ -812,6 +952,16 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
         <label><span>Corpo do texto</span><PostBodyEditor value={form.body || ""} onChange={html => setForm(v => ({ ...v, body: html }))} aria-label={kind === "post" ? "Corpo do post" : "Descrição do imóvel"} placeholder="Escreva o conteúdo completo…" /></label>
         <button type="submit" className="primary-button">{editing ? "Salvar alterações" : "Publicar"}</button>
       </form>
+      {toolsOpen && createPortal(
+        <div className="vx-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setToolsOpen(false); }}>
+          <section className="vx-dialog" role="dialog" aria-modal="true" aria-label="Listas e gestores de categoria">
+            <header className="vx-dialog-heading"><span className="vx-dialog-icon"><LayoutGrid size={20} aria-hidden="true" /></span><div><h2>Listas e gestores</h2><p>Categorias, pretensões, tipos, bairros e quem gere cada categoria.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={() => setToolsOpen(false)}><X size={18} aria-hidden="true" /></button></header>
+            <RealEstateTools onClose={() => setToolsOpen(false)} siteId={site.id} onSaved={onSaved} onNotice={onNotice} />
+            <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={() => setToolsOpen(false)}>Concluir</button></footer>
+          </section>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

@@ -61,6 +61,32 @@ export class DesignApprovalsController {
     return images;
   }
 
+  /** Lista posts publicados pelo próprio perfil Zernio da empresa (melhor esforço; sem docs públicas). */
+  @Get("own-posts")
+  async ownPosts(@Req() req: AuthenticatedRequest) {
+    this.admin(req);
+    try {
+      const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: req.user.tenantId }, select: { profileId: true } });
+      const query = profile?.profileId ? "/posts?profileId=" + encodeURIComponent(profile.profileId) + "&limit=30" : "/posts?limit=30";
+      const raw = await this.zernio.request<any>(query);
+      const candidates = [raw?.data?.posts, raw?.data?.data, raw?.data, raw?.posts, raw?.results, Array.isArray(raw) ? raw : null];
+      const list = (candidates.find(c => Array.isArray(c)) || []) as any[];
+      const posts = list.slice(0, 30).map((p: any) => {
+        const pick = (...keys: string[]) => { for (const k of keys) { const v = p?.[k]; if (typeof v === "string" && v) return v; } return ""; };
+        const media = pick("mediaUrl", "media_url", "thumbnail", "image", "imageUrl", "image_url", "coverUrl", "cover_url") || "";
+        const caption = pick("caption", "message", "content", "text").slice(0, 400);
+        const permalink = pick("permalink", "permalinkUrl", "permalink_url", "url", "link");
+        const id = pick("id", "_id", "postId") || permalink || caption.slice(0, 40);
+        const platform = pick("platform", "network");
+        const publishedAt = pick("publishedAt", "published_at", "createdAt", "created_at", "timestamp");
+        return { id, caption, permalink, mediaUrl: media, platform, publishedAt };
+      }).filter(p => p.id && (p.mediaUrl || p.permalink));
+      return { posts, notice: posts.length ? null : "Sua conta Zernio não devolveu posts publicados ainda (a conta pode não ter posts ou a integração pode não suportar leitura)." };
+    } catch {
+      return { posts: [], notice: "Não foi possível ler os posts da Zernio. Tente novamente ou anexe as lâminas direto do File manager." };
+    }
+  }
+
   @Post("redesign")
   async redesign(@Req() req: AuthenticatedRequest, @Body() body: RedesignInput) {
     this.admin(req);

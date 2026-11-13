@@ -60,6 +60,7 @@ import { MailModule } from "../mail/mail.module";
   imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule, EventsModule],
   controllers: [InboxesController,CopilotController, PublicFlowController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, RemindersController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController],
   providers: [JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService],
+  exports: [WahaService, ZernioService, JobLeaseService],
 })
 export class OperationsModule {}
 

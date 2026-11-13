@@ -107,6 +107,8 @@ model Tenant {
   plan                 Plan?                 @relation(fields: [planId], references: [id], onDelete: SetNull)
   sites                Site[]
   siteAssets           SiteAsset[]
+  propertyApplications PropertyApplication[]
+  propertyScopes       PropertyScope[]
 
   @@map("tenants")
 }
@@ -150,6 +152,7 @@ model Membership {
   createdAt     DateTime       @default(now()) @map("created_at")
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyScopes PropertyScope[]
 
   @@unique([tenantId, userId])
   @@index([userId])
@@ -803,6 +806,7 @@ model Site {
   forms        SiteForm[]
   items        SiteItem[]
   submissions  SiteFormSubmission[]
+  propertyApplications PropertyApplication[]
 
   @@map("sites")
 }
@@ -876,6 +880,54 @@ model SiteFormSubmission {
   site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@map("site_form_submissions")
+}
+
+model PropertyApplication {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  siteId        String    @map("site_id") @db.Uuid
+  name          String
+  email         String
+  phone         String    @db.VarChar(30)
+  city          String    @default("") @db.VarChar(80)
+  pretension    String    @default("") @db.VarChar(40)
+  category      String    @default("") @db.VarChar(20)
+  propertyType  String    @default("") @map("property_type") @db.VarChar(60)
+  region        String    @default("") @db.VarChar(80)
+  neighborhood  String    @default("") @db.VarChar(80)
+  bedrooms      Int       @default(0)
+  bathrooms     Int       @default(0)
+  parkingSpaces Int       @default(0) @map("parking_spaces")
+  areaM2        Float     @default(0) @map("area_m2")
+  price         String    @default("")
+  description   String    @default("")
+  honeypot      String    @default("")
+  formLoadedAt  BigInt    @default(0) @map("form_loaded_at")
+  status        String    @default("PENDING") @db.VarChar(20)
+  reason        String    @default("")
+  reviewedById  String?   @map("reviewed_by_id") @db.Uuid
+  reviewedAt    DateTime? @map("reviewed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site          Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, siteId, status])
+  @@index([siteId, createdAt])
+  @@map("property_applications")
+}
+
+model PropertyScope {
+  id           String     @id @default(uuid()) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  membershipId String     @map("membership_id") @db.Uuid
+  category     String     @db.VarChar(20)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, category])
+  @@index([tenantId])
+  @@map("property_scopes")
 }
 
 model SiteItem {

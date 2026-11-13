@@ -5,8 +5,11 @@ import { createPortal } from "react-dom";
 const RichPromptEditor = dynamic(() => import("./rich-prompt-editor").then((m) => m.RichPromptEditor), {});
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AREAS, BLOCKS_META, api, safeSlug, type Site, type Form, type Item, type Page, type Block } from "./sites-shared";
+import { FileManager } from "./file-manager";
+import { PostBodyEditor } from "./post-body-editor";
+import { FileImagePicker } from "./file-image-picker";
 import { SitePreview } from "./site-preview";
-import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Trash2, Wand2, Mic, X } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Trash2, Wand2, Mic, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -611,7 +614,7 @@ function SiteMonogram({ name }: { name: string }) {
 }
 
 export function SiteDetail({ site, tab, setParams, onSaved, onNotice }: { site: Site; tab: string; setParams: (p: Record<string, string | null>) => void; onSaved: () => void; onNotice: (v: string) => void }) {
-  const tabs = [["studio","Studio"],["pages","Páginas"],["posts","Posts"],["imoveis","Imóveis"],["forms","Formulários"],["appear","Aparência"],["publish","Publicar"],["settings","Site"]] as const;
+  const tabs = [["studio","Studio"],["pages","Páginas"],["posts","Posts"],["imoveis","Imóveis"],["files","Arquivos"],["forms","Formulários"],["appear","Aparência"],["publish","Publicar"],["settings","Site"]] as const;
   return (
     <>
       <header className="sites-detail-head">
@@ -620,7 +623,7 @@ export function SiteDetail({ site, tab, setParams, onSaved, onNotice }: { site: 
         <div className="sites-detail-actions"><a className="secondary-button" href={"/sites/" + site.slug} target="_blank" rel="noopener noreferrer"><Eye size={15} aria-hidden="true" /> Visualizar</a></div>
       </header>
       <nav className="sites-tabs" aria-label="Editor do site">{tabs.map(([key, label]) => <button key={key} type="button" aria-pressed={tab === key} className={tab === key ? "active" : ""} onClick={() => setParams({ tab: key })}>{label}</button>)}</nav>
-      {tab === "studio" ? <StudioEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "pages" ? <PagesEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "posts" ? <ItemsEditor site={site} kind="post" onSaved={onSaved} onNotice={onNotice} /> : tab === "imoveis" ? <ItemsEditor site={site} kind="property" onSaved={onSaved} onNotice={onNotice} /> : tab === "forms" ? <FormsEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "appear" ? <Appearance site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "publish" ? <PublishPanel site={site} onSaved={onSaved} onNotice={onNotice} /> : <SettingsPanel site={site} onSaved={onSaved} onNotice={onNotice} />}
+      {tab === "studio" ? <StudioEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "pages" ? <PagesEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "posts" ? <ItemsEditor site={site} kind="post" onSaved={onSaved} onNotice={onNotice} /> : tab === "imoveis" ? <ItemsEditor site={site} kind="property" onSaved={onSaved} onNotice={onNotice} /> : tab === "files" ? <FileManager onNotice={onNotice} /> : tab === "forms" ? <FormsEditor site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "appear" ? <Appearance site={site} onSaved={onSaved} onNotice={onNotice} /> : tab === "publish" ? <PublishPanel site={site} onSaved={onSaved} onNotice={onNotice} /> : <SettingsPanel site={site} onSaved={onSaved} onNotice={onNotice} />}
     </>
   );
 }
@@ -731,6 +734,7 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
   const items = (site.items || []).filter((i: Item) => i.kind === kind);
   const [editing, setEditing] = useState<Item | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const reset = (i: Item | null) => { setEditing(i); setForm(i ? { title: i.title, excerpt: i.excerpt || "", coverUrl: i.coverUrl || "", price: i.data?.price || "", location: i.data?.location || "", body: i.data?.body || "", beds: i.data?.beds || "", baths: i.data?.baths || "", area: i.data?.area || "" } : { title: "", excerpt: "", coverUrl: "", price: "", location: "", body: "", beds: "", baths: "", area: "" }); };
   const save = async () => {
     const payload = { title: form.title, excerpt: form.excerpt, coverUrl: form.coverUrl, data: kind === "property" ? { price: form.price, location: form.location, beds: form.beds, baths: form.baths, area: form.area, body: form.body } : { body: form.body } };
@@ -753,8 +757,17 @@ function ItemsEditor({ site, kind, onSaved, onNotice }: { site: Site; kind: "pos
           <div className="sites-inline-fields"><label><span>Quartos</span><input type="number" min={0} value={form.beds || ""} onChange={e => setForm(v => ({ ...v, beds: e.target.value }))} /></label><label><span>Banheiros</span><input type="number" min={0} value={form.baths || ""} onChange={e => setForm(v => ({ ...v, baths: e.target.value }))} /></label><label><span>Área (m²)</span><input type="number" min={0} value={form.area || ""} onChange={e => setForm(v => ({ ...v, area: e.target.value }))} /></label></div>
         </>}
         <label><span>Resumo</span><input value={form.excerpt || ""} onChange={e => setForm(v => ({ ...v, excerpt: e.target.value }))} placeholder="Uma frase vendendo a matéria/imóvel" /></label>
-        <label><span>Imagem (URL)</span><input value={form.coverUrl || ""} onChange={e => setForm(v => ({ ...v, coverUrl: e.target.value }))} placeholder="https://…" /></label>
-        <label><span>Corpo do texto</span><textarea rows={6} value={form.body || ""} onChange={e => setForm(v => ({ ...v, body: e.target.value }))} placeholder="Escreva o conteúdo completo…" /></label>
+        <label><span>Capa do {kind === "post" ? "post" : "imóvel"} (File manager)</span>
+          <div className="cover-picker">
+            {form.coverUrl ? <img src={form.coverUrl} alt="Imagem de capa" /> : <div className="cover-picker-empty"><ImagePlus size={22} aria-hidden="true" /><span>Escolha do File manager ou envie do PC/celular — sem links externos.</span></div>}
+            <div className="cover-picker-actions">
+              <button type="button" className="secondary-button" onClick={() => setCoverPickerOpen(true)}>{form.coverUrl ? "Trocar imagem" : "Escolher imagem"}</button>
+              {form.coverUrl && <button type="button" className="text-button" onClick={() => setForm(v => ({ ...v, coverUrl: "" }))}>Remover capa</button>}
+            </div>
+          </div>
+        </label>
+        <FileImagePicker open={coverPickerOpen} onClose={() => setCoverPickerOpen(false)} title="File manager · capa do post" onSelect={(urls) => { const url = urls[0]; if (url) setForm(v => ({ ...v, coverUrl: url })); }} />
+        <label><span>Corpo do texto</span><PostBodyEditor value={form.body || ""} onChange={html => setForm(v => ({ ...v, body: html }))} aria-label={kind === "post" ? "Corpo do post" : "Descrição do imóvel"} placeholder="Escreva o conteúdo completo…" /></label>
         <button type="submit" className="primary-button">{editing ? "Salvar alterações" : "Publicar"}</button>
       </form>
     </div>

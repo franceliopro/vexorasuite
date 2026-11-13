@@ -18,10 +18,12 @@
     "@tiptap/pm": "^3.0.0",
     "@tiptap/react": "^3.0.0",
     "@tiptap/starter-kit": "^3.0.0",
+    "@types/sanitize-html": "^2.16.2",
     "lucide-react": "^0.468.0",
     "next": "^15.5.6",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "sanitize-html": "^2.18.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

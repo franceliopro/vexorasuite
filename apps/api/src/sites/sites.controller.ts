@@ -390,8 +390,14 @@ export class SitesController {
 
   @Delete("items/:itemId") async deleteItem(@Req() req: AuthenticatedRequest, @Param("itemId", ParseUUIDPipe) itemId: string) {
     const item = await this.ownItem(req, itemId);
-    await this.prisma.siteItem.delete({ where: { id: item.id } });
-    return { deleted: true };
+    const tenantId = this.tenantOf(req);
+    // Ajuda em deixar o servidor limpo: coleta ids de site-assets referenciados e remove as linhas.
+    const assetIds = collectAssetIds(item.data as any, item.coverUrl);
+    await this.prisma.$transaction(async tx => {
+      await tx.siteItem.delete({ where: { id: item.id } });
+      if (assetIds.length) await tx.siteAsset.deleteMany({ where: { id: { in: assetIds }, tenantId } });
+    });
+    return { deleted: true, assetsRemoved: assetIds.length };
   }
 
   @Get(":id/forms") async forms(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string) {
@@ -450,6 +456,20 @@ export class SitesController {
     return { domain: site.domain, domainStatus: "ACTIVE", verified: true, message: "DNS verificado. O site responde em " + site.domain + " quando a Véxora Cloud ativar a rota." };
   }
 }
+/** Varre qualquer valor em busca de referências `/site-assets/<uuid>` e devolve os ids encontrados. */
+const ASSET_RE = /site-assets\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
+function collectAssetIds(value: unknown, ...extra: (string | null | undefined)[]): string[] {
+  const found = new Set<string>();
+  const scan = (input: any): void => {
+    if (typeof input === "string") { for (const match of input.matchAll(ASSET_RE)) if (match[1]) found.add(match[1].toLowerCase()); return; }
+    if (Array.isArray(input)) { for (const item of input) scan(item); return; }
+    if (input && typeof input === "object") { for (const v of Object.values(input)) scan(v); }
+  };
+  scan(value);
+  for (const s of extra) if (typeof s === "string") scan(s);
+  return [...found].slice(0, 200);
+}
+
 /** Remove HTML/tags perigosas de textos de bloco. */
 function sanitizeContent(content: any): any {
   if (typeof content === "string") return content.replace(/<[^>]*>/g, "").slice(0, 5000);

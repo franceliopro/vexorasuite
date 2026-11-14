@@ -57,11 +57,12 @@ export function SitesWizardDialog(props: {
           </div>
           <details className="sites-ai-card" open>
             <summary><Sparkles size={14} aria-hidden="true" /> Criar com IA (opcional)</summary>
-            <p className="sites-field-hint">Descreva o negócio, o público, o tom e o que o site precisa. Se houver IA configurada na empresa, ela redige o conteúdo; sem IA, o template cria o site com os dados acima.</p>
+            <p className="sites-field-hint">Descreva o negócio, o público, o tom e o que o site precisa. Se houver IA configurada na empresa, o agente Design Gráfico &amp; Web redige o conteúdo — inclusive lendo o link de referência abaixo (ou um link colado no próprio comando). Sem IA, o template cria o site com os dados acima.</p>
             <div className="sites-ai-prompt">
               <div className="sites-ai-prompt-head"><span>Pedido para a IA</span><button type="button" className={"sites-ai-dictate" + (wizAiDictating ? " is-listening" : "")} onClick={dictateWizardPrompt} aria-pressed={wizAiDictating} title="Ditar o pedido com o microfone"><Mic size={14} aria-hidden="true" />{wizAiDictating ? "Parar" : "Ditar"}</button></div>
               <RichPromptEditor label={"Comando para a IA (opcional)"} documentKey={"wizard:ai-prompt"} rows={4} maxLength={2500} placeholder="Ex.: Clínica estética Lume em Cuiabá, foco em limpeza de pele e Botox para mulheres 30–55. Tom: acolhedor, profissional. Quero agendar pelo WhatsApp. Cole aqui também links e URLs de imagens — o editor entende markdown." value={wizAiPrompt} onChange={setWizAiPrompt} />
               {wizAiDictateStatus ? <small className="sites-ai-dictate-status" role="status">{wizAiDictateStatus}</small> : null}
+              <label className="sites-field"><span>Link de referência visual (opcional)</span><input type="url" inputMode="url" value={wizReferenceUrl} onChange={e => setWizReferenceUrl(e.target.value)} placeholder="https://site-que-voce-admira.com.br" /></label>
             </div>
                                   </details>
           <details className="sites-ai-card">

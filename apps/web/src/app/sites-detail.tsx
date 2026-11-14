@@ -478,6 +478,19 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     { label: "Clareza de valor", instruction: "Reescreva os textos do bloco deixando mais claro o benefício principal para o cliente: resultado, prazo e prova — não processo." },
     { label: "Adaptar ao WhatsApp", instruction: "Reescreva no tom de WhatsApp direto, sem formalidade de site, focando na conversa: resposta em minutos, orçamento sem compromisso." },
   ];
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const applyTemplate = async () => {
+    if (templateBusy || !studioPage) return;
+    if (!window.confirm("Aplicar o template premium nesta página substitui todos os blocos pelos do template. Seus arquivos, fotos e contatos são mantidos. Continuar?")) return;
+    setTemplateBusy(true);
+    try {
+      const res = await api<{ blocks: number; template: string; clientImagesUsed: number }>("/sites/" + site.id + "/pages/" + studioPage.id + "/apply-template", { method: "POST", body: JSON.stringify({ template: "auto" }) });
+      onNotice("Template premium aplicado (" + res.template + "). " + (res.clientImagesUsed ? res.clientImagesUsed + " foto(s) suas foram usadas. " : "Sem fotos suas neste site — as imagens são ilustrativas; envie as suas em Arquivos para trocar. ") + "Revise e publique quando quiser.");
+      onSaved();
+    } catch (e) {
+      onNotice(e instanceof Error ? e.message : "Não foi possível aplicar o template.");
+    } finally { setTemplateBusy(false); }
+  };
   const relayout = async () => {
     if (relayoutBusy) return;
     const homePage = studioPage;
@@ -527,6 +540,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <label className="sites-field"><span>Página do Studio</span><select value={studioPage?.id || ""} onChange={event => { setStudioPageId(event.target.value); setSelected(""); }}>
             {model.pages.map((page: Page) => <option key={page.id} value={page.id}>{page.title}</option>)}
           </select></label>
+          <button type="button" className="secondary-button" disabled={templateBusy} onClick={() => void applyTemplate()} title="Aplica um template premium desenhado por gente — tipografia, cores, seções e fotos suas. Sem depender da IA."><LayoutTemplate size={14} aria-hidden="true" /> {templateBusy ? "Aplicando…" : "Template premium"}</button>
           <button type="button" className="secondary-button" onClick={() => setRelayoutOpen(true)} title="A IA transforma a página em uma versão premium — com prompt, link de referência, imagem ou sem nada"><Wand2 size={14} aria-hidden="true" /> Relayout premium</button>
           <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar isolado de tudo"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
           {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}

@@ -29,7 +29,6 @@ type Organization={name:string;cnpj:string;legalName:string;address:string;city:
 type MailStatus={transport:string;configured:boolean;host?:string;port:number;secure:boolean;user?:string;from?:string;missing:string[];warnings:string[];note:string};
 type MailTestResult={delivered:boolean;transport?:string;reason?:string;accepted?:string[]};
 const defaultBrand:BrandSettings={primaryColor:"#2E7CF6",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,displayName:"",fontScalePercent:100};
-function rgbToHex(r:number,g:number,b:number){return "#"+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("").toUpperCase();}
 function settingsTabKey(tab:string){return tab.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g,"-");}
 async function api<T>(url:string,init?:RequestInit):Promise<T>{const r=await fetch(url,{...init,cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(Array.isArray(d.message)?d.message.join(" "):d.message||d.error||"Falha na operação.");return d as T;}
 export function OperationsSettings({canConfigureAsaas,companyName="Sua empresa",isPlatformAdmin=false}:{canConfigureAsaas:boolean;companyName?:string;isPlatformAdmin?:boolean}){

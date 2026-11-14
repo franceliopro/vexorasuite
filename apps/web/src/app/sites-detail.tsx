@@ -313,7 +313,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fullscreen]);
-  const studioPage = model.pages.find(page => page.id === studioPageId) || model.pages[0];
+  const studioPage = model.pages.find((page: Page) => page.id === studioPageId) || model.pages[0];
   const allBlocks = model.pages.flatMap((p: any) => p.blocks.map((b: any) => ({ ...b, pageId: p.id, pageTitle: p.title })));
   const selectedBlock = allBlocks.find((b: any) => b.id === selected) || null;
   const dirtyCount = Object.keys(dirty).length;
@@ -518,7 +518,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
         <div className="sites-studio-toolbar-right">
           <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.pageId === studioPage?.id && b.type === "freeLayout") || allBlocks.find((b: any) => b.pageId === studioPage?.id && b.type === "layout"); if (target) { setSelected(target.id); } else { onNotice("Esta página ainda não tem um layout editável."); } }} title="Selecionar o layout da página"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
           <label className="sites-field"><span>Página do Studio</span><select value={studioPage?.id || ""} onChange={event => { setStudioPageId(event.target.value); setSelected(""); }}>
-            {model.pages.map(page => <option key={page.id} value={page.id}>{page.title}</option>)}
+            {model.pages.map((page: Page) => <option key={page.id} value={page.id}>{page.title}</option>)}
           </select></label>
           <button type="button" className="secondary-button" onClick={() => setRelayoutOpen(true)} title="A IA transforma a página em uma versão premium — com prompt, link de referência, imagem ou sem nada"><Wand2 size={14} aria-hidden="true" /> Relayout premium</button>
           <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar isolado de tudo"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>

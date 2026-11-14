@@ -93,7 +93,21 @@ async function proxyRequest(request: Request, context: Context) {
   if (hasBody && !trustedRequestOrigin(request, process.env.NEXT_PUBLIC_APP_URL)) return applyResponseRequestId(Response.json({ message: "Origem da solicitação não autorizada." }, { status: 403 }), requestId);
 
   let bodyBuffer: ArrayBuffer | undefined;
+  const isSiteAi = request.method === "POST" && (
+    pathValue === "sites" ||
+    /^sites\/[^/]+\/pages\/[^/]+\/relayout$/.test(pathValue) ||
+    /^sites\/pages\/[^/]+\/blocks\/[^/]+\/ai$/.test(pathValue)
+  );
+  const proxyFailure = (error: unknown) => {
+    if (isSiteAi && error instanceof Error && error.name === "TimeoutError") {
+      return applyResponseRequestId(Response.json({
+        code: "SITE_AI_TIMEOUT", message: "A operação de IA do site excedeu o tempo de resposta. Confira o site antes de repetir.",
+      }, { status: 504 }), requestId);
+    }
+    return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
+  };
   const timeoutFor = () => {
+    if (isSiteAi) return 220000;
     const isAiGeneration = pathValue==='assistant/ask'||pathValue==='assistant/engine/create-flow'||pathValue==='marketing/drafts'||/^assistant\/agents\/[^/]+\/test$/.test(pathValue);
     return isAiGeneration?200000:pathValue==='department-resources'?180000:pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000;
   };
@@ -117,7 +131,7 @@ async function proxyRequest(request: Request, context: Context) {
     upstream = await send(readCookie(SESSION_COOKIE, LEGACY_SESSION_COOKIE));
   } catch (error) {
     if (error instanceof RequestBodyTooLarge) return applyResponseRequestId(Response.json({ message: "Arquivo acima do limite de upload." }, { status: 413 }), requestId);
-    return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
+    return proxyFailure(error);
   }
 
   // Short access token, long session: the first 401 of an expired token is renewed here, so the
@@ -127,8 +141,8 @@ async function proxyRequest(request: Request, context: Context) {
     if (renewed) {
       try {
         upstream = await send(renewed);
-      } catch {
-        return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
+      } catch (error) {
+        return proxyFailure(error);
       }
     }
   }

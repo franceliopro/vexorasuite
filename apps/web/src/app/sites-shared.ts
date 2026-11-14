@@ -38,6 +38,7 @@ export const BLOCKS_META: Record<string, { label: string; hint: string }> = {
   spacer: { label: "Espaçador", hint: "Espaço vertical" },
   divider: { label: "Divisor", hint: "Linha separadora" },
   freeLayout: { label: "Layout livre", hint: "Composição editável em HTML e CSS" },
+  externalHtml: { label: "Site importado", hint: "HTML completo pronto, aberto isolado (sem acesso ao app)" },
   layout: { label: "Seção de colunas", hint: "Layout flex com colunas, textos, imagens, botões e tudo" },
 };
 

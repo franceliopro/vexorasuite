@@ -9,6 +9,7 @@ import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
 import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
 import { configuredCreativeAgent, resolveCreativeAgent } from "../ai/creative-agent";
+import { skillInstructionsForAgent } from "../ai/product-skills";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { referenceBriefFromUrl } from "./reference-brief";
 import { searxngSearch } from "../ai/local-services";
@@ -94,14 +95,15 @@ export class SitesController {
         select: { name: true, instructions: true, palette: true },
       }),
     ]);
+    const blocks = references.filter(Boolean);
     if (library.length) {
-      references.push("Referências criativas da empresa (orientações e paleta cadastradas): " + JSON.stringify(library.map(ref => ({
+      blocks.push("Referências criativas da empresa (orientações e paleta cadastradas): " + JSON.stringify(library.map(ref => ({
         name: ref.name,
         instructions: ref.instructions.slice(0, 700),
         palette: Array.isArray(ref.palette) ? ref.palette.filter(color => /^#[0-9a-f]{6}$/i.test(String(color))).slice(0, 10) : [],
       }))));
     }
-    return references;
+    return { blocks, meta: { agentKnowledgeUrls: storedUrls.length, creativeLibraryRefs: library.length, referenceUrlRead: uniqueUrls.length > 0 } };
   }
 
   private async generateDesign(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean) {
@@ -118,7 +120,7 @@ export class SitesController {
   private async enrichBlueprintWithAi(
     tenantId: string, userId: string, area: string, companyName: string, blueprint: Blueprint,
     briefData: { aiPrompt: string; referenceUrl: string; cloneUrl: string; primaryColor: string; accentColor: string; whatsapps: { label: string; handle: string }[]; socials: { platform: string; handle: string }[] },
-  ): Promise<Blueprint> {
+  ): Promise<{ blueprint: Blueprint; report: Record<string, unknown> }> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
     const integrations: any = tenant?.integrations;
     const assistant = integrations?.assistant;
@@ -141,7 +143,21 @@ export class SitesController {
       }))),
     ];
     const promptUrl = aiPrompt.match(/https:\/\/[^\s)\]]{5,300}/i)?.[0] || "";
-    const references = await this.designReferences(tenantId, agent, [referenceUrl || promptUrl, cloneUrl]);
+    const { blocks: references, meta: refMeta } = await this.designReferences(tenantId, agent, [referenceUrl || promptUrl, cloneUrl]);
+    const skillInstructionsChars = skillInstructionsForAgent(integrations, agent?.allowedActions as unknown).length;
+    const report = {
+      promptChars: String(aiPrompt || "").length,
+      referenceUrlRead: Boolean(promptUrl || referenceUrl),
+      referenceUrl: promptUrl || referenceUrl || null,
+      agentKnowledgeUrls: refMeta.agentKnowledgeUrls,
+      creativeLibraryRefs: refMeta.creativeLibraryRefs,
+      instructionsChars: String(agent?.instructions || "").length,
+      behaviorRulesChars: String(agent?.behavior?.rules || "").length,
+      behaviorProhibitionsChars: String(agent?.behavior?.prohibitions || "").length,
+      tone: String(agent?.profile?.tone || ""),
+      skills: Array.isArray(agent?.allowedActions) ? agent.allowedActions : [],
+      skillsInjectedChars: skillInstructionsChars,
+    };
     brief.push(...references);
     if (integrations?.aiCostPolicy?.customerSearch === true) {
       try {
@@ -156,7 +172,7 @@ export class SitesController {
     ], providers, text => Boolean(parseSiteDesign(text, blueprint, true)));
     const design = parseSiteDesign(result.text, blueprint, true);
     if (!design) throw new BadRequestException("O agente Design Gráfico & Web não entregou um layout utilizável.");
-    return design;
+    return { blueprint: design, report };
   }
 
   @Get("creative-model")
@@ -190,10 +206,11 @@ export class SitesController {
     const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
     const blueprintResult = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC" });
-    const blueprint = await this.enrichBlueprintWithAi(this.tenantOf(req), req.user.sub, area, name, blueprintResult, {
+    const enriched = await this.enrichBlueprintWithAi(this.tenantOf(req), req.user.sub, area, name, blueprintResult, {
       aiPrompt: str(body?.aiPrompt, 2500), referenceUrl: str(body?.referenceUrl, 300), cloneUrl: str(body?.cloneUrl, 300),
       primaryColor, accentColor, whatsapps, socials,
     });
+    const blueprint = enriched.blueprint;
     const slug = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
     let finalSlug = slug, attempt = 0;
     while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slug + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
@@ -205,7 +222,7 @@ export class SitesController {
       },
       include: { pages: { include: { blocks: true } }, forms: true },
     });
-    return { ...site, ai: { applied: true } };
+    return { ...site, ai: { applied: true, report: enriched.report } };
   }
 
   /**
@@ -332,7 +349,7 @@ export class SitesController {
     const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
     const assistant = integrations?.assistant;
     const { agent, providers, persona } = resolveCreativeAgent(integrations, this.tenantOf(req));
-    const references = await this.designReferences(this.tenantOf(req), agent, []);
+    const { blocks: references } = await this.designReferences(this.tenantOf(req), agent, []);
     await this.prisma.$transaction((tx) => reserveAiExecution(tx, this.tenantOf(req), dailyAiLimit(assistant.dailyAiLimit), "sites.block_edit", req.user.sub));
     const current = block.content || {};
     const result = await this.generateDesign([
@@ -372,7 +389,7 @@ export class SitesController {
     const prompt = str(body?.prompt, 2500);
     const referenceUrl = str(body?.referenceUrl, 500) || prompt.match(/https:\/\/[^\s)\]]{5,300}/i)?.[0] || "";
     const imageUrl = str(body?.imageUrl, 2000);
-    const references = await this.designReferences(this.tenantOf(req), agent, [referenceUrl]);
+    const { blocks: references } = await this.designReferences(this.tenantOf(req), agent, [referenceUrl]);
     const currentBlocks = await this.prisma.siteBlock.findMany({ where: { pageId: page.id }, orderBy: { sortOrder: "asc" }, select: { type: true, content: true } });
     const snapshot = JSON.stringify(currentBlocks);
     const briefLines = [

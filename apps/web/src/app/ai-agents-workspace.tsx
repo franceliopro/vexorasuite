@@ -174,6 +174,11 @@ export function AiAgentsWorkspace() {
   const [skillsRetry,setSkillsRetry]=useState(0);
   useEffect(()=>{let mounted=true;setSkillsLoading(true);setSkillsError("");fetch("/api/backend/assistant/skills",{cache:"no-store"}).then(async response=>{const data=await response.json().catch(()=>null);if(!response.ok)throw Error(data?.message||"Não foi possível carregar as skills.");return data;}).then(data=>{if(mounted){if(!Array.isArray(data?.skills))throw Error("A API retornou um catálogo de skills inválido.");setSkills(data.skills);}}).catch(error=>{if(mounted)setSkillsError(error instanceof Error?error.message:"Não foi possível carregar as skills.");}).finally(()=>{if(mounted)setSkillsLoading(false);});return()=>{mounted=false};},[skillsRetry]);
   const [catalog, setCatalog] = useState<{voiceOptions?:VoiceOption[];models?:{id:string;name:string;provider:string;tier?:string;pricePerMillionInputUsd:number|null;installed?:boolean}[];services?:{provider:string;available:boolean;message?:string}[]}>({});
+  const [geminiPresetApplied, setGeminiPresetApplied] = useState(false);
+  const geminiModels = (catalog.models || []).filter(model => model.provider === "gemini");
+  const geminiWebDesigner = geminiModels.find(model => model.id === "gemini-3.8-flash");
+  const geminiGeneral = geminiModels.find(model => model.id === "gemini-3.5-flash-lite");
+  const canApplyGeminiPreset = Boolean(geminiWebDesigner && geminiGeneral) && !geminiPresetApplied;
   const [aiUsage, setAiUsage] = useState<{ month: string; used: number; limit: number | null } | null>(null);
   useEffect(() => { fetch("/api/backend/assistant/ai-usage", { cache: "no-store" }).then(r => (r.ok ? r.json() : null)).then(data => { if (data && typeof data.used === "number") setAiUsage(data); }).catch(() => {}); }, []);
   useEffect(() => { fetch("/api/backend/assistant/model-catalog").then(r => r.ok ? r.json() : {}).then(setCatalog).catch(() => {}); }, []);
@@ -212,6 +217,15 @@ export function AiAgentsWorkspace() {
   const addTestPhone = () => { const digits=testPhoneDraft.replace(/\D/g,""); if(digits.length<8||digits.length>15){setNotice("Informe o celular com código do país e DDD.");return;} if(testPhones.includes(digits)){setNotice("Esse celular já está na lista de testes.");return;} if(testPhones.length>=50){setNotice("Limite de 50 celulares de teste.");return;} setTestPhones(items=>[...items,digits]);setTestPhoneDraft("");setNotice("Celular autorizado para testes. Salve a configuração."); };
   const addKnowledgeFiles = async (files: FileList | null) => { if(!files?.length)return; const additions:KnowledgeDocument[]=[]; for(const file of Array.from(files)){if(knowledgeDocuments.length+additions.length>=10){setNotice("Limite de 10 documentos.");break;}if(file.size>5*1024*1024){setNotice(file.name+" excede 5 MB.");continue;}try{const form=new FormData();form.set("file",file);const response=await fetch("/api/backend/assistant/knowledge-documents/parse",{method:"POST",body:form});const data=await response.json();if(!response.ok)throw Error(Array.isArray(data.message)?data.message.join(" "):data.message||"Não foi possível extrair o documento.");const content=String(data.content||"").trim();if(!content){setNotice(file.name+" está vazio.");continue;}additions.push({id:crypto.randomUUID(),name:String(data.name||file.name),content:content.slice(0,8000)});if(data.truncated)setNotice(file.name+" foi limitado aos primeiros 8.000 caracteres.");}catch(error){setNotice(file.name+": "+(error instanceof Error?error.message:"falha ao ler o arquivo"));}} if(additions.length){setKnowledgeDocuments(items=>[...items,...additions].slice(0,10));setNotice(additions.length+" documento(s) extraído(s). Salve para adicioná-los à base.");} };
   const agent = agents.find(a => a.id === selected);
+  const applyGeminiPreset = () => {
+    if (!geminiWebDesigner || !geminiGeneral) return;
+    setGeminiPresetApplied(true);
+    setPrimaryModel({ provider: "gemini", model: geminiGeneral.id, tier: "Econômico" });
+    setFallbackModels([{ provider: "gemini", model: geminiWebDesigner.id, tier: "Inteligente" }]);
+    const designer = (agents.find(a => String(a.id) === "vexora:web-designer") || agents.find(a => a.name === "Design Gráfico & Web")) ?? undefined;
+    if (designer) setAgents(items => items.map(a => a.id === designer.id ? { ...a, llm: { provider: "gemini", model: geminiWebDesigner.id, tier: "Inteligente" } } : a));
+    setNotice("Aplicado: gemini-3.8-flash no Web Designer (site/relayout) e gemini-3.5-flash-lite na configuração geral. Verifique e clique em \"Salvar configuração\" para persistir.");
+  };
   const flowBindings = (engineStatus?.publications||[]).map(p => {
     const key = String(p?.key || "");
     if (!key) return null;
@@ -311,6 +325,17 @@ export function AiAgentsWorkspace() {
     {workspaceTab==="Configuração geral"&&<div className="ai-admin-grid"><ProviderConnections/>
       <section className="content-card ai-admin-card">
         <h2><Sparkles size={19}/> Configuração geral da IA</h2>
+        {canApplyGeminiPreset ? (
+          <div className="ai-free-preset" role="status">
+            <div className="ai-free-preset-text">
+              <strong>Sugestão grátis Véxora</strong>
+              <span>gemini-3.8-flash no Web Designer (site/relayout) e gemini-3.5-flash-lite na configuração geral — ambos no free tier do Google AI Studio.</span>
+            </div>
+            <button type="button" className="primary-button" onClick={applyGeminiPreset}>Aplicar sugestão</button>
+          </div>
+        ) : geminiModels.length === 0 ? (
+          <p className="ai-admin-note">Para aplicar a sugestão grátis (Web Designer = gemini-3.8-flash e geral = gemini-3.5-flash-lite), cadastre a chave do Gemini em <strong>Conexões de IA</strong> (aistudio.google.com → API Keys).</p>
+        ) : null}
         <div className="ai-admin-fields">
           {(["stt","tts"] as const).map(kind=>{const value=kind==="stt"?globalStt:globalTts;const set=kind==="stt"?setGlobalStt:setGlobalTts;return <fieldset key={kind}><legend>{kind==="stt"?"Entrada de voz da assistente":"Saída de voz da assistente"}</legend><select aria-label={kind} value={value.provider} onChange={e=>set({provider:e.target.value,model:voiceModel(kind,e.target.value)})}><option value="browser">Navegador · sem LLM</option><option value="local">Whisper/Kokoro · servidor local</option><option value="openai">OpenAI · chave protegida</option></select><AiVoiceModelPicker label={"Modelo "+kind} kind={kind} provider={value.provider} value={value.model} models={catalog.models||[]} onChange={model=>set(v=>({...v,model,voice:undefined}))}/>{kind==="tts"&&<TtsVoicePicker provider={value.provider} model={value.model} value={value.voice||""} voices={catalog.voiceOptions||[]} onChange={voice=>setGlobalTts(v=>({...v,voice:voice||undefined}))}/>}</fieldset>})}
           <label>Nome padrão<input value={assistantName} onChange={e => setAssistantName(e.target.value)}/></label>

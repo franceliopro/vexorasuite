@@ -203,8 +203,10 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
     try {
       const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
       const socials = wizSocials.filter(s => s.handle.trim());
-      const created = await api<Site & { ai?: { applied: boolean; note?: string } }>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
-      setNotice("Site criado por Design Gráfico & Web. Revise o layout no Studio antes de publicar.");
+      const created = await api<Site & { ai?: { applied: boolean; note?: string; report?: Record<string, any> } }>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
+      const report = created?.ai?.report;
+      const aiRead = report ? "  (a IA leu: comando " + (report.promptChars || 0) + " caracteres · " + (report.referenceUrlRead ? "o link " + String(report.referenceUrl || "") + " como inspiração" : "sem link externo") + " · comportamento (regras " + (report.behaviorRulesChars || 0) + ", restrições " + (report.behaviorProhibitionsChars || 0) + ") · " + (Array.isArray(report.skills) ? report.skills.length : 0) + " skills · " + (report.agentKnowledgeUrls || 0) + " referência(s) do agente e " + (report.creativeLibraryRefs || 0) + " da biblioteca)" : "";
+      setNotice("Site criado por Design Gráfico & Web." + aiRead + " Revise o layout no Studio antes de publicar.");
       resetDraft();
       await loadSites();
       setParams({ new: null, site: created.id, tab: "studio" });

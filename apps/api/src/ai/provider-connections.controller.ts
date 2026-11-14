@@ -1,5 +1,6 @@
 import { AuditCovered } from "../common/audit/audit.decorator";
 import { usageView, providerLimit } from "./provider-usage";
+import { probeConnections, type ConnectionProbe } from "./provider-status";
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Put, Req, UseGuards } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
@@ -22,9 +23,24 @@ export class ProviderConnectionsController {
   async status(@Req() req: AuthenticatedRequest) {
     this.authorize(req);
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
-    return { connections: providerConnectionStatus(tenant.integrations, req.user.tenantId),...aiRuntimeStatus(tenant.integrations) };
+    const [probeList] = await Promise.all([this.probes(req.user.tenantId, tenant.integrations)]);
+    const byProvider = Object.fromEntries(probeList.map(p => [p.provider, p]));
+    return { connections: providerConnectionStatus(tenant.integrations, req.user.tenantId), probes: byProvider, ...aiRuntimeStatus(tenant.integrations) };
   }
   private usageCache=new Map<string,{expires:number;value:any}>();
+  private probeCache=new Map<string,{expires:number;value:ConnectionProbe[]}>();
+  private async probes(tenantId: string, integrations: any): Promise<ConnectionProbe[]> {
+    const cached = this.probeCache.get(tenantId);
+    if (cached && cached.expires > Date.now()) return cached.value;
+    try {
+      const value = await probeConnections(integrations, tenantId);
+      if (this.probeCache.size >= 1000) this.probeCache.clear();
+      this.probeCache.set(tenantId, { expires: Date.now() + 60_000, value });
+      return value;
+    } catch {
+      return [];
+    }
+  }
   @Get('usage')
   async usage(@Req() req:AuthenticatedRequest){
     this.authorize(req);

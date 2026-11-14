@@ -4,7 +4,7 @@
 - Develop this project directly through GitHub branches, commits and pull requests. Do not use a local checkout or local files as a development stage.
 - Read the relevant source from the current integration branch and preserve unrelated changes. Use an expected head SHA when updating refs or merging.
 - Run tests, database migrations, concurrency regressions and builds through GitHub Actions. Repair failures in the PR before merging.
-- The operational integration branch is foundation/bootstrap-monorepo. Do not move work to main or modify the old Véxora Matriz.
+- Open integration PRs against foundation/bootstrap-monorepo. After CI and merge, fast-forward main to the same integration commit and verify both branch heads. Preserve both histories if the branches have diverged. Do not modify the old Véxora Matriz.
 - A merge may trigger Dokploy, but do not claim the site deployed or integrations worked without checking evidence.
 
 ## Product rules

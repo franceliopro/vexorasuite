@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 const RichPromptEditor = dynamic(() => import("./rich-prompt-editor").then((m) => m.RichPromptEditor), {});
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AREAS, BLOCKS_META, api, safeSlug, type Site, type Form, type Item, type Page, type Block } from "./sites-shared";
+import { AREAS, BLOCKS_META, api, safeSlug, ApiError, type Site, type Form, type Item, type Page, type Block } from "./sites-shared";
 import { FileManager } from "./file-manager";
 import { PostBodyEditor } from "./post-body-editor";
 import { FileImagePicker } from "./file-image-picker";
@@ -295,6 +295,8 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   const [relayoutUploading, setRelayoutUploading] = useState(false);
   const [relayoutBusy, setRelayoutBusy] = useState(false);
   const [relayoutError, setRelayoutError] = useState("");
+  const [relayoutAssistantDisabled, setRelayoutAssistantDisabled] = useState(false);
+  const [relayoutAiFixing, setRelayoutAiFixing] = useState(false);
   const [selected, setSelected] = useState<string>("");
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
@@ -471,11 +473,34 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     try {
       const res = await api<{ blocks: number }>("/sites/" + site.id + "/pages/" + homePage.id + "/relayout", { method: "POST", body: JSON.stringify({ prompt: relayoutPrompt.trim(), referenceUrl: relayoutReferenceUrl.trim(), imageUrl: relayoutImageUrl }) });
       setRelayoutOpen(false);
-      setRelayoutPrompt(""); setRelayoutReferenceUrl(""); setRelayoutImageUrl("");
+      setRelayoutPrompt(""); setRelayoutReferenceUrl(""); setRelayoutImageUrl(""); setRelayoutAssistantDisabled(false);
       onNotice("Página transformada em premium (" + (res?.blocks ?? "?") + " blocos). Revise o resultado e salve o que quiser.");
       onSaved();
-    } catch (e) { setRelayoutError(e instanceof Error ? e.message : "Não foi possível transformar a página."); }
-    finally { setRelayoutBusy(false); }
+    } catch (e) {
+      const disabled = e instanceof ApiError && e.code === "ASSISTANT_DISABLED";
+      setRelayoutAssistantDisabled(disabled);
+      setRelayoutError(e instanceof Error ? e.message : "Não foi possível transformar a página.");
+    } finally { setRelayoutBusy(false); }
+  };
+  const enableAiAndRetry = async () => {
+    if (relayoutAiFixing) return;
+    setRelayoutAiFixing(true); setRelayoutError("");
+    try {
+      const configResponse = await fetch("/api/backend/assistant/config", { cache: "no-store" });
+      const current = await configResponse.json().catch(() => null);
+      if (!configResponse.ok) throw new Error(current?.message || "Não foi possível ler a configuração desta empresa.");
+      const put = await fetch("/api/backend/assistant/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...current, enabled: true }) });
+      const saved = await put.json().catch(() => null);
+      if (!put.ok) {
+        const message = Array.isArray(saved?.message) ? saved.message.join(" ") : saved?.message;
+        throw new Error(message || "Não foi possível ativar a IA desta empresa (sem permissão). Peça ao proprietário ou admin para ativar em Agentes de IA → Configuração geral.");
+      }
+      setRelayoutAssistantDisabled(false);
+      setRelayoutError("");
+      await relayout();
+    } catch (e) {
+      setRelayoutError(e instanceof Error ? e.message : "Não foi possível ativar a IA desta empresa.");
+    } finally { setRelayoutAiFixing(false); }
   };
   const studio = (
     <div className={"sites-studio" + (fullscreen ? " is-fullscreen" : "")}>
@@ -596,7 +621,18 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
                   {relayoutImageUrl ? <button type="button" className="text-button" onClick={() => setRelayoutImageUrl("")}>Remover imagem</button> : null}
                 </span>
               </label>
-              {relayoutError ? <p role="alert" className="sites-error">{relayoutError}</p> : null}
+              {relayoutAssistantDisabled ? (
+                <div className="sites-relayout-fix" role="alert">
+                  <div className="sites-relayout-fix-text">
+                    <strong>A IA da Véxora está desativada nesta empresa.</strong>
+                    <span>O Relayout premium usa a IA desta empresa (agente Design Gráfico &amp; Web). Ative agora com 1 clique ou abra Configuração geral.</span>
+                  </div>
+                  <div className="sites-relayout-fix-actions">
+                    <button type="button" className="primary-button" disabled={relayoutAiFixing || relayoutBusy || relayoutUploading} onClick={() => void enableAiAndRetry()}>{relayoutAiFixing ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} {relayoutAiFixing ? "Ativando…" : "Ativar a IA e aplicar"}</button>
+                    <a className="text-button" href="/?module=Agentes%20de%20IA">Abrir Agentes de IA →</a>
+                  </div>
+                </div>
+              ) : relayoutError ? <p role="alert" className="sites-error">{relayoutError}</p> : null}
               <p className="sites-field-hint">A IA mantém fatos, preços e contatos intactos e devolve blocos novos. A página é substituída atomically — se a IA falhar, nada muda.</p>
             </div>
             <footer className="vx-dialog-footer"><button type="button" className="secondary-button" disabled={relayoutBusy} onClick={() => setRelayoutOpen(false)}>Cancelar</button><button type="button" className="primary-button" disabled={relayoutBusy || relayoutUploading} onClick={() => void relayout()}>{relayoutBusy ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Wand2 size={15} aria-hidden="true" />} {relayoutBusy ? "Transformando…" : "Transformar em premium"}</button></footer>

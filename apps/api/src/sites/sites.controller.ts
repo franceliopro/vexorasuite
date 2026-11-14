@@ -304,7 +304,7 @@ export class SitesController {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
     const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
     const assistant = integrations?.assistant;
-    if (!assistant || assistant.enabled !== true) throw new BadRequestException("Ative a IA desta empresa em Agentes de IA → Configuração geral antes de pedir alterações por IA.");
+    if (!assistant || assistant.enabled !== true) throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa em Agentes de IA → Configuração geral antes de pedir alterações por IA." });
     const providers = economicalProviders(assistant, undefined, integrations, this.tenantOf(req));
     if (!providers.length) throw new BadRequestException("Nenhum provedor de IA configurado para esta empresa.");
     await this.prisma.$transaction((tx) => reserveAiExecution(tx, this.tenantOf(req), dailyAiLimit(assistant.dailyAiLimit), "sites.block_edit", req.user.sub));
@@ -336,7 +336,7 @@ export class SitesController {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
     const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
     const assistant = integrations?.assistant;
-    if (!assistant || assistant.enabled !== true) throw new BadRequestException("Ative a IA desta empresa em Agentes de IA → Configuração geral antes de usar o Relayout premium.");
+    if (!assistant || assistant.enabled !== true) throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa em Agentes de IA → Configuração geral antes de usar o Relayout premium." });
     const providers = this.designProviders(assistant, integrations, this.tenantOf(req));
     if (!providers.length) throw new ServiceUnavailableException("Nenhum modelo de IA configurado. Ajuste o agente em Agentes de IA → Design Gráfico & Web → Modelos e Voz (ou a configuração geral).");
     const prompt = str(body?.prompt, 2500);

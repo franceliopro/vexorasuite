@@ -224,7 +224,7 @@ export class AssistantController {
   }
   @Put("config")
   async save(@Req() req: AuthenticatedRequest, @Body() input: Config) {
-    if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException();
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException("Permissão insuficiente para salvar a configuração de IA desta empresa. Peça ao proprietário ou a um admin.");
     if (!input || typeof input.name !== "string" || !input.name.trim() || input.name.length > 80 || typeof input.wakeWord !== "string" || input.wakeWord.length > 80 || typeof input.enabled !== "boolean" || !Array.isArray(input.agents) || input.agents.length > 30) throw new BadRequestException("Configuração inválida");
     const selection = (value: unknown, voice = false): ModelSelection | VoiceSelection | undefined => {
       if (value === undefined) return undefined;

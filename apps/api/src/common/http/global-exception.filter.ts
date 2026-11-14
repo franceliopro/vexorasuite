@@ -23,6 +23,7 @@ type ErrorResponse = {
   path: string;
   requestId: string;
   message: PublicMessage;
+  code?: string;
   providerStatus?: number;
   providerReason?: string;
 };
@@ -51,6 +52,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       path,
       requestId,
       message: this.getPublicMessage(exception, statusCode),
+      ...this.getPublicCode(exception),
       ...this.getPublicProviderDetails(exception),
     } satisfies ErrorResponse);
 
@@ -86,6 +88,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     return "Internal server error";
+  }
+
+  /** Códigos públicos seguros declarados por exceções (ex.: ASSISTANT_DISABLED) — strings simples, sem payload. */
+  private getPublicCode(exception: unknown): Pick<ErrorResponse, "code"> {
+    if (!(exception instanceof HttpException)) {
+      return {};
+    }
+    const response = exception.getResponse();
+    if (!response || typeof response !== "object") {
+      return {};
+    }
+    const code = (response as { code?: unknown }).code;
+    if (typeof code === "string" && /^[A-Z0-9_.-]{1,64}$/.test(code)) {
+      return { code };
+    }
+    return {};
   }
 
   private getPublicProviderDetails(exception: unknown): Pick<ErrorResponse, "providerStatus" | "providerReason"> {

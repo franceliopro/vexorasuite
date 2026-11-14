@@ -11,6 +11,7 @@ import { PostBodyEditor } from "./post-body-editor";
 import { FileImagePicker } from "./file-image-picker";
 import { maskBRLInput, formatBRL } from "../lib/money";
 import { SitePreview } from "./site-preview";
+import { inspirationAreasFor } from "./site-inspirations";
 import { Building2, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
@@ -27,6 +28,7 @@ export function SitesWizardDialog(props: {
   wizAiDictating: boolean; wizAiDictateStatus: string;
   dictateWizardPrompt: () => void;
   wizReferenceUrl: string; setWizReferenceUrl: (v: string) => void;
+  wizHeroOverride: string; setWizHeroOverride: (v: string) => void;
   wizCloneUrl: string; setWizCloneUrl: (v: string) => void;
   closeWizard: () => void; submitWizard: () => Promise<void>;
   onSaveDraft: () => void; savedDraft: boolean;
@@ -34,7 +36,7 @@ export function SitesWizardDialog(props: {
   modelLabel: string; onReloadModel: () => void;
   onCloneSite: () => void; wizCloning: boolean;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
@@ -63,6 +65,11 @@ export function SitesWizardDialog(props: {
             <label className="sites-field"><span>Cor principal</span><input type="color" value={wizPrimary} onChange={e => setWizPrimary(e.target.value)} /></label>
             <label className="sites-field"><span>Cor de destaque</span><input type="color" value={wizAccent} onChange={e => setWizAccent(e.target.value)} /></label>
           </div>
+          <details className="sites-ai-card">
+            <summary><Sparkles size={14} aria-hidden="true" /> Galeria de inspirações (opcional)</summary>
+            <p className="sites-field-hint">Clique em uma imagem para usar como foto principal (Hero) do seu site. Clique de novo para desfazer.</p>
+            <div className="inspiration-gallery">{(inspirationAreasFor(wizArea) || []).map((item, i) => { const heroActive = wizHeroOverride === item.url; return <button key={i} type="button" className={"inspiration-thumb" + (heroActive ? " is-hero" : "")} onClick={() => setWizHeroOverride(heroActive ? "" : item.url)} aria-pressed={heroActive} title={(heroActive ? "Remover " : "Usar ") + item.caption}><img src={item.url} alt={item.caption} loading="lazy"/><small>{item.caption}</small>{heroActive ? <em className="inspiration-badge">Hero</em> : null}</button>; })}</div>
+          </details>
           <details className="sites-ai-card" open>
             <summary><Sparkles size={14} aria-hidden="true" /> Pedido para a IA (opcional)</summary>
             <p className="sites-field-hint">Preencha o mínimo: nome, nicho e WhatsApp. A Véxora monta a estrutura, aplica o design premium do nicho e preenche o conteúdo. Se você quiser, adicione um pedido (ex.: "foco em agendamento") e a IA redige com a sua voz.</p>

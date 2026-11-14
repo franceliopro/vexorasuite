@@ -64,6 +64,13 @@ export const heroImageFor = (area: string): string => {
   const id = HERO_IMAGES[area] || HERO_IMAGES.clinica_estetica!;
   return "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=1600&q=80";
 };
+/** Variante de hero por área — cada área nasce com uma composição diferente (não existe hero-único aqui). */
+export const HERO_VARIANT_BY_AREA: Record<string, string> = {
+  clinica_medica: "split", clinica_estetica: "split", estetica_geral: "split", advocacia: "split",
+  imobiliaria: "split", ecommerce: "split", construtora: "split", prestacao_servicos: "overlay",
+  blog: "editorial", escola_teologia: "editorial", escola_musica: "editorial", escola_cursos: "editorial", vexora: "editorial",
+  rastreamento: "overlay", protecao: "overlay", site_simples: "overlay",
+};
 export const galleryImagesFor = (area: string): string[] => {
   const list = GALLERY_IMAGES[area] || GALLERY_IMAGES.clinica_estetica!;
   return list.map(id => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=1200&q=80");
@@ -75,7 +82,7 @@ export function blueprintFor(area: string, companyName: string, opts: { primaryC
   const waLink = `https://wa.me/${phoneOf(wa)}`;
   const pages = [
     { slug: "inicio", kind: "HOME", title: "Início", blocks: [
-      { type: "hero", content: { headline: pack.headline, sub: pack.sub, ctaLabel: "Quero conversar", ctaUrl: waLink, badge: pack.label, imageUrl: heroImageFor(area) } },
+      { type: "hero", content: { headline: pack.headline, sub: pack.sub, ctaLabel: "Quero conversar", ctaUrl: waLink, badge: pack.label, imageUrl: heroImageFor(area), variant: HERO_VARIANT_BY_AREA[area] || "overlay" } },
       { type: "services", content: { title: "O que fazemos", items: pack.services.map(s => ({ title: s.title, text: s.text })) } },
       { type: "gallery", content: { title: "Ambiente e detalhes", items: galleryImagesFor(area).map((url, i) => ({ url, caption: i === 0 ? "Nosso espaço principal" : "Detalhe " + (i + 1) })) } },
       { type: "testimonials", content: { title: "O que dizem de nós", items: [ { name: "Ana Paula", text: "Atendimento nota 10, do início ao fim. Recomendo de olhos fechados." }, { name: "Roberto Menezes", text: "Tudo explicado, sem enrolação. Já voltei três vezes." }, { name: "Cláudia Regina", text: "Qualidade e preço justo. Não troco por nenhum outro." }, { name: "Juliana Paixão", text: "A equipe é espetacular. Sucesso total toda vez." }, { name: "Marcos Vinicius", text: "Profissionalismo sem par. Fecharam antes do prazo." }, { name: "Beatriz Lima", text: "Atendimento humanizado e resultado impecável." } ] } },

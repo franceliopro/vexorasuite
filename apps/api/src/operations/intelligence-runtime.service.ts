@@ -17,6 +17,7 @@ import { ZernioService } from './zernio.service';
 import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables } from '../ai/flow-runtime';
 import { JobLeaseService } from '../common/job-lease.service';
 import { schedulersEnabled } from '../common/scheduler-mode';
+import { skillInstructionsForAgent } from '../ai/product-skills';
 
 export const object = (v: unknown): Record<string, any> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, any> : {};
 
@@ -429,8 +430,10 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                 'Documentos de referência: '+documentKnowledge,
                 scopedPresetInstructions(root,runtimeScope,conversation.departmentId?(await tx.department.findFirst({where:{id:conversation.departmentId,tenantId:channel.tenantId,isActive:true},select:{routingCategory:true}}))?.routingCategory:null),
                 interpolateVariables(String(agent.instructions||'').slice(0,6000),variables),
+                'Tom de fala do agente: ' + String(agent.profile?.tone || 'cordial e objetivo').slice(0, 120),
                 interpolateVariables(String(object(agent.behavior).rules||'').slice(0,3000),variables),
                 'Restrições: '+interpolateVariables(String(object(agent.behavior).prohibitions||'').slice(0,3000),variables),
+                skillInstructionsForAgent(object(tenant.integrations), agent.allowedActions),
                 'Estrutura da empresa para orientar o atendimento, sem expor identificadores: '+JSON.stringify(ecosystem).slice(0,7000),
                 'Mantenha o escopo e recuse solicitações fora dele.'
               ].join('\n')+research+'\nAções de CRM permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';

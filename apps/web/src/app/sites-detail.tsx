@@ -30,15 +30,22 @@ export function SitesWizardDialog(props: {
   wizCloneUrl: string; setWizCloneUrl: (v: string) => void;
   closeWizard: () => void; submitWizard: () => Promise<void>;
   onSaveDraft: () => void; savedDraft: boolean;
+  hasDraft: boolean; onDeleteDraft: () => void;
+  modelLabel: string; onReloadModel: () => void;
   onCloneSite: () => void; wizCloning: boolean;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, onCloneSite, wizCloning } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
       <section className="vx-dialog sites-wizard" role="dialog" aria-modal="true" aria-labelledby="sites-wizard-title">
-        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><div style={{display:"flex",gap:8,marginLeft:"auto"}}><button type="button" className="secondary-button" onClick={onSaveDraft} title="Salvar rascunho deste formulário para continuar depois">{savedDraft ? "Salvo como rascunho" : "Salvar como rascunho"}</button><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></div></header>
+        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><div style={{display:"flex",gap:8,marginLeft:"auto"}}><button type="button" className="secondary-button" onClick={onSaveDraft} disabled={!hasDraft || wizSaving || wizCloning} title="Salvar rascunho deste formulário para continuar depois">{savedDraft ? "Salvo como rascunho" : "Salvar como rascunho"}</button><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></div></header>
         <div className="vx-dialog-body sites-wizard-body">
+          <div className="sites-block-actions">
+            <p className="sites-field-hint" role="status"><b>Design Gráfico &amp; Web</b> · {modelLabel || "Consultando modelo…"}</p>
+            <button type="button" className="secondary-button" onClick={onReloadModel} disabled={wizSaving || wizCloning}>Atualizar modelo</button>
+            {hasDraft && <button type="button" className="secondary-button" onClick={onDeleteDraft} disabled={wizSaving || wizCloning}>Excluir rascunho</button>}
+          </div>
           <label className="sites-field"><span>Nome do site</span><input autoFocus value={wizName} onChange={e => { setWizName(e.target.value); if (!wizSlug) setWizSlug(safeSlug(e.target.value)); }} placeholder="Ex.: Clínica Estética Lume" /></label>
           <p className="sites-field-label">Escolha o template do site</p>
           <div className="sites-areas">

@@ -8,7 +8,7 @@ import { buildSiteClone } from "./clone-site";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
 import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
-import { resolveCreativeAgent } from "../ai/creative-agent";
+import { configuredCreativeAgent, resolveCreativeAgent } from "../ai/creative-agent";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { referenceBriefFromUrl } from "./reference-brief";
 import { searxngSearch } from "../ai/local-services";
@@ -155,6 +155,18 @@ export class SitesController {
     const design = parseSiteDesign(result.text, blueprint, true);
     if (!design) throw new BadRequestException("O agente Design Gráfico & Web não entregou um layout utilizável.");
     return design;
+  }
+
+  @Get("creative-model")
+  async creativeModel(@Req() req: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
+    const root = tenant?.integrations as { assistant?: { enabled?: boolean } } | null;
+    const agent = configuredCreativeAgent(root);
+    return {
+      provider: agent.llm?.provider || "",
+      model: agent.llm?.model || "",
+      enabled: root?.assistant?.enabled === true && agent.enabled === true,
+    };
   }
 
   @Get("catalog") catalog() {

@@ -3,12 +3,17 @@ import { economicalProviders } from "./economical-providers";
 import { agentPersonaBlock } from "./product-skills";
 import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
 
+export function configuredCreativeAgent(root: any) {
+  const agents = root?.assistant?.agents;
+  return (Array.isArray(agents) ? agents.find((entry: any) => entry?.id === WEB_DESIGNER_AGENT_ID) : undefined) ?? webDesignerAgent();
+}
+
 export function resolveCreativeAgent(root: any, tenantId: string) {
   const assistant = root?.assistant;
   if (assistant?.enabled !== true) {
     throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA da empresa em Agentes de IA → Configuração geral." });
   }
-  const agent = (Array.isArray(assistant.agents) ? assistant.agents.find((entry: any) => entry?.id === WEB_DESIGNER_AGENT_ID) : undefined) ?? webDesignerAgent();
+  const agent = configuredCreativeAgent(root);
   if (agent.enabled !== true) {
     throw new ForbiddenException("Ative o agente Design Gráfico & Web em Agentes de IA.");
   }

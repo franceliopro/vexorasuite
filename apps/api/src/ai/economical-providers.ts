@@ -17,7 +17,7 @@ export function economicalProviders(assistant: any, override?: any, integrations
   return (policy?.freeFirst?priority(a)-priority(b):0)||(costA!==null&&costB!==null?costA-costB:0)||(rank[a.tier]??9)-(rank[b.tier]??9);
  }).flatMap(s=>{
   const local = localLlmOrigin(s.provider);
-  const apiKey=local?(process.env[local]?'local':undefined):['openrouter','openai','gemini','anthropic','deepseek','qwen'].includes(s.provider)?providerApiKey(s.provider,integrations,tenantId):undefined;
+  const apiKey=local?(process.env[local]?'local':undefined):['openrouter','openai','gemini','anthropic','deepseek','qwen','groq'].includes(s.provider)?providerApiKey(s.provider,integrations,tenantId):undefined;
   const id=s.provider+':'+s.model;
   if(!apiKey||!s.model||seen.has(id))return [];seen.add(id);
   return [{provider:s.provider,model:s.model,apiKey,timeoutMs:local?60000:20000,maxTokens:1200,...(s.provider==='openrouter'&&free(s)?{freeOnly:true}:{})} as AiProvider];

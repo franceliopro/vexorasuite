@@ -104,6 +104,7 @@ Gerada a partir de `docker-compose.yml`; confira o arquivo se algo divergir. **O
 | `LLAMA_CPP_API_KEY` | Opcional (somente se o llama-server subiu com `--api-key`) | vazio |
 | `OLLAMA_BASE_URL` | Opcional | vazio |
 | `OLLAMA_DEFAULT_MODEL` | Opcional | `qwen2.5:1.5b` |
+| `GROQ_API_KEY` | Opcional (grátis, sem cartão — https://console.groq.com/keys) | vazio |
 
 ### Meta
 

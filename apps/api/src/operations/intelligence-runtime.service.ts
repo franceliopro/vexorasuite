@@ -1,3 +1,4 @@
+import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {inboxRouting} from "./inbox-routing";
 import {selectPublication,scopedPresetInstructions,publicationKey,RuntimeScope} from './runtime-scope';
 import { ConversationDistributionService } from "./conversation-distribution.service";
@@ -209,7 +210,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         if (step?.kind !== "agent") return false;
         let config: Record<string, any> = {};
         try { config = typeof step.config === "string" ? JSON.parse(step.config || "{}") : object(step.config); } catch { config = {}; }
-        const agent = Array.isArray(root.assistant?.agents) ? root.assistant.agents.find((item: any) => item?.id === config.agentId && item?.enabled === true) : null;
+        const agent = Array.isArray(root.assistant?.agents) ? root.assistant.agents.find((item: any) => String(config.agentId) !== WEB_DESIGNER_AGENT_ID && item?.id === config.agentId && item?.enabled === true) : null;
         return Array.isArray(agent?.bindings?.inboxes) && agent.bindings.inboxes.includes(channel.id);
       });
       const channelAllowed = Boolean(published.flow) && (published.flow.channelIds?.includes(channel.id) || (Array.isArray(published.flow.channelIds) && published.flow.channelIds.length === 0 && explicitAgentInboxMatch));
@@ -366,7 +367,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           }
           if (type === 'agent') {
             const assistant = object(object(tenant.integrations).assistant);
-            const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a.id === config.agentId && a.enabled === true) : null;
+            const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => String(config.agentId) !== WEB_DESIGNER_AGENT_ID && a.id === config.agentId && a.enabled === true) : null;
             const assignedInboxes = Array.isArray(agent?.bindings?.inboxes) ? agent.bindings.inboxes.filter((id: unknown): id is string => typeof id === "string") : [];
             if (!agent || assignedInboxes.length === 0 || !assignedInboxes.includes(channel.id)) {
               reason = "agent_not_assigned_to_inbox";

@@ -1,5 +1,6 @@
 "use client";
 import { MapPin, Phone, Mail, ArrowRight, Star, ChevronDown } from "lucide-react";
+import { FreeSiteFrame } from "./free-site-frame";
 import { LayoutBlock, heroDesignCss } from "./site-layout";
 
 import type { CSSProperties } from "react";
@@ -50,6 +51,8 @@ export function SitePreview({ site, highlightBlockId, onBlockClick }: { site: Pr
           if (variant === "editorial") return <section className={"ps-hero ps-hero--editorial ps-hero-pair-" + fontPair} style={heroStyle}><div className="ps-hero-editorial-inner">{inner}{hasImage && <figure className="ps-hero-editorial-media"><img src={imageUrl} alt={c.headline || site.name} loading="eager" /></figure>}</div></section>;
           const cls = "ps-hero ps-hero--" + variant + " ps-hero-pair-" + fontPair + " ";
           return <section className={cls} style={heroStyle}>{inner}</section>; }
+      case "freeLayout":
+        return <FreeSiteFrame content={c} onSelect={onBlockClick ? () => onBlockClick(block.id) : undefined} />;
       case "layout":
         return <LayoutBlock content={c} />;
       case "richText":

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, ServiceUnavailableException, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -7,14 +7,12 @@ import { normalizePrice } from "./money";
 import { buildSiteClone } from "./clone-site";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
-import { AiMessage, AiService } from "../ai/ai.service";
-import { economicalProviders } from "../ai/economical-providers";
+import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
+import { resolveCreativeAgent } from "../ai/creative-agent";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
-import { agentPersonaBlock } from "../ai/product-skills";
 import { referenceBriefFromUrl } from "./reference-brief";
 import { searxngSearch } from "../ai/local-services";
-import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
-import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM } from "./relayout";
+import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM, sanitizeFreeLayout } from "./relayout";
 import { readPropertyLists, sanitizePropertyData, sanitizePropertyLists, scopeForRequest, assertItemInScope, itemCategory, DEFAULT_LISTS, PROPERTY_STATUS, STATUS_LABEL } from "./real-estate";
 import { WahaService } from "../operations/waha.service";
 import { MailService } from "../mail/mail.service";
@@ -37,7 +35,7 @@ function safeUrl(v: unknown): string | null {
   return isHttp(s) || /^\/(?!\/)/.test(s) || /^#/.test(s) ? s.slice(0, 2000) : null;
 }
 const PAGE_KINDS = ["HOME","SERVICES","TEAM","IMOVEIS","POSTS","CONTACT","LANDING","CUSTOM"] as const;
-const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout"] as const;
+const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout","freeLayout"] as const;
 
 /** Véxora Sites — API do produto Sites (criação, edição, publicação e domínio). */
 @Controller("sites")
@@ -78,21 +76,9 @@ export class SitesController {
     return item;
   }
 
-  private designAgent(assistant: any) {
-    return (Array.isArray(assistant?.agents) ? assistant.agents.find((agent: any) => agent?.id === WEB_DESIGNER_AGENT_ID) : undefined) ?? webDesignerAgent();
-  }
-
-  private designProviders(assistant: any, integrations: any, tenantId: string) {
-    const agent = this.designAgent(assistant);
-    const providers = economicalProviders(assistant, agent.llm, integrations, tenantId);
-    return providers.length || !agent.llm ? providers : economicalProviders(assistant, undefined, integrations, tenantId);
-  }
-
-  private designSystem(integrations: any) {
-    const assistant = integrations.assistant;
-    const agent = this.designAgent(assistant);
-    const persona = agentPersonaBlock({ ...integrations, assistant: { ...assistant, agents: [agent] } }, WEB_DESIGNER_AGENT_ID);
-    return SITE_DESIGN_SYSTEM + "\n\nConfiguração do agente:" + persona + "\nAplique as orientações e Skills pertinentes dentro do contrato acima. A estrutura e as seções são decisões do projeto, e o pedido específico guia a direção visual.";
+  private designSystem(persona: string) {
+    return SITE_DESIGN_SYSTEM + "\n\nConfiguração do agente:" + persona
+      + "\nAplique as orientações e Skills pertinentes. O pedido específico guia as decisões visuais.";
   }
 
   private async designReferences(tenantId: string, agent: any, urls: string[]) {
@@ -117,7 +103,7 @@ export class SitesController {
     return references;
   }
 
-  private async generateDesign(messages: AiMessage[], providers: ReturnType<typeof economicalProviders>, accept: (text: string) => boolean) {
+  private async generateDesign(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean) {
     try {
       return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 50000, maxTokens: 6000 })), accept);
     } catch (error) {
@@ -131,22 +117,17 @@ export class SitesController {
   private async enrichBlueprintWithAi(
     tenantId: string, userId: string, area: string, companyName: string, blueprint: Blueprint,
     briefData: { aiPrompt: string; referenceUrl: string; cloneUrl: string; primaryColor: string; accentColor: string; whatsapps: { label: string; handle: string }[]; socials: { platform: string; handle: string }[] },
-  ): Promise<{ blueprint: Blueprint; ai: { applied: boolean; note?: string } }> {
-    const fallback = (note: string) => ({ blueprint, ai: { applied: false, note: note + " O site foi criado com o modelo inicial." } });
+  ): Promise<Blueprint> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
     const integrations: any = tenant?.integrations;
     const assistant = integrations?.assistant;
-    if (assistant?.enabled !== true) return fallback("A IA desta empresa está desativada em Agentes de IA → Configuração geral.");
-    const agent = this.designAgent(assistant);
-    if (agent.enabled === false) return fallback("Ative o agente Design Gráfico & Web em Agentes de IA.");
-    const providers = this.designProviders(assistant, integrations, tenantId);
-    if (!providers.length) return fallback("Configure um modelo disponível para Design Gráfico & Web em Agentes de IA.");
+    const { agent, providers, persona } = resolveCreativeAgent(integrations, tenantId);
 
     const { aiPrompt, referenceUrl, cloneUrl, ...branding } = briefData;
-    const pages = editableSitePages(blueprint);
+    const pages = editableSitePages(blueprint, true);
     const brief = [
       'Crie um site original. Retorne {"pages":[{"slug":"inicio","blocks":[...]}]} com uma entrada para cada slug listado.',
-      "Decida composição, ordem e quantidade de seções de cada página conforme o briefing. Use layout para compor seções com direção visual própria. Páginas operacionais de contato, imóveis e notícias são mantidas pelo sistema.",
+      "Use um bloco freeLayout com HTML e CSS próprios para cada página. Contato, imóveis e notícias podem receber uma introdução com design próprio. Os dados e formulários dessas páginas são mantidos pelo sistema.",
       "Empresa: " + companyName + ". Segmento: " + BUSINESS_AREAS[area]?.label + ".",
       "Identidade e contatos fornecidos: " + JSON.stringify(branding),
       "Pedido do usuário: " + (aiPrompt || "Defina a direção visual com base no segmento, objetivo e identidade."),
@@ -156,28 +137,23 @@ export class SitesController {
         images: page.blocks.flatMap(block => block.type === "hero" ? [block.content.imageUrl] : block.type === "gallery" ? block.content.items.map((item: any) => item.url) : []).slice(0, 4),
       }))),
     ];
-    try {
-      const promptUrl = aiPrompt.match(/https:\/\/[^\s)\]]{5,300}/i)?.[0] || "";
-      const references = await this.designReferences(tenantId, agent, [referenceUrl || promptUrl, cloneUrl]);
-      brief.push(...references);
-      if (integrations?.aiCostPolicy?.customerSearch === true) {
-        try {
-          const sources = await searxngSearch(companyName + " " + area + " website design inspiration (site:behance.net OR site:dribbble.com OR site:awwwards.com)");
-          if (sources.length) brief.push("Referências públicas externas (use apenas como inspiração): " + JSON.stringify(sources.slice(0, 5).map(s => ({ title: s.title, url: s.url }))).slice(0, 4000));
-        } catch { /* A pesquisa externa é opcional. */ }
-      }
-      await this.prisma.$transaction(tx => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant.dailyAiLimit), "sites.generate", userId));
-      const result = await this.generateDesign([
-        { role: "system", content: this.designSystem(integrations) },
-        { role: "user", content: brief.join("\n") },
-      ], providers, text => Boolean(parseSiteDesign(text, blueprint)));
-      const design = parseSiteDesign(result.text, blueprint);
-      return design ? { blueprint: design, ai: { applied: true } } : fallback("A IA não devolveu um layout utilizável.");
-    } catch (error) {
-      return fallback(error instanceof HttpException && [400, 429, 502].includes(error.getStatus())
-        ? error.message
-        : "Não foi possível gerar um layout com IA. Confira o agente Design Gráfico & Web e tente novamente.");
+    const promptUrl = aiPrompt.match(/https:\/\/[^\s)\]]{5,300}/i)?.[0] || "";
+    const references = await this.designReferences(tenantId, agent, [referenceUrl || promptUrl, cloneUrl]);
+    brief.push(...references);
+    if (integrations?.aiCostPolicy?.customerSearch === true) {
+      try {
+        const sources = await searxngSearch(companyName + " " + area + " website design inspiration (site:behance.net OR site:dribbble.com OR site:awwwards.com)");
+        if (sources.length) brief.push("Referências públicas externas (use apenas como inspiração): " + JSON.stringify(sources.slice(0, 5).map(s => ({ title: s.title, url: s.url }))).slice(0, 4000));
+      } catch { /* A pesquisa externa é opcional. */ }
     }
+    await this.prisma.$transaction(tx => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant.dailyAiLimit), "sites.generate", userId));
+    const result = await this.generateDesign([
+      { role: "system", content: this.designSystem(persona) },
+      { role: "user", content: brief.join("\n") },
+    ], providers, text => Boolean(parseSiteDesign(text, blueprint, true)));
+    const design = parseSiteDesign(result.text, blueprint, true);
+    if (!design) throw new BadRequestException("O agente Design Gráfico & Web não entregou um layout utilizável.");
+    return design;
   }
 
   @Get("catalog") catalog() {
@@ -199,11 +175,10 @@ export class SitesController {
     const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
     const blueprintResult = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC" });
-    const enriched = await this.enrichBlueprintWithAi(this.tenantOf(req), req.user.sub, area, name, blueprintResult, {
+    const blueprint = await this.enrichBlueprintWithAi(this.tenantOf(req), req.user.sub, area, name, blueprintResult, {
       aiPrompt: str(body?.aiPrompt, 2500), referenceUrl: str(body?.referenceUrl, 300), cloneUrl: str(body?.cloneUrl, 300),
       primaryColor, accentColor, whatsapps, socials,
     });
-    const blueprint = enriched.blueprint;
     const slug = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
     let finalSlug = slug, attempt = 0;
     while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slug + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
@@ -215,7 +190,7 @@ export class SitesController {
       },
       include: { pages: { include: { blocks: true } }, forms: true },
     });
-    return { ...site, ai: enriched.ai };
+    return { ...site, ai: { applied: true } };
   }
 
   /**
@@ -308,7 +283,9 @@ export class SitesController {
     if (body?.hidden !== undefined) data.hidden = body.hidden === true;
     if (body?.content !== undefined) {
       if (typeof body.content !== "object" || Array.isArray(body.content) || body.content === null) throw new BadRequestException("content deve ser objeto.");
-      data.content = sanitizeContent(body.content);
+      data.content = (data.type ?? block.type) === "freeLayout" ? sanitizeFreeLayout(body.content) : sanitizeContent(body.content);
+      if (data.content === null) throw new BadRequestException("Informe HTML e CSS válidos.");
+
     }
     if (body?.sortOrder !== undefined) data.sortOrder = Math.max(0, Math.min(999, Number(body.sortOrder) || 0));
     return this.prisma.siteBlock.update({ where: { id: block.id }, data });
@@ -318,7 +295,9 @@ export class SitesController {
     const page = await this.ownPage(req, pageId);
     if (!BLOCK_TYPES.includes(body?.type)) throw new BadRequestException("Tipo de bloco inválido.");
     const count = await this.prisma.siteBlock.count({ where: { pageId: page.id } });
-    return this.prisma.siteBlock.create({ data: { pageId: page.id, type: body.type, content: sanitizeContent(body?.content || {}), sortOrder: count } });
+    const content = body.type === "freeLayout" ? sanitizeFreeLayout(body.content) : sanitizeContent(body?.content || {});
+    if (content === null) throw new BadRequestException("Informe HTML e CSS válidos.");
+    return this.prisma.siteBlock.create({ data: { pageId: page.id, type: body.type, content, sortOrder: count } });
   }
 
   @Delete("pages/:pageId/blocks/:blockId") async deleteBlock(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string) {
@@ -337,17 +316,17 @@ export class SitesController {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
     const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
     const assistant = integrations?.assistant;
-    if (!assistant || assistant.enabled !== true) throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa em Agentes de IA → Configuração geral antes de pedir alterações por IA." });
-    // O mesmo modelo do agente Design Gráfico & Web — nunca a configuração geral genérica.
-    const providers = this.designProviders(assistant, integrations, this.tenantOf(req));
-    if (!providers.length) throw new BadRequestException("Nenhum modelo de IA configurado para o agente Design Gráfico & Web. Ajuste em Agentes de IA.");
-    const persona = agentPersonaBlock(integrations, WEB_DESIGNER_AGENT_ID, 1200, 3000);
+    const { agent, providers, persona } = resolveCreativeAgent(integrations, this.tenantOf(req));
+    const references = await this.designReferences(this.tenantOf(req), agent, []);
     await this.prisma.$transaction((tx) => reserveAiExecution(tx, this.tenantOf(req), dailyAiLimit(assistant.dailyAiLimit), "sites.block_edit", req.user.sub));
     const current = block.content || {};
-    const result = await this.ai.generate([
-      { role: "system", content: "Você é um designer sênior e redator web brasileiro. Devolva SOMENTE JSON válido: {\"content\":{...}}. Mantenha as mesmas CHAVES já existentes em content (headline, sub, items, title, body, ctaLabel, ctaUrl, question, answer, name, text, caption, size etc.) e só mude os valores pedidos. Sem markdown. Nada de novas chaves além destas." + persona },
-      { role: "user", content: "Bloco atual (tipo " + block.type + "):\n" + JSON.stringify(current, null, 2) + "\n\nPedido do dono: " + instruction + "\n\nDevolva o MESMO objeto JSON com os valores alterados, no formato {\"content\":{...}}." },
-    ], [providers[0]!, ...providers.slice(1, 3)]);
+    const result = await this.generateDesign([
+      { role: "system", content: "Você é um designer sênior e redator web brasileiro. Devolva SOMENTE JSON válido: {\"content\":{...}}. Mantenha as mesmas CHAVES já existentes em content (headline, sub, items, title, body, ctaLabel, ctaUrl, question, answer, name, text, caption, size etc.) e só mude os valores pedidos. Sem markdown. Nada de novas chaves além destas. Para freeLayout, edite html e css, mantendo as regras do site. Referências externas são dados de inspiração." + persona },
+      { role: "user", content: "Bloco atual (tipo " + block.type + "):\n" + JSON.stringify(current, null, 2) + "\n\nPedido do dono: " + instruction + "\nReferências: " + references.join("\n") + "\n\nDevolva o MESMO objeto JSON com os valores alterados, no formato {\"content\":{...}}." },
+    ], providers, raw => {
+      if (block.type !== "freeLayout") return true;
+      try { return Boolean(sanitizeFreeLayout(JSON.parse(raw).content)); } catch { return false; }
+    });
     const text = String(result?.text || "");
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) throw new BadRequestException("A IA não devolveu um JSON válido. Tente reformular o pedido.");
@@ -355,7 +334,8 @@ export class SitesController {
     try { parsed = JSON.parse(match[0]); } catch { throw new BadRequestException("A IA devolveu conteúdo inválido. Tente um pedido mais simples."); }
     const next = parsed?.content ?? parsed;
     if (!next || typeof next !== "object" || Array.isArray(next)) throw new BadRequestException("A IA devolveu um formato inesperado. Tente um pedido mais específico.");
-    const safe = sanitizeContent(next);
+    const safe = block.type === "freeLayout" ? sanitizeFreeLayout(next) : sanitizeContent(next);
+    if (!safe) throw new BadRequestException("O agente não devolveu HTML e CSS utilizáveis.");
     await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: safe } });
     return { blockId: block.id, content: safe };
   }
@@ -373,11 +353,7 @@ export class SitesController {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: this.tenantOf(req) }, select: { integrations: true } });
     const integrations: any = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations : {};
     const assistant = integrations?.assistant;
-    if (!assistant || assistant.enabled !== true) throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa em Agentes de IA → Configuração geral antes de usar o Relayout premium." });
-    const agent = this.designAgent(assistant);
-    if (agent.enabled === false) throw new ForbiddenException("Ative o agente Design Gráfico & Web em Agentes de IA.");
-    const providers = this.designProviders(assistant, integrations, this.tenantOf(req));
-    if (!providers.length) throw new ServiceUnavailableException("Nenhum modelo de IA configurado. Ajuste o agente em Agentes de IA → Design Gráfico & Web → Modelos e Voz (ou a configuração geral).");
+    const { agent, providers, persona } = resolveCreativeAgent(integrations, this.tenantOf(req));
     const prompt = str(body?.prompt, 2500);
     const referenceUrl = str(body?.referenceUrl, 500) || prompt.match(/https:\/\/[^\s)\]]{5,300}/i)?.[0] || "";
     const imageUrl = str(body?.imageUrl, 2000);
@@ -404,10 +380,10 @@ export class SitesController {
     if (imageUrl && typeof userContent === "string") throw new BadRequestException("Imagem de referência inválida. Envie a imagem novamente.");
     await this.prisma.$transaction(tx => reserveAiExecution(tx, this.tenantOf(req), dailyAiLimit(assistant.dailyAiLimit), "sites.relayout", req.user.sub));
     const result = await this.generateDesign([
-      { role: "system", content: this.designSystem(integrations) },
+      { role: "system", content: this.designSystem(persona) },
       { role: "user", content: userContent },
-    ], providers, text => Boolean(parseSitePage(text, currentBlocks)));
-    const safeBlocks = parseSitePage(result.text, currentBlocks);
+    ], providers, text => Boolean(parseSitePage(text, currentBlocks, true)));
+    const safeBlocks = parseSitePage(result.text, currentBlocks, true);
     if (!safeBlocks) throw new BadRequestException("A IA não devolveu um layout utilizável.");
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM site_pages WHERE id = ${page.id}::uuid FOR UPDATE`;

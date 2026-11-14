@@ -8,11 +8,10 @@ import { Prisma } from "@prisma/client";
 import { AiService } from "./ai.service";
 import { ZernioService } from "../operations/zernio.service";
 import { WahaService } from "../operations/waha.service";
-import { economicalProviders } from "./economical-providers";
+import { resolveCreativeAgent } from "./creative-agent";
 import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { parseCarousel, slideSvg, type Carousel } from "./assistant-automation.service";
-import { skillInstructions, agentPersonaBlock } from "./product-skills";
-import { WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
+import { skillInstructions } from "./product-skills";
 import { fetchTextGuarded } from "../sites/clone-site";
 
 const obj = (v: unknown): Record<string, any> => (v && typeof v === "object" && !Array.isArray(v) ? v as any : {});
@@ -99,20 +98,14 @@ export class DesignApprovalsController {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { name: true, integrations: true } });
     const root = obj(tenant.integrations);
     const assistant = obj(root.assistant);
-    if (assistant.enabled !== true) throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa em Agentes de IA → Configuração geral antes de criar o carrossel." });
+    const { providers, persona } = resolveCreativeAgent(root, req.user.tenantId);
 
     // Referência do Instagram (melhor esforço) + imagens anexadas.
     const og = instagramUrl ? await instagramReference(instagramUrl) : null;
     const visionImages = await this.toVisionImages([...(og?.imageUrl ? [og.imageUrl] : []), ...referenceImages], req.user.tenantId);
 
-    const webDesigner = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a?.id === "vexora:web-designer") : undefined;
-    const chosen = webDesigner?.llm ? webDesigner : undefined;
-    const providers = economicalProviders(assistant, chosen?.llm || assistant.llm || undefined, root, req.user.tenantId);
-    if (!providers.length) throw new BadRequestException("Nenhum modelo de IA configurado. Ajuste em Agentes de IA (modelo do agente Design Gráfico & Web ou da configuração geral).");
-
     // Pesquisa apenas quando o cliente autoriza a política de busca externa; a referência do Instagram é o insumo principal.
     const brand = /^#[\da-f]{6}$/i.test(String(root.brandSettings?.primaryColor)) ? String(root.brandSettings.primaryColor) : "#2E7CF6";
-    const persona = agentPersonaBlock(root, WEB_DESIGNER_AGENT_ID);
     const skillText = persona.trim() || skillInstructions(root, "media.instagram.redesign");
     const instructions = (skillText || "Recrie o carrossel de referência com a identidade da empresa.") + ` Formato: ${format === "STORIES" ? "Stories vertical 1080x1920" : "Post/Carrossel 1080x1440"}. Retorne SOMENTE JSON: {"title":"até 120 caracteres","caption":"legenda até 2000 caracteres","slides":[{"title":"até 75 caracteres","body":"até 420 caracteres"}]}. Use 4 a 6 lâminas de conteúdo e a última de CTA.`;
     const brief = [

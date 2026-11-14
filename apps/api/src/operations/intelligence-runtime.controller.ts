@@ -1,3 +1,4 @@
+import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import { AuditCovered } from "../common/audit/audit.decorator";
 import {isUUID} from 'class-validator';
 import {publicationKey,RuntimeScope} from './runtime-scope';
@@ -71,7 +72,7 @@ export class IntelligenceRuntimeController {
         const config = settings(step);
         if (step.kind === 'agent') {
           const assistant = object(root.assistant);
-          const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => a.id === config.agentId && a.enabled === true) : null;
+          const agent = Array.isArray(assistant.agents) ? assistant.agents.find((a: any) => String(config.agentId) !== WEB_DESIGNER_AGENT_ID && a.id === config.agentId && a.enabled === true) : null;
           const selection = object(agent?.llm || assistant.llm);
           const configured = economicalProviders(assistant,selection,root,req.user.tenantId).length>0;
           if (!assistant.enabled || !agent || !configured) throw new BadRequestException(`${step.title}: agente, modelo e provedor precisam estar habilitados e configurados`);

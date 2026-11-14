@@ -1,5 +1,6 @@
 "use client";
 import { use, useEffect, useState } from "react";
+import { FreeSiteFrame } from "../../free-site-frame";
 import { LayoutBlock, heroDesignCss } from "../../site-layout";
 import { formatBRL } from "../../../lib/money";
 import { MapPin, MessageCircle, Phone, Mail, ArrowRight, Star, Globe, ChevronDown } from "lucide-react";
@@ -82,6 +83,8 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
         const cls = "ps-hero ps-hero--" + variant + " ps-hero-pair-" + fontPair;
         return <section className={cls} style={heroStyle}>{inner}</section>;
       }
+      case "freeLayout":
+        return <FreeSiteFrame content={c} />;
       case "layout":
         return <LayoutBlock content={c} />;
       case "richText":

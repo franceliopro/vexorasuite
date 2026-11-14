@@ -2,11 +2,11 @@ import { modelPrice } from "./model-prices";
 import { AiProvider } from './ai.service';
 import { providerApiKey } from './provider-credentials';
 /** Only explicitly configured models; no unbounded escalation or guessed model IDs. */
-export function economicalProviders(assistant: any, override?: any, integrations?: unknown, tenantId?: string): AiProvider[] {
+export function economicalProviders(assistant: any, override?: any, integrations?: unknown, tenantId?: string, options: { explicitOnly?: boolean } = {}): AiProvider[] {
  const selections = [override?.model ? override : assistant.llm, ...(Array.isArray(assistant.fallbackModels) ? assistant.fallbackModels : [])].filter(Boolean);
  const policy=(integrations as any)?.aiCostPolicy;
  const free=(s:any)=>s.provider==='ollama'||s.provider==='openrouter'&&(s.model==='openrouter/free'||s.model?.endsWith(':free'));
- if(policy?.freeFirst&&process.env.OLLAMA_BASE_URL&&process.env.OLLAMA_DEFAULT_MODEL&&!selections.some(s=>s.provider==='ollama'))selections.push({provider:'ollama',model:process.env.OLLAMA_DEFAULT_MODEL,tier:'Econômico'});
+ if(!options.explicitOnly&&policy?.freeFirst&&process.env.OLLAMA_BASE_URL&&process.env.OLLAMA_DEFAULT_MODEL&&!selections.some(s=>s.provider==='ollama'))selections.push({provider:'ollama',model:process.env.OLLAMA_DEFAULT_MODEL,tier:'Econômico'});
  
  const rank:Record<string,number>={'Econômico':0,'Equilíbrio':1,'Inteligente':2};
  const seen=new Set<string>();

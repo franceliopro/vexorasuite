@@ -1,3 +1,4 @@
+import { WEB_DESIGNER_AGENT_ID } from './web-designer-agent';
 import {MarketingController} from './marketing.controller';
 const req:any={user:{tenantId:'tenant-a',sub:'user-1',role:'OWNER'}};
 function fixture(){
@@ -54,8 +55,8 @@ function aiFixture(integrations:any){
  const ai:any={generate:jest.fn(async(_messages:any,_providers:any,_accept:any)=>({text:'```json\n{"title":"Site da Clínica Aurora","slug":"clinica-aurora","summary":"Página inicial com especialidades e contato.","fields":[{"label":"Nome","type":"text","required":true},{"label":"E-mail","type":"email","required":true}]}\n```',model:'stub-model',provider:'stub',usage:{promptTokens:10,completionTokens:20,totalTokens:30}}))};
  return {created,prisma,ai,controller:new MarketingController({} as any,{authorize:jest.fn()} as any,prisma,undefined,ai)};
 }
-const aiTenant={assistant:{enabled:true,llm:{provider:'openai',model:'gpt-4o-mini'},dailyAiLimit:20}};
-it('drafts a web asset from the configured assistant without publishing it',async()=>{
+const aiTenant={assistant:{enabled:true,llm:{provider:'ollama',model:'atendimento'},agents:[{id:WEB_DESIGNER_AGENT_ID,enabled:true,llm:{provider:'openai',model:'gpt-4o-mini'}}],dailyAiLimit:20}};
+it('drafts a web asset from the specialized creative agent without publishing it',async()=>{
  const x=aiFixture(aiTenant);
  const draft=await x.controller.draftWebAsset(req,{kind:'FORM',prompt:'Formulário de contato para a clínica Aurora'});
  expect(draft).toMatchObject({kind:'FORM',title:'Site da Clínica Aurora',slug:'clinica-aurora',status:'DRAFT',published:false});

@@ -1,5 +1,5 @@
 import { BadGatewayException, ServiceUnavailableException } from '@nestjs/common';
-export function localServiceUrl(name:'OLLAMA_BASE_URL'|'LOCAL_VOICE_URL'|'SEARXNG_URL',path:string){
+export function localServiceUrl(name:'OLLAMA_BASE_URL'|'LLAMA_CPP_BASE_URL'|'LOCAL_VOICE_URL'|'SEARXNG_URL',path:string){
  const value=process.env[name];if(!value)throw new ServiceUnavailableException('O serviço local solicitado ainda não foi configurado no servidor.');
  try{const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.search||url.hash||!['','/'].includes(url.pathname))throw Error();return new URL(path,url.origin).toString();}catch{throw new ServiceUnavailableException('O endereço do serviço local precisa ser uma origem HTTP ou HTTPS válida.');}
 }

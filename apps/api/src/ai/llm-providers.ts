@@ -1,6 +1,16 @@
 /** Fixed provider origins: credentials and prompts never follow caller-supplied endpoints. */
-export const llmProviders = ['ollama','openrouter','openai','gemini','anthropic','deepseek','qwen'] as const;
+export const llmProviders = ['ollama','llama-cpp','openrouter','openai','gemini','anthropic','deepseek','qwen'] as const;
 export type LlmProvider = typeof llmProviders[number];
+export const localLlmOrigins = {
+ ollama: 'OLLAMA_BASE_URL',
+ 'llama-cpp': 'LLAMA_CPP_BASE_URL',
+} as const;
+
+export function localLlmOrigin(provider: string) {
+ if (provider === 'ollama' || provider === 'llama-cpp') return localLlmOrigins[provider];
+ return undefined;
+}
+
 export const remoteProviders = {
  openrouter:{base:'https://openrouter.ai/api/v1',models:'https://openrouter.ai/api/v1/models?sort=pricing-low-to-high'},
  openai:{base:'https://api.openai.com/v1',models:'https://api.openai.com/v1/models'},

@@ -1,10 +1,10 @@
-import { LlmProvider, remoteProviders, providerHeaders } from './llm-providers';
+import { LlmProvider, remoteProviders, providerHeaders, localLlmOrigin } from './llm-providers';
 import { recordProviderLimit } from "./provider-usage";
 import { Injectable, BadGatewayException, BadRequestException } from "@nestjs/common";
 import { localServiceUrl } from './local-services';
 
 export type AiMessage = { role: "system" | "user" | "assistant"; content: string | ({type:"text";text:string}|{type:"image_url";image_url:{url:string}})[] };
-export type AiProvider = { provider: LlmProvider; model: string; apiKey: string; timeoutMs?: number; maxTokens?: number; freeOnly?:boolean };
+export type AiProvider = { provider: LlmProvider; model: string; apiKey: string; timeoutMs?: number; maxTokens?: number; freeOnly?:boolean; jsonOutput?: boolean };
 export type AiResult = { text: string; model: string; requestedModel?:string; provider: string; usage: { promptTokens: number; completionTokens: number; totalTokens: number } };
 
 function anthropicImage(url: string) {
@@ -25,10 +25,14 @@ export class AiService {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), Math.min(Math.max(p.timeoutMs ?? 30000, 1000), 120000));
       try {
-        const endpoint = p.provider === 'ollama'?localServiceUrl('OLLAMA_BASE_URL','/v1/chat/completions'):remoteProviders[p.provider]?.base+(p.provider==='anthropic'?'/messages':'/chat/completions');
+        const local = localLlmOrigin(p.provider);
+        const remote = remoteProviders[p.provider as keyof typeof remoteProviders];
+        const endpoint = local
+          ? localServiceUrl(local, '/v1/chat/completions')
+          : remote.base + (p.provider === 'anthropic' ? '/messages' : '/chat/completions');
         const response = await fetch(endpoint, {
-          method: "POST", headers: { ...(p.provider==='ollama'?{}:providerHeaders(p.provider,p.apiKey)), "content-type": "application/json" },
-          body: JSON.stringify({ model: p.model, ...(p.provider==='anthropic'?{
+          method: "POST", headers: { ...(local?{}:providerHeaders(p.provider,p.apiKey)), "content-type": "application/json" },
+          body: JSON.stringify({ model: p.model, ...(p.provider === 'llama-cpp' && p.jsonOutput ? { response_format: { type: 'json_object' } } : {}), ...(p.provider==='anthropic'?{
  system:messages.filter(m=>m.role==='system').map(m=>typeof m.content==='string'?m.content:m.content.filter(c=>c.type==='text').map(c=>c.type==='text'?c.text:'').join('\n')).join('\n'),
  messages:messages.filter(m=>m.role!=='system').map(m=>({role:m.role,content:typeof m.content==='string'?m.content:m.content.map(c=>c.type==='text'?c:anthropicImage(c.image_url.url))}))
  }:{messages}), [p.provider==='openai'?'max_completion_tokens':'max_tokens']: Math.min(Math.max(p.maxTokens ?? 500, 1), 10000),...(p.provider==='openrouter'&&p.freeOnly?{provider:{max_price:{prompt:0,completion:0},data_collection:'deny'},plugins:[{id:'web',enabled:false}]}:{}) }), signal: controller.signal, redirect: 'error',

@@ -39,11 +39,19 @@ const AREA_HEADLINE_OVERRIDES: Record<string, string> = {
   vexora: "O sistema operacional da sua empresa",
 };
 
+/** Microcopy produzido pela IA (ou omitido — os textos do template entram no lugar). */
+export type PremiumCopy = {
+  headline?: string; sub?: string; ctaLabel?: string;
+  services?: { title: string; text: string }[];
+  testimonial?: { quote: string; author: string };
+};
+
 /** Constrói a composição premium completa a partir dos dados reais do site. */
 export function buildPremiumTemplate(input: {
   name: string; area: string; primaryColor: string; accentColor: string;
   departments?: { platform: string; handle: string }[];
   imageUrls: string[];
+  copy?: PremiumCopy;
 }): { html: string; css: string } {
   const area = BUSINESS_AREAS[input.area] ? input.area : "site_simples";
   const pack = BUSINESS_AREAS[area]!;
@@ -54,11 +62,15 @@ export function buildPremiumTemplate(input: {
   const waLink = wa ? "https://wa.me/" + String(wa).replace(/\D/g, "") : "#contato";
   const heroImage = input.imageUrls[0] || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80";
   const gallery = input.imageUrls.slice(1, 7);
-  const headline = esc(AREA_HEADLINE_OVERRIDES[area] || pack.headline);
-  const sub = esc(pack.sub);
+  const clamp = (v: unknown, max = 500): string => typeof v === "string" ? esc(v).replace(/\s+/g, " ").trim().slice(0, max) : "";
+  const headline = clamp(input.copy?.headline, 140) || esc(AREA_HEADLINE_OVERRIDES[area] || pack.headline);
+  const sub = clamp(input.copy?.sub, 300) || esc(pack.sub);
   const tagline = esc(pack.label);
   const accent = /^#[0-9a-f]{6}$/i.test(input.accentColor || "") ? input.accentColor : theme.accent;
-  const services = pack.services.slice(0, 6).map(s => ({ title: esc(s.title), text: esc(s.text) }));
+  const services = (Array.isArray(input.copy?.services) && input.copy!.services!.length ? input.copy!.services!.slice(0, 6) : pack.services.slice(0, 6)).map(s => ({ title: clamp(s?.title, 80), text: clamp(s?.text, 240) }));
+  const ctaLabel = clamp(input.copy?.ctaLabel, 60) || "Quero conversar";
+  const quote = clamp(input.copy?.testimonial?.quote, 240) || ("Trabalhar com " + company + " mudou a nossa forma de ver " + esc(tagline.toLowerCase()) + ". Direção clara, entrega no prazo e uma equipe que aparece de verdade.");
+  const author = clamp(input.copy?.testimonial?.author, 80) || "Cliente — exemplo editável (edite no Studio)";
   const cards = (gallery.length ? gallery : [heroImage, "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80", "https://images.unsplash.com/photo-1600596542815-ff5c4fffda7b?auto=format&fit=crop&w=1200&q=80"]).slice(0, 4);
 
   const galleryHtml = cards.map((src, i) => `<figure class="vx-ph"><img src="${esc(src)}" alt="${company} — foto ${i + 1}" loading="lazy"/></figure>`).join("\n");
@@ -69,7 +81,7 @@ export function buildPremiumTemplate(input: {
          <h1>${headline}</h1>
          <p>${sub}</p>
          <div class="vx-actions">
-           <a class="vx-btn" href="${esc(waLink)}">Quero conversar</a>
+           <a class="vx-btn" href="${esc(waLink)}">${ctaLabel}</a>
            <a class="vx-link" href="#servicos">Ver serviços ↓</a>
          </div>
        </div>
@@ -101,14 +113,14 @@ export function buildPremiumTemplate(input: {
     <ol class="vx-services">${servicesHtml}</ol>
   </section>
   <section class="vx-quote" id="sobre">
-    <blockquote>“Trabalhar com ${company} mudou a nossa forma de ver ${esc(tagline.toLowerCase())}. Direção clara, entrega no prazo e uma equipe que aparece de verdade.”</blockquote>
-    <cite>Depoimento de exemplo — edite no Studio → Blocos</cite>
+    <blockquote>“${quote}”</blockquote>
+    <cite>${author}</cite>
   </section>
   <section class="vx-cta" id="contato">
     <span class="vx-eyebrow">Contato</span>
     <h2>Vamos conversar sobre o seu próximo passo?</h2>
     <p>Resposta rápida. Sem compromisso e sem enrolação.</p>
-    <a class="vx-btn vx-btn--big" href="${esc(waLink)}">Falar agora no WhatsApp</a>
+    <a class="vx-btn vx-btn--big" href="${esc(waLink)}">${ctaLabel}</a>
   </section>
 </main>
 <footer class="vx-foot"><strong>${company}</strong><span>© ${new Date().getFullYear()} · ${tagline}</span><a href="${esc(waLink)}">WhatsApp</a></footer>`;

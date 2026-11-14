@@ -108,7 +108,7 @@ export class SitesController {
 
   private async generateDesign(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean) {
     try {
-      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 100000, maxTokens: provider.provider === "llama-cpp" ? 3000 : 10000, jsonOutput: true })), accept);
+      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: provider.provider === "llama-cpp" || provider.provider === "ollama" ? 300000 : 100000, maxTokens: provider.provider === "llama-cpp" ? 3000 : 10000, jsonOutput: true })), accept);
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === 502 && error.message.includes("o roteiro não veio")) {
         throw new BadRequestException("A IA respondeu, mas não entregou um layout válido. Reveja o modelo ou as instruções e tente novamente.");
@@ -165,14 +165,41 @@ export class SitesController {
         if (sources.length) brief.push("Referências públicas externas (use apenas como inspiração): " + JSON.stringify(sources.slice(0, 5).map(s => ({ title: s.title, url: s.url }))).slice(0, 4000));
       } catch { /* A pesquisa externa é opcional. */ }
     }
+    const waDigits = briefData?.whatsapps?.[0]?.handle ? String(briefData.whatsapps[0].handle).replace(/\D/g, "") : "";
+    const copyBrief = [
+      "Você é uma copywriter sênior brasileira de sites de alta conversão. Devolva SOMENTE JSON válido (sem markdown, sem comentários): {\"headline\":\"headline curta (máx. 60 comp.)\",\"sub\":\"subtítulo (máx. 180 comp.)\",\"ctaLabel\":\"botão (máx. 36 comp.)\",\"services\":[{\"title\":\"...\",\"text\":\"\"} x6],\"testimonial\":{\"quote\":\"...\",\"author\":\"Nome sobrenome\"}}. Use APENAS fatos plausíveis do segmento; nada inventado de preço, prazo, certificações ou clientes reais.",
+      "Empresa: " + companyName + ". Segmento: " + BUSINESS_AREAS[area]?.label + ".",
+      "Contatos: " + JSON.stringify({ whatsapps: briefData?.whatsapps, socials: briefData?.socials }) + (waDigits ? " (WhatsApp " + waDigits + ")" : ""),
+      "Pedido do dono (complemento, não pré-requisito): " + (aiPrompt || "Sem pedido detalhado — capriche no nicho e na urgência honesta."),
+    ];
     await this.prisma.$transaction(tx => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant.dailyAiLimit), "sites.generate", userId));
-    const result = await this.generateDesign([
-      { role: "system", content: this.designSystem(persona) },
-      { role: "user", content: brief.join("\n") },
-    ], providers, text => Boolean(parseSiteDesign(text, blueprint, true)));
-    const design = parseSiteDesign(result.text, blueprint, true);
-    if (!design) throw new BadRequestException("O agente Design Gráfico & Web não entregou um layout utilizável.");
-    return { blueprint: design, report };
+    const hasCopy = (text: string) => { try { const j = JSON.parse(text); return j && typeof j.headline === "string" && typeof j.sub === "string" && Array.isArray(j.services) && j.services.length > 0; } catch { return false; } };
+    const copyResult = await this.generateDesign([
+      { role: "system", content: "Você é uma copywriter sênior brasileira. Regras absolutas: somente JSON válido (sem markdown), headline curta, subtítulo factual do nicho, CTA com verbo de ação, services com títulos e descrições curtas do segmento, depoimento plausível (nunca atribuídos a empresas/pessoas reais). Compose com naturalidade: não escreva de forma genérica." },
+      { role: "user", content: copyBrief.join("\n") },
+    ], providers, text => hasCopy(text)).catch(() => null);
+    let aiCopy: any = null;
+    if (copyResult?.text) { try { const j = JSON.parse(copyResult.text.match(/\{[\s\S]*\}/)?.[0] || "{}"); if (hasCopy(JSON.stringify(j))) aiCopy = j; } catch { aiCopy = null; } }
+    const premiumContent = buildPremiumTemplate({
+      name: companyName, area,
+      primaryColor: String((branding as any).primaryColor || "#0E7A5C"),
+      accentColor: String((branding as any).accentColor || "#22D3EE"),
+      departments: list((briefData as any).whatsapps, 5, (w: any) => ({ platform: "whatsapp", handle: String(w?.handle || "") })).filter(d => d.handle),
+      imageUrls: blueprint.pages.flatMap(page => page.blocks.flatMap(block => block.type === "hero" ? [block.content?.imageUrl] : block.type === "gallery" ? (Array.isArray(block.content?.items) ? block.content.items.map((item: any) => item?.url) : []) : [])).filter((url: unknown) => typeof url === "string" && url.length > 0).slice(0, 6),
+      ...(aiCopy && { copy: aiCopy }),
+    });
+    const fallbackDesign = (): Blueprint => {
+      const heroBlocks = blueprint.pages.find(page => page.kind === "HOME")?.blocks.filter(block => ["contact", "posts", "properties"].includes(block.type)) ?? [];
+      const safeContent = sanitizeFreeLayout(premiumContent);
+      const freeLayoutBlock = safeContent ? [{ type: "freeLayout", content: safeContent }] : [];
+      const pages = blueprint.pages.map(page => page.kind === "HOME"
+        ? { ...page, blocks: [...freeLayoutBlock, ...heroBlocks] }
+        : page);
+      return { ...blueprint, pages } as unknown as Blueprint;
+    };
+    const design = fallbackDesign();
+    const finalReport = { ...report, fallback: !aiCopy, copyGenerated: Boolean(aiCopy), ...(!aiCopy && { fallbackReason: "A IA não entregou copy válido — o Template Premium aplicou o seu texto padrão (editável no Studio)." }) };
+    return { blueprint: design, report: finalReport };
   }
 
   @Get("creative-model")

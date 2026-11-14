@@ -105,11 +105,11 @@ export function SitesWizardDialog(props: {
             </div>
                                   </details>
           <details className="sites-ai-card">
-            <summary><Globe size={14} aria-hidden="true" /> Clonar um site existente (WordPress)</summary>
-            <p className="sites-field-hint">Cole a URL pública do site do cliente (ex.: https://rastreabem.com.br). O Véxora importa páginas, posts e imóveis via WordPress REST API — o site entra como rascunho para você revisar e publicar. O tema visual não é copiado: o conteúdo vem estruturado e o design é aplicado pelo Véxora Sites, editável depois no editor.</p>
+            <summary><Globe size={14} aria-hidden="true" /> Clonar um site apontando o domínio</summary>
+            <p className="sites-field-hint">Cole o endereço do site (ex.: https://rastreabem.com.br). A Véxora busca a página original e deixa uma cópia isolada — pixel-perfect, com os scripts funcionando. O resultado entra como rascunho para você revisar e publicar. Para clonar por imagem (screenshot), use "Inspirar com uma imagem".</p>
             <div className="sites-ai-prompt">
-              <label className="sites-field"><span>URL do site a clonar</span><input type="url" inputMode="url" value={wizCloneUrl} onChange={e => setWizCloneUrl(e.target.value)} placeholder="https://cliente.com.br" /></label>
-              <button type="button" className="secondary-button" disabled={wizSaving || wizCloning || !/^https:\/\/.+\..+/i.test((wizCloneUrl || "").trim())} onClick={onCloneSite} title="Importa páginas, posts e imóveis de um site WordPress público">{wizCloning ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {wizCloning ? "Clonando…" : "Clonar site inteiro"}</button>
+              <label className="sites-field"><span>Endereço do site a clonar</span><input type="url" inputMode="url" value={wizCloneUrl} onChange={e => setWizCloneUrl(e.target.value)} placeholder="https://cliente.com.br" /></label>
+              <button type="button" className="secondary-button" disabled={wizSaving || wizCloning || !/^https:\/\/.+\..+/i.test((wizCloneUrl || "").trim())} onClick={onCloneSite} title="Busca o site inteiro (https) e cria uma cópia isolada na Véxora">{wizCloning ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {wizCloning ? "Clonando…" : "Clonar site a partir do domínio"}</button>
             </div>
           </details>
           <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
@@ -342,6 +342,8 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [dirty, setDirty] = useState<Record<string, true>>({});
   const [model, setModel] = useState<PreviewSite>(() => JSON.parse(JSON.stringify(site)) as PreviewSite);
   useEffect(() => { setModel(JSON.parse(JSON.stringify(site)) as PreviewSite); }, [site]);
@@ -559,6 +561,8 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
       setRelayoutError(e instanceof Error ? e.message : "Não foi possível ativar a IA desta empresa.");
     } finally { setRelayoutAiFixing(false); }
   };
+  const aiTypes = ["freeLayout", "layout", "hero", "services", "faq", "cta", "richText", "gallery", "testimonials"];
+  const aiTargetBlock = selectedBlock && aiTypes.includes(selectedBlock.type) ? selectedBlock : allBlocks.find((b: any) => b.pageId === studioPage?.id && aiTypes.includes(b.type));
   const studio = (
     <div className={"sites-studio" + (fullscreen ? " is-fullscreen" : "")}>
       <div className="sites-studio-toolbar">
@@ -574,32 +578,29 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <button type="button" className="secondary-button" disabled={templateBusy} onClick={() => void applyTemplate()} title="Aplica um template premium desenhado por gente — tipografia, cores, seções e fotos suas. Sem depender da IA."><LayoutTemplate size={14} aria-hidden="true" /> {templateBusy ? "Aplicando…" : "Template premium"}</button>
           <button type="button" className="secondary-button" onClick={() => setRelayoutOpen(true)} title="A IA transforma a página em uma versão premium — com prompt, link de referência, imagem ou sem nada"><Wand2 size={14} aria-hidden="true" /> Relayout premium</button>
           <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar isolado de tudo"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
+          <button type="button" className={"secondary-button" + (aiOpen ? " active" : "")} onClick={() => setAiOpen(v => !v)} aria-pressed={aiOpen} title="Abrir o assistente de edição com IA"><Sparkles size={14} aria-hidden="true" /> Pergunte à IA</button>
+          <div className="sites-studio-add-wrap">
+            <button type="button" className="secondary-button" onClick={() => setAddOpen(v => !v)} aria-expanded={addOpen} aria-haspopup="true" title="Adicionar um bloco nesta página"><Plus size={14} aria-hidden="true" /> Adicionar</button>
+            {addOpen ? <div className="sites-add-popover" role="menu">{["hero", "richText", "services", "gallery", "testimonials", "faq", "cta", "contact", "spacer", "freeLayout", "layout"].map(key => <button key={key} role="menuitem" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => { setAddOpen(false); void addBlock(key); }}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div> : null}
+          </div>
           {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}
         </div>
       </div>
-      <div className="sites-studio-body">
-        <aside className="sites-studio-blocks" aria-label="Blocos da página">
-          <h3>Blocos</h3>
-          {allBlocks.length === 0 ? <p className="sites-field-hint">Este site ainda não tem blocos.</p> : allBlocks.map((b: any) => (
-            <div key={b.id} className={"sites-studio-item" + (selected === b.id ? " active" : "") + (b.hidden ? " is-hidden" : "")}>
-              <button type="button" className="sites-studio-block-select" onClick={() => { setStudioPageId(b.pageId); setSelected(b.id); }}>
-                <b>{(b.content?.title || b.content?.headline || b.type).toString().slice(0, 44)}</b>
-                <small>{b.type} · {b.pageTitle}{b.hidden ? " · oculto" : ""}</small>
-              </button>
-              <div className="sites-studio-block-tools">
-                <button type="button" aria-label="Mover acima" title="Mover para cima" onClick={() => moveBlock(b, -1)}><ChevronUp size={13} aria-hidden="true" /></button>
-                <button type="button" aria-label="Mover abaixo" title="Mover para baixo" onClick={() => moveBlock(b, 1)}><ChevronDown size={13} aria-hidden="true" /></button>
-                <button type="button" aria-label={b.hidden ? "Mostrar bloco" : "Ocultar bloco"} title={b.hidden ? "Mostrar" : "Ocultar"} onClick={() => void toggleHidden(b)}>{b.hidden ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}</button>
-                <button type="button" aria-label="Duplicar bloco" title="Duplicar" onClick={() => void duplicateBlock(b)}><Copy size={13} aria-hidden="true" /></button>
-                <button type="button" aria-label="Excluir bloco" title="Excluir" onClick={() => void deleteBlock(b)}><Trash2 size={13} aria-hidden="true" /></button>
-              </div>
-            </div>
-          ))}
-          <div className="sites-studio-add">
-            <p className="sites-field-label">Adicionar bloco</p>
-            <div className="sites-studio-add-grid">{["freeLayout","layout","hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
-          </div>
-        </aside>
+      <div className={"sites-studio-body" + (aiOpen ? " has-ai" : "")}>
+        {aiOpen ? <aside className="sites-studio-ai-panel" aria-label="Assistente de edição com IA">
+          <header className="sites-studio-ai-head">
+            <span className="vx-dialog-icon"><Sparkles size={16} aria-hidden="true" /></span>
+            <div><h3>Pergunte à IA</h3><p>A IA desta empresa edita a página inteira ou o bloco selecionado.</p></div>
+            <button type="button" className="icon-button" onClick={() => setAiOpen(false)} aria-label="Fechar a IA"><X size={14} aria-hidden="true" /></button>
+          </header>
+          <label className="sites-field"><span>O que mudar?</span>
+            <textarea rows={4} value={instruction} onChange={event => setInstruction(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); const t = instruction.trim(); if (t && aiTargetBlock) void applyAi(aiTargetBlock, t); } }} placeholder="Ex.: deixe o título com mais urgência e destaque o botão de agendar." />
+          </label>
+          <button type="button" className="primary-button" disabled={busy || instruction.trim().length < 3 || !aiTargetBlock} onClick={() => aiTargetBlock && void applyAi(aiTargetBlock, instruction.trim())}>{busy ? "Aplicando…" : aiTargetBlock ? "Aplicar no bloco (" + (BLOCKS_META[aiTargetBlock.type]?.label ?? aiTargetBlock.type) + ")" : "Selecione um bloco no canvas"}</button>
+          <p className="sites-field-label">Atalhos</p>
+          <div className="sites-studio-skills">{skills.map(s => <button key={s.label} type="button" disabled={busy} onClick={() => setInstruction(s.instruction)}>{s.label}</button>)}</div>
+          <p className="sites-field-hint">Ctrl+Enter aplica. A IA edita o bloco inteiro — nada fora dele muda. Se a IA falhar, a página fica intacta.</p>
+        </aside> : null}
         <div className="sites-studio-preview">
           <div className={"sites-studio-frame" + (device === "phone" ? " is-phone" : "")}>
             <SitePreview site={studioPage ? { ...model, pages: [studioPage] } : model} highlightBlockId={selected} onBlockClick={(id) => setSelected(id)} />
@@ -610,6 +611,13 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
             <div className="sites-studio-panel-head">
               <h3>Editar bloco</h3>
               <span className="sites-studio-panel-type">{BLOCKS_META[selectedBlock.type]?.label ?? selectedBlock.type}</span>
+            </div>
+            <div className="sites-studio-panel-actions" role="toolbar" aria-label="Ações do bloco">
+              <button type="button" className="icon-button" onClick={() => moveBlock(selectedBlock, -1)} title="Mover para cima" aria-label="Mover bloco para cima"><ChevronUp size={14} aria-hidden="true" /></button>
+              <button type="button" className="icon-button" onClick={() => moveBlock(selectedBlock, 1)} title="Mover para baixo" aria-label="Mover bloco para baixo"><ChevronDown size={14} aria-hidden="true" /></button>
+              <button type="button" className="icon-button" onClick={() => void toggleHidden(selectedBlock)} title={selectedBlock.hidden ? "Mostrar bloco" : "Ocultar bloco"} aria-label={selectedBlock.hidden ? "Mostrar bloco" : "Ocultar bloco"}>{selectedBlock.hidden ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}</button>
+              <button type="button" className="icon-button" onClick={() => void duplicateBlock(selectedBlock)} title="Duplicar bloco" aria-label="Duplicar bloco"><Copy size={14} aria-hidden="true" /></button>
+              <button type="button" className="icon-button" onClick={() => void deleteBlock(selectedBlock)} title="Excluir bloco" aria-label="Excluir bloco"><Trash2 size={14} aria-hidden="true" /></button>
             </div>
             <div className="sites-studio-fields">
               {selectedBlock?.type === "freeLayout" ? (
@@ -665,7 +673,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
               <p className="sites-field-label">Skills rápidas</p>
               <div className="sites-studio-skills">{skills.map(s => <button key={s.label} type="button" disabled={busy} onClick={() => setInstruction(s.instruction)}>{s.label}</button>)}</div>
             </div>
-          </> : <p className="sites-field-hint">Selecione um bloco no preview ou na lista à esquerda para editar.</p>}
+          </> : <p className="sites-field-hint">Clique num bloco no canvas — ou use "+ Adicionar". Clique nos elementos dentro do layout para ajustar cores, texto, espaçamento e animações.</p>}
         </div>
       </div>
       {relayoutOpen && (
@@ -780,7 +788,7 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
           {[...(page.blocks || [])].sort((a, b) => a.sortOrder - b.sortOrder).map(block => (
             <article key={block.id} className={"sites-block-card " + (block.hidden ? "is-hidden" : "")}>
               <header><span><b>{BLOCKS_META[block.type]?.label || block.type}</b><small>{block.type}</small></span><span className="sites-block-actions"><button type="button" className="icon-button" title="Mover para cima" aria-label="Mover para cima" onClick={() => void moveBlock(block, -1)}><ChevronUp size={15} aria-hidden="true" /></button><button type="button" className="icon-button" title="Mover para baixo" aria-label="Mover para baixo" onClick={() => void moveBlock(block, 1)}><ChevronDown size={15} aria-hidden="true" /></button><button type="button" className="icon-button" aria-pressed={block.hidden} title={block.hidden ? "Mostrar" : "Ocultar"} onClick={() => void saveBlock(block, { hidden: !block.hidden })}>{block.hidden ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}</button><button type="button" className="icon-button" title="Remover bloco" aria-label="Remover bloco" onClick={() => void removeBlock(block)}><Trash2 size={15} aria-hidden="true" /></button></span></header>
-              <BlockEditor block={block} onChange={next => saveBlockDebounced(block, { content: next })} />
+              <BlockEditor block={block} onChange={next => saveBlockDebounced(block, { content: next })} onConverted={onSaved} />
             </article>
           ))}
         </div>
@@ -790,8 +798,18 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
   );
 }
 
-function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) => void }) {
+function BlockEditor({ block, onChange, onConverted }: { block: Block; onChange: (next: any) => void; onConverted?: () => void }) {
   const c = block.content || {};
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState("");
+  const convertToEditable = async () => {
+    if (converting) return;
+    if (!window.confirm("Converter este site importado em layout editável? Os <script>s serão removidos e os estilos passam a ser editáveis no Studio.")) return;
+    setConverting(true); setConvertError("");
+    try { await api(`/sites/pages/${block.pageId}/blocks/${block.id}/convert-to-editable`, { method: "POST" }); onConverted?.(); }
+    catch (e) { setConvertError(e instanceof Error ? e.message : "Não foi possível converter o site."); }
+    finally { setConverting(false); }
+  };
   const set = (patch: Record<string, unknown>) => onChange({ ...c, ...patch });
   const itemList = (key: string, blank: any) => Array.isArray(c[key]) ? c[key] as any[] : (c[key] ? [c[key]] : [blank]);
   const row = <T extends Record<string, any>>(list: T[], onChange: (next: T[]) => void, render: (item: T, update: (patch: Partial<T>) => void) => React.ReactNode, addLabel = "Adicionar", blank: T) => (
@@ -802,7 +820,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) 
   );
   switch (block.type) {
     case "externalHtml":
-      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar, edite o HTML fora da Véxora e importe novamente pelo assistente de criação.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={62} /></div>;
+      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar, edite o HTML fora da Véxora e importe novamente pelo assistente de criação, ou traga-o para o editor.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={62} /><button type="button" className="primary-button" onClick={() => void convertToEditable()} disabled={converting}>{converting ? "Trazendo…" : "Trazer para o editor (converter)"}</button>{convertError ? <p className="sites-field-hint" role="alert" style={{ color: "var(--danger, #F87171)" }}>{convertError}</p> : null}<p className="sites-field-hint">O tradutor remove os &lt;script&gt;s e converte em layout editável — você ganha controle de cores, texto e ordem dos elementos.</p></div>;
     case "freeLayout":
       return <FreeSiteEditor key={block.id} content={c} onSave={onChange} />;
     case "layout":
@@ -1132,10 +1150,22 @@ function PublishPanel({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   const [domain, setDomain] = useState(site.domain || "");
   const [busy, setBusy] = useState(false);
   const [verifyBusy, setVerifyBusy] = useState(false);
+  const [pullBusy, setPullBusy] = useState(false);
   const [info, setInfo] = useState<any>(null);
   const setPublish = async (published: boolean) => { setBusy(true); try { await api(`/sites/${site.id}`, { method: "PATCH", body: JSON.stringify({ published }) }); onSaved(); onNotice(published ? "Site publicado." : "Site despropublicado — ninguém vê fora do painel."); } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível publicar."); } finally { setBusy(false); } };
   const saveDomain = async () => { setBusy(true); setInfo(null); try { const res = await api<any>(`/sites/${site.id}/domain`, { method: "POST", body: JSON.stringify({ domain }) }); setInfo(res); } catch (e) { onNotice(e instanceof Error ? e.message : "Domínio inválido."); } finally { setBusy(false); } };
   const verify = async () => { setVerifyBusy(true); try { const res = await api<any>(`/sites/${site.id}/domain/verify`, { method: "POST", body: "{}" }); setInfo(res); } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível verificar agora."); } finally { setVerifyBusy(false); } };
+  const pullFromDomain = async () => {
+    if (!domain.trim()) return;
+    if (!window.confirm("Copiar o conteúdo do endereço " + domain.trim() + " para a página Início? O conteúdo atual da Início será substituído. (Funciona enquanto o site antigo ainda responde nesse domínio — faça ANTES de apontar o DNS.)")) return;
+    setPullBusy(true);
+    try {
+      await api(`/sites/import-url`, { method: "POST", body: JSON.stringify({ url: "https://" + domain.trim().replace(/^https?:\/\//i, ""), intoSiteId: site.id }) });
+      onSaved();
+      onNotice("Conteúdo do domínio copiado para a Início. Confira, ajuste e publique.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível copiar o conteúdo do domínio."); }
+    finally { setPullBusy(false); }
+  };
   const slugUrl = (typeof window !== "undefined" ? window.location.origin : "") + "/sites/" + site.slug;
   const published = site.published;
   return (<div className="sites-publish">
@@ -1154,6 +1184,8 @@ function PublishPanel({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
       <label><span>Domínio</span><input value={domain} onChange={e => setDomain(e.target.value)} placeholder="site.suaclinica.com.br" autoCapitalize="none" /></label>
       <div className="sites-publish-toggle"><button type="button" className="primary-button" disabled={busy || !domain.trim()} onClick={() => void saveDomain()}>{busy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Globe size={14} aria-hidden="true" />} Gerar verificação</button><button type="button" className="secondary-button" disabled={verifyBusy || !domain.trim()} onClick={() => void verify()}>{verifyBusy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Verificar DNS</button></div>
       {info && <div className="sites-domain-info"><code>{info.token || info.instructions || ""}</code>{info.instructions && <p>Crie um TXT em <code>_vexora-verify.{info.domain}</code> com o valor acima. DNS pode levar até 24h para propagar.</p>}{info.message && <p>{info.message}</p>}</div>}
+      <div className="sites-publish-toggle"><button type="button" className="secondary-button" disabled={pullBusy || !domain.trim()} onClick={() => void pullFromDomain()} title="Copia o site que hoje responde por este domínio para a Início — funciona enquanto o site antigo estiver no ar nesse endereço (faça ANTES de apontar o DNS)">{pullBusy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Globe size={14} aria-hidden="true" />} Copiar conteúdo do domínio antigo</button></div>
+      <p className="sites-field-hint">Funciona enquanto o site antigo ainda responde por este domínio — faça a cópia <strong>antes</strong> de mudar o DNS. A página Início atual será substituída pela cópia isolada.</p>
       <p className="sites-field-hint">A publicação no domínio da empresa exige o wildcard <code>*.vexorasuite.com.br</code> ou uma rota personalizada no Dokploy com Host <code>seudominio.com.br</code> — fale com a Véxora. O site responde publicamente no link acima a partir de agora.</p>
     </article>
     <article className="sites-publish-card">

@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { Blueprint, blueprintFor, BUSINESS_AREAS } from "./blueprint";
 import { normalizePrice } from "./money";
-import { buildSiteClone } from "./clone-site";
+import { fetchTextGuarded } from "./fetch-guarded";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
 import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
@@ -38,7 +38,7 @@ function safeUrl(v: unknown): string | null {
   return isHttp(s) || /^\/(?!\/)/.test(s) || /^#/.test(s) ? s.slice(0, 2000) : null;
 }
 const PAGE_KINDS = ["HOME","SERVICES","TEAM","IMOVEIS","POSTS","CONTACT","LANDING","CUSTOM"] as const;
-const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout","freeLayout"] as const;
+const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout","freeLayout","externalHtml"] as const;
 
 /** Véxora Sites — API do produto Sites (criação, edição, publicação e domínio). */
 @Controller("sites")
@@ -343,37 +343,51 @@ export class SitesController {
   }
 
   /**
-   * Clona um site público existente (conteúdo, não o tema) para um novo Site Véxora.
-   * WordPress: importa páginas, posts e imóveis via REST API pública. Não-WordPress: monta hero/galeria a partir do HTML.
-   * Tudo em uma transação — ou clona completo, ou não cria nada.
+   * Clona um site público apontando o domínio/URL: busca a página original e cria o site
+   * isolado na Véxora (pixel-perfect). Scripts continuam executando no iframe isolado.
    */
-  @Post("clone") async cloneSite(@Req() req: AuthenticatedRequest, @Body() body: any) {
+  @Post("import-url") async importFromUrl(@Req() req: AuthenticatedRequest, @Body() body: any) {
     const tenantId = this.tenantOf(req);
     const rawUrl = str(body?.url ?? body?.cloneUrl, 400);
-    if (!rawUrl) throw new BadRequestException("Informe a URL pública do site, por exemplo https://cliente.com.br");
-    const areaInput = str(body?.businessArea, 40);
-    const area = BUSINESS_AREAS[areaInput] ? areaInput : "site_simples";
-    const kindInput = String(body?.kind || "").toUpperCase();
-    const kind: "STATIC" | "DYNAMIC" | null = kindInput === "DYNAMIC" || kindInput === "STATIC" ? kindInput : null;
-    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#0E7A5C";
-    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#22D3EE";
-    const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
-    const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
-    const built = await buildSiteClone({ url: rawUrl, area, name: str(body?.name, 80) || undefined, whatsapps, socials, kind });
-    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(built.name) || "site-" + randomBytes(4).toString("hex");
+    if (!rawUrl) throw new BadRequestException("Cole a URL pública do site, por exemplo https://cliente.com.br");
+    const fetched = await fetchTextGuarded(rawUrl, 600_000, 20000, "text/html");
+    const origin = new URL(fetched.finalUrl).origin + "/";
+    const baseTag = '<base href="' + origin + '">';
+    let html = fetched.text.slice(0, 600_000);
+    if (/<head(\s[^>]*)?>/i.test(html)) html = html.replace(/<head(\s[^>]*)?>/i, (m) => m + baseTag);
+    else html = baseTag + html;
+    let name = str(body?.name, 80);
+    if (name.length < 2) {
+      const titleMatch = /<title>([^<]{2,80})<\/title>/i.exec(html);
+      name = titleMatch?.[1]?.trim().replace(/\s+/g, " ") || new URL(fetched.finalUrl).hostname.replace(/^www\./, "").slice(0, 60);
+    }
+    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
+    const intoSiteId = typeof body?.intoSiteId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.intoSiteId) ? body.intoSiteId : "";
+    if (intoSiteId) {
+      const target = await this.prisma.site.findFirst({ where: { id: intoSiteId, tenantId }, include: { pages: true } });
+      if (!target) throw new NotFoundException("Site não encontrado.");
+      const home = target.pages.find(p => p.kind === "HOME") || target.pages[0];
+      if (!home) throw new BadRequestException("Este site não tem página inicial para substituir.");
+      await this.prisma.$transaction(async tx => {
+        await tx.siteBlock.deleteMany({ where: { pageId: home.id } });
+        await tx.siteBlock.create({ data: { pageId: home.id, type: "externalHtml", content: { html, title: name }, sortOrder: 0 } });
+      });
+      return { id: target.id, slug: target.slug, name: target.name, import: { isolated: true, replaced: true, source: fetched.finalUrl } };
+    }
     let finalSlug = slugBase, attempt = 0;
     while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slugBase + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
+    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#2E7CF6";
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#164E8A";
+    const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const site = await this.prisma.site.create({
       data: {
-        tenantId, slug: finalSlug, kind: built.kind, businessArea: area, name: built.name, primaryColor, accentColor,
+        tenantId, slug: finalSlug, kind: "STATIC", businessArea: "site_simples", name, primaryColor, accentColor,
         departments: whatsapps.map(w => ({ platform: "whatsapp", label: w.label, handle: w.handle })) as any,
-        pages: { create: built.pages.map(p => ({ kind: p.kind, slug: p.slug, title: p.title, sortOrder: p.sortOrder, blocks: { create: p.blocks.map(b => ({ type: b.type, content: b.content, sortOrder: b.sortOrder })) } })) },
-        items: built.items.length ? { create: built.items.map(i => ({ kind: i.kind, slug: i.slug, title: i.title, excerpt: i.excerpt ?? null, coverUrl: i.coverUrl ?? null, data: i.data as any, published: true, publishedAt: i.publishedAt, sortOrder: 0 })) } : undefined,
-        forms: { create: [{ name: "Fale conosco", fields: [ { id: "nome", label: "Seu nome", type: "text", required: true }, { id: "telefone", label: "WhatsApp", type: "phone", required: true }, { id: "mensagem", label: "Como podemos ajudar?", type: "textarea", required: true } ], targets: [{ kind: "precadastro" }] }] },
+        pages: { create: [{ kind: "HOME", slug: "inicio", title: "Início", sortOrder: 0, blocks: { create: [{ type: "externalHtml", content: { html, title: name }, sortOrder: 0 }] } }] },
       },
-      include: { pages: { include: { blocks: true }, orderBy: { sortOrder: "asc" } }, forms: true, items: true },
+      include: { pages: { include: { blocks: true } } },
     });
-    return { ...site, report: built.report };
+    return { ...site, import: { isolated: true, source: fetched.finalUrl } };
   }
 
   @Get(":id") async get(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
@@ -432,9 +446,9 @@ export class SitesController {
     if (body?.hidden !== undefined) data.hidden = body.hidden === true;
     if (body?.content !== undefined) {
       if (typeof body.content !== "object" || Array.isArray(body.content) || body.content === null) throw new BadRequestException("content deve ser objeto.");
-      data.content = (data.type ?? block.type) === "freeLayout" ? sanitizeFreeLayout(body.content) : sanitizeContent(body.content);
+      const effectiveType = (data.type ?? block.type) as string;
+      data.content = effectiveType === "freeLayout" ? sanitizeFreeLayout(body.content) : effectiveType === "externalHtml" ? sanitizeExternalHtml(body.content) : sanitizeContent(body.content);
       if (data.content === null) throw new BadRequestException("Informe HTML e CSS válidos.");
-
     }
     if (body?.sortOrder !== undefined) data.sortOrder = Math.max(0, Math.min(999, Number(body.sortOrder) || 0));
     return this.prisma.siteBlock.update({ where: { id: block.id }, data });
@@ -454,6 +468,34 @@ export class SitesController {
     const deleted = await this.prisma.siteBlock.deleteMany({ where: { id: blockId, pageId: page.id } });
     if (!deleted.count) throw new NotFoundException("Bloco não encontrado.");
     return { deleted: true };
+  }
+
+  /**
+   * Traz um site importado (externalHtml) para o editor visual: extrai <style> e <body>,
+   * remove <script> e vira um freeLayout — editável elemento a elemento no Studio.
+   */
+  @Post("pages/:pageId/blocks/:blockId/convert-to-editable") async convertToEditable(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string) {
+    const page = await this.ownPage(req, pageId);
+    const block = await this.prisma.siteBlock.findFirst({ where: { id: blockId, pageId: page.id } });
+    if (!block) throw new NotFoundException("Bloco não encontrado.");
+    if (block.type !== "externalHtml") throw new BadRequestException("Apenas sites importados podem ser trazidos para o editor.");
+    const html = String((block.content as any)?.html || "");
+    if (html.trim().length < 20) throw new BadRequestException("Este site importado está vazio.");
+    const styles: string[] = [];
+    const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    let styleMatch: RegExpExecArray | null;
+    while ((styleMatch = styleRe.exec(html))) styles.push(styleMatch[1] ?? "");
+    const links: string[] = [];
+    const linkRe = /<link[^>]+>/gi;
+    let linkMatch: RegExpExecArray | null;
+    while ((linkMatch = linkRe.exec(html))) { const tag = linkMatch[0]; if (/rel\s*=\s*["']?(stylesheet|preload|icon)/i.test(tag) || /fonts\.g/i.test(tag)) links.push(tag); }
+    const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
+    let inner = bodyMatch?.[1] ?? html.replace(/<head[\s\S]*?<\/head>/i, "").replace(/<\/?html[^>]*>/gi, "");
+    inner = inner.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<base[^>]*>/gi, "").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+    const css = styles.join("\n").trim().slice(0, 20000);
+    const combined = ((links.length ? links.slice(0, 20).join("\n") + "\n" : "") + inner.trim()).slice(0, 60000);
+    const content = { html: combined, css, title: (block.content as any)?.title || "Site importado" };
+    return this.prisma.siteBlock.update({ where: { id: block.id }, data: { type: "freeLayout", content } });
   }
 
   @Post("pages/:pageId/blocks/:blockId/ai") async aiEditBlock(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string, @Body() body: any) {
@@ -483,7 +525,7 @@ export class SitesController {
     try { parsed = JSON.parse(match[0]); } catch { throw new BadRequestException("A IA devolveu conteúdo inválido. Tente um pedido mais simples."); }
     const next = parsed?.content ?? parsed;
     if (!next || typeof next !== "object" || Array.isArray(next)) throw new BadRequestException("A IA devolveu um formato inesperado. Tente um pedido mais específico.");
-    const safe = block.type === "freeLayout" ? sanitizeFreeLayout(next) : sanitizeContent(next);
+    const safe = block.type === "freeLayout" ? sanitizeFreeLayout(next) : block.type === "externalHtml" ? sanitizeExternalHtml(next) : sanitizeContent(next);
     if (!safe) throw new BadRequestException("O agente não devolveu HTML e CSS utilizáveis.");
     await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: safe } });
     return { blockId: block.id, content: safe };
@@ -821,6 +863,15 @@ function collectAssetIds(value: unknown, ...extra: (string | null | undefined)[]
   scan(value);
   for (const s of extra) if (typeof s === "string") scan(s);
   return [...found].slice(0, 200);
+}
+
+/** Site importado (externalHtml): conteúdo próprio mantido bruto, apenas validado em tamanho e formato. */
+function sanitizeExternalHtml(content: any): any {
+  if (!content || typeof content !== "object" || Array.isArray(content)) return null;
+  const html = typeof content.html === "string" ? content.html : "";
+  if (!html.trim() || html.length > 600_000 || html.length < 20) return null;
+  if (!/<[a-zA-Z][^>]*>/.test(html)) return null;
+  return { html, title: typeof content.title === "string" ? content.title.slice(0, 80) : "" };
 }
 
 /** Remove HTML/tags perigosas de textos de bloco. */

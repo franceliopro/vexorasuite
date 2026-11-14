@@ -116,18 +116,20 @@ const freeLayoutTags = [
   "h1", "h2", "h3", "h4", "h5", "h6", "p", "a", "img", "picture", "source", "figure", "figcaption",
   "ul", "ol", "li", "strong", "em", "b", "i", "small", "br", "hr", "blockquote",
   "details", "summary", "dl", "dt", "dd", "table", "thead", "tbody", "tr", "th", "td",
+  "link",
 ];
 
 export function sanitizeFreeLayout(value: any): { html: string; css: string } | null {
   if (typeof value?.html !== "string" || typeof value?.css !== "string" ||
-      value.html.length > 32000 || value.css.length > 24000 || /<\/style/i.test(value.css)) return null;
+      value.html.length > 80000 || value.css.length > 40000 || /<\/style/i.test(value.css)) return null;
   const html = sanitizeHtml(value.html, {
     allowedTags: freeLayoutTags,
     allowedAttributes: {
-      "*": ["id", "class", "role", "aria-*", "data-vx-element"],
+      "*": ["id", "class", "role", "aria-*", "data-vx-element", "style"],
       a: ["href", "target", "rel"],
       img: ["src", "alt", "width", "height", "loading"],
       source: ["srcset", "media", "type"],
+      link: ["rel", "href", "crossorigin", "media", "as", "type"],
     },
     allowedSchemes: ["https", "mailto", "tel"],
     allowedSchemesByTag: { img: ["https"], source: ["https"] },

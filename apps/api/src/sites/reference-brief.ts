@@ -1,4 +1,4 @@
-import { fetchTextGuarded } from "./clone-site";
+import { fetchTextGuarded } from "./fetch-guarded";
 
 const strip = (s: string) => String(s || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 const clip = (s: string, n: number) => String(s || "").trim().slice(0, n);

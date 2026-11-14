@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, ServiceUnavailableException, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -13,6 +13,7 @@ import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { referenceBriefFromUrl } from "./reference-brief";
 import { searxngSearch } from "../ai/local-services";
 import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM, sanitizeFreeLayout } from "./relayout";
+import { buildPremiumTemplate, templateForArea, type PremiumTemplateId } from "./premium-templates";
 import { readPropertyLists, sanitizePropertyData, sanitizePropertyLists, scopeForRequest, assertItemInScope, itemCategory, DEFAULT_LISTS, PROPERTY_STATUS, STATUS_LABEL } from "./real-estate";
 import { WahaService } from "../operations/waha.service";
 import { MailService } from "../mail/mail.service";
@@ -409,6 +410,34 @@ export class SitesController {
       await tx.siteBlock.createMany({ data: safeBlocks.map((b, i) => ({ pageId: page.id, type: b.type, content: b.content, sortOrder: i })) });
     });
     return { blocks: safeBlocks.length };
+  }
+
+  /**
+   * Aplica um TEMPLATE PREMIUM pré-desenhado — sem IA, determinístico, sempre bonito.
+   * Usa as fotos que o cliente enviou (File manager) ou Unsplash confiável como último recurso.
+   * O site inteiro (estrutura, tipografia, cores, seções) vem do template; nada é improvisado pelo modelo.
+   */
+  @Post(":id/pages/:pageId/apply-template") async applyTemplate(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) siteId: string, @Param("pageId", ParseUUIDPipe) pageId: string, @Body() body: any) {
+    await this.assertCanDesign(req);
+    const site = await this.ownSite(req, siteId);
+    const page = await this.ownPage(req, pageId);
+    if (page.site.id !== site.id) throw new NotFoundException("Página não encontrada neste site.");
+    if (page.kind !== "HOME" && page.kind !== "SERVICES") throw new BadRequestException("Aplique o template na página inicial (ou na página de serviços).");
+    const requested = String(body?.template ?? "auto").toLowerCase();
+    const template: PremiumTemplateId = ["imobiliaria", "estetica", "advocacia", "universal"].includes(requested) ? requested as PremiumTemplateId : templateForArea(site.businessArea);
+    const assets = await this.prisma.siteAsset.findMany({ where: { tenantId: this.tenantOf(req), kind: "image" }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true } });
+    const clientImages = assets.map(a => "/api/backend/public/site-assets/" + a.id);
+    const departments = Array.isArray(site.departments) ? (site.departments as { platform?: string; handle?: string }[]).map(d => ({ platform: String(d.platform || ""), handle: String(d.handle || "") })) : [];
+    const { html, css } = buildPremiumTemplate({ name: site.name, area: site.businessArea, primaryColor: site.primaryColor, accentColor: site.accentColor, departments, imageUrls: clientImages });
+    const content = sanitizeFreeLayout({ html, css });
+    if (!content) throw new ServiceUnavailableException("Não foi possível montar o template. Tente novamente.");
+    const safeBlocks = [{ type: "freeLayout", content }];
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM site_pages WHERE id = ${page.id}::uuid FOR UPDATE`;
+      await tx.siteBlock.deleteMany({ where: { pageId: page.id } });
+      await tx.siteBlock.createMany({ data: safeBlocks.map((b, i) => ({ pageId: page.id, type: b.type, content: b.content as any, sortOrder: i })) });
+    });
+    return { blocks: safeBlocks.length, template, clientImagesUsed: clientImages.length };
   }
 
   private async propertyListsFor(tenantId: string) {

@@ -11,6 +11,7 @@ import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
 import { configuredCreativeAgent, resolveCreativeAgent } from "../ai/creative-agent";
 import { skillInstructionsForAgent } from "../ai/product-skills";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
+import { visionProviders } from "../ai/vision-providers";
 import { referenceBriefFromUrl } from "./reference-brief";
 import { searxngSearch } from "../ai/local-services";
 import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM, sanitizeFreeLayout } from "./relayout";
@@ -301,6 +302,44 @@ export class SitesController {
       include: { pages: { include: { blocks: true } } },
     });
     return { ...site, import: { isolated: true } };
+  }
+
+  /**
+   * Lê uma imagem de referência (ex.: site criado fora) com o provedor com visão do tenant
+   * e devolve um "brief" estruturado — usado no assistente para montar o pedido à IA.
+   */
+  @Post("vision-brief") async visionBrief(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    const tenantId = this.tenantOf(req);
+    const userId = req.user.sub;
+    const image = typeof body?.image === "string" ? body.image.trim() : "";
+    const match = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=\r\n]{200,16777216})$/.exec(image);
+    if (!match) throw new BadRequestException("Envie uma imagem PNG, JPG ou WebP (até ~12 MB).");
+    const mediaType = match[1] === "jpg" ? "jpeg" : (match[1] ?? "jpeg");
+    const dataUrl = "data:image/" + mediaType + ";base64," + (match[2] ?? "").replace(/\s/g, "");
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
+    const integrations: any = tenant?.integrations;
+    const { providers, persona } = resolveCreativeAgent(integrations, tenantId);
+    const capable = await visionProviders(providers);
+    if (!capable.length) throw new BadRequestException("O seu agente de design atual não enxerga imagens. Configure-o com um modelo com visão (ex.: OpenAI GPT-4o) em Conexões de IA e permita modelos pagos.");
+    const assistant = integrations?.assistant;
+    await this.prisma.$transaction(tx => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant?.dailyAiLimit), "sites.vision-brief", userId));
+    const visionBrief = [
+      "Você é um diretor de arte de sites de alta conversão. Analise a screenshot de um site de referência e devolva SOMENTE JSON válido (sem markdown):",
+      '{"brief":"descrição detalhada da composição que a Véxora deve reproduzir — ordem das seções, hero (badge, título, subtítulo, CTA, variante do hero: split/overlay/editorial), tipografia, espaçamento, cores em hex, tom e sensação geral","palette":{"primary":"#RRGGBB" ou null,"accent":"#RRGGBB" ou null},"suggestedArea":"uma destas chaves: ' + Object.keys(BUSINESS_AREAS).join(", ") + '" ou null,"headline":"headline curta no estilo da referência (máx. 60 caracteres)" ou null}',
+      "Não invente dados da empresa (preço, prazo, clientes, certificações). Descreva apenas a composição visual.",
+    ].join("\n");
+    const result = await this.generateDesign([
+      { role: "system", content: visionBrief + (persona ? "\nContexto da persona: " + (typeof persona === "string" ? persona : JSON.stringify(persona)).slice(0, 1200) : "") },
+      { role: "user", content: [ { type: "text", text: "Analise esta referência visual e devolva o JSON." }, { type: "image_url", image_url: { url: dataUrl } } ] },
+    ], capable, text => /\{[\s\S]*\}/.test(text || ""));
+    const raw = result?.text || "";
+    let parsed: any = null;
+    try { parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || "{}"); } catch { parsed = null; }
+    if (!parsed || typeof parsed.brief !== "string" || parsed.brief.trim().length < 40) throw new ServiceUnavailableException("A IA não conseguiu ler a imagem. Tente outra captura ou um modelo com visão mais forte.");
+    const hex = (v: unknown) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v.trim()) ? v.trim().toUpperCase() : null);
+    const area = typeof parsed.suggestedArea === "string" && BUSINESS_AREAS[parsed.suggestedArea] ? parsed.suggestedArea : null;
+    const headline = typeof parsed.headline === "string" && parsed.headline.trim() ? parsed.headline.trim().slice(0, 140) : null;
+    return { brief: String(parsed.brief).slice(0, 2400), palette: { primary: hex(parsed?.palette?.primary), accent: hex(parsed?.palette?.accent) }, suggestedArea: area, headline, provider: result.provider, model: result.model };
   }
 
   /**

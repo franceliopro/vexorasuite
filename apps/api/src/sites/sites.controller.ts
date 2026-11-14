@@ -165,14 +165,32 @@ export class SitesController {
         if (sources.length) brief.push("Referências públicas externas (use apenas como inspiração): " + JSON.stringify(sources.slice(0, 5).map(s => ({ title: s.title, url: s.url }))).slice(0, 4000));
       } catch { /* A pesquisa externa é opcional. */ }
     }
+    const premiumContent = buildPremiumTemplate({
+      name: companyName, area,
+      primaryColor: String((branding as any).primaryColor || "#0E7A5C"),
+      accentColor: String((branding as any).accentColor || "#22D3EE"),
+      departments: list((briefData as any).whatsapps, 5, (w: any) => ({ platform: "whatsapp", handle: String(w?.handle || "") })).filter(d => d.handle),
+      imageUrls: blueprint.pages.flatMap(page => page.blocks.flatMap(block => block.type === "hero" ? [block.content?.imageUrl] : block.type === "gallery" ? (Array.isArray(block.content?.items) ? block.content.items.map((item: any) => item?.url) : []) : [])).filter((url: unknown) => typeof url === "string" && url.length > 0).slice(0, 6),
+    });
     await this.prisma.$transaction(tx => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant.dailyAiLimit), "sites.generate", userId));
+    // Não entregou layout válido: cai para o template premium (sempre funciona).
+    const fallbackDesign = (): Blueprint => {
+      const heroBlocks = blueprint.pages.find(page => page.kind === "HOME")?.blocks.filter(block => ["contact", "posts", "properties"].includes(block.type)) ?? [];
+      const safeContent = sanitizeFreeLayout(premiumContent);
+      const freeLayoutBlock = safeContent ? [{ type: "freeLayout", content: safeContent }] : [];
+      const pages = blueprint.pages.map(page => page.kind === "HOME"
+        ? { ...page, blocks: [...freeLayoutBlock, ...heroBlocks] }
+        : page);
+      return { ...blueprint, pages } as unknown as Blueprint;
+    };
     const result = await this.generateDesign([
       { role: "system", content: this.designSystem(persona) },
       { role: "user", content: brief.join("\n") },
-    ], providers, text => Boolean(parseSiteDesign(text, blueprint, true)));
-    const design = parseSiteDesign(result.text, blueprint, true);
-    if (!design) throw new BadRequestException("O agente Design Gráfico & Web não entregou um layout utilizável.");
-    return { blueprint: design, report };
+    ], providers, text => Boolean(parseSiteDesign(text, blueprint, true))).catch(() => null);
+    const design = result ? parseSiteDesign(result.text, blueprint, true) : null;
+    const finalDesign = design ?? fallbackDesign();
+    const finalReport = { ...report, ...(!design && { fallback: true, fallbackReason: "A IA não entregou um layout válido; o Template Premium foi aplicado automaticamente no lugar." }) };
+    return { blueprint: finalDesign, report: finalReport };
   }
 
   @Get("creative-model")

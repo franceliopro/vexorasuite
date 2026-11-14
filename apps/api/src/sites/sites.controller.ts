@@ -105,7 +105,7 @@ export class SitesController {
 
   private async generateDesign(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean) {
     try {
-      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 100000, maxTokens: 10000 })), accept);
+      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 100000, maxTokens: provider.provider === "llama-cpp" ? 1700 : 10000, jsonOutput: true })), accept);
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === 502 && error.message.includes("o roteiro não veio")) {
         throw new BadRequestException("A IA respondeu, mas não entregou um layout válido. Reveja o modelo ou as instruções e tente novamente.");
@@ -127,6 +127,7 @@ export class SitesController {
     const pages = editableSitePages(blueprint, true);
     const brief = [
       'Crie um site original. Retorne {"pages":[{"slug":"inicio","blocks":[...]}]} com uma entrada para cada slug listado.',
+      ...(providers[0]?.provider === "llama-cpp" ? ["Priorize o design da página inicial. Nas demais páginas, crie seções concisas. Use HTML e CSS compactos e complete todas as páginas em até 1.500 tokens."] : []),
       "Use um bloco freeLayout com HTML e CSS próprios para cada página. Contato, imóveis e notícias podem receber uma introdução com design próprio. Os dados e formulários dessas páginas são mantidos pelo sistema.",
       "Empresa: " + companyName + ". Segmento: " + BUSINESS_AREAS[area]?.label + ".",
       "Identidade e contatos fornecidos: " + JSON.stringify(branding),

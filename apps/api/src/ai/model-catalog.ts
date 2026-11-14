@@ -1,6 +1,6 @@
 import { installedVoiceOptions, VoiceOption } from './voice-options';
 import { providerApiKey } from './provider-credentials';
-import { remoteProviders, llmProviders, providerHeaders } from './llm-providers';
+import { remoteProviders, llmProviders, providerHeaders, localLlmOrigin } from './llm-providers';
 import { localServiceUrl } from './local-services';
 import { rememberModelPrices } from './model-prices';
 export async function modelCatalog(integrations:unknown,tenantId:string){
@@ -9,11 +9,12 @@ export async function modelCatalog(integrations:unknown,tenantId:string){
  const targets=[...llmProviders,'local-stt','local-tts'];
  await Promise.all(targets.map(async provider=>{
   try{
-   const local=provider==='ollama'||provider==='local-stt'||provider==='local-tts';
+   const origin = localLlmOrigin(provider);
+   const local=Boolean(origin)||provider==='local-stt'||provider==='local-tts';
    const definition=remoteProviders[provider as keyof typeof remoteProviders];
    const key=local||provider==='openrouter'?'':providerApiKey(provider,integrations,tenantId);
    if(!local&&provider!=='openrouter'&&!key){services.push({provider,available:false,message:'Cadastre a chave deste provedor em Conexões de IA.'});return;}
-   let url=provider==='ollama'?localServiceUrl('OLLAMA_BASE_URL','/api/tags'):provider.startsWith('local-')?localServiceUrl('LOCAL_VOICE_URL','/v1/models?task='+(provider==='local-stt'?'automatic-speech-recognition':'text-to-speech')):definition.models;
+   let url=origin?localServiceUrl(origin,provider==='ollama'?'/api/tags':'/v1/models'):provider.startsWith('local-')?localServiceUrl('LOCAL_VOICE_URL','/v1/models?task='+(provider==='local-stt'?'automatic-speech-recognition':'text-to-speech')):definition.models;
    const headers=key?providerHeaders(provider,key):{};
    const deadline=Date.now()+10000;
    for(let page=1;page<=10;page++){

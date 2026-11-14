@@ -412,10 +412,12 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível duplicar o bloco."); }
   };
   const addBlock = async (type: string) => {
-    const page = model.pages[0]; if (!page) return;
+    const page = studioPage; if (!page) return;
     const meta = BLOCKS_META[type];
     try {
-      const baseContent = type === "hero"
+      const baseContent = type === "freeLayout"
+        ? { html: "<section><h2>Nova seção</h2></section>", css: "" }
+        : type === "hero"
         ? { headline: "Um título claro e direto", sub: "Apoio curto que explica o benefício.", ctaLabel: "Quero conversar" }
         : type === "richText"
           ? { title: "Título da seção", body: "Escreva aqui o texto desta seção." }
@@ -561,14 +563,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
               {selectedBlock?.type === "freeLayout" ? (
                 <FreeSiteEditor key={selectedBlock.id + JSON.stringify(selectedBlock.content)} content={selectedBlock.content}
                   onSave={content => replaceBlockContent(selectedBlock, content)}
-                  onPrompt={async instruction => {
-                    try {
-                      const result = await api<{ content: typeof selectedBlock.content }>(`/sites/pages/${selectedBlock.pageId}/blocks/${selectedBlock.id}/ai`, { method: "POST", body: JSON.stringify({ instruction }) });
-                      setModel(current => ({ ...current, pages: current.pages.map(page => page.id === selectedBlock.pageId ? { ...page, blocks: page.blocks.map(block => block.id === selectedBlock.id ? { ...block, content: result.content } : block) } : page) }));
-                      clearDirty(selectedBlock.id);
-                      onNotice("Layout atualizado pelo agente.");
-                    } catch (error) { onNotice(error instanceof Error ? error.message : "Não foi possível alterar o layout."); }
-                  }} />
+                  onPrompt={instruction => applyAi(selectedBlock, instruction)} />
               ) : selectedBlock?.type === "layout" ? (
                 <LayoutBlockEditor block={selectedBlock} onChange={(content) => replaceBlockContent(selectedBlock, content)} />
               ) : (<>

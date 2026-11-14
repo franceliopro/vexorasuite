@@ -30,7 +30,9 @@ function safeDocument(content: FreeSiteContent) {
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}' + css + '</style></head><body>' + html + '</body></html>';
 }
 
-export function FreeSiteFrame({ content, onSelect }: { content: FreeSiteContent; onSelect?: (selection: Selection) => void }) {
+export function FreeSiteFrame({ content, onSelect, onMove }: {
+  content: FreeSiteContent; onSelect?: (selection: Selection) => void; onMove?: (source: number, target: number) => void;
+}) {
   const frame = useRef<HTMLIFrameElement>(null);
   const observer = useRef<ResizeObserver | null>(null);
   const [height, setHeight] = useState(520);
@@ -47,11 +49,33 @@ export function FreeSiteFrame({ content, onSelect }: { content: FreeSiteContent;
       observer.current = new ResizeObserver(resize);
       observer.current.observe(doc.body);
       if (!onSelect) return;
+      const elements = Array.from(doc.body.querySelectorAll<HTMLElement>(selector));
+      if (onMove) {
+        let dragging: HTMLElement | null = null;
+        for (const element of elements) element.draggable = true;
+        doc.addEventListener("dragstart", event => {
+          dragging = (event.target as HTMLElement | null)?.closest<HTMLElement>(selector) ?? null;
+          if (dragging) event.dataTransfer?.setData("text/plain", String(elements.indexOf(dragging)));
+        });
+        doc.addEventListener("dragover", event => {
+          const target = (event.target as HTMLElement | null)?.closest(selector);
+          if (dragging && target && dragging !== target && dragging.parentElement === target.parentElement) event.preventDefault();
+        });
+        doc.addEventListener("drop", event => {
+          const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(selector);
+          if (!dragging || !target || dragging === target || dragging.parentElement !== target.parentElement) return;
+          event.preventDefault();
+          onMove(elements.indexOf(dragging), elements.indexOf(target));
+          dragging = null;
+        });
+      }
       doc.addEventListener("click", event => {
         const element = (event.target as Element | null)?.closest(selector);
         if (!element || !doc.body.contains(element)) return;
         event.preventDefault();
-        const index = Array.from(doc.body.querySelectorAll(selector)).indexOf(element);
+        const index = elements.indexOf(element as HTMLElement);
+        for (const item of elements) item.style.removeProperty("outline");
+        (element as HTMLElement).style.setProperty("outline", "2px solid #38bdf8", "important");
         const computed = doc.defaultView?.getComputedStyle(element);
         onSelect({ index, tag: element.tagName.toLowerCase(), text: element.childElementCount ? "" : element.textContent || "",
           style: Object.fromEntries(controls.map(([key]) => [key, computed?.getPropertyValue(key) || ""])) });
@@ -67,6 +91,17 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [width, setWidth] = useState("100%");
+  const moveTo = (source: number, target: number) => {
+    const parsed = new DOMParser().parseFromString(safeDocument(draft), "text/html");
+    const elements = parsed.body.querySelectorAll(selector);
+    const element = elements[source];
+    const destination = elements[target];
+    if (!element || !destination || element.parentElement !== destination.parentElement || source === target) return;
+    if (source < target) destination.after(element);
+    else destination.before(element);
+    setDraft({ ...draft, html: parsed.body.innerHTML });
+    setSelection(null);
+  };
   const moveElement = (direction: -1 | 1) => {
     if (!selection) return;
     const parsed = new DOMParser().parseFromString(safeDocument(draft), "text/html");
@@ -106,7 +141,7 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
       <button type="button" className="secondary-button" aria-pressed={width === "390px"} onClick={() => setWidth("390px")}>Celular</button>
       <button type="button" className="primary-button" onClick={() => onSave(draft)}>Aplicar alterações</button>
     </div>
-    <div style={{ width, maxWidth: "100%", marginInline: "auto" }}><FreeSiteFrame content={draft} onSelect={setSelection} /></div>
+    <div style={{ width, maxWidth: "100%", marginInline: "auto" }}><FreeSiteFrame content={draft} onSelect={setSelection} onMove={moveTo} /></div>
     {selection ? <div className="sites-block-form">
       <strong>Elemento {selection.tag}</strong>
       <div className="sites-block-actions">
@@ -115,7 +150,7 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
       </div>
       {["h1", "h2", "h3", "h4", "p", "a", "li"].includes(selection.tag) && selection.text && <label>Texto<input key={selection.index + "-text"} defaultValue={selection.text} onBlur={event => editElement("text", event.target.value)} /></label>}
       {controls.map(([key, label]) => <label key={selection.index + key}>{label}<input defaultValue={selection.style[key]} onBlur={event => { if (event.target.value !== selection.style[key]) editElement(key, event.target.value); }} /></label>)}
-    </div> : <p className="sites-field-hint">Selecione um elemento na prévia para ajustar sua aparência.</p>}
+    </div> : <p className="sites-field-hint">Selecione um elemento para editar ou arraste para reorganizar elementos da mesma seção.</p>}
     {onPrompt && <div className="sites-block-form"><label>Alterar com Design Gráfico &amp; Web<textarea value={prompt} onChange={event => setPrompt(event.target.value)} /></label>
       <button type="button" className="secondary-button" disabled={busy || prompt.trim().length < 3} onClick={async () => {
         setBusy(true);

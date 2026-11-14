@@ -48,6 +48,14 @@ describe("GlobalExceptionFilter", () => {
     expect(result.json.mock.calls[0][0]).not.toHaveProperty("providerToken");
   });
 
+  it("passes through a safe public code and drops unsafe ones", () => {
+    const safe = runFilter(new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa" }));
+    expect(safe.json).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 403, code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa" }));
+
+    const unsafe = runFilter(new ForbiddenException({ code: "secret token with spaces", message: "Não" }));
+    expect(unsafe.json.mock.calls[0][0]).not.toHaveProperty("code");
+  });
+
   it("preserves validation message arrays for frontend compatibility", () => {
     const result = runFilter(new BadRequestException({ message: ["email must be an email", "name should not be empty"], error: "Bad Request" }));
 

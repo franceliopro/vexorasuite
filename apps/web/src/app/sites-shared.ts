@@ -64,10 +64,23 @@ export function writeSitesCache(tenantId: string | undefined, data: Site[]) {
   if (typeof window !== "undefined") { try { window.localStorage.setItem("vx:sites-cache:" + key, JSON.stringify(data)); } catch { /* ignore */ } }
 }
 
+export class ApiError extends Error {
+  status?: number;
+  code?: string;
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch("/api/backend" + path, { cache: "no-store", headers: { "content-type": "application/json" }, ...init });
   const data = r.status === 204 ? null : await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((data as any)?.message || "Não foi possível completar a ação.");
+  if (!r.ok) {
+    const raw = (data as any)?.message;
+    const message = Array.isArray(raw) ? raw.join(" ") : typeof raw === "string" && raw.trim() ? raw : "Não foi possível completar a ação.";
+    const error = new ApiError(message);
+    error.status = r.status;
+    const code = (data as any)?.code;
+    if (typeof code === "string") error.code = code;
+    throw error;
+  }
   return data as T;
 }
 

@@ -514,7 +514,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}><Smartphone size={13} aria-hidden="true" /> Celular</button>
         </div>
         <div className="sites-studio-toolbar-right">
-          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.type === "layout"); if (target) { setSelected(target.id); } else { onNotice("Esta página ainda não tem uma Seção de colunas. Adicione em “Adicionar bloco” para editar visualmente."); } }} title="Selecionar a seção de colunas existente para editar (nunca cria um bloco novo)"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
+          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.pageId === studioPage?.id && b.type === "freeLayout") || allBlocks.find((b: any) => b.pageId === studioPage?.id && b.type === "layout"); if (target) { setSelected(target.id); } else { onNotice("Esta página ainda não tem um layout editável."); } }} title="Selecionar o layout da página"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
           <label className="sites-field"><span>Página do Studio</span><select value={studioPage?.id || ""} onChange={event => { setStudioPageId(event.target.value); setSelected(""); }}>
             {model.pages.map(page => <option key={page.id} value={page.id}>{page.title}</option>)}
           </select></label>
@@ -528,7 +528,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <h3>Blocos</h3>
           {allBlocks.length === 0 ? <p className="sites-field-hint">Este site ainda não tem blocos.</p> : allBlocks.map((b: any) => (
             <div key={b.id} className={"sites-studio-item" + (selected === b.id ? " active" : "") + (b.hidden ? " is-hidden" : "")}>
-              <button type="button" className="sites-studio-block-select" onClick={() => setSelected(b.id)}>
+              <button type="button" className="sites-studio-block-select" onClick={() => { setStudioPageId(b.pageId); setSelected(b.id); }}>
                 <b>{(b.content?.title || b.content?.headline || b.type).toString().slice(0, 44)}</b>
                 <small>{b.type} · {b.pageTitle}{b.hidden ? " · oculto" : ""}</small>
               </button>
@@ -543,7 +543,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           ))}
           <div className="sites-studio-add">
             <p className="sites-field-label">Adicionar bloco</p>
-            <div className="sites-studio-add-grid">{["layout","hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
+            <div className="sites-studio-add-grid">{["freeLayout","layout","hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
           </div>
         </aside>
         <div className="sites-studio-preview">
@@ -711,7 +711,7 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
     await Promise.all([api(`/sites/pages/${block.pageId}/blocks/${block.id}`, { method: "PATCH", body: JSON.stringify({ sortOrder: other.sortOrder }) }), api(`/sites/pages/${other.pageId}/blocks/${other.id}`, { method: "PATCH", body: JSON.stringify({ sortOrder: block.sortOrder }) })]);
     onSaved();
   };
-  const addBlock = async (type: string) => { await api(`/sites/pages/${page!.id}/blocks`, { method: "POST", body: JSON.stringify({ type, content: type === "layout" ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] } : {} }) }); onSaved(); onNotice("Bloco adicionado."); };
+  const addBlock = async (type: string) => { await api(`/sites/pages/${page!.id}/blocks`, { method: "POST", body: JSON.stringify({ type, content: type === "freeLayout" ? { html: "<section><h2>Nova seção</h2></section>", css: "" } : type === "layout" ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] } : {} }) }); onSaved(); onNotice("Bloco adicionado."); };
   const removeBlock = async (block: Block) => { await api(`/sites/pages/${block.pageId}/blocks/${block.id}`, { method: "DELETE" }); onSaved(); onNotice("Bloco removido."); };
   if (!page) return <div className="sites-empty"><LayoutTemplate size={24} aria-hidden="true" /><h2>Nenhuma página</h2></div>;
   return (

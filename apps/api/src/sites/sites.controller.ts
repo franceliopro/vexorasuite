@@ -105,7 +105,7 @@ export class SitesController {
 
   private async generateDesign(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean) {
     try {
-      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 50000, maxTokens: 6000 })), accept);
+      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 100000, maxTokens: 10000 })), accept);
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === 502 && error.message.includes("o roteiro não veio")) {
         throw new BadRequestException("A IA respondeu, mas não entregou um layout válido. Reveja o modelo ou as instruções e tente novamente.");
@@ -134,6 +134,7 @@ export class SitesController {
       "Páginas e imagens que podem ser usadas (imagens de banco ilustrativas): " + JSON.stringify(pages.map(page => ({
         slug: page.slug,
         title: page.title,
+        functionalBlocks: page.blocks.filter(block => ["contact", "posts", "properties"].includes(block.type)).map(block => block.type),
         images: page.blocks.flatMap(block => block.type === "hero" ? [block.content.imageUrl] : block.type === "gallery" ? block.content.items.map((item: any) => item.url) : []).slice(0, 4),
       }))),
     ];

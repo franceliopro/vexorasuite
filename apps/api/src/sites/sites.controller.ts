@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { Blueprint, blueprintFor, BUSINESS_AREAS } from "./blueprint";
 import { normalizePrice } from "./money";
-import { buildSiteClone } from "./clone-site";
+import { fetchTextGuarded } from "./fetch-guarded";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
 import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
@@ -343,37 +343,51 @@ export class SitesController {
   }
 
   /**
-   * Clona um site público existente (conteúdo, não o tema) para um novo Site Véxora.
-   * WordPress: importa páginas, posts e imóveis via REST API pública. Não-WordPress: monta hero/galeria a partir do HTML.
-   * Tudo em uma transação — ou clona completo, ou não cria nada.
+   * Clona um site público apontando o domínio/URL: busca a página original e cria o site
+   * isolado na Véxora (pixel-perfect). Scripts continuam executando no iframe isolado.
    */
-  @Post("clone") async cloneSite(@Req() req: AuthenticatedRequest, @Body() body: any) {
+  @Post("import-url") async importFromUrl(@Req() req: AuthenticatedRequest, @Body() body: any) {
     const tenantId = this.tenantOf(req);
     const rawUrl = str(body?.url ?? body?.cloneUrl, 400);
-    if (!rawUrl) throw new BadRequestException("Informe a URL pública do site, por exemplo https://cliente.com.br");
-    const areaInput = str(body?.businessArea, 40);
-    const area = BUSINESS_AREAS[areaInput] ? areaInput : "site_simples";
-    const kindInput = String(body?.kind || "").toUpperCase();
-    const kind: "STATIC" | "DYNAMIC" | null = kindInput === "DYNAMIC" || kindInput === "STATIC" ? kindInput : null;
-    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#0E7A5C";
-    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#22D3EE";
-    const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
-    const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
-    const built = await buildSiteClone({ url: rawUrl, area, name: str(body?.name, 80) || undefined, whatsapps, socials, kind });
-    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(built.name) || "site-" + randomBytes(4).toString("hex");
+    if (!rawUrl) throw new BadRequestException("Cole a URL pública do site, por exemplo https://cliente.com.br");
+    const fetched = await fetchTextGuarded(rawUrl, 600_000, 20000, "text/html");
+    const origin = new URL(fetched.finalUrl).origin + "/";
+    const baseTag = '<base href="' + origin + '">';
+    let html = fetched.text.slice(0, 600_000);
+    if (/<head(\s[^>]*)?>/i.test(html)) html = html.replace(/<head(\s[^>]*)?>/i, (m) => m + baseTag);
+    else html = baseTag + html;
+    let name = str(body?.name, 80);
+    if (name.length < 2) {
+      const titleMatch = /<title>([^<]{2,80})<\/title>/i.exec(html);
+      name = titleMatch?.[1]?.trim().replace(/\s+/g, " ") || new URL(fetched.finalUrl).hostname.replace(/^www\./, "").slice(0, 60);
+    }
+    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
+    const intoSiteId = typeof body?.intoSiteId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.intoSiteId) ? body.intoSiteId : "";
+    if (intoSiteId) {
+      const target = await this.prisma.site.findFirst({ where: { id: intoSiteId, tenantId }, include: { pages: true } });
+      if (!target) throw new NotFoundException("Site não encontrado.");
+      const home = target.pages.find(p => p.kind === "HOME") || target.pages[0];
+      if (!home) throw new BadRequestException("Este site não tem página inicial para substituir.");
+      await this.prisma.$transaction(async tx => {
+        await tx.siteBlock.deleteMany({ where: { pageId: home.id } });
+        await tx.siteBlock.create({ data: { pageId: home.id, type: "externalHtml", content: { html, title: name }, sortOrder: 0 } });
+      });
+      return { id: target.id, slug: target.slug, name: target.name, import: { isolated: true, replaced: true, source: fetched.finalUrl } };
+    }
     let finalSlug = slugBase, attempt = 0;
     while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slugBase + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
+    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#2E7CF6";
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#164E8A";
+    const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const site = await this.prisma.site.create({
       data: {
-        tenantId, slug: finalSlug, kind: built.kind, businessArea: area, name: built.name, primaryColor, accentColor,
+        tenantId, slug: finalSlug, kind: "STATIC", businessArea: "site_simples", name, primaryColor, accentColor,
         departments: whatsapps.map(w => ({ platform: "whatsapp", label: w.label, handle: w.handle })) as any,
-        pages: { create: built.pages.map(p => ({ kind: p.kind, slug: p.slug, title: p.title, sortOrder: p.sortOrder, blocks: { create: p.blocks.map(b => ({ type: b.type, content: b.content, sortOrder: b.sortOrder })) } })) },
-        items: built.items.length ? { create: built.items.map(i => ({ kind: i.kind, slug: i.slug, title: i.title, excerpt: i.excerpt ?? null, coverUrl: i.coverUrl ?? null, data: i.data as any, published: true, publishedAt: i.publishedAt, sortOrder: 0 })) } : undefined,
-        forms: { create: [{ name: "Fale conosco", fields: [ { id: "nome", label: "Seu nome", type: "text", required: true }, { id: "telefone", label: "WhatsApp", type: "phone", required: true }, { id: "mensagem", label: "Como podemos ajudar?", type: "textarea", required: true } ], targets: [{ kind: "precadastro" }] }] },
+        pages: { create: [{ kind: "HOME", slug: "inicio", title: "Início", sortOrder: 0, blocks: { create: [{ type: "externalHtml", content: { html, title: name }, sortOrder: 0 }] } }] },
       },
-      include: { pages: { include: { blocks: true }, orderBy: { sortOrder: "asc" } }, forms: true, items: true },
+      include: { pages: { include: { blocks: true } } },
     });
-    return { ...site, report: built.report };
+    return { ...site, import: { isolated: true, source: fetched.finalUrl } };
   }
 
   @Get(":id") async get(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {

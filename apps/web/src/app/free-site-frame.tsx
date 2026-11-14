@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Monitor, Smartphone, ChevronUp, ChevronDown, Copy, Trash2, X } from "lucide-react";
 import sanitizeHtml from "sanitize-html";
 
 export type FreeSiteContent = { html: string; css: string };
@@ -8,10 +9,13 @@ type Selection = { index: number; tag: string; text: string; url: string; alt: s
 
 const selector = "section,header,footer,article,aside,div,h1,h2,h3,h4,p,a,img,li";
 const controls = [
-  ["color", "Cor do texto"], ["background-color", "Cor de fundo"], ["font-family", "Fonte"],
-  ["font-size", "Tamanho da letra"], ["padding", "Espaçamento interno"], ["margin", "Margem"],
+  ["color", "Texto"], ["background-color", "Fundo"], ["font-family", "Fonte"],
+  ["font-size", "Tamanho"], ["font-weight", "Peso"], ["letter-spacing", "Entrelinhas"],
+  ["line-height", "Altura de linha"], ["text-align", "Alinhamento"], ["text-transform", "Caixa alta"],
+  ["opacity", "Opacidade"], ["padding", "Espaço interno"], ["margin", "Margem"],
+  ["border-radius", "Cantos"], ["border", "Borda"], ["box-shadow", "Sombra"],
 ] as const;
-const policy = "default-src 'none'; style-src 'unsafe-inline'; font-src 'self' data:; img-src https: data:; base-uri 'none'; form-action 'none'; object-src 'none'";
+const policy = "default-src 'none'; style-src 'unsafe-inline' https:; font-src 'self' https: data:; img-src https: data:; base-uri 'none'; form-action 'none'; object-src 'none'";
 
 const localFonts = [
   ["DM Sans", "dm-sans-latin", "100 1000"],
@@ -24,8 +28,8 @@ const localFonts = [
 
 function safeDocument(content: FreeSiteContent) {
   const html = sanitizeHtml(content.html, {
-    allowedTags: [...sanitizeHtml.defaults.allowedTags, "img", "picture", "source", "details", "summary"],
-    allowedAttributes: { "*": ["id", "class", "role", "aria-*", "data-vx-element"], a: ["href", "target", "rel"], img: ["src", "alt", "width", "height", "loading"], source: ["srcset", "media", "type"] },
+    allowedTags: [...sanitizeHtml.defaults.allowedTags, "img", "picture", "source", "details", "summary", "link"],
+    allowedAttributes: { "*": ["id", "class", "role", "aria-*", "data-vx-element", "style"], a: ["href", "target", "rel"], img: ["src", "alt", "width", "height", "loading"], source: ["srcset", "media", "type"], link: ["rel", "href", "crossorigin", "media", "as", "type"] },
     allowedSchemes: ["https", "mailto", "tel"],
     allowProtocolRelative: false,
     transformTags: { a: (_tag, attrs) => {
@@ -221,35 +225,170 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
     setSelection({ ...selection, style: { ...selection.style, [key]: cssValue } });
     setDraft({ html: parsed.body.innerHTML, css });
   };
-  return <div className="sites-studio-fields">
-    <div className="sites-block-actions">
-      <button type="button" className="secondary-button" aria-pressed={width === "100%"} onClick={() => setWidth("100%")}>Desktop</button>
-      <button type="button" className="secondary-button" aria-pressed={width === "390px"} onClick={() => setWidth("390px")}>Celular</button>
+  const [tab, setTab] = useState<"gerais" | "estilos" | "animacoes" | "codigo">("gerais");
+  const [linkParam, setLinkParam] = useState("");
+  const ANIM_KEYFRAMES = "@keyframes vx-anim-fade-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}@keyframes vx-anim-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}@keyframes vx-anim-pulse{0%,100%{box-shadow:0 0 0 0 rgba(46,124,246,.4)}50%{box-shadow:0 0 0 12px rgba(46,124,246,0)}}";
+  const toHex = (v: string) => {
+    const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(v || "");
+    if (m) return "#" + [m[1] ?? "0", m[2] ?? "0", m[3] ?? "0"].map(n => ("0" + Number(n).toString(16)).slice(-2)).join("");
+    return /^#[0-9a-f]{6}$/i.test(v || "") ? v! : "#000000";
+  };
+  const setAnimation = (name: "none" | "fade-up" | "float" | "pulse") => {
+    if (!selection) return;
+    const value = name === "none" ? "none" : name === "float" ? "vx-anim-float 2.6s ease-in-out infinite" : name === "pulse" ? "vx-anim-pulse 2.2s ease-in-out infinite" : "vx-anim-fade-up .7s cubic-bezier(.2,.7,.3,1) both";
+    const withAnims = name !== "none" && !draft.css.includes("vx-anim-fade-up") ? draft.css + "\n" + ANIM_KEYFRAMES : draft.css;
+    const parsed = new DOMParser().parseFromString(safeDocument({ html: draft.html, css: withAnims }), "text/html");
+    const element = parsed.body.querySelectorAll(selector)[selection.index] as HTMLElement | undefined;
+    if (!element) return;
+    const id = "studio-" + selection.index;
+    element.setAttribute("data-vx-element", id);
+    const css = withAnims + "\n[data-vx-element='" + id + "']{animation:" + value + " !important}";
+    setDraft({ html: parsed.body.innerHTML, css });
+  };
+  const duplicateElement = () => {
+    if (!selection) return;
+    const parsed = new DOMParser().parseFromString(safeDocument(draft), "text/html");
+    const elements = parsed.body.querySelectorAll(selector);
+    const element = elements[selection.index] as HTMLElement | undefined;
+    if (!element || !element.parentElement) return;
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.removeAttribute("data-vx-element");
+    element.after(clone);
+    setDraft({ ...draft, html: parsed.body.innerHTML });
+    setSelection(null);
+  };
+  const deleteElement = () => {
+    if (!selection) return;
+    const parsed = new DOMParser().parseFromString(safeDocument(draft), "text/html");
+    const element = parsed.body.querySelectorAll(selector)[selection.index] as HTMLElement | undefined;
+    if (!element) return;
+    element.remove();
+    setDraft({ ...draft, html: parsed.body.innerHTML });
+    setSelection(null);
+  };
+  const applyLinkAction = (action: "keep" | "newTab" | "sameTab" | "whatsapp" | "tel" | "mailto" | "anchor") => {
+    if (!selection || selection.tag !== "a") return;
+    const parsed = new DOMParser().parseFromString(safeDocument(draft), "text/html");
+    const element = parsed.body.querySelectorAll(selector)[selection.index] as HTMLAnchorElement | undefined;
+    if (!element) return;
+    const param = linkParam.trim();
+    const digits = param.replace(/\D/g, "");
+    const href = element.getAttribute("href") || "#";
+    const set = (h: string, target?: string) => { element.setAttribute("href", h); if (target) { element.setAttribute("target", target); } if (target === "_blank") { element.setAttribute("rel", "noopener noreferrer"); } };
+    if (action === "keep") { /* nada muda */ }
+    else if (action === "newTab") set(href, "_blank");
+    else if (action === "sameTab") set(href, "_self");
+    else if (action === "whatsapp" && digits) set("https://wa.me/" + digits, "_blank");
+    else if (action === "tel" && digits) set("tel:" + digits, "_self");
+    else if (action === "mailto" && param.includes("@")) set("mailto:" + param, "_self");
+    else if (action === "anchor" && param.startsWith("#")) set(param, "_self");
+    setDraft({ ...draft, html: parsed.body.innerHTML });
+  };
+  const FONT_STACKS: [string, string][] = [
+    ["Padrão do site", ""],
+    ["Manrope (Véxora)", "'Manrope',sans-serif"],
+    ["DM Sans", "'DM Sans',sans-serif"],
+    ["Inter", "'Inter',sans-serif"],
+    ["Playfair Display", "'Playfair Display',serif"],
+    ["Fraunces", "'Fraunces',serif"],
+    ["DM Serif Display", "'DM Serif Display',serif"],
+  ];
+  const fontStackMatch = (v: string) => {
+    const low = (v || "").toLowerCase();
+    const hit = FONT_STACKS.find(([, stack]) => stack && low.includes(stack.split(",")[0]!.replace(/['"]/g, "").toLowerCase()));
+    return hit?.[1] ?? "";
+  };
+  const textEditable = !!selection && ["h1", "h2", "h3", "h4", "h5", "h6", "p", "a", "li", "blockquote", "span", "strong", "em", "small"].includes(selection.tag) && !selection.text.includes("\n");
+  const fontFamily = selection ? fontStackMatch(selection.style["font-family"] || "") : "";
+  return <div className="sites-studio-editor">
+    <div className="sites-studio-canvas-bar">
+      <div className="sites-studio-device-toggle" role="group" aria-label="Visualizar em">
+        <button type="button" aria-pressed={width === "100%"} className={width === "100%" ? "active" : ""} onClick={() => setWidth("100%")}><Monitor size={13} aria-hidden="true" /> PC</button>
+        <button type="button" aria-pressed={width === "390px"} className={width === "390px" ? "active" : ""} onClick={() => setWidth("390px")}><Smartphone size={13} aria-hidden="true" /> Celular</button>
+      </div>
       <button type="button" className="primary-button" onClick={() => onSave(draft)}>Aplicar alterações</button>
     </div>
-    <div style={{ width, maxWidth: "100%", marginInline: "auto" }}><FreeSiteFrame content={draft} onSelect={setSelection} onMove={moveTo} /></div>
-    {selection ? <div className="sites-block-form">
-      <strong>Elemento {selection.tag}</strong>
-      <div className="sites-block-actions">
-        <button type="button" className="secondary-button" onClick={() => moveElement(-1)}>Mover acima</button>
-        <button type="button" className="secondary-button" onClick={() => moveElement(1)}>Mover abaixo</button>
-      </div>
-      {["h1", "h2", "h3", "h4", "p", "a", "li"].includes(selection.tag) && selection.text && <label>Texto<input key={selection.index + "-text"} defaultValue={selection.text} onBlur={event => editElement("text", event.target.value)} /></label>}
-      {["a", "img"].includes(selection.tag) && <label>{selection.tag === "img" ? "URL da imagem" : "Link"}<input key={selection.index + "-url"} defaultValue={selection.url} onBlur={event => editElement("url", event.target.value)} /></label>}
-      {selection.tag === "img" && <label>Texto alternativo<input key={selection.index + "-alt"} defaultValue={selection.alt} onBlur={event => editElement("alt", event.target.value)} /></label>}
-      {controls.map(([key, label]) => <label key={selection.index + key}>{label}<input defaultValue={selection.style[key]} onBlur={event => { if (event.target.value !== selection.style[key]) editElement(key, event.target.value); }} /></label>)}
-    </div> : <p className="sites-field-hint">Selecione um elemento para editar ou arraste para reorganizar elementos da mesma seção.</p>}
-    {onPrompt && <div className="sites-block-form"><label>Alterar com Design Gráfico &amp; Web<textarea value={prompt} onChange={event => setPrompt(event.target.value)} /></label>
-      <button type="button" className="secondary-button" disabled={busy || prompt.trim().length < 3} onClick={async () => {
-        setBusy(true);
-        try { await onPrompt(prompt); setPrompt(""); } finally { setBusy(false); }
-      }}>{busy ? "Gerando…" : "Aplicar pedido"}</button></div>}
-    <details><summary>HTML e CSS</summary>
-      <div className="sites-block-form">
-        <label>HTML<textarea rows={7} value={draft.html} onChange={event => { setSelection(null); setDraft({ ...draft, html: event.target.value }); }} /></label>
-        <label>CSS<textarea rows={7} value={draft.css} onChange={event => { setSelection(null); setDraft({ ...draft, css: event.target.value }); }} /></label>
-      </div>
-    </details>
+    <div className="sites-studio-editor-body">
+      <div className="sites-studio-canvas-wrap" style={{ width: width === "390px" ? 400 : "100%", maxWidth: "100%", marginInline: "auto" }}><FreeSiteFrame content={draft} onSelect={setSelection} onMove={moveTo} /></div>
+      {selection ? <aside className="sites-inspector" aria-label="Propriedades do elemento">
+        <header className="sites-inspector-head">
+          <div><span className="sites-inspector-kicker">Elemento selecionado</span><strong>{selection.tag}</strong></div>
+          <div className="sites-inspector-head-actions">
+            <button type="button" className="icon-button" onClick={() => moveElement(-1)} title="Mover para cima" aria-label="Mover elemento para cima"><ChevronUp size={14} aria-hidden="true" /></button>
+            <button type="button" className="icon-button" onClick={() => moveElement(1)} title="Mover para baixo" aria-label="Mover elemento para baixo"><ChevronDown size={14} aria-hidden="true" /></button>
+            <button type="button" className="icon-button" onClick={duplicateElement} title="Duplicar elemento" aria-label="Duplicar elemento"><Copy size={14} aria-hidden="true" /></button>
+            <button type="button" className="icon-button" onClick={deleteElement} title="Excluir elemento" aria-label="Excluir elemento"><Trash2 size={14} aria-hidden="true" /></button>
+            <button type="button" className="icon-button" onClick={() => setSelection(null)} title="Fechar" aria-label="Fechar painel do elemento"><X size={14} aria-hidden="true" /></button>
+          </div>
+        </header>
+        <div className="sites-inspector-tabs" role="tablist" aria-label="Seções do inspetor">
+          <button type="button" role="tab" aria-selected={tab === "gerais"} className={"sites-inspector-tab" + (tab === "gerais" ? " is-active" : "")} onClick={() => setTab("gerais")}>Gerais</button>
+          <button type="button" role="tab" aria-selected={tab === "estilos"} className={"sites-inspector-tab" + (tab === "estilos" ? " is-active" : "")} onClick={() => setTab("estilos")}>Estilos</button>
+          <button type="button" role="tab" aria-selected={tab === "animacoes"} className={"sites-inspector-tab" + (tab === "animacoes" ? " is-active" : "")} onClick={() => setTab("animacoes")}>Animações</button>
+          <button type="button" role="tab" aria-selected={tab === "codigo"} className={"sites-inspector-tab" + (tab === "codigo" ? " is-active" : "")} onClick={() => setTab("codigo")}>Código</button>
+        </div>
+        <div className="sites-inspector-body">
+          {tab === "gerais" && <>
+            {textEditable && <label className="sites-inspector-field"><span>Texto</span><textarea rows={2} key={"t" + selection.index + selection.text} defaultValue={selection.text} onBlur={event => editElement("text", event.target.value)} /></label>}
+            {["a", "img"].includes(selection.tag) && <label className="sites-inspector-field"><span>{selection.tag === "img" ? "URL da imagem" : "Link"}</span><input key={"u" + selection.index + selection.url} defaultValue={selection.url} onBlur={event => editElement("url", event.target.value)} /></label>}
+            {selection.tag === "img" && <label className="sites-inspector-field"><span>Texto alternativo</span><input key={"a" + selection.index + selection.alt} defaultValue={selection.alt} onBlur={event => editElement("alt", event.target.value)} /></label>}
+            {selection.tag === "a" && <fieldset className="sites-inspector-field"><legend>Ação do botão</legend>
+              <input className="sites-inspector-input" placeholder="Número, e-mail ou #âncora — ex.: 5562999990000" value={linkParam} onChange={event => setLinkParam(event.target.value)} aria-label="Parâmetro da ação (número, e-mail ou âncora)" />
+              <div className="sites-inspector-action-grid">
+                <button type="button" onClick={() => applyLinkAction("keep")}>Manter link</button>
+                <button type="button" onClick={() => applyLinkAction("sameTab")}>Mesma aba</button>
+                <button type="button" onClick={() => applyLinkAction("newTab")}>Nova aba</button>
+                <button type="button" onClick={() => applyLinkAction("whatsapp")}>WhatsApp</button>
+                <button type="button" onClick={() => applyLinkAction("tel")}>Ligar</button>
+                <button type="button" onClick={() => applyLinkAction("mailto")}>E-mail</button>
+                <button type="button" onClick={() => applyLinkAction("anchor")}>Âncora</button>
+              </div>
+              <small className="sites-field-hint">Ex.: WhatsApp abre o wa.me com o número digitado.</small>
+            </fieldset>}
+            <p className="sites-field-hint">Selecione outro elemento no canvas para ajustar. Use a aba Estilos para cores e espaçamento.</p>
+          </>}
+          {tab === "estilos" && <>
+            <div className="sites-inspector-group"><span className="sites-inspector-group-label">Texto</span>
+              <label className="sites-inspector-field"><span>Cor do texto</span><input type="color" value={toHex(selection.style["color"] || "")} onChange={event => editElement("color", event.target.value)} /></label>
+              <label className="sites-inspector-field"><span>Fundo</span><input type="color" value={toHex(selection.style["background-color"] || "")} onChange={event => editElement("background-color", event.target.value)} /></label>
+              <label className="sites-inspector-field"><span>Fonte</span><select key={"f" + selection.index} defaultValue={fontFamily} onChange={event => { if (event.target.value) editElement("font-family", event.target.value); }}>{FONT_STACKS.map(([label, stack]) => <option key={label} value={stack}>{label}</option>)}</select></label>
+              <label className="sites-inspector-field"><span>Tamanho da letra</span><input key={"fs" + selection.index} defaultValue={selection.style["font-size"] || ""} placeholder="ex.: 16px" onBlur={event => editElement("font-size", event.target.value)} /></label>
+              <label className="sites-inspector-field"><span>Peso da fonte</span><select key={"fw" + selection.index} defaultValue={(selection.style["font-weight"] || "").replace(/[^0-9]/g, "")} onChange={event => editElement("font-weight", event.target.value)}><option value="">Original</option><option value="400">Normal (400)</option><option value="500">Médio (500)</option><option value="600">Semibold (600)</option><option value="700">Negrito (700)</option><option value="800">Extra-negrito (800)</option></select></label>
+              <label className="sites-inspector-field"><span>Espaçamento entre letras</span><select key={"ls" + selection.index} defaultValue={selection.style["letter-spacing"] || ""} onChange={event => editElement("letter-spacing", event.target.value)}><option value="">Original</option><option value="normal">Normal</option><option value=".02em">Suave (0,02em)</option><option value=".06em">Médio (0,06em)</option><option value=".14em">Amplo (0,14em)</option></select></label>
+              <label className="sites-inspector-field"><span>Caixa alta</span><select key={"tt" + selection.index} defaultValue={selection.style["text-transform"] || ""} onChange={event => editElement("text-transform", event.target.value)}><option value="">Original</option><option value="none">Nenhuma</option><option value="uppercase">MAIÚSCULAS</option><option value="capitalize">Primeiras Maiúsculas</option></select></label>
+              <label className="sites-inspector-field"><span>Alinhamento</span><select key={"ta" + selection.index} defaultValue={selection.style["text-align"] || ""} onChange={event => editElement("text-align", event.target.value)}><option value="">Original</option><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option><option value="justify">Justificado</option></select></label>
+              <label className="sites-inspector-field"><span>Opacidade</span><select key={"op" + selection.index} defaultValue={selection.style["opacity"] || ""} onChange={event => editElement("opacity", event.target.value)}><option value="">Original</option><option value="1">100%</option><option value=".85">85%</option><option value=".6">60%</option><option value=".3">30%</option></select></label>
+            </div>
+            <div className="sites-inspector-group"><span className="sites-inspector-group-label">Caixa</span>
+              <label className="sites-inspector-field"><span>Espaço interno</span><input key={"p" + selection.index} defaultValue={selection.style["padding"] || ""} placeholder="ex.: 24px" onBlur={event => editElement("padding", event.target.value)} /></label>
+              <label className="sites-inspector-field"><span>Margem</span><input key={"m" + selection.index} defaultValue={selection.style["margin"] || ""} placeholder="ex.: 0 auto" onBlur={event => editElement("margin", event.target.value)} /></label>
+              <label className="sites-inspector-field"><span>Cantos arredondados</span><input key={"br" + selection.index} defaultValue={selection.style["border-radius"] || ""} placeholder="ex.: 14px" onBlur={event => editElement("border-radius", event.target.value)} /></label>
+              <label className="sites-inspector-field"><span>Borda</span><select key={"bd" + selection.index} defaultValue="" onChange={event => editElement("border", event.target.value)}><option value="">Original</option><option value="none">Nenhuma</option><option value="1px solid #E2E8F8">1px clara</option><option value="1px solid #0A1730">1px escura</option><option value="2px solid #2E7CF6">2px azul Véxora</option></select></label>
+              <label className="sites-inspector-field"><span>Sombra</span><select key={"sh" + selection.index} defaultValue="" onChange={event => editElement("box-shadow", event.target.value)}><option value="">Original</option><option value="none">Nenhuma</option><option value="0 8px 24px -8px rgba(6,11,31,.35)">Suave</option><option value="0 24px 48px -16px rgba(6,11,31,.45)">Profunda</option></select></label>
+            </div>
+          </>}
+          {tab === "animacoes" && <>
+            <p className="sites-field-hint">Animação aplicada a este elemento.</p>
+            <div className="sites-inspector-action-grid">
+              <button type="button" onClick={() => setAnimation("none")}>Nenhuma</button>
+              <button type="button" onClick={() => setAnimation("fade-up")}>Subir ao entrar</button>
+              <button type="button" onClick={() => setAnimation("float")}>Flutuar</button>
+              <button type="button" onClick={() => setAnimation("pulse")}>Pulsar</button>
+            </div>
+            <p className="sites-field-hint">Animações rodam em CSS — sem JavaScript. Feitas para chamar atenção sem pesar a página.</p>
+          </>}
+          {tab === "codigo" && <>
+            <label className="sites-inspector-field"><span>HTML</span><textarea rows={9} value={draft.html} onChange={event => { setSelection(null); setDraft({ ...draft, html: event.target.value }); }} /></label>
+            <label className="sites-inspector-field"><span>CSS</span><textarea rows={9} value={draft.css} onChange={event => { setSelection(null); setDraft({ ...draft, css: event.target.value }); }} /></label>
+          </>}
+          {onPrompt && <div className="sites-inspector-ai"><label className="sites-inspector-field"><span>Alterar com Design Gráfico &amp; Web</span><textarea rows={2} value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Ex.: mais respiro entre título e imagem" /></label>
+            <button type="button" className="secondary-button" disabled={busy || prompt.trim().length < 3} onClick={async () => {
+              setBusy(true);
+              try { await onPrompt(prompt); setPrompt(""); } finally { setBusy(false); }
+            }}>{busy ? "Gerando…" : "Aplicar pedido"}</button></div>}
+        </div>
+      </aside> : null}
+    </div>
   </div>;
 }
 

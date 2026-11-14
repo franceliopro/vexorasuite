@@ -38,7 +38,7 @@ function safeUrl(v: unknown): string | null {
   return isHttp(s) || /^\/(?!\/)/.test(s) || /^#/.test(s) ? s.slice(0, 2000) : null;
 }
 const PAGE_KINDS = ["HOME","SERVICES","TEAM","IMOVEIS","POSTS","CONTACT","LANDING","CUSTOM"] as const;
-const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout","freeLayout"] as const;
+const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout","freeLayout","externalHtml"] as const;
 
 /** Véxora Sites — API do produto Sites (criação, edição, publicação e domínio). */
 @Controller("sites")
@@ -432,9 +432,9 @@ export class SitesController {
     if (body?.hidden !== undefined) data.hidden = body.hidden === true;
     if (body?.content !== undefined) {
       if (typeof body.content !== "object" || Array.isArray(body.content) || body.content === null) throw new BadRequestException("content deve ser objeto.");
-      data.content = (data.type ?? block.type) === "freeLayout" ? sanitizeFreeLayout(body.content) : sanitizeContent(body.content);
+      const effectiveType = (data.type ?? block.type) as string;
+      data.content = effectiveType === "freeLayout" ? sanitizeFreeLayout(body.content) : effectiveType === "externalHtml" ? sanitizeExternalHtml(body.content) : sanitizeContent(body.content);
       if (data.content === null) throw new BadRequestException("Informe HTML e CSS válidos.");
-
     }
     if (body?.sortOrder !== undefined) data.sortOrder = Math.max(0, Math.min(999, Number(body.sortOrder) || 0));
     return this.prisma.siteBlock.update({ where: { id: block.id }, data });
@@ -454,6 +454,34 @@ export class SitesController {
     const deleted = await this.prisma.siteBlock.deleteMany({ where: { id: blockId, pageId: page.id } });
     if (!deleted.count) throw new NotFoundException("Bloco não encontrado.");
     return { deleted: true };
+  }
+
+  /**
+   * Traz um site importado (externalHtml) para o editor visual: extrai <style> e <body>,
+   * remove <script> e vira um freeLayout — editável elemento a elemento no Studio.
+   */
+  @Post("pages/:pageId/blocks/:blockId/convert-to-editable") async convertToEditable(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string) {
+    const page = await this.ownPage(req, pageId);
+    const block = await this.prisma.siteBlock.findFirst({ where: { id: blockId, pageId: page.id } });
+    if (!block) throw new NotFoundException("Bloco não encontrado.");
+    if (block.type !== "externalHtml") throw new BadRequestException("Apenas sites importados podem ser trazidos para o editor.");
+    const html = String((block.content as any)?.html || "");
+    if (html.trim().length < 20) throw new BadRequestException("Este site importado está vazio.");
+    const styles: string[] = [];
+    const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    let styleMatch: RegExpExecArray | null;
+    while ((styleMatch = styleRe.exec(html))) styles.push(styleMatch[1] ?? "");
+    const links: string[] = [];
+    const linkRe = /<link[^>]+>/gi;
+    let linkMatch: RegExpExecArray | null;
+    while ((linkMatch = linkRe.exec(html))) { const tag = linkMatch[0]; if (/rel\s*=\s*["']?(stylesheet|preload|icon)/i.test(tag) || /fonts\.g/i.test(tag)) links.push(tag); }
+    const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
+    let inner = bodyMatch?.[1] ?? html.replace(/<head[\s\S]*?<\/head>/i, "").replace(/<\/?html[^>]*>/gi, "");
+    inner = inner.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<base[^>]*>/gi, "").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+    const css = styles.join("\n").trim().slice(0, 20000);
+    const combined = ((links.length ? links.slice(0, 20).join("\n") + "\n" : "") + inner.trim()).slice(0, 60000);
+    const content = { html: combined, css, title: (block.content as any)?.title || "Site importado" };
+    return this.prisma.siteBlock.update({ where: { id: block.id }, data: { type: "freeLayout", content } });
   }
 
   @Post("pages/:pageId/blocks/:blockId/ai") async aiEditBlock(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string, @Body() body: any) {
@@ -483,7 +511,7 @@ export class SitesController {
     try { parsed = JSON.parse(match[0]); } catch { throw new BadRequestException("A IA devolveu conteúdo inválido. Tente um pedido mais simples."); }
     const next = parsed?.content ?? parsed;
     if (!next || typeof next !== "object" || Array.isArray(next)) throw new BadRequestException("A IA devolveu um formato inesperado. Tente um pedido mais específico.");
-    const safe = block.type === "freeLayout" ? sanitizeFreeLayout(next) : sanitizeContent(next);
+    const safe = block.type === "freeLayout" ? sanitizeFreeLayout(next) : block.type === "externalHtml" ? sanitizeExternalHtml(next) : sanitizeContent(next);
     if (!safe) throw new BadRequestException("O agente não devolveu HTML e CSS utilizáveis.");
     await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: safe } });
     return { blockId: block.id, content: safe };
@@ -821,6 +849,15 @@ function collectAssetIds(value: unknown, ...extra: (string | null | undefined)[]
   scan(value);
   for (const s of extra) if (typeof s === "string") scan(s);
   return [...found].slice(0, 200);
+}
+
+/** Site importado (externalHtml): conteúdo próprio mantido bruto, apenas validado em tamanho e formato. */
+function sanitizeExternalHtml(content: any): any {
+  if (!content || typeof content !== "object" || Array.isArray(content)) return null;
+  const html = typeof content.html === "string" ? content.html : "";
+  if (!html.trim() || html.length > 600_000 || html.length < 20) return null;
+  if (!/<[a-zA-Z][^>]*>/.test(html)) return null;
+  return { html, title: typeof content.title === "string" ? content.title.slice(0, 80) : "" };
 }
 
 /** Remove HTML/tags perigosas de textos de bloco. */

@@ -11,7 +11,16 @@ const controls = [
   ["color", "Cor do texto"], ["background-color", "Cor de fundo"], ["font-family", "Fonte"],
   ["font-size", "Tamanho da letra"], ["padding", "Espaçamento interno"], ["margin", "Margem"],
 ] as const;
-const policy = "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https: data:; base-uri 'none'; form-action 'none'; object-src 'none'";
+const policy = "default-src 'none'; style-src 'unsafe-inline'; font-src 'self' data:; img-src https: data:; base-uri 'none'; form-action 'none'; object-src 'none'";
+
+const localFonts = [
+  ["DM Sans", "dm-sans-latin", "100 1000"],
+  ["Manrope", "manrope-latin", "200 800"],
+  ["Inter", "inter-var", "100 900"],
+  ["Playfair Display", "playfair-display-var", "400 900"],
+  ["Fraunces", "fraunces-var", "100 900"],
+  ["DM Serif Display", "dm-serif-display-latin", "400"],
+].map(([family, asset, weights]) => "@font-face{font-family:'" + family + "';src:url('/fonts/" + asset + ".woff2') format('woff2');font-weight:" + weights + ";font-display:swap}").join("");
 
 function safeDocument(content: FreeSiteContent) {
   const html = sanitizeHtml(content.html, {
@@ -27,7 +36,7 @@ function safeDocument(content: FreeSiteContent) {
     } },
   });
   const css = /<\/style/i.test(content.css) ? "" : content.css.replace(/(-?\d*\.?\d+)(?:[sld]?vh)\b/gi, "calc(var(--vx-viewport-unit, 8px) * $1)");
-  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}</style><style>' + css + '</style></head><body>' + html + '</body></html>';
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}' + localFonts + '</style><style>' + css + '</style></head><body>' + html + '</body></html>';
 }
 
 export function FreeSiteFrame({ content, onSelect, onMove }: {

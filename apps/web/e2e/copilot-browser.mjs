@@ -127,7 +127,7 @@ try{
  await page.goto("http://127.0.0.1:3100/?module=Sites");
  const savedDraft = page.getByRole("article", { name: "Rascunho de criação" });
  await savedDraft.getByRole("button", { name: "Ver rascunho" }).click();
- const wizard = page.getByRole("dialog", { name: "Criar site com IA" });
+ const wizard = page.getByRole("dialog", { name: "Criar site" });
  await wizard.getByText(/modelo-antigo-qa/).waitFor();
  assert.equal(await wizard.getByRole("textbox", { name: "Nome do site" }).inputValue(), "Site salvo QA");
  creativeModel = "modelo-novo-qa";

@@ -4,7 +4,7 @@ import { Loader2, Plus, Save, Search, Trash2, X, ExternalLink, Building2, Circle
 import { createPortal } from "react-dom";
 
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isActive: boolean; isPublic: boolean; sortOrder: number };
-type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; monthlyPriceCents: number };
+type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; aiMonth?: number; monthlyPriceCents: number };
 const PRICE = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const MODULE_LABELS: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", CALENDAR: "Calendários", TASKS: "Tarefas", AUTOMATION: "Automação / Chatbot", MARKETING: "Marketing", FINANCE: "Financeiro", CHANNELS: "Canais e redes", SETTINGS: "Configurações", SITES: "Sites" };
 const LIMIT_FIELDS: Array<{ key: string; label: string; kind: "number" | "bool" | "text" | "modules"; placeholder?: string; hint?: string }> = [
@@ -112,13 +112,13 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
       ) : (
         <div className="platform-admin-customers">
           <label className="platform-admin-search"><Search size={15} aria-hidden="true" /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar empresa…" aria-label="Buscar empresa" /></label>
-          <div className="platform-admin-table-wrap"><table className="platform-admin-table"><thead><tr><th>Empresa</th><th>Plano</th><th>Status</th><th>Assentos</th><th>Canais</th><th>Conversas</th><th>MRR</th><th></th></tr></thead><tbody>
+          <div className="platform-admin-table-wrap"><table className="platform-admin-table"><thead><tr><th>Empresa</th><th>Plano</th><th>Status</th><th>Assentos</th><th>Canais</th><th>Conversas</th><th>IA/mês</th><th>MRR</th><th></th></tr></thead><tbody>
             {filtered.map(c => (
               <tr key={c.id}>
                 <td><div className="platform-admin-customer"><span className="platform-admin-customer-mark" aria-hidden="true">{c.name.trim().slice(0, 1).toUpperCase()}</span><span><b>{c.name}</b><small>{c.slug}</small></span></div></td>
                 <td><select value={c.plan?.id || ""} onChange={e => void assignPlan(c.id, e.target.value || null)} aria-label={"Plano de " + c.name}><option value="">Sem plano</option>{plans.filter(p => p.isActive).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
                 <td><span className={"platform-admin-pill " + (c.status === "ACTIVE" ? "is-live" : "is-off")}>{c.status === "ACTIVE" ? "Ativa" : c.status}</span></td>
-                <td>{c.seats}</td><td>{c.channels}</td><td>{c.conversations}</td><td>{PRICE(c.monthlyPriceCents)}</td><td><a href={"/?module=Configurações"} className="icon-button" title="Abrir empresa" aria-label="Abrir empresa"><ExternalLink size={14} aria-hidden="true" /></a></td>
+                <td>{c.seats}</td><td>{c.channels}</td><td>{c.conversations}</td><td title={"Execuções de IA neste mês: " + (c.aiMonth ?? 0)}>{c.aiMonth ?? 0}</td><td>{PRICE(c.monthlyPriceCents)}</td><td><a href={"/?module=Configurações"} className="icon-button" title="Abrir empresa" aria-label="Abrir empresa"><ExternalLink size={14} aria-hidden="true" /></a></td>
               </tr>
             ))}
           </tbody></table></div>

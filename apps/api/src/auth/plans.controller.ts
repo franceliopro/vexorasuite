@@ -3,6 +3,7 @@ import { AuthGuard } from "./auth.guard";
 import { AuthenticatedRequest } from "./auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { FULL_ENTITLEMENTS, entitlementsFromPlanLimits, resolveEntitlements, entitlementsView } from "./entitlements";
+import { monthWindowSaoPaulo } from "../common/month-window";
 const PRICE_MIN = 0, PRICE_MAX = 99999000;
 const VALID_CYCLE = new Set(["MONTH","YEAR","ONCE"]);
 const VALID_KIND = new Set(["PLAN","PACKAGE"]);
@@ -74,11 +75,15 @@ export class PlansController {
     const tenants = await this.prisma.tenant.findMany({ where: { kind: { not: "PLATFORM" } }, orderBy: { createdAt: "asc" }, select: { id: true, name: true, slug: true, status: true, createdAt: true, planId: true, entitlements: true, _count: { select: { memberships: true, channelConnections: true, conversations: true } } } });
     const plans = await this.prisma.plan.findMany({ select: { id: true, code: true, name: true, priceCents: true, cycle: true } });
     const byId = new Map(plans.map(p => [p.id, p]));
+    // Uso de IA no mês corrente (mesma contagem das execuções reservadas que o limite diário usa).
+    const { start, end } = monthWindowSaoPaulo();
+    const usage = await this.prisma.auditLog.groupBy({ by: ["tenantId"], where: { action: "ai.execution.reserved", createdAt: { gte: start, lt: end } }, _count: { _all: true } });
+    const aiByTenant = new Map(usage.map(item => [item.tenantId, item._count._all]));
     // Uso aproximado: contagens reais do banco; dinheiro vem do plano atribuído.
     const rows = tenants.map(t => {
       const plan = t.planId ? byId.get(t.planId) || null : null;
       const view = entitlementsView(t.entitlements);
-      return { id: t.id, name: t.name, slug: t.slug, status: t.status, createdAt: t.createdAt, plan, seats: t._count.memberships, channels: t._count.channelConnections, conversations: t._count.conversations, entitlements: view, monthlyPriceCents: plan ? (plan.cycle === "YEAR" ? Math.round(plan.priceCents / 12) : plan.priceCents) : 0 };
+      return { id: t.id, name: t.name, slug: t.slug, status: t.status, createdAt: t.createdAt, plan, seats: t._count.memberships, channels: t._count.channelConnections, conversations: t._count.conversations, entitlements: view, aiMonth: aiByTenant.get(t.id) ?? 0, monthlyPriceCents: plan ? (plan.cycle === "YEAR" ? Math.round(plan.priceCents / 12) : plan.priceCents) : 0 };
     });
     const mrr = rows.filter(r => r.status === "ACTIVE").reduce((sum, r) => sum + r.monthlyPriceCents, 0);
     return { customers: rows, mrrCents: mrr, total: rows.length };

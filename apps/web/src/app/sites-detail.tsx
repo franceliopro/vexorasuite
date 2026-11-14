@@ -105,11 +105,11 @@ export function SitesWizardDialog(props: {
             </div>
                                   </details>
           <details className="sites-ai-card">
-            <summary><Globe size={14} aria-hidden="true" /> Clonar um site existente (WordPress)</summary>
-            <p className="sites-field-hint">Cole a URL pública do site do cliente (ex.: https://rastreabem.com.br). O Véxora importa páginas, posts e imóveis via WordPress REST API — o site entra como rascunho para você revisar e publicar. O tema visual não é copiado: o conteúdo vem estruturado e o design é aplicado pelo Véxora Sites, editável depois no editor.</p>
+            <summary><Globe size={14} aria-hidden="true" /> Clonar um site apontando o domínio</summary>
+            <p className="sites-field-hint">Cole o endereço do site (ex.: https://rastreabem.com.br). A Véxora busca a página original e deixa uma cópia isolada — pixel-perfect, com os scripts funcionando. O resultado entra como rascunho para você revisar e publicar. Para clonar por imagem (screenshot), use "Inspirar com uma imagem".</p>
             <div className="sites-ai-prompt">
-              <label className="sites-field"><span>URL do site a clonar</span><input type="url" inputMode="url" value={wizCloneUrl} onChange={e => setWizCloneUrl(e.target.value)} placeholder="https://cliente.com.br" /></label>
-              <button type="button" className="secondary-button" disabled={wizSaving || wizCloning || !/^https:\/\/.+\..+/i.test((wizCloneUrl || "").trim())} onClick={onCloneSite} title="Importa páginas, posts e imóveis de um site WordPress público">{wizCloning ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {wizCloning ? "Clonando…" : "Clonar site inteiro"}</button>
+              <label className="sites-field"><span>Endereço do site a clonar</span><input type="url" inputMode="url" value={wizCloneUrl} onChange={e => setWizCloneUrl(e.target.value)} placeholder="https://cliente.com.br" /></label>
+              <button type="button" className="secondary-button" disabled={wizSaving || wizCloning || !/^https:\/\/.+\..+/i.test((wizCloneUrl || "").trim())} onClick={onCloneSite} title="Busca o site inteiro (https) e cria uma cópia isolada na Véxora">{wizCloning ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {wizCloning ? "Clonando…" : "Clonar site a partir do domínio"}</button>
             </div>
           </details>
           <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
@@ -1150,10 +1150,22 @@ function PublishPanel({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   const [domain, setDomain] = useState(site.domain || "");
   const [busy, setBusy] = useState(false);
   const [verifyBusy, setVerifyBusy] = useState(false);
+  const [pullBusy, setPullBusy] = useState(false);
   const [info, setInfo] = useState<any>(null);
   const setPublish = async (published: boolean) => { setBusy(true); try { await api(`/sites/${site.id}`, { method: "PATCH", body: JSON.stringify({ published }) }); onSaved(); onNotice(published ? "Site publicado." : "Site despropublicado — ninguém vê fora do painel."); } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível publicar."); } finally { setBusy(false); } };
   const saveDomain = async () => { setBusy(true); setInfo(null); try { const res = await api<any>(`/sites/${site.id}/domain`, { method: "POST", body: JSON.stringify({ domain }) }); setInfo(res); } catch (e) { onNotice(e instanceof Error ? e.message : "Domínio inválido."); } finally { setBusy(false); } };
   const verify = async () => { setVerifyBusy(true); try { const res = await api<any>(`/sites/${site.id}/domain/verify`, { method: "POST", body: "{}" }); setInfo(res); } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível verificar agora."); } finally { setVerifyBusy(false); } };
+  const pullFromDomain = async () => {
+    if (!domain.trim()) return;
+    if (!window.confirm("Copiar o conteúdo do endereço " + domain.trim() + " para a página Início? O conteúdo atual da Início será substituído. (Funciona enquanto o site antigo ainda responde nesse domínio — faça ANTES de apontar o DNS.)")) return;
+    setPullBusy(true);
+    try {
+      await api(`/sites/import-url`, { method: "POST", body: JSON.stringify({ url: "https://" + domain.trim().replace(/^https?:\/\//i, ""), intoSiteId: site.id }) });
+      onSaved();
+      onNotice("Conteúdo do domínio copiado para a Início. Confira, ajuste e publique.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível copiar o conteúdo do domínio."); }
+    finally { setPullBusy(false); }
+  };
   const slugUrl = (typeof window !== "undefined" ? window.location.origin : "") + "/sites/" + site.slug;
   const published = site.published;
   return (<div className="sites-publish">
@@ -1172,6 +1184,8 @@ function PublishPanel({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
       <label><span>Domínio</span><input value={domain} onChange={e => setDomain(e.target.value)} placeholder="site.suaclinica.com.br" autoCapitalize="none" /></label>
       <div className="sites-publish-toggle"><button type="button" className="primary-button" disabled={busy || !domain.trim()} onClick={() => void saveDomain()}>{busy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Globe size={14} aria-hidden="true" />} Gerar verificação</button><button type="button" className="secondary-button" disabled={verifyBusy || !domain.trim()} onClick={() => void verify()}>{verifyBusy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />} Verificar DNS</button></div>
       {info && <div className="sites-domain-info"><code>{info.token || info.instructions || ""}</code>{info.instructions && <p>Crie um TXT em <code>_vexora-verify.{info.domain}</code> com o valor acima. DNS pode levar até 24h para propagar.</p>}{info.message && <p>{info.message}</p>}</div>}
+      <div className="sites-publish-toggle"><button type="button" className="secondary-button" disabled={pullBusy || !domain.trim()} onClick={() => void pullFromDomain()} title="Copia o site que hoje responde por este domínio para a Início — funciona enquanto o site antigo estiver no ar nesse endereço (faça ANTES de apontar o DNS)">{pullBusy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <Globe size={14} aria-hidden="true" />} Copiar conteúdo do domínio antigo</button></div>
+      <p className="sites-field-hint">Funciona enquanto o site antigo ainda responde por este domínio — faça a cópia <strong>antes</strong> de mudar o DNS. A página Início atual será substituída pela cópia isolada.</p>
       <p className="sites-field-hint">A publicação no domínio da empresa exige o wildcard <code>*.vexorasuite.com.br</code> ou uma rota personalizada no Dokploy com Host <code>seudominio.com.br</code> — fale com a Véxora. O site responde publicamente no link acima a partir de agora.</p>
     </article>
     <article className="sites-publish-card">

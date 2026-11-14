@@ -225,11 +225,8 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
     setWizError(""); setWizCloning(true);
     try {
       const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
-      const socials = wizSocials.filter(s => s.handle.trim());
-      const created = await api<any>("/sites/clone", { method: "POST", body: JSON.stringify({ url, name: wizName.trim() || undefined, businessArea: wizArea || undefined, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug.trim() || undefined, whatsapps, socials }) });
-      const report = created?.report as { source?: string; pagesImported?: number; postsImported?: number; propertiesImported?: number } | undefined;
-      const origin = report?.source === "wordpress" ? "WordPress" : "HTML";
-      setNotice(`Site clonado (${origin}): ${report?.pagesImported ?? 0} páginas, ${report?.postsImported ?? 0} posts, ${report?.propertiesImported ?? 0} imóveis. Revise no Studio e publique quando quiser.`);
+      const created = await api<any>("/sites/import-url", { method: "POST", body: JSON.stringify({ url, name: wizName.trim() || undefined, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug.trim() || undefined, whatsapps }) });
+      setNotice("Site clonado a partir de " + url + " — copie isolada, pixel-perfect. Revise no Studio e publique quando quiser.");
       resetDraft();
       await loadSites();
       setParams({ new: null, site: created?.id || null, tab: "studio" });

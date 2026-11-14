@@ -95,14 +95,7 @@ export function buildPremiumTemplate(input: {
 
   const servicesHtml = services.map((s, i) => `<li class="vx-svc"><span class="vx-num">0${i + 1}</span><div><strong>${s.title}</strong><p>${s.text}</p></div></li>`).join("\n");
 
-  const mono = company.trim().split(/\s+/)[0]?.slice(0, 1).toUpperCase() || "V";
-
-  const html = `<header class="vx-head">
-  <a class="vx-brand" href="#top"><span class="vx-mono">${esc(mono)}</span><span class="vx-brand-name">${company}</span></a>
-  <nav class="vx-nav"><a href="#servicos">Serviços</a><a href="#sobre">Sobre</a><a href="#galeria">Imagens</a><a href="#contato">Contato</a></nav>
-  <a class="vx-head-cta" href="${esc(waLink)}">WhatsApp</a>
-</header>
-<main id="top">
+  const html = `<main id="top">
   <section class="vx-hero">${heroInner}</section>
   <section class="vx-section" id="galeria">
     <div class="vx-head-row"><div><span class="vx-eyebrow">Momentos</span><h2>Galeria</h2></div></div>
@@ -122,21 +115,12 @@ export function buildPremiumTemplate(input: {
     <p>Resposta rápida. Sem compromisso e sem enrolação.</p>
     <a class="vx-btn vx-btn--big" href="${esc(waLink)}">${ctaLabel}</a>
   </section>
-</main>
-<footer class="vx-foot"><strong>${company}</strong><span>© ${new Date().getFullYear()} · ${tagline}</span><a href="${esc(waLink)}">WhatsApp</a></footer>`;
+</main>`;
 
   const dark = theme.dark;
   const css = `:root{}
 html,body{margin:0;padding:0}
 body{background:${theme.surface};color:${theme.ink};font-family:'Manrope',sans-serif;-webkit-font-smoothing:antialiased}
-.vx-head{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px clamp(18px,4vw,44px);backdrop-filter:blur(10px);background:${dark ? "rgba(14,26,46,.72)" : "rgba(255,255,255,.72)"};border-bottom:1px solid ${dark ? "rgba(243,239,228,.14)" : "rgba(23,21,15,.09)"}}
-.vx-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
-.vx-mono{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:${accent};color:${theme.accentInk};font:800 15px/1 'Manrope',sans-serif}
-.vx-brand-name{font:800 15px/1 'Manrope',sans-serif;letter-spacing:.01em}
-.vx-nav{display:flex;gap:18px}
-.vx-nav a{text-decoration:none;color:${theme.muted};font-size:13px;font-weight:600}
-.vx-nav a:hover{color:${theme.ink}}
-.vx-head-cta{padding:10px 18px;border-radius:99px;background:${accent};color:${theme.accentInk};text-decoration:none;font:800 12px/1 'Manrope',sans-serif}
 .vx-hero{display:grid;grid-template-columns:1fr 1.05fr;min-height:82vh;align-items:stretch}
 .vx-hero-txt{display:grid;align-content:center;gap:18px;padding:clamp(28px,5vw,64px)}
 .vx-hero-txt--center{justify-items:center;text-align:center;max-width:980px;margin:0 auto}
@@ -168,9 +152,6 @@ body{background:${theme.surface};color:${theme.ink};font-family:'Manrope',sans-s
 .vx-cta{padding:clamp(48px,8vw,110px) clamp(18px,5vw,56px);text-align:center;display:grid;justify-items:center;gap:14px;background:${dark ? "#0A1424" : "#FFFFFF"};border-top:1px solid ${dark ? "rgba(243,239,228,.12)" : "rgba(23,21,15,.09)"}}
 .vx-cta h2{margin:0;max-width:720px;font:400 clamp(30px,4vw,48px)/1.1 ${theme.display};letter-spacing:-.02em}
 .vx-cta p{margin:0;color:${theme.muted};font-size:16px}
-.vx-foot{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:18px clamp(18px,4vw,44px);font-size:12px;color:${theme.muted};border-top:1px solid ${dark ? "rgba(243,239,228,.14)" : "rgba(23,21,15,.09)"}}
-.vx-foot strong{color:${theme.ink}}
-.vx-foot a{color:${accent};text-decoration:none;font-weight:800}
 @media(max-width:900px){
   .vx-nav{display:none}
   .vx-hero{grid-template-columns:1fr;min-height:auto}
@@ -183,6 +164,100 @@ body{background:${theme.surface};color:${theme.ink};font-family:'Manrope',sans-s
   .vx-gallery{grid-template-columns:1fr;grid-auto-rows:200px}
   .vx-ph:first-child{grid-column:auto;grid-row:auto}
 }`;
+
+  return { html, css };
+}
+
+/** Página interna no mesmo padrão do template (elementor-lite interno; sem IA). */
+export function buildPremiumPage(input: {
+  kind: string; title: string;
+  name: string; area: string; primaryColor: string; accentColor: string;
+  departments?: { platform: string; handle: string }[];
+  imageUrls: string[];
+  copy?: PremiumCopy;
+}): { html: string; css: string } {
+  const area = BUSINESS_AREAS[input.area] ? input.area : "site_simples";
+  const pack = BUSINESS_AREAS[area]!;
+  const id = templateForArea(input.area);
+  const theme = THEMES[id];
+  const company = esc(input.name);
+  const wa = (input.departments || []).find(d => d.platform === "whatsapp" && d.handle)?.handle || "";
+  const waLink = wa ? "https://wa.me/" + String(wa).replace(/\D/g, "") : "#contato";
+  const accent = /^#[0-9a-f]{6}$/i.test(input.accentColor || "") ? input.accentColor : theme.accent;
+  const clamp = (v: unknown, max = 500): string => typeof v === "string" ? esc(v).replace(/\s+/g, " ").trim().slice(0, max) : "";
+  const clampList = (v: unknown, max = 100, size = 6): { title: string; text: string }[] => Array.isArray(v) ? v.slice(0, size).map(s => ({ title: clamp(s?.title, 80), text: clamp(s?.text, 240) })) : [];
+  const services = (Array.isArray(input.copy?.services) && input.copy!.services!.length ? clampList(input.copy!.services!) : pack.services.slice(0, 6).map(s => ({ title: clamp(s?.title, 80), text: clamp(s?.text, 240) })));
+  const tagline = esc(pack.label);
+  const heroImage = input.imageUrls[0] || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80";
+
+  let inner = "";
+  let heroTitle = clamp(input.title, 80) || "Página";
+
+  if (input.kind === "SERVICES") {
+    heroTitle = clamp(input.title, 80) || "Serviços";
+    inner = `<section class="vx-section" id="servicos">
+      <div class="vx-head-row"><div><span class="vx-eyebrow">O que fazemos</span><h2>Serviços da ${company}</h2></div></div>
+      <ol class="vx-services">${services.map((s, i) => `<li class="vx-svc"><span class="vx-num">0${i + 1}</span><div><strong>${s.title}</strong><p>${s.text}</p></div></li>`).join("")}</ol>
+    </section>`;
+  } else if (input.kind === "TEAM") {
+    heroTitle = clamp(input.title, 80) || "Quem somos";
+    inner = `<section class="vx-section" id="sobre">
+      <div class="vx-head-row"><div><span class="vx-eyebrow">Quem somos</span><h2>Conheça a ${company}</h2></div></div>
+      <p style="max-width:68ch;font-size:17px;line-height:1.7;color:${theme.muted}">${esc(pack.sub)} Cada detalhe do nosso trabalho é pensado para transformar o seu objetivo em resultado — com honestidade, prazo real e acabamento premium.</p>
+      <div class="vx-gallery">${(input.imageUrls.slice(0, 4).map((u, i) => `<figure class="vx-ph"><img src="${esc(u)}" alt="${company} — foto ${i + 1}" loading="lazy"/></figure>`)).join("\n")}</div>
+    </section>`;
+  } else if (input.kind === "POSTS" || input.kind === "IMOVEIS") {
+    heroTitle = clamp(input.title, 80) || (input.kind === "POSTS" ? "Notícias" : "Imóveis");
+    inner = `<section class="vx-section" id="destaques">
+      <div class="vx-head-row"><div><span class="vx-eyebrow">${input.kind === "POSTS" ? "Do blog" : "Nossos imóveis"}</span><h2>${heroTitle}</h2></div></div>
+      <p style="max-width:68ch;font-size:17px;line-height:1.7;color:${theme.muted}">Veja os destaques atualizados diretamente aqui no site. Para ver oportunidades à venda, assine a nossa lista pelo WhatsApp.</p>
+    </section>`;
+  } else if (input.kind === "CONTACT") {
+    heroTitle = clamp(input.title, 80) || "Contato";
+    inner = `<section class="vx-section" id="contato">
+      <div class="vx-head-row"><div><span class="vx-eyebrow">Contato</span><h2>Vamos conversar</h2></div></div>
+      <p style="max-width:68ch;font-size:17px;line-height:1.7;color:${theme.muted}">Chame no WhatsApp que a equipe responde rápido. Sem enrolação — só um próximo passo claro.</p>
+      <div class="vx-actions"><a class="vx-btn vx-btn--big" href="${esc(waLink)}">Falar no WhatsApp</a></div>
+    </section>`;
+  } else {
+    heroTitle = clamp(input.title, 80) || "Sobre";
+    inner = `<section class="vx-section" id="sobre"><div class="vx-head-row"><div><span class="vx-eyebrow">A ${company}</span><h2>${heroTitle}</h2></div></div>
+      <p style="max-width:68ch;font-size:17px;line-height:1.7;color:${theme.muted}">${esc(pack.sub)}</p></section>`;
+  }
+
+  const html = `<main id="top">
+  <section class="vx-hero vx-hero--compact"><div class="vx-hero-txt"><span class="vx-eyebrow">${tagline}</span><h1>${heroTitle}</h1><p>${esc(pack.sub)}</p><div class="vx-actions"><a class="vx-btn" href="${esc(waLink)}">Quero conversar</a></div></div></section>
+  ${inner}
+  <section class="vx-cta"><span class="vx-eyebrow">Contato</span><h2>Pronto para começar?</h2><p>Resposta rápida. Sem compromisso.</p><a class="vx-btn vx-btn--big" href="${esc(waLink)}">Falar no WhatsApp</a></section>
+</main>`;
+
+  const css = `:root{}
+html,body{margin:0;padding:0;background:${theme.surface};color:${theme.ink};font-family:'Manrope',sans-serif}
+body{-webkit-font-smoothing:antialiased}
+.vx-hero--compact{min-height:auto;padding:clamp(48px,8vw,88px) clamp(18px,4vw,44px)}
+.vx-hero--compact h1{margin:0;font:400 clamp(34px,4vw,56px)/1.06 ${theme.display};letter-spacing:-.025em}
+.vx-hero--compact p{margin:0;max-width:46ch;font-size:17px;line-height:1.6;color:${theme.muted}}
+.vx-hero--compact .vx-hero-txt{padding:0}
+.vx-eyebrow{font:800 11px/1 'Manrope',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:${accent}}
+.vx-section{padding:clamp(40px,6vw,88px) clamp(18px,5vw,56px);max-width:1240px;margin:0 auto}
+.vx-head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:26px}
+.vx-head-row h2{margin:6px 0 0;font:400 clamp(26px,3vw,40px)/1.1 ${theme.display};letter-spacing:-.02em}
+.vx-gallery{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:200px;gap:10px;margin-top:28px}
+.vx-ph{margin:0;border-radius:14px;overflow:hidden}
+.vx-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.vx-services{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:${theme.dark ? "rgba(243,239,228,.14)" : "rgba(23,21,15,.12)"};border:1px solid ${theme.dark ? "rgba(243,239,228,.14)" : "rgba(23,21,15,.12)"};border-radius:16px;overflow:hidden}
+.vx-svc{display:flex;gap:18px;padding:22px;background:${theme.surface}}
+.vx-num{font:800 12px/1 'Manrope',sans-serif;color:${accent}}
+.vx-svc strong{display:block;font-size:15px;margin-bottom:6px}
+.vx-svc p{margin:0;font-size:13px;line-height:1.55;color:${theme.muted}}
+.vx-cta{padding:clamp(44px,8vw,96px) clamp(18px,5vw,56px);text-align:center;display:grid;justify-items:center;gap:14px;background:${theme.dark ? "#0A1424" : "#FFFFFF"};border-top:1px solid ${theme.dark ? "rgba(243,239,228,.12)" : "rgba(23,21,15,.09)"}}
+.vx-cta h2{margin:0;max-width:720px;font:400 clamp(28px,3.6vw,44px)/1.12 ${theme.display};letter-spacing:-.02em}
+.vx-cta p{margin:0;color:${theme.muted};font-size:16px}
+.vx-actions{display:flex;gap:12px;flex-wrap:wrap}
+.vx-btn{display:inline-flex;align-items:center;min-height:50px;padding:0 26px;border-radius:99px;background:${accent};color:${theme.accentInk};text-decoration:none;font:800 14px/1 'Manrope',sans-serif}
+.vx-btn--big{min-height:58px;padding:0 34px;font-size:15px}
+@media(max-width:900px){.vx-services{grid-template-columns:1fr}.vx-gallery{grid-template-columns:repeat(2,1fr);grid-auto-rows:150px}}
+@media(max-width:560px){.vx-gallery{grid-template-columns:1fr}}`;
 
   return { html, css };
 }

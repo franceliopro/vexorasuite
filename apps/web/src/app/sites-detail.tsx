@@ -37,9 +37,11 @@ export function SitesWizardDialog(props: {
   onCloneSite: () => void; wizCloning: boolean;
   wizImportHtml: string; setWizImportHtml: (v: string) => void;
   onImportHtml: () => Promise<void>; wizImporting: boolean;
+  wizVisionLoading: boolean; wizVisionNote: string;
+  onVisionFile: (e: { target: { files: FileList | null; value: string } }) => void;
   onNotice: (v: string) => void;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, onNotice } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, wizVisionLoading, wizVisionNote, onVisionFile, onNotice } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
@@ -72,6 +74,15 @@ export function SitesWizardDialog(props: {
             <summary><Sparkles size={14} aria-hidden="true" /> Galeria de inspirações (opcional)</summary>
             <p className="sites-field-hint">Clique em uma imagem para usar como foto principal (Hero) do seu site. Clique de novo para desfazer.</p>
             <div className="inspiration-gallery">{(inspirationAreasFor(wizArea) || []).map((item, i) => { const heroActive = wizHeroOverride === item.url; return <button key={i} type="button" className={"inspiration-thumb" + (heroActive ? " is-hero" : "")} onClick={() => setWizHeroOverride(heroActive ? "" : item.url)} aria-pressed={heroActive} title={(heroActive ? "Remover " : "Usar ") + item.caption}><img src={item.url} alt={item.caption} loading="lazy"/><small>{item.caption}</small>{heroActive ? <em className="inspiration-badge">Hero</em> : null}</button>; })}</div>
+          </details>
+          <details className="sites-ai-card">
+            <summary><ImagePlus size={14} aria-hidden="true" /> Inspirar com uma imagem (opcional)</summary>
+            <p className="sites-field-hint">Envie a screenshot de um site que você admira — a IA lê a composição e usa como brief para montar o seu. Precisa de um modelo com visão no seu agente (ex.: GPT-4o). Consome 1 uso do modelo.</p>
+            <div className="sites-import-actions">
+              <input id="wizard-vision-file" type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={onVisionFile} disabled={wizVisionLoading} />
+              <label className="secondary-button" htmlFor="wizard-vision-file" aria-disabled={wizVisionLoading}>{wizVisionLoading ? "Lendo a imagem…" : "Enviar screenshot"}</label>
+              {wizVisionNote ? <span className="sites-field-hint" style={{ margin: 0 }}>{wizVisionNote}</span> : null}
+            </div>
           </details>
           <details className="sites-ai-card">
             <summary><Upload size={14} aria-hidden="true" /> Importar site pronto (HTML)</summary>

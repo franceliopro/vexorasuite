@@ -16,6 +16,7 @@ import { EventsService } from "./events.service";
 import { AiService } from "../ai/ai.service";
 import { economicalProviders } from "../ai/economical-providers";
 import { reserveAiExecution, dailyAiLimit } from "../ai/ai-budget";
+import { skillInstructionsForAgent } from "../ai/product-skills";
 import { selectPublication, RuntimeScope } from "./runtime-scope";
 import { randomUUID } from "node:crypto";
 
@@ -375,7 +376,11 @@ export class PublicFlowController {
         return { messages: ["No momento não consigo responder com a IA, mas posso encaminhar para a equipe. Digite atendente."], options };
       }
       const history = session.history.slice(-8).map((item) => ({ role: item.role, content: item.content.slice(0, 500) }));
-      const system = systemBase + "\n\nOrientação do agente: " + String(agent.instructions || "").slice(0, 2000) + "\n\nConhecimento da empresa: " + String(assistant.companyKnowledge || "").slice(0, 3000);
+      const tone = object(agent.profile).tone ? "\nTom de fala: " + String(agent.profile.tone).slice(0, 120) : "";
+      const rules = object(agent.behavior).rules ? "\nRegras do agente: " + String(agent.behavior.rules).slice(0, 1500) : "";
+      const prohibitions = object(agent.behavior).prohibitions ? "\nRestrições do agente: " + String(agent.behavior.prohibitions).slice(0, 1500) : "";
+      const skills = skillInstructionsForAgent(resolved.root, agent.allowedActions, 1500, 3000);
+      const system = systemBase + "\n\nOrientação do agente: " + String(agent.instructions || "").slice(0, 2000) + tone + rules + prohibitions + "\n\nConhecimento da empresa: " + String(assistant.companyKnowledge || "").slice(0, 3000) + (skills ? "\n\n" + skills.trim() : "");
       let reply = "";
       try {
         const generated = await this.ai.generate([

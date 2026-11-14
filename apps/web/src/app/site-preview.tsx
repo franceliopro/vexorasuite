@@ -1,6 +1,7 @@
 "use client";
 import { MapPin, Phone, Mail, ArrowRight, Star, ChevronDown } from "lucide-react";
 import { LayoutBlock, heroDesignCss } from "./site-layout";
+
 import type { CSSProperties } from "react";
 
 export type PreviewSite = {
@@ -37,13 +38,18 @@ export function SitePreview({ site, highlightBlockId, onBlockClick }: { site: Pr
     switch (block.type) {
       case "hero":
         { const design = heroDesignCss(c.design);
+          const variant = ["overlay", "split", "editorial", "fullscreen"].includes(String(c.variant)) ? String(c.variant) : "overlay";
+          const fontPair = ["manrope", "playfair", "dmserif", "fraunces"].includes(String(c.fontPair)) ? String(c.fontPair) : "manrope";
           const imageUrl = typeof c.imageUrl === "string" ? c.imageUrl : undefined;
           const hasImage = !!imageUrl && /^https?:\/\//.test(imageUrl);
           const heroStyle: CSSProperties = { ...common, ...design.section };
-          if (hasImage && !design.section.background) heroStyle.backgroundImage = `linear-gradient(135deg, rgba(5,13,34,0.78), rgba(10,23,48,0.55)), url("${imageUrl}")`;
-          if (hasImage) { heroStyle.backgroundSize = "cover"; heroStyle.backgroundPosition = "center"; heroStyle.color = "#E7EEFF"; }
-          const badgeStyle = design.badge ? design.badge : (hasImage || design.section.background ? { color: "#FFFFFF", background: "rgba(255,255,255,.14)" } : undefined);
-          return <section className="ps-hero" style={heroStyle}><span className="ps-badge" style={badgeStyle}>{c.badge || site.businessArea || "Site"}</span><h1 style={design.headline}>{c.headline || site.name}</h1><p style={design.sub}>{c.sub}</p><a className="ps-btn" style={design.button} href={c.ctaUrl || "#"} target="_self">{c.ctaLabel || "Quero conversar"}<ArrowRight size={16} aria-hidden="true" /></a></section>; }
+          if (hasImage && !design.section.background && variant !== "editorial" && variant !== "split") heroStyle.backgroundImage = `linear-gradient(135deg, rgba(5,13,34,0.78), rgba(10,23,48,0.55)), url("${imageUrl}")`;
+          if (hasImage && variant !== "editorial" && variant !== "split") { heroStyle.backgroundSize = "cover"; heroStyle.backgroundPosition = "center"; heroStyle.color = "#E7EEFF"; }
+          const inner = <><span className="ps-badge" style={design.badge || (hasImage || design.section.background ? { color: "#FFFFFF", background: "rgba(255,255,255,.14)" } : undefined)}>{c.badge || site.businessArea || "Site"}</span><h1 style={design.headline}>{c.headline || site.name}</h1><p style={design.sub}>{c.sub}</p><a className="ps-btn" style={design.button} href={c.ctaUrl || "#"} target="_self">{c.ctaLabel || "Quero conversar"}<ArrowRight size={16} aria-hidden="true" /></a></>;
+          if (variant === "split" && hasImage) return <section className={"ps-hero ps-hero--split ps-hero-pair-" + fontPair} style={heroStyle}><div className="ps-hero-split-text">{inner}</div><figure className="ps-hero-split-media"><img src={imageUrl} alt={c.headline || site.name} loading="eager" /></figure></section>;
+          if (variant === "editorial") return <section className={"ps-hero ps-hero--editorial ps-hero-pair-" + fontPair} style={heroStyle}><div className="ps-hero-editorial-inner">{inner}{hasImage && <figure className="ps-hero-editorial-media"><img src={imageUrl} alt={c.headline || site.name} loading="eager" /></figure>}</div></section>;
+          const cls = "ps-hero ps-hero--" + variant + " ps-hero-pair-" + fontPair + " ";
+          return <section className={cls} style={heroStyle}>{inner}</section>; }
       case "layout":
         return <LayoutBlock content={c} />;
       case "richText":

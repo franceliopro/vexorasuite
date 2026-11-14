@@ -75,22 +75,26 @@ export const galleryImagesFor = (area: string): string[] => {
   const list = GALLERY_IMAGES[area] || GALLERY_IMAGES.clinica_estetica!;
   return list.map(id => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=1200&q=80");
 };
-export function blueprintFor(area: string, companyName: string, opts: { primaryColor: string; accentColor: string; whatsapps: { label: string; handle: string }[]; socials: { platform: string; handle: string }[]; dynamic: boolean }): Blueprint {
+export function blueprintFor(area: string, companyName: string, opts: { primaryColor: string; accentColor: string; whatsapps: { label: string; handle: string }[]; socials: { platform: string; handle: string }[]; dynamic: boolean; heroImageOverride?: string; galleryOverride?: string[] }): Blueprint {
   const pack = BUSINESS_AREAS[area] || BUSINESS_AREAS["clinica_estetica"]!;
   const wa = opts.whatsapps[0]?.handle || "5562999990000";
   const phoneOf = (h: string) => h.replace(/\D/g, "");
   const waLink = `https://wa.me/${phoneOf(wa)}`;
+  const isUnsplash = (v: unknown) => typeof v === "string" && /^https:\/\/images\.unsplash\.com\//.test(v);
+  const hero = isUnsplash(opts.heroImageOverride) ? String(opts.heroImageOverride) : heroImageFor(area);
+  const gallery = Array.isArray(opts.galleryOverride) ? opts.galleryOverride.filter(isUnsplash).slice(0, 6) : [];
+  const galleryImages = gallery.length ? gallery : galleryImagesFor(area);
   const pages = [
     { slug: "inicio", kind: "HOME", title: "Início", blocks: [
-      { type: "hero", content: { headline: pack.headline, sub: pack.sub, ctaLabel: "Quero conversar", ctaUrl: waLink, badge: pack.label, imageUrl: heroImageFor(area), variant: HERO_VARIANT_BY_AREA[area] || "overlay" } },
+      { type: "hero", content: { headline: pack.headline, sub: pack.sub, ctaLabel: "Quero conversar", ctaUrl: waLink, badge: pack.label, imageUrl: hero, variant: HERO_VARIANT_BY_AREA[area] || "overlay" } },
       { type: "services", content: { title: "O que fazemos", items: pack.services.map(s => ({ title: s.title, text: s.text })) } },
-      { type: "gallery", content: { title: "Ambiente e detalhes", items: galleryImagesFor(area).map((url, i) => ({ url, caption: i === 0 ? "Nosso espaço principal" : "Detalhe " + (i + 1) })) } },
+      { type: "gallery", content: { title: "Ambiente e detalhes", items: galleryImages.map((url, i) => ({ url, caption: i === 0 ? "Nosso espaço principal" : "Detalhe " + (i + 1) })) } },
       { type: "testimonials", content: { title: "O que dizem de nós", items: [ { name: "Ana Paula", text: "Atendimento nota 10, do início ao fim. Recomendo de olhos fechados." }, { name: "Roberto Menezes", text: "Tudo explicado, sem enrolação. Já voltei três vezes." }, { name: "Cláudia Regina", text: "Qualidade e preço justo. Não troco por nenhum outro." }, { name: "Juliana Paixão", text: "A equipe é espetacular. Sucesso total toda vez." }, { name: "Marcos Vinicius", text: "Profissionalismo sem par. Fecharam antes do prazo." }, { name: "Beatriz Lima", text: "Atendimento humanizado e resultado impecável." } ] } },
       { type: "cta", content: { title: "Pronto para começar?", sub: "Fale agora com a nossa equipe.", ctaLabel: "Chamar no WhatsApp", ctaUrl: waLink } },
     ] },
     { slug: "servicos", kind: "SERVICES", title: "Serviços", blocks: [
       { type: "richText", content: { title: "Nossos serviços", body: pack.services.map(s => `• **${s.title}** — ${s.text}`).join("\n") } },
-      { type: "gallery", content: { title: "Nossos espaços", items: galleryImagesFor(area).slice(0, 6).map((url, i) => ({ url, caption: "Espaço " + (i + 1) })) } },
+      { type: "gallery", content: { title: "Nossos espaços", items: galleryImages.slice(0, 6).map((url, i) => ({ url, caption: "Espaço " + (i + 1) })) } },
       { type: "faq", content: { title: "Perguntas frequentes", items: pack.faq } },
       { type: "contact", content: { title: "Fale com a gente", items: opts.whatsapps.map(w => ({ label: w.label, handle: w.handle })), socials: opts.socials } },
     ] },

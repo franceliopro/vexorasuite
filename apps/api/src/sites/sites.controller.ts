@@ -247,7 +247,9 @@ export class SitesController {
     const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#22D3EE";
     const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
     const socials = list(body?.socials, 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
-    const blueprintResult = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC" });
+    const heroImageOverride = typeof body?.heroImageOverride === "string" && /^https:\/\/images\.unsplash\.com\//i.test(body.heroImageOverride.trim()) ? body.heroImageOverride.trim() : undefined;
+    const galleryOverride = Array.isArray(body?.galleryOverride) ? body.galleryOverride.filter((v: unknown): v is string => typeof v === "string" && /^https:\/\/images\.unsplash\.com\//i.test(v)).slice(0, 6) : undefined;
+    const blueprintResult = blueprintFor(area, name, { primaryColor, accentColor, whatsapps, socials, dynamic: kind === "DYNAMIC", ...(heroImageOverride && { heroImageOverride }), ...(galleryOverride && { galleryOverride }) });
     const enriched = await this.enrichBlueprintWithAi(this.tenantOf(req), req.user.sub, area, name, blueprintResult, {
       aiPrompt: str(body?.aiPrompt, 2500), referenceUrl: str(body?.referenceUrl, 300), cloneUrl: str(body?.cloneUrl, 300),
       primaryColor, accentColor, whatsapps, socials,

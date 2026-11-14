@@ -84,13 +84,14 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   const [wizError, setWizError] = useState("");
   const [wizAiPrompt, setWizAiPrompt] = useState("");
   const [wizReferenceUrl, setWizReferenceUrl] = useState("");
+  const [wizHeroOverride, setWizHeroOverride] = useState("");
   const [wizCloneUrl, setWizCloneUrl] = useState("");
   const [wizAiDictating, setWizAiDictating] = useState(false);
   const [wizAiDictateStatus, setWizAiDictateStatus] = useState("");
   const wizRecognition = useRef<any>(null);
-  const wizardSnapshot = { name: wizName, area: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps: wizWhatsapp, socials: wizSocials, aiPrompt: wizAiPrompt, referenceUrl: wizReferenceUrl, cloneUrl: wizCloneUrl };
+  const wizardSnapshot = { name: wizName, area: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps: wizWhatsapp, socials: wizSocials, aiPrompt: wizAiPrompt, referenceUrl: wizReferenceUrl, cloneUrl: wizCloneUrl, heroImageOverride: wizHeroOverride };
   const hasDraft = Boolean(
-    [wizName, wizArea, wizSlug, wizAiPrompt, wizReferenceUrl, wizCloneUrl].some(value => value.trim()) ||
+    [wizName, wizArea, wizSlug, wizAiPrompt, wizReferenceUrl, wizCloneUrl, wizHeroOverride].some(value => value.trim()) ||
     wizWhatsapp.some(item => item.handle.trim()) || wizSocials.some(item => item.handle.trim()) ||
     wizKind !== "STATIC" || wizPrimary !== initialPrimary || wizAccent !== initialAccent
   );
@@ -100,7 +101,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
       if (hasDraft) window.localStorage.setItem(draftKey, JSON.stringify(wizardSnapshot));
       else window.localStorage.removeItem(draftKey);
     } catch { /* O formulário continua disponível quando o armazenamento local falha. */ }
-  }, [draftHydrated, wizName, wizArea, wizKind, wizPrimary, wizAccent, wizSlug, wizWhatsapp, wizSocials, wizAiPrompt, wizReferenceUrl, wizCloneUrl]);
+  }, [draftHydrated, wizName, wizArea, wizKind, wizPrimary, wizAccent, wizSlug, wizWhatsapp, wizSocials, wizAiPrompt, wizReferenceUrl, wizCloneUrl, wizHeroOverride]);
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(draftKey);
@@ -117,6 +118,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
         if (typeof draft.aiPrompt === "string") setWizAiPrompt(draft.aiPrompt);
         if (typeof draft.referenceUrl === "string") setWizReferenceUrl(draft.referenceUrl);
         if (typeof draft.cloneUrl === "string") setWizCloneUrl(draft.cloneUrl);
+        if (typeof draft.heroImageOverride === "string") setWizHeroOverride(draft.heroImageOverride);
       }
     } catch { /* ignore */ }
     setDraftHydrated(true);
@@ -203,7 +205,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
     try {
       const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
       const socials = wizSocials.filter(s => s.handle.trim());
-      const created = await api<Site & { ai?: { applied: boolean; note?: string; report?: Record<string, any> } }>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
+      const created = await api<Site & { ai?: { applied: boolean; note?: string; report?: Record<string, any> } }>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim(), ...(wizHeroOverride ? { heroImageOverride: wizHeroOverride } : {}) }) });
       const report = created?.ai?.report;
       const aiRead = report ? "  (a IA leu: comando " + (report.promptChars || 0) + " caracteres · " + (report.referenceUrlRead ? "o link " + String(report.referenceUrl || "") + " como inspiração" : "sem link externo") + " · comportamento (regras " + (report.behaviorRulesChars || 0) + ", restrições " + (report.behaviorProhibitionsChars || 0) + ") · " + (Array.isArray(report.skills) ? report.skills.length : 0) + " skills · " + (report.agentKnowledgeUrls || 0) + " referência(s) do agente e " + (report.creativeLibraryRefs || 0) + " da biblioteca)" : "";
       setNotice("Site criado por Design Gráfico & Web." + aiRead + " Revise o layout no Studio antes de publicar.");
@@ -254,7 +256,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site”.</p></div>}
           </div>
         )}
-        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} /> : null}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} /> : null}
       </section>
     );
   }

@@ -31,7 +31,7 @@ export class AiService {
           ? localServiceUrl(local, '/v1/chat/completions')
           : remote.base + (p.provider === 'anthropic' ? '/messages' : '/chat/completions');
         const response = await fetch(endpoint, {
-          method: "POST", headers: { ...(local?{}:providerHeaders(p.provider,p.apiKey)), "content-type": "application/json" },
+          method: "POST", headers: { ...(local?(p.provider==='llama-cpp'&&process.env.LLAMA_CPP_API_KEY?.trim()?{authorization:'Bearer '+process.env.LLAMA_CPP_API_KEY.trim()}:{}):providerHeaders(p.provider,p.apiKey)), "content-type": "application/json" },
           body: JSON.stringify({ model: p.model, ...(p.provider === 'llama-cpp' && p.jsonOutput ? { response_format: { type: 'json_object' } } : {}), ...(p.provider==='anthropic'?{
  system:messages.filter(m=>m.role==='system').map(m=>typeof m.content==='string'?m.content:m.content.filter(c=>c.type==='text').map(c=>c.type==='text'?c.text:'').join('\n')).join('\n'),
  messages:messages.filter(m=>m.role!=='system').map(m=>({role:m.role,content:typeof m.content==='string'?m.content:m.content.map(c=>c.type==='text'?c:anthropicImage(c.image_url.url))}))

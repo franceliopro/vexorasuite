@@ -4,13 +4,13 @@ Pesquisa de fontes primárias em 27/10/2026. Código aberto elimina a licença o
 
 ## Implementação
 
-O módulo Agentes de IA oferece uma política por empresa: priorizar modelos locais/gratuitos e permitir ou bloquear contingência paga. Quando a prioridade está ativa, a ordem é Ollama configurado → modelos OpenRouter gratuitos → modelos pagos explicitamente configurados, somente se autorizados. O preset gratuito visível é `openrouter/free`. Pedidos gratuitos incluem limite de preço zero para entrada/saída, recusam provedores que coletam dados e desativam o plugin pago de busca. Não há compra de créditos nem troca automática para um modelo pago quando a contingência está bloqueada.
+O módulo Agentes de IA oferece uma política por empresa: priorizar modelos locais/gratuitos e permitir ou bloquear contingência paga. Quando a prioridade está ativa, a ordem é o provedor local configurado (llamacpp/Ollama) → modelos OpenRouter gratuitos → modelos pagos explicitamente configurados, somente se autorizados. O preset gratuito visível é `openrouter/free`. Pedidos gratuitos incluem limite de preço zero para entrada/saída, recusam provedores que coletam dados e desativam o plugin pago de busca. Não há compra de créditos nem troca automática para um modelo pago quando a contingência está bloqueada.
 
 A configuração anterior de outras empresas permanece preservada. A prioridade deve ser salva na empresa desejada. A política também bloqueia voz OpenAI e pesquisa Brave quando a contingência paga não está autorizada. Os limites diários, permissões e Skills continuam ativos, inclusive no processamento local.
 
 Busca usa SearXNG próprio quando `SEARXNG_URL` está configurado. O resultado é limitado a cinco fontes HTTPS e 512 KB por resposta, com timeout e sem seguir redirects. Não há fallback pago após erro local. A API de pesquisa não recebe chaves do OpenRouter/OpenAI. O cache de pesquisa existente é isolado por empresa.
 
-Ollama recebe somente requisições no endereço definido pelo operador em `OLLAMA_BASE_URL`. A interface não pode indicar um endpoint arbitrário e nenhuma chave de nuvem é enviada ao Ollama. `OLLAMA_DEFAULT_MODEL` identifica o modelo local padrão instalado. Voz local usa Speaches em `LOCAL_VOICE_URL`, com as rotas compatíveis de transcrição e síntese. A voz portuguesa padrão é `pf_dora`, alterável por `LOCAL_TTS_VOICE`.
+O motor de texto local é o **llama.cpp**, servido no padrão OpenAI (`LLAMA_CPP_BASE_URL`, perfil `local-ai` no Compose); o Ollama permanece apenas como legado. `LLAMA_CPP_API_KEY` é **opcional** — preencha somente se o `llama-server` subiu com `--api-key` (o valor precisa ser o mesmo); sem ele, o llama.cpp responde sem credencial na rede interna. `LLAMA_CPP_MODEL_BLOB` aponta o blob .gguf servido. Voz local usa Speaches em `LOCAL_VOICE_URL`, com as rotas compatíveis de transcrição e síntese. A voz portuguesa padrão é `pf_dora`, alterável por `LOCAL_TTS_VOICE`.
 
 ## Infraestrutura incluída
 

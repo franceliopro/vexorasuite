@@ -17,7 +17,7 @@ O arquivo de implantação é o `docker-compose.yml` da raiz. O deploy deve usar
 - `waha`: gateway WhatsApp privado, persistido em `waha_sessions`.
 - `searxng`: busca privada usada pela Intelligence, sem publicação externa.
 
-Os serviços `ollama`, `speaches`, `pgadmin` e seus instaladores pertencem a perfis opcionais. Não os publique por padrão. Habilite `local-ai` apenas quando houver memória/CPU reservadas; habilite `maintenance` somente durante uma janela administrativa para o pgAdmin.
+Os serviços `ollama`, `speaches`, `pgadmin` e seus instaladores pertencem a perfis opcionais. Não os publique por padrão. Habilite `local-ai` apenas quando houver memória/CPU reservadas; habilite `maintenance` somente durante uma janela administrativa para o pgAdmin. O `llama-cpp` também vive no perfil `local-ai` e serve o blob .gguf indicado por `LLAMA_CPP_MODEL_BLOB`.
 
 ## Configuração obrigatória no Dokploy
 
@@ -99,6 +99,9 @@ Gerada a partir de `docker-compose.yml`; confira o arquivo se algo divergir. **O
 |---|---|---|
 | `LOCAL_TTS_VOICE` | Opcional | `pf_dora` |
 | `LOCAL_VOICE_URL` | Opcional | vazio |
+| `LLAMA_CPP_BASE_URL` | Opcional | `http://llama-cpp:8080` (Compose, perfil `local-ai`) |
+| `LLAMA_CPP_MODEL_BLOB` | Opcional | blob qwen2.5:1.5b do Ollama |
+| `LLAMA_CPP_API_KEY` | Opcional (somente se o llama-server subiu com `--api-key`) | vazio |
 | `OLLAMA_BASE_URL` | Opcional | vazio |
 | `OLLAMA_DEFAULT_MODEL` | Opcional | `qwen2.5:1.5b` |
 

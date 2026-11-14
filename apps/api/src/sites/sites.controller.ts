@@ -105,7 +105,7 @@ export class SitesController {
 
   private async generateDesign(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean) {
     try {
-      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 100000, maxTokens: provider.provider === "llama-cpp" ? 1700 : 10000, jsonOutput: true })), accept);
+      return await this.ai.generate(messages, providers.map(provider => ({ ...provider, timeoutMs: 100000, maxTokens: provider.provider === "llama-cpp" ? 3000 : 10000, jsonOutput: true })), accept);
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === 502 && error.message.includes("o roteiro não veio")) {
         throw new BadRequestException("A IA respondeu, mas não entregou um layout válido. Reveja o modelo ou as instruções e tente novamente.");

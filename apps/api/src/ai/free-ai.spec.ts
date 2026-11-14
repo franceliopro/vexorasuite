@@ -6,7 +6,7 @@ import { VoiceService } from './voice.service';
 import { ProviderConnectionsController } from './provider-connections.controller';
 
 describe('free and local execution policy',()=>{
- const names=['OPENROUTER_API_KEY','OPENAI_API_KEY','OLLAMA_BASE_URL','OLLAMA_DEFAULT_MODEL','LOCAL_VOICE_URL','SEARXNG_URL'];
+ const names=['OPENROUTER_API_KEY','OPENAI_API_KEY','OLLAMA_BASE_URL','OLLAMA_DEFAULT_MODEL','LOCAL_VOICE_URL','SEARXNG_URL','LLAMA_CPP_API_KEY','LLAMA_CPP_BASE_URL'];
  let old:Record<string,string|undefined>={};
  beforeEach(()=>{old=Object.fromEntries(names.map(name=>[name,process.env[name]]));for(const name of names)delete process.env[name];process.env.OPENROUTER_API_KEY='fixture-router-key';process.env.OPENAI_API_KEY='fixture-openai-key';});
  afterEach(()=>{jest.restoreAllMocks();for(const name of names){if(old[name]===undefined)delete process.env[name];else process.env[name]=old[name];}});
@@ -25,7 +25,20 @@ describe('free and local execution policy',()=>{
   await new AiService().generate([{role:'user',content:'Teste'}],economicalProviders({llm:{provider:'openrouter',model:'openrouter/free'}},undefined,root));
   const body=JSON.parse(String(fetch.mock.calls[0]![1]?.body));expect(body.provider.max_price).toEqual({prompt:0,completion:0});expect(body.provider.data_collection).toBe('deny');expect(body.plugins).toEqual([{id:'web',enabled:false}]);
  });
- it('does not transmit a cloud credential to Ollama',async()=>{
+ it('sends the optional llama.cpp api key only to the configured local server',async()=>{
+  process.env.LLAMA_CPP_BASE_URL='http://llama-cpp:8080';process.env.LLAMA_CPP_API_KEY='llama-cpp-secret';
+  const fetch=jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'ok'}}]})));
+  await new AiService().generate([{role:'user',content:'Teste'}],[{provider:'llama-cpp',model:'llama',apiKey:'local'}]);
+  expect(fetch.mock.calls[0]![1]?.headers).toMatchObject({authorization:'Bearer llama-cpp-secret'});
+  delete process.env.LLAMA_CPP_API_KEY;
+});
+it('omits the authorization header when the local llama.cpp has no api key',async()=>{
+  process.env.LLAMA_CPP_BASE_URL='http://llama-cpp:8080';delete process.env.LLAMA_CPP_API_KEY;
+  const fetch=jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'ok'}}]})));
+  await new AiService().generate([{role:'user',content:'Teste'}],[{provider:'llama-cpp',model:'llama',apiKey:'local'}]);
+  expect(fetch.mock.calls[0]![1]?.headers).not.toHaveProperty('authorization');
+});
+  it('does not transmit a cloud credential to Ollama',async()=>{
   process.env.OLLAMA_BASE_URL='http://ollama:11434';
   const fetch=jest.spyOn(global,'fetch').mockResolvedValue(new Response(JSON.stringify({choices:[{message:{content:'ok'}}]})));
   await new AiService().generate([{role:'user',content:'Teste'}],[{provider:'ollama',model:'installed',apiKey:'local'}]);

@@ -138,8 +138,10 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
     try {
       const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
       const socials = wizSocials.filter(s => s.handle.trim());
-      const created = await api<Site>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
-      setNotice("Site criado. Agora é só editar os blocos e publicar.");
+      const created = await api<Site & { ai?: { applied: boolean; note?: string } }>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
+      setNotice(created?.ai?.applied
+        ? "Site criado — o agente Design Gráfico & Web reescreveu o conteúdo (hero, serviços, depoimentos, FAQ). Revise e publique."
+        : "Site criado com o template padrão." + (created?.ai?.note ? " " + created.ai.note : ""));
       try { window.localStorage.removeItem("vx:sites-wizard-draft"); } catch { /* ignore */ }
       await loadSites();
       closeWizard();

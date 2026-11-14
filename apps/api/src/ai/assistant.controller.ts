@@ -16,6 +16,7 @@ import { Prisma } from "@prisma/client";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 import { normalizeAssistantPhone } from "../operations/assistant-phone-access";
 import { AiService } from "./ai.service";
+import { resolveCreativeAgent } from "./creative-agent";
 import { economicalProviders } from "./economical-providers";
 import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { searxngSearch } from "./local-services";
@@ -132,6 +133,7 @@ export class AssistantController {
     const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
     const config=parseConfig(tenant.integrations);
     if(!config.enabled)throw new ForbiddenException('Assistente desabilitada.');
+    if (body.agentId === WEB_DESIGNER_AGENT_ID) throw new BadRequestException("Design Gráfico & Web atende apenas aos fluxos criativos.");
     const agent=body.agentId?config.agents.find(item=>item.id===body.agentId):undefined;
     if(body.agentId&&!agent)throw new BadRequestException('Agente não encontrado.');
     const persona=agent?agentPersonaBlock(tenant.integrations as any,agent.id,1500,3000):'';
@@ -252,7 +254,7 @@ export class AssistantController {
     const longText = (v: unknown) => { if (v === undefined) return ""; if (typeof v !== "string" || v.length > 6000) throw new BadRequestException("Texto inválido"); return v; };
     const agents = input.agents.map(a => {
       if (!a || typeof a.id !== "string" || !a.id.trim() || a.id.length > 80 || typeof a.name !== "string" || !a.name.trim() || a.name.length > 80 || typeof a.role !== "string" || a.role.length > 120 || !["Econômico", "Equilíbrio", "Inteligente"].includes(a.tier) || typeof a.enabled !== "boolean" || typeof a.instructions !== "string" || a.instructions.length > 6000) throw new BadRequestException("Agente inválido");
-      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, personalAssistant: a.personalAssistant === true || a.id === "1", instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules), inboxes: strings(a.bindings?.inboxes, 100) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
+      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, personalAssistant: a.id !== WEB_DESIGNER_AGENT_ID && (a.personalAssistant === true || a.id === "1"), instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules), inboxes: a.id === WEB_DESIGNER_AGENT_ID ? [] : strings(a.bindings?.inboxes, 100) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
     });
     if (!agents.some(agent => agent.id === WEB_DESIGNER_AGENT_ID)) agents.push(webDesignerAgent() as unknown as (typeof agents)[number]);
     if (new Set(agents.map(agent=>agent.id)).size !== agents.length) throw new BadRequestException("IDs de agentes duplicados");
@@ -336,7 +338,9 @@ export class AssistantController {
     const config = parseConfig(tenant.integrations);
     const agent = config.agents.find(item => item.id === agentId);
     if (!agent) throw new BadRequestException("Agente não encontrado nesta empresa");
-    const providers = economicalProviders(config, agent.llm || config.llm, tenant.integrations, req.user.tenantId);
+    const providers = agent.id === WEB_DESIGNER_AGENT_ID
+      ? resolveCreativeAgent(tenant.integrations, req.user.tenantId).providers
+      : economicalProviders(config, agent.llm || config.llm, tenant.integrations, req.user.tenantId);
     if (!providers.length) throw new ServiceUnavailableException("Configure um provedor, modelo e credencial em Configuração geral antes de testar.");
     await this.prisma.$transaction(tx => reserveAiExecution(tx, req.user.tenantId, dailyAiLimit(config.dailyAiLimit), "agent_preview", req.user.sub));
     const knowledge = [

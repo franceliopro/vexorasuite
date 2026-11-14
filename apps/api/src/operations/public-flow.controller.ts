@@ -1,3 +1,4 @@
+import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {
   BadRequestException,
   Body,
@@ -366,7 +367,7 @@ export class PublicFlowController {
       if (!this.ai) return { messages: [fallback || "Certo! Posso ajudar com outra coisa?"], options };
       const config = parseConfig(step);
       const assistant = object(resolved.root.assistant);
-      const agent = Array.isArray(assistant.agents) ? assistant.agents.find((item: any) => item && String(item.id) === String(config.agentId) && item.enabled === true) : null;
+      const agent = Array.isArray(assistant.agents) ? assistant.agents.find((item: any) => String(config.agentId) !== WEB_DESIGNER_AGENT_ID && item && String(item.id) === String(config.agentId) && item.enabled === true) : null;
       if (!agent) return { messages: ["Posso ajudar com outra coisa? Se preferir, digite atendente."], options };
       const providers = economicalProviders(assistant, agent.llm || assistant.llm, resolved.root, tenant.id);
       if (!providers.length) return { messages: ["Posso ajudar com outra coisa? Se preferir, digite atendente."], options };

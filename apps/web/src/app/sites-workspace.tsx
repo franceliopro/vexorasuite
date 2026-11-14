@@ -139,13 +139,11 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
       const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
       const socials = wizSocials.filter(s => s.handle.trim());
       const created = await api<Site & { ai?: { applied: boolean; note?: string } }>("/sites", { method: "POST", body: JSON.stringify({ name: wizName, businessArea: wizArea, kind: wizKind, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug, whatsapps, socials, aiPrompt: wizAiPrompt.trim(), referenceUrl: wizReferenceUrl.trim(), cloneUrl: wizCloneUrl.trim() }) });
-      setNotice(created?.ai?.applied
-        ? "Site criado com layout do agente Design Gráfico & Web. Revise o resultado antes de publicar."
-        : created?.ai?.note || "Site criado com o modelo inicial.");
+      setNotice("Site criado por Design Gráfico & Web. Revise o layout no Studio antes de publicar.");
       try { window.localStorage.removeItem("vx:sites-wizard-draft"); } catch { /* ignore */ }
       await loadSites();
       closeWizard();
-      setParams({ site: created.id, tab: "pages" });
+      setParams({ site: created.id, tab: "studio" });
     } catch (e) { setWizError(e instanceof Error ? e.message : "Não foi possível criar o site."); }
     finally { setWizSaving(false); }
   };

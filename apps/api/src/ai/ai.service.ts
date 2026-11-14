@@ -31,7 +31,7 @@ export class AiService {
           body: JSON.stringify({ model: p.model, ...(p.provider==='anthropic'?{
  system:messages.filter(m=>m.role==='system').map(m=>typeof m.content==='string'?m.content:m.content.filter(c=>c.type==='text').map(c=>c.type==='text'?c.text:'').join('\n')).join('\n'),
  messages:messages.filter(m=>m.role!=='system').map(m=>({role:m.role,content:typeof m.content==='string'?m.content:m.content.map(c=>c.type==='text'?c:anthropicImage(c.image_url.url))}))
- }:{messages}), [p.provider==='openai'?'max_completion_tokens':'max_tokens']: Math.min(Math.max(p.maxTokens ?? 500, 1), 6000),...(p.provider==='openrouter'&&p.freeOnly?{provider:{max_price:{prompt:0,completion:0},data_collection:'deny'},plugins:[{id:'web',enabled:false}]}:{}) }), signal: controller.signal, redirect: 'error',
+ }:{messages}), [p.provider==='openai'?'max_completion_tokens':'max_tokens']: Math.min(Math.max(p.maxTokens ?? 500, 1), 10000),...(p.provider==='openrouter'&&p.freeOnly?{provider:{max_price:{prompt:0,completion:0},data_collection:'deny'},plugins:[{id:'web',enabled:false}]}:{}) }), signal: controller.signal, redirect: 'error',
         });
         if (!response.ok){recordProviderLimit(p.apiKey,response.status);failures.push(`${p.provider}: HTTP ${response.status}`);continue;}
         const data = await response.json() as { model?:unknown; content?:Array<{type:string;text?:string}>; choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; input_tokens?:number; output_tokens?:number } };

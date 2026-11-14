@@ -94,7 +94,7 @@ async function proxyRequest(request: Request, context: Context) {
 
   let bodyBuffer: ArrayBuffer | undefined;
   const isSiteAi = request.method === "POST" && (
-    pathValue === "sites" ||
+    pathValue === "sites" || pathValue === "marketing/web-assets/ai-draft" || pathValue === "marketing/designs/redesign" ||
     /^sites\/[^/]+\/pages\/[^/]+\/relayout$/.test(pathValue) ||
     /^sites\/pages\/[^/]+\/blocks\/[^/]+\/ai$/.test(pathValue)
   );

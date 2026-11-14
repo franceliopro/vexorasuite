@@ -1,4 +1,5 @@
 "use client";
+import { FreeSiteEditor } from "./free-site-frame";
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
@@ -287,6 +288,7 @@ function LayoutBlockEditor({ block, onChange }: { block: any; onChange: (nextCon
 }
 
 function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => void; onNotice: (v: string) => void }) {
+  const [studioPageId, setStudioPageId] = useState("");
   const [device, setDevice] = useState<"pc" | "phone">("pc");
   const [fullscreen, setFullscreen] = useState(false);
   const [relayoutOpen, setRelayoutOpen] = useState(false);
@@ -311,6 +313,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fullscreen]);
+  const studioPage = model.pages.find((page: Page) => page.id === studioPageId) || model.pages[0];
   const allBlocks = model.pages.flatMap((p: any) => p.blocks.map((b: any) => ({ ...b, pageId: p.id, pageTitle: p.title })));
   const selectedBlock = allBlocks.find((b: any) => b.id === selected) || null;
   const dirtyCount = Object.keys(dirty).length;
@@ -409,10 +412,12 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
     } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível duplicar o bloco."); }
   };
   const addBlock = async (type: string) => {
-    const page = model.pages[0]; if (!page) return;
+    const page = studioPage; if (!page) return;
     const meta = BLOCKS_META[type];
     try {
-      const baseContent = type === "hero"
+      const baseContent = type === "freeLayout"
+        ? { html: "<section><h2>Nova seção</h2></section>", css: "" }
+        : type === "hero"
         ? { headline: "Um título claro e direto", sub: "Apoio curto que explica o benefício.", ctaLabel: "Quero conversar" }
         : type === "richText"
           ? { title: "Título da seção", body: "Escreva aqui o texto desta seção." }
@@ -468,7 +473,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
   ];
   const relayout = async () => {
     if (relayoutBusy) return;
-    const homePage = (site.pages || []).find((p: any) => p.kind === "HOME") || (site.pages || [])[0];
+    const homePage = studioPage;
     if (!homePage) { setRelayoutError("Nenhuma página encontrada."); return; }
     setRelayoutBusy(true); setRelayoutError("");
     try {
@@ -511,7 +516,10 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <button type="button" aria-pressed={device === "phone"} className={device === "phone" ? "active" : ""} onClick={() => setDevice("phone")}><Smartphone size={13} aria-hidden="true" /> Celular</button>
         </div>
         <div className="sites-studio-toolbar-right">
-          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.type === "layout"); if (target) { setSelected(target.id); } else { onNotice("Esta página ainda não tem uma Seção de colunas. Adicione em “Adicionar bloco” para editar visualmente."); } }} title="Selecionar a seção de colunas existente para editar (nunca cria um bloco novo)"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
+          <button type="button" className="secondary-button" onClick={() => { const target = allBlocks.find((b: any) => b.pageId === studioPage?.id && b.type === "freeLayout") || allBlocks.find((b: any) => b.pageId === studioPage?.id && b.type === "layout"); if (target) { setSelected(target.id); } else { onNotice("Esta página ainda não tem um layout editável."); } }} title="Selecionar o layout da página"><Columns3 size={14} aria-hidden="true" /> Editar Layout</button>
+          <label className="sites-field"><span>Página do Studio</span><select value={studioPage?.id || ""} onChange={event => { setStudioPageId(event.target.value); setSelected(""); }}>
+            {model.pages.map((page: Page) => <option key={page.id} value={page.id}>{page.title}</option>)}
+          </select></label>
           <button type="button" className="secondary-button" onClick={() => setRelayoutOpen(true)} title="A IA transforma a página em uma versão premium — com prompt, link de referência, imagem ou sem nada"><Wand2 size={14} aria-hidden="true" /> Relayout premium</button>
           <button type="button" className="icon-button" onClick={() => setFullscreen(v => !v)} aria-pressed={fullscreen} title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia — editar isolado de tudo"}>{fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}</button>
           {dirtyCount > 0 ? <button type="button" className="primary-button sites-studio-save" disabled={saving} onClick={() => void saveAll()}>{saving ? "Salvando…" : "Salvar alterações (" + dirtyCount + ")"}</button> : <span className="sites-field-hint sites-studio-saved">Tudo salvo</span>}
@@ -522,7 +530,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           <h3>Blocos</h3>
           {allBlocks.length === 0 ? <p className="sites-field-hint">Este site ainda não tem blocos.</p> : allBlocks.map((b: any) => (
             <div key={b.id} className={"sites-studio-item" + (selected === b.id ? " active" : "") + (b.hidden ? " is-hidden" : "")}>
-              <button type="button" className="sites-studio-block-select" onClick={() => setSelected(b.id)}>
+              <button type="button" className="sites-studio-block-select" onClick={() => { setStudioPageId(b.pageId); setSelected(b.id); }}>
                 <b>{(b.content?.title || b.content?.headline || b.type).toString().slice(0, 44)}</b>
                 <small>{b.type} · {b.pageTitle}{b.hidden ? " · oculto" : ""}</small>
               </button>
@@ -537,12 +545,12 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
           ))}
           <div className="sites-studio-add">
             <p className="sites-field-label">Adicionar bloco</p>
-            <div className="sites-studio-add-grid">{["layout","hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
+            <div className="sites-studio-add-grid">{["freeLayout","layout","hero","richText","services","testimonials","faq","cta","gallery","contact","spacer"].map((key) => <button key={key} type="button" className="sites-studio-add-chip" title={BLOCKS_META[key]?.hint} onClick={() => void addBlock(key)}>+ {BLOCKS_META[key]?.label ?? key}</button>)}</div>
           </div>
         </aside>
         <div className="sites-studio-preview">
           <div className={"sites-studio-frame" + (device === "phone" ? " is-phone" : "")}>
-            <SitePreview site={model} highlightBlockId={selected} onBlockClick={(id) => setSelected(id)} />
+            <SitePreview site={studioPage ? { ...model, pages: [studioPage] } : model} highlightBlockId={selected} onBlockClick={(id) => setSelected(id)} />
           </div>
         </div>
         <div className="sites-studio-panel">
@@ -552,7 +560,11 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
               <span className="sites-studio-panel-type">{BLOCKS_META[selectedBlock.type]?.label ?? selectedBlock.type}</span>
             </div>
             <div className="sites-studio-fields">
-              {selectedBlock?.type === "layout" ? (
+              {selectedBlock?.type === "freeLayout" ? (
+                <FreeSiteEditor key={selectedBlock.id + JSON.stringify(selectedBlock.content)} content={selectedBlock.content}
+                  onSave={content => replaceBlockContent(selectedBlock, content)}
+                  onPrompt={instruction => applyAi(selectedBlock, instruction)} />
+              ) : selectedBlock?.type === "layout" ? (
                 <LayoutBlockEditor block={selectedBlock} onChange={(content) => replaceBlockContent(selectedBlock, content)} />
               ) : (<>
               {fieldDefs.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} /> : <input value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} />}</label>)}
@@ -694,7 +706,7 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
     await Promise.all([api(`/sites/pages/${block.pageId}/blocks/${block.id}`, { method: "PATCH", body: JSON.stringify({ sortOrder: other.sortOrder }) }), api(`/sites/pages/${other.pageId}/blocks/${other.id}`, { method: "PATCH", body: JSON.stringify({ sortOrder: block.sortOrder }) })]);
     onSaved();
   };
-  const addBlock = async (type: string) => { await api(`/sites/pages/${page!.id}/blocks`, { method: "POST", body: JSON.stringify({ type, content: type === "layout" ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] } : {} }) }); onSaved(); onNotice("Bloco adicionado."); };
+  const addBlock = async (type: string) => { await api(`/sites/pages/${page!.id}/blocks`, { method: "POST", body: JSON.stringify({ type, content: type === "freeLayout" ? { html: "<section><h2>Nova seção</h2></section>", css: "" } : type === "layout" ? { columns: [ { id: "c1", span: 12, direction: "column", align: "stretch", justify: "start", gap: 16, elements: [ { id: "e1", type: "text", tag: "h2", text: "Nova seção", align: "left" } ] } ] } : {} }) }); onSaved(); onNotice("Bloco adicionado."); };
   const removeBlock = async (block: Block) => { await api(`/sites/pages/${block.pageId}/blocks/${block.id}`, { method: "DELETE" }); onSaved(); onNotice("Bloco removido."); };
   if (!page) return <div className="sites-empty"><LayoutTemplate size={24} aria-hidden="true" /><h2>Nenhuma página</h2></div>;
   return (
@@ -737,6 +749,8 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) 
     </div>
   );
   switch (block.type) {
+    case "freeLayout":
+      return <FreeSiteEditor key={block.id} content={c} onSave={onChange} />;
     case "layout":
       return <LayoutBlockEditor block={block} onChange={(content) => onChange(content)} />;
     case "hero":

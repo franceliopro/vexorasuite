@@ -183,6 +183,42 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   };
   const closeWizard = () => setParams({ new: null });
   const [wizCloning, setWizCloning] = useState(false);
+  const [wizImportHtml, setWizImportHtml] = useState("");
+  const [wizImporting, setWizImporting] = useState(false);
+  const [wizVisionLoading, setWizVisionLoading] = useState(false);
+  const [wizVisionNote, setWizVisionNote] = useState("");
+  const readVisionImage = async (e: { target: { files: FileList | null; value: string } }) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 12_000_000) { setWizVisionNote("A imagem tem mais de 12 MB — comprima e tente de novo."); return; }
+    setWizVisionLoading(true); setWizVisionNote("");
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error("Não foi possível ler o arquivo.")); reader.readAsDataURL(file); });
+      const res = await api<{ brief: string; palette: { primary: string | null; accent: string | null }; suggestedArea: string | null; headline: string | null; provider: string; model: string }>("/sites/vision-brief", { method: "POST", body: JSON.stringify({ image: dataUrl }) });
+      setWizAiPrompt(v => (v.trim() ? v.trim() + "\n\n" : "") + "Referência visual para reproduzir: " + res.brief);
+      if (res.palette?.primary) setWizPrimary(res.palette.primary);
+      if (res.palette?.accent) setWizAccent(res.palette.accent);
+      if (res.suggestedArea) setWizArea(res.suggestedArea);
+      setWizVisionNote("Imagem lida por " + res.provider + " / " + res.model + ". Brief anexado ao pedido, cores e nicho preenchidos.");
+    } catch (err) { setWizVisionNote(err instanceof Error ? err.message : "Não foi possível ler a imagem."); }
+    finally { setWizVisionLoading(false); }
+  };
+  const importHtmlSite = async () => {
+    const html = wizImportHtml.trim();
+    if (html.length < 20) { setWizError("Cole o HTML completo do site (ou envie o arquivo .html)."); return; }
+    setWizError(""); setWizImporting(true);
+    try {
+      const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
+      const created = await api<any>("/sites/import", { method: "POST", body: JSON.stringify({ html, name: wizName.trim() || undefined, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug.trim() || undefined, whatsapps }) });
+      setNotice("Site importado. Ele abre exatamente como foi feito (isolado). Revise e publique quando quiser.");
+      resetDraft();
+      setWizImportHtml("");
+      await loadSites();
+      setParams({ new: null, site: created?.id || null, tab: "studio" });
+    } catch (e) { setWizError(e instanceof Error ? e.message : "Não foi possível importar o site."); }
+    finally { setWizImporting(false); }
+  };
   const cloneSiteNow = async () => {
     const url = (wizCloneUrl || "").trim();
     if (!/^https:\/\//i.test(url)) { setWizError("Cole a URL pública do site, começando com https://."); return; }
@@ -256,7 +292,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site”.</p></div>}
           </div>
         )}
-        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} /> : null}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} wizImportHtml={wizImportHtml} setWizImportHtml={setWizImportHtml} onImportHtml={importHtmlSite} wizImporting={wizImporting} wizVisionLoading={wizVisionLoading} wizVisionNote={wizVisionNote} onVisionFile={readVisionImage} onNotice={setNotice} /> : null}
       </section>
     );
   }

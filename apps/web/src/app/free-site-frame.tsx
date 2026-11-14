@@ -27,7 +27,7 @@ function safeDocument(content: FreeSiteContent) {
     } },
   });
   const css = /<\/style/i.test(content.css) ? "" : content.css.replace(/(-?\d*\.?\d+)(?:[sld]?vh)\b/gi, "calc(var(--vx-viewport-unit, 8px) * $1)");
-  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}' + css + '</style></head><body>' + html + '</body></html>';
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}</style><style>' + css + '</style></head><body>' + html + '</body></html>';
 }
 
 export function FreeSiteFrame({ content, onSelect, onMove }: {

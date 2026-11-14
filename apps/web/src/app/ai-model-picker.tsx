@@ -1,5 +1,5 @@
 "use client";
-export const llmLabels:Record<string,string>={ollama:"Local · Ollama",openrouter:"OpenRouter",openai:"OpenAI",gemini:"Google Gemini",anthropic:"Claude · Anthropic",deepseek:"DeepSeek",qwen:"Qwen · Alibaba Cloud (Singapura)"};
+export const llmLabels:Record<string,string>={ollama:"Local · Ollama","llama-cpp":"Local · llama.cpp",openrouter:"OpenRouter",openai:"OpenAI",gemini:"Google Gemini",anthropic:"Claude · Anthropic",deepseek:"DeepSeek",qwen:"Qwen · Alibaba Cloud (Singapura)"};
 export type CatalogModel={id:string;name:string;provider:string;tier?:string;installed?:boolean;pricePerMillionInputUsd?:number|null};
 export function AiModelPicker({label,provider,value,models,onChange}:{label:string;provider:string;value:string;models:CatalogModel[];onChange:(value:string)=>void}){
  const options=models.filter(m=>m.provider===provider);

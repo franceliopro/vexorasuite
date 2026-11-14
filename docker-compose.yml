@@ -64,6 +64,7 @@ services:
       WEBHOOK_ENCRYPTION_KEY: ${WEBHOOK_ENCRYPTION_KEY:?Configure WEBHOOK_ENCRYPTION_KEY no Dokploy}
       BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
       SEARXNG_URL: http://searxng:8080
+      LLAMA_CPP_BASE_URL: ${LLAMA_CPP_BASE_URL:-http://llama-cpp:8080}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-qwen2.5:1.5b}
       LOCAL_VOICE_URL: ${LOCAL_VOICE_URL:-}
@@ -186,6 +187,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
+
+  llama-cpp:
+    profiles: ["local-ai"]
+    image: ghcr.io/ggml-org/llama.cpp:server@sha256:e3032ea0712da96dec820c770626385de4322dd06619fb5829256a504bbc9375
+    restart: unless-stopped
+    command: ["-m", "/ollama/models/blobs/${LLAMA_CPP_MODEL_BLOB:-sha256-183715c435899236895da3869489cc30ac241476b4971a20285b1a462818a5b4}", "--alias", "qwen2.5:1.5b", "--host", "0.0.0.0", "--port", "8080", "-t", "2", "-c", "4096", "-np", "1"]
+    depends_on:
+      ollama-model:
+        condition: service_completed_successfully
+    volumes:
+      - ollama_models:/ollama:ro
+    mem_limit: 4g
+    cpus: 2
 
   ollama:
     profiles: ["local-ai"]

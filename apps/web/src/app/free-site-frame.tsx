@@ -252,3 +252,10 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
     </details>
   </div>;
 }
+
+/** Site importado de um HTML externo — roda isolado: sem acesso ao app, cookies ou login. */
+export function ExternalHtmlFrame({ html, title, heightVh }: { html: string; title?: string; heightVh?: number }) {
+  const doc = typeof html === "string" && html.trim() ? html : "";
+  if (!doc) return <p className="sites-field-hint">Conteúdo do site importado indisponível.</p>;
+  return <iframe title={title || "Site importado"} sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox" referrerPolicy="no-referrer" srcDoc={doc} style={{ display: "block", border: 0, width: "100%", height: (heightVh ?? 78) + "vh", minHeight: 480, background: "#fff" }} />;
+}

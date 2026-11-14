@@ -4388,3 +4388,8 @@ input[type=tel]{letter-spacing:.02em}
 .inspiration-thumb.is-hero small{color:var(--primary-ink);font-weight:700}
 .inspiration-badge{position:absolute;top:6px;right:6px;padding:2px 8px;border-radius:999px;background:var(--primary);color:#fff;font:800 9px/1.6 var(--font-display);letter-spacing:.06em;text-transform:uppercase;box-shadow:0 2px 6px rgba(15,23,42,.35)}
 @media(max-width:760px){.inspiration-gallery{grid-template-columns:repeat(2,1fr)}}
+
+/* Importar site pronto (HTML) no wizard */
+.sites-import-html{width:100%;padding:10px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--s2);color:var(--tx);font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;white-space:pre}
+.sites-import-html:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.sites-import-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}

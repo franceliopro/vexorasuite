@@ -270,6 +270,40 @@ export class SitesController {
   }
 
   /**
+   * Importa um site pronto em HTML completo (gerado fora da Véxora, ex.: por outra IA).
+   * O HTML vai para um bloco `externalHtml` e é renderizado isolado (iframe sem acesso ao app).
+   */
+  @Post("import") async importSite(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    const tenantId = this.tenantOf(req);
+    const rawHtml = typeof body?.html === "string" ? body.html : "";
+    const html = rawHtml.trim();
+    if (html.length < 20) throw new BadRequestException("Cole o HTML completo do site (ou envie o arquivo .html).");
+    if (html.length > 600_000) throw new BadRequestException("O HTML tem mais de 600 KB. Reduza o arquivo ou hospede imagens/CSS externamente e referencie por URL.");
+    if (!/<[a-zA-Z][^>]*>/.test(html)) throw new BadRequestException("Não parece HTML válido. Cole o código-fonte completo (ex.: começando com <!doctype html> ou <html>).");
+    let name = str(body?.name, 80);
+    if (name.length < 2) {
+      const titleMatch = /<title>([^<]{2,80})<\/title>/i.exec(html);
+      name = titleMatch?.[1] ? titleMatch[1].trim().replace(/\s+/g, " ") : "";
+    }
+    if (name.length < 2) throw new BadRequestException("Informe o nome do site (mínimo 2 caracteres).");
+    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
+    let finalSlug = slugBase, attempt = 0;
+    while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slugBase + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
+    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#2E7CF6";
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#164E8A";
+    const whatsapps = list(body?.whatsapps, 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
+    const site = await this.prisma.site.create({
+      data: {
+        tenantId, slug: finalSlug, kind: "STATIC", businessArea: "site_simples", name, primaryColor, accentColor,
+        departments: whatsapps.map(w => ({ platform: "whatsapp", label: w.label, handle: w.handle })) as any,
+        pages: { create: [{ kind: "HOME", slug: "inicio", title: "Início", sortOrder: 0, blocks: { create: [{ type: "externalHtml", content: { html, title: name }, sortOrder: 0 }] } }] },
+      },
+      include: { pages: { include: { blocks: true } } },
+    });
+    return { ...site, import: { isolated: true } };
+  }
+
+  /**
    * Clona um site público existente (conteúdo, não o tema) para um novo Site Véxora.
    * WordPress: importa páginas, posts e imóveis via REST API pública. Não-WordPress: monta hero/galeria a partir do HTML.
    * Tudo em uma transação — ou clona completo, ou não cria nada.

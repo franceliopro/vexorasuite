@@ -183,6 +183,23 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   };
   const closeWizard = () => setParams({ new: null });
   const [wizCloning, setWizCloning] = useState(false);
+  const [wizImportHtml, setWizImportHtml] = useState("");
+  const [wizImporting, setWizImporting] = useState(false);
+  const importHtmlSite = async () => {
+    const html = wizImportHtml.trim();
+    if (html.length < 20) { setWizError("Cole o HTML completo do site (ou envie o arquivo .html)."); return; }
+    setWizError(""); setWizImporting(true);
+    try {
+      const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
+      const created = await api<any>("/sites/import", { method: "POST", body: JSON.stringify({ html, name: wizName.trim() || undefined, primaryColor: wizPrimary, accentColor: wizAccent, slug: wizSlug.trim() || undefined, whatsapps }) });
+      setNotice("Site importado. Ele abre exatamente como foi feito (isolado). Revise e publique quando quiser.");
+      resetDraft();
+      setWizImportHtml("");
+      await loadSites();
+      setParams({ new: null, site: created?.id || null, tab: "studio" });
+    } catch (e) { setWizError(e instanceof Error ? e.message : "Não foi possível importar o site."); }
+    finally { setWizImporting(false); }
+  };
   const cloneSiteNow = async () => {
     const url = (wizCloneUrl || "").trim();
     if (!/^https:\/\//i.test(url)) { setWizError("Cole a URL pública do site, começando com https://."); return; }
@@ -256,7 +273,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site”.</p></div>}
           </div>
         )}
-        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} /> : null}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} wizImportHtml={wizImportHtml} setWizImportHtml={setWizImportHtml} onImportHtml={importHtmlSite} wizImporting={wizImporting} onNotice={setNotice} /> : null}
       </section>
     );
   }

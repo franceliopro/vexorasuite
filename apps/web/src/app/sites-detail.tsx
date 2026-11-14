@@ -1,5 +1,5 @@
 "use client";
-import { FreeSiteEditor } from "./free-site-frame";
+import { FreeSiteEditor, ExternalHtmlFrame } from "./free-site-frame";
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
@@ -12,7 +12,7 @@ import { FileImagePicker } from "./file-image-picker";
 import { maskBRLInput, formatBRL } from "../lib/money";
 import { SitePreview } from "./site-preview";
 import { inspirationAreasFor } from "./site-inspirations";
-import { Building2, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, X } from "lucide-react";
+import { Building2, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, Upload, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -35,8 +35,11 @@ export function SitesWizardDialog(props: {
   hasDraft: boolean; onDeleteDraft: () => void;
   modelLabel: string; onReloadModel: () => void;
   onCloneSite: () => void; wizCloning: boolean;
+  wizImportHtml: string; setWizImportHtml: (v: string) => void;
+  onImportHtml: () => Promise<void>; wizImporting: boolean;
+  onNotice: (v: string) => void;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, onNotice } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
@@ -69,6 +72,16 @@ export function SitesWizardDialog(props: {
             <summary><Sparkles size={14} aria-hidden="true" /> Galeria de inspirações (opcional)</summary>
             <p className="sites-field-hint">Clique em uma imagem para usar como foto principal (Hero) do seu site. Clique de novo para desfazer.</p>
             <div className="inspiration-gallery">{(inspirationAreasFor(wizArea) || []).map((item, i) => { const heroActive = wizHeroOverride === item.url; return <button key={i} type="button" className={"inspiration-thumb" + (heroActive ? " is-hero" : "")} onClick={() => setWizHeroOverride(heroActive ? "" : item.url)} aria-pressed={heroActive} title={(heroActive ? "Remover " : "Usar ") + item.caption}><img src={item.url} alt={item.caption} loading="lazy"/><small>{item.caption}</small>{heroActive ? <em className="inspiration-badge">Hero</em> : null}</button>; })}</div>
+          </details>
+          <details className="sites-ai-card">
+            <summary><Upload size={14} aria-hidden="true" /> Importar site pronto (HTML)</summary>
+            <p className="sites-field-hint">Tem um site pronto (criado fora, por exemplo com ChatGPT/Claude/v0)? Cole o HTML completo ou envie o arquivo .html. Ele fica exatamente como você fez — e roda isolado, sem acesso aos dados da Véxora.</p>
+            <textarea className="sites-import-html" rows={5} value={wizImportHtml} onChange={e => setWizImportHtml(e.target.value)} placeholder={"<!doctype html>\n<html lang=\"pt-BR\">… (cole o código-fonte completo aqui)"} spellCheck={false} aria-label="HTML completo do site" />
+            <div className="sites-import-actions">
+              <label className="secondary-button" htmlFor="sites-import-file">Escolher arquivo .html</label>
+              <input id="sites-import-file" type="file" accept=".html,.htm,text/html" style={{ display: "none" }} onChange={e => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 600_000) { onNotice("O arquivo tem mais de 600 KB. Reduza-o ou hospede os assets por URL."); return; } void file.text().then(text => setWizImportHtml(text)); e.target.value = ""; }} />
+              <button type="button" className="primary-button" onClick={() => void onImportHtml()} disabled={wizImporting || !wizImportHtml.trim()}>{wizImporting ? "Importando…" : "Criar a partir do HTML"}</button>
+            </div>
           </details>
           <details className="sites-ai-card" open>
             <summary><Sparkles size={14} aria-hidden="true" /> Pedido para a IA (opcional)</summary>
@@ -777,6 +790,8 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (next: any) 
     </div>
   );
   switch (block.type) {
+    case "externalHtml":
+      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar, edite o HTML fora da Véxora e importe novamente pelo assistente de criação.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={62} /></div>;
     case "freeLayout":
       return <FreeSiteEditor key={block.id} content={c} onSave={onChange} />;
     case "layout":

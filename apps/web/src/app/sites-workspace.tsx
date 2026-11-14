@@ -228,7 +228,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             <h1>Sites que vendem, feitos por IA</h1>
             <p>Escolha sua área, diga seu nome, e a Véxora monta um site responsivo completo — páginas, textos, cores, logo e formulário de contato. Você edita tudo.</p>
           </div>
-          <button type="button" className="primary-button" onClick={openWizard}><Sparkles size={16} aria-hidden="true" /> Criar site com IA</button>
+          <button type="button" className="primary-button" onClick={openWizard}><Sparkles size={16} aria-hidden="true" /> Criar site</button>
         </header>
         {draftHydrated && hasDraft && <article className="sites-card" aria-label="Rascunho de criação">
           <header><div><h2>Rascunho de criação</h2><p>{wizName.trim() || "Site sem nome"}{wizArea ? " · " + (AREAS.find(area => area.key === wizArea)?.label || wizArea) : ""}</p></div></header>
@@ -251,7 +251,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
                   <button type="button" className="primary-button" onClick={() => setParams({ site: s.id, tab: "pages" })}>Abrir <ChevronRight size={15} aria-hidden="true" /></button>
                 </footer>
               </article>
-            )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site com IA”.</p></div>}
+            )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site”.</p></div>}
           </div>
         )}
         {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} /> : null}

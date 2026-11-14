@@ -39,7 +39,7 @@ export function SitesWizardDialog(props: {
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
       <section className="vx-dialog sites-wizard" role="dialog" aria-modal="true" aria-labelledby="sites-wizard-title">
-        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site com IA</h2><p>A Véxora monta a estrutura completa do site para você.</p></div><div style={{display:"flex",gap:8,marginLeft:"auto"}}><button type="button" className="secondary-button" onClick={onSaveDraft} disabled={!hasDraft || wizSaving || wizCloning} title="Salvar rascunho deste formulário para continuar depois">{savedDraft ? "Salvo como rascunho" : "Salvar como rascunho"}</button><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></div></header>
+        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site</h2><p>A Véxora monta um site bonito para você em instantes.</p></div><div style={{display:"flex",gap:8,marginLeft:"auto"}}><button type="button" className="secondary-button" onClick={onSaveDraft} disabled={!hasDraft || wizSaving || wizCloning} title="Salvar rascunho deste formulário para continuar depois">{savedDraft ? "Salvo como rascunho" : "Salvar como rascunho"}</button><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></div></header>
         <div className="vx-dialog-body sites-wizard-body">
           <div className="sites-block-actions">
             <p className="sites-field-hint" role="status"><b>Design Gráfico &amp; Web</b> · {modelLabel || "Consultando modelo…"}</p>
@@ -64,8 +64,8 @@ export function SitesWizardDialog(props: {
             <label className="sites-field"><span>Cor de destaque</span><input type="color" value={wizAccent} onChange={e => setWizAccent(e.target.value)} /></label>
           </div>
           <details className="sites-ai-card" open>
-            <summary><Sparkles size={14} aria-hidden="true" /> Criar com IA (opcional)</summary>
-            <p className="sites-field-hint">Descreva o negócio, o público, o tom e o que o site precisa. Se houver IA configurada na empresa, o agente Design Gráfico &amp; Web redige o conteúdo — inclusive lendo o link de referência abaixo (ou um link colado no próprio comando). Sem IA, o template cria o site com os dados acima.</p>
+            <summary><Sparkles size={14} aria-hidden="true" /> Pedido para a IA (opcional)</summary>
+            <p className="sites-field-hint">Preencha o mínimo: nome, nicho e WhatsApp. A Véxora monta a estrutura, aplica o design premium do nicho e preenche o conteúdo. Se você quiser, adicione um pedido (ex.: "foco em agendamento") e a IA redige com a sua voz.</p>
             <div className="sites-ai-prompt">
               <div className="sites-ai-prompt-head"><span>Pedido para a IA</span><button type="button" className={"sites-ai-dictate" + (wizAiDictating ? " is-listening" : "")} onClick={dictateWizardPrompt} aria-pressed={wizAiDictating} title="Ditar o pedido com o microfone"><Mic size={14} aria-hidden="true" />{wizAiDictating ? "Parar" : "Ditar"}</button></div>
               <RichPromptEditor label={"Comando para a IA (opcional)"} documentKey={"wizard:ai-prompt"} rows={4} maxLength={2500} placeholder="Ex.: Clínica estética Lume em Cuiabá, foco em limpeza de pele e Botox para mulheres 30–55. Tom: acolhedor, profissional. Quero agendar pelo WhatsApp. Cole aqui também links e URLs de imagens — o editor entende markdown." value={wizAiPrompt} onChange={setWizAiPrompt} />

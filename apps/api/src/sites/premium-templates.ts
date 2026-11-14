@@ -83,6 +83,8 @@ export function buildPremiumTemplate(input: {
 
   const galleryHtml = cards.map((src, i) => `<figure class="vx-ph"><img src="${esc(src)}" alt="${company} — foto ${i + 1}" loading="lazy"/></figure>`).join("\n");
 
+  // Ícone de robô em linha (SVG, sem dependência externa) — usado no hero e nos módulos.
+  const botIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="16" height="10" rx="3"/><path d="M12 9V5"/><circle cx="12" cy="3.6" r="1.1"/><path d="M9 13.5h.01M15 13.5h.01"/><path d="M9.5 16.5h5"/></svg>`;
   const eyebrow = isVexora
     ? `<span class="vx-eyebrow vx-eyebrow--pill">${tagline} · SaaS de gestão</span>`
     : `<span class="vx-eyebrow">${tagline}</span>`;
@@ -100,7 +102,7 @@ export function buildPremiumTemplate(input: {
             </div>
           </div>
           <div class="vx-chip vx-chip--a">Cobrança conciliada · R$ 1.280</div>
-          <div class="vx-chip vx-chip--b">IA respondeu em 2s</div>
+          <div class="vx-chip vx-chip--b">${botIcon}IA respondeu em 2s</div>
         </figure>`;
   const splitFigure = isVexora
     ? vexoraArt
@@ -129,7 +131,7 @@ export function buildPremiumTemplate(input: {
   // Ícones em linha (SVG, sem dependência externa) para os módulos da Véxora.
   const moduleIcons = [
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 6 8.38 8.38 0 0 1-3.8-.9L3 21l1.6-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 6-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
-    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    botIcon,
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
@@ -146,6 +148,30 @@ export function buildPremiumTemplate(input: {
   ];
   const faqHtml = faqItems.map(([q, a]) => `<details class="vx-faq-item"><summary>${q}</summary><p>${a}</p></details>`).join("\n");
 
+  const planRows: [string, string, string, string, string[], string, boolean, string?][] = [
+    // código, preço, nome, chamada, fatos, módulos, destaque?, badge?
+    ["SITES", "R$ 149,00", "Só Sites", "Site em até 24h com IA", ["30 créditos de IA/mês · tier basic", "1 site · 3 redes sociais", "Formulários de captura", "WhatsApp vinculado"], "Sites", false],
+    ["ROBO", "R$ 99,00", "Só Robô", "Chatbot com IA e tela cheia", ["1 robô com IA · tela cheia", "100 créditos de IA/mês · tier basic", "1 rede social", "WhatsApp vinculado"], "Automação · Chatbot · Canais", false],
+    ["ATENDIMENTO", "R$ 349,00", "Atendimento Multiagentes", "Times atendendo juntos", ["5 atendentes · 1 robô", "300 créditos de IA/mês · tier eco", "CRM completo", "2 redes sociais"], "Atendimento · CRM · Calendários · Tarefas", false],
+    ["ATENDIMENTO_PRO", "R$ 549,00", "Atendimento Pro", "Operação completa de atendimento", ["15 atendentes · 2 robôs", "800 créditos de IA/mês · tier standard", "CRM + Financeiro Asaas", "4 redes sociais"], "Atendimento · CRM · Calendários · Tarefas · Financeiro", false],
+    ["MARKETING", "R$ 249,00", "Marketing Social", "Publique todo dia sem virar escravo", ["300 créditos de IA/mês · tier standard", "Publicação de conteúdo", "4 redes sociais", "WhatsApp vinculado"], "Marketing · Canais e redes", false],
+    ["SITES_ATENDIMENTO", "R$ 449,00", "Sites + Atendimento", "Site, leads e time vendendo", ["5 atendentes · 1 robô", "500 créditos de IA/mês · tier standard", "1 site · 4 redes sociais", "CRM completo"], "Sites · Atendimento · CRM · Calendários", false],
+    ["COMPLETO", "R$ 799,00", "Véxora Completa", "Tudo, sem limites de produto", ["30 atendentes · 4 robôs", "2000 créditos de IA/mês · tier standard", "10 sites · 10 redes sociais", "Publicação de conteúdo"], "Todos os módulos · configurações", true, "MAIS COMPLETA"],
+    ["AGENCIA", "R$ 1.499,00", "Agência (pacote)", "Três sites e dois robôs no bolso", ["10 atendentes · 2 robôs", "1500 créditos de IA/mês · tier standard", "3 sites · 8 redes · 5 WhatsApps", "Publicação de conteúdo"], "Todos os módulos · configurações", false, "PACOTE"],
+  ];
+  const plansHtml = planRows.map(([code, price, name, tagline, facts, modules, best, badge]) => `<article class="vx-plan${best ? " is-best" : ""}">
+      <div class="vx-plan-top"><span class="vx-plan-code">${code}</span>${badge ? `<span class="vx-plan-badge">${badge}</span>` : ""}</div>
+      <p class="vx-plan-price"><strong>${price}</strong><span>/mês</span></p>
+      <h3>${esc(name)}</h3>
+      <p class="vx-plan-tag">${esc(tagline)}</p>
+      <ul class="vx-plan-facts">${facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+      <p class="vx-plan-modules">${esc(modules)}</p>
+      <a class="vx-plan-cta" href="${esc(waLink)}">Falar com um especialista</a>
+    </article>`).join("\n");
+
+  const marqueeItems = ["WhatsApp", "Meta Cloud API", "Instagram", "Facebook", "E-mail", "Webchat", "Asaas · PIX"];
+  const marqueeHalf = marqueeItems.map(item => `<span>${item}</span><i>✦</i>`).join("");
+  const marqueeHtml = `<div class="vx-marquee" aria-hidden="true"><div class="vx-marquee-track">${marqueeHalf}${marqueeHalf}</div></div>`;
   const ctaH2 = isVexora ? "Pronto para ver a Véxora rodando na sua empresa?" : "Vamos conversar sobre o seu próximo passo?";
   const ctaSub = isVexora ? "Demonstração de 30 minutos. Sem compromisso." : "Resposta rápida. Sem compromisso e sem enrolação.";
 
@@ -155,6 +181,7 @@ export function buildPremiumTemplate(input: {
   </section>` : "";
   const vexoraHtml = !isVexora ? "" : `<main id="top">
   <section class="vx-hero">${heroInner}</section>
+  ${marqueeHtml}
   <section class="vx-section" id="servicos">
     <div class="vx-head-row"><div><span class="vx-eyebrow">A plataforma</span><h2>Seis módulos, uma operação só</h2></div></div>
     <ol class="vx-modules">${modulesHtml}</ol>
@@ -166,6 +193,11 @@ export function buildPremiumTemplate(input: {
       <article class="vx-persona"><span class="vx-persona-num">02</span><h3>Para o time comercial</h3><p>Pipeline visual, tarefas e cobrança no mesmo lugar onde a conversa com o cliente acontece.</p></article>
       <article class="vx-persona"><span class="vx-persona-num">03</span><h3>Para quem quer crescer</h3><p>Mais atendentes, mais unidades e mais canais sem trocar de sistema — a Véxora acompanha o ritmo.</p></article>
     </div>
+  </section>
+  <section class="vx-section vx-plans" id="planos">
+    <div class="vx-head-row"><div><span class="vx-eyebrow">Planos</span><h2>Escolha o ponto de partida</h2></div></div>
+    <div class="vx-plan-grid">${plansHtml}</div>
+    <p class="vx-plans-note">Valores do catálogo atual — troque de plano a qualquer momento e os limites acompanham na hora. Confirme as condições na demonstração.</p>
   </section>
   ${gallerySection}
   <section class="vx-quote" id="sobre">
@@ -326,6 +358,52 @@ body{background:${theme.surface};color:${theme.ink};font-family:'Manrope',sans-s
 .vx-faq-item summary::after{content:"+";flex:none;font-size:20px;font-weight:600;color:#2E7CF6;transition:transform .2s}
 .vx-faq-item[open] summary::after{transform:rotate(45deg)}
 .vx-faq-item p{margin:0;padding:0 20px 17px;font-size:13.5px;line-height:1.65;color:#3D4B6B;max-width:70ch}
+.vx-chip svg{width:15px;height:15px;flex:none}
+@keyframes vx-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.vx-chip{animation:vx-bob 6.5s ease-in-out infinite}
+.vx-chip--b{animation-duration:7.4s;animation-delay:-3.3s}
+@keyframes vx-pulse-dot{0%,100%{box-shadow:0 0 0 3px rgba(46,124,246,.25)}50%{box-shadow:0 0 0 7px rgba(46,124,246,.08)}}
+.vx-eyebrow--pill::before{animation:vx-pulse-dot 2.4s ease-in-out infinite}
+@keyframes vx-pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+.vx-bubble{animation:vx-pop .55s ease both}
+.vx-bubble--out{animation-delay:.2s}
+.vx-bubble--in:last-child{animation-delay:.4s}
+@keyframes vx-grid-drift{from{background-position:0 0}to{background-position:120px 60px}}
+.vx-hero::before{animation:vx-grid-drift 46s linear infinite}
+.vx-window,.vx-art,.vx-hero-txt{will-change:transform}
+.vx-reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1)}
+.vx-reveal.vx-in{opacity:1;transform:none}
+.vx-marquee{overflow:hidden;border-top:1px solid #E2E8F8;border-bottom:1px solid #E2E8F8;background:#FFFFFF;padding:12px 0}
+.vx-marquee-track{display:flex;gap:36px;width:max-content;white-space:nowrap;animation:vx-marquee 34s linear infinite}
+.vx-marquee span{font:800 11px/1.2 'Manrope',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#5B6B93}
+.vx-marquee i{color:#2E7CF6;font-style:normal}
+@keyframes vx-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.vx-marquee:hover .vx-marquee-track{animation-play-state:paused}
+.vx-plans{background:#FDFEFF}
+.vx-plan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.vx-plan{display:flex;flex-direction:column;gap:10px;padding:20px;background:#FFFFFF;border:1px solid #E2E8F8;border-radius:16px;transition:transform .2s,box-shadow .2s}
+.vx-plan:hover{transform:translateY(-3px);box-shadow:0 18px 40px -18px rgba(6,11,31,.28)}
+.vx-plan.is-best{border-color:#2E7CF6;box-shadow:0 0 0 2px rgba(46,124,246,.35),0 24px 48px -22px rgba(46,124,246,.45)}
+.vx-plan-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:23px}
+.vx-plan-code{font:800 10px/1 'Manrope',sans-serif;letter-spacing:.14em;color:#5B6B93;padding:6px 9px;border:1px solid #E2E8F8;border-radius:6px;background:#F7FAFF}
+.vx-plan-badge{font:800 9px/1 'Manrope',sans-serif;letter-spacing:.12em;color:#FFFFFF;background:#2E7CF6;border-radius:99px;padding:6px 10px}
+.vx-plan-price{margin:2px 0 0}
+.vx-plan-price strong{font:800 29px/1 'Manrope',sans-serif;letter-spacing:-.03em;color:#060B1F}
+.vx-plan-price span{font:600 12px 'Manrope',sans-serif;color:#5B6B93;margin-left:6px}
+.vx-plan h3{margin:0;font:800 16px/1.25 'Manrope',sans-serif;letter-spacing:-.02em;color:#060B1F}
+.vx-plan-tag{margin:0;font-size:12px;line-height:1.45;color:#3D4B6B}
+.vx-plan-facts{list-style:none;margin:0;padding:10px 0 0;border-top:1px solid #EDF1F9;display:grid;gap:7px;align-content:start}
+.vx-plan-facts li{display:flex;gap:8px;font-size:12px;line-height:1.4;color:#0A1440;align-items:baseline}
+.vx-plan-facts li::before{content:"✓";color:#2E7CF6;font-weight:800;flex:none}
+.vx-plan-modules{margin:0;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5B6B93;line-height:1.6}
+.vx-plan-cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:10px;border:1.5px solid #2E7CF6;color:#164E8A;text-decoration:none;font:800 12px 'Manrope',sans-serif;margin-top:auto;transition:background .2s,color .2s}
+.vx-plan-cta:hover{background:#E7EFFC}
+.vx-plan.is-best .vx-plan-cta{background:#2E7CF6;color:#FFFFFF;border-color:#2E7CF6}
+.vx-plan.is-best .vx-plan-cta:hover{background:#1F5FD0}
+.vx-plans-note{margin:14px 2px 0;font-size:11px;color:#5B6B93}
+@media(max-width:1100px){.vx-plan-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vx-plan-grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion: reduce){.vx-chip,.vx-eyebrow--pill::before,.vx-bubble,.vx-hero::before,.vx-marquee-track{animation:none !important}.vx-reveal{opacity:1 !important;transform:none !important;transition:none}}
 @media(max-width:900px){.vx-art{order:0;padding:6px 18px 30px}.vx-window{transform:none}.vx-chip--a{left:2%;bottom:10%}.vx-chip--b{right:2%;top:6%}.vx-modules{grid-template-columns:repeat(2,1fr)}.vx-persona-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.vx-modules{grid-template-columns:1fr}}
 ` : "";

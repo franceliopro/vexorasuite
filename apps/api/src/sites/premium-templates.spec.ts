@@ -34,6 +34,10 @@ describe("templates premium", () => {
     expect(html).toContain("Seis módulos");
     expect(html).toContain("Perguntas frequentes");
     expect(html).toContain("vx-faq-item");
+    expect(html).toContain('id="planos"');
+    expect(html).toContain("Véxora Completa");
+    expect(html).toContain("R$ 799,00");
+    expect(html).toContain("vx-marquee");
     expect(html).not.toContain("<script");
     expect(css).toContain("#060B1F");           // navy institucional
     expect(css).toContain("#2E7CF6");           // azul da marca

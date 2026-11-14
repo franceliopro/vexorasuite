@@ -98,7 +98,7 @@ export class DesignApprovalsController {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { name: true, integrations: true } });
     const root = obj(tenant.integrations);
     const assistant = obj(root.assistant);
-    if (assistant.enabled !== true) throw new BadRequestException("Ative a IA desta empresa em Agentes de IA → Configuração geral antes de criar o carrossel.");
+    if (assistant.enabled !== true) throw new ForbiddenException({ code: "ASSISTANT_DISABLED", message: "Ative a IA desta empresa em Agentes de IA → Configuração geral antes de criar o carrossel." });
 
     // Referência do Instagram (melhor esforço) + imagens anexadas.
     const og = instagramUrl ? await instagramReference(instagramUrl) : null;

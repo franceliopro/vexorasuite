@@ -24,7 +24,7 @@ export class AiService {
     for (const p of providers.slice(0,3)) {
       if (!p.apiKey || !p.model) continue;
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), Math.min(Math.max(p.timeoutMs ?? 30000, 1000), 120000));
+      const timeout = setTimeout(() => controller.abort(), Math.min(Math.max(p.timeoutMs ?? 30000, 1000), p.provider === "llama-cpp" ? 175000 : 120000));
       try {
         const local = localLlmOrigin(p.provider);
         const remote = remoteProviders[p.provider as keyof typeof remoteProviders];
@@ -65,7 +65,7 @@ export class AiService {
           continue;
         }
         // Continue to the next configured provider without leaking credentials.
-        failures.push(`${p.provider}: indisponível ou tempo esgotado`);
+        failures.push(controller.signal.aborted ? `${p.provider}: tempo de geração esgotado` : `${p.provider}: falha de comunicação com o provedor`);
       } finally {
         clearTimeout(timeout);
       }

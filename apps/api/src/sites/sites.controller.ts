@@ -124,7 +124,7 @@ export class SitesController {
     const webDesignInstructions = skillInstructions(integrations, "web.design.premium") || skillInstructions(integrations, "creative.design.director");
     try {
       await this.prisma.$transaction((tx) => reserveAiExecution(tx, tenantId, dailyAiLimit(assistant.dailyAiLimit), "sites.generate", userId));
-      const systemPrompt = `${webDesignInstructions}\n\nAgora entregue o CONTEÚDO do site como SOMENTE JSON válido, sem markdown e sem comentários: {"headline":"...","sub":"...","services":[{"title":"...","text":"..."} x6],"faq":[{"question":"...","answer":"..."} x3],"testimonials":[{"name":"...","text":"..."} x6],"cta":{"title":"...","sub":"..."}}. Copy brasileira, concreta e específica do segmento — nada genérico, nunca lorem ipsum. services: 6 itens com benefício claro; testimonials: 6 depoimentos com nomes brasileiros plausíveis, sinalizados como exemplo editável no próprio texto quando não forem reais; faq: 3 perguntas reais do segmento.`;
+      const systemPrompt = `${webDesignInstructions}\n\nAgora entregue o CONTEÚDO do site como SOMENTE JSON válido, sem markdown e sem comentários: {"headline":"...","sub":"...","services":[{"title":"...","text":"..."} x6],"faq":[{"question":"...","answer":"..."} x3],"testimonials":[{"name":"...","text":"..."} x6],"cta":{"title":"...","sub":"..."},"design":{"heroVariant":"overlay|split|editorial|fullscreen","fontPair":"manrope|playfair|dmserif|fraunces"}}. Copy brasileira, concreta e específica do segmento — nada genérico. services: 6 itens; testimonials: 6 depoimentos com nomes brasileiros plausíveis, 3 ou 4 marcados como exemplo editável no próprio texto; faq: 3 perguntas reais do segmento. Sobre o campo design: escolha HERO_VARIANT pela natureza do negócio (ex.: imobiliária → split; blog/escola/instituição → editorial; campanha de performance → overlay/fullscreen; clínica/estética/advocacia → split; rastreamento/proteção → overlay) e FONT_PAIR pelo tom (playfair/dmserif/fraunces para institucional e premium; manrope para produto e tecnologia).`;
       const result = await this.ai.generate([
         { role: "system", content: systemPrompt },
         { role: "user", content: brief.join("\n") },
@@ -133,10 +133,12 @@ export class SitesController {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const json: any = JSON.parse(jsonMatch[0]);
+        const heroVariant = ["overlay", "split", "editorial", "fullscreen"].includes(String(json.design?.heroVariant)) ? String(json.design.heroVariant) : null;
+        const fontPair = ["manrope", "playfair", "dmserif", "fraunces"].includes(String(json.design?.fontPair)) ? String(json.design.fontPair) : null;
         if (json && json.headline) {
           for (const page of out.pages) for (const block of page.blocks) {
             const c: any = block.content || {};
-            if (block.type === "hero") block.content = { ...c, headline: String(json.headline).slice(0, 120), sub: String(json.sub || c.sub || "").slice(0, 300) };
+            if (block.type === "hero") block.content = { ...c, headline: String(json.headline).slice(0, 120), sub: String(json.sub || c.sub || "").slice(0, 300), ...(heroVariant ? { variant: heroVariant } : {}), ...(fontPair ? { fontPair } : {}) };
             else if (block.type === "services" && Array.isArray(json.services) && json.services.length) block.content = { ...c, items: json.services.slice(0, 8).map((s: any) => ({ title: String(s?.title || "Serviço").slice(0, 80), text: String(s?.text || "").slice(0, 240) })) };
             else if (block.type === "faq" && Array.isArray(json.faq)) block.content = { ...c, items: json.faq.slice(0, 6).map((f: any) => ({ question: String(f?.question || "Pergunta").slice(0, 140), answer: String(f?.answer || "").slice(0, 600) })) };
             else if (block.type === "testimonials" && Array.isArray(json.testimonials)) block.content = { ...c, items: json.testimonials.slice(0, 6).map((t: any) => ({ name: String(t?.name || "Cliente").slice(0, 80), text: String(t?.text || "").slice(0, 400) })) };

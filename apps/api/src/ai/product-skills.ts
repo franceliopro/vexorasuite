@@ -8,4 +8,18 @@ export const productSkills=[
  {id:'media.carousel.generate',name:'Roteiro e artes de carrossel',description:'Cria o roteiro, a estrutura das lâminas, a legenda e a direção visual de carrosséis para revisão antes do download.',instructions:'Use esta Skill sempre que o usuário solicitar um carrossel. Entenda objetivo, público, oferta, canal e identidade visual da empresa. Consulte as referências criativas ativas apenas como orientação de linguagem, composição e paleta; não copie peças protegidas. Entregue título, legenda e 4 a 6 lâminas com uma ideia por lâmina, texto curto, hierarquia visual e uma última lâmina com CTA. Use somente fatos confirmados nas fontes fornecidas, não invente estatísticas, preços ou promessas. Gere como rascunho para revisão humana; nunca publique automaticamente. Registre as referências e a versão da Skill usada.',status:'implemented'},
 ];
 export function tenantSkills(root:any){const custom=Array.isArray(root?.customSkills)?root.customSkills.filter((s:any)=>!['media.ready.caption','drive.ready.publish','drive.news.publish','media.video.render','marketing.workflow.run','social.publish'].includes(s.id)):[];return [...productSkills.map(s=>({...s,...custom.find((c:any)=>c.id===s.id),status:s.status})),...custom.filter((c:any)=>!productSkills.some(s=>s.id===c.id))];}
+export function skillInstructionsForAgent(root: any, ids: unknown, perSkill = 2500, total = 6000): string {
+  if (!Array.isArray(ids)) return "";
+  const wanted = new Set(ids.map((id) => String(id)));
+  const entries = tenantSkills(root).filter((skill) => wanted.has(skill.id) && String(skill.instructions || "").trim());
+  const out: string[] = [];
+  let used = 0;
+  for (const skill of entries) {
+    const block = `Skill "${skill.name}" (${skill.id}):\n${String(skill.instructions).slice(0, perSkill)}`;
+    if (used + block.length > total) break;
+    out.push(block);
+    used += block.length + 2;
+  }
+  return out.length ? "\nSkills autorizadas deste agente — siga exatamente as instruções de cada uma:\n" + out.join("\n\n") : "";
+}
 export function skillInstructions(root:any,id:string){return String(tenantSkills(root).find((s:any)=>s.id===id)?.instructions||'').slice(0,12000);}

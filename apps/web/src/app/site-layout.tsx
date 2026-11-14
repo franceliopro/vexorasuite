@@ -114,6 +114,7 @@ export function heroDesignCss(design: unknown): HeroDesignCss {
 }
 
 /** Seção em colunas (layout) — usada em prévia, tema público e editor. */
+
 export function LayoutBlock({ content }: { content: any }) {
   const columns = (Array.isArray(content?.columns) ? content.columns : []).slice(0, 4);
   if (!columns.length) return null;

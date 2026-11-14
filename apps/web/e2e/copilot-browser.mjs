@@ -9,6 +9,7 @@ let diagnostics="";server.stdout.on("data",chunk=>{diagnostics+=chunk});server.s
 let browser;
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",userId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",tenantId="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 let sentMessages=0;
+let creativeModel = "modelo-antigo-qa";
 let inboxResponse={};
 let socialSyncCalls=0;
 const socialAccounts=[{accountId:"new-instagram",platform:"instagram",username:"empresa.nova",status:"ACTIVE"},{accountId:"new-facebook",platform:"facebook",username:"empresa.pagina",status:"ACTIVE"}];
@@ -19,7 +20,9 @@ async function fixtures(page){
  await page.route("**/api/backend/**",async route=>{
   const request=route.request(),url=new URL(request.url()),path=url.pathname.replace("/api/backend","");let data={};
   if(path==="/events")return route.fulfill({status:200,contentType:"text/event-stream",body:": ready\n\n"});
-  if(path==="/auth/me")data={user:{id:userId,name:"Tonico",email:"qa@example.test",isPlatformAdmin:true,mustChangePassword:false},tenant:{id:tenantId,name:"Véxora · Demonstração",slug:"qa",kind:"PLATFORM"},role:"OWNER",allowedModules:["INBOX","CRM","AUTOMATION","SETTINGS","CHANNELS"]};
+  if(path==="/auth/me")data={user:{id:userId,name:"Tonico",email:"qa@example.test",isPlatformAdmin:true,mustChangePassword:false},tenant:{id:tenantId,name:"Véxora · Demonstração",slug:"qa",kind:"PLATFORM"},role:"OWNER",allowedModules:["INBOX","CRM","AUTOMATION","SETTINGS","CHANNELS","SITES"]};
+  else if(path==="/sites")data=[];
+  else if(path==="/sites/creative-model")data={provider:"openrouter",model:creativeModel,enabled:true};
   else if(path==="/profile")data={name:"Tonico",email:"qa@example.test"};
   else if(path==="/assistant/config")data=config;
   else if(path==="/assistant/model-catalog")data={models:[],services:[],voiceOptions:[]};
@@ -118,6 +121,25 @@ try{
  await page.screenshot({path:"artifacts/copilot/contas-sociais-mobile.png",fullPage:true,animations:"disabled"});
  await page.setViewportSize({width:1440,height:1000});
  await page.screenshot({path:"artifacts/copilot/contas-sociais-desktop.png",fullPage:true,animations:"disabled"});
+ await page.evaluate(() => localStorage.setItem("vx:sites-wizard-draft", JSON.stringify({
+   name:"Site salvo QA", area:"site_simples", aiPrompt:"Briefing que deve ser excluído",
+ })));
+ await page.goto("http://127.0.0.1:3100/?module=Sites");
+ const savedDraft = page.getByRole("article", { name: "Rascunho de criação" });
+ await savedDraft.getByRole("button", { name: "Ver rascunho" }).click();
+ const wizard = page.getByRole("dialog", { name: "Criar site com IA" });
+ await wizard.getByText(/modelo-antigo-qa/).waitFor();
+ assert.equal(await wizard.getByRole("textbox", { name: "Nome do site" }).inputValue(), "Site salvo QA");
+ creativeModel = "modelo-novo-qa";
+ await wizard.getByRole("button", { name: "Atualizar modelo" }).click();
+ await wizard.getByText(/modelo-novo-qa/).waitFor();
+ page.once("dialog", dialog => dialog.accept());
+ await wizard.getByRole("button", { name: "Excluir rascunho" }).click();
+ assert.equal(await wizard.getByRole("textbox", { name: "Nome do site" }).inputValue(), "");
+ await page.reload();
+ await wizard.getByText(/modelo-novo-qa/).waitFor();
+ assert.equal(await wizard.getByRole("textbox", { name: "Nome do site" }).inputValue(), "");
+ assert.equal(await page.evaluate(() => localStorage.getItem("vx:sites-wizard-draft")), null);
  await page.route("**/api/backend/public/sites/layout-qa", route => route.fulfill({ json: { site: {
   id, name: "Layout QA", slug: "layout-qa", primaryColor: "#102040", accentColor: "#4466cc", businessArea: "site_simples",
   departments: [], forms: [], items: [], pages: [{ id: "home", slug: "inicio", kind: "HOME", title: "Início", blocks: [{

@@ -21,6 +21,8 @@ import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { searxngSearch } from "./local-services";
 import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { resolveEntitlements } from "../auth/entitlements";
+import { monthWindowSaoPaulo } from "../common/month-window";
 
 const object=(value:unknown):Record<string,any>=>value&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,any>:{};
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
@@ -222,6 +224,15 @@ export class AssistantController {
   async config(@Req() req: AuthenticatedRequest) {
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
     return parseConfig(tenant.integrations);
+  }
+  @Get("ai-usage")
+  async aiUsage(@Req() req: AuthenticatedRequest) {
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { entitlements: true } });
+    const { month, start, end } = monthWindowSaoPaulo();
+    const used = await this.prisma.auditLog.count({ where: { tenantId: req.user.tenantId, action: "ai.execution.reserved", createdAt: { gte: start, lt: end } } });
+    const planLimit = resolveEntitlements(tenant.entitlements).iaLimit;
+    // null = sem cota mensal contratada (legado/operação completa); 999999 = ilimitado por definição.
+    return { month, used, limit: planLimit >= 999999 ? null : planLimit };
   }
   @Put("config")
   async save(@Req() req: AuthenticatedRequest, @Body() input: Config) {

@@ -35,7 +35,12 @@ function safeDocument(content: FreeSiteContent) {
       return { tagName: "a", attribs: { ...attrs, href: anchor || external ? href : "", target: external ? "_blank" : "_self", rel: "noopener noreferrer" } };
     } },
   });
-  const css = /<\/style/i.test(content.css) ? "" : content.css.replace(/(-?\d*\.?\d+)(?:[sld]?vh)\b/gi, "calc(var(--vx-viewport-unit, 8px) * $1)");
+  const rawCss = /<\/style/i.test(content.css) ? "" : content.css.replace(/(-?\d*\.?\d+)(?:[sld]?vh)\b/gi, "calc(var(--vx-viewport-unit, 8px) * $1)");
+  // Nunca permitir que um CSS gerado "amamante" a página: remove travamento de scroll/altura do documento.
+  const src = rawCss
+    .replace(/overflow\s*:\s*hidden/gi, "overflow: auto")
+    .replace(/height\s*:\s*(-?\d*\.?\d+)(vh|dvh|%)/gi, "min-height: $1dvh");
+  const css = src + "html,body,:root{overflow:auto!important;height:auto!important;margin:0!important}";
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}' + localFonts + '</style><style>' + css + '</style></head><body>' + html + '</body></html>';
 }
 

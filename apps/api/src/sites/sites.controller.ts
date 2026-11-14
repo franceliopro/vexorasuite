@@ -14,7 +14,7 @@ import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { referenceBriefFromUrl } from "./reference-brief";
 import { searxngSearch } from "../ai/local-services";
 import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM, sanitizeFreeLayout } from "./relayout";
-import { buildPremiumTemplate, templateForArea, type PremiumTemplateId } from "./premium-templates";
+import { buildPremiumTemplate, templateForArea, buildPremiumPage, type PremiumTemplateId } from "./premium-templates";
 import { readPropertyLists, sanitizePropertyData, sanitizePropertyLists, scopeForRequest, assertItemInScope, itemCategory, DEFAULT_LISTS, PROPERTY_STATUS, STATUS_LABEL } from "./real-estate";
 import { WahaService } from "../operations/waha.service";
 import { MailService } from "../mail/mail.service";
@@ -189,12 +189,27 @@ export class SitesController {
       ...(aiCopy && { copy: aiCopy }),
     });
     const fallbackDesign = (): Blueprint => {
-      const heroBlocks = blueprint.pages.find(page => page.kind === "HOME")?.blocks.filter(block => ["contact", "posts", "properties"].includes(block.type)) ?? [];
-      const safeContent = sanitizeFreeLayout(premiumContent);
-      const freeLayoutBlock = safeContent ? [{ type: "freeLayout", content: safeContent }] : [];
-      const pages = blueprint.pages.map(page => page.kind === "HOME"
-        ? { ...page, blocks: [...freeLayoutBlock, ...heroBlocks] }
-        : page);
+      const functionalBlocks = (page: any) => page.blocks.filter((block: any) => ["contact", "posts", "properties"].includes(block.type));
+      const heroImageFallbacks = [
+        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80",
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1600&q=80",
+        "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=80",
+      ];
+      const imageUrls = blueprint.pages.flatMap(page => page.blocks.flatMap(block => block.type === "hero" ? [block.content?.imageUrl] : block.type === "gallery" ? (Array.isArray(block.content?.items) ? block.content.items.map((item: any) => item?.url) : []) : [])).filter((url: unknown) => typeof url === "string" && url.length > 0).slice(0, 6);
+      for (const fallback of heroImageFallbacks) { if (imageUrls.length >= 2) break; if (!imageUrls.includes(fallback)) imageUrls.push(fallback); }
+      const departments = list((briefData as any).whatsapps, 5, (w: any) => ({ platform: "whatsapp", handle: String(w?.handle || "") })).filter(d => d.handle);
+      const buildOne = (page: any) => {
+        const common = { name: companyName, area, primaryColor: companyName && String((branding as any).primaryColor || "#0E7A5C") || "#0E7A5C", accentColor: String((branding as any).accentColor || "#22D3EE"), departments, imageUrls } as any;
+        let safe: any;
+        if (page.kind === "HOME") {
+          safe = sanitizeFreeLayout(premiumContent);
+        } else {
+          safe = sanitizeFreeLayout(buildPremiumPage({ ...common, kind: page.kind, title: page.title, copy: aiCopy }));
+        }
+        if (!safe) return { ...page, blocks: [...functionalBlocks(page)] };
+        return { ...page, blocks: [{ type: "freeLayout", content: safe }, ...functionalBlocks(page)] };
+      };
+      const pages = blueprint.pages.map(buildOne as any);
       return { ...blueprint, pages } as unknown as Blueprint;
     };
     const design = fallbackDesign();

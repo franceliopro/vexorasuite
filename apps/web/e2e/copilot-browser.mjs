@@ -118,5 +118,25 @@ try{
  await page.screenshot({path:"artifacts/copilot/contas-sociais-mobile.png",fullPage:true,animations:"disabled"});
  await page.setViewportSize({width:1440,height:1000});
  await page.screenshot({path:"artifacts/copilot/contas-sociais-desktop.png",fullPage:true,animations:"disabled"});
+ await page.route("**/api/backend/public/sites/layout-qa", route => route.fulfill({ json: { site: {
+  id, name: "Layout QA", slug: "layout-qa", primaryColor: "#102040", accentColor: "#4466cc", businessArea: "site_simples",
+  departments: [], forms: [], items: [], pages: [{ id: "home", slug: "inicio", kind: "HOME", title: "Início", blocks: [{
+   id: "free", type: "freeLayout", sortOrder: 0, content: {
+    html: '<section><h1>Composição livre QA</h1><a href="javascript:alert(1)">Ação</a><script>document.body.remove()</script></section>',
+    css: 'h1{color:rgb(15,32,60);font-size:40px}@media(max-width:500px){h1{font-size:24px}}',
+   },
+  }] }],
+ } } }));
+ await page.goto("http://127.0.0.1:3100/sites/layout-qa");
+ const layout = page.frameLocator('iframe[title="Layout da página"]');
+ const heading = layout.getByRole("heading", { name: "Composição livre QA" });
+ await heading.waitFor();
+ assert.equal(await heading.evaluate(el => getComputedStyle(el).color), "rgb(15, 32, 60)");
+ assert.equal(await layout.locator("script").count(), 0);
+ assert(!((await layout.getByText("Ação").getAttribute("href")) || "").startsWith("javascript:"));
+ await page.setViewportSize({ width: 390, height: 844 });
+ await heading.waitFor();
+ assert.equal(await heading.evaluate(el => getComputedStyle(el).fontSize), "24px");
+ console.log("Layout livre público, CSS responsivo e isolamento: OK");
  console.log("Rich editor, translation, writing preview, draft application, mobile and no automatic customer send: OK");
 }finally{await browser?.close();server.kill("SIGTERM");}

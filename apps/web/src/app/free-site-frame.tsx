@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import sanitizeHtml from "sanitize-html";
 
 export type FreeSiteContent = { html: string; css: string };
-type Selection = { index: number; tag: string; text: string; style: Record<string, string> };
+type Selection = { index: number; tag: string; text: string; url: string; alt: string; style: Record<string, string> };
 
 const selector = "section,header,footer,article,aside,div,h1,h2,h3,h4,p,a,img,li";
 const controls = [
@@ -26,7 +26,7 @@ function safeDocument(content: FreeSiteContent) {
       return { tagName: "a", attribs: { ...attrs, href: anchor || external ? href : "", target: external ? "_blank" : "_self", rel: "noopener noreferrer" } };
     } },
   });
-  const css = /<\/style/i.test(content.css) ? "" : content.css;
+  const css = /<\/style/i.test(content.css) ? "" : content.css.replace(/(-?\d*\.?\d+)(?:[sld]?vh)\b/gi, "calc(var(--vx-viewport-unit, 8px) * $1)");
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}' + css + '</style></head><body>' + html + '</body></html>';
 }
 
@@ -44,7 +44,9 @@ export function FreeSiteFrame({ content, onSelect, onMove }: {
       const doc = frame.current?.contentDocument;
       if (!doc || doc.URL !== "about:srcdoc") return;
       observer.current?.disconnect();
+      const viewportUnit = () => doc.documentElement.style.setProperty("--vx-viewport-unit", window.innerHeight / 100 + "px");
       const resize = () => setHeight(Math.max(220, Math.ceil(doc.body.getBoundingClientRect().height)));
+      viewportUnit();
       resize();
       observer.current = new ResizeObserver(resize);
       observer.current.observe(doc.body);
@@ -78,6 +80,7 @@ export function FreeSiteFrame({ content, onSelect, onMove }: {
         (element as HTMLElement).style.setProperty("outline", "2px solid #38bdf8", "important");
         const computed = doc.defaultView?.getComputedStyle(element);
         onSelect({ index, tag: element.tagName.toLowerCase(), text: element.childElementCount ? "" : element.textContent || "",
+          url: element.getAttribute(element.tagName === "IMG" ? "src" : "href") || "", alt: element.getAttribute("alt") || "",
           style: Object.fromEntries(controls.map(([key]) => [key, computed?.getPropertyValue(key) || ""])) });
       });
     }} />;
@@ -125,6 +128,14 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
       setDraft({ ...draft, html: parsed.body.innerHTML });
       return;
     }
+    if (key === "url" || key === "alt") {
+      const attr = key === "alt" ? "alt" : selection.tag === "img" ? "src" : "href";
+      if (key === "url" && value && !(selection.tag === "img" ? /^https:\/\//i.test(value) : /^(https:\/\/|mailto:|tel:|#[\w.-]+$)/i.test(value))) return;
+      element.setAttribute(attr, value);
+      setSelection({ ...selection, [key]: value });
+      setDraft({ ...draft, html: parsed.body.innerHTML });
+      return;
+    }
     const style = parsed.createElement("span").style;
     style.setProperty(key, value);
     const cssValue = style.getPropertyValue(key);
@@ -149,6 +160,8 @@ export function FreeSiteEditor({ content, onSave, onPrompt }: {
         <button type="button" className="secondary-button" onClick={() => moveElement(1)}>Mover abaixo</button>
       </div>
       {["h1", "h2", "h3", "h4", "p", "a", "li"].includes(selection.tag) && selection.text && <label>Texto<input key={selection.index + "-text"} defaultValue={selection.text} onBlur={event => editElement("text", event.target.value)} /></label>}
+      {["a", "img"].includes(selection.tag) && <label>{selection.tag === "img" ? "URL da imagem" : "Link"}<input key={selection.index + "-url"} defaultValue={selection.url} onBlur={event => editElement("url", event.target.value)} /></label>}
+      {selection.tag === "img" && <label>Texto alternativo<input key={selection.index + "-alt"} defaultValue={selection.alt} onBlur={event => editElement("alt", event.target.value)} /></label>}
       {controls.map(([key, label]) => <label key={selection.index + key}>{label}<input defaultValue={selection.style[key]} onBlur={event => { if (event.target.value !== selection.style[key]) editElement(key, event.target.value); }} /></label>)}
     </div> : <p className="sites-field-hint">Selecione um elemento para editar ou arraste para reorganizar elementos da mesma seção.</p>}
     {onPrompt && <div className="sites-block-form"><label>Alterar com Design Gráfico &amp; Web<textarea value={prompt} onChange={event => setPrompt(event.target.value)} /></label>

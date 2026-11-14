@@ -20,6 +20,6 @@ export function economicalProviders(assistant: any, override?: any, integrations
   const apiKey=local?(process.env[local]?'local':undefined):['openrouter','openai','gemini','anthropic','deepseek','qwen','groq','vercel-gateway','nvidia'].includes(s.provider)?providerApiKey(s.provider,integrations,tenantId):undefined;
   const id=s.provider+':'+s.model;
   if(!apiKey||!s.model||seen.has(id))return [];seen.add(id);
-  return [{provider:s.provider,model:s.model,apiKey,timeoutMs:local?60000:20000,maxTokens:1200,...(s.provider==='openrouter'&&free(s)?{freeOnly:true}:{})} as AiProvider];
+  return [{provider:s.provider,model:s.model,apiKey,timeoutMs:local?300000:20000,maxTokens:1200,...(s.provider==='openrouter'&&free(s)?{freeOnly:true}:{})} as AiProvider];
  }).slice(0,3);
 }

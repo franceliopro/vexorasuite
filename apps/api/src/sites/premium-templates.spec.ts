@@ -23,6 +23,23 @@ describe("templates premium", () => {
     expect(sanitizeFreeLayout({ html, css })).not.toBeNull();
   });
 
+  it("resolve a área vexora para o template institucional", () => {
+    expect(templateForArea("vexora")).toBe("vexora");
+  });
+
+  it("monta o site institucional da Véxora com composição de produto e FAQ", () => {
+    const { html, css } = buildPremiumTemplate({ name: "Véxora Suite", area: "vexora", primaryColor: "#2E7CF6", accentColor: "#2E7CF6", departments: [{ platform: "whatsapp", handle: "+55 62 99999-0000" }], imageUrls: [] });
+    expect(html).toContain('<span class="vx-hl">sistema operacional</span>');
+    expect(html).toContain("vx-art");           // composição de produto em CSS, sem imagem externa
+    expect(html).toContain("Seis módulos");
+    expect(html).toContain("Perguntas frequentes");
+    expect(html).toContain("vx-faq-item");
+    expect(html).not.toContain("<script");
+    expect(css).toContain("#060B1F");           // navy institucional
+    expect(css).toContain("#2E7CF6");           // azul da marca
+    expect(sanitizeFreeLayout({ html, css })).not.toBeNull();
+  });
+
   it("escapa dados do cliente no HTML", () => {
     const evil = buildPremiumTemplate({ ...base, name: '<script>alert(1)</script>', imageUrls: [] });
     expect(evil.html).not.toContain("<script>alert(1)</script>");

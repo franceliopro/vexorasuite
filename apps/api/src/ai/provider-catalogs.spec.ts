@@ -24,8 +24,11 @@ describe('provider catalogs and execution',()=>{
   expect(result.text).toBe('hello');expect(result.usage).toEqual({promptTokens:7,completionTokens:3,totalTokens:10});
  });
  it('does not bypass free-only policy for a newly supported provider',()=>{
+  const rootA={keys:{anthropic:'secret'},aiCostPolicy:{freeFirst:true,allowPaidFallback:false}};
+  expect(economicalProviders({llm:{provider:'anthropic',model:'selected'}},undefined,rootA,'tenant')).toEqual([]);
+  // Gemini via Google AI Studio entra na classe gratuita.
   const root={keys:{gemini:'secret'},aiCostPolicy:{freeFirst:true,allowPaidFallback:false}};
-  expect(economicalProviders({llm:{provider:'gemini',model:'selected'}},undefined,root,'tenant')).toEqual([]);
+  expect(economicalProviders({llm:{provider:'gemini',model:'gemini-3.8-flash'}},undefined,root,'tenant').map(x=>x.provider)).toEqual(['gemini']);
  });
  it('uses each tenant key for catalog requests and never shares catalog results',async()=>{
   const fetcher=jest.spyOn(global,'fetch').mockImplementation(async(url,init)=>{

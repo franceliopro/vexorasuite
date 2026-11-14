@@ -2,6 +2,8 @@ import { ForbiddenException, ServiceUnavailableException } from "@nestjs/common"
 import { economicalProviders } from "./economical-providers";
 import { agentPersonaBlock } from "./product-skills";
 import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
+import { providerApiKey } from "./provider-credentials";
+import { localLlmOrigin } from "./llm-providers";
 
 export function configuredCreativeAgent(root: any) {
   const agents = root?.assistant?.agents;
@@ -22,7 +24,21 @@ export function resolveCreativeAgent(root: any, tenantId: string) {
   }
   const providers = economicalProviders({ llm: agent.llm }, undefined, root, tenantId, { explicitOnly: true });
   if (!providers.length) {
-    throw new ServiceUnavailableException("O modelo " + agent.llm.model + " de Design Gráfico & Web está indisponível pela conexão ou política de custos. Confira a conexão e o modelo do agente.");
+    const policy = root?.aiCostPolicy;
+    const pProvider = String(agent.llm?.provider ?? "?");
+    const pModel = String(agent.llm?.model ?? "?");
+    const isLocal = !!localLlmOrigin(pProvider);
+    let hasKey = isLocal ? Boolean(process.env[localLlmOrigin(pProvider)!]) : false;
+    if (!isLocal) {
+      try { hasKey = Boolean(providerApiKey(pProvider, root, tenantId)); } catch { hasKey = false; }
+    }
+    if (!hasKey) {
+      throw new ServiceUnavailableException(`Nenhuma chave conectada para o provedor ${pProvider} (${pModel}). Cadastre a chave em Agentes de IA → Conexões de IA (ou defina ${isLocal ? "o endereço do serviço local" : "a variável no servidor"}) e tente novamente.`);
+    }
+    if (policy?.freeFirst && !(policy?.allowPaidFallback === true)) {
+      throw new ServiceUnavailableException(`O agente Design Gráfico & Web usa "${pModel}" do provedor ${pProvider}, que é pago — e a empresa está configurada com "Priorizar modelos locais e gratuitos". Ative "Permitir modelos pagos configurados como contingência" em Agentes de IA → Conexões de IA, ou troque para Gemini (gratuito) / modelo local.`);
+    }
+    throw new ServiceUnavailableException(`O modelo ${pModel} do provedor ${pProvider} não respondeu nesta empresa. Verifique a conexão e o modelo do Design Gráfico & Web em Agentes de IA.`);
   }
   const persona = agentPersonaBlock({ ...root, assistant: { ...assistant, agents: [agent] } }, WEB_DESIGNER_AGENT_ID);
   return { agent, providers, persona };

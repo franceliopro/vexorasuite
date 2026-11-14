@@ -84,7 +84,7 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
         return <section className={cls} style={heroStyle}>{inner}</section>;
       }
       case "freeLayout":
-        return <FreeSiteFrame content={c} />;
+        return <FreeSiteFrame content={c} mouseParallax={site.businessArea === "vexora"} scrollReveal={site.businessArea === "vexora"} />;
       case "layout":
         return <LayoutBlock content={c} />;
       case "richText":

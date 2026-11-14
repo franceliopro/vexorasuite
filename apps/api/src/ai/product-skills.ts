@@ -8,6 +8,21 @@ export const productSkills=[
  {id:'media.carousel.generate',name:'Roteiro e artes de carrossel',description:'Cria o roteiro, a estrutura das lâminas, a legenda e a direção visual de carrosséis para revisão antes do download.',instructions:'Use esta Skill sempre que o usuário solicitar um carrossel. Entenda objetivo, público, oferta, canal e identidade visual da empresa. Consulte as referências criativas ativas apenas como orientação de linguagem, composição e paleta; não copie peças protegidas. Entregue título, legenda e 4 a 6 lâminas com uma ideia por lâmina, texto curto, hierarquia visual e uma última lâmina com CTA. Use somente fatos confirmados nas fontes fornecidas, não invente estatísticas, preços ou promessas. Gere como rascunho para revisão humana; nunca publique automaticamente. Registre as referências e a versão da Skill usada.',status:'implemented'},
 ];
 export function tenantSkills(root:any){const custom=Array.isArray(root?.customSkills)?root.customSkills.filter((s:any)=>!['media.ready.caption','drive.ready.publish','drive.news.publish','media.video.render','marketing.workflow.run','social.publish'].includes(s.id)):[];return [...productSkills.map(s=>({...s,...custom.find((c:any)=>c.id===s.id),status:s.status})),...custom.filter((c:any)=>!productSkills.some(s=>s.id===c.id))];}
+/** Persona completa de um agente (orientação, tom, regras, proibições e Skills lidas pelo modelo). */
+export function agentPersonaBlock(root: any, agentId: string, perSkill = 2500, total = 6000): string {
+  const obj = (v: any): Record<string, any> => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  const assistant = obj(obj(root).assistant);
+  const agents = Array.isArray(assistant.agents) ? assistant.agents : [];
+  const agent = agents.find((a: any) => a && String(a.id) === agentId);
+  if (!agent) return "";
+  const tone = obj(agent?.profile).tone ? "Tom de fala do agente: " + String(agent.profile.tone).slice(0, 120) : "";
+  const rules = obj(agent?.behavior).rules ? "Regras do agente:\n" + String(agent.behavior.rules).slice(0, 1500) : "";
+  const prohibitions = obj(agent?.behavior).prohibitions ? "Restrições do agente:\n" + String(agent.behavior.prohibitions).slice(0, 1500) : "";
+  const instructions = String(agent?.instructions || "").trim() ? "Orientação do agente:\n" + String(agent.instructions).slice(0, 2500) : "";
+  const skills = skillInstructionsForAgent(root, agent.allowedActions, perSkill, total);
+  const block = [instructions, tone, rules, prohibitions].filter(Boolean).join("\n");
+  return (block ? "\n" + block : "") + (skills ? "\n" + skills : "");
+}
 export function skillInstructionsForAgent(root: any, ids: unknown, perSkill = 2500, total = 6000): string {
   if (!Array.isArray(ids)) return "";
   const wanted = new Set(ids.map((id) => String(id)));

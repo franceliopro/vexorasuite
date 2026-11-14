@@ -44,8 +44,12 @@ function safeDocument(content: FreeSiteContent) {
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="' + policy + '"><style>body{margin:0}img{max-width:100%;height:auto}' + localFonts + '</style><style>' + css + '</style></head><body>' + html + '</body></html>';
 }
 
-export function FreeSiteFrame({ content, onSelect, onMove }: {
+export function FreeSiteFrame({ content, onSelect, onMove, mouseParallax, scrollReveal }: {
   content: FreeSiteContent; onSelect?: (selection: Selection) => void; onMove?: (source: number, target: number) => void;
+  /** Efeito sutil de profundidade com o mouse (moldura do site; respeita prefers-reduced-motion). */
+  mouseParallax?: boolean;
+  /** Revela elementos do site ao rolar a página (IntersectionObserver dentro da moldura). */
+  scrollReveal?: boolean;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const observer = useRef<ResizeObserver | null>(null);
@@ -64,6 +68,63 @@ export function FreeSiteFrame({ content, onSelect, onMove }: {
       resize();
       observer.current = new ResizeObserver(resize);
       observer.current.observe(doc.body);
+      const reducedMotion = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (mouseParallax && !reducedMotion) {
+        try {
+          const layers: { el: HTMLElement; depth: number; suffix: string }[] = [];
+          const collect = (selectorText: string, depth: number, suffix = "") => {
+            const el = doc.querySelector<HTMLElement>(selectorText);
+            if (el) layers.push({ el, depth, suffix });
+          };
+          collect(".vx-art", 16);
+          collect(".vx-window", 9, " rotate(-0.6deg)");
+          collect(".vx-hero-txt", -5);
+          if (layers.length) {
+            let targetX = 0, targetY = 0, currentX = 0, currentY = 0, raf = 0;
+            const tick = () => {
+              currentX += (targetX - currentX) * 0.12;
+              currentY += (targetY - currentY) * 0.12;
+              for (const { el, depth, suffix } of layers) {
+                el.style.transform = "translate3d(" + (currentX * depth).toFixed(2) + "px," + (currentY * depth * 0.62).toFixed(2) + "px,0)" + suffix;
+              }
+              if (Math.abs(targetX - currentX) > 0.002 || Math.abs(targetY - currentY) > 0.002) raf = requestAnimationFrame(tick);
+              else raf = 0;
+            };
+            const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
+            doc.addEventListener("pointermove", (event) => {
+              const rect = doc.documentElement.getBoundingClientRect();
+              if (!rect.width || !rect.height) return;
+              targetX = Math.max(-1.2, Math.min(1.2, ((event.clientX - rect.left) / rect.width - 0.5) * 2));
+              targetY = Math.max(-1.2, Math.min(1.2, ((event.clientY - rect.top) / rect.height - 0.5) * 2));
+              kick();
+            });
+            doc.addEventListener("pointerleave", () => { targetX = 0; targetY = 0; kick(); });
+          }
+        } catch { /* o efeito é decorativo; o site funciona sem ele */ }
+      }
+      if (scrollReveal && !reducedMotion) {
+        try {
+          const targets = Array.from(doc.querySelectorAll<HTMLElement>(".vx-head-row,.vx-mod,.vx-persona,.vx-plan,.vx-quote,.vx-faq-item,.vx-cta h2"));
+          if (targets.length) {
+            for (const t of targets) t.classList.add("vx-reveal");
+            const frameWindow = doc.defaultView as (Window & typeof globalThis) | null;
+            const Observer = (frameWindow as any)?.IntersectionObserver;
+            if (Observer) {
+              const io = new Observer((entries: any[]) => {
+                for (const entry of entries) {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add("vx-in");
+                    io.unobserve(entry.target);
+                  }
+                }
+              }, { threshold: 0.12, rootMargin: "0px 0px -48px 0px" });
+              for (const t of targets) io.observe(t);
+            } else {
+              for (const t of targets) t.classList.add("vx-in");
+            }
+          }
+        } catch { /* o efeito é decorativo; o site funciona sem ele */ }
+      }
       if (!onSelect) return;
       const elements = Array.from(doc.body.querySelectorAll<HTMLElement>(selector));
       if (onMove) {

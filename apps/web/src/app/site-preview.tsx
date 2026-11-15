@@ -31,6 +31,7 @@ export function SitePreview({ site, highlightBlockId, onBlockClick }: { site: Pr
   const primary = site.primaryColor;
   const accent = site.accentColor;
   const page = (site.pages || []).slice().sort((a, b) => a.sortOrder - b.sortOrder)[0];
+  const hasImportedLayout = (site.pages || []).some(p => (p.blocks || []).some(b => String(b?.type) === "externalHtml"));
   const blockGlow = (id?: string) => highlightBlockId && id === highlightBlockId ? { outline: "2px solid #7DD3FC", outlineOffset: "2px" } : {};
 
   const renderBlock = (block: any) => {
@@ -103,7 +104,7 @@ export function SitePreview({ site, highlightBlockId, onBlockClick }: { site: Pr
         }
         return <div key={block.id}>{element}</div>;
       })}
-      <footer className="ps-footer"><p>{site.name} · Desenvolvido por <a href="https://vexorasuite.com.br" target="_blank" rel="noreferrer">Véxora Suite</a></p></footer>
+      {!hasImportedLayout && <footer className="ps-footer"><p>{site.name} · Desenvolvido por <a href="https://vexorasuite.com.br" target="_blank" rel="noreferrer">Véxora Suite</a></p></footer>}
     </main>
   );
 }

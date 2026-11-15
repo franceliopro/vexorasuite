@@ -225,7 +225,9 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       let flow = published.flow;
       const findStep = (id: string | undefined) => id === '__start__' ? flow.steps.find(s => s.id === 'menu') || flow.steps[0] : flow.steps.find(s => s.id === id);
       const active = previous.flow === 'INTELLIGENCE' && previous.revision === published.revision && (previous.scopeKey||'default')===scopeKey;
-      if (!active && !flow.triggers?.some(t => t.kind === 'message' || (t.kind === 'dm' && channel.provider === 'ZERNIO') || (t.kind === 'keyword' && normalize(inbound.content) === normalize(t.keyword || '')))) return { messages: [], handled: true, handoff: false };
+      // dm = conversa direta (grupo já foi descartado acima) — vale para WAHA e ZERNIO.
+      const triggerMatched = Array.isArray(flow.triggers) && flow.triggers.some(t => t.kind === 'message' || t.kind === 'dm' || (t.kind === 'keyword' && normalize(inbound.content) === normalize(t.keyword || '')));
+      if (!active && !triggerMatched) { this.logger.warn(`Gatilho do fluxo "${flow.name}" não correspondeu à mensagem ${inbound.id} (canal ${channel.id}, provider ${channel.provider})`); return { messages: [], handled: true, handoff: false }; }
       let step: RuntimeStep | undefined = flow.steps.find(s => s.id === (active ? previous.stepId : 'menu')) || flow.steps[0];
       if (!step) return null;
       const variables: Record<string, string> = active ? object(previous.variables) : {};

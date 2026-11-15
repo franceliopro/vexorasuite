@@ -4440,3 +4440,24 @@ input[type=tel]{letter-spacing:.02em}
 .sites-external-html-edit summary::-webkit-details-marker{display:none}
 .sites-external-html-edit textarea{width:100%;margin-top:8px;padding:12px;border:1px solid var(--ln);border-radius:10px;background:#0B1220;color:#DDE8FF;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;white-space:pre}
 .sites-external-html-edit textarea:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+/* File manager com pastas */
+.file-manager-breadcrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:40px;font-size:13px}
+.file-manager-crumb{background:none;border:0;color:var(--primary-ink);font:700 12px var(--font-display);cursor:pointer;padding:6px 8px;border-radius:8px}
+.file-manager-crumb:hover{background:var(--primary-soft)}
+.file-manager-crumb-sep{color:var(--tx2)}
+.file-manager-new-folder{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--ln2);border-radius:10px;background:var(--s2);margin:10px 0}
+.file-manager-new-folder input{flex:1;min-width:120px;min-height:36px;padding:6px 10px;border:1px solid var(--ln);border-radius:8px;background:var(--s1);color:var(--tx);font-size:13px}
+.file-manager-item{display:flex;flex-direction:column;overflow:hidden}
+.file-manager-folder{align-items:stretch}
+.file-manager-folder-open{display:grid;place-items:center;padding:18px 10px 10px;background:transparent;border:0;color:#3B82F6;cursor:pointer;border-radius:12px}
+.file-manager-folder-open:hover{background:var(--s2)}
+.file-manager-folder-open svg{width:64px;height:64px}
+.file-manager-item-body input{width:100%;min-height:32px;padding:6px 8px;border:1px solid var(--ln);border-radius:8px;background:var(--s2);color:var(--tx);font-size:12px}
+.file-manager-item-actions{display:flex;align-items:center;gap:6px}
+.file-manager-move{min-height:32px;max-width:108px;border:1px solid var(--ln);border-radius:8px;background:var(--s2);color:var(--tx);font-size:11px;padding:0 6px}
+.file-manager-lightbox{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(3,7,18,.82);padding:20px}
+.file-manager-lightbox figure{margin:0;max-width:min(960px,94vw);background:#0B1220;border-radius:16px;overflow:hidden;border:1px solid rgba(125,211,252,.18)}
+.file-manager-lightbox img{display:block;max-width:100%;max-height:74vh;object-fit:contain;background:#000}
+.file-manager-lightbox figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;color:#E7EEFF;font-size:12.5px}
+.file-manager-lightbox figcaption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

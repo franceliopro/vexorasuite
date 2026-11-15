@@ -190,8 +190,10 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         return [queuedMessage];
       };
       if(entry.mode==="HUMAN"){
+        this.logger.warn(`Motor não responde: roteamento do canal ${channel.id} está como "Atendimento humano" (modo HUMAN). Configure "Configuração da empresa" ou "Automação" em Conexões → Ajustar do número.`);
         const department=entry.departmentId?await tx.department.findFirst({where:{id:entry.departmentId,tenantId:channel.tenantId,isActive:true},select:{id:true}}):null;
         await tx.conversation.update({where:{id:conversation.id},data:{handlingMode:"HUMAN",departmentId:conversation.departmentId||department?.id||null}});
+        await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, reason: 'inbox_routing_human', decision: 'human' } } });
         return {messages:[],handled:true,handoff:false,assigned:true};
       }
       if(entry.mode==="AUTOMATION"&&!conversation.departmentId&&!conversation.assigneeId&&entry.departmentId){

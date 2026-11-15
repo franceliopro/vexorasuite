@@ -1,15 +1,18 @@
 "use client";
 import { use, useEffect, useRef, useState } from "react";
-import { Send, UserRound, RotateCcw, ShieldCheck } from "lucide-react";
+import { Send, UserRound, RotateCcw, ShieldCheck, Smartphone, Monitor, MessageCircle } from "lucide-react";
 
 type Bubble = { id: string; role: "assistant" | "user"; content: string; options?: string[] };
-type PublicFlow = { tenantName: string; slug: string; brand: { primaryColor: string; logoLight: string; logoDark: string; logoShape: string; showCompanyName: boolean }; theme: { backgroundKind: string; color: string; color2: string; imageUrl: string }; flow: { name: string; welcome: string; steps: Array<{ id: string; kind?: string; title: string; message: string; options: string[] }> } };
+type Theme = { backgroundKind: string; color: string; color2: string; imageUrl: string; headerTitle?: string; headerSubtitle?: string };
+type PublicFlow = { tenantName: string; slug: string; brand: { primaryColor: string; logoLight: string; logoDark: string; logoShape: string; showCompanyName: boolean }; theme: Theme; flow: { name: string; welcome: string; steps: Array<{ id: string }> } };
 
-const backgroundStyle = (theme: PublicFlow["theme"]): React.CSSProperties => {
+const CREAM_DEFAULT = { shell: "#F4EEE2", card: "#FBF8EF", ink: "#1E2A24", muted: "#6E7568", green: "#173A2B", greenSoft: "#24503C", gold: "#B98A45", goldDeep: "#8A6A2E", bubbleUser: "#173A2B", bubbleBot: "#FFFFFF", bubbleBotInk: "#1E2A24", hairline: "#E2D9C8" };
+
+const shellStyle = (theme: Theme): React.CSSProperties => {
   if (theme.backgroundKind === "solid") return { background: theme.color };
   if (theme.backgroundKind === "gradient") return { background: `linear-gradient(160deg, ${theme.color2} 0%, ${theme.color} 62%, #05070A 130%)` };
-  if (theme.backgroundKind === "image" && theme.imageUrl) return { background: `linear-gradient(180deg, rgba(5,7,10,.55), rgba(5,7,10,.75)), url(${JSON.stringify(theme.imageUrl)}) center/cover no-repeat fixed` };
-  return { background: "radial-gradient(1100px 700px at 85% -10%, color-mix(in srgb, var(--primary) 26%, transparent), transparent 60%), radial-gradient(900px 650px at -15% 110%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 55%), #0B0E11" };
+  if (theme.backgroundKind === "image" && theme.imageUrl) return { background: `linear-gradient(180deg, rgba(20,18,12,.55), rgba(20,18,12,.78)), url(${JSON.stringify(theme.imageUrl)}) center/cover no-repeat fixed` };
+  return {};
 };
 
 export default function PublicFlowPage({ params }: { params: Promise<{ token: string }> }) {
@@ -21,6 +24,8 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
   const [busy, setBusy] = useState(true);
   const [finished, setFinished] = useState(false);
   const [handoff, setHandoff] = useState(false);
+  const [phoneMode, setPhoneMode] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const sessionRef = useRef<string>("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const safeToken = /^[a-f0-9]{48}$/.test(token) ? token : "";
@@ -50,7 +55,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.message || "Não foi possível continuar. Tente novamente.");
-    return data as { messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string };
+    return data as { messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string; progress?: { current: number; total: number } };
   };
 
   const start = async (loaded: PublicFlow) => {
@@ -59,6 +64,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
       const data = await call("");
       const messages = Array.isArray(data.messages) ? data.messages : [];
       setBubbles((items) => [...items, ...messages.map((content, i) => ({ id: crypto.randomUUID() + i, role: "assistant" as const, content: String(content ?? ""), options: i === messages.length - 1 ? data.options : undefined }))]);
+      if (data.progress) setProgress(data.progress);
       if (data.finished) { setFinished(true); setHandoff(data.handoff === true); }
       if (data.redirect && /^https:\/\//.test(data.redirect)) window.location.assign(data.redirect);
     } catch (e) {
@@ -78,6 +84,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
       const data = await call(text);
       const messages = Array.isArray(data.messages) ? data.messages : [];
       setBubbles((items) => [...items, ...messages.map((content, i) => ({ id: crypto.randomUUID() + i, role: "assistant" as const, content: String(content ?? ""), options: i === messages.length - 1 ? data.options : undefined }))]);
+      if (data.progress) setProgress(data.progress);
       if (data.finished) { setFinished(true); setHandoff(data.handoff === true); }
       if (data.redirect && /^https:\/\//.test(data.redirect)) window.location.assign(data.redirect);
     } catch (e) {
@@ -93,13 +100,13 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
     try { window.sessionStorage.removeItem("public-flow:" + safeToken); } catch {}
     sessionRef.current = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
     try { window.sessionStorage.setItem("public-flow:" + safeToken, sessionRef.current); } catch {}
-    setBubbles([]); setFinished(false); setHandoff(false); setInput("");
+    setBubbles([]); setFinished(false); setHandoff(false); setInput(""); setProgress(null);
     if (page) void start(page);
   };
 
   if (error) return (
-    <main className="public-flow-shell" style={{ background: "#0B0E11" }}>
-      <div className="public-flow-card public-flow-unavailable">
+    <main className="pf-shell" style={{ background: CREAM_DEFAULT.shell }}>
+      <div className="pf-card pf-unavailable">
         <ShieldCheck size={28} aria-hidden="true" />
         <h1>Página indisponível</h1>
         <p>{error}</p>
@@ -108,61 +115,72 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
   );
 
   if (!page) return (
-    <main className="public-flow-shell" style={{ background: "#0B0E11" }}>
-      <div className="public-flow-card public-flow-unavailable" role="status">
-        <div className="public-flow-spinner" aria-hidden="true" />
-        <p>Conectando…</p>
+    <main className="pf-shell" style={{ background: CREAM_DEFAULT.shell }}>
+      <div className="pf-card pf-unavailable" role="status">
+        <div className="pf-spinner" aria-hidden="true" />
+        <p>Conectando.</p>
       </div>
     </main>
   );
 
-  const primary = page.brand.primaryColor;
+  const primary = page.brand.primaryColor || "#173A2B";
   const logo = page.brand.logoLight || page.brand.logoDark;
+  const themeDefault = page.theme.backgroundKind === "default";
+  const headerTitle = page.theme.headerTitle?.trim() || (page.brand.showCompanyName !== false ? page.tenantName : page.flow.name);
+  const headerSubtitle = page.theme.headerSubtitle?.trim() || `${page.tenantName} · Atendimento online`;
+  const shellVars: React.CSSProperties = themeDefault ? { ["--cream" as any]: CREAM_DEFAULT.shell, ["--card" as any]: CREAM_DEFAULT.card, ["--ink" as any]: CREAM_DEFAULT.ink, ["--muted" as any]: CREAM_DEFAULT.muted, ["--green" as any]: primary || CREAM_DEFAULT.green, ["--gold" as any]: CREAM_DEFAULT.gold, ["--hairline" as any]: CREAM_DEFAULT.hairline } : {};
 
   return (
-    <main className="public-flow-shell" style={backgroundStyle(page.theme)}>
-      <section className="public-flow-card" aria-label={"Atendimento " + page.tenantName}>
-        <header className="public-flow-header" style={{ borderColor: "color-mix(in srgb, " + primary + " 45%, transparent)" }}>
-          <span className="public-flow-logo" style={{ background: logo ? "transparent" : primary }}>
-            {logo ? <img src={logo} alt={"Logo " + page.tenantName} /> : <span className="public-flow-initials">{page.tenantName.trim().slice(0, 2).toUpperCase()}</span>}
-          </span>
-          <span className="public-flow-title">
-            <strong>{page.brand.showCompanyName ? page.tenantName : page.flow.name}</strong>
-            <small><span className="public-flow-dot" style={{ background: primary }} /> Atendimento online</small>
-          </span>
-          <button type="button" className="public-flow-restart" onClick={reset} title="Recomeçar conversa" aria-label="Recomeçar conversa"><RotateCcw size={16} aria-hidden="true" /></button>
-        </header>
+    <main className={"pf-shell" + (phoneMode ? " is-phone-mode" : "")} style={themeDefault ? shellVars : shellStyle(page.theme)}>
+      <div className="pf-stage">
+        <button type="button" className="pf-device-toggle" onClick={() => setPhoneMode(v => !v)} aria-pressed={phoneMode} title={phoneMode ? "Ver no computador" : "Testar no celular"}>{phoneMode ? <Monitor size={15} aria-hidden="true" /> : <Smartphone size={15} aria-hidden="true" />}<span>{phoneMode ? "Computador" : "Testar no celular"}</span></button>
 
-        <div className="public-flow-messages" ref={scrollRef} aria-live="polite">
-          {bubbles.map((bubble) => (
-            <div key={bubble.id} className={"public-flow-bubble " + (bubble.role === "user" ? "from-user" : "from-assistant")}>
-              <p>{bubble.content}</p>
-              {bubble.options && bubble.options.length ? (
-                <div className="public-flow-options">
-                  {bubble.options.map((option) => <button key={option} type="button" style={{ borderColor: primary, color: primary }} disabled={busy || finished} onClick={() => void send(option)}>{option}</button>)}
-                </div>
-              ) : null}
-            </div>
-          ))}
-          {busy && !finished ? <div className="public-flow-bubble from-assistant public-flow-typing" aria-label="Digitando"><span /><span /><span /></div> : null}
-          {finished ? (
-            <div className="public-flow-end-card">
-              <ShieldCheck size={18} aria-hidden="true" />
-              <p>{handoff ? "Recebemos suas informações e a equipe certa continuará o atendimento por aqui. Em instantes alguém responde você." : "Tudo certo por aqui. Obrigado pela conversa! 🙂"}</p>
-              <button type="button" className="public-flow-restart-btn" style={{ background: primary }} onClick={reset}><RotateCcw size={14} aria-hidden="true" /> Recomeçar</button>
-            </div>
+        <section className="pf-card" aria-label={"Atendimento " + page.tenantName}>
+          <header className="pf-header">
+            <span className="pf-avatar" style={{ background: logo ? "transparent" : "var(--green)" }}>
+              {logo ? <img src={logo} alt={"Logo " + page.tenantName} /> : <span className="pf-initials">{page.tenantName.trim().slice(0, 2).toUpperCase()}</span>}
+            </span>
+            <span className="pf-head-text">
+              <strong className="pf-head-title">{headerTitle}</strong>
+              <small className="pf-head-sub"><span className="pf-online-dot" aria-hidden="true" />{headerSubtitle}</small>
+            </span>
+            <span className="pf-progress" aria-live="polite">{progress ? <>{progress.current}<em> de </em>{progress.total}</> : "•"}</span>
+            <button type="button" className="pf-restart" onClick={reset} title="Recomeçar conversa" aria-label="Recomeçar conversa"><RotateCcw size={17} aria-hidden="true" /></button>
+          </header>
+          <div className="pf-tagline"><span>{page.tenantName.toUpperCase().split(" ").join(" · ")}</span></div>
+
+          <div className="pf-messages" ref={scrollRef} aria-live="polite">
+            {bubbles.map((bubble) => (
+              <div key={bubble.id} className={"pf-bubble " + (bubble.role === "user" ? "from-user" : "from-assistant")}>
+                <p>{bubble.content}</p>
+                {bubble.options && bubble.options.length ? (
+                  <div className="pf-options">
+                    {bubble.options.map((option) => <button key={option} type="button" disabled={busy || finished} onClick={() => void send(option)}>{option}</button>)}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+            {busy && !finished ? <div className="pf-bubble from-assistant pf-typing" aria-label="Digitando"><span /><span /><span /></div> : null}
+            {finished ? (
+              <div className="pf-end-card">
+                <ShieldCheck size={18} aria-hidden="true" />
+                <p>{handoff ? "Recebemos suas informações e a equipe responsável continuará o atendimento por aqui. Em instantes alguém responde você." : "Tudo certo por aqui. Obrigado pela conversa!"}</p>
+                <button type="button" className="pf-restart-btn" onClick={reset}><RotateCcw size={14} aria-hidden="true" /> Recomeçar</button>
+              </div>
+            ) : null}
+          </div>
+
+          {!finished && <button type="button" className="pf-handoff-bar" onClick={() => void send("Quero falar com uma pessoa")} disabled={busy}><MessageCircle size={18} aria-hidden="true" /><span>Falar com a equipe responsável</span></button>}
+
+          {!finished ? (
+            <form className="pf-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}>
+              <label className="sr-only" htmlFor="pf-input">Sua mensagem</label>
+              <input id="pf-input" autoComplete="off" value={input} disabled={busy} onChange={(event) => setInput(event.target.value)} placeholder="Escreva sua mensagem…" aria-label="Sua mensagem" />
+              <button type="submit" disabled={busy || !input.trim()} aria-label="Enviar"><Send size={18} aria-hidden="true" /></button>
+            </form>
           ) : null}
-        </div>
-
-        {!finished ? (
-          <form className="public-flow-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}>
-            <label className="sr-only" htmlFor="public-flow-input">Sua mensagem</label>
-            <input id="public-flow-input" autoComplete="off" value={input} disabled={busy} onChange={(event) => setInput(event.target.value)} placeholder="Escreva sua mensagem…" aria-label="Sua mensagem" />
-            <button type="submit" disabled={busy || !input.trim()} aria-label="Enviar" style={{ background: primary }}><Send size={17} aria-hidden="true" /></button>
-          </form>
-        ) : null}
-        {!finished ? <button type="button" className="public-flow-handoff" onClick={() => void send("Quero falar com uma pessoa")} disabled={busy}><UserRound size={13} aria-hidden="true" /> Prefiro falar com uma pessoa</button> : null}
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

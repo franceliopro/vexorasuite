@@ -6,6 +6,29 @@ import { PrismaService } from "../prisma/prisma.service";
 const DEFAULT_SETTINGS = { enabled: true, minutesBefore: [15, 60], sound: true, push: true };
 const clampMinute = (v: unknown) => Math.min(Math.max(Math.floor(Number(v)), 1), 1440);
 
+type AgendaReminder = { enabled: boolean; minutesBefore: number[] };
+
+function sanitizeAgendaKey(key: unknown): string | null {
+  const value = String(key || "").trim();
+  if (!value || value.length > 130 || !/^[A-Za-z0-9_-]+:[^/\s]{1,110}$/.test(value)) return null;
+  return value;
+}
+
+function sanitizeAgendaMap(input: unknown): Record<string, AgendaReminder> {
+  const source = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  const out: Record<string, AgendaReminder> = {};
+  for (const [rawKey, rawValue] of Object.entries(source).slice(0, 200)) {
+    const key = sanitizeAgendaKey(rawKey); if (!key) continue;
+    const value = rawValue && typeof rawValue === "object" && !Array.isArray(rawValue) ? rawValue as Record<string, unknown> : {};
+    const enabled = value.enabled !== false;
+    const list = Array.isArray(value.minutesBefore) ? value.minutesBefore : [];
+    const minutesBefore = [...new Set<number>(list.map(clampMinute))].sort((a, b) => a - b).slice(0, 5);
+    if (!minutesBefore.length) continue;
+    out[key] = { enabled, minutesBefore };
+  }
+  return out;
+}
+
 /** Configuração e consulta de lembretes de tarefas e compromissos. */
 @Controller("reminders")
 @UseGuards(AuthGuard)
@@ -35,10 +58,28 @@ export class RemindersController {
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
       const current = await this.root(req);
-      const next = { ...current, reminders: { enabled, minutesBefore, sound, push } };
+      const next = { ...current, reminders: { ...(current.reminders as Record<string, any> | undefined), enabled, minutesBefore, sound, push } };
       await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: next as any } });
     });
     return { enabled, minutesBefore, sound, push };
+  }
+
+  @Get("agendas") async getAgendas(@Req() req: AuthenticatedRequest) {
+    const root = await this.root(req);
+    const reminders = root.reminders && typeof root.reminders === "object" && !Array.isArray(root.reminders) ? root.reminders as Record<string, any> : {};
+    return { agendas: sanitizeAgendaMap(reminders.agenda) };
+  }
+
+  @Put("agendas") async putAgendas(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(req.user.role)) throw new ForbiddenException("Somente gestão pode alterar os lembretes desta agenda.");
+    const agendas = sanitizeAgendaMap(body?.agendas || body || {});
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
+      const current = await this.root(req);
+      const next = { ...current, reminders: { ...(current.reminders as Record<string, any> | undefined), agenda: agendas } };
+      await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: next as any } });
+    });
+    return { agendas };
   }
 
   /** Itens devidos do usuário atual: tarefas atrasadas ou prestes a vencer. */

@@ -1,3 +1,4 @@
+import { isPreferredName } from '../ai/flow-runtime';
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {
   BadRequestException,
@@ -267,10 +268,18 @@ export class PublicFlowController {
         if (kind === "input.cpf" && ![11, 14].includes(value.length)) {
           return { messages: ["Envie um CPF com 11 dígitos ou CNPJ com 14 dígitos. Pode usar pontos, traços e espaços."], options: undefined };
         }
+        if (config.validation === 'preferred-name' && !isPreferredName(value)) return { messages: ['Informe um nome válido.',render(step)].filter(Boolean) };
         session.variables[variable] = value;
         session.history.push({ role: "user", content: value.slice(0, 300) });
         const nextId = step.transitions?.[step.options?.[0] ?? ""] ?? Object.values(step.transitions ?? {})[0];
         return nextId ? (findStep(nextId) ? runStep(findStep(nextId)!) : { messages: ["Encerramos por aqui. Até logo! 🙂"], finished: true }) : { messages: ["Encerramos por aqui. Até logo! 🙂"], finished: true };
+      }
+      if (kind === "text" && step.options?.length === 1 && userText === undefined) {
+        const next = advance(step);
+        if (next) {
+          const result = await runStep(next);
+          return {...result,messages:[render(step),...result.messages].filter(Boolean)};
+        }
       }
       if (kind === "buttons" || kind === "quick-reply" || kind === "text") {
         const options = Array.isArray(step.options) ? step.options : [];
@@ -285,7 +294,7 @@ export class PublicFlowController {
           }
           if (userText.trim()) {
             session.history.push({ role: "user", content: String(userText).slice(0, 300) });
-            return { messages: ["Escolha uma das opções abaixo ou digite atendente."], options };
+            return { messages: ["Escolha uma das opções abaixo.",render(step)].filter(Boolean), options };
           }
         }
         if (userText === undefined && options.length === 0) {

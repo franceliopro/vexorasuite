@@ -284,7 +284,11 @@ export class AssistantController {
     if (agents.filter(agent => agent.personalAssistant).length > 1) throw new BadRequestException("Selecione somente um agente como Assistente Pessoal");
     if (input.fallbackModels !== undefined && (!Array.isArray(input.fallbackModels) || input.fallbackModels.length > 2)) throw new BadRequestException("Use no máximo dois modelos de contingência");
     if (input.dailyAiLimit !== undefined && (!Number.isInteger(input.dailyAiLimit) || input.dailyAiLimit < 0 || input.dailyAiLimit > 10000)) throw new BadRequestException("Limite diário de IA deve estar entre 0 e 10 mil");
-    const fallbackModels = (input.fallbackModels || []).map(v => selection(v) as ModelSelection);
+    const fallbackModels = input.fallbackModels?.map(value => {
+      const model = selection(value) as ModelSelection | undefined;
+      if (!model) throw new BadRequestException("Seleção de contingência inválida");
+      return model;
+    });
     if (input.allowedPhones !== undefined && (!Array.isArray(input.allowedPhones) || input.allowedPhones.length > 50)) throw new BadRequestException("Informe até 50 celulares autorizados");
     if (input.testPhones !== undefined && (!Array.isArray(input.testPhones) || input.testPhones.length > 50)) throw new BadRequestException("Informe até 50 celulares de teste");
     if (input.testAccessEnabled !== undefined && typeof input.testAccessEnabled !== "boolean") throw new BadRequestException("Modo de testes inválido");
@@ -315,15 +319,16 @@ export class AssistantController {
       return { id: doc.id, name: doc.name.trim(), content: doc.content.trim() };
     });
     if (new Set(knowledgeDocuments.map(doc => doc.id)).size !== knowledgeDocuments.length || knowledgeDocuments.reduce((total, doc) => total + doc.content.length, 0) > 40000) throw new BadRequestException("Revise documentos repetidos ou acima do limite total");
-    const config = { dailyAiLimit: input.dailyAiLimit ?? 100, fallbackModels, name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, allowedPhones, testAccessEnabled: input.testAccessEnabled === true, testPhones, companyRules, companyKnowledge, companyProhibitions, personalAssistantRules, knowledgeDocuments, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
+    const config = { dailyAiLimit: input.dailyAiLimit ?? 100, name: input.name.trim(), wakeWord: input.wakeWord.trim(), enabled: input.enabled, agents, allowedPhones, testAccessEnabled: input.testAccessEnabled === true, testPhones, companyRules, companyKnowledge, companyProhibitions, personalAssistantRules, knowledgeDocuments, llm: selection(input.llm), stt: selection(input.stt, true), tts: selection(input.tts, true) };
     // Transaction locks tenant row to avoid losing concurrent updates to integrations.
-    await this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
       const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
       const current = tenant.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, Prisma.JsonValue> : {};
-      await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: { ...current, assistant: config } as Prisma.InputJsonObject } });
+      const savedConfig = { ...config, fallbackModels: fallbackModels ?? parseConfig(current).fallbackModels ?? [] };
+      await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: { ...current, assistant: savedConfig } as Prisma.InputJsonObject } });
+      return savedConfig;
     });
-    return config;
   }
   @Post("knowledge-documents/parse")
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 5 * 1024 * 1024 } }))

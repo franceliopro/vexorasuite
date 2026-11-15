@@ -57,7 +57,9 @@ export class ChatbotDraftController {
    const color = typeof input.color === "string" && /^#[0-9a-fA-F]{6}$/.test(input.color) ? input.color : "#101317";
    const color2 = typeof input.color2 === "string" && /^#[0-9a-fA-F]{6}$/.test(input.color2) ? input.color2 : "#0E7A5C";
    const imageUrl = typeof input.imageUrl === "string" && /^https:\/\//.test(input.imageUrl) && input.imageUrl.length <= 2000 ? input.imageUrl : "";
-   return { backgroundKind, color, color2, imageUrl };
+   const headerTitle = typeof input.headerTitle === "string" ? input.headerTitle.trim().slice(0, 60) : "";
+   const headerSubtitle = typeof input.headerSubtitle === "string" ? input.headerSubtitle.trim().slice(0, 120) : "";
+   return { backgroundKind, color, color2, imageUrl, headerTitle, headerSubtitle };
   }
   @Get("public-page")
   async readPublicPage(@Req() req:AuthenticatedRequest){

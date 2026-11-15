@@ -21,8 +21,18 @@ export class AiService {
     if (!messages.length || !providers.length) throw new BadRequestException("Messages and providers required");
     const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     let invalidContent=false;const failures:string[]=[];
+    const openRouterKeysWithoutCredit = new Set<string>();
     for (const p of providers.slice(0,3)) {
       if (!p.apiKey || !p.model) continue;
+      const isOpenRouter = p.provider === "openrouter";
+      const isFreeOpenRouterModel = p.freeOnly || p.model === "openrouter/free" || p.model.endsWith(":free");
+      if (isOpenRouter && !isFreeOpenRouterModel && openRouterKeysWithoutCredit.has(p.apiKey)) continue;
+
+      const recordOpenRouterCreditFailure = () => {
+        openRouterKeysWithoutCredit.add(p.apiKey);
+        recordProviderLimit(p.apiKey, 402);
+        failures.push("openrouter: crédito insuficiente ou limite de gastos atingido (HTTP 402)");
+      };
       const controller = new AbortController();
       const remainingMs = options.deadlineAt === undefined ? Infinity : options.deadlineAt - Date.now();
       if (remainingMs <= 0) break;
@@ -54,8 +64,17 @@ export class AiService {
             response = await fetch(endpoint, request);
           }
         }
+        if (isOpenRouter && response.status === 402) {
+          recordOpenRouterCreditFailure();
+          void response.body?.cancel().catch(() => {});
+          continue;
+        }
         if (!response.ok){recordProviderLimit(p.apiKey,response.status);failures.push(p.provider === "gemini" && response.status === 503 ? "Gemini temporariamente indisponível (HTTP 503). Tente novamente em instantes." : `${p.provider}: HTTP ${response.status}`);continue;}
-        const data = await response.json() as { model?:unknown; content?:Array<{type:string;text?:string}>; choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; input_tokens?:number; output_tokens?:number } };
+        const data = await response.json() as { error?: { code?: unknown }; model?:unknown; content?:Array<{type:string;text?:string}>; choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; input_tokens?:number; output_tokens?:number } };
+        if (isOpenRouter && Number(data.error?.code) === 402) {
+          recordOpenRouterCreditFailure();
+          continue;
+        }
         usage.promptTokens += data.usage?.prompt_tokens ?? data.usage?.input_tokens ?? 0;
         usage.completionTokens += data.usage?.completion_tokens ?? data.usage?.output_tokens ?? 0;
         usage.totalTokens += data.usage?.total_tokens ?? ((data.usage?.prompt_tokens ?? data.usage?.input_tokens ?? 0) + (data.usage?.completion_tokens ?? data.usage?.output_tokens ?? 0));

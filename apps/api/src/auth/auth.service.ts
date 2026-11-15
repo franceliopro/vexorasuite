@@ -18,6 +18,7 @@ import { MailService } from "../mail/mail.service";
 import { RefreshSessionService, SessionReuseError } from "./refresh-session.service";
 import { renderEmail } from "../mail/mail.template";
 import { assertPasswordResetTargetAllowed } from "./password-reset-policy";
+import { generateTemporaryPassword, newPasswordProblem } from "./password-policy";
 
 @Injectable()
 export class AuthService {
@@ -37,10 +38,6 @@ export class AuthService {
   get accessTtlSeconds(): number {
     const configured = Number(process.env.AUTH_ACCESS_TTL_SECONDS || 1800);
     return Number.isFinite(configured) && configured >= 300 ? Math.min(28800, Math.floor(configured)) : 1800;
-  }
-
-  private temporaryPassword(): string {
-    return "Vx!" + randomBytes(24).toString("base64url");
   }
 
   /** Refresh token fields, omitted when the session service is not wired (unit tests). */
@@ -127,6 +124,8 @@ export class AuthService {
     });
     if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now() || !record.user.isActive) throw invalid;
 
+    const passwordProblem = newPasswordProblem(input.password);
+    if (passwordProblem) throw new BadRequestException(passwordProblem);
     const passwordHash = await hash(input.password, 12);
     await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.passwordResetToken.updateMany({
@@ -162,6 +161,8 @@ export class AuthService {
     const throttleKey = `register:${email}`;
     await this.throttle.assertAllowed(throttleKey);
     await this.throttle.recordFailure(throttleKey);
+    const passwordProblem = newPasswordProblem(input.password);
+    if (passwordProblem) throw new BadRequestException(passwordProblem);
     const passwordHash = await hash(input.password, 12);
     const baseSlug = input.tenantName
       .normalize("NFKD")
@@ -390,7 +391,10 @@ export class AuthService {
     return {accessToken:await this.issueToken({sub:userId,tenantId:member.tenant.id,tenantSlug:member.tenant.slug,role:member.role,sessionVersion:authVersion??0}),tokenType:'Bearer',expiresIn:this.accessTtlSeconds,...(await this.refreshFields(userId,member.tenant.id,authVersion??0,userAgent)),user:{...user,name:member.knownBy?.trim()||user.name},tenant:member.tenant,role:member.role};
   }
   async changePassword(userId:string,tenantId:string,input:any){
-    if(typeof input?.currentPassword!=='string'||typeof input?.newPassword!=='string'||input.newPassword.length<12||input.newPassword.length>128||input.newPassword===input.currentPassword)throw new BadRequestException('Escolha uma nova senha de 12 a 128 caracteres, diferente da temporária.');
+    if (typeof input?.currentPassword !== "string") throw new BadRequestException("Informe a senha atual.");
+    const passwordProblem = newPasswordProblem(input.newPassword);
+    if (passwordProblem) throw new BadRequestException(passwordProblem);
+    if (input.newPassword === input.currentPassword) throw new BadRequestException("Escolha uma senha diferente da atual.");
     const nextHash=await hash(input.newPassword,12);
     await this.prisma.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM users WHERE id=${userId}::uuid FOR UPDATE`;
@@ -414,7 +418,7 @@ export class AuthService {
     const email=typeof input?.email==="string"?input.email.trim().toLowerCase():"";
     const memberRole=["ADMIN","MANAGER","AGENT"].includes(String(input?.role))?String(input.role):"AGENT";
     if(name.length<2||name.length>120||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new BadRequestException("Informe nome e e-mail válidos.");
-    const temporaryPassword=this.temporaryPassword();
+    const temporaryPassword=generateTemporaryPassword();
     const passwordHash=await hash(temporaryPassword,12);
     try{
       const created=await this.prisma.$transaction(async tx=>{
@@ -445,7 +449,7 @@ export class AuthService {
     const membership=await this.prisma.membership.findUnique({where:{tenantId_userId:{tenantId:actorTenantId,userId}},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
     if(!membership)throw new ForbiddenException("Usuário não pertence a esta empresa.");
     assertPasswordResetTargetAllowed(actorPlatformAdmin,membership.user?.isPlatformAdmin);
-    const temporaryPassword=this.temporaryPassword();
+    const temporaryPassword=generateTemporaryPassword();
     const passwordHash=await hash(temporaryPassword,12);
     await this.prisma.user.update({where:{id:userId},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
     return {ok:true,temporaryPassword};

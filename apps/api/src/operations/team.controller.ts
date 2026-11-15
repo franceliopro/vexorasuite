@@ -17,7 +17,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { hash } from "bcryptjs";
-import { randomBytes } from "node:crypto";
+import { generateTemporaryPassword } from "../auth/password-policy";
 import sharp from "sharp";
 import { isUUID } from "class-validator";
 import { AuthGuard } from "../auth/auth.guard";
@@ -44,7 +44,7 @@ export class TeamController {
     const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
     if (!/^[-\w.+]+@[\w.-]+\.[a-z]{2,}$/i.test(email)) throw new BadRequestException("Informe o e-mail.");
     const knownBy = knownByValue(input.knownBy || "");
-    const temporaryPassword = "Vx!" + randomBytes(24).toString("base64url");
+    const temporaryPassword = generateTemporaryPassword();
     const passwordHash = await hash(temporaryPassword, 12);
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({ where: { email }, select: { id: true, name: true, isActive: true } });
@@ -95,19 +95,17 @@ export class TeamController {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     const email =
       typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-    const password="Vx!"+randomBytes(24).toString("base64url");
+    const password=generateTemporaryPassword();
     const role=input.role==="OWNER"&&req.user.isPlatformAdmin?"OWNER":"AGENT";
     if(input.role&&input.role!==role)throw new ForbiddenException("Somente a administração da Véxora cadastra proprietários.");
     if (
       name.length < 2 ||
       name.length > 160 ||
       !/^[-\w.+]+@[\w.-]+\.[a-z]{2,}$/i.test(email) ||
-      email.length > 254 ||
-      password.length < 8 ||
-      password.length > 128
+      email.length > 254
     )
       throw new BadRequestException(
-        "Informe nome e e-mail válidos. A senha inicial deverá ser trocada no primeiro acesso.",
+        "Informe nome e e-mail válidos.",
       );
     const ids = Array.isArray(input.departmentIds)
       ? ([...new Set(input.departmentIds)] as string[])
@@ -256,7 +254,7 @@ export class TeamController {
     if (!member) throw new BadRequestException('Usuário não encontrado nesta empresa.');
     if (member.user.isPlatformAdmin && !req.user.isPlatformAdmin) throw new ForbiddenException('A administração Véxora não pode ser reativada pela empresa.');
     if (member.user.isActive) throw new BadRequestException('Este atendente já está ativo.');
-    const password = 'Vx!' + randomBytes(24).toString('base64url');
+    const password = generateTemporaryPassword();
     const passwordHash = await hash(password, 12);
     await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM users WHERE id = ${id}::uuid FOR UPDATE`;
@@ -295,7 +293,7 @@ export class TeamController {
  }
  @Post(':id/reset-password') async resetPassword(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){
   if(!req.user.isPlatformAdmin&&!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException('Somente administradores podem redefinir senhas.');
-  const password='Vx!'+randomBytes(24).toString('base64url');
+  const password=generateTemporaryPassword();
   const passwordHash=await hash(password,12);
   await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;

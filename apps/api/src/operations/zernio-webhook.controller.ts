@@ -6,6 +6,7 @@ import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { ZernioService } from "./zernio.service";
+import { zernioWebhookSecretFor } from "./zernio-credentials";
 import { resolveContactIdentity } from "./contact-identity";
 
 const zernioProfileId = (value: unknown): string => {
@@ -28,12 +29,24 @@ export class ZernioWebhookController {
 
   @Post("team")
   async receiveTeam(@Req() request: RawBodyRequest<Request>) {
-    const secret = process.env.ZERNIO_WEBHOOK_SECRET || "";
-    if (!this.zernio.verifyWebhook(request.rawBody, request.headers["x-zernio-signature"] as string | undefined, secret)) {
+    const rawBody = request.rawBody;
+    const body = rawBody && typeof request.body === "object" && request.body !== null ? request.body as JsonObject : {};
+    const lookupProfileId = zernioProfileId((body.account as JsonObject | undefined)?.profileId || body.profileId);
+    let secret = process.env.ZERNIO_WEBHOOK_SECRET || "";
+    if (lookupProfileId && this.prisma) {
+      try {
+        const profile = await this.prisma.zernioProfile.findUnique({ where: { profileId: lookupProfileId }, select: { tenantId: true } });
+        if (profile) {
+          const tenant = await this.prisma.tenant.findUnique({ where: { id: profile.tenantId }, select: { integrations: true } });
+          const own = zernioWebhookSecretFor(tenant?.integrations, profile.tenantId);
+          if (own) secret = own;
+        }
+      } catch { /* cai para o segredo compartilhado; a assinatura decide */ }
+    }
+    if (!this.zernio.verifyWebhook(rawBody, request.headers["x-zernio-signature"] as string | undefined, secret)) {
       this.logger.warn("Webhook central Zernio recusado: assinatura inválida.");
       throw new ForbiddenException("Assinatura do webhook central inválida.");
     }
-    const body = request.body && typeof request.body === "object" ? request.body as JsonObject : {};
     if (body.test) return { ok: true, test: true };
     const event = typeof body.event === "string" ? body.event : "";
     const account = body.account && typeof body.account === "object" ? body.account as JsonObject : {};

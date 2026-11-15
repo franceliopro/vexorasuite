@@ -1,14 +1,26 @@
 import {assertSocialRequest} from '../auth/product-scope';
-import { BadGatewayException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { BadGatewayException, Injectable, Optional, ServiceUnavailableException } from "@nestjs/common";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { PrismaService } from "../prisma/prisma.service";
+import { zernioApiKeyFor } from "./zernio-credentials";
 
 const BASE_URL = "https://zernio.com/api/v1";
 
 @Injectable()
 export class ZernioService {
-  assertConfigured(): void {
-    if (!process.env.ZERNIO_API_KEY?.trim()) {
-      throw new ServiceUnavailableException("A integração Zernio ainda não foi configurada no servidor.");
+  constructor(@Optional() private readonly prisma?: PrismaService) {}
+
+  private async resolveApiKey(tenantId?: string): Promise<string | undefined> {
+    if (tenantId && this.prisma) {
+      const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } }).catch(() => null);
+      if (tenant) return zernioApiKeyFor(tenant.integrations, tenantId);
+    }
+    return process.env.ZERNIO_API_KEY?.trim() || undefined;
+  }
+
+  async assertConfigured(tenantId?: string): Promise<void> {
+    if (!(await this.resolveApiKey(tenantId))) {
+      throw new ServiceUnavailableException("Esta empresa ainda não tem a conexão Zernio. Cadastre a própria conta em Canais e integrações (2 conexões grátis por conta) ou peça à Véxora para habilitar a conta compartilhada.");
     }
   }
 
@@ -19,9 +31,12 @@ export class ZernioService {
     return received.length === expected.length && timingSafeEqual(received, expected);
   }
 
-  async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; idempotencyKey?: string; allowPartialFailure?: boolean } = {}): Promise<T> {
+  async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; idempotencyKey?: string; allowPartialFailure?: boolean } = {}, tenantId?: string): Promise<T> {
     assertSocialRequest(path,options.method??'GET');
-    this.assertConfigured();
+    const apiKey = await this.resolveApiKey(tenantId);
+    if (!apiKey) {
+      throw new ServiceUnavailableException("Esta empresa ainda não tem a conexão Zernio. Cadastre a própria conta em Canais e integrações (2 conexões grátis por conta) ou peça à Véxora para habilitar a conta compartilhada.");
+    }
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("..") || path.includes("#")) {
       throw new ServiceUnavailableException("Caminho de integração inválido.");
     }
@@ -30,7 +45,7 @@ export class ZernioService {
       response = await fetch(BASE_URL + path, {
         method: options.method ?? "GET",
         headers: {
-          authorization: "Bearer " + process.env.ZERNIO_API_KEY!.trim(),
+          authorization: "Bearer " + apiKey,
           ...(options.body !== undefined ? { "content-type": "application/json" } : {}),
           ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
         },

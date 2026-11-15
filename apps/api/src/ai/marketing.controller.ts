@@ -107,7 +107,7 @@ export class MarketingController{
   const mediaItems=Array.isArray(details.mediaItems)?details.mediaItems.filter((item:any)=>item&&typeof item.mediaUrl==='string'&&/^https?:\/\//.test(item.mediaUrl)).slice(0,10).map((item:any)=>({type:item.mediaName?.toLowerCase().endsWith('.mp4')?'video':'image',url:item.mediaUrl})):undefined;
   const payload:any={content:String(details.caption||''),platforms,...(mediaItems?.length?{mediaItems}:{}),...(options.publishNow?{publishNow:true}:{scheduledFor:options.scheduledFor,timezone:'America/Sao_Paulo'})};
   if(!this.zernio)throw new ServiceUnavailableException('Publicação social indisponível no momento.');
-  const response=await this.zernio.request<any>('/posts',{method:'POST',body:payload,idempotencyKey:'marketing-'+id+'-'+(options.publishNow?'now':options.scheduledFor||'schedule')});
+  const response=await this.zernio.request<any>('/posts',{method:'POST',body:payload,idempotencyKey:'marketing-'+id+'-'+(options.publishNow?'now':options.scheduledFor||'schedule')},req.user.tenantId);
   const nextStatus=options.publishNow?'PUBLISHED':'SCHEDULED';
   await this.prisma.auditLog.update({where:{id:row.id},data:{details:{...details,status:nextStatus,publication:{requestedAt:new Date().toISOString(),publishNow:options.publishNow,scheduledFor:options.scheduledFor||null,response:response?.post||response}}}});
   return {id,status:nextStatus,post:response?.post||response};

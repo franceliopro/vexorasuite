@@ -68,7 +68,7 @@ export class DesignApprovalsController {
     try {
       const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId: req.user.tenantId }, select: { profileId: true } });
       const query = profile?.profileId ? "/posts?profileId=" + encodeURIComponent(profile.profileId) + "&limit=30" : "/posts?limit=30";
-      const raw = await this.zernio.request<any>(query);
+      const raw = await this.zernio.request<any>(query, {}, req.user.tenantId);
       const candidates = [raw?.data?.posts, raw?.data?.data, raw?.data, raw?.posts, raw?.results, Array.isArray(raw) ? raw : null];
       const list = (candidates.find(c => Array.isArray(c)) || []) as any[];
       const posts = list.slice(0, 30).map((p: any) => {

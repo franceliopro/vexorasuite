@@ -206,7 +206,7 @@ const layoutDefaults = (type: string): any => {
 };
 const LAYOUT_ELEMENT_LABEL: Record<string, string> = { text: "Texto", image: "Imagem", button: "Botão", spacer: "Espaço" };
 
-function LayoutBlockEditor({ block, onChange }: { block: any; onChange: (nextContent: any) => void }) {
+function LayoutBlockEditor({ block, onChange, siteId }: { block: any; onChange: (nextContent: any) => void; siteId?: string }) {
   const content = block?.content || {};
   const columns: any[] = Array.isArray(content.columns) ? content.columns : [];
   const [uploading, setUploading] = useState<string>("");
@@ -215,6 +215,22 @@ function LayoutBlockEditor({ block, onChange }: { block: any; onChange: (nextCon
   const [aiError, setAiError] = useState<Record<string, string>>({});
   const [assets, setAssets] = useState<any[] | null>(null);
   const [assetsOpen, setAssetsOpen] = useState(false);
+  const [imgGen, setImgGen] = useState<Record<string, string>>({});
+  const [imgBusy, setImgBusy] = useState<string>("");
+  const [imgGenError, setImgGenError] = useState<Record<string, string>>({});
+
+  const generateImage = async (colIndex: number, elIndex: number, prompt: string) => {
+    const key = colIndex + ":" + elIndex; setImgBusy(key); setImgGenError({});
+    try {
+      const response = await fetch("/api/backend/sites/" + encodeURIComponent(siteId || "") + "/blocks/" + encodeURIComponent(block.id || "") + "/ai-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ colIndex, elIndex, prompt }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "Não foi possível gerar a imagem.");
+      if (typeof data?.url === "string" && data.url) {
+        patchElement(colIndex, elIndex, { url: data.url, alt: typeof data?.alt === "string" ? data.alt : prompt.slice(0, 120) });
+      }
+      setImgGen(v => ({ ...v, [key]: "" }));
+    } catch (e) { setImgGenError(v => ({ ...v, [key]: e instanceof Error ? e.message : "Falha ao gerar a imagem." })); } finally { setImgBusy(""); }
+  };
 
   const setContent = (next: any) => onChange(next);
   const patchColumn = (index: number, patch: any) => setContent({ ...content, columns: columns.map((col, i) => i === index ? { ...col, ...patch } : col) });
@@ -304,7 +320,8 @@ function LayoutBlockEditor({ block, onChange }: { block: any; onChange: (nextCon
                   </div>
                   {assetsOpen && (<div className="layout-assets">{(assets || []).length ? (assets || []).map(a => <button key={a.id} type="button" title={a.mimeType} onClick={() => { patchElement(colIndex, elIndex, { url: a.url, alt: "" }); setAssetsOpen(false); }}><img src={a.url} alt="" loading="lazy" /></button>) : <p className="sites-field-hint">Nenhuma imagem enviada ainda — envie pelo botão ao lado.</p>}</div>)}
                   <div className="layout-element-row">
-                    <label className="sites-field"><span>Largura %</span><select value={el.width ?? 100} onChange={e => patchElement(colIndex, elIndex, { width: Number(e.target.value) })}>{[100, 75, 66, 50, 33, 25].map(n => <option key={n} value={n}>{n}%</option>)}</select></label>
+                    {siteId ? (<div className="layout-ai-image"><label className="sites-field"><span>✨ Gerar imagem com IA (OpenRouter)</span><input value={imgGen[key] || ""} onChange={e => setImgGen(v => ({ ...v, [key]: e.target.value }))} placeholder="ex.: cachorro feliz com uma pessoa no parque, foto natural e calorosa" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const t = (imgGen[key] || "").trim(); if (t) void generateImage(colIndex, elIndex, t); } }} disabled={imgBusy === key} /></label><div className="layout-element-row"><button type="button" className="text-button" disabled={imgBusy === key || !(imgGen[key] || "").trim()} onClick={() => { const t = (imgGen[key] || "").trim(); if (t) void generateImage(colIndex, elIndex, t); }}>{imgBusy === key ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <Sparkles size={13} aria-hidden="true" />} Gerar imagem</button><small className="sites-field-hint">Usa a chave OpenRouter da empresa · 1 execução do limite diário de IA.</small></div>{imgGenError[key] ? <p role="alert" className="sites-error">{imgGenError[key]}</p> : null}</div>) : null}
+                   <label className="sites-field"><span>Largura %</span><select value={el.width ?? 100} onChange={e => patchElement(colIndex, elIndex, { width: Number(e.target.value) })}>{[100, 75, 66, 50, 33, 25].map(n => <option key={n} value={n}>{n}%</option>)}</select></label>
                     <label className="sites-field"><span>Cantos (px)</span><input type="number" min={0} max={64} value={el.radius ?? 12} onChange={e => patchElement(colIndex, elIndex, { radius: Number(e.target.value) || 0 })} /></label>
                     <label className="sites-field"><span>Alinhar</span><select value={el.align || "center"} onChange={e => patchElement(colIndex, elIndex, { align: e.target.value })}><option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option></select></label>
                   </div>
@@ -659,7 +676,7 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
                   onSave={content => replaceBlockContent(selectedBlock, content)}
                   onPrompt={instruction => applyAi(selectedBlock, instruction)} />
               ) : selectedBlock?.type === "layout" ? (
-                <LayoutBlockEditor block={selectedBlock} onChange={(content) => replaceBlockContent(selectedBlock, content)} />
+                <LayoutBlockEditor block={selectedBlock} onChange={(content) => replaceBlockContent(selectedBlock, content)} siteId={site?.id} />
               ) : (<>
               {fieldDefs.fields.map((f) => <label key={f.key} className="sites-field"><span>{f.label}</span>{f.area ? <textarea rows={2} value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} /> : <input value={(selectedBlock.content?.[f.key] ?? "").toString()} onChange={(e) => setField(f.key, e.target.value)} />}</label>)}
               {selectedBlock?.type === "hero" && (() => {
@@ -990,7 +1007,7 @@ function BlockEditor({ block, onChange, onConverted, siteId }: { block: Block; o
     case "freeLayout":
       return <FreeSiteEditor key={block.id} content={c} onSave={onChange} />;
     case "layout":
-      return <LayoutBlockEditor block={block} onChange={(content) => onChange(content)} />;
+      return <LayoutBlockEditor block={block} onChange={(content) => onChange(content)} siteId={siteId} />;
     case "hero":
       return (<div className="sites-block-form"><label><span>Título</span><input value={c.headline || ""} onChange={e => set({ headline: e.target.value })} placeholder="Título principal da página" /></label><label><span>Subtítulo</span><input value={c.sub || ""} onChange={e => set({ sub: e.target.value })} placeholder="Texto de apoio" /></label><label><span>Selo (eyebrow)</span><input value={c.badge || ""} onChange={e => set({ badge: e.target.value })} placeholder="City · Segmento" /></label><label><span>Imagem de fundo (URL https)</span><input value={c.imageUrl || ""} onChange={e => set({ imageUrl: e.target.value })} placeholder="https://images.unsplash.com/…" /></label><label><span>Botão (texto)</span><input value={c.ctaLabel || ""} onChange={e => set({ ctaLabel: e.target.value })} placeholder="Quero conversar" /></label><label><span>Botão (link)</span><input value={c.ctaUrl || ""} onChange={e => set({ ctaUrl: e.target.value })} placeholder="https://wa.me/55…" /></label></div>);
     case "richText":

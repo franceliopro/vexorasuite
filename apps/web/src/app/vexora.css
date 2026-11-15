@@ -4488,3 +4488,11 @@ input[type=tel]{letter-spacing:.02em}
 .swatch-cream{background:#F4EEE2;border:2px solid #E2D9C8}
 .swatch-dark{background:#141019;border:2px solid #2C2635}
 .swatch-whatsapp{background:linear-gradient(160deg,#075E54 0 40%,#ECE5DD 40% 100%);border:2px solid #128C7E}
+
+/* Toggles do canal (Atendimento/IA/Chatbot/Site) */
+.channels-attach-fieldset{border:1px solid var(--ln);border-radius:12px;padding:10px 12px 12px;margin:0 0 4px;display:grid;gap:8px}
+.channels-attach-fieldset legend{padding:0 4px;font:700 11px/1 'Manrope',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.channels-attach-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.channels-attach-toggle{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 10px;border:1px solid var(--ln);border-radius:10px;background:var(--s1);font:600 12.5px/1.2 'Manrope',sans-serif;color:var(--ink);cursor:pointer;user-select:none}
+.channels-attach-toggle input{accent-color:#2E7CF6;width:16px;height:16px}
+.channels-attach-warning{margin:2px 0 0;font-size:11.5px;line-height:1.5;color:#B45309;background:#FDF3E3;border:1px solid #F3E3B7;border-radius:10px;padding:8px 10px}

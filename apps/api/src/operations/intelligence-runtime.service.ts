@@ -170,7 +170,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       // Instância não conectada não roda automação: CHATBOT/IA precisam estar anexos para esta conexão.
       const attachmentRows=await tx.channelAttachment.findMany({where:{channelConnectionId:channel.id},select:{service:true,attached:true}});
       const attached=new Set(attachmentRows.filter(a=>a.attached).map(a=>a.service));
-      if(!attached.has("CHATBOT")&&!attached.has("IA"))return null;
+      if(!attached.has("CHATBOT")&&!attached.has("IA")){this.logger.warn(`Mensagem do motor ignorada: canal ${channel.id} sem Chatbot/IA ativo (instância desconectada do atendimento).`);return null;}
       // The established, identity-checked Asaas dialogue owns its subsequent messages.
       const previous = object(conversation.botState);
       

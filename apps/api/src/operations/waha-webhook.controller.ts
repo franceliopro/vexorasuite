@@ -53,7 +53,10 @@ export class WahaWebhookController {
       this.events.publish(channel.tenantId,'channel.status',{id:channel.id,status});return {ok:true};
     }
     if (envelope.event === "message.ack") {
-      if (payload.fromMe === false) return { ok: true, ignored: true };
+      // GOWS/NOWEB nem sempre incluem fromMe no payload; o prefixo do id decide.
+      const serializedId = typeof payload.id === "string" ? payload.id : payload.id && typeof payload.id === "object" ? String((payload.id as Record<string, unknown>)._serialized ?? "") : "";
+      const fromMe = payload.fromMe === true || (payload.fromMe == null && (serializedId ? serializedId.startsWith("true_") : true));
+      if (!fromMe) return { ok: true, ignored: true };
       const providerMessageId = this.providerMessageId(payload.id);
       const ack = Number(payload.ack);
       const status = ack >= 3 ? "READ" : ack === 2 ? "DELIVERED" : ack === 1 ? "SENT" : null;
@@ -94,7 +97,9 @@ export class WahaWebhookController {
     // O WhatsApp pode entregar @lid em vez do número. Resolva somente aquele contato,
     // preservando privacidade e evitando qualquer sincronização completa.
     if (!phone && !isGroup) phone = await this.waha.resolveContactPhone(channel, chatId);
-    const notifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
+    const rawNotifyName = String((isGroup ? payload._data?.chat?.name || payload._data?.groupMetadata?.subject : null) || payload._data?.notifyName || payload._data?.pushName || payload.pushName || payload.notifyName || payload.contact?.name || payload.contact?.pushname || "").trim().slice(0, 160);
+    // O GOWS/NOWEB frequentemente entrega o webhook sem o nome; consulta pontual no WAHA antes de gravar o contato como número.
+    const notifyName = rawNotifyName || (!isGroup ? (await this.waha.contactName(channel, chatId)) ?? "" : "");
     const content = typeof payload.body === "string" ? payload.body.slice(0, 20000) : "";
     const linkPreview = content.includes("http") ? inboundLinkPreview(payload) : null;
     const mimeType = String(payload.media?.mimetype || "");
@@ -181,6 +186,7 @@ export class WahaWebhookController {
     this.logger.log(`Mensagem recebida e gravada: canal=${channelId} conversa=${saved.conversationId} tipo=${contentType}`);
     this.events.publish(channel.tenantId, "message.received", { conversationId: saved.conversationId, contactId: saved.contactId, message: saved.message });
     this.events.publish(channel.tenantId, "conversation.updated", { id: saved.conversationId, lastMessageAt: saved.message.occurredAt.toISOString() });
+    if (!isGroup && saved.handlingMode === "BOT") void this.waha.markSeen(channel, chatId, [providerMessageId]);
     if (saved.handlingMode === "BOT") {
       if(this.audio&&await this.audio.owns(saved.message.id,channel.tenantId))return {ok:true,processing:'audio-triage'};
       if (intelligenceEnabled) return { ok: true, processing: 'queued' };

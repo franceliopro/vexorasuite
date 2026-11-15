@@ -463,6 +463,45 @@ export class SitesController {
     return { html: out, mirrored, skipped };
   }
 
+  /**
+   * Aplica fotos do cliente ao site pela destinação escolhida no assistente (hero/galeria de cada página).
+   * dest: "hero:HOME" | "gallery:HOME" | "hero:SERVICES" | "gallery:SERVICES" | "hero:TEAM" | "hero:CONTACT"
+   */
+  @Post(":id/photos") async applySitePhotos(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() body: { photos?: { dest?: string; url?: string }[] }) {
+    const tenantId = this.tenantOf(req);
+    const site = await this.prisma.site.findFirst({ where: { id, tenantId }, include: { pages: { include: { blocks: true } } } });
+    if (!site) throw new NotFoundException("Site não encontrado nesta empresa.");
+    const validDest = /^(hero|gallery):(HOME|SERVICES|TEAM|CONTACT|POSTS)$/i;
+    const photos = list(body?.photos, 40, (p) => ({ dest: String(p?.dest || "").trim().toUpperCase(), url: String(p?.url || "").trim() })).filter(p => validDest.test(p.dest) && (p.url.startsWith("/api/backend/public/site-assets/") || p.url.startsWith("https://")));
+    const pagesByKind = new Map(site.pages.map(p => [String(p.kind), p]));
+    const galleryCursors = new Map<string, number>();
+    let applied = 0;
+    const missingPages: string[] = [];
+    for (const photo of photos) {
+      const [role, kind] = photo.dest.split(":") as [string, string];
+      const page = pagesByKind.get(kind);
+      if (!page) { if (!missingPages.includes(kind)) missingPages.push(kind); continue; }
+      if (role === "hero") {
+        const hero = page.blocks.find(b => b.type === "hero");
+        if (!hero) continue;
+        await this.prisma.siteBlock.update({ where: { id: hero.id }, data: { content: { ...(hero.content as any), imageUrl: photo.url } } });
+        applied++;
+        continue;
+      }
+      const gallery = page.blocks.find(b => b.type === "gallery");
+      if (!gallery) continue;
+      const current = Array.isArray((gallery.content as any)?.items) ? (gallery.content as any).items as { url?: string; caption?: string }[] : [];
+      const index = galleryCursors.get(page.id) ?? 0;
+      const items = current.slice();
+      const entry = { url: photo.url, caption: "Foto da empresa" };
+      if (index < items.length) items[index] = { ...items[index], ...entry }; else items.push(entry);
+      galleryCursors.set(page.id, index + 1);
+      await this.prisma.siteBlock.update({ where: { id: gallery.id }, data: { content: { ...(gallery.content as any), items } } });
+      applied++;
+    }
+    return { applied, missingPages };
+  }
+
   /** Espelha os assets do site importado para dentro da Véxora — para rodar sem depender do domínio de origem. */
   @Post(":id/mirror-assets") async mirrorAssetsEndpoint(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() body: { baseUrl?: string }) {
     const tenantId = this.tenantOf(req);

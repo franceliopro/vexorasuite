@@ -3129,8 +3129,9 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .vx-inbox-details summary{cursor:pointer;font-weight:700;color:var(--tx2);list-style:none;display:flex;align-items:center;gap:6px}
 .vx-inbox-details summary::before{content:"+";display:grid;place-items:center;width:16px;height:16px;border-radius:6px;background:var(--s3);color:var(--tx2);font-size:11px}
 .vx-inbox-details[open] summary::before{content:"–";background:var(--primary-soft);color:var(--primary-ink)}
-.vx-inbox-details dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0 0}
-.vx-inbox-details dt{font:800 9px/1.2 var(--font-display);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
+.vx-inbox-details dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:10px 0 0}
+.vx-inbox-details dl>div{display:grid;grid-template-columns:1fr;gap:2px;padding:8px 10px;border:1px solid var(--ln);border-radius:10px;background:var(--s2);min-width:0}
+.vx-inbox-details dt{font:800 9px/1.2 var(--font-display);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);align-self:start}
 .vx-inbox-details dd{margin:0;font-size:10.5px;color:var(--tx);overflow-wrap:anywhere;line-height:1.45}
 .vx-inbox-details a{font-size:10.5px;font-weight:750;color:var(--primary-ink);text-decoration:none}
 .vx-inbox-details a:hover{text-decoration:underline}

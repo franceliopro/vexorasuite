@@ -38,11 +38,12 @@ export function SitesWizardDialog(props: {
   wizImportHtml: string; setWizImportHtml: (v: string) => void;
   onImportHtml: () => Promise<void>; wizImporting: boolean;
   wizZipFile: File | null; setWizZipFile: (v: File | null) => void;
+  wizPhotos: { key: string; file: File; dest: string }[]; setWizPhotos: React.Dispatch<React.SetStateAction<{ key: string; file: File; dest: string }[]>>;
   wizVisionLoading: boolean; wizVisionNote: string;
   onVisionFile: (e: { target: { files: FileList | null; value: string } }) => void;
   onNotice: (v: string) => void;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, wizZipFile, setWizZipFile, wizVisionLoading, wizVisionNote, onVisionFile, onNotice } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, wizZipFile, setWizZipFile, wizPhotos, setWizPhotos, wizVisionLoading, wizVisionNote, onVisionFile, onNotice } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
@@ -71,6 +72,16 @@ export function SitesWizardDialog(props: {
             <label className="sites-field"><span>Cor principal</span><input type="color" value={wizPrimary} onChange={e => setWizPrimary(e.target.value)} /></label>
             <label className="sites-field"><span>Cor de destaque</span><input type="color" value={wizAccent} onChange={e => setWizAccent(e.target.value)} /></label>
           </div>
+          <details className="sites-ai-card">
+            <summary><ImagePlus size={14} aria-hidden="true" /> Suas fotos para as páginas (opcional)</summary>
+            <p className="sites-field-hint">Anexe as fotos reais do negócio — fachada, equipe, produtos, ambiente — e diga onde cada uma vai. A Véxora usa nos lugares certos do site.</p>
+            <div className="sites-photos-toolbar">
+              <label className="secondary-button" htmlFor="wizard-photos"><Plus size={13} aria-hidden="true" /> Adicionar fotos</label>
+              <input id="wizard-photos" type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => { const files = Array.from(e.target.files || []); if (files.length) setWizPhotos(v => [...v, ...files.map(f => ({ key: Math.random().toString(36).slice(2), file: f, dest: "hero:HOME" }))]); e.target.value = ""; }} />
+              {wizPhotos.length ? <button type="button" className="text-button" onClick={() => setWizPhotos([])}>Limpar ({wizPhotos.length})</button> : null}
+            </div>
+            {wizPhotos.length ? <div className="inspiration-gallery">{wizPhotos.map(photo => { const url = URL.createObjectURL(photo.file); return <figure key={photo.key} className="inspiration-thumb" style={{display:"grid",gridTemplateRows:"auto auto auto",alignContent:"start",gap:6}}><img src={url} alt={photo.file.name} loading="lazy" style={{gridRow:"1"}} /><select className="sites-photo-dest" value={photo.dest} onChange={e => setWizPhotos(v => v.map(p => p.key === photo.key ? { ...p, dest: e.target.value } : p))} aria-label="Onde usar esta foto"><option value="hero:HOME">Início — foto principal</option><option value="gallery:HOME">Início — galeria</option><option value="hero:SERVICES">Serviços — foto principal</option><option value="gallery:SERVICES">Serviços — galeria</option><option value="hero:TEAM">Sobre — foto principal</option><option value="hero:CONTACT">Contato — foto principal</option></select><button type="button" className="icon-button" aria-label="Remover foto" onClick={() => setWizPhotos(v => v.filter(p => p.key !== photo.key))}><X size={14} aria-hidden="true" /></button></figure>; })}</div> : null}
+          </details>
           <details className="sites-ai-card">
             <summary><Sparkles size={14} aria-hidden="true" /> Galeria de inspirações (opcional)</summary>
             <p className="sites-field-hint">Clique em uma imagem para usar como foto principal (Hero) do seu site. Clique de novo para desfazer.</p>
@@ -491,6 +502,17 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
       onNotice("Bloco “" + (meta?.label ?? type) + "” adicionado.");
     } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível adicionar o bloco."); }
   };
+  const applyAiOnPage = async (text: string) => {
+    if (!studioPage) return;
+    setBusy(true);
+    try {
+      const res = await api<{ blocks?: number }>(`/sites/${site.id}/pages/${studioPage.id}/relayout`, { method: "POST", body: JSON.stringify({ prompt: text }) });
+      onSaved();
+      onNotice("A IA aplicou na página inteira (" + (res?.blocks ?? "vários") + " blocos). Nada fora do que você pediu mudou — se ficou ruim, é só pedir de novo.");
+      setInstruction("");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "A IA não conseguiu aplicar isso desta vez."); }
+    finally { setBusy(false); }
+  };
   const applyAi = async (block: any, text: string) => {
     setBusy(true);
     try {
@@ -606,12 +628,12 @@ function StudioEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => 
             <button type="button" className="icon-button" onClick={() => setAiOpen(false)} aria-label="Fechar a IA"><X size={14} aria-hidden="true" /></button>
           </header>
           <label className="sites-field"><span>O que mudar?</span>
-            <textarea rows={4} value={instruction} onChange={event => setInstruction(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); const t = instruction.trim(); if (t && aiTargetBlock) void applyAi(aiTargetBlock, t); } }} placeholder="Ex.: deixe o título com mais urgência e destaque o botão de agendar." />
+            <textarea rows={4} value={instruction} onChange={event => setInstruction(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); const t = instruction.trim(); if (!t) return; if (aiTargetBlock) void applyAi(aiTargetBlock, t); else void applyAiOnPage(t); } }} placeholder="Ex.: troque a hero para a fachada da clínica, destaque o preço com um CTA de agendar, ou reorganize a seção de serviços." />
           </label>
-          <button type="button" className="primary-button" disabled={busy || instruction.trim().length < 3 || !aiTargetBlock} onClick={() => aiTargetBlock && void applyAi(aiTargetBlock, instruction.trim())}>{busy ? "Aplicando…" : aiTargetBlock ? "Aplicar no bloco (" + (BLOCKS_META[aiTargetBlock.type]?.label ?? aiTargetBlock.type) + ")" : "Selecione um bloco no canvas"}</button>
+          <button type="button" className="primary-button" disabled={busy || instruction.trim().length < 3} onClick={() => { const t = instruction.trim(); if (!t) return; if (aiTargetBlock) void applyAi(aiTargetBlock, t); else void applyAiOnPage(t); }}>{busy ? "Aplicando…" : aiTargetBlock ? "Aplicar no bloco (" + (BLOCKS_META[aiTargetBlock.type]?.label ?? aiTargetBlock.type) + ")" : "Aplicar na página inteira (Início)"}</button>
           <p className="sites-field-label">Atalhos</p>
           <div className="sites-studio-skills">{skills.map(s => <button key={s.label} type="button" disabled={busy} onClick={() => setInstruction(s.instruction)}>{s.label}</button>)}</div>
-          <p className="sites-field-hint">Ctrl+Enter aplica. A IA edita o bloco inteiro — nada fora dele muda. Se a IA falhar, a página fica intacta.</p>
+          <p className="sites-field-hint">Ctrl+Enter aplica. Selecionando um bloco, a IA edita só ele; sem seleção, ela reorganiza a página inteira. Se a IA falhar, nada muda.</p>
         </aside> : null}
         <div className="sites-studio-preview">
           <div className={"sites-studio-frame" + (device === "phone" ? " is-phone" : "")}>
@@ -764,6 +786,30 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
   const [newSlugTouched, setNewSlugTouched] = useState(false);
   const [creating, setCreating] = useState(false);
   const [zipBusy, setZipBusy] = useState(false);
+  const photosRef = useRef<HTMLInputElement>(null);
+  const [photosBusy, setPhotosBusy] = useState(false);
+  const createPhotoPage = async (fileList: FileList | null) => {
+    const files = Array.from(fileList || []).slice(0, 12);
+    if (!files.length) return;
+    setPhotosBusy(true);
+    try {
+      const urls: string[] = [];
+      for (const file of files) {
+        const form = new FormData(); form.append("file", file);
+        const response = await fetch("/api/backend/sites/assets", { method: "POST", body: form });
+        const json = await response.json().catch(() => null);
+        if (response.ok && json?.url) urls.push(json.url);
+      }
+      if (!urls.length) throw new Error("Não foi possível enviar as fotos.");
+      const created = await api<{ id: string }>(`/sites/${site.id}/pages`, { method: "POST", body: JSON.stringify({ title: "Galeria", slug: "galeria" }) });
+      const html = `<section class="gx-gallery"><h1>Galeria</h1><div class="gx-grid">${urls.map((u, i) => `<img src="${u}" alt="Foto ${i + 1}" loading="lazy"/>`).join("")}</div></section>`;
+      const css = ".gx-gallery{padding:40px 6vw 64px}.gx-gallery h1{margin:0 0 22px;font:800 clamp(26px,4vw,40px)/1.1 'Manrope',sans-serif}.gx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.gx-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;display:block}@media(max-width:760px){.gx-grid{grid-template-columns:repeat(2,1fr)}}";
+      await api(`/sites/pages/${created.id}/blocks`, { method: "POST", body: JSON.stringify({ type: "freeLayout", content: { html, css, title: "Galeria" } }) });
+      onSaved();
+      onNotice(`Página “Galeria” criada com ${urls.length} foto(s) — ajuste o layout à vontade.`);
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível criar a página com as fotos."); }
+    finally { setPhotosBusy(false); }
+  };
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
@@ -849,7 +895,9 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
       <aside className="sites-page-list" aria-label="Páginas">
         <div className="sites-page-list-actions">
           <button type="button" className="primary-button" onClick={() => setNewOpen(v => !v)} aria-expanded={newOpen}><Plus size={13} aria-hidden="true" /> Nova página</button>
+          <button type="button" className="secondary-button" onClick={() => photosRef.current?.click()} disabled={photosBusy} title="Envie as fotos e a Véxora cria uma página de galeria com elas">{photosBusy ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <ImagePlus size={13} aria-hidden="true" />} {photosBusy ? "Criando…" : "Página com fotos"}</button>
           <button type="button" className="secondary-button" onClick={() => zipRef.current?.click()} disabled={zipBusy} title="Envie o site completo em .zip — as páginas e os arquivos de mídia entram no sistema">{zipBusy ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <Wand2 size={13} aria-hidden="true" />} {zipBusy ? "Importando…" : "Importar site (.zip)"}</button>
+          <input ref={photosRef} type="file" accept="image/*" multiple hidden aria-hidden="true" tabIndex={-1} onChange={e => { const f = e.target.files; if (f?.length) void createPhotoPage(f); e.target.value = ""; }} />
           <input ref={zipRef} type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden aria-hidden="true" tabIndex={-1} onChange={e => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = ""; }} />
         </div>
         {newOpen ? <form className="sites-page-new" onSubmit={createPage}>

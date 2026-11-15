@@ -38,6 +38,9 @@ importers:
       '@prisma/client':
         specifier: ^6.16.2
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
+      adm-zip:
+        specifier: ^0.6.1
+        version: 0.6.1
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.3
@@ -93,6 +96,9 @@ importers:
       '@nestjs/testing':
         specifier: ^11.1.6
         version: 11.2.8(@nestjs/common@11.2.8(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.8)(@nestjs/platform-express@11.2.8)
+      '@types/adm-zip':
+        specifier: ^0.6.0
+        version: 0.6.0
       '@types/express':
         specifier: ^5.0.3
         version: 5.0.6
@@ -166,6 +172,9 @@ importers:
       '@tiptap/starter-kit':
         specifier: ^3.0.0
         version: 3.32.2
+      '@types/sanitize-html':
+        specifier: ^2.16.2
+        version: 2.16.2
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.3.1)
@@ -178,6 +187,9 @@ importers:
       react-dom:
         specifier: ^19.1.1
         version: 19.3.1(react@19.3.1)
+      sanitize-html:
+        specifier: ^2.18.2
+        version: 2.18.2
     devDependencies:
       '@eslint/js':
         specifier: ^9.36.0
@@ -1588,6 +1600,10 @@ packages:
     cpu: [arm64]
     os: [win32]
 
+  '@types/adm-zip@0.6.0':
+    resolution: {integrity: sha512-4BJwT30zsKqyYk+PgJS+LQzVrLh0bHragg9etHGg679uuBbNDbSaLsJy+DaJQZM8AvESHB+t3ruVzbrn6BUsMQ==}
+    deprecated: This is a stub types definition. adm-zip provides its own type definitions, so you do not need this installed.
+
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
 
@@ -1943,6 +1959,10 @@ packages:
     resolution: {integrity: sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  adm-zip@0.6.1:
+    resolution: {integrity: sha512-Xwrja8nx9e5o2N1my4DsKCeKpdrnACyr1wtbPxBDgGzKzKyE9kRtBFA8mWldI+RVlD7CBZNWY/wQ2+ydwOR6kQ==}
+    engines: {node: '>=14.0'}
 
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
@@ -4320,6 +4340,10 @@ packages:
     resolution: {integrity: sha512-2X5lC8fYla8YaT8g73Nj+HcLWXan5dLyCWLgVvaOmfw7JI78IRsyNtIDytTHdn7hBQbIkCah7Zbmd5jabzeDig==}
     engines: {node: '>=22.12.0'}
 
+  sanitize-html@2.18.2:
+    resolution: {integrity: sha512-LTQVNHBeKB5qIae9x2J2Fw68ORnES++8vzYaG7DFT8P4GVCJFeHffHnRUzf5Mrxfx+4GweIvMRqkBPHHodaVNg==}
+    engines: {node: '>=22.12.0'}
+
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
     engines: {node: '>=v12.22.7'}
@@ -6451,6 +6475,10 @@ snapshots:
   '@turbo/windows-arm64@2.11.10':
     optional: true
 
+  '@types/adm-zip@0.6.0':
+    dependencies:
+      adm-zip: 0.6.1
+
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.29.12
@@ -6847,6 +6875,8 @@ snapshots:
       acorn: 8.19.0
 
   acorn@8.19.0: {}
+
+  adm-zip@0.6.1: {}
 
   agent-base@7.1.4: {}
 
@@ -9674,6 +9704,15 @@ snapshots:
   safer-buffer@2.1.2: {}
 
   sanitize-html@2.18.1:
+    dependencies:
+      escape-string-regexp: 4.0.0
+      htmlparser2: 12.0.0
+      is-plain-object: 5.1.0
+      launder: 1.7.2
+      parse-srcset: 1.0.2
+      postcss: 8.5.32
+
+  sanitize-html@2.18.2:
     dependencies:
       escape-string-regexp: 4.0.0
       htmlparser2: 12.0.0

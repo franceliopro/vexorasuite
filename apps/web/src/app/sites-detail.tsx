@@ -12,7 +12,7 @@ import { FileImagePicker } from "./file-image-picker";
 import { maskBRLInput, formatBRL } from "../lib/money";
 import { SitePreview } from "./site-preview";
 import { inspirationAreasFor } from "./site-inspirations";
-import { Building2, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, Upload, X } from "lucide-react";
+import { Building2, Bell, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, Copy, Eye, EyeOff, Globe, ImagePlus, LayoutTemplate, LayoutGrid, Loader2, Maximize2, Minimize2, Monitor, Pencil, Plus, Smartphone, Sparkles, Star, Trash2, Wand2, Mic, Upload, X } from "lucide-react";
 
 export function SitesWizardDialog(props: {
   wizName: string; setWizName: (v: string) => void;
@@ -746,6 +746,57 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
   }, [site.id]);
   const page = pages.find(p => p.id === selected) || null;
   const [blockBusy, setBlockBusy] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newSlug, setNewSlug] = useState("");
+  const [newSlugTouched, setNewSlugTouched] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [zipBusy, setZipBusy] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [savingPage, setSavingPage] = useState(false);
+  const zipRef = useRef<HTMLInputElement>(null);
+  const createPage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const title = newTitle.trim();
+    if (title.length < 2) { onNotice("Dê um nome com pelo menos 2 caracteres."); return; }
+    setCreating(true);
+    try {
+      await api(`/sites/${site.id}/pages`, { method: "POST", body: JSON.stringify({ title, slug: (newSlug || safeSlug(title)).trim() }) });
+      setNewOpen(false); setNewTitle(""); setNewSlug(""); setNewSlugTouched(false);
+      onSaved();
+      onNotice(`Página “${title}” criada. Ela já entra no menu do site.`);
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível criar a página."); }
+    finally { setCreating(false); }
+  };
+  const importZip = async (file: File) => {
+    if (!/\.zip$/i.test(file.name || "")) { onNotice("Envie um arquivo .zip (o site compactado)."); return; }
+    setZipBusy(true);
+    try {
+      const form = new FormData(); form.append("file", file);
+      const response = await fetch(`/api/backend/sites/${site.id}/import-zip`, { method: "POST", body: form });
+      const json = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(typeof json?.message === "string" ? json.message : "Falha ao importar o zip.");
+      onSaved();
+      onNotice(`Site importado: ${json?.pagesCreated || 0} página(s) criada(s)${json?.pagesReplaced ? `, ${json.pagesReplaced} atualizada(s)` : ""}, ${json?.assetsStored || 0} arquivo(s) de mídia armazenado(s).`);
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível importar o zip."); }
+    finally { setZipBusy(false); }
+  };
+  const openRename = () => { if (!page) return; setEditTitle(page.title); setEditSlug(page.slug); setEditOpen(v => !v); };
+  const saveRename = async () => {
+    if (!page) return;
+    const title = editTitle.trim();
+    if (title.length < 2) { onNotice("Dê um nome com pelo menos 2 caracteres."); return; }
+    setSavingPage(true);
+    try {
+      await api(`/sites/pages/${page.id}`, { method: "PATCH", body: JSON.stringify({ title, slug: editSlug.trim() || page.slug }) });
+      setEditOpen(false);
+      onSaved();
+      onNotice("Página atualizada.");
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível salvar a página."); }
+    finally { setSavingPage(false); }
+  };
   const saveBlockRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveBlock = async (block: Block, patch: Partial<Block>) => {
     setBlockBusy(true);
@@ -773,6 +824,16 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
   return (
     <div className="sites-pages-grid">
       <aside className="sites-page-list" aria-label="Páginas">
+        <div className="sites-page-list-actions">
+          <button type="button" className="primary-button" onClick={() => setNewOpen(v => !v)} aria-expanded={newOpen}><Plus size={13} aria-hidden="true" /> Nova página</button>
+          <button type="button" className="secondary-button" onClick={() => zipRef.current?.click()} disabled={zipBusy} title="Envie o site completo em .zip — as páginas e os arquivos de mídia entram no sistema">{zipBusy ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <Wand2 size={13} aria-hidden="true" />} {zipBusy ? "Importando…" : "Importar site (.zip)"}</button>
+          <input ref={zipRef} type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden aria-hidden="true" tabIndex={-1} onChange={e => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = ""; }} />
+        </div>
+        {newOpen ? <form className="sites-page-new" onSubmit={createPage}>
+          <label className="sites-field"><span>Nome da página</span><input autoFocus value={newTitle} onChange={e => { setNewTitle(e.target.value); if (!newSlugTouched) setNewSlug(safeSlug(e.target.value)); }} placeholder="Ex.: Sobre a clínica" aria-label="Nome da página" /></label>
+          <label className="sites-field"><span>Endereço (slug)</span><input value={newSlug} onChange={e => { setNewSlug(safeSlug(e.target.value)); setNewSlugTouched(true); }} placeholder="sobre-a-clinica" spellCheck={false} aria-label="Endereço da página" /></label>
+          <div className="sites-page-new-actions"><button type="button" className="secondary-button" onClick={() => setNewOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={creating || newTitle.trim().length < 2}>{creating ? "Criando…" : "Criar página"}</button></div>
+        </form> : null}
         {[...pages].sort((a, b) => a.sortOrder - b.sortOrder).map(p => (
           <button key={p.id} type="button" className={"sites-page-item " + (p.id === selected ? "active" : "")} onClick={() => setSelected(p.id)}><span>{p.title}</span><small>/{p.slug}{p.hidden ? " · oculta" : ""}</small></button>
         ))}
@@ -781,10 +842,16 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
         <header className="sites-canvas-head">
           <h2>{page.title}</h2>
           <div>
+            <button type="button" className="secondary-button" onClick={openRename} aria-expanded={editOpen} title="Renomear a página ou alterar o endereço"><Pencil size={14} aria-hidden="true" /> {editOpen ? "Ocultar" : "Renomear"}</button>
             <label className="sites-visibility"><input type="checkbox" checked={!page.hidden} onChange={async e => { await api(`/sites/pages/${page.id}`, { method: "PATCH", body: JSON.stringify({ hidden: !e.target.checked }) }); onSaved(); }} /> Página visível</label>
             <button type="button" className="secondary-button" onClick={() => setSelected(page.id) /* keep */} onClickCapture={() => onNotice("Arraste ou use as setas para reordenar.")}>{blockBusy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <ChevronUp size={14} aria-hidden="true" />} Reordenar com as setas</button>
           </div>
         </header>
+        {editOpen ? <form className="sites-page-rename" onSubmit={e => { e.preventDefault(); void saveRename(); }}>
+          <label className="sites-field"><span>Nome da página</span><input autoFocus value={editTitle} onChange={e => setEditTitle(e.target.value)} aria-label="Nome da página" /></label>
+          <label className="sites-field"><span>Endereço (slug)</span><input value={editSlug} onChange={e => setEditSlug(safeSlug(e.target.value))} spellCheck={false} aria-label="Endereço da página" /></label>
+          <div className="sites-page-new-actions"><button type="button" className="secondary-button" onClick={() => setEditOpen(false)}>Cancelar</button><button type="submit" className="primary-button" disabled={savingPage || editTitle.trim().length < 2}>{savingPage ? "Salvando…" : "Salvar"}</button></div>
+        </form> : null}
         <div className="sites-blocks">
           {[...(page.blocks || [])].sort((a, b) => a.sortOrder - b.sortOrder).map(block => (
             <article key={block.id} className={"sites-block-card " + (block.hidden ? "is-hidden" : "")}>

@@ -4461,3 +4461,8 @@ input[type=tel]{letter-spacing:.02em}
 .file-manager-lightbox img{display:block;max-width:100%;max-height:74vh;object-fit:contain;background:#000}
 .file-manager-lightbox figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;color:#E7EEFF;font-size:12.5px}
 .file-manager-lightbox figcaption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Paginas: nova pagina + renomear + importar zip */
+.sites-page-list-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sites-page-new,.sites-page-rename{display:grid;gap:10px;padding:10px;border:1px solid var(--ln);border-radius:var(--r-m);background:var(--s2)}
+.sites-page-new-actions{display:flex;gap:8px;justify-content:flex-end}

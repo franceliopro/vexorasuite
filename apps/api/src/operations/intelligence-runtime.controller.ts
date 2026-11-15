@@ -2,6 +2,7 @@ import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import { AuditCovered } from "../common/audit/audit.decorator";
 import {isUUID} from 'class-validator';
 import {publicationKey,RuntimeScope} from './runtime-scope';
+import { isSchedulerWorkerAlive } from '../common/worker-health';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
@@ -43,7 +44,8 @@ export class IntelligenceRuntimeController {
     const publications=Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,raw]:[string,any])=>{const p=object(raw);return {key,scope:p.scope,active:p.source === 'ui' && p.active === true,revision:p.revision,flowName:p.flow?.name};});
     const defaultActive=published.source === 'ui' && published.active === true;
     const active=defaultActive||publications.some(publication=>publication.active);
-    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, llmExecution: true };
+    const workerAlive = await isSchedulerWorkerAlive(this.prisma as any);
+    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, llmExecution: true, scheduler: { mode: (process.env.SCHEDULER_MODE || 'in-process'), workerAlive } };
   }
   @Get('destinations')
   async destinations(@Req() req:AuthenticatedRequest){

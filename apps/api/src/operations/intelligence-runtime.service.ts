@@ -18,6 +18,7 @@ import { ZernioService } from './zernio.service';
 import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables, isPreferredName } from '../ai/flow-runtime';
 import { JobLeaseService } from '../common/job-lease.service';
 import { schedulersEnabled } from '../common/scheduler-mode';
+import { isSchedulerWorkerAlive, INTELLIGENCE_LEASE } from '../common/worker-health';
 import { skillInstructionsForAgent } from '../ai/product-skills';
 
 export const object = (v: unknown): Record<string, any> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, any> : {};
@@ -41,25 +42,45 @@ export type PublishedFlow = { revision: string; active: boolean; publishedAt: st
 export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IntelligenceRuntimeService.name);
   private timer?: ReturnType<typeof setInterval>;
+  private watchdog?: ReturnType<typeof setInterval>;
+  private fallbackTicking = false;
   private running = false;
 
   constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService) {}
 
   onModuleInit() {
-    if (process.env.NODE_ENV === 'test' || !schedulersEnabled()) return;
+    if (process.env.NODE_ENV === 'test') return;
+    if (!schedulersEnabled()) {
+      // Em produção os jobs rodam no scheduler-worker. Mas um worker morto não pode ser
+      // motivo para o chatbot ficar sem responder: se o lease ficar velho, a API assume a fila.
+      this.watchdog = setInterval(() => void this.ensureFallback(), 15000);
+      this.watchdog.unref();
+      return;
+    }
     this.timer = setInterval(() => void this.tick(), 2000);
     this.timer.unref();
   }
 
+  private async ensureFallback() {
+    if (this.fallbackTicking) return;
+    if (await isSchedulerWorkerAlive(this.prisma)) return;
+    this.fallbackTicking = true;
+    this.logger.warn('scheduler-worker não atualiza o lease — a API assumiu a fila de inteligência até o worker voltar.');
+    this.timer = setInterval(() => void this.tick(), 2000);
+    this.timer.unref();
+    void this.tick();
+  }
+
   onModuleDestroy() {
     if (this.timer) clearInterval(this.timer);
+    if (this.watchdog) clearInterval(this.watchdog);
   }
 
   private async tick(): Promise<void> {
     if (this.running) return;
     this.running = true;
     try {
-      if (this.leases && !(await this.leases.claim('intelligence-runtime', 5000))) return;
+      if (this.leases && !(await this.leases.claim(INTELLIGENCE_LEASE, 5000))) return;
       const candidates = await this.prisma.message.findMany({
         where: {
           direction: 'INBOUND',
@@ -190,8 +211,10 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         return [queuedMessage];
       };
       if(entry.mode==="HUMAN"){
+        this.logger.warn(`Motor não responde: roteamento do canal ${channel.id} está como "Atendimento humano" (modo HUMAN). Configure "Configuração da empresa" ou "Automação" em Conexões → Ajustar do número.`);
         const department=entry.departmentId?await tx.department.findFirst({where:{id:entry.departmentId,tenantId:channel.tenantId,isActive:true},select:{id:true}}):null;
         await tx.conversation.update({where:{id:conversation.id},data:{handlingMode:"HUMAN",departmentId:conversation.departmentId||department?.id||null}});
+        await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, reason: 'inbox_routing_human', decision: 'human' } } });
         return {messages:[],handled:true,handoff:false,assigned:true};
       }
       if(entry.mode==="AUTOMATION"&&!conversation.departmentId&&!conversation.assigneeId&&entry.departmentId){

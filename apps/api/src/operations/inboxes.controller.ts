@@ -7,6 +7,7 @@ import {AuthGuard} from "../auth/auth.guard";
 import {AuthenticatedRequest} from "../auth/auth.types";
 import {PrismaService} from "../prisma/prisma.service";
 import {inboxRouting} from "./inbox-routing";
+import {isSchedulerWorkerAlive} from "../common/worker-health";
 import {selectPublication,publicationKey} from "./runtime-scope";
 const object=(v:unknown):Record<string,any>=>v&&typeof v==="object"&&!Array.isArray(v)?v as any:{};
 @AuditCovered()
@@ -36,6 +37,8 @@ export class InboxesController{
    const blockers:string[]=[];
    if(channel.status!=="CONNECTED")blockers.push("A conexão não está confirmada como conectada.");
    if(routing.departmentId&&!departments.some(d=>d.id===routing.departmentId))blockers.push("O departamento de entrada está indisponível.");
+   if(!(await isSchedulerWorkerAlive(this.prisma)))blockers.push("O motor de fundo (scheduler-worker) não está atualizando as conversas — a IA não responde. Verifique o serviço scheduler-worker no servidor.");
+   if(routing.mode==="HUMAN")blockers.push("Este número está como \"Atendimento humano\" — a IA não responde. Troque para \"Configuração da empresa\" ou \"Automação\".");
    if(routing.mode!=="HUMAN"){
     if(!publication)blockers.push("Não há fluxo publicado para a entrada desta inbox.");
     else{if(!publication.active)blockers.push("O fluxo desta entrada está pausado.");if(!publication.flow.channelIds?.includes(channel.id))blockers.push("O fluxo publicado não inclui esta conexão real.");if(!publication.flow.triggers?.some(t=>["message","dm","keyword"].includes(t.kind)))blockers.push("O fluxo não tem um gatilho de entrada compatível.");}
@@ -44,7 +47,7 @@ export class InboxesController{
    }
    const last=inbound?.conversation;
    const activeSelection=last?selectPublication(root,{departmentId:last.departmentId,userId:last.assigneeId}):null;
-   const lastDecision=!inbound?"Nenhuma mensagem recebida registrada.":last?.handlingMode==="HUMAN"?"Conversa sob atendimento humano; a IA não assume automaticamente.":audit?"Mensagem processada pelo motor.":!activeSelection?.publication?.flow.channelIds?.includes(channel.id)?"Mensagem recebida; não há fluxo vinculado ao contexto desta conversa.":!activeSelection.publication.active?"Mensagem recebida; o fluxo está pausado.":"Mensagem recebida; sem processamento confirmado. Verifique o gatilho e os registros da API.";
+   const lastDecision=!inbound?"Nenhuma mensagem recebida registrada.":last?.handlingMode==="HUMAN"?"Conversa sob atendimento humano; a IA não assume automaticamente.":audit?(object(audit.details).reason==="inbox_routing_human"?"Canal configurado como \"Atendimento humano\" — a IA não responde.":"Mensagem processada pelo motor."):!activeSelection?.publication?.flow.channelIds?.includes(channel.id)?"Mensagem recebida; não há fluxo vinculado ao contexto desta conversa.":!activeSelection.publication.active?"Mensagem recebida; o fluxo está pausado.":"Mensagem recebida; sem processamento confirmado. Verifique o gatilho e os registros da API.";
    return {id:channel.id,name:channel.name,provider:channel.provider,platform:channel.provider==="WAHA"?"whatsapp":channel.provider==="EMAIL"?"email":String(config.platform||"social"),status:channel.status,identity:channel.provider==="WAHA"?config.accountPhone||null:config.username||config.profileName||null,identityCheckedAt:config.identityCheckedAt||null,accountId:channel.provider==="ZERNIO"?config.accountId||null:null,routing,departmentName:departments.find(d=>d.id===routing.departmentId)?.name||null,flow:publication?{name:publication.flow.name,active:publication.active,revision:publication.revision,scopeKey:selection?.key,includesInbox:publication.flow.channelIds?.includes(channel.id)===true,agents}:null,blockers,lastInboundAt:inbound?.occurredAt||null,lastConversationId:last?.id||null,lastDecision,lastProcessing:audit?{at:audit.createdAt,decision:object(audit.details).decision||null,reason:object(audit.details).reason||null}:null,lastDelivery:outbound?{at:outbound.occurredAt,status:outbound.status}:null};
   }));
   return {inboxes:rows,departments};

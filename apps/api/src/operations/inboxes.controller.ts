@@ -7,6 +7,7 @@ import {AuthGuard} from "../auth/auth.guard";
 import {AuthenticatedRequest} from "../auth/auth.types";
 import {PrismaService} from "../prisma/prisma.service";
 import {inboxRouting} from "./inbox-routing";
+import {isSchedulerWorkerAlive} from "../common/worker-health";
 import {selectPublication,publicationKey} from "./runtime-scope";
 const object=(v:unknown):Record<string,any>=>v&&typeof v==="object"&&!Array.isArray(v)?v as any:{};
 @AuditCovered()
@@ -36,6 +37,7 @@ export class InboxesController{
    const blockers:string[]=[];
    if(channel.status!=="CONNECTED")blockers.push("A conexão não está confirmada como conectada.");
    if(routing.departmentId&&!departments.some(d=>d.id===routing.departmentId))blockers.push("O departamento de entrada está indisponível.");
+   if(!(await isSchedulerWorkerAlive(this.prisma)))blockers.push("O motor de fundo (scheduler-worker) não está atualizando as conversas — a IA não responde. Verifique o serviço scheduler-worker no servidor.");
    if(routing.mode==="HUMAN")blockers.push("Este número está como \"Atendimento humano\" — a IA não responde. Troque para \"Configuração da empresa\" ou \"Automação\".");
    if(routing.mode!=="HUMAN"){
     if(!publication)blockers.push("Não há fluxo publicado para a entrada desta inbox.");

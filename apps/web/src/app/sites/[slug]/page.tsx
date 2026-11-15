@@ -60,6 +60,7 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
   const primary = site.primaryColor;
   const accent = site.accentColor;
   const nav = site.pages.filter(p => p.slug !== "inicio");
+  const hasImportedLayout = site.pages.some(p => p.blocks.some(b => b.type === "externalHtml"));
 
   const renderBlock = (block: Block) => {
     const c = block.content || {};
@@ -205,9 +206,9 @@ export default function SitePage({ params }: { params: Promise<{ slug: string }>
         </section>
       ) : null}
 
-      <footer className="ps-footer">
+      {!hasImportedLayout && <footer className="ps-footer">
         <p>{site.name} · Desenvolvido por <a href="https://vexorasuite.com.br" target="_blank" rel="noopener noreferrer">Véxora Suite</a></p>
-      </footer>
+      </footer>}
     </main>
   );
 }

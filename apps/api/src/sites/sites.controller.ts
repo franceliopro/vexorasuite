@@ -478,7 +478,7 @@ export class SitesController {
     const page = await this.ownPage(req, pageId);
     const block = await this.prisma.siteBlock.findFirst({ where: { id: blockId, pageId: page.id } });
     if (!block) throw new NotFoundException("Bloco não encontrado.");
-    if (block.type !== "externalHtml") throw new BadRequestException("Apenas sites importados podem ser trazidos para o editor.");
+    if (block.type !== "externalHtml") throw new BadRequestException(block.type === "freeLayout" ? "Este site já foi trazido para o editor (layout editável)." : "Apenas sites importados podem ser trazidos para o editor.");
     const html = String((block.content as any)?.html || "");
     if (html.trim().length < 20) throw new BadRequestException("Este site importado está vazio.");
     const styles: string[] = [];

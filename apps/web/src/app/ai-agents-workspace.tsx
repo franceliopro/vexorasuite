@@ -221,7 +221,7 @@ export function AiAgentsWorkspace() {
     if (!geminiWebDesigner || !geminiGeneral) return;
     setGeminiPresetApplied(true);
     setPrimaryModel({ provider: "gemini", model: geminiGeneral.id, tier: "Econômico" });
-    setFallbackModels([{ provider: "gemini", model: geminiWebDesigner.id, tier: "Inteligente" }]);
+    setFallbackModels(current => current.some(model => model?.model) ? current : [{ provider: "gemini", model: geminiWebDesigner.id, tier: "Inteligente" }]);
     const designer = (agents.find(a => String(a.id) === "vexora:web-designer") || agents.find(a => a.name === "Design Gráfico & Web")) ?? undefined;
     if (designer) setAgents(items => items.map(a => a.id === designer.id ? { ...a, llm: { provider: "gemini", model: geminiWebDesigner.id, tier: "Inteligente" } } : a));
     setNotice("Aplicado: gemini-3.8-flash no Web Designer (site/relayout) e gemini-3.5-flash-lite na configuração geral. Verifique e clique em \"Salvar configuração\" para persistir.");
@@ -341,8 +341,32 @@ export function AiAgentsWorkspace() {
           <label>Nome padrão<input value={assistantName} onChange={e => setAssistantName(e.target.value)}/></label>
           <label>Comando de ativação<input value={wakeWord} onChange={e => setWakeWord(e.target.value)}/></label>
           <label>Ativação<select value={activation} onChange={e => setActivation(e.target.value)}><option>Clique ou texto</option><option>Ditado por clique</option></select></label>
-          <label>Limite diário de execuções com IA<input type="number" min={0} max={10000} value={dailyAiLimit} onChange={e=>setDailyAiLimit(Number(e.target.value))}/><small>0 desativa chamadas a modelos. Regras, consultas e Skills continuam funcionando.</small></label>{aiUsage && <p className="ai-admin-note" role="status">IA usada em {aiUsage.month}: <strong>{aiUsage.used}</strong> execuções{aiUsage.limit != null ? ` de ${aiUsage.limit} incluídas no plano deste mês` : " (sem cota mensal contratada)"}. O limite diário acima é a proteção real; a cota mensal não bloqueia nada — só avisa.</p>}<p className="ai-admin-note"><Sparkles size={12} aria-hidden="true"/> O botão <strong>Melhorar com IA</strong> no compositor do Atendimento usa o modelo mais barato já configurado (gratuito primeiro) — não precisa de agente próprio.</p><p className="ai-admin-note">Ollama gera texto. Para ouvir e falar, configure também o serviço de voz local. Os modelos abaixo são os encontrados no servidor; o perfil indica tamanho aproximado, não garante qualidade ou velocidade.</p><div className="ai-model-presets">{(["Econômico","Equilíbrio","Inteligente"] as const).map(tier=>{const model=(catalog.models||[]).find(model=>model.provider==="ollama"&&model.tier===tier);return <button type="button" className="secondary-button" key={tier} disabled={!model} onClick={()=>{if(model){setPrimaryModel({provider:"ollama",model:model.id,tier});setFallbackModels([])}}}>{tier}{model?" · "+model.id:" · nenhum instalado"}</button>})}</div>{(catalog.services||[]).filter(service=>service.provider!=="openrouter"&&!service.available).map(service=><p role="status" key={service.provider}>{service.provider}: {service.message}</p>)}<label>Provedor<select value={primaryModel.provider} onChange={e=>{setPrimaryModel({provider:e.target.value,model:"",tier:"Econômico"});setFallbackModels([])}}>{Object.entries(llmLabels).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><AiModelPicker label="Modelo principal da assistente" provider={primaryModel.provider} value={primaryModel.model} models={catalog.models||[]} onChange={model=>setPrimaryModel(m=>({...m,model}))}/>
-          <p className="ai-admin-note">Regras e Skills executam primeiro. Os modelos de contingência só são chamados quando o anterior falha ou não entrega o formato exigido.</p>{[0,1].map(i=><AiModelPicker key={i} label={"Contingência "+(i+1)+" · opcional"} provider={primaryModel.provider} value={fallbackModels[i]?.model||""} models={catalog.models||[]} onChange={model=>setFallbackModels(current=>{const next=[...current];next[i]={provider:primaryModel.provider,model,tier:i===0?"Equilíbrio":"Inteligente"};return next})}/>)}
+          <label>Limite diário de execuções com IA<input type="number" min={0} max={10000} value={dailyAiLimit} onChange={e=>setDailyAiLimit(Number(e.target.value))}/><small>0 desativa chamadas a modelos. Regras, consultas e Skills continuam funcionando.</small></label>{aiUsage && <p className="ai-admin-note" role="status">IA usada em {aiUsage.month}: <strong>{aiUsage.used}</strong> execuções{aiUsage.limit != null ? ` de ${aiUsage.limit} incluídas no plano deste mês` : " (sem cota mensal contratada)"}. O limite diário acima é a proteção real; a cota mensal não bloqueia nada — só avisa.</p>}<p className="ai-admin-note"><Sparkles size={12} aria-hidden="true"/> O botão <strong>Melhorar com IA</strong> no compositor do Atendimento usa o modelo mais barato já configurado (gratuito primeiro) — não precisa de agente próprio.</p><p className="ai-admin-note">Ollama gera texto. Para ouvir e falar, configure também o serviço de voz local. Os modelos abaixo são os encontrados no servidor; o perfil indica tamanho aproximado, não garante qualidade ou velocidade.</p><div className="ai-model-presets">{(["Econômico","Equilíbrio","Inteligente"] as const).map(tier=>{const model=(catalog.models||[]).find(model=>model.provider==="ollama"&&model.tier===tier);return <button type="button" className="secondary-button" key={tier} disabled={!model} onClick={()=>{if(model){setPrimaryModel({provider:"ollama",model:model.id,tier})}}}>{tier}{model?" · "+model.id:" · nenhum instalado"}</button>})}</div>{(catalog.services||[]).filter(service=>service.provider!=="openrouter"&&!service.available).map(service=><p role="status" key={service.provider}>{service.provider}: {service.message}</p>)}<label>Provedor<select value={primaryModel.provider} onChange={e=>{setPrimaryModel({provider:e.target.value,model:"",tier:"Econômico"})}}>{Object.entries(llmLabels).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><AiModelPicker label="Modelo principal da assistente" provider={primaryModel.provider} value={primaryModel.model} models={catalog.models||[]} onChange={model=>setPrimaryModel(m=>({...m,model}))}/>
+          <p className="ai-admin-note">Escolha os modelos que podem assumir quando o principal falhar, inclusive de outro provedor.</p>
+          {[0, 1].map(index => {
+            const saved = fallbackModels[index];
+            const provider = saved?.provider || "";
+            const model = saved?.model || "";
+            const models = catalog.models || [];
+            const setFallback = (nextProvider: string, nextModel: string) => {
+              setFallbackModels(current => {
+                const next = [...current];
+                next[index] = { provider: nextProvider, model: nextModel, tier: saved?.tier || (index === 0 ? "Equilíbrio" : "Inteligente") };
+                return next;
+              });
+            };
+            const missing = catalog.models && model && model !== "openrouter/free" && !models.some(entry => entry.provider === provider && entry.id === model);
+            return <fieldset key={index}>
+              <legend>Contingência {index + 1} · opcional</legend>
+              <label>Provedor<select value={provider} onChange={event => setFallback(event.target.value, "")}>
+                <option value="">Sem contingência</option>
+                {provider && !llmLabels[provider] && <option value={provider}>{provider}</option>}
+                {Object.entries(llmLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select></label>
+              {provider && <AiModelPicker label="Modelo" provider={provider} value={model} models={models} onChange={value => setFallback(provider, value)}/>}
+              {missing && <small>{model} · salvo, mas não retornado pelo catálogo do provedor.</small>}
+            </fieldset>;
+          })}
           <label className="ai-toggle"><input type="checkbox" checked={assistantEnabled} onChange={async e => { const value = e.target.checked; setAssistantEnabled(value); const ok = await save({ enabled: value }); if (!ok) setAssistantEnabled(current => current === value ? !value : current); }}/> Permitir IA da Véxora nesta empresa (salva imediatamente)</label><p className="ai-admin-note">Este controle libera a IA configurada. Para responder clientes, ainda é preciso publicar um fluxo e associá-lo ao canal correto. O teste nesta tela não envia mensagens.</p>
           <section className="ai-subtle-card">
             <h3>Atendimento aos clientes</h3>

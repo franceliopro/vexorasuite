@@ -694,7 +694,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       } else if (channel.provider === 'ZERNIO') {
         const meta = object(conversation.contact.metadata), config = object(channel.settings);
         if (!meta.externalConversationId || !config.accountId || meta.accountId !== config.accountId || meta.provider !== 'ZERNIO') throw new Error('Invalid social account binding');
-        const response = await this.zernio.request<any>('/inbox/conversations/'+encodeURIComponent(meta.externalConversationId)+'/messages', { method: 'POST', body: { accountId: config.accountId, message: content }, idempotencyKey: messageId });
+        const response = await this.zernio.request<any>('/inbox/conversations/'+encodeURIComponent(meta.externalConversationId)+'/messages', { method: 'POST', body: { accountId: config.accountId, message: content }, idempotencyKey: messageId }, channel.tenantId);
         providerMessageId = response?.data?.messageId || response?.id || null;
       } else throw new Error('Unsupported channel');
       const sent = await this.prisma.message.update({ where: { id: messageId }, data: { status: 'SENT', providerMessageId } });

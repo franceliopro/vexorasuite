@@ -17,14 +17,23 @@ test("ignores an absent, short or malformed token", () => {
   assert.equal(resetTokenFromSearch("?reset=<script>alert(1)</script>"), null);
 });
 
-test("requires a password of at least twelve characters", () => {
-  assert.equal(passwordProblem("curta123"), "A senha deve ter pelo menos 12 caracteres.");
-  assert.equal(passwordProblem("a".repeat(12)), null);
+test("requires eight characters and every character category", () => {
+  assert.equal(passwordProblem("Ab1234@"), "A senha deve ter pelo menos 8 caracteres.");
+  assert.equal(passwordProblem("Abc1234@"), null);
+  for (const password of ["abc1234@", "ABC1234@", "Abcdefg@", "Abc12345", "Abc1234~"]) {
+    assert.match(passwordProblem(password), /maiúscula/);
+  }
+});
+
+test("recognizes every listed symbol, including backslash and cedilla", () => {
+  for (const symbol of "@#$%&*()_-=+/\\|ç{[}]'!;:?") {
+    assert.equal(passwordProblem("Abc1234" + symbol), null);
+  }
 });
 
 test("requires the confirmation to match", () => {
-  assert.equal(passwordProblem("umaSenhaMuitoForte1", "outraSenha123"), "As senhas não coincidem.");
-  assert.equal(passwordProblem("umaSenhaMuitoForte1", "umaSenhaMuitoForte1"), null);
+  assert.equal(passwordProblem("Abc1234@", "outraSenha123"), "As senhas não coincidem.");
+  assert.equal(passwordProblem("Abc1234@", "Abc1234@"), null);
 });
 
 test("rejects an oversized password", () => {

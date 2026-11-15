@@ -115,42 +115,48 @@ describe("password reset — completion", () => {
 
   it("writes the new password, consumes the token and drops every session", async () => {
     const { service, userUpdate, tx } = setup({ record: record() });
-    await expect(service.resetPassword({ token: "segredo", password: "umaSenhaMuitoForte1" })).resolves.toEqual({ reset: true });
+    await expect(service.resetPassword({ token: "segredo", password: "Abc1234@" })).resolves.toEqual({ reset: true });
     expect(userUpdate).toHaveBeenCalledTimes(1);
     const data = userUpdate.mock.calls[0][0].data;
     expect(data.mustChangePassword).toBe(false);
     expect(data.authVersion).toEqual({ increment: 1 });
     // The stored hash is bcrypt, never the raw password.
-    expect(data.passwordHash).not.toBe("umaSenhaMuitoForte1");
+    expect(data.passwordHash).not.toBe("Abc1234@");
     expect(String(data.passwordHash)).toMatch(/^\$2[aby]\$/);
     expect(tx.passwordResetToken.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "token-id", usedAt: null } }),
     );
   });
 
+  it.each(["abc1234@", "ABC1234@", "Abcdefg@", "Abc12345", "Abc1234~", "Ab123@"])("rejects a password that misses a policy requirement", async password => {
+    const { service, userUpdate } = setup({ record: record() });
+    await expect(service.resetPassword({ token: "segredo", password })).rejects.toThrow(/senha|maiúscula/i);
+    expect(userUpdate).not.toHaveBeenCalled();
+  });
+
   it("rejects an already used link", async () => {
     const { service } = setup({ record: record({ usedAt: new Date() }) });
-    await expect(service.resetPassword({ token: "segredo", password: "umaSenhaMuitoForte1" })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.resetPassword({ token: "segredo", password: "Abc1234@" })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("rejects an expired link", async () => {
     const { service } = setup({ record: record({ expiresAt: new Date(Date.now() - 1000) }) });
-    await expect(service.resetPassword({ token: "segredo", password: "umaSenhaMuitoForte1" })).rejects.toThrow(/expirou/);
+    await expect(service.resetPassword({ token: "segredo", password: "Abc1234@" })).rejects.toThrow(/expirou/);
   });
 
   it("rejects an unknown token", async () => {
     const { service } = setup({ record: null });
-    await expect(service.resetPassword({ token: "qualquer", password: "umaSenhaMuitoForte1" })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.resetPassword({ token: "qualquer", password: "Abc1234@" })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("rejects a link of a deactivated user", async () => {
     const { service } = setup({ record: record({ user: { id: "user-1", isActive: false } }) });
-    await expect(service.resetPassword({ token: "segredo", password: "umaSenhaMuitoForte1" })).rejects.toThrow(/expirou/);
+    await expect(service.resetPassword({ token: "segredo", password: "Abc1234@" })).rejects.toThrow(/expirou/);
   });
 
   it("rejects when another request consumed the token first", async () => {
     const { service, tx } = setup({ record: record(), consumeCount: 0 });
     tx.passwordResetToken.updateMany.mockResolvedValueOnce({ count: 0 });
-    await expect(service.resetPassword({ token: "segredo", password: "umaSenhaMuitoForte1" })).rejects.toThrow(/expirou/);
+    await expect(service.resetPassword({ token: "segredo", password: "Abc1234@" })).rejects.toThrow(/expirou/);
   });
 });

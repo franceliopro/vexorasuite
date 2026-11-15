@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS, passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
 
 export interface AuthSession {
   allowedModules?:string[]; departmentIds?:string[];
@@ -85,6 +85,10 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
         return;
       }
       const registering = mode === "register";
+      if (registering) {
+        const problem = passwordProblem(password);
+        if (problem) throw new Error(problem);
+      }
       const response = await fetch(registering ? "/api/backend/auth/register" : "/api/backend/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -139,8 +143,8 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
           {mode === "login" ? <label className="auth-field">Identificador da empresa<input value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} minLength={3} maxLength={80} required autoComplete="organization" placeholder="Identificador fornecido pela administração" /></label> : null}
           {mode === "forgot" ? <label className="auth-field">Identificador da empresa (opcional)<input value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} maxLength={80} autoComplete="organization" placeholder="Ajuda a localizar a conta" /></label> : null}
           {mode !== "reset" ? <label className="auth-field">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} required autoComplete="email" /></label> : null}
-          {mode !== "forgot" ? <label className="auth-field">{mode === "reset" ? "Nova senha" : "Senha"}<div className="auth-password-wrap"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={mode === "login" ? 1 : 12} maxLength={128} required autoComplete={mode === "login" ? "current-password" : "new-password"} /><EyeToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} /></div></label> : null}
-          {mode === "reset" ? <label className="auth-field">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={12} maxLength={128} required autoComplete="new-password" /></label> : null}
+          {mode !== "forgot" ? <label className="auth-field">{mode === "reset" ? "Nova senha" : "Senha"}<div className="auth-password-wrap"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={mode === "login" ? 1 : PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete={mode === "login" ? "current-password" : "new-password"} /><EyeToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} /></div></label> : null}
+          {mode === "reset" ? <label className="auth-field">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete="new-password" /></label> : null}
           {notice ? <p className="auth-notice" role="status">{notice}</p> : null}
           {error ? <p className="auth-error" role="alert">{error}</p> : null}
           <button className="primary-button auth-submit" type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
@@ -148,7 +152,8 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
         {mode === "login" ? <div className="auth-switch"><button type="button" onClick={() => switchMode("forgot")}>Esqueceu a senha?</button></div> : null}
         {mode === "forgot" || mode === "reset" ? <div className="auth-switch"><span>{mode === "forgot" ? "Lembrou a senha?" : "Não solicitou a troca?"}</span><button type="button" onClick={() => switchMode("login")}>Voltar para entrar</button></div> : null}
         {registrationEnabled && mode !== "forgot" && mode !== "reset" ? <div className="auth-switch"><span>{mode === "register" ? "Já tem uma conta?" : "Primeira vez na Véxora Suite?"}</span><button type="button" onClick={() => switchMode(mode === "register" ? "login" : "register")}>{mode === "register" ? "Entrar" : "Criar workspace"}</button></div> : null}
-        {mode === "register" ? <p className="auth-footnote">A senha deve ter pelo menos 12 caracteres. Guarde o identificador da empresa retornado após o cadastro.</p> : null}
+        {mode === "register" || mode === "reset" ? <p className="auth-footnote">{PASSWORD_REQUIREMENTS}</p> : null}
+        {mode === "register" ? <p className="auth-footnote">Guarde o identificador da empresa retornado após o cadastro.</p> : null}
       </section>
     </main>
   );

@@ -4518,3 +4518,21 @@ input[type=tel]{letter-spacing:.02em}
 .finalization-reason select{min-height:44px}
 .finalization-note{margin:10px 0 0;font-size:11px;color:var(--tx2);line-height:1.5}
 @media(max-width:560px){.finalization-outcomes{grid-template-columns:1fr}}
+
+/* Balao de ajuda do editor de canal (o que cada opcao faz) */
+.channels-help{border:1px solid color-mix(in srgb,var(--primary) 22%,var(--ln));border-radius:12px;background:color-mix(in srgb,var(--primary) 5%,var(--s2));overflow:hidden}
+.channels-help summary{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;font:750 11.5px/1.3 'Manrope',sans-serif;color:var(--primary-ink);list-style:none;user-select:none}
+.channels-help summary::-webkit-details-marker{display:none}
+.channels-help summary span{display:inline}
+.channels-help[open] summary{border-bottom:1px dashed color-mix(in srgb,var(--primary) 24%,var(--ln))}
+.channels-help-body{display:grid;gap:12px;padding:12px 14px;font-size:12px;line-height:1.5;color:var(--tx2)}
+.channels-help-body section{display:grid;gap:6px}
+.channels-help-body h4{margin:0;font:800 11px/1.2 'Manrope',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--tx)}
+.channels-help-body dl{display:grid;gap:7px;margin:0}
+.channels-help-body dl>div{display:grid;gap:2px}
+.channels-help-body dt{font-weight:800;color:var(--tx)}
+.channels-help-body dt strong{color:var(--primary-ink)}
+.channels-help-body dd{margin:0;font-size:11.5px}
+.channels-help-body small{display:block;color:var(--tx2);margin-top:2px}
+.channels-help-body ol{margin:0;padding-left:18px;display:grid;gap:5px}
+.channels-help-body li{line-height:1.5}

@@ -107,6 +107,7 @@ model Tenant {
   plan                 Plan?                 @relation(fields: [planId], references: [id], onDelete: SetNull)
   sites                Site[]
   siteAssets           SiteAsset[]
+  siteFolders          SiteFolder[]
   propertyApplications PropertyApplication[]
   propertyScopes       PropertyScope[]
 
@@ -838,11 +839,23 @@ model SiteBlock {
   @@map("site_blocks")
 }
 
+model SiteFolder {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  path       String
+  createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, path])
+  @@map("site_folders")
+}
+
 model SiteAsset {
   id         String   @id @default(uuid()) @db.Uuid
   tenantId   String   @map("tenant_id") @db.Uuid
   name       String   @default("")
   kind       String   @default("image")
+  folder     String   @default("/")
   mimeType   String   @map("mime_type")
   width      Int
   height     Int
@@ -851,6 +864,7 @@ model SiteAsset {
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, kind, createdAt])
+  @@index([tenantId, folder])
   @@map("site_assets")
 }
 

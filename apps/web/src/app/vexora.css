@@ -4480,3 +4480,7 @@ input[type=tel]{letter-spacing:.02em}
 /* Pagina publica do chatbot - widget e snippet de embed */
 .public-page-widget{display:grid;gap:8px;padding:10px 12px;border:1px dashed var(--ln2);border-radius:12px;background:var(--s2)}
 .public-page-widget-code{display:block;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;background:#0B1220;color:#DDE8FF;font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-x:auto;white-space:nowrap}
+
+/* Fotos do site no wizard e no Studio */
+.sites-photos-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:4px 0 10px}
+.sites-photo-dest{width:100%;min-height:30px;border:1px solid var(--ln);border-radius:8px;background:var(--s2);color:var(--tx);font-size:11px;padding:0 6px}

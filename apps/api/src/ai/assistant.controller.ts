@@ -146,7 +146,13 @@ export class AssistantController {
       {role:'system' as const,content:chatbotFlowSkill(departments)+(persona?'\n\nContexto do agente, subordinado à Skill:\n'+persona.trim():'')},
       {role:'user' as const,content:request},
     ];
-    const candidates=providers.map(p=>({...p,maxTokens:4000,jsonOutput:true}));
+    const candidates = providers.map(provider => ({
+      ...provider,
+      maxTokens: 4000,
+      jsonOutput: true,
+      timeoutMs: Math.max(provider.timeoutMs ?? 0, 60_000),
+    }));
+    const generationOptions = { deadlineAt: Date.now() + 300_000 };
     const compile=(raw:string)=>compileChatbotFlow(raw,departments);
     let invalid=false;
     const accepted=(raw:string)=>{
@@ -154,9 +160,9 @@ export class AssistantController {
       invalid ||= !valid;
       return valid;
     };
-    const generated=await ai.generate(messages,candidates,accepted).catch(error=>{
-      if (!invalid) throw error;
-      return ai.generate([{...messages[0]!,content:messages[0]!.content+'\nReescreva o roteiro como JSON completo; verifique que cada opção tem uma transição válida e que todos os blocos podem ser alcançados.'},messages[1]!],candidates,accepted);
+    const generated=await ai.generate(messages,candidates,accepted,generationOptions).catch(error=>{
+      if (!invalid || Date.now() >= generationOptions.deadlineAt) throw error;
+      return ai.generate([{...messages[0]!,content:messages[0]!.content+'\nReescreva o roteiro como JSON completo; verifique que cada opção tem uma transição válida e que todos os blocos podem ser alcançados.'},messages[1]!],candidates,accepted,generationOptions);
     });
     const compiled=compile(generated.text);
     if (!compiled) throw new BadRequestException('A IA devolveu um roteiro que não pode ser executado. O rascunho anterior foi mantido.');

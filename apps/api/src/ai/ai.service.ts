@@ -17,14 +17,18 @@ function anthropicImage(url: string) {
 
 @Injectable()
 export class AiService {
-  async generate(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean = () => true): Promise<AiResult> {
+  async generate(messages: AiMessage[], providers: AiProvider[], accept: (text: string) => boolean = () => true, options: { deadlineAt?: number } = {}): Promise<AiResult> {
     if (!messages.length || !providers.length) throw new BadRequestException("Messages and providers required");
     const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     let invalidContent=false;const failures:string[]=[];
     for (const p of providers.slice(0,3)) {
       if (!p.apiKey || !p.model) continue;
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), Math.min(Math.max(p.timeoutMs ?? 30000, 1000), p.provider === "llama-cpp" || p.provider === "ollama" ? 300000 : 175000));
+      const remainingMs = options.deadlineAt === undefined ? Infinity : options.deadlineAt - Date.now();
+      if (remainingMs <= 0) break;
+      const providerLimitMs = p.provider === "llama-cpp" || p.provider === "ollama" ? 300_000 : 175_000;
+      const timeoutMs = Math.min(Math.max(p.timeoutMs ?? 30_000, 1_000), providerLimitMs, remainingMs);
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const local = localLlmOrigin(p.provider);
         const remote = remoteProviders[p.provider as keyof typeof remoteProviders];
@@ -69,6 +73,9 @@ export class AiService {
       } finally {
         clearTimeout(timeout);
       }
+    }
+    if (options.deadlineAt !== undefined && Date.now() >= options.deadlineAt) {
+      throw new BadGatewayException("A criação do fluxo excedeu o tempo de geração. Tente novamente.");
     }
     throw new BadGatewayException(invalidContent?'A IA respondeu, mas o roteiro não veio no formato esperado. Tente novamente.':'Não foi possível obter resposta dos provedores de IA. '+failures.join('; '));
   }

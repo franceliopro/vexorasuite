@@ -1,4 +1,4 @@
-﻿-- Pastas do gerenciador de arquivos dos sites (Camada de organização sobre site_assets).
+﻿-- Pastas do gerenciador de arquivos dos sites.
 CREATE TABLE "site_folders" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
   "tenant_id" UUID NOT NULL,

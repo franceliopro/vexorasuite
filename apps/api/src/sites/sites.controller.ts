@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, ServiceUnavailableException, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, ServiceUnavailableException, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -20,6 +20,9 @@ import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM, 
 import { buildPremiumTemplate, templateForArea, buildPremiumPage, type PremiumTemplateId } from "./premium-templates";
 import { readPropertyLists, sanitizePropertyData, sanitizePropertyLists, scopeForRequest, assertItemInScope, itemCategory, DEFAULT_LISTS, PROPERTY_STATUS, STATUS_LABEL } from "./real-estate";
 import sharp from "sharp";
+import { FileInterceptor } from "@nestjs/platform-express";
+import AdmZip from "adm-zip";
+import { inspectSiteZip, rewriteZipReferences, assignZipSlugs, processZipAsset, normalizeZipPath } from "./zip-site";
 import { WahaService } from "../operations/waha.service";
 import { MailService } from "../mail/mail.service";
 import { Optional } from "@nestjs/common";
@@ -41,6 +44,20 @@ function safeUrl(v: unknown): string | null {
   return isHttp(s) || /^\/(?!\/)/.test(s) || /^#/.test(s) ? s.slice(0, 2000) : null;
 }
 const PAGE_KINDS = ["HOME","SERVICES","TEAM","IMOVEIS","POSTS","CONTACT","LANDING","CUSTOM"] as const;
+
+/** Bloco inicial de uma página nova — o nome da página em um bloco editável. */
+export function defaultHeroBlockFor(title: string) {
+  const safe = String(title || "Página").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return {
+    type: "freeLayout",
+    content: {
+      html: '<section class="page-hero"><h1>' + safe + "</h1></section>",
+      css: ".page-hero{padding:72px 6vw 64px}.page-hero h1{margin:0;font:800 clamp(28px,4vw,44px)/1.15 'Manrope',sans-serif;color:inherit}",
+      title,
+    },
+    sortOrder: 0,
+  };
+}
 const BLOCK_TYPES = ["hero","richText","services","gallery","testimonials","faq","cta","posts","properties","contact","spacer","divider","layout","freeLayout","externalHtml"] as const;
 
 /** Véxora Sites — API do produto Sites (criação, edição, publicação e domínio). */
@@ -541,13 +558,113 @@ export class SitesController {
     let slug = slugBase, attempt = 0;
     while (await this.prisma.sitePage.findFirst({ where: { siteId: site.id, slug } })) { slug = slugBase + "-" + randomBytes(2).toString("hex"); if (++attempt > 20) throw new BadRequestException("Slugs esgotados."); }
     const count = await this.prisma.sitePage.count({ where: { siteId: site.id } });
-    return this.prisma.sitePage.create({ data: { siteId: site.id, slug, title, kind: PAGE_KINDS[str(body?.kind, 20) as any] || "CUSTOM", sortOrder: count } });
+    const starter = defaultHeroBlockFor(title);
+    return this.prisma.sitePage.create({
+      data: {
+        siteId: site.id,
+        slug,
+        title,
+        kind: PAGE_KINDS[str(body?.kind, 20) as any] || "CUSTOM",
+        sortOrder: count,
+        blocks: { create: [{ type: starter.type, content: starter.content as any, sortOrder: 0 }] },
+      },
+      include: { blocks: true },
+    });
+  }
+
+  /**
+   * Importa um site completo em .zip: descompacta o HTML e os assets (imagens, fontes, CSS, JS),
+   * cria/atualiza uma página por arquivo e religa as referências ao repositório de arquivos da empresa.
+   * O zip é processado 100% em memória — nunca toca o disco.
+   */
+  @Post(":id/import-zip")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 30 * 1024 * 1024, files: 1 } }))
+  async importZip(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @UploadedFile() file?: { buffer: Buffer; size: number; mimetype: string; originalname: string }) {
+    const site = await this.ownSite(req, id);
+    const tenantId = site.tenantId;
+    if (!file) throw new BadRequestException("Envie o zip do site (o arquivo deve terminar em .zip).");
+    const name = String(file.originalname || "").toLowerCase();
+    if (!name.endsWith(".zip") && !["application/zip", "application/x-zip-compressed", "application/octet-stream"].includes(String(file.mimetype || "").toLowerCase())) {
+      throw new BadRequestException("Envie um arquivo .zip (ex.: botao direito → Enviar para → Pasta compactada no Windows).");
+    }
+    const slugBase = safeSlug(site.slug || site.name) || "site";
+    let inspection;
+    try { inspection = inspectSiteZip(file.buffer, "/importados/" + slugBase); }
+    catch (e) { throw new BadRequestException(e instanceof Error ? e.message : "Não foi possível ler o zip."); }
+
+    const zip = new AdmZip(file.buffer);
+    const entryByName = new Map(zip.getEntries().map(e => [normalizeZipPath(e.entryName), e]));
+    // Passa 1 — armazena os assets e monta o índice caminho → id de asset público
+    const pathToId = new Map<string, string>();
+    let assetsStored = 0, assetsSkipped = 0, totalBytes = 0;
+    for (const asset of inspection.assets) {
+      const entry = entryByName.get(asset.zipPath) || null;
+      const raw = entry?.getData();
+      if (!raw || raw.length > 8 * 1024 * 1024) { assetsSkipped++; continue; }
+      if (totalBytes + raw.length > 40 * 1024 * 1024) { assetsSkipped++; continue; }
+      totalBytes += raw.length;
+      for (const chain of folderChainOf(asset.folder)) {
+        await this.prisma.siteFolder.upsert({
+          where: { tenantId_path: { tenantId, path: chain } },
+          create: { tenantId, path: chain },
+          update: {},
+        });
+      }
+      const processed = await processZipAsset(raw, asset);
+      const finalName = (asset.processImage ? asset.fileName.replace(/\.[a-z0-9]{2,6}$/i, "") + ".webp" : asset.fileName).slice(0, 120);
+      const created = await this.prisma.siteAsset.create({
+        data: { tenantId, name: finalName, kind: asset.kind, folder: asset.folder, mimeType: processed.mimeType, width: processed.width, height: processed.height, bytes: new Uint8Array(processed.data) },
+        select: { id: true },
+      });
+      pathToId.set(asset.zipPath, created.id);
+      assetsStored++;
+    }
+
+    // Passa 2 — cria/atualiza uma página por arquivo HTML
+    const slugByZip = assignZipSlugs(inspection.pages);
+    const ordered = [...inspection.pages].sort((a, b) => Number(b.isHome) - Number(a.isHome));
+    let pagesCreated = 0, pagesReplaced = 0, pagesSkipped = 0;
+    for (const page of ordered) {
+      const slug = slugByZip.get(page.zipPath)!;
+      const html = rewriteZipReferences(page.html, page.zipPath, pathToId, slugByZip);
+      if (html.length > 600_000) { pagesSkipped++; continue; }
+      const kind = page.isHome ? "HOME" : "CUSTOM";
+      const title = page.title.slice(0, 80);
+      const existing = await this.prisma.sitePage.findFirst({ where: { siteId: site.id, slug } });
+      if (existing) {
+        await this.prisma.$transaction(async tx => {
+          await tx.sitePage.update({ where: { id: existing.id }, data: { title, hidden: false } });
+          await tx.siteBlock.deleteMany({ where: { pageId: existing.id } });
+          await tx.siteBlock.create({ data: { pageId: existing.id, type: "externalHtml", content: { html, title }, sortOrder: 0 } });
+        });
+        pagesReplaced++;
+      } else {
+        await this.prisma.sitePage.create({
+          data: {
+            siteId: site.id, slug, title, kind, sortOrder: slug === "inicio" ? 0 : 1 + pagesCreated + pagesReplaced,
+            blocks: { create: [{ type: "externalHtml", content: { html, title }, sortOrder: 0 }] },
+          },
+        });
+        pagesCreated++;
+      }
+    }
+    return { ok: true, pagesCreated, pagesReplaced, pagesSkipped, assetsStored, assetsSkipped, filesSeen: inspection.pages.length + inspection.assets.length };
   }
 
   @Patch("pages/:pageId") async updatePage(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Body() body: any) {
     const page = await this.ownPage(req, pageId);
     const data: any = {};
     if (body?.title !== undefined) { const title = str(body.title, 60); if (title.length < 2) throw new BadRequestException("Título inválido."); data.title = title; }
+    if (body?.slug !== undefined) {
+      const slug = safeSlug(str(body.slug, 60));
+      if (!slug || slug.length < 2 || /[^a-z0-9-]/.test(slug)) throw new BadRequestException("Endereço inválido — use letras minúsculas, números e hífen.");
+      if (page.slug === "inicio") throw new BadRequestException("O endereço da página inicial é fixo em “inicio” — o nome dela pode ser alterado normalmente.");
+      if (slug !== page.slug) {
+        const exists = await this.prisma.sitePage.findFirst({ where: { siteId: page.siteId, slug, NOT: { id: page.id } } });
+        if (exists) throw new BadRequestException("Já existe uma página com esse endereço.");
+        data.slug = slug;
+      }
+    }
     if (body?.hidden !== undefined) data.hidden = body.hidden === true;
     if (body?.sortOrder !== undefined) data.sortOrder = Math.max(0, Math.min(999, Number(body.sortOrder) || 0));
     return this.prisma.sitePage.update({ where: { id: page.id }, data });

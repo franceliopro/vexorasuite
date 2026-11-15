@@ -38,6 +38,7 @@ services:
   api:
     volumes:
       - automation_media:/var/lib/vexora/media
+      - sites_static:/usr/share/nginx/html
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -363,6 +364,15 @@ services:
       retries: 10
 
 
+  # Static bundles uploaded by the app: extracted here and served by nginx.
+  static:
+    image: nginx:alpine
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - sites_static:/usr/share/nginx/html:ro
+
   waha:
     image: ${WAHA_IMAGE:-devlikeapro/waha:gows}
     restart: unless-stopped
@@ -396,3 +406,4 @@ volumes:
   redis_data:
   pgadmin_data:
   waha_sessions:
+  sites_static:

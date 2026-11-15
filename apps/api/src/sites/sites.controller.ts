@@ -4,7 +4,9 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { Blueprint, blueprintFor, BUSINESS_AREAS } from "./blueprint";
 import { normalizePrice } from "./money";
-import { fetchTextGuarded } from "./fetch-guarded";
+import { fetchTextGuarded, fetchBinaryGuarded } from "./fetch-guarded";
+import { extractAssetRefs, resolveAssetUrl, assetFileNameOf, replaceAll } from "./asset-mirror";
+import { folderChainOf } from "./folder-path";
 import { randomBytes } from "node:crypto";
 import { promises as dns } from "node:dns";
 import { AiMessage, AiProvider, AiService } from "../ai/ai.service";
@@ -17,6 +19,7 @@ import { searxngSearch } from "../ai/local-services";
 import { parseSiteDesign, parseSitePage, editableSitePages, SITE_DESIGN_SYSTEM, sanitizeFreeLayout } from "./relayout";
 import { buildPremiumTemplate, templateForArea, buildPremiumPage, type PremiumTemplateId } from "./premium-templates";
 import { readPropertyLists, sanitizePropertyData, sanitizePropertyLists, scopeForRequest, assertItemInScope, itemCategory, DEFAULT_LISTS, PROPERTY_STATUS, STATUS_LABEL } from "./real-estate";
+import sharp from "sharp";
 import { WahaService } from "../operations/waha.service";
 import { MailService } from "../mail/mail.service";
 import { Optional } from "@nestjs/common";
@@ -372,7 +375,13 @@ export class SitesController {
         await tx.siteBlock.deleteMany({ where: { pageId: home.id } });
         await tx.siteBlock.create({ data: { pageId: home.id, type: "externalHtml", content: { html, title: name }, sortOrder: 0 } });
       });
-      return { id: target.id, slug: target.slug, name: target.name, import: { isolated: true, replaced: true, source: fetched.finalUrl } };
+      const mirrored = await this.mirrorSiteAssets(tenantId, html, origin, target.slug);
+      if (mirrored.mirrored) {
+        const freshHome = await this.prisma.sitePage.findFirst({ where: { id: home.id }, include: { blocks: true } });
+        const block = freshHome?.blocks.find(b => b.type === "externalHtml");
+        if (block) await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: { html: mirrored.html, title: name } } });
+      }
+      return { id: target.id, slug: target.slug, name: target.name, import: { isolated: true, replaced: true, source: fetched.finalUrl, assetsMirrored: mirrored.mirrored, assetsSkipped: mirrored.skipped } };
     }
     let finalSlug = slugBase, attempt = 0;
     while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slugBase + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
@@ -387,7 +396,114 @@ export class SitesController {
       },
       include: { pages: { include: { blocks: true } } },
     });
-    return { ...site, import: { isolated: true, source: fetched.finalUrl } };
+    const mirror = await this.mirrorSiteAssets(tenantId, html, origin, finalSlug);
+    if (mirror.mirrored) {
+      const home = site.pages[0];
+      const block = home?.blocks.find(b => b.type === "externalHtml");
+      if (block) await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: { html: mirror.html, title: name } } });
+    }
+    return { ...site, import: { isolated: true, source: fetched.finalUrl, assetsMirrored: mirror.mirrored, assetsSkipped: mirror.skipped } };
+  }
+
+  /**
+   * Espelha os assets do site importado para a Véxora: baixa imagens/fontes/CSS/JS
+   * referenciados no HTML e reescreve as referências para /api/backend/public/site-assets/<id>.
+   * Best-effort — falhas em recursos isolados não impedem a importação.
+   */
+  private async mirrorSiteAssets(tenantId: string, html: string, baseUrl: string | null, folderSeed: string): Promise<{ html: string; mirrored: number; skipped: number }> {
+    const refs = extractAssetRefs(html);
+    const folder = "/importados/" + (safeSlug(folderSeed || "site") || "site");
+    for (const current of folderChainOf(folder)) {
+      await this.prisma.siteFolder.upsert({ where: { tenantId_path: { tenantId, path: current } }, create: { tenantId, path: current }, update: {} });
+    }
+    const rewrites: { from: string; to: string }[] = [];
+    let mirrored = 0, skipped = 0;
+    for (const ref of refs) {
+      if (mirrored >= 25) { skipped++; continue; }
+      const abs = resolveAssetUrl(ref.raw, baseUrl || "https://invalid.invalid/");
+      if (!abs || abs.startsWith("/api/backend/public/site-assets/") || !/^https?:/i.test(abs)) { skipped++; continue; }
+      const fileName = (assetFileNameOf(abs) || "arquivo").slice(0, 80);
+      const baseName = fileName.replace(/\.[a-z0-9]{2,6}$/i, "");
+      const ext = fileName.match(/\.[a-z0-9]{2,6}$/i)?.[0] || "";
+      try {
+        const binary = await fetchBinaryGuarded(abs, 3 * 1024 * 1024, 15000, "*/*");
+        const mime = binary.contentType || "application/octet-stream";
+        let asset: { id: string };
+        if (mime.startsWith("image/")) {
+          const normalized = await sharp(Buffer.from(binary.bytes), { failOn: "none" }).rotate().resize({ width: 1920, height: 1920, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
+          asset = await this.prisma.siteAsset.create({ data: { tenantId, name: (safeSlug(baseName) || "imagem") + ".webp", kind: "image", folder, mimeType: "image/webp", width: normalized.info.width, height: normalized.info.height, bytes: new Uint8Array(normalized.data) }, select: { id: true } });
+        } else {
+          asset = await this.prisma.siteAsset.create({ data: { tenantId, name: (safeSlug(baseName) || "arquivo") + ext, kind: "file", folder, mimeType: mime, width: 0, height: 0, bytes: new Uint8Array(binary.bytes) }, select: { id: true } });
+        }
+        const local = "/api/backend/public/site-assets/" + asset.id;
+        rewrites.push({ from: ref.raw, to: local });
+        if (abs !== ref.raw) rewrites.push({ from: abs, to: local });
+        mirrored++;
+      } catch { skipped++; }
+    }
+    let out = html;
+    for (const { from, to } of rewrites) out = replaceAll(out, from, to);
+    return { html: out, mirrored, skipped };
+  }
+
+  /** Espelha os assets do site importado para dentro da Véxora — para rodar sem depender do domínio de origem. */
+  @Post(":id/mirror-assets") async mirrorAssetsEndpoint(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() body: { baseUrl?: string }) {
+    const tenantId = this.tenantOf(req);
+    const site = await this.prisma.site.findFirst({ where: { id, tenantId }, include: { pages: { include: { blocks: true } } } });
+    if (!site) throw new NotFoundException("Site não encontrado nesta empresa.");
+    const home = site.pages.find(p => p.kind === "HOME") || site.pages[0];
+    const block = home?.blocks.find(b => b.type === "externalHtml");
+    if (!block) throw new BadRequestException("Este site não está no formato importado — nada para espelhar.");
+    const html = String((block.content as any)?.html || "");
+    const given = typeof body?.baseUrl === "string" && /^https?:\/\//i.test(body.baseUrl.trim()) ? body.baseUrl.trim() : null;
+    let inferred: string | null = null;
+    if (!given) {
+      const counts = new Map<string, number>();
+      for (const ref of extractAssetRefs(html)) {
+        const abs = resolveAssetUrl(ref.raw, "https://invalid.invalid/");
+        if (abs && /^https:/i.test(abs)) { try { counts.set(new URL(abs).origin, (counts.get(new URL(abs).origin) || 0) + 1); } catch { /* ignora */ } }
+      }
+      let best = "", bestCount = 0; for (const [origin, count] of counts) if (count > bestCount) { best = origin; bestCount = count; }
+      inferred = best ? best + "/" : null;
+    }
+    const base = given || inferred;
+    if (!base) throw new BadRequestException("Não consegui descobrir a origem do site (o HTML não referencia nenhum endereço http). Informe a URL do site original.");
+    const result = await this.mirrorSiteAssets(tenantId, html, base, site.slug);
+    if (result.mirrored || result.html !== html) {
+      await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: { html: result.html, title: (block.content as any)?.title || site.name } } });
+    }
+    return { assetsMirrored: result.mirrored, assetsSkipped: result.skipped, baseUsed: base };
+  }
+
+  /** Religa referências do HTML (imagens etc.) ao que já existe em arquivos da empresa — por nome de arquivo. */
+  @Post(":id/relink-assets") async relinkAssets(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const tenantId = this.tenantOf(req);
+    const site = await this.prisma.site.findFirst({ where: { id, tenantId }, include: { pages: { include: { blocks: true } } } });
+    if (!site) throw new NotFoundException("Site não encontrado nesta empresa.");
+    const home = site.pages.find(p => p.kind === "HOME") || site.pages[0];
+    const block = home?.blocks.find(b => b.type === "externalHtml");
+    if (!block) throw new BadRequestException("Este site não está no formato importado.");
+    const html = String((block.content as any)?.html || "");
+    const assets = await this.prisma.siteAsset.findMany({ where: { tenantId }, select: { id: true, name: true }, take: 1000 });
+    const byName = new Map<string, string>();
+    for (const a of assets) {
+      byName.set(a.name.toLowerCase(), "/api/backend/public/site-assets/" + a.id);
+      const slug = safeSlug(a.name.replace(/\.[a-z0-9]{2,6}$/i, "")).toLowerCase();
+      if (slug) byName.set(slug, "/api/backend/public/site-assets/" + a.id);
+    }
+    let out = html;
+    const rewritten: string[] = [];
+    for (const ref of extractAssetRefs(html)) {
+      const abs = resolveAssetUrl(ref.raw, "https://invalid.invalid/") || "";
+      const name = (assetFileNameOf(abs || ref.raw) || "").toLowerCase();
+      const slug = safeSlug(name.replace(/\.[a-z0-9]{2,6}$/i, "")).toLowerCase();
+      const local = byName.get(name) || (slug ? byName.get(slug) : undefined);
+      if (local) { out = replaceAll(out, ref.raw, local); if (abs && abs !== ref.raw) out = replaceAll(out, abs, local); rewritten.push(name); }
+    }
+    if (rewritten.length) {
+      await this.prisma.siteBlock.update({ where: { id: block.id }, data: { content: { html: out, title: (block.content as any)?.title || site.name } } });
+    }
+    return { rewritten: rewritten.length, uniqueFiles: [...new Set(rewritten)].length };
   }
 
   @Get(":id") async get(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {

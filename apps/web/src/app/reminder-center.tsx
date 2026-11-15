@@ -4,6 +4,7 @@ import { Bell, CalendarClock, CheckCircle2, X } from "lucide-react";
 
 type Reminder = { fireKey: string; kind: "task" | "event"; title: string; when: string; overdue: boolean; url?: string };
 type Settings = { enabled: boolean; minutesBefore: number[]; sound: boolean; push: boolean };
+type AgendaReminders = Record<string, { enabled: boolean; minutesBefore: number[] }>;
 
 const FIRED_KEY = "vx:reminders:fired";
 const SNOOZE_KEY = "vx:reminders:snooze-until";
@@ -42,7 +43,6 @@ export function ReminderCenter() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [queue, setQueue] = useState<Reminder[]>([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const collect = useCallback(async () => {
@@ -59,12 +59,17 @@ export function ReminderCenter() {
       for (const task of (due?.tasks || [])) {
         reminders.push({ fireKey: `task:${task.id}`, kind: "task", title: task.title, when: task.dueAt, overdue: new Date(task.dueAt).getTime() < Date.now() });
       }
+      const agendas = await fetch("/api/backend/reminders/agendas", { cache: "no-store" }).then(r => r.ok ? r.json() : null) as { agendas?: AgendaReminders } | null;
+      const agendaMap: AgendaReminders = agendas?.agendas || {};
       try {
         const accounts = await fetch("/api/backend/integrations/google/calendar/accounts", { cache: "no-store" }).then(r => r.ok ? r.json() : []);
         for (const account of (Array.isArray(accounts) ? accounts : []).slice(0, 2)) {
           const calendars = await fetch("/api/backend/integrations/google/calendar/" + encodeURIComponent(account.id) + "/calendars", { cache: "no-store" }).then(r => r.json()).catch(() => ({ items: [] }));
           for (const cal of (calendars.items || []).slice(0, 3)) {
-            const params = new URLSearchParams({ calendarId: cal.id, timeMin: new Date(Date.now() - 30 * 60000).toISOString(), timeMax: new Date(Date.now() + lookahead * 60000).toISOString() });
+            const cfg = agendaMap[account.id + ":" + cal.id];
+            if (cfg && cfg.enabled === false) continue; // lembrete desligado nesta agenda
+            const agendaLookahead = Math.max(...(cfg?.minutesBefore || s.minutesBefore || [15, 60]));
+            const params = new URLSearchParams({ calendarId: cal.id, timeMin: new Date(Date.now() - 30 * 60000).toISOString(), timeMax: new Date(Date.now() + agendaLookahead * 60000).toISOString() });
             const events = await fetch("/api/backend/integrations/google/calendar/" + encodeURIComponent(account.id) + "/events?" + params.toString(), { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
             for (const event of (events?.items || [])) {
               const start = new Date(event.start?.dateTime || event.start?.date || Date.now());
@@ -84,7 +89,7 @@ export function ReminderCenter() {
       for (const item of next) fired[item.fireKey] = Date.now();
       writeJson(FIRED_KEY, fired);
       if (s.sound !== false) beep();
-    } catch { /* silencioso — tenta de novo no próximo ciclo */ } finally { setLoading(false); }
+    } catch { /* silencioso — tenta de novo no próximo ciclo */ }
   }, []);
 
   useEffect(() => {

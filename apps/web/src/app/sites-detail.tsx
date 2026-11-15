@@ -724,7 +724,8 @@ function SiteMonogram({ name }: { name: string }) {
 }
 
 export function SiteDetail({ site, tab, setParams, onSaved, onNotice }: { site: Site; tab: string; setParams: (p: Record<string, string | null>) => void; onSaved: () => void; onNotice: (v: string) => void }) {
-  const tabs = [["studio","Studio"],["pages","Páginas"],["posts","Posts"],["imoveis","Imóveis"],["files","Arquivos"],["forms","Formulários"],["appear","Aparência"],["publish","Publicar"],["settings","Site"]] as const;
+  const allTabs = [["studio","Studio"],["pages","Páginas"],["posts","Posts"],["imoveis","Imóveis"],["files","Arquivos"],["forms","Formulários"],["appear","Aparência"],["publish","Publicar"],["settings","Site"]] as const;
+  const tabs = (site.kind === "STATIC" ? allTabs.filter(([key]) => key !== "posts" && key !== "imoveis") : allTabs) as typeof allTabs;
   return (
     <>
       <header className="sites-detail-head">
@@ -820,7 +821,7 @@ function BlockEditor({ block, onChange, onConverted }: { block: Block; onChange:
   );
   switch (block.type) {
     case "externalHtml":
-      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar, edite o HTML fora da Véxora e importe novamente pelo assistente de criação, ou traga-o para o editor.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={62} /><button type="button" className="primary-button" onClick={() => void convertToEditable()} disabled={converting}>{converting ? "Trazendo…" : "Trazer para o editor (converter)"}</button>{convertError ? <p className="sites-field-hint" role="alert" style={{ color: "var(--danger, #F87171)" }}>{convertError}</p> : null}<p className="sites-field-hint">O tradutor remove os &lt;script&gt;s e converte em layout editável — você ganha controle de cores, texto e ordem dos elementos.</p></div>;
+      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar algo pequeno, use “Editar HTML (código)”. Para controle fino pelo editor, use “Trazer para o editor”.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={56} /><details className="sites-external-html-edit"><summary><span className="sites-field-label">Editar HTML (código)</span></summary><textarea rows={16} value={String(c.html || "")} spellCheck={false} onChange={e => onChange({ ...c, html: e.target.value })} placeholder="<!doctype html>…" aria-label="HTML completo do site" /><small className="sites-field-hint">Mexe só neste site. Salve pelo bloco (Aplicar grava automaticamente). Erro de sintaxe quebra o site no ar — recarregue e, se quebrar, importe de novo.</small></details><button type="button" className="primary-button" onClick={() => void convertToEditable()} disabled={converting}>{converting ? "Trazendo…" : "Trazer para o editor (converter)"}</button>{convertError ? <p className="sites-field-hint" role="alert" style={{ color: "var(--danger, #F87171)" }}>{convertError}</p> : null}<small className="sites-field-hint">Converter remove os scripts e dá controle fino de cores, texto e ordem dos elementos no Studio.</small></div>;
     case "freeLayout":
       return <FreeSiteEditor key={block.id} content={c} onSave={onChange} />;
     case "layout":

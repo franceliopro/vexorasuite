@@ -15,7 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from './events.service';
 import { WahaService } from './waha.service';
 import { ZernioService } from './zernio.service';
-import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables } from '../ai/flow-runtime';
+import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables, isPreferredName } from '../ai/flow-runtime';
 import { JobLeaseService } from '../common/job-lease.service';
 import { schedulersEnabled } from '../common/scheduler-mode';
 import { skillInstructionsForAgent } from '../ai/product-skills';
@@ -260,6 +260,15 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       variables.nome = preferred || conversation.contact.name || "";
       // novo_nome nunca fica vazio: sem nome preferido informado, usa o nome identificado do contato.
       variables.novo_nome = preferred || conversation.contact.name || "";
+      const namedInFlow=flow.steps.some(s=>s.kind==='input.text'&&settings(s).validation==='preferred-name');
+      const identifiedName=(conversation.contact.name||'').trim();
+      variables.nome_identificado=identifiedName!==conversation.contact.externalId && isPreferredName(identifiedName) ? identifiedName : '';
+      const savePreferredName=async(name:string)=>{
+        const current=await lockedContact(tx,channel.tenantId,conversation.contactId);
+        const next={...contactMetadata(current.metadata),novo_nome:name};
+        await tx.contact.update({where:{id:conversation.contactId},data:{metadata:next}});
+        conversation.contact.metadata=next;variables.novo_nome=name;variables.nome=name;
+      };
       const nameReply=/^(sim|s|isso|manter|pode ser)$/i.test(inbound.content.trim())?conversation.contact.name:inbound.content.trim();
       const organization = object(root.organization);
       const address = [organization.address, organization.city, organization.state, organization.zipCode]
@@ -302,31 +311,27 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const humanRequest = /^(atendente|humano|falar com atendente|falar com humano)$/i.test(normalize(inbound.content));
       if (humanRequest) { reason = 'explicit_human_request'; await handoff(); }
       else if (inbound.contentType !== 'text') { reason = 'unsupported_media'; await handoff(); }
-      else if (!preferred && !previous.awaitingName) {
+      else if (!namedInFlow && !preferred && !previous.awaitingName) {
         const suggested=conversation.contact.name && conversation.contact.name!==conversation.contact.externalId && !/^\d+$/.test(conversation.contact.name) ? conversation.contact.name : '';
         messages.push(suggested ? 'Identifiquei você pelo nome de '+suggested+'. Como gostaria de ser chamado? Responda “sim” para manter ou escreva o nome que prefere.' : 'Como você gostaria de ser chamado?');
         state={flow:'INTELLIGENCE',revision:published.revision,awaitingName:true,variables};
-      } else if (!preferred && previous.awaitingName && !/^[\p{L}][\p{L} .’'-]{0,79}$/u.test(nameReply)) {
+      } else if (!namedInFlow && !preferred && previous.awaitingName && !/^[\p{L}][\p{L} .’'-]{0,79}$/u.test(nameReply)) {
         messages.push('Informe como gostaria de ser chamado, ou digite atendente.');state=previous as Prisma.InputJsonValue;
       } else {
-        const naming=!preferred && previous.awaitingName;
-        if(naming){
-          const name=nameReply;
-          const current=await lockedContact(tx,channel.tenantId,conversation.contactId);
-          const next={...contactMetadata(current.metadata),novo_nome:name};
-          await tx.contact.update({where:{id:conversation.contactId},data:{metadata:next}});
-          conversation.contact.metadata=next;variables.novo_nome=name;variables.nome=name;
-        }
+        const naming=!namedInFlow && !preferred && previous.awaitingName;
+        if(naming) await savePreferredName(nameReply);
         if (!naming && active && previous.completed && !/^(menu|inicio|reiniciar)$/.test(normalize(inbound.content))) return { messages: [], handled: true, handoff: false };
         if (!naming && active && !/^(menu|inicio|reiniciar)$/.test(normalize(inbound.content))) {
           if (['input.text','input.cpf'].includes(step.kind||'')) {
             const config = settings(step);
             const value=(step.kind==='input.cpf'||isDocumentField(config.variable!))?documentDigits(inbound.content):inbound.content.trim().slice(0,500);
-            if(step.kind==='input.cpf'&&![11,14].includes(value.length)){messages.push('Envie um CPF com 11 dígitos ou CNPJ com 14 dígitos. Pode usar pontos, traços e espaços.');step=undefined;state=previous as Prisma.InputJsonValue;}else{variables[config.variable!]=value;
+            if(config.validation==='preferred-name'&&!isPreferredName(value)){messages.push('Informe um nome válido.');messages.push(renderStep({...step,options:[]},variables));step=undefined;state=previous as Prisma.InputJsonValue;}
+            else if(step.kind==='input.cpf'&&![11,14].includes(value.length)){messages.push('Envie um CPF com 11 dígitos ou CNPJ com 14 dígitos. Pode usar pontos, traços e espaços.');step=undefined;state=previous as Prisma.InputJsonValue;}else{variables[config.variable!]=value;
+            if(config.validation==='preferred-name'&&config.variable==='novo_nome')await savePreferredName(value);
             const nextId: string | undefined = step.transitions?.[step.options[0]!];
             step = findStep(nextId);}
           } else {
-            const option = selectedOption(step, inbound.content);
+            const option = selectedOption(step, inbound.content, variables);
             if (!option && step.kind === 'agent') {
               // Agent conversation stays on this explicit node; choices and human requests take precedence.
             } else if (!option) {
@@ -356,7 +361,9 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = findStep(step.transitions?.[step.options[0]!]); continue;
           }
           if (type === 'variable') {
-            variables[config.variable!] = isDocumentField(config.variable!) ? documentDigits(config.value) : config.value!;
+            const value=interpolateVariables(config.value!,variables);
+            variables[config.variable!] = isDocumentField(config.variable!) ? documentDigits(value) : value;
+            if(config.variable==='novo_nome'&&config.value==='{{nome_identificado}}'&&isPreferredName(value))await savePreferredName(value);
             const target = step.transitions?.[step.options[0]!];
             step = findStep(target); continue;
           }

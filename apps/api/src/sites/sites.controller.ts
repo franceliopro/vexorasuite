@@ -573,15 +573,10 @@ export class SitesController {
   }
 
   /**
-   * Importa um site completo em .zip: descompacta o HTML e os assets (imagens, fontes, CSS, JS),
-   * cria/atualiza uma página por arquivo e religa as referências ao repositório de arquivos da empresa.
-   * O zip é processado 100% em memória — nunca toca o disco.
+   * Núcleo do importador de .zip — descompacta em memória e importa páginas + assets.
+   * Nunca toca o disco. Reutilizado por "importar num site existente" e "criar site a partir de um zip".
    */
-  @Post(":id/import-zip")
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 30 * 1024 * 1024, files: 1 } }))
-  async importZip(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @UploadedFile() file?: { buffer: Buffer; size: number; mimetype: string; originalname: string }) {
-    const site = await this.ownSite(req, id);
-    const tenantId = site.tenantId;
+  private async importZipIntoSite(site: { id: string; slug: string; name: string }, tenantId: string, file: { buffer: Buffer; size: number; mimetype: string; originalname: string }) {
     if (!file) throw new BadRequestException("Envie o zip do site (o arquivo deve terminar em .zip).");
     const name = String(file.originalname || "").toLowerCase();
     if (!name.endsWith(".zip") && !["application/zip", "application/x-zip-compressed", "application/octet-stream"].includes(String(file.mimetype || "").toLowerCase())) {
@@ -651,6 +646,41 @@ export class SitesController {
     return { ok: true, pagesCreated, pagesReplaced, pagesSkipped, assetsStored, assetsSkipped, filesSeen: inspection.pages.length + inspection.assets.length };
   }
 
+  /** Importa num site existente — usado pela aba Páginas (substituir/complementar o conteúdo). */
+  @Post(":id/import-zip")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 30 * 1024 * 1024, files: 1 } }))
+  async importZip(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @UploadedFile() file?: { buffer: Buffer; size: number; mimetype: string; originalname: string }) {
+    const site = await this.ownSite(req, id);
+    return this.importZipIntoSite(site, site.tenantId, file!);
+  }
+
+  /** Cria um site NOVO a partir de um .zip — o wizard "Criar site" usa este caminho quando o usuário sobe o site completo. */
+  @Post("import-zip")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 30 * 1024 * 1024, files: 1 } }))
+  async importZipCreate(@Req() req: AuthenticatedRequest, @Body() body: any, @UploadedFile() file?: { buffer: Buffer; size: number; mimetype: string; originalname: string }) {
+    if (!file) throw new BadRequestException("Envie o zip do site (o arquivo deve terminar em .zip).");
+    const tenantId = this.tenantOf(req);
+    let name = str(body?.name, 80) || undefined;
+    if (!name || name.length < 2) name = String(file.originalname || "Site importado").replace(/\.zip$/i, "").replace(/[-_]+/g, " ").trim().slice(0, 80) || "Site importado";
+    const slugBase = safeSlug(str(body?.slug, 60)) || safeSlug(name) || "site-" + randomBytes(4).toString("hex");
+    let finalSlug = slugBase, attempt = 0;
+    while (await this.prisma.site.findUnique({ where: { slug: finalSlug } })) { finalSlug = slugBase + "-" + randomBytes(3).toString("hex"); if (++attempt > 20) throw new BadRequestException("Não foi possível gerar um endereço único. Tente outro nome."); }
+    const primaryColor = /^#[0-9a-f]{6}$/i.test(String(body?.primaryColor)) ? String(body.primaryColor) : "#2E7CF6";
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(body?.accentColor)) ? String(body.accentColor) : "#164E8A";
+    const parseList = (value: unknown) => { try { const parsed = typeof value === "string" ? JSON.parse(value) : value; return Array.isArray(parsed) ? parsed : []; } catch { return []; } };
+    const whatsapps = list(parseList(body?.whatsapps), 5, (w: any) => ({ label: str(w?.label, 60), handle: waNumber(str(w?.handle, 30)) })).filter(w => w.handle);
+    const socials = list(parseList(body?.socials), 6, (s: any) => ({ platform: str(s?.platform, 30).toLowerCase(), handle: str(s?.handle, 80) })).filter(s => s.handle);
+    const site = await this.prisma.site.create({
+      data: {
+        tenantId, slug: finalSlug, kind: "STATIC", businessArea: "site_simples", name, primaryColor, accentColor,
+        departments: [...whatsapps.map(w => ({ platform: "whatsapp", label: w.label, handle: w.handle })), ...socials.map(s => ({ platform: s.platform, label: s.platform, handle: s.handle }))] as any,
+      },
+    });
+    const stats = await this.importZipIntoSite(site, tenantId, file);
+    const full = await this.prisma.site.findUnique({ where: { id: site.id }, include: { pages: { include: { blocks: true }, orderBy: { sortOrder: "asc" } }, forms: true } });
+    return { ...full, import: stats };
+  }
+
   @Patch("pages/:pageId") async updatePage(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Body() body: any) {
     const page = await this.ownPage(req, pageId);
     const data: any = {};
@@ -703,16 +733,9 @@ export class SitesController {
     return { deleted: true };
   }
 
-  /**
-   * Traz um site importado (externalHtml) para o editor visual: extrai <style> e <body>,
-   * remove <script> e vira um freeLayout — editável elemento a elemento no Studio.
-   */
-  @Post("pages/:pageId/blocks/:blockId/convert-to-editable") async convertToEditable(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string) {
-    const page = await this.ownPage(req, pageId);
-    const block = await this.prisma.siteBlock.findFirst({ where: { id: blockId, pageId: page.id } });
-    if (!block) throw new NotFoundException("Bloco não encontrado.");
-    if (block.type !== "externalHtml") throw new BadRequestException(block.type === "freeLayout" ? "Este site já foi trazido para o editor (layout editável)." : "Apenas sites importados podem ser trazidos para o editor.");
-    const html = String((block.content as any)?.html || "");
+  /** Núcleo da conversão externalHtml → freeLayout: extrai <style> e <body>, remove <script>. */
+  private async convertExternalHtmlBlock(block: any) {
+    const html = String((block?.content as any)?.html || "");
     if (html.trim().length < 20) throw new BadRequestException("Este site importado está vazio.");
     const styles: string[] = [];
     const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
@@ -729,6 +752,29 @@ export class SitesController {
     const combined = ((links.length ? links.slice(0, 20).join("\n") + "\n" : "") + inner.trim()).slice(0, 60000);
     const content = { html: combined, css, title: (block.content as any)?.title || "Site importado" };
     return this.prisma.siteBlock.update({ where: { id: block.id }, data: { type: "freeLayout", content } });
+  }
+
+  @Post("pages/:pageId/blocks/:blockId/convert-to-editable") async convertToEditable(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string) {
+    const page = await this.ownPage(req, pageId);
+    const block = await this.prisma.siteBlock.findFirst({ where: { id: blockId, pageId: page.id } });
+    if (!block) throw new NotFoundException("Bloco não encontrado.");
+    if (block.type !== "externalHtml") throw new BadRequestException(block.type === "freeLayout" ? "Este site já foi trazido para o editor (layout editável)." : "Apenas sites importados podem ser trazidos para o editor.");
+    return this.convertExternalHtmlBlock(block);
+  }
+
+  /** Traz TODAS as páginas importadas do site para o editor visual de uma vez. */
+  @Post(":id/convert-all-to-editable") async convertAllToEditable(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const site = await this.ownSite(req, id);
+    const pages = await this.prisma.sitePage.findMany({ where: { siteId: site.id }, include: { blocks: true }, orderBy: { sortOrder: "asc" } });
+    let converted = 0, failed = 0;
+    for (const page of pages) {
+      for (const block of page.blocks) {
+        if (block.type !== "externalHtml") continue;
+        try { await this.convertExternalHtmlBlock(block); converted++; } catch { failed++; }
+      }
+    }
+    if (!converted && !failed) throw new BadRequestException("Não há páginas importadas neste site — nada para trazer para o editor.");
+    return { converted, failed };
   }
 
   @Post("pages/:pageId/blocks/:blockId/ai") async aiEditBlock(@Req() req: AuthenticatedRequest, @Param("pageId", ParseUUIDPipe) pageId: string, @Param("blockId", ParseUUIDPipe) blockId: string, @Body() body: any) {

@@ -37,11 +37,12 @@ export function SitesWizardDialog(props: {
   onCloneSite: () => void; wizCloning: boolean;
   wizImportHtml: string; setWizImportHtml: (v: string) => void;
   onImportHtml: () => Promise<void>; wizImporting: boolean;
+  wizZipFile: File | null; setWizZipFile: (v: File | null) => void;
   wizVisionLoading: boolean; wizVisionNote: string;
   onVisionFile: (e: { target: { files: FileList | null; value: string } }) => void;
   onNotice: (v: string) => void;
 }) {
-  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, wizVisionLoading, wizVisionNote, onVisionFile, onNotice } = props;
+  const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, wizZipFile, setWizZipFile, wizVisionLoading, wizVisionNote, onVisionFile, onNotice } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
@@ -83,6 +84,17 @@ export function SitesWizardDialog(props: {
               <label className="secondary-button" htmlFor="wizard-vision-file" aria-disabled={wizVisionLoading}>{wizVisionLoading ? "Lendo a imagem…" : "Enviar screenshot"}</label>
               {wizVisionNote ? <span className="sites-field-hint" style={{ margin: 0 }}>{wizVisionNote}</span> : null}
             </div>
+          </details>
+          <details className="sites-ai-card">
+            <summary><Upload size={14} aria-hidden="true" /> Importar site (.zip)</summary>
+            <p className="sites-field-hint">Suba o .zip do site inteiro (várias páginas). Cada .html vira uma página — a Véxora cria o site completo de uma vez, com imagens e fontes. O .zip nunca toca o disco.</p>
+            <div className="sites-import-actions">
+              <input id="wizard-zip-file" type="file" accept=".zip,application/zip,application/x-zip-compressed" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) setWizZipFile(f); e.target.value = ""; }} />
+              <label className="secondary-button" htmlFor="wizard-zip-file">{wizZipFile ? "Trocar o .zip" : "Escolher arquivo .zip"}</label>
+              {wizZipFile ? <button type="button" className="text-button" onClick={() => setWizZipFile(null)}>Remover</button> : null}
+              {wizZipFile ? <span className="sites-field-hint" style={{ margin: 0 }}>{wizZipFile.name} · {(wizZipFile.size / 1024 / 1024).toFixed(1)} MB</span> : null}
+            </div>
+            {wizZipFile ? <p className="sites-field-hint">Pronto — agora clique em “Importar e criar site” no final do assistente. O site nasce com todas as páginas e os arquivos do zip.</p> : null}
           </details>
           <details className="sites-ai-card">
             <summary><Upload size={14} aria-hidden="true" /> Importar site pronto (HTML)</summary>
@@ -130,7 +142,7 @@ export function SitesWizardDialog(props: {
           </fieldset>
           {wizError && <p role="alert" className="sites-error">{wizError}</p>}
         </div>
-        <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={closeWizard}>Cancelar</button><button type="button" className="primary-button" disabled={wizSaving || !wizName.trim() || !wizArea} onClick={() => void submitWizard()}>{wizSaving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} Criar site</button></footer>
+        <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={closeWizard}>Cancelar</button><button type="button" className="primary-button" disabled={wizSaving || (!wizZipFile && (!wizName.trim() || !wizArea))} onClick={() => void submitWizard()}>{wizSaving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} {wizZipFile ? "Importar e criar site" : "Criar site"}</button></footer>
       </section>
     </div>,
     document.body,
@@ -756,6 +768,17 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [savingPage, setSavingPage] = useState(false);
+  const [allBusy, setAllBusy] = useState(false);
+  const convertAll = async () => {
+    if (!window.confirm("Trazer TODAS as páginas importadas deste site para o editor visual? Os <script>s serão removidos e a página vira editável.")) return;
+    setAllBusy(true);
+    try {
+      const res = await api<{ converted: number; failed: number }>(`/sites/${site.id}/convert-all-to-editable`, { method: "POST" });
+      onSaved();
+      onNotice(`${res.converted} página(s) trazida(s) para o editor${res.failed ? ` — ${res.failed} falharam (vazio ou inválido)` : ""}.`);
+    } catch (e) { onNotice(e instanceof Error ? e.message : "Não foi possível converter as páginas."); }
+    finally { setAllBusy(false); }
+  };
   const zipRef = useRef<HTMLInputElement>(null);
   const createPage = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -842,6 +865,7 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
         <header className="sites-canvas-head">
           <h2>{page.title}</h2>
           <div>
+            <button type="button" className="secondary-button" onClick={() => void convertAll()} disabled={allBusy} title="Converte todas as páginas importadas para o editor visual de uma vez"><Wand2 size={14} aria-hidden="true" /> {allBusy ? "Convertendo…" : "Trazer todas para o editor"}</button>
             <button type="button" className="secondary-button" onClick={openRename} aria-expanded={editOpen} title="Renomear a página ou alterar o endereço"><Pencil size={14} aria-hidden="true" /> {editOpen ? "Ocultar" : "Renomear"}</button>
             <label className="sites-visibility"><input type="checkbox" checked={!page.hidden} onChange={async e => { await api(`/sites/pages/${page.id}`, { method: "PATCH", body: JSON.stringify({ hidden: !e.target.checked }) }); onSaved(); }} /> Página visível</label>
             <button type="button" className="secondary-button" onClick={() => setSelected(page.id) /* keep */} onClickCapture={() => onNotice("Arraste ou use as setas para reordenar.")}>{blockBusy ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : <ChevronUp size={14} aria-hidden="true" />} Reordenar com as setas</button>

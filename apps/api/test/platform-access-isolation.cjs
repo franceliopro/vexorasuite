@@ -36,7 +36,7 @@ async function main(){
   await assert.rejects(()=>auth.createCompany(owner.id,tenantId,{name:'Unauthorized company',segmentId:'music-school',requestId:randomUUID()}),/administração da Véxora/);
   const firstReset=await team.resetPassword({user:{sub:owner.id,tenantId,role:'OWNER',isPlatformAdmin:false}},owner.id);
   assert.match(firstReset.temporaryPassword,/^Vx![A-Za-z0-9_-]{32}$/);
-  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:firstReset.temporaryPassword,newPassword:'a-personal-test-password'});
+  const changed=await auth.changePassword(owner.id,tenantId,{currentPassword:firstReset.temporaryPassword,newPassword:'Abc1234@'});
   assert.equal(changed.user.mustChangePassword,false);
   await assert.rejects(()=>allow(login.accessToken,'/api/auth/me'),/sessão foi encerrada/);
   await allow(changed.accessToken,'/api/contacts');

@@ -10,9 +10,11 @@ import {
   Param,
   Post,
   Req,
+  Res,
   ServiceUnavailableException,
   HttpException,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { AiService } from "../ai/ai.service";
@@ -139,6 +141,8 @@ export class PublicFlowController {
         color: typeof object(binding.theme).color === "string" && /^#[0-9a-fA-F]{6}$/.test(String(object(binding.theme).color)) ? String(object(binding.theme).color) : "#101317",
         color2: typeof object(binding.theme).color2 === "string" && /^#[0-9a-fA-F]{6}$/.test(String(object(binding.theme).color2)) ? String(object(binding.theme).color2) : "#0E7A5C",
         imageUrl: typeof object(binding.theme).imageUrl === "string" && (object(binding.theme).imageUrl as string).length <= 2000 && /^https:\/\//.test(String(object(binding.theme).imageUrl)) ? String(object(binding.theme).imageUrl) : "",
+         headerTitle: typeof object(binding.theme).headerTitle === "string" ? String(object(binding.theme).headerTitle).trim().slice(0, 60) : "",
+         headerSubtitle: typeof object(binding.theme).headerSubtitle === "string" ? String(object(binding.theme).headerSubtitle).trim().slice(0, 120) : "",
       },
       brand: {
         primaryColor: typeof brand.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(String(brand.primaryColor)) ? String(brand.primaryColor) : "#0E7A5C",
@@ -167,6 +171,48 @@ export class PublicFlowController {
         steps: flow.steps.filter((step: PublicStep) => step && typeof step.id === "string").map(sanitizeStep),
       },
     };
+  }
+
+  @Get(":token/widget.js")
+  async widget(@Param("token") token: string, @Res() res: Response) {
+    if (!/^[a-f0-9]{48}$/.test(token)) { res.status(404).type("application/javascript").send("/* página indisponível */"); return; }
+    const resolved = await this.resolve(token);
+    res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.send(this.widgetScript(token, Boolean(resolved)));
+  }
+
+  /** Script auto-contido: cria a bolinha de chat (canto inferior direito) e o painel com a página. */
+  private widgetScript(token: string, ok: boolean): string {
+    if (!ok) return "console.warn('[Véxora] Página do chatbot indisponível.');";
+    return `(function () {
+  if (window.__vexoraChatbotWidget) return;
+  window.__vexoraChatbotWidget = true;
+  var script = document.currentScript;
+  var origin = script ? new URL(script.src).origin : window.location.origin;
+  var pageUrl = origin + "/p/${token}";
+  var open = false;
+  var panel = document.createElement("div");
+  panel.style.cssText = "position:fixed;right:18px;bottom:92px;width:min(400px,calc(100vw - 36px));height:min(660px,calc(100dvh - 116px));z-index:2147483646;border-radius:18px;overflow:hidden;box-shadow:0 26px 70px rgba(10,17,13,.45);display:none;background:#F4EEE2;";
+  var frame = document.createElement("iframe");
+  frame.src = pageUrl;
+  frame.title = "Atendimento";
+  frame.setAttribute("allow", "clipboard-write");
+  frame.style.cssText = "width:100%;height:100%;border:0;background:#F4EEE2;";
+  panel.appendChild(frame);
+  var button = document.createElement("button");
+  button.type = "button";
+  button.setAttribute("aria-label", "Abrir atendimento no chat");
+  button.style.cssText = "position:fixed;right:18px;bottom:18px;width:62px;height:62px;border-radius:50%;border:0;z-index:2147483647;background:#173A2B;color:#F4EEE2;box-shadow:0 14px 34px rgba(10,17,13,.4);cursor:pointer;display:grid;place-items:center;transition:transform .18s";
+  button.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 6 8.38 8.38 0 0 1-3.8-.9L3 21l1.6-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 6-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>';
+  document.body.appendChild(panel);
+  document.body.appendChild(button);
+  button.addEventListener("mouseenter", function () { button.style.transform = "scale(1.06)"; });
+  button.addEventListener("mouseleave", function () { button.style.transform = "scale(1)"; });
+  button.addEventListener("click", function () { open = !open; panel.style.display = open ? "block" : "none"; });
+})();`;
   }
 
   @Post(":token/message")
@@ -409,6 +455,8 @@ export class PublicFlowController {
     const result = await outcome();
     sessions.set(key, session);
     if (sessions.size > 4000) { for (const [k, v] of sessions) { if (Date.now() - v.lastAt > SESSION_TTL_MS) sessions.delete(k); } }
-    return { sessionId, ...result };
+    const stepIndex = session.stepId ? steps.findIndex((step) => step?.id === session.stepId) : 0;
+    const progress = steps.length ? { current: Math.min(Math.max(stepIndex + 1, 1), steps.length), total: steps.length } : undefined;
+    return { sessionId, ...result, progress };
   }
 }

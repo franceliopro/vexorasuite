@@ -274,6 +274,13 @@ export class PublicFlowController {
         const nextId = step.transitions?.[step.options?.[0] ?? ""] ?? Object.values(step.transitions ?? {})[0];
         return nextId ? (findStep(nextId) ? runStep(findStep(nextId)!) : { messages: ["Encerramos por aqui. Até logo! 🙂"], finished: true }) : { messages: ["Encerramos por aqui. Até logo! 🙂"], finished: true };
       }
+      if (kind === "text" && step.options?.length === 1 && userText === undefined) {
+        const next = advance(step);
+        if (next) {
+          const result = await runStep(next);
+          return {...result,messages:[render(step),...result.messages].filter(Boolean)};
+        }
+      }
       if (kind === "buttons" || kind === "quick-reply" || kind === "text") {
         const options = Array.isArray(step.options) ? step.options : [];
         if (userText !== undefined && options.length) {

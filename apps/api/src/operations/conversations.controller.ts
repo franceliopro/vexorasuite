@@ -830,6 +830,12 @@ export class ConversationsController {
         providerMessageId = await this.waha.sendLocation(conversation.channelConnection, chatId, { latitude: Number(input.latitude), longitude: Number(input.longitude), title: input.title, address: input.address });
       } else if (kind === "contact") {
         providerMessageId = await this.waha.sendContact(conversation.channelConnection, chatId, { vcard: input.vcard!, name: input.contactName });
+      } else if (kind === "audio" && !isZernio) {
+        // Nota de voz no WhatsApp não aceita legenda — a etiqueta do atendente vai numa mensagem curta de texto antes do áudio.
+        try { await this.waha.sendText(conversation.channelConnection, chatId, agentLabel); } catch { /* best-effort: nunca bloqueia o áudio */ }
+        providerMessageId = await this.waha.sendMedia(conversation.channelConnection, chatId, kind, { mimetype: input.mimetype!, filename: input.filename, base64: input.data! });
+      } else if (kind === "image" || kind === "video" || kind === "file") {
+        providerMessageId = await this.waha.sendMedia(conversation.channelConnection, chatId, kind, { mimetype: input.mimetype!, filename: input.filename, base64: input.data!, caption: agentLabel + (input.caption ? "\n" + input.caption : "") });
       } else {
         providerMessageId = await this.waha.sendMedia(conversation.channelConnection, chatId, kind, { mimetype: input.mimetype!, filename: input.filename, base64: input.data!, caption: input.caption });
       }

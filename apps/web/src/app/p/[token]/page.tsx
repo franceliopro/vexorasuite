@@ -1,13 +1,12 @@
 "use client";
 import { use, useEffect, useRef, useState } from "react";
-import { Send, UserRound, RotateCcw, ShieldCheck, Smartphone, Monitor, MessageCircle } from "lucide-react";
+import { Send, UserRound, RotateCcw, ShieldCheck, Smartphone, Monitor } from "lucide-react";
 
 type Bubble = { id: string; role: "assistant" | "user"; content: string; options?: string[] };
-type Theme = { backgroundKind: string; color: string; color2: string; imageUrl: string; headerTitle?: string; headerSubtitle?: string };
+type Theme = { backgroundKind: string; color: string; color2: string; imageUrl: string; headerTitle?: string; headerSubtitle?: string; mode?: string };
 type PublicFlow = { tenantName: string; slug: string; brand: { primaryColor: string; logoLight: string; logoDark: string; logoShape: string; showCompanyName: boolean }; theme: Theme; flow: { name: string; welcome: string; steps: Array<{ id: string }> } };
 
-const CREAM_DEFAULT = { shell: "#F4EEE2", card: "#FBF8EF", ink: "#1E2A24", muted: "#6E7568", green: "#173A2B", greenSoft: "#24503C", gold: "#B98A45", goldDeep: "#8A6A2E", bubbleUser: "#173A2B", bubbleBot: "#FFFFFF", bubbleBotInk: "#1E2A24", hairline: "#E2D9C8" };
-
+const themeClass = (theme: Theme) => theme.mode === "dark" ? " pf-theme-dark" : theme.mode === "whatsapp" ? " pf-theme-whatsapp" : "";
 const shellStyle = (theme: Theme): React.CSSProperties => {
   if (theme.backgroundKind === "solid") return { background: theme.color };
   if (theme.backgroundKind === "gradient") return { background: `linear-gradient(160deg, ${theme.color2} 0%, ${theme.color} 62%, #05070A 130%)` };
@@ -105,7 +104,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
   };
 
   if (error) return (
-    <main className="pf-shell" style={{ background: CREAM_DEFAULT.shell }}>
+    <main className="pf-shell">
       <div className="pf-card pf-unavailable">
         <ShieldCheck size={28} aria-hidden="true" />
         <h1>Página indisponível</h1>
@@ -115,7 +114,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
   );
 
   if (!page) return (
-    <main className="pf-shell" style={{ background: CREAM_DEFAULT.shell }}>
+    <main className="pf-shell">
       <div className="pf-card pf-unavailable" role="status">
         <div className="pf-spinner" aria-hidden="true" />
         <p>Conectando.</p>
@@ -125,13 +124,12 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
 
   const primary = page.brand.primaryColor || "#173A2B";
   const logo = page.brand.logoLight || page.brand.logoDark;
-  const themeDefault = page.theme.backgroundKind === "default";
   const headerTitle = page.theme.headerTitle?.trim() || (page.brand.showCompanyName !== false ? page.tenantName : page.flow.name);
   const headerSubtitle = page.theme.headerSubtitle?.trim() || `${page.tenantName} · Atendimento online`;
-  const shellVars: React.CSSProperties = themeDefault ? { ["--cream" as any]: CREAM_DEFAULT.shell, ["--card" as any]: CREAM_DEFAULT.card, ["--ink" as any]: CREAM_DEFAULT.ink, ["--muted" as any]: CREAM_DEFAULT.muted, ["--green" as any]: primary || CREAM_DEFAULT.green, ["--gold" as any]: CREAM_DEFAULT.gold, ["--hairline" as any]: CREAM_DEFAULT.hairline } : {};
+  const style = page.theme.backgroundKind !== "default" ? shellStyle(page.theme) : undefined;
 
   return (
-    <main className={"pf-shell" + (phoneMode ? " is-phone-mode" : "")} style={themeDefault ? shellVars : shellStyle(page.theme)}>
+    <main className={"pf-shell" + themeClass(page.theme) + (phoneMode ? " is-phone-mode" : "")} style={style}>
       <div className="pf-stage">
         <button type="button" className="pf-device-toggle" onClick={() => setPhoneMode(v => !v)} aria-pressed={phoneMode} title={phoneMode ? "Ver no computador" : "Testar no celular"}>{phoneMode ? <Monitor size={15} aria-hidden="true" /> : <Smartphone size={15} aria-hidden="true" />}<span>{phoneMode ? "Computador" : "Testar no celular"}</span></button>
 
@@ -170,7 +168,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
             ) : null}
           </div>
 
-          {!finished && <button type="button" className="pf-handoff-bar" onClick={() => void send("Quero falar com uma pessoa")} disabled={busy}><MessageCircle size={18} aria-hidden="true" /><span>Falar com a equipe responsável</span></button>}
+
 
           {!finished ? (
             <form className="pf-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}>

@@ -142,6 +142,7 @@ export class PublicFlowController {
         color2: typeof object(binding.theme).color2 === "string" && /^#[0-9a-fA-F]{6}$/.test(String(object(binding.theme).color2)) ? String(object(binding.theme).color2) : "#0E7A5C",
         imageUrl: typeof object(binding.theme).imageUrl === "string" && (object(binding.theme).imageUrl as string).length <= 2000 && /^https:\/\//.test(String(object(binding.theme).imageUrl)) ? String(object(binding.theme).imageUrl) : "",
          headerTitle: typeof object(binding.theme).headerTitle === "string" ? String(object(binding.theme).headerTitle).trim().slice(0, 60) : "",
+         mode: typeof object(binding.theme).mode === "string" && ['cream','dark','whatsapp'].includes(String(object(binding.theme).mode)) ? String(object(binding.theme).mode) : "cream",
          headerSubtitle: typeof object(binding.theme).headerSubtitle === "string" ? String(object(binding.theme).headerSubtitle).trim().slice(0, 120) : "",
       },
       brand: {

@@ -147,6 +147,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
     setWizAiPrompt("");
     setWizReferenceUrl("");
     setWizCloneUrl("");
+    setWizZipFile(null);
     try { window.localStorage.removeItem(draftKey); } catch { /* Reset dos campos ainda é aplicado. */ }
   };
   const deleteDraft = () => {
@@ -186,6 +187,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   const [wizImportHtml, setWizImportHtml] = useState("");
   const [wizImporting, setWizImporting] = useState(false);
   const [wizVisionLoading, setWizVisionLoading] = useState(false);
+  const [wizZipFile, setWizZipFile] = useState<File | null>(null);
   const [wizVisionNote, setWizVisionNote] = useState("");
   const readVisionImage = async (e: { target: { files: FileList | null; value: string } }) => {
     const file = e.target.files?.[0];
@@ -235,6 +237,28 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
   };
   const submitWizard = async () => {
     setWizError(""); setWizSaving(true);
+    if (wizZipFile) {
+      try {
+        const form = new FormData();
+        form.append("file", wizZipFile);
+        if (wizName.trim()) form.append("name", wizName.trim());
+        if (wizSlug.trim()) form.append("slug", wizSlug.trim());
+        form.append("primaryColor", wizPrimary);
+        form.append("accentColor", wizAccent);
+        form.append("whatsapps", JSON.stringify(wizWhatsapp.filter(w => w.handle.trim())));
+        form.append("socials", JSON.stringify(wizSocials.filter(s => s.handle.trim())));
+        const response = await fetch("/api/backend/sites/import-zip", { method: "POST", body: form });
+        const json = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(typeof json?.message === "string" ? json.message : "Falha ao importar o zip.");
+        setNotice("Site criado pelo zip: " + (json?.import?.pagesCreated || 0) + " página(s)" + (json?.import?.assetsStored ? `, ${json.import.assetsStored} arquivo(s) de mídia` : "") + ". Revise no Studio e publique quando quiser.");
+        setWizZipFile(null);
+        resetDraft();
+        await loadSites();
+        setParams({ new: null, site: json?.id, tab: "studio" });
+      } catch (e) { setWizError(e instanceof Error ? e.message : "Não foi possível importar o zip."); void reloadCreativeModel(); }
+      finally { setWizSaving(false); }
+      return;
+    }
     try {
       const whatsapps = wizWhatsapp.filter(w => w.handle.trim());
       const socials = wizSocials.filter(s => s.handle.trim());
@@ -289,7 +313,7 @@ export function SitesWorkspace({ tenantId }: { tenantId?: string } = {}) {
             )) : <div className="sites-empty"><Building2 size={26} aria-hidden="true" /><h2>Nenhum site ainda</h2><p>Crie seu primeiro site clicando em “Criar site”.</p></div>}
           </div>
         )}
-        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} wizImportHtml={wizImportHtml} setWizImportHtml={setWizImportHtml} onImportHtml={importHtmlSite} wizImporting={wizImporting} wizVisionLoading={wizVisionLoading} wizVisionNote={wizVisionNote} onVisionFile={readVisionImage} onNotice={setNotice} /> : null}
+        {wizardOpen ? <SitesWizardDialog wizName={wizName} setWizName={setWizName} wizArea={wizArea} setWizArea={setWizArea} wizKind={wizKind} setWizKind={setWizKind} wizPrimary={wizPrimary} setWizPrimary={setWizPrimary} wizAccent={wizAccent} setWizAccent={setWizAccent} wizSlug={wizSlug} setWizSlug={setWizSlug} wizWhatsapp={wizWhatsapp} setWizWhatsapp={setWizWhatsapp} wizSocials={wizSocials} setWizSocials={setWizSocials} wizSaving={wizSaving} wizError={wizError} wizAiPrompt={wizAiPrompt} setWizAiPrompt={setWizAiPrompt} wizAiDictating={wizAiDictating} wizAiDictateStatus={wizAiDictateStatus} dictateWizardPrompt={dictateWizardPrompt} wizReferenceUrl={wizReferenceUrl} setWizReferenceUrl={setWizReferenceUrl} wizHeroOverride={wizHeroOverride} setWizHeroOverride={setWizHeroOverride} wizCloneUrl={wizCloneUrl} setWizCloneUrl={setWizCloneUrl} closeWizard={closeWizard} submitWizard={submitWizard} onSaveDraft={saveDraft} savedDraft={savedDraft} hasDraft={hasDraft} onDeleteDraft={deleteDraft} modelLabel={creativeModel ? (creativeModel.enabled ? [creativeModel.provider, creativeModel.model].filter(Boolean).join(" / ") || "Modelo não configurado no agente." : "IA ou agente desativado.") : modelStatus} onReloadModel={() => void reloadCreativeModel()} onCloneSite={() => void cloneSiteNow()} wizCloning={wizCloning} wizImportHtml={wizImportHtml} setWizImportHtml={setWizImportHtml} onImportHtml={importHtmlSite} wizImporting={wizImporting} wizZipFile={wizZipFile} setWizZipFile={setWizZipFile} wizVisionLoading={wizVisionLoading} wizVisionNote={wizVisionNote} onVisionFile={readVisionImage} onNotice={setNotice} /> : null}
       </section>
     );
   }

@@ -712,9 +712,13 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     setMessages([]);
     setHasOlderMessages(false);
     setMessageLoadError("");
-    if (selectedId) void loadMessages(selectedId);
+    if (selectedId) {
+      void loadMessages(selectedId);
+      // Marca o chat como visto no WhatsApp (tick azul no aparelho do cliente). Fire-and-forget.
+      void api("/api/backend/conversations/" + selectedId + "/seen?view=" + queueView, { method: "POST" }).catch(() => {});
+    }
     else { setMessages([]); setMessagesLoading(false); }
-  }, [selectedId, loadMessages]);
+  }, [selectedId, loadMessages, queueView]);
 
   // SSE is the primary realtime path. Poll only while it is unavailable, when the tab is visible.
   useEffect(() => {

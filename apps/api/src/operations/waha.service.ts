@@ -115,6 +115,44 @@ export class WahaService {
     }
   }
 
+  /** Busca o nome do contato no WAHA (pushname/name) quando o webhook não trouxe.
+   * Consulta pontual, nunca sincroniza a lista inteira. */
+  async contactName(channel: { sessionName: string }, chatId: string): Promise<string | null> {
+    if (!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId)) return null;
+    try {
+      const query = new URLSearchParams({ contactId: chatId, session: channel.sessionName });
+      const response = await this.request(`/api/contacts?${query.toString()}`);
+      if (!response.ok) return null;
+      const raw = await response.json() as unknown;
+      const rows = Array.isArray(raw) ? raw : [raw];
+      for (const row of rows) {
+        if (!row || typeof row !== "object") continue;
+        const record = row as Record<string, unknown>;
+        const candidate = [record.pushname, record.pushName, record.name, record.shortName, record.verifiedName, record.notifyName]
+          .map(value => (typeof value === "string" ? value : "").replace(/\s+/g, " ").trim())
+          .find(value => value.length >= 2 && !/^[\d\s()+.-]+$/.test(value));
+        if (candidate) return candidate.slice(0, 160);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Marca todas as mensagens não lidas do chat como vistas (dois ticks azuis no
+   * aparelho do cliente). Best-effort: nunca lança exceção, falha só reduz o ack. */
+  async markSeen(channel: { sessionName: string }, chatId: string, messageIds?: string[]): Promise<boolean> {
+    if (!/^[0-9]{8,18}@(c\.us|g\.us|lid)$/.test(chatId)) return false;
+    try {
+      const body: Record<string, unknown> = { session: channel.sessionName, chatId };
+      if (Array.isArray(messageIds) && messageIds.length) body.messageIds = messageIds.slice(0, 30);
+      const response = await this.request("/api/sendSeen", { method: "POST", body: JSON.stringify(body) });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
   async contactPhoto(channel:ChannelConnection,chatId:string):Promise<Buffer|null>{
     if(!/^[0-9]{8,18}@(c\.us|lid)$/.test(chatId))return null;
     try{

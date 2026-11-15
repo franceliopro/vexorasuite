@@ -570,6 +570,24 @@ export class ConversationsController {
     return updated;
   }
 
+  /** Marca o chat como visto no WhatsApp (dois ticks azuis no aparelho do cliente).
+   * Aberto pelo painel quando o atendente abre a conversa; fire-and-forget para o cliente. */
+  @Post(":id/seen")
+  async seen(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, tenantId: request.user.tenantId },
+      select: { id: true, channelConnectionId: true, channelConnection: { select: { id: true, provider: true, sessionName: true, isActive: true, tenantId: true } }, contact: { select: { externalId: true } } },
+    });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    const channel = conversation.channelConnection;
+    if (!channel || channel.provider !== "WAHA" || !channel.isActive) return { ok: true, seen: false, reason: "not_waha" };
+    const chatId = typeof conversation.contact?.externalId === "string" && /^[0-9]{8,18}@(c\.us|lid)$/.test(conversation.contact.externalId) ? conversation.contact.externalId : null;
+    if (!chatId) return { ok: true, seen: false, reason: "chat_not_resolvable" };
+    const seen = await this.waha.markSeen(channel, chatId);
+    return { ok: true, seen };
+  }
+
   @Get(":id/messages")
   async messages(
     @Req() request: AuthenticatedRequest,

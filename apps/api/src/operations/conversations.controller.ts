@@ -806,6 +806,9 @@ export class ConversationsController {
     const user = await this.prisma.user.findUnique({ where: { id: request.user.sub }, select: { name: true } });
     const senderMembership=await this.prisma.membership.findFirst({where:{tenantId,userId:request.user.sub},select:{knownBy:true}});
     const senderName=attendantName({name:user?.name,knownBy:senderMembership?.knownBy});
+    const departmentName=conversation.department?.name||"";
+    // Etiqueta pública do atendente (WhatsApp não tem fonte menor — só negrito): o cliente vê quem respondeu.
+    const agentLabel=`*${senderName}${departmentName?" · "+departmentName:""}*`;
     const kind = input.kind || "text";
     const content = (input.content || input.caption || "").trim();
     if (kind === "text" && !content) throw new BadRequestException("Digite uma mensagem antes de enviar.");
@@ -814,15 +817,15 @@ export class ConversationsController {
     if (kind === "contact" && !input.vcard?.trim()) throw new BadRequestException("Informe o contato a enviar.");
     if (isZernio && kind !== "text") throw new BadRequestException("Este canal ainda aceita somente mensagens de texto.");
 
-    const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName:conversation.department?.name||"", provider: isZernio ? "ZERNIO" : "WAHA", filename: input.filename || null, mimetype: input.mimetype || null } } });
+    const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName, provider: isZernio ? "ZERNIO" : "WAHA", agentSignature: senderName + (departmentName ? " · " + departmentName : ""), filename: input.filename || null, mimetype: input.mimetype || null } } });
     this.events.publish(tenantId, "message.queued", { conversationId: conversation.id, message: { id: queued.id, direction: queued.direction, status: queued.status, content: queued.content } });
     let providerMessageId: string | null;
     try {
       if (isZernio) {
-        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: linkedAccountId, message: content }, idempotencyKey: randomUUID() }, request.user.tenantId);
+        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: linkedAccountId, message: kind === "text" ? agentLabel + "\n" + content : content }, idempotencyKey: randomUUID() }, request.user.tenantId);
         providerMessageId = result?.data?.messageId || result?.id || null;
       } else if (kind === "text") {
-        providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, content);
+        providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, agentLabel + "\n" + content);
       } else if (kind === "location") {
         providerMessageId = await this.waha.sendLocation(conversation.channelConnection, chatId, { latitude: Number(input.latitude), longitude: Number(input.longitude), title: input.title, address: input.address });
       } else if (kind === "contact") {

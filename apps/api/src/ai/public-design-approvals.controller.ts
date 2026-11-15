@@ -94,7 +94,7 @@ export class PublicDesignApprovalsController {
       const mediaItems = Array.from({ length: Math.max(carouselSlides, 1) }, (_, i) => ({ type: "image" as const, url: slidePublicUrl(token, i) }));
       const carousel = obj(details.carousel) as unknown as Carousel;
       const payload = { content: String(carousel.caption || carousel.title || ""), platforms, mediaItems, publishNow: true };
-      const response = await this.zernio.request<any>("/posts", { method: "POST", body: payload, idempotencyKey: "design-approval-" + row.entityId });
+      const response = await this.zernio.request<any>("/posts", { method: "POST", body: payload, idempotencyKey: "design-approval-" + row.entityId }, row.tenantId);
       const publication = { requestedAt: new Date().toISOString(), publishNow: true, response: response?.post || response };
       await this.prisma.auditLog.update({ where: { id: row.id }, data: { details: { ...nextDetails, status: "PUBLISHED", channels: platformSummary(platforms), publication } as Prisma.InputJsonValue } });
       return { ok: true, status: "PUBLISHED" };

@@ -801,7 +801,7 @@ export class ConversationsController {
     let providerMessageId: string | null;
     try {
       if (isZernio) {
-        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: linkedAccountId, message: content }, idempotencyKey: randomUUID() });
+        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: linkedAccountId, message: content }, idempotencyKey: randomUUID() }, request.user.tenantId);
         providerMessageId = result?.data?.messageId || result?.id || null;
       } else if (kind === "text") {
         providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, content);

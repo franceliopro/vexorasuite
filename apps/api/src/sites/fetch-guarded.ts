@@ -60,3 +60,39 @@ export async function fetchTextGuarded(startUrl: string, maxBytes: number, timeo
   }
   throw new BadRequestException("O site tem redirecionamentos demais.");
 }
+
+/** Fetch com o mesmo guarda SSRF, devolvendo bytes + content-type (assets de site). */
+export async function fetchBinaryGuarded(startUrl: string, maxBytes: number, timeoutMs: number, accept: string): Promise<{ bytes: Uint8Array; contentType: string; finalUrl: string }> {
+  let current = startUrl;
+  for (let hop = 0; hop < 3; hop++) {
+    await assertPublicHttpsUrl(current);
+    const response = await fetch(current, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { "user-agent": "Mozilla/5.0 (compatible; VexoraBot/1.0; +https://vexorasuite.com.br)", accept },
+    });
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get("location");
+      if (!location) throw new BadRequestException("O recurso redirecionou para um endereço vazio.");
+      current = new URL(location, current).toString();
+      continue;
+    }
+    if (!response.ok) throw new BadRequestException("O recurso respondeu com erro " + response.status + ".");
+    const contentType = String(response.headers.get("content-type") || "application/octet-stream").split(";")[0]?.trim().toLowerCase() || "application/octet-stream";
+    const reader = response.body?.getReader();
+    if (!reader) throw new BadRequestException("Resposta vazia do recurso.");
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        size += part.value.length;
+        if (size > maxBytes) throw new BadRequestException("O recurso é grande demais para ser clonado por aqui (limite de segurança).");
+        chunks.push(part.value);
+      }
+    } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }
+    return { bytes: new Uint8Array(Buffer.concat(chunks)), contentType, finalUrl: current };
+  }
+  throw new BadRequestException("O recurso tem redirecionamentos demais.");
+}

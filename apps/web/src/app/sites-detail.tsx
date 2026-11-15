@@ -789,7 +789,7 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
           {[...(page.blocks || [])].sort((a, b) => a.sortOrder - b.sortOrder).map(block => (
             <article key={block.id} className={"sites-block-card " + (block.hidden ? "is-hidden" : "")}>
               <header><span><b>{BLOCKS_META[block.type]?.label || block.type}</b><small>{block.type}</small></span><span className="sites-block-actions"><button type="button" className="icon-button" title="Mover para cima" aria-label="Mover para cima" onClick={() => void moveBlock(block, -1)}><ChevronUp size={15} aria-hidden="true" /></button><button type="button" className="icon-button" title="Mover para baixo" aria-label="Mover para baixo" onClick={() => void moveBlock(block, 1)}><ChevronDown size={15} aria-hidden="true" /></button><button type="button" className="icon-button" aria-pressed={block.hidden} title={block.hidden ? "Mostrar" : "Ocultar"} onClick={() => void saveBlock(block, { hidden: !block.hidden })}>{block.hidden ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}</button><button type="button" className="icon-button" title="Remover bloco" aria-label="Remover bloco" onClick={() => void removeBlock(block)}><Trash2 size={15} aria-hidden="true" /></button></span></header>
-              <BlockEditor block={block} onChange={next => saveBlockDebounced(block, { content: next })} onConverted={onSaved} />
+              <BlockEditor block={block} onChange={next => saveBlockDebounced(block, { content: next })} onConverted={onSaved} siteId={site.id} />
             </article>
           ))}
         </div>
@@ -799,10 +799,33 @@ function PagesEditor({ site, onSaved, onNotice }: { site: Site; onSaved: () => v
   );
 }
 
-function BlockEditor({ block, onChange, onConverted }: { block: Block; onChange: (next: any) => void; onConverted?: () => void }) {
+function BlockEditor({ block, onChange, onConverted, siteId }: { block: Block; onChange: (next: any) => void; onConverted?: () => void; siteId?: string }) {
   const c = block.content || {};
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState("");
+  const [mirrorBusy, setMirrorBusy] = useState(false);
+  const [relinkBusy, setRelinkBusy] = useState(false);
+  const [mirrorNote, setMirrorNote] = useState("");
+  const mirrorAssets = async () => {
+    if (mirrorBusy || !siteId) return;
+    setMirrorBusy(true); setMirrorNote("");
+    try {
+      const res = await api<{ assetsMirrored: number; assetsSkipped: number; baseUsed?: string | null }>(`/sites/${siteId}/mirror-assets`, { method: "POST", body: JSON.stringify({}) });
+      setMirrorNote(`${res.assetsMirrored} arquivo(s) baixado(s)${res.assetsSkipped ? ` — ${res.assetsSkipped} pulando` : ""}. Origem: ${res.baseUsed || "automática"}.`);
+      onConverted?.();
+    } catch (e) { setMirrorNote(e instanceof Error ? e.message : "Não foi possível espelhar as imagens."); }
+    finally { setMirrorBusy(false); }
+  };
+  const relinkAssets = async () => {
+    if (relinkBusy || !siteId) return;
+    setRelinkBusy(true); setMirrorNote("");
+    try {
+      const res = await api<{ rewritten: number; uniqueFiles: number }>(`/sites/${siteId}/relink-assets`, { method: "POST", body: JSON.stringify({}) });
+      setMirrorNote(res.rewritten ? `${res.rewritten} referência(s) religada(s) a ${res.uniqueFiles} arquivo(s) já enviado(s).` : "Nenhuma referência casou por nome — confira se os nomes dos arquivos batem com o HTML.");
+      if (res.rewritten) onConverted?.();
+    } catch (e) { setMirrorNote(e instanceof Error ? e.message : "Não foi possível religar."); }
+    finally { setRelinkBusy(false); }
+  };
   const convertToEditable = async () => {
     if (converting) return;
     if (!window.confirm("Converter este site importado em layout editável? Os <script>s serão removidos e os estilos passam a ser editáveis no Studio.")) return;
@@ -821,7 +844,10 @@ function BlockEditor({ block, onChange, onConverted }: { block: Block; onChange:
   );
   switch (block.type) {
     case "externalHtml":
-      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar algo pequeno, use “Editar HTML (código)”. Para controle fino pelo editor, use “Trazer para o editor”.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={56} /><details className="sites-external-html-edit"><summary><span className="sites-field-label">Editar HTML (código)</span></summary><textarea rows={16} value={String(c.html || "")} spellCheck={false} onChange={e => onChange({ ...c, html: e.target.value })} placeholder="<!doctype html>…" aria-label="HTML completo do site" /><small className="sites-field-hint">Mexe só neste site. Salve pelo bloco (Aplicar grava automaticamente). Erro de sintaxe quebra o site no ar — recarregue e, se quebrar, importe de novo.</small></details><button type="button" className="primary-button" onClick={() => void convertToEditable()} disabled={converting}>{converting ? "Trazendo…" : "Trazer para o editor (converter)"}</button>{convertError ? <p className="sites-field-hint" role="alert" style={{ color: "var(--danger, #F87171)" }}>{convertError}</p> : null}<small className="sites-field-hint">Converter remove os scripts e dá controle fino de cores, texto e ordem dos elementos no Studio.</small></div>;
+      return <div className="sites-block-form"><p className="sites-field-hint">Site importado de um arquivo HTML — ele roda isolado, sem acesso ao Véxora. Para alterar algo pequeno, use “Editar HTML (código)”. Para controle fino pelo editor, use “Trazer para o editor”.</p><ExternalHtmlFrame html={String(c.html || "")} title={String(c.title || "Site importado")} heightVh={56} /><details className="sites-external-html-edit"><summary><span className="sites-field-label">Editar HTML (código)</span></summary><textarea rows={16} value={String(c.html || "")} spellCheck={false} onChange={e => onChange({ ...c, html: e.target.value })} placeholder="<!doctype html>…" aria-label="HTML completo do site" /><small className="sites-field-hint">Mexe só neste site. Salve pelo bloco (Aplicar grava automaticamente). Erro de sintaxe quebra o site no ar — recarregue e, se quebrar, importe de novo.</small></details><button type="button" className="primary-button" onClick={() => void convertToEditable()} disabled={converting}>{converting ? "Trazendo…" : "Trazer para o editor (converter)"}</button>{convertError ? <p className="sites-field-hint" role="alert" style={{ color: "var(--danger, #F87171)" }}>{convertError}</p> : null}
+          {siteId ? <div className="sites-block-actions"><button type="button" className="secondary-button" disabled={mirrorBusy} onClick={() => void mirrorAssets()}>{mirrorBusy ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <ImagePlus size={13} aria-hidden="true" />} {mirrorBusy ? "Espelhando…" : "Baixar imagens para a Véxora"}</button><button type="button" className="secondary-button" disabled={relinkBusy} onClick={() => void relinkAssets()}>{relinkBusy ? <Loader2 size={13} className="vx-spin" aria-hidden="true" /> : <Wand2 size={13} aria-hidden="true" />} {relinkBusy ? "Religando…" : "Religar às imagens enviadas"}</button></div> : null}
+          {mirrorNote ? <p className="sites-field-hint" role="status">{mirrorNote}</p> : null}
+          <small className="sites-field-hint">Espelhar baixadas imagens, fontes e CSS para a Véxora — o site passa a funcionar sem o domínio de origem. Religar resolve pelo nome do arquivo (útil depois de enviar a pasta de imagens pelo Gerenciador).</small></div>;
     case "freeLayout":
       return <FreeSiteEditor key={block.id} content={c} onSave={onChange} />;
     case "layout":

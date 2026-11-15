@@ -193,7 +193,7 @@ export function assignZipSlugs(pages: ZipPage[]): Map<string, string> {
   if (home) { map.set(home.zipPath, "inicio"); used.add("inicio"); }
   for (const page of pages) {
     if (page.isHome) continue;
-    let slug = page.slug || "pagina";
+    const slug = page.slug || "pagina";
     let candidate = slug, n = 2;
     while (used.has(candidate)) { candidate = slug + "-" + n; n++; }
     map.set(page.zipPath, candidate);

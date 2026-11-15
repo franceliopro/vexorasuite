@@ -1,3 +1,4 @@
+import { compileChatbotFlow } from '../ai/chatbot-flow-skill';
 import { IntelligenceRuntimeService } from './intelligence-runtime.service';
 function setup(overrides: Record<string,unknown> = {}) {
  const flow:any={name:'Teste',welcome:'Olá',channelIds:['channel'],triggers:[{kind:'message'}],steps:[{id:'menu',title:'Menu',message:'Escolha',options:['Suporte'],transitions:{Suporte:'handoff'}},{id:'handoff',title:'Suporte',message:'',options:[],action:'human.handoff',config:'{"departmentKey":"SUPORTE"}'}]};
@@ -200,5 +201,45 @@ describe("inbox entry routing",()=>{
  it("cancels queued output when inbox routing changed during generation",async()=>{
   const x=setup();x.prisma.channelConnection.findFirst.mockResolvedValue({id:"channel",tenantId:"tenant",provider:"WAHA",isActive:true,settings:{inboxRouting:{mode:"HUMAN",revision:"changed"}}});
   await x.service.receive(x.channel,"conversation","inbound");expect(x.waha.sendText).not.toHaveBeenCalled();
+ });
+});
+
+const departments = [{key:'SUPORTE',name:'Suporte Técnico'},{key:'ADM',name:'Administrativo'}];
+const modelPlan = {name:'Véxora Suite',welcome:'Olá!',steps:[
+  {id:'nome',kind:'preferred-name',options:['Continuar'],transitions:{Continuar:'menu'}},
+  {id:'menu',kind:'buttons',message:'{{novo_nome}}, qual área?',options:['Suporte Técnico','Administrativo'],transitions:{'Suporte Técnico':'tecnico',Administrativo:'administrativo'}},
+  {id:'tecnico',kind:'human.handoff',department:'Suporte Técnico'},
+  {id:'administrativo',kind:'human.handoff',department:'Administrativo'},
+]};
+
+describe('AI generated preferred-name and triage flow',()=>{
+ it.each([
+   ['Usar Ana','Ana','1','SUPORTE'],
+   ['Digitar outro nome','Beatriz','Administrativo','ADM'],
+ ])('handles %s and transfers to the correct tenant department',async(choice,name,route,key)=>{
+  const x=setup();
+  x.conversation.contact.metadata={};
+  const compiled=compileChatbotFlow(JSON.stringify(modelPlan),departments);
+  expect(compiled).toBeDefined();
+  x.flow.steps=compiled!.draft.steps;
+  x.tx.department.findFirst.mockImplementation(async({where}:any)=>where.key?{id:where.key,name:where.key}:null);
+  const reply=async(content:string)=>{
+   x.inbound.content=content;
+   x.tx.conversation.update.mockClear();
+   await x.service.receive(x.channel,'conversation','inbound');
+   const update=x.tx.conversation.update.mock.calls.at(-1)![0].data;
+   x.conversation.botState=update.botState;
+   return update;
+  };
+  expect((await reply('oi')).botState.stepId).toBe('nome-escolha');
+  const picked=await reply(choice);
+  if(choice==='Digitar outro nome'){
+   expect(picked.botState.stepId).toBe('nome-digitar');
+   expect((await reply('123')).botState.stepId).toBe('nome-digitar');
+   expect((await reply(name)).botState.variables.novo_nome).toBe(name);
+  } else expect(picked.botState.variables.novo_nome).toBe(name);
+  expect((await reply('opção inválida')).botState.stepId).toBe('menu-triagem');
+  expect(x.waha.sendText.mock.calls.at(-1)?.[2]).toContain(name+', qual área?');
+  expect(await reply(route)).toMatchObject({departmentId:key,handlingMode:'HUMAN',botState:{variables:{novo_nome:name}}});
  });
 });

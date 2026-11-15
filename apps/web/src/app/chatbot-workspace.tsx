@@ -145,7 +145,7 @@ function dictateAiRequest(){
    if(!response.ok){const message=typeof data?.message==="string"?data.message:"Não foi possível criar o fluxo.";throw new Error(message);}
    const draft=data?.draft;if(!draft||!Array.isArray(draft.steps))throw new Error("Resposta da IA inválida.");
    const stamped={...draft,channelIds:[],triggers:[{kind:"message"}],steps:draft.steps.map((step:Step,index:number)=>({...step,position:{x:80+(index%3)*340,y:100+Math.floor(index/3)*260}}))};
-   setFlow(stamped as Flow);setSelected(stamped.steps[0]?.id||"");setLastSaved(JSON.stringify(stamped));writeTenantCache(tenantId,"chatbot-draft",stamped);setNotice("Fluxo criado pela IA como rascunho. Revise, teste e salve.");setAiCreateOpen(false);
+   setFlow(stamped as Flow);setSelected(stamped.steps[0]?.id||"");setLastSaved(JSON.stringify(stamped));writeTenantCache(tenantId,"chatbot-draft",stamped);setNotice(["Fluxo criado pela IA como rascunho. Revise e teste antes de publicar.",typeof data.provider==="string"&&typeof data.model==="string"?"IA: "+data.provider+" / "+data.model+".":"",...(Array.isArray(data.warnings)?data.warnings.filter((warning:unknown)=>typeof warning==="string"):[])].filter(Boolean).join(" "));setAiCreateOpen(false);
   }catch(e){setAiCreateError(e instanceof Error?e.message:"Falha ao criar o fluxo.");}
   finally{setAiCreateBusy(false);}
  }

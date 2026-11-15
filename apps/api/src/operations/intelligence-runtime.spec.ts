@@ -227,7 +227,7 @@ describe('AI generated preferred-name and triage flow',()=>{
    x.inbound.content=content;
    x.tx.conversation.update.mockClear();
    await x.service.receive(x.channel,'conversation','inbound');
-   const update=x.tx.conversation.update.mock.calls.at(-1)![0].data;
+   const update=x.tx.conversation.update.mock.calls.find(([call]:any[])=>call.data.botState)?.[0].data;
    x.conversation.botState=update.botState;
    return update;
   };
@@ -239,7 +239,7 @@ describe('AI generated preferred-name and triage flow',()=>{
    expect((await reply(name)).botState.variables.novo_nome).toBe(name);
   } else expect(picked.botState.variables.novo_nome).toBe(name);
   expect((await reply('opção inválida')).botState.stepId).toBe('menu-triagem');
-  expect(x.waha.sendText.mock.calls.at(-1)?.[2]).toContain(name+', qual área?');
+  expect(x.tx.message.create.mock.calls.some(([call]:any[])=>call.data.content.includes(name+', qual área?'))).toBe(true);
   expect(await reply(route)).toMatchObject({departmentId:key,handlingMode:'HUMAN',botState:{variables:{novo_nome:name}}});
  });
 });

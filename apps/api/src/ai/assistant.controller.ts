@@ -127,7 +127,8 @@ export class AssistantController {
   @Post("engine/create-flow")
   async createFlow(@Req() req:AuthenticatedRequest,@Body() body:{request?:string;agentId?:string}){
     if(!['OWNER','ADMIN','MANAGER'].includes(req.user.role))throw new ForbiddenException('Permissão insuficiente para criar fluxos.');
-    if(!this.ai)throw new ServiceUnavailableException('Serviço de IA indisponível.');
+    const ai=this.ai;
+    if(!ai)throw new ServiceUnavailableException('Serviço de IA indisponível.');
     const request=typeof body?.request==='string'?body.request.trim():'';
     if(!request||request.length>2000)throw new BadRequestException('Descreva o fluxo em até 2.000 caracteres.');
     const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
@@ -153,9 +154,9 @@ export class AssistantController {
       invalid ||= !valid;
       return valid;
     };
-    const generated=await this.ai.generate(messages,candidates,accepted).catch(error=>{
+    const generated=await ai.generate(messages,candidates,accepted).catch(error=>{
       if (!invalid) throw error;
-      return this.ai.generate([{...messages[0]!,content:messages[0]!.content+'\nReescreva o roteiro como JSON completo; verifique que cada opção tem uma transição válida e que todos os blocos podem ser alcançados.'},messages[1]!],candidates,accepted);
+      return ai.generate([{...messages[0]!,content:messages[0]!.content+'\nReescreva o roteiro como JSON completo; verifique que cada opção tem uma transição válida e que todos os blocos podem ser alcançados.'},messages[1]!],candidates,accepted);
     });
     const compiled=compile(generated.text);
     if (!compiled) throw new BadRequestException('A IA devolveu um roteiro que não pode ser executado. O rascunho anterior foi mantido.');

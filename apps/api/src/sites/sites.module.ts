@@ -9,9 +9,10 @@ import { SitesController } from "./sites.controller";
 import { SitesAssetsController } from "./sites-assets.controller";
 import { PublicAssetsController } from "./public-assets.controller";
 import { PublicSitesController } from "./public-sites.controller";
+import { ImageGenerationController } from "../ai/image-generation.controller";
 
 @Module({
   imports: [JwtModule.register({}), PrismaModule, AuthModule, AiModule, MailModule, OperationsModule],
-  controllers: [SitesController, SitesAssetsController, PublicSitesController, PublicAssetsController],
+  controllers: [SitesController, SitesAssetsController, PublicSitesController, PublicAssetsController, ImageGenerationController],
 })
 export class SitesModule {}

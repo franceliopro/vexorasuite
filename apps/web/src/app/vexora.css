@@ -4536,3 +4536,7 @@ input[type=tel]{letter-spacing:.02em}
 .channels-help-body small{display:block;color:var(--tx2);margin-top:2px}
 .channels-help-body ol{margin:0;padding-left:18px;display:grid;gap:5px}
 .channels-help-body li{line-height:1.5}
+
+/* Gerar imagem por IA dentro do editor de bloco de layout */
+.layout-ai-image{display:grid;gap:8px;padding:12px;border:1px dashed color-mix(in srgb,var(--primary) 30%,var(--ln));border-radius:12px;background:color-mix(in srgb,var(--primary) 5%,var(--s2))}
+.layout-ai-image .text-button{justify-self:start}

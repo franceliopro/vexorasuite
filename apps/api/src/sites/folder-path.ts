@@ -3,7 +3,7 @@ import { BadRequestException } from "@nestjs/common";
 /** Normaliza um caminho de pasta relativo à raiz do gerenciador: "/" ou "/segmentos". */
 export const normalizeFolder = (value: unknown): string => {
   const raw = String(value ?? "/").trim().replace(/\\/g, "/").replace(/\/{2,}/g, "/");
-  let path = raw.startsWith("/") ? raw : "/" + raw;
+  const path = raw.startsWith("/") ? raw : "/" + raw;
   const parts = path.split("/").filter(Boolean);
   if (parts.length > 12) throw new BadRequestException("Pasta muito profunda — máximo de 12 níveis.");
   for (const segment of parts) {

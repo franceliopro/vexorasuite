@@ -107,6 +107,16 @@ function clock(value: string): string {
   return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatResponseTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "-";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}min ${String(Math.round(seconds % 60)).padStart(2, "0")}s`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h${String(minutes % 60).padStart(2, "0")}`;
+  return `${Math.floor(hours / 24)}d ${String(hours % 24).padStart(2, "0")}h`;
+}
+
 function initialsOf(name: string): string {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "?";
@@ -308,8 +318,18 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
         </article>
         <article className="vx-kpi-cell">
           <span className="vx-kpi-cell-label">Atendimentos finalizados</span>
-          <strong className="vx-kpi-cell-value">{data?.completedConversations ?? "—"}</strong>
+          <strong className="vx-kpi-cell-value">{data?.completedConversations ?? "-"}</strong>
           <em className="vx-kpi-cell-note"><span className="vx-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
+        </article>
+        <article className="vx-kpi-cell">
+          <span className="vx-kpi-cell-label">Receita do mês</span>
+          <strong className="vx-kpi-cell-value">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
+          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
+        </article>
+        <article className="vx-kpi-cell">
+          <span className="vx-kpi-cell-label">1ª resposta</span>
+          <strong className="vx-kpi-cell-value">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
+          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot muted" aria-hidden="true" />Média dos últimos 30 dias</em>
         </article>
       </div>
 

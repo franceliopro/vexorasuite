@@ -4779,6 +4779,35 @@ input[type=tel]{letter-spacing:.02em}
   .inbox-composer-input,.composer-input{min-height:48px}
   .composer-send-button{width:46px;height:46px}
 }
+/* ===== Flow: entrada à esquerda, saídas à direita (portas na borda do nó) ===== */
+.vx-flow-input-port{left:-9px;top:50%;transform:translateY(-50%);width:15px;height:15px}
+.vx-flow-outputs button{position:relative;padding-right:22px;justify-content:flex-start}
+.vx-flow-outputs button i{position:absolute;right:-8px;top:50%;transform:translateY(-50%);margin:0;width:15px;height:15px;border-radius:50%;border:2px solid color-mix(in srgb,var(--primary) 62%,var(--ln2));background:var(--s1);z-index:3}
+.vx-flow-outputs button:hover i{background:var(--primary);border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 26%,transparent)}
+.vx-flow-outputs button.connecting i{background:var(--primary);border-color:var(--primary)}
+/* ===== Auditoria: mesma linguagem premium em todas as janelas flutuantes ===== */
+:where(.contact-profile-panel,.inbox-quick-dialog,.thread-status-pill-menu,.mention-popover,.calendar-modal,.inbox-more-queues-menu,.vx-flow-field-tip[data-tip]::after,.ai-agent-card,.invite-popover,.handoff-popover,.finalization-dialog,.sites-wizard,.image-lightbox-close){border-radius:var(--r-lg)}
+:where(.contact-profile-panel,.inbox-quick-dialog,.thread-status-pill-menu,.mention-popover,.calendar-modal,.inbox-more-queues-menu,.finalization-dialog,.sites-wizard){background:var(--s1);border:1px solid color-mix(in srgb,var(--ln) 85%,#FFFFFF);box-shadow:0 22px 60px -18px rgba(11,18,34,.42),inset 0 1px 0 var(--sheen)}
+:where(.contact-profile-panel,.inbox-quick-dialog,.thread-status-pill-menu,.mention-popover,.inbox-more-queues-menu,.finalization-dialog,.sites-wizard){animation:vx-in .2s var(--ease) both}
+:where(.contact-profile-panel,.inbox-quick-dialog) > header{background:var(--s2);border-bottom:1px solid var(--ln)}
+/* ===== Dashboard: faixa de KPIs flexível para 6 indicadores ===== */
+.vx-kpi-strip{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.vx-kpi-cell{min-width:0;padding:16px 18px 14px}
+/* ===== Mobile: conversa mais próxima do WhatsApp ===== */
+@media (max-width:760px){
+  .thread-protocol-row{display:none}
+  .thread-heading h2{font-size:15px}
+  .thread-contact-department{font-size:11px}
+  .thread-header-actions{gap:4px}
+  .thread-header-actions .thread-icon-action{width:40px;height:40px;border-radius:11px}
+  .thread-messages{padding:12px 10px}
+  .message-bubble{max-width:min(88%,560px);font-size:15px;line-height:21px}
+  .message-line.outgoing .message-bubble{max-width:min(88%,560px)}
+  .inbox-assume-banner{padding:12px 13px}
+  .inbox-assume-text strong{font-size:13px}
+  .inbox-assume-text span{font-size:11.5px}
+  .contact-profile-panel,.contact-profile{display:none !important}
+}
 
 /* ===== Janelas maiores: wizard de sites em etapas + grid de agentes ===== */
 .sites-wizard{width:min(1040px,calc(100vw - 24px));max-height:94dvh}

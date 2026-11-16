@@ -43,14 +43,16 @@ export function SitesWizardDialog(props: {
   onVisionFile: (e: { target: { files: FileList | null; value: string } }) => void;
   onNotice: (v: string) => void;
 }) {
+  const [step, setStep] = useState<1|2|3>(1);
   const { wizName, setWizName, wizArea, setWizArea, wizKind, setWizKind, wizPrimary, setWizPrimary, wizAccent, setWizAccent, wizSlug, setWizSlug, wizWhatsapp, setWizWhatsapp, wizSocials, setWizSocials, wizSaving, wizError, wizAiPrompt, setWizAiPrompt, wizAiDictating, wizAiDictateStatus, dictateWizardPrompt, wizReferenceUrl, setWizReferenceUrl, wizHeroOverride, setWizHeroOverride, wizCloneUrl, setWizCloneUrl, closeWizard, submitWizard, onSaveDraft, savedDraft, hasDraft, onDeleteDraft, modelLabel, onReloadModel, onCloneSite, wizCloning, wizImportHtml, setWizImportHtml, onImportHtml, wizImporting, wizZipFile, setWizZipFile, wizPhotos, setWizPhotos, wizVisionLoading, wizVisionNote, onVisionFile, onNotice } = props;
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="vx-dialog-backdrop sites-wizard-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeWizard(); }}>
       <section className="vx-dialog sites-wizard" role="dialog" aria-modal="true" aria-labelledby="sites-wizard-title">
         <header className="vx-dialog-heading"><span className="vx-dialog-icon"><Sparkles size={20} aria-hidden="true" /></span><div><h2 id="sites-wizard-title">Criar site</h2><p>A Véxora monta um site bonito para você em instantes.</p></div><div style={{display:"flex",gap:8,marginLeft:"auto"}}><button type="button" className="secondary-button" onClick={onSaveDraft} disabled={!hasDraft || wizSaving || wizCloning} title="Salvar rascunho deste formulário para continuar depois">{savedDraft ? "Salvo como rascunho" : "Salvar como rascunho"}</button><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={closeWizard}><X size={18} aria-hidden="true" /></button></div></header>
+        <nav className="sites-wizard-steps" aria-label="Etapas do assistente"><span className={step>=1?"sites-wizard-step-chip is-active":"sites-wizard-step-chip"}><i>1</i> O site</span><span className={step>=2?"sites-wizard-step-chip is-active":"sites-wizard-step-chip"}><i>2</i> ConteÃºdo e IA</span><span className={step>=3?"sites-wizard-step-chip is-active":"sites-wizard-step-chip"}><i>3</i> Contato</span></nav>
         <div className="vx-dialog-body sites-wizard-body">
-          <div className="sites-block-actions">
+          <div className="sites-wizard-step" hidden={step!==1}>          <div className="sites-block-actions">
             <p className="sites-field-hint" role="status"><b>Design Gráfico &amp; Web</b> · {modelLabel || "Consultando modelo…"}</p>
             <button type="button" className="secondary-button" onClick={onReloadModel} disabled={wizSaving || wizCloning}>Atualizar modelo</button>
             {hasDraft && <button type="button" className="secondary-button" onClick={onDeleteDraft} disabled={wizSaving || wizCloning}>Excluir rascunho</button>}
@@ -72,7 +74,7 @@ export function SitesWizardDialog(props: {
             <label className="sites-field"><span>Cor principal</span><input type="color" value={wizPrimary} onChange={e => setWizPrimary(e.target.value)} /></label>
             <label className="sites-field"><span>Cor de destaque</span><input type="color" value={wizAccent} onChange={e => setWizAccent(e.target.value)} /></label>
           </div>
-          <details className="sites-ai-card">
+          </div><div className="sites-wizard-step" hidden={step!==2}>          <details className="sites-ai-card">
             <summary><ImagePlus size={14} aria-hidden="true" /> Suas fotos para as páginas (opcional)</summary>
             <p className="sites-field-hint">Anexe as fotos reais do negócio — fachada, equipe, produtos, ambiente — e diga onde cada uma vai. A Véxora usa nos lugares certos do site.</p>
             <div className="sites-photos-toolbar">
@@ -135,7 +137,7 @@ export function SitesWizardDialog(props: {
               <button type="button" className="secondary-button" disabled={wizSaving || wizCloning || !/^https:\/\/.+\..+/i.test((wizCloneUrl || "").trim())} onClick={onCloneSite} title="Busca o site inteiro (https) e cria uma cópia isolada na Véxora">{wizCloning ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {wizCloning ? "Clonando…" : "Clonar site a partir do domínio"}</button>
             </div>
           </details>
-          <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
+          </div><div className="sites-wizard-step" hidden={step!==3}>          <fieldset className="sites-block"><legend>WhatsApp por departamento</legend>
             {wizWhatsapp.map((w, i) => (
               <div key={i} className="sites-row"><input aria-label="Departamento" value={w.label} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, label: e.target.value }; setWizWhatsapp(next); }} placeholder="Ex.: Recepção" /><input aria-label="Número (com DDI)" value={w.handle} onChange={e => { const next = [...wizWhatsapp]; next[i] = { ...w, handle: e.target.value }; setWizWhatsapp(next); }} placeholder="55 65 99999-0001" inputMode="numeric" /><button type="button" className="icon-button" aria-label="Remover" onClick={() => setWizWhatsapp(wizWhatsapp.filter((_, j) => j !== i))}><X size={15} aria-hidden="true" /></button></div>
             ))}
@@ -151,9 +153,9 @@ export function SitesWizardDialog(props: {
             ))}
             <button type="button" className="text-button" onClick={() => setWizSocials([...wizSocials, { platform: "instagram", handle: "" }])}><Plus size={13} aria-hidden="true" /> Adicionar rede</button>
           </fieldset>
-          {wizError && <p role="alert" className="sites-error">{wizError}</p>}
+          </div>          {wizError && <p role="alert" className="sites-error">{wizError}</p>}
         </div>
-        <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={closeWizard}>Cancelar</button><button type="button" className="primary-button" disabled={wizSaving || (!wizZipFile && (!wizName.trim() || !wizArea))} onClick={() => void submitWizard()}>{wizSaving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} {wizZipFile ? "Importar e criar site" : "Criar site"}</button></footer>
+        <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={closeWizard}>Cancelar</button><div className="sites-wizard-nav">{step>1?<button type="button" className="secondary-button" onClick={()=>setStep(step===3?2:1)}>Voltar</button>:null}{step<3?<button type="button" className="primary-button" onClick={()=>setStep(step===1?2:3)}>Continuar</button>:<button type="button" className="primary-button" disabled={wizSaving || (!wizZipFile && (!wizName.trim() || !wizArea))} onClick={() => void submitWizard()}>{wizSaving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />} {wizZipFile ? "Importar e criar site" : "Criar site"}</button>}</div></footer>
       </section>
     </div>,
     document.body,

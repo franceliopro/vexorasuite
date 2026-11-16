@@ -4640,3 +4640,44 @@ input[type=tel]{letter-spacing:.02em}
 .invite-person-button{flex:none;display:grid;place-items:center;width:34px;height:34px;border:1px solid color-mix(in srgb,var(--amber) 45%,var(--ln));border-radius:11px;background:color-mix(in srgb,var(--amber) 12%,var(--s1));color:var(--amber-ink);cursor:pointer;transition:background .14s,transform .14s}
 .invite-person-button:hover{background:color-mix(in srgb,var(--amber) 22%,var(--s1));transform:translateY(-1px)}
 .handoff-empty{margin:4px 2px;font-size:11.5px;color:var(--tx2)}
+/* ===== Alarmes pessoais ===== */
+.settings-card-summary-icon{display:inline-flex;place-items:center;vertical-align:-3px;margin-right:7px;color:var(--primary)}
+.alarms-form{display:grid;gap:10px;margin-top:12px;padding:12px;border:1px solid var(--ln);border-radius:14px;background:var(--s2)}
+.alarms-form-grid{display:grid;grid-template-columns:2fr 1fr 1.3fr;gap:10px}
+.alarms-form-grid label{display:grid;gap:5px;font-size:11.5px;font-weight:700;color:var(--tx2)}
+.alarms-form-grid label.alarms-form-wide{grid-column:1/-1}
+.alarms-form-grid input,.alarms-form-grid select{min-height:38px;border:1px solid var(--ln);border-radius:10px;background:var(--s1);padding:0 11px;font:13.5px/1.35 var(--font-ui);color:var(--tx);outline:0;transition:border-color .14s,box-shadow .14s}
+.alarms-form-grid input:focus,.alarms-form-grid select:focus{border-color:var(--primary);box-shadow:var(--ring)}
+.alarms-weekdays{grid-column:1/-1;border:0;padding:0}
+.alarms-weekdays legend{font-size:11.5px;font-weight:700;color:var(--tx2);margin-bottom:6px}
+.alarms-weekdays>div{display:flex;gap:6px;flex-wrap:wrap}
+.alarms-weekday{min-height:34px;min-width:44px;padding:0 12px;border:1px solid var(--ln);border-radius:99px;background:var(--s1);color:var(--tx2);font-size:12px;font-weight:700;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
+.alarms-weekday:hover{color:var(--tx);border-color:var(--ln2)}
+.alarms-weekday.is-active{background:var(--primary);border-color:var(--primary);color:#fff}
+.alarms-form > .primary-button{display:inline-flex;align-items:center;gap:8px;justify-self:start;min-height:40px;padding:0 18px;border-radius:11px}
+.alarms-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.alarms-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--ln);border-radius:14px;background:var(--s1)}
+.alarms-item.is-off{opacity:.62}
+.alarms-toggle{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;border:1px solid color-mix(in srgb,var(--primary) 40%,var(--ln));background:var(--primary-soft);color:var(--primary-ink);cursor:pointer;transition:transform .14s,background .14s}
+.alarms-toggle:hover{transform:translateY(-1px)}
+.alarms-item.is-off .alarms-toggle{background:var(--s2);border-color:var(--ln);color:var(--tx2)}
+.alarms-item-copy{flex:1;min-width:0;display:grid;gap:2px}
+.alarms-item-copy strong{font-size:13px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alarms-item-copy small{font-size:11px;color:var(--tx2)}
+.alarms-item-copy small b{color:var(--primary-ink);font-variant-numeric:tabular-nums}
+.alarms-remove{flex:none;width:34px;height:34px}
+.alarms-empty{margin:12px 2px 2px;font-size:11.5px;color:var(--tx2);line-height:1.45}
+@media (max-width: 720px){.alarms-form-grid{grid-template-columns:1fr 1fr}.alarms-form-grid label.alarms-form-wide{grid-column:1/-1}}
+@media (max-width: 480px){.alarms-form-grid{grid-template-columns:1fr}}
+/* Overlay de alarme tocando — tela cheia, grande e impossível de ignorar */
+.alarm-overlay{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:18px;background:radial-gradient(90rem 60rem at 50% -20%,rgba(46,124,246,.22),transparent 60%),rgba(4,8,20,.84);backdrop-filter:blur(12px);animation:vx-in .25s var(--ease) both}
+.alarm-card{display:grid;justify-items:center;gap:16px;width:min(620px,100%);max-height:94dvh;overflow:auto;padding:30px 30px 26px;border-radius:28px;border:1px solid rgba(150,190,255,.22);background:linear-gradient(168deg,#111B3A 0%,#0B1128 100%);box-shadow:0 40px 120px -20px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.08);text-align:center;color:#F6F9FF}
+.alarm-card-icon{display:grid;place-items:center;width:104px;height:104px;border-radius:50%;background:radial-gradient(circle at 50% 38%,color-mix(in srgb,#4C97FF 42%,transparent),color-mix(in srgb,#4C97FF 12%,transparent) 70%);color:#9CD2FF;animation:alarm-pulse 1.15s ease-in-out infinite}
+@keyframes alarm-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(122,192,255,.38)}50%{transform:scale(1.08);box-shadow:0 0 0 22px rgba(122,192,255,0)}}
+.alarm-eyebrow{font:750 12px/1 var(--font-display);letter-spacing:.16em;text-transform:uppercase;color:#8FB4FF}
+.alarm-firing-list{list-style:none;margin:0;padding:0;width:100%;display:grid;gap:18px}
+.alarm-firing-item h1{margin:0;font:800 clamp(26px,4.6vw,42px)/1.14 var(--font-display);letter-spacing:-.02em;color:#FFFFFF}
+.alarm-firing-item p{margin:6px 0 0;font-size:13px;color:#A9BBDD}
+.alarm-actions{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.alarm-snooze{min-height:54px;padding:0 18px !important;border-radius:15px !important;background:rgba(255,255,255,.06) !important;border:1px solid rgba(160,195,255,.25) !important;color:#D7E4FF !important;gap:8px;display:inline-flex;align-items:center}
+.alarm-stop{min-height:54px;padding:0 26px !important;border-radius:15px !important;font-size:15px !important;gap:9px;display:inline-flex;align-items:center}

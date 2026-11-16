@@ -4911,3 +4911,11 @@ input[type=tel]{letter-spacing:.02em}
 .vx-flow-command-menu button[data-tip]::after{z-index:90}
 :root[data-theme=dark] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23CBD6F2' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 5 4 4 4-4'/%3E%3C/svg%3E")}
 :root[data-theme=dark] .crm-pipeline-selector select,:root[data-theme=dark] .calendar-toolbar select,:root[data-theme=dark] .calendar-layout-control select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23CBD6F2' stroke-width='2.4'><polyline points='6 9 12 15 18 9'/></svg>")}
+/* ===== Audit Atendentes: respiro no hero e botoes descolados dos elementos acima ===== */
+.team-hero{padding:clamp(22px,2.6vw,30px) clamp(20px,3vw,32px)}
+.team-hero-cta{min-height:44px;padding:0 22px}
+.simple-workspace p + button,.simple-workspace p + .primary-button,.simple-workspace p + .secondary-button,
+.content-card p + button,.content-card p + .primary-button,.content-card p + .secondary-button{margin-top:12px}
+.team-claim-box{display:grid;gap:12px;margin:14px 0;padding:14px 16px;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--ln));border-radius:var(--r-lg);background:color-mix(in srgb,var(--warn) 9%,var(--s2))}
+.team-claim-box p{margin:0;font-size:12.5px;line-height:1.55;color:var(--tx)}
+.team-claim-actions{display:flex;gap:8px;flex-wrap:wrap}

@@ -4892,3 +4892,17 @@ input[type=tel]{letter-spacing:.02em}
 .crm-stage-count{align-self:flex-start}
 .crm-stage-pill select{max-width:100%;min-width:0}
 .crm-stage-cards{scrollbar-width:thin}
+/* ===== Audit Tarefas: progresso, atraso e acoes de editar/excluir ===== */
+.tasks-progress-row{display:grid;gap:6px;min-width:0;flex:1 1 auto}
+.tasks-progress{height:7px;border-radius:99px;background:var(--s3);overflow:hidden;border:1px solid var(--ln)}
+.tasks-progress span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 55%,#FFFFFF));border-radius:99px;transition:width .25s ease}
+.tasks-footer-actions{display:flex;align-items:center;gap:8px;flex:none}
+.tasks-edit{color:var(--tx2)}
+.tasks-delete{color:var(--bad)}
+.tasks-edit:hover{color:var(--primary-ink)}
+.tasks-delete:hover{background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.tasks-overdue{display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:99px;background:color-mix(in srgb,var(--bad) 14%,var(--s1));border:1px solid color-mix(in srgb,var(--bad) 40%,var(--ln));color:var(--bad);font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-left:8px}
+.tasks-due-today{display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:99px;background:color-mix(in srgb,var(--warn) 16%,var(--s1));border:1px solid color-mix(in srgb,var(--warn) 45%,var(--ln));color:#A85E10;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-left:8px}
+.tasks-metric-alert{border-color:color-mix(in srgb,var(--bad) 45%,var(--ln))!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 18%,transparent),var(--shadow-sm)}
+.tasks-metric-alert strong{color:var(--bad)}
+.tasks-overdue-banner{display:flex;align-items:center;gap:9px;margin:0 0 4px;padding:11px 13px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--bad) 40%,var(--ln));background:color-mix(in srgb,var(--bad) 10%,var(--s1));color:var(--bad);font-size:12px;font-weight:700}

@@ -1,14 +1,14 @@
-"use client";
+﻿"use client";
 export const moduleLabels: Record<string, string> = {
   INBOX: "Atendimento",
   CRM: "CRM",
-  CALENDAR: "Calendários",
+  CALENDAR: "CalendÃ¡rios",
   TASKS: "Tarefas",
-  AUTOMATION: "Automação e agentes de IA",
+  AUTOMATION: "AutomaÃ§Ã£o e agentes de IA",
   MARKETING: "Marketing e Drive",
   FINANCE: "Financeiro",
-  CHANNELS: "Conexões",
-  SETTINGS: "Configurações",
+  CHANNELS: "ConexÃµes",
+  SETTINGS: "ConfiguraÃ§Ãµes",
 };
 export function ModuleChoices({
   value,
@@ -21,7 +21,7 @@ export function ModuleChoices({
 }) {
   return (
     <fieldset className="module-permissions">
-      <legend>Módulos permitidos</legend>
+      <legend>MÃ³dulos permitidos</legend>
       {Object.entries(moduleLabels).map(([id, label]) => (
         <label className="ai-toggle" key={id}>
           <input

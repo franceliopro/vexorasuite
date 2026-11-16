@@ -4708,13 +4708,27 @@ input[type=tel]{letter-spacing:.02em}
 .vx-widget-weather-fallback{margin:0;font-size:12px;line-height:1.45;opacity:.9}
 .vx-widget-weather-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;font-weight:650;color:inherit;opacity:.92}
 .vx-widget-weather-meta span{display:inline-flex;align-items:center;gap:5px}
+.vx-widget-weather-head-actions{display:inline-flex;align-items:center;gap:8px}
+.vx-widget-weather-config{display:grid;place-items:center;width:28px;height:28px;border:1px solid rgba(59,42,5,.28);border-radius:8px;background:rgba(255,255,255,.32);color:#5A4306;cursor:pointer;transition:background .14s,border-color .14s}
+.vx-widget-weather.is-night .vx-widget-weather-config{border-color:rgba(220,230,255,.45);background:rgba(255,255,255,.08);color:#DCE6FF}
+.vx-widget-weather-config:hover{background:rgba(255,255,255,.5)}
+.vx-widget-weather.is-night .vx-widget-weather-config:hover{background:rgba(255,255,255,.16)}
+.vx-widget-weather-config:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.vx-widget-weather-config-form{display:flex;gap:8px;align-items:center}
+.vx-widget-weather-config-form input{flex:1;min-width:0;min-height:36px;padding:0 12px;border:1px solid rgba(59,42,5,.35);border-radius:9px;background:rgba(255,255,255,.75);color:#3B2A05;font:600 13px/1.2 var(--font-sans)}
+.vx-widget-weather.is-night .vx-widget-weather-config-form input{border-color:rgba(220,230,255,.4);background:rgba(10,16,40,.6);color:#EAF0FF}
+.vx-widget-weather-config-form input::placeholder{color:inherit;opacity:.55}
+.vx-widget-weather-config-save{min-height:36px;padding:0 14px;border:0;border-radius:9px;background:#3B2A05;color:#FFE9B8;font:750 12.5px/1 var(--font-display);cursor:pointer;letter-spacing:.02em}
+.vx-widget-weather.is-night .vx-widget-weather-config-save{background:#DCE6FF;color:#1B2650}
 /* Calendário — verde profundo com o dia de hoje em destaque */
 .vx-widget-calendar{display:flex;flex-direction:column;gap:10px;color:#EAF8EF;background:linear-gradient(160deg,#0E3A2B 0%,#082A20 100%)}
 .vx-widget-calendar-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .vx-widget-calendar-head strong{font:800 14.5px/1.2 var(--font-display);letter-spacing:.01em}
-.vx-widget-calendar-nav{display:flex;gap:4px}
-.vx-widget-calendar-nav button{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;border:1px solid rgba(200,255,222,.22);background:rgba(255,255,255,.05);color:#C9F2DB;cursor:pointer;transition:background .14s}
-.vx-widget-calendar-nav button:hover{background:rgba(255,255,255,.12)}
+.vx-widget-calendar-nav{display:flex;gap:6px}
+.vx-widget-calendar-nav button{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid rgba(214,255,230,.42);background:rgba(214,255,230,.14);color:#F2FFF7;cursor:pointer;transition:background .14s,border-color .14s}
+.vx-widget-calendar-nav button svg{display:block;stroke:#F2FFF7;stroke-width:2.4px;opacity:1;visibility:visible}
+.vx-widget-calendar-nav button:hover{background:rgba(214,255,230,.24);border-color:rgba(214,255,230,.6)}
+.vx-widget-calendar-nav button:focus-visible{outline:2px solid #8FE3B2;outline-offset:2px}
 .vx-widget-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .vx-widget-calendar-wd{display:grid;place-items:center;min-height:22px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#8FE3B2;opacity:.85;text-transform:uppercase}
 .vx-widget-calendar-day{display:grid;place-items:center;min-height:27px;border-radius:8px;font-size:11.5px;font-weight:600;color:#EAF8EF;font-variant-numeric:tabular-nums}

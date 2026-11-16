@@ -44,9 +44,21 @@ async function proxyRequest(request: Request, context: Context) {
           cache: "no-store",
           signal: AbortSignal.timeout(15000),
         });
-        if (!response.ok) return null;
+        if (!response.ok) {
+          // A rejected refresh (revoked family after a redeploy, reuse detection or logout) means
+          // the stored token can never work again. Dropping both cookies here stops the browser
+          // from retrying the refresh on every poll; without this the dead pair is re-sent forever.
+          if (response.status === 401 || response.status === 403) {
+            cookieStore.delete(SESSION_COOKIE);
+            cookieStore.delete(REFRESH_COOKIE);
+            cookieStore.delete(LEGACY_SESSION_COOKIE);
+            cookieStore.delete(LEGACY_REFRESH_COOKIE);
+          }
+          return null;
+        }
         return (await response.json()) as Record<string, unknown>;
       } catch {
+        // Network/timeout against the API: keep the cookies, this is not a session verdict.
         return null;
       }
     })();

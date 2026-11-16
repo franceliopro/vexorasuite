@@ -6,9 +6,19 @@ import { randomBytes } from "node:crypto";
 
 const DEFAULT_SETTINGS = { enabled: true, minutesBefore: [15, 60], sound: true, push: true };
 const clampMinute = (v: unknown) => Math.min(Math.max(Math.floor(Number(v)), 1), 1440);
+export type PersonalAlarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
+const DEFAULT_MAX_PER_DAY = 15;
+const clampMaxPerDay = (v: unknown) => {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 1), 50) : DEFAULT_MAX_PER_DAY;
+};
+const sanitizeWeekdays = (v: unknown): number[] => {
+  if (!Array.isArray(v)) return [];
+  const out = [...new Set(v.map(Number).filter((n: number) => Number.isInteger(n) && n >= 0 && n <= 6))].sort((a: number, b: number) => a - b);
+  return out.slice(0, 7);
+};
 
 type AgendaReminder = { enabled: boolean; minutesBefore: number[] };
-export type PersonalAlarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
 
 function sanitizeAgendaKey(key: unknown): string | null {
   const value = String(key || "").trim();
@@ -66,7 +76,9 @@ export class RemindersController {
     const root = await this.root(req);
     const raw = root.reminders && typeof root.reminders === "object" && !Array.isArray(root.reminders) ? root.reminders as Record<string, any> : {};
     const minutesBefore = Array.isArray(raw.minutesBefore) ? [...new Set((raw.minutesBefore as unknown[]).map(clampMinute))].sort((a: number, b: number) => a - b).slice(0, 5) : DEFAULT_SETTINGS.minutesBefore;
-    return { enabled: raw.enabled !== false, minutesBefore: minutesBefore.length ? minutesBefore : DEFAULT_SETTINGS.minutesBefore, sound: raw.sound !== false, push: raw.push !== false };
+    const mutedWeekdays = sanitizeWeekdays(raw.mutedWeekdays);
+    const maxPerDay = clampMaxPerDay(raw.maxPerDay);
+    return { enabled: raw.enabled !== false, minutesBefore: minutesBefore.length ? minutesBefore : DEFAULT_SETTINGS.minutesBefore, sound: raw.sound !== false, push: raw.push !== false, mutedWeekdays, maxPerDay };
   }
 
   @Put("settings") async putSettings(@Req() req: AuthenticatedRequest, @Body() body: any) {
@@ -77,13 +89,15 @@ export class RemindersController {
     const sourceList: unknown[] = Array.isArray(body?.minutesBefore) ? body.minutesBefore : DEFAULT_SETTINGS.minutesBefore;
     const minutesBefore = [...new Set<number>(sourceList.map(clampMinute))].sort((a, b) => a - b).slice(0, 5);
     if (!minutesBefore.length) throw new BadRequestException("Informe ao menos um minuto de antecedência (1 a 1440).");
+    const mutedWeekdays = sanitizeWeekdays(body?.mutedWeekdays);
+    const maxPerDay = clampMaxPerDay(body?.maxPerDay);
     await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
       const current = await this.root(req);
-      const next = { ...current, reminders: { ...(current.reminders as Record<string, any> | undefined), enabled, minutesBefore, sound, push } };
+      const next = { ...current, reminders: { ...(current.reminders as Record<string, any> | undefined), enabled, minutesBefore, sound, push, mutedWeekdays, maxPerDay } };
       await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: next as any } });
     });
-    return { enabled, minutesBefore, sound, push };
+    return { enabled, minutesBefore, sound, push, mutedWeekdays, maxPerDay };
   }
 
   @Get("agendas") async getAgendas(@Req() req: AuthenticatedRequest) {

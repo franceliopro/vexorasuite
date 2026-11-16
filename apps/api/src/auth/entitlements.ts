@@ -23,8 +23,8 @@ export type Entitlements = {
   forms: boolean;
 };
 export const FULL_ENTITLEMENTS: Entitlements = {
-  modules: ["SITES","INBOX","CRM","AUTOMATION","CHANNELS","CALENDAR","TASKS","FINANCE","MARKETING","SETTINGS"],
-  attendants: 999, bots: 99, iaLimit: 999999, iaTier: "standard", sites: 999, socialAccounts: 999,
+  modules: ["INBOX","CRM","AUTOMATION","CHANNELS","CALENDAR","TASKS","FINANCE","MARKETING","SETTINGS"],
+  attendants: 999, bots: 99, iaLimit: 999999, iaTier: "standard", sites: 0, socialAccounts: 999,
   marketingPublishing: true, followups: true, finance: true, crm: true, dynamicSites: true, forms: true,
 };
 const ALL_MODULE_IDS = FULL_ENTITLEMENTS.modules;

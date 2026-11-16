@@ -70,7 +70,7 @@ export function routeModules(path: string, method: string): string[] {
     )
   )
     return ["MARKETING"];
-  if (/^sites(?:\/|$)/.test(p)) return ["SITES"];   if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
+  if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
   if (/^integrations|^communications/.test(p)) return ["CHANNELS"];
   if (/^push/.test(p)) return ["INBOX"];
   return ["SETTINGS"];

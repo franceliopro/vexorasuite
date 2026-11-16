@@ -12,7 +12,7 @@ import { resolveCreativeAgent } from "./creative-agent";
 import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { parseCarousel, slideSvg, type Carousel } from "./assistant-automation.service";
 import { skillInstructions } from "./product-skills";
-import { fetchTextGuarded } from "../sites/fetch-guarded";
+import { fetchTextGuarded } from "../common/fetch-guarded";
 
 const obj = (v: unknown): Record<string, any> => (v && typeof v === "object" && !Array.isArray(v) ? v as any : {});
 const APP_BASE = () => (process.env.APP_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL || "https://app.vexorasuite.com.br").replace(/\/$/, "");

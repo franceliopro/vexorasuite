@@ -6,6 +6,7 @@ import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 import { ReminderCenter } from "./reminder-center";
 import { AlarmCenter } from "./alarm-center";
+import { DashboardWidgets } from "./dashboard-widgets";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { applyBrandTheme } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
@@ -336,9 +337,10 @@ export default function HomePage() {
         {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={"page-content" + (active === "Atendimento" ? " page-content--fixed" : "")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className="page-heading">
-            <div><h1>{greeting+"! 👋"}</h1><p className="page-subtitle">{platformPanel?"Painel da Véxora · Administração da plataforma":"Painel da empresa · "+session?.tenant.name}</p></div>
+            <div><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1><p className="page-subtitle">{platformPanel ? "Hoje é "+new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : (session?.tenant.name||"")+" · Hoje é "+new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
+          {isOverview ? <DashboardWidgets /> : null}
 
           {!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className="secondary-button" onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>

@@ -371,7 +371,8 @@ services:
     expose:
       - "80"
     volumes:
-      - sites_static:/usr/share/nginx/html:ro
+      - sites_static:/var/www/sites
+      - ./infra/static/default.conf:/etc/nginx/conf.d/default.conf:ro
 
   waha:
     image: ${WAHA_IMAGE:-devlikeapro/waha:gows}

@@ -1461,14 +1461,8 @@ details>summary:hover{color:var(--tx)}
 .origin-recent thead th{text-align:left;font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);padding:0 12px 8px 0;border-bottom:1px solid var(--ln)}
 .origin-recent tbody td{padding:9px 12px 9px 0;border-bottom:1px solid color-mix(in srgb,var(--ln) 60%,transparent)}
 .origin-recent tbody tr:last-child td{border-bottom:0}
-.origin-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:800;letter-spacing:.02em}
-.origin-badge.origin-instagram{background:#F7A8C8;color:#7A103F}
-.origin-badge.origin-whatsapp{background:#B9E2FF;color:#164E8A}
-.origin-badge.origin-google{background:#A8C7FA;color:#123E7A}
-.origin-badge.origin-facebook{background:#9CC2F8;color:#0E3E75}
-.origin-badge.origin-form{background:#F8D9A0;color:#5C3A08}
-.origin-badge.origin-landing{background:#D4BDFB;color:#402572}
-.origin-badge.origin-neutral{background:var(--s3);color:var(--tx2)}
+.origin-badge{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.origin-badge.origin-neutral{background:var(--s3);color:var(--tx2);border-color:var(--ln2)}
 .origin-open-link{display:inline-grid;place-items:center;width:29px;height:29px;border-radius:8px;border:1px solid var(--ln);background:var(--s1);color:var(--tx2);cursor:pointer;transition:color .14s,border-color .14s}
 .origin-open-link:hover{color:var(--primary-ink);border-color:color-mix(in srgb,var(--primary) 35%,var(--ln))}
 
@@ -4885,3 +4879,16 @@ input[type=tel]{letter-spacing:.02em}
 .vx-flow-wires path{stroke-width:2.2}
 .vx-flow-start-node span{font-size:10.5px}
 .vx-flow-start-node small:last-child{font-size:9px}
+
+/* ===== Audit CRM: blocos de pipeline consistentes e cabecalho de etapa de altura fixa ===== */
+.crm-pipeline-card{min-height:152px;min-width:0;overflow:hidden}
+.crm-card-identity{min-width:0}
+.crm-card-name{max-width:100%}
+.crm-card-source{max-width:100%;align-self:start}
+.crm-stage-heading{min-height:62px;align-items:flex-start}
+.crm-stage-heading>div{min-width:0}
+.crm-stage-heading h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crm-stage-heading p{margin:2px 0 0;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.crm-stage-count{align-self:flex-start}
+.crm-stage-pill select{max-width:100%;min-width:0}
+.crm-stage-cards{scrollbar-width:thin}

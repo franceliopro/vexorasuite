@@ -4842,3 +4842,27 @@ input[type=tel]{letter-spacing:.02em}
 .ai-agent-status.is-on{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--primary-ink)}
 .ai-agent-tier{font-size:9px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--ln2);border-radius:99px;padding:4px 9px;color:var(--tx2)}
 .ai-agents-grid-empty{display:grid;justify-items:center;gap:10px;padding:26px 16px;border:1px dashed var(--ln2);border-radius:16px;color:var(--tx2);text-align:center;margin-top:12px}
+/* ===== Flow Studio: canvas compacto inspirado no canvas original ===== */
+.vx-flow-node{width:212px !important;border-radius:14px;box-shadow:0 3px 16px -4px rgba(0,0,0,.18)}
+.vx-flow-start-node{width:196px !important;border-radius:16px;box-shadow:0 3px 16px -4px rgba(0,0,0,.18);padding:7px 10px}
+.vx-flow-node-head{padding:6px 9px;gap:6px;font-size:11px;border-bottom:1px solid var(--ln)}
+.vx-flow-node-symbol{width:22px;height:22px;border-radius:7px;font-size:11px}
+.vx-flow-node-head strong{font-size:10.5px;letter-spacing:-.005em;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vx-flow-node-grip{display:none !important}
+.vx-flow-node-body{padding:6px 9px;font-size:9.5px;color:var(--tx2);line-height:1.35}
+.vx-flow-node-body small{font-size:9px;color:var(--tx2);display:block}
+.vx-flow-node-body p{display:none}
+.vx-flow-node-quick-actions{top:5px;right:5px;transform:none}
+.vx-flow-node-quick-actions button{min-height:22px;padding:0 6px;font-size:9.5px;border-radius:6px}
+.vx-flow-outputs{display:grid;gap:4px;padding:8px 9px 10px;border-top:1px solid var(--ln)}
+.vx-flow-outputs button{position:relative;display:flex;align-items:center;gap:5px;width:100%;min-height:22px;padding:0 8px;border:1px solid var(--ln2);border-radius:8px;background:var(--s2);color:var(--tx);font-size:9.5px;font-weight:650;text-align:left;cursor:pointer;transition:border-color .14s,background .14s}
+.vx-flow-outputs button:hover{background:var(--hover);border-color:var(--ln2)}
+.vx-flow-outputs button i{position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:14px;height:14px;margin:0;border-radius:50%;border:2px solid color-mix(in srgb,var(--primary) 62%,var(--ln2));background:var(--s1);z-index:4}
+.vx-flow-outputs button:hover i{background:var(--primary);border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 26%,transparent)}
+.vx-flow-node-target{min-height:22px;font-size:9px;letter-spacing:.08em;border-radius:0 0 12px 12px}
+.vx-flow-input-port{left:-8px;top:50%;transform:translateY(-50%);width:15px;height:15px;background:var(--s1);border:2px solid var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent);z-index:3}
+.vx-flow-node.selected .vx-flow-input-port{box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 38%,transparent)}
+.vx-flow-board{row-gap:150px;column-gap:300px}
+.vx-flow-wires path{stroke-width:2.2}
+.vx-flow-start-node span{font-size:10.5px}
+.vx-flow-start-node small:last-child{font-size:9px}

@@ -1,7 +1,7 @@
-import { BadRequestException } from "@nestjs/common";
+﻿import { BadRequestException } from "@nestjs/common";
 import { promises as dns } from "node:dns";
 
-/** Fetch com guarda SSRF: só HTTPS público, sem credenciais embutidas, sem loopback/RFC1918. */
+/** Fetch com guarda SSRF: s├│ HTTPS p├║blico, sem credenciais embutidas, sem loopback/RFC1918. */
 
 const isPrivateIp = (ip: string): boolean => {
   if (ip.includes(":")) {
@@ -14,16 +14,16 @@ const isPrivateIp = (ip: string): boolean => {
   return a === 0 || a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
 };
 
-/** Só HTTPS em host público — bloqueia loopback, RFC1918, CGNAT e link-local. */
+/** S├│ HTTPS em host p├║blico ÔÇö bloqueia loopback, RFC1918, CGNAT e link-local. */
 export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
   let url: URL;
-  try { url = new URL(String(raw || "").trim()); } catch { throw new BadRequestException("URL inválida. Use https://…"); }
+  try { url = new URL(String(raw || "").trim()); } catch { throw new BadRequestException("URL inv├ílida. Use https://ÔÇª"); }
   if (url.protocol !== "https:") throw new BadRequestException("A URL do site precisa usar https://");
-  if (url.username || url.password) throw new BadRequestException("A URL não pode conter usuário ou senha.");
-  if (!url.hostname.includes(".")) throw new BadRequestException("Host inválido.");
+  if (url.username || url.password) throw new BadRequestException("A URL n├úo pode conter usu├írio ou senha.");
+  if (!url.hostname.includes(".")) throw new BadRequestException("Host inv├ílido.");
   let addresses: { address: string }[];
-  try { addresses = await dns.lookup(url.hostname, { all: true }); } catch { throw new BadRequestException("Não foi possível resolver o domínio. Confira se o site está no ar."); }
-  if (!addresses.length || addresses.some((a) => isPrivateIp(a.address))) throw new BadRequestException("Endereço não permitido: o site precisa estar em um IP público.");
+  try { addresses = await dns.lookup(url.hostname, { all: true }); } catch { throw new BadRequestException("N├úo foi poss├¡vel resolver o dom├¡nio. Confira se o site est├í no ar."); }
+  if (!addresses.length || addresses.some((a) => isPrivateIp(a.address))) throw new BadRequestException("Endere├ºo n├úo permitido: o site precisa estar em um IP p├║blico.");
   return url;
 }
 
@@ -38,11 +38,11 @@ export async function fetchTextGuarded(startUrl: string, maxBytes: number, timeo
     });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
-      if (!location) throw new BadRequestException("O site redirecionou para um endereço vazio.");
+      if (!location) throw new BadRequestException("O site redirecionou para um endere├ºo vazio.");
       current = new URL(location, current).toString();
       continue;
     }
-    if (!response.ok) throw new BadRequestException("O site respondeu com erro " + response.status + ". Verifique se está no ar.");
+    if (!response.ok) throw new BadRequestException("O site respondeu com erro " + response.status + ". Verifique se est├í no ar.");
     const reader = response.body?.getReader();
     if (!reader) throw new BadRequestException("Resposta vazia do site.");
     const chunks: Uint8Array[] = [];
@@ -52,7 +52,7 @@ export async function fetchTextGuarded(startUrl: string, maxBytes: number, timeo
         const part = await reader.read();
         if (part.done) break;
         size += part.value.length;
-        if (size > maxBytes) throw new BadRequestException("O site é grande demais para ser clonado por aqui (limite de segurança).");
+        if (size > maxBytes) throw new BadRequestException("O site ├® grande demais para ser clonado por aqui (limite de seguran├ºa).");
         chunks.push(part.value);
       }
     } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }
@@ -73,7 +73,7 @@ export async function fetchBinaryGuarded(startUrl: string, maxBytes: number, tim
     });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
-      if (!location) throw new BadRequestException("O recurso redirecionou para um endereço vazio.");
+      if (!location) throw new BadRequestException("O recurso redirecionou para um endere├ºo vazio.");
       current = new URL(location, current).toString();
       continue;
     }
@@ -88,7 +88,7 @@ export async function fetchBinaryGuarded(startUrl: string, maxBytes: number, tim
         const part = await reader.read();
         if (part.done) break;
         size += part.value.length;
-        if (size > maxBytes) throw new BadRequestException("O recurso é grande demais para ser clonado por aqui (limite de segurança).");
+        if (size > maxBytes) throw new BadRequestException("O recurso ├® grande demais para ser clonado por aqui (limite de seguran├ºa).");
         chunks.push(part.value);
       }
     } finally { await reader.cancel().catch(() => undefined); reader.releaseLock(); }

@@ -5,7 +5,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Undo2, Redo2, Link2, ImagePlus, Youtube, Images, Code2, FileText, X, ChevronUp, ChevronDown } from "lucide-react";
-import { FileImagePicker } from "./file-image-picker";
 
 /* ===== Nodes customizados ===== */
 const parseYoutubeId = (input: string): string | null => {
@@ -65,7 +64,7 @@ function GalleryNodeView(props: any) {
     <NodeViewWrapper className={"vx-gallery-node" + (selected ? " is-selected" : "")} data-vx-gallery="true">
       <div className="vx-gallery-node-head"><Images size={15} aria-hidden="true" /><span>{items.length} imagem(ns) na galeria</span>
         <button type="button" className="text-button" onClick={() => setPickerOpen(true)}>+ Adicionar imagens</button>
-        <FileImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} multiple title="File manager · Galeria" onSelect={(urls) => { const added = urls.map(u => ({ url: u, alt: decodeURIComponent(u.split("/").pop() || "Imagem").replace(/\.[a-z0-9]+$/i, ""), caption: "" })); updateAttributes({ items: [...items, ...added] }); }} />
+        
       </div>
       {items.length ? (
         <div className="vx-gallery-grid">{items.map((item, index) => (
@@ -142,8 +141,7 @@ export function PostBodyEditor({ value, onChange, placeholder, maxLength = 60000
       <button type="button" title="Bloco de código" aria-label="Bloco de código" aria-pressed={!!editor?.isActive("codeBlock")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}><Code2 size={15} aria-hidden="true" /></button>
       <span className="vx-post-toolbar-sep" />
       <button type="button" title="Inserir link" aria-label="Inserir link" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setLinkOpen(v => !v)}><Link2 size={15} aria-hidden="true" /></button>
-      <button type="button" className="vx-post-tool" title="Inserir imagem do File manager" aria-label="Inserir imagem do File manager" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setImagePickerOpen(true)}><ImagePlus size={15} aria-hidden="true" /></button>
-      <button type="button" title="Inserir vídeo do YouTube" aria-label="Inserir vídeo do YouTube" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setYoutubeOpen(v => !v)}><Youtube size={15} aria-hidden="true" /></button>
+            <button type="button" title="Inserir vídeo do YouTube" aria-label="Inserir vídeo do YouTube" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setYoutubeOpen(v => !v)}><Youtube size={15} aria-hidden="true" /></button>
       <button type="button" title="Inserir galeria de imagens" aria-label="Inserir galeria" disabled={source} onMouseDown={e => e.preventDefault()} onClick={insertGallery}><Images size={15} aria-hidden="true" /></button>
       <span className="vx-post-toolbar-spacer" />
       <button type="button" className={source ? "active" : ""} title={source ? "Alternar para modo Visual" : "Alternar para modo Código (HTML)"} aria-label={source ? "Modo Visual" : "Modo Código"} aria-pressed={source} onClick={() => setSource(v => { const next = !v; if (!next && editor) editor.commands.setContent(value || editor.getHTML(), { emitUpdate: false }); return next; })}>{source ? <FileText size={15} aria-hidden="true" /> : <Code2 size={15} aria-hidden="true" />}<small>{source ? "Código" : "Visual"}</small></button>
@@ -159,7 +157,7 @@ export function PostBodyEditor({ value, onChange, placeholder, maxLength = 60000
         : <EditorContent editor={editor} />}
       {notice && <p className="vx-post-notice" role="alert">{notice}</p>}
       <p className="vx-post-hint">Dica: use o File manager para enviar do PC/celular e depois inserir aqui — a galeria aceita várias imagens de uma vez.</p>
-      <FileImagePicker open={imagePickerOpen} onClose={() => setImagePickerOpen(false)} title="Inserir imagem do File manager" onSelect={(urls) => { const url = urls[0]; if (url) editor?.chain().focus().setImage({ src: url, alt: decodeURIComponent(url.split("/").pop() || "Imagem").replace(/\.[a-z0-9]+$/i, "") }).run(); }} />
+      
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function webDesignerAgent(): WebDesignerAgent {
       prohibitions: 'Não copie ou redistribua ativos de Behance, Dribbble, Envato, Pinterest, Awwwards ou similares. Não invente faturamento, clientes ou certificações. Não publique nada sem revisão humana.',
     },
     allowedActions: ['creative.design.director', 'web.design.premium', 'media.instagram.redesign', 'web.research', 'drive.files.search', 'media.carousel.generate'],
-    bindings: { mode: 'specialist', specialists: [], flows: [], pipelines: [], externalSystems: [], modules: ['MARKETING', 'SITES'], inboxes: [] },
+    bindings: { mode: 'specialist', specialists: [], flows: [], pipelines: [], externalSystems: [], modules: ['MARKETING'], inboxes: [] },
     // Escolha recomendada da plataforma: GPT-5 (OpenAI) — o mais forte da família em código front-end e
     // sensibilidade visual de design, e compatível com a verificação de visão do modelo. O tenant pode
     // trocar por Claude/Gemini/OpenRouter em Agentes de IA → Modelos e Voz a qualquer momento.

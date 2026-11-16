@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+﻿import { Module } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { CommunicationsModule } from './communications/communications.module';
 import { AuthModule } from "./auth/auth.module";
@@ -10,10 +10,8 @@ import { AuditInterceptor } from "./common/audit/audit.interceptor";
 import { RateLimitInterceptor } from "./common/rate-limit/rate-limit.interceptor";
 import { RateLimitService } from "./common/rate-limit/rate-limit.service";
 import { MailModule } from "./mail/mail.module";
-import { SitesModule } from "./sites/sites.module";
-
 @Module({
-  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule],
+  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, ],
   controllers: [HealthController],
   providers: [
     RateLimitService,

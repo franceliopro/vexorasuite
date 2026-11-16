@@ -10,6 +10,12 @@ services:
       API_INTERNAL_URL: http://api:3001
     expose:
       - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vexora-web-catchall.rule=HostRegexp(`^.+$`)"
+      - "traefik.http.routers.vexora-web-catchall.entrypoints=web,websecure"
+      - "traefik.http.routers.vexora-web-catchall.service=vexora-web-catchall"
+      - "traefik.http.services.vexora-web-catchall.loadbalancer.server.port=3000"
     depends_on:
       api:
         condition: service_healthy
@@ -363,6 +369,15 @@ services:
       timeout: 3s
       retries: 10
 
+
+  # Institutional site for the company (static, self-contained HTML).
+  institucional:
+    image: nginx:alpine
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./sites/institucional:/usr/share/nginx/html:ro
 
   # Static bundles uploaded by the app: extracted here and served by nginx.
   static:

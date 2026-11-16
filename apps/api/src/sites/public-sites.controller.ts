@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Public } from "../auth/auth.guard";
 import { readPropertyLists } from "./real-estate";
@@ -19,10 +19,28 @@ function rateLimit(key: string) {
 }
 const cleanStr = (v: unknown, max: number) => typeof v === "string" ? v.trim().slice(0, max) : "";
 const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+/** Normaliza o Host vindo de fora (minúsculas, sem porta, sem ponto final) e valida como domínio. */
+const normalizeHost = (v: unknown) => {
+  const s = String(v || "").toLowerCase().trim().replace(/\.$/, "").replace(/:\d+$/, "").slice(0, 120);
+  return /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(s) ? s : "";
+};
 /** Renderizador público do site (sem autenticação) — é o que o visitante abre no domínio/slug. */
 @Controller("public/sites")
 export class PublicSitesController {
   constructor(private readonly prisma: PrismaService) {}
+  /** Resolve um domínio próprio de cliente para o slug do site publicado (usado pelo middleware web). */
+  @Get("resolve")
+  async resolveHost(@Query("host") host: string) {
+    const value = normalizeHost(host);
+    if (!value) throw new NotFoundException("Domínio inválido.");
+    const candidates = value.startsWith("www.") ? [value, value.slice(4)] : [value, "www." + value];
+    const site = await this.prisma.site.findFirst({
+      where: { domain: { in: candidates }, published: true, domainStatus: "ACTIVE" },
+      select: { slug: true, domain: true },
+    });
+    if (!site) throw new NotFoundException("Nenhuma rota ativa para este domínio.");
+    return { slug: site.slug, domain: site.domain };
+  }
   @Get(":slug")
   async render(@Param("slug") slug: string) {
     const site = await this.prisma.site.findFirst({

@@ -1,9 +1,9 @@
 # Hospedar os produtos isolados da Véxora (bot/chat/sites) em domínios próprios
 
-> Estado em 2026-11-10 (matriz de entrega honesta):
+> Estado em 2026-11-16 (matriz de entrega honesta):
 > - **Jenovas criadas no Cloudflare** para `site.vexorasuite.com.br`, `bot.vexorasuite.com.br`, `chat.vexorasuite.com.br` e o wildcard `*.vexorasuite.com.br`;
-> - O app ainda **não** faz roteamento por Host: `site.vexorasuite.com.br` e `app.vexorasuite.com.br` servem a **mesma** UI;
-> - O código que resolve o tenant pelo Host (middleware) está **pendente**;
+> - **Domínios próprios de cliente (Cloudflare for SaaS)** com fallback origin `static.vexorasuite.com.br`: o middleware web (`apps/web/src/middleware.ts`) resolve o Host → `/sites/<slug>` para domínios verificados e publicados; o service `web` no compose tem roteador catch-all do Traefik (`HostRegexp(`^.+$`)`, prioridade mínima);
+> - O código que resolve o tenant pelo Host (middleware) está **implementado** (2026-11-16).
 > - Os URLs de sites de clientes já funcionam em `https://app.vexorasuite.com.br/sites/<slug>` e os robôs em `https://app.vexorasuite.com.br/p/<token>`.
 > Este documento descreve o que tem de ser feito na **Cloudflare** e no **Dokploy/Traefik** para publicar as páginas isoladas com cert TLS adequado.
 
@@ -124,9 +124,10 @@ Para que as páginas isoladas funcionem sem expor a UI completa para qualquer `s
 - Ler `x-forwarded-host` (ou `host`);
 - Reconhecer `site|bot|chat.<empresa>.vexorasuite.com.br`;
 - Redirecionar/reescrever para `/sites/<slug>`, `/p/<token>` e `/chat/<token>` (este último cria iframe no `/p/<token>` ou uma página mínima de embed);
-- Se não bater nenhum padrão, servir homepage (brand white label) com 404 ou redirecionar para `app.vexorasuite.com.br`.
+- Se não bater nenhum padrão, o middleware retorna 404 controlado ("Domínio não configurado…"). Este passo foi implementado em 2026-11-16.
 
-Nenhuma dessas três etapas foi implementada ainda. O que já existe na aplicação:
+> Atualização 2026-11-16: o roteamento por Host **está implementado** (`apps/web/src/middleware.ts`). O middleware reconhece hosts que não terminam em `vexorasuite.com.br` e reescreve todos os caminhos para `/sites/<slug>`; a resolução usa `GET /api/public/sites/resolve?host=<dominio>` (somente sites `published` com `domainStatus` = `ACTIVE`). Hosts internos e o apex `vexorasuite.com.br` seguem para a UI normal/institucional.
+> O que existe na aplicação hoje:
 - `/p/<token>` renderiza orobô/telar isolada sem moldura da Véxora — está funcionando hoje em `app.vexorasuite.com.br/p/<token>`;
 - `/sites/<slug>` renderiza o site finalizado — funcionando hoje em `app.vexorasuite.com.br/sites/<slug>`;
 - Ambos servem qualquer Host porque não há condicionamento por Host na aplicação.

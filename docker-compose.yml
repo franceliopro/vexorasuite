@@ -10,6 +10,12 @@ services:
       API_INTERNAL_URL: http://api:3001
     expose:
       - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vexora-web-catchall.rule=HostRegexp(`^.+$`)"
+      - "traefik.http.routers.vexora-web-catchall.entrypoints=web,websecure"
+      - "traefik.http.routers.vexora-web-catchall.service=vexora-web-catchall"
+      - "traefik.http.services.vexora-web-catchall.loadbalancer.server.port=3000"
     depends_on:
       api:
         condition: service_healthy

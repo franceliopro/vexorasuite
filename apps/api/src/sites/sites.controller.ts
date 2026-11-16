@@ -1166,7 +1166,7 @@ export class SitesController {
     } catch { found = false; }
     if (!found) return { domain: site.domain, domainStatus: "PENDING_DNS", verified: false, message: "Registro TXT não encontrado ainda. DNS costuma levar de 5 minutos a 24h para propagar." };
     await this.prisma.site.update({ where: { id: site.id }, data: { domainStatus: "ACTIVE" } });
-    return { domain: site.domain, domainStatus: "ACTIVE", verified: true, message: "DNS verificado. O site responde em " + site.domain + " quando a Véxora Cloud ativar a rota." };
+    return { domain: site.domain, domainStatus: "ACTIVE", verified: true, message: "DNS verificado. Assim que o site estiver publicado, ele responde em " + site.domain + " automaticamente." };
   }
 }
 /** Varre qualquer valor em busca de referências `/site-assets/<uuid>` e devolve os ids encontrados. */

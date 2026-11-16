@@ -4724,6 +4724,7 @@ input[type=tel]{letter-spacing:.02em}
 .vx-widget-calendar-today{margin:0;font-size:11px;color:#8FE3B2;text-transform:capitalize}
 @media (max-width:1100px){.vx-widgets{grid-template-columns:1fr 1fr}.vx-widget-calendar{grid-column:1/-1}}
 @media (max-width:680px){.vx-widgets{grid-template-columns:1fr}.vx-widget-calendar{grid-column:auto}}
+
 /* ===== Flow Studio: régua de comandos por ícones e tooltip + painel ajustável ===== */
 .vx-flow-shell{position:relative}
 .vx-flow-inspector{position:relative}
@@ -4760,3 +4761,21 @@ input[type=tel]{letter-spacing:.02em}
 .vx-flow-outputs button i{background:color-mix(in srgb,var(--primary) 26%,transparent);border-color:color-mix(in srgb,var(--primary) 60%,var(--ln2))}
 .vx-flow-node{position:absolute}
 .vx-flow-node-target{position:relative}
+
+
+/* ===== Mobile: composer estilo WhatsApp ===== */
+.mobile-more-button{display:none}
+@media (max-width:760px){
+  .mobile-more-button{display:grid}
+  .composer-tool-wrap.mobile-more-hidden{display:none}
+  .mobile-more-popover{left:0;right:auto;width:min(320px,calc(100vw - 24px));gap:4px;padding:8px;z-index:80}
+  .mobile-more-popover button[role="menuitem"]{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 12px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--tx);font-size:13px;font-weight:650;text-align:left;cursor:pointer}
+  .mobile-more-popover button[role="menuitem"]:hover{background:var(--s2);border-color:var(--ln)}
+  .mobile-more-popover button[role="menuitem"] svg{color:var(--primary-ink);flex:none}
+  .mobile-more-popover button[role="menuitem"] small{margin-left:auto;font-size:10px;font-weight:700;color:var(--tx2);border:1px solid var(--ln);border-radius:6px;padding:3px 7px}
+  .composer-chip{min-height:38px;font-size:12.5px;padding:0 14px}
+  .thread-icon-action{width:40px;height:40px}
+  .composer-icon-button{width:42px;height:42px}
+  .inbox-composer-input,.composer-input{min-height:48px}
+  .composer-send-button{width:46px;height:46px}
+}

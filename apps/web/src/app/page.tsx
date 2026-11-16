@@ -332,7 +332,7 @@ export default function HomePage() {
         {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={"page-content" + (active === "Atendimento" ? " page-content--fixed" : "")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className="page-heading">
-            <div><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1><p className="page-subtitle">{platformPanel ? "Hoje é "+new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}) : (session?.tenant.name||"")+" · Hoje é "+new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p></div>
+            <div><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
             <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}

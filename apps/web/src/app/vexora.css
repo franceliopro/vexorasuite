@@ -4734,6 +4734,12 @@ input[type=tel]{letter-spacing:.02em}
   .inbox-quick-dialog>header{position:sticky;top:0;padding-top:14px}
   @keyframes vx-sheet-in{from{transform:translateY(60px);opacity:.5}to{transform:translateY(0);opacity:1}}
 }
+/* ===== Flow Studio: cards pequenos coloridos por tipo (estilo do canvas original) ===== */
+.vx-flow-node{position:relative;padding-left:24px}
+.vx-flow-node::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:14px 0 0 14px;background:var(--node-edge,#2563eb)}
+.vx-flow-node[data-tone="message"]{--node-edge:#2563eb}.vx-flow-node[data-tone="choice"]{--node-edge:#0d9488}.vx-flow-node[data-tone="input"]{--node-edge:#7c3aed}.vx-flow-node[data-tone="logic"]{--node-edge:#ea580c}.vx-flow-node[data-tone="ai"]{--node-edge:#6254e8}.vx-flow-node[data-tone="asaas"]{--node-edge:#0891b2}.vx-flow-node[data-tone="transfer"]{--node-edge:#dc2626}.vx-flow-node[data-tone="crm"],.vx-flow-node[data-tone="tag"]{--node-edge:#6254e8}.vx-flow-node[data-tone="finish"],.vx-flow-node[data-tone="end"]{--node-edge:#334155}.vx-flow-node[data-tone="start"]{--node-edge:#16a34a}
+.vx-flow-node-body{padding:8px 10px}
+.vx-flow-node-summary{margin:2px 0 0;font-size:10px;line-height:1.4;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ===== Flow Studio: régua de comandos por ícones e tooltip + painel ajustável ===== */
 .vx-flow-shell{position:relative}

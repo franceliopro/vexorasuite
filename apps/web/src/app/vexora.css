@@ -4546,3 +4546,97 @@ input[type=tel]{letter-spacing:.02em}
 .calendar-reminders header{display:flex;gap:12px;align-items:center;margin-bottom:2px}
 .calendar-reminders h3{margin:0;font:800 14px/1.25 var(--font-display);color:var(--tx)}
 .calendar-reminders header p{margin:2px 0 0;font-size:11.5px;color:var(--tx2);max-width:58ch}
+
+/* ===== Atendimento v3 — Roboto, balões, composer sempre visível, handoff premium ===== */
+@font-face{font-family:'Roboto';src:url('/fonts/roboto-var.woff2') format('woff2-variations');font-weight:400 700;font-display:swap}
+:root{
+  --font-msg:"Roboto",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --msg-tx:#131B27;
+  --bubble-in:#FFFFFF;
+  --bubble-in-border:#C9CDD6;
+  --bubble-in-shadow:0 1px 1.6px rgba(16,24,40,.14),0 10px 22px -16px rgba(16,24,40,.32);
+  --bubble-out:color-mix(in srgb,var(--primary) 13%,#FFFFFF);
+  --bubble-out-border:color-mix(in srgb,var(--primary) 36%,transparent);
+  --chat-bg-base:color-mix(in srgb,var(--primary) 3.6%,#EDEFEA);
+  --chat-dot:color-mix(in srgb,#0F1722 8.5%,transparent);
+  --composer-ic:#3E4757;
+}
+:root[data-theme=dark]{
+  --msg-tx:#FAFCFF;
+  --bubble-in:#232C47;
+  --bubble-in-border:#33405F;
+  --bubble-in-shadow:0 1px 2px rgba(0,0,0,.5),0 12px 26px -16px rgba(0,0,0,.6);
+  --bubble-out:#22386B;
+  --bubble-out-border:color-mix(in srgb,var(--primary) 55%,transparent);
+  --chat-bg-base:#141B33;
+  --chat-dot:color-mix(in srgb,#FFFFFF 4.6%,transparent);
+  --composer-ic:#CBD6F2;
+}
+/* Corpo da mensagem: Roboto 14.2 / 19 / 400, mais escuro e legível */
+.message-bubble{font-family:var(--font-msg);font-size:14.2px;line-height:19px;font-weight:400;color:var(--msg-tx);background:var(--bubble-in);border:1px solid var(--bubble-in-border);box-shadow:var(--bubble-in-shadow);border-radius:4px 15px 15px 15px}
+.message-line.outgoing .message-bubble{background:var(--bubble-out);border-color:var(--bubble-out-border);border-radius:15px 4px 15px 15px}
+.message-line.internal .message-bubble{border-radius:14px}
+.message-bubble strong.attendant-identity b{color:var(--primary-ink)}
+/* Papel de fundo do corpo da conversa, sutil, como no WhatsApp */
+.thread-messages{background:var(--chat-bg-base);background-image:radial-gradient(var(--chat-dot) 1.15px,transparent 1.3px);background-size:22px 22px;background-position:0 0}
+.message-date-separator span{background:color-mix(in srgb,var(--s1) 88%,transparent);backdrop-filter:blur(4px);border:1px solid var(--ln2);box-shadow:var(--shadow-sm);color:var(--tx2);font-weight:700}
+/* Composer: mic e avião sempre visíveis; ferramentas rolam dentro da própria trilha */
+.composer-toolbar{display:flex;align-items:center;gap:8px;min-width:0;overflow:visible}
+.composer-tools{display:flex;align-items:center;gap:2px;flex:1 1 auto;min-width:0;flex-wrap:nowrap !important;overflow-x:auto;scrollbar-width:none}
+.composer-tools::-webkit-scrollbar{height:0}
+.composer-tool-wrap{position:relative;display:inline-flex;flex:none}
+.composer-shell .inbox-composer .composer-tools > textarea{flex:1 1 auto}
+.composer-shell .inbox-composer .composer-tools > .composer-tool-wrap{flex:none}
+.composer-icon-button{color:var(--composer-ic)}
+.composer-icon-button svg{stroke-width:2.25}
+.thread-icon-action svg,.thread-action-button svg{stroke-width:2.1}
+.composer-send-button{flex:none}
+/* Popovers do composer abrem sob a própria ferramenta (âncora no botão) */
+.composer-popover{left:0;right:auto;bottom:calc(100% + 10px)}
+.emoji-popover{left:0;right:auto}
+.quick-replies-popover{left:0;right:auto;width:min(380px,calc(100vw - 28px))}
+.attach-popover{left:0;right:auto}
+/* Menu de contexto (botão direito) parte do ponto do clique */
+.message-context-menu{position:fixed}
+/* Variáveis da resposta rápida: encaixe livre lado a lado com respiro */
+.quick-reply-variables{display:grid;gap:6px}
+.quick-reply-variables>strong{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
+.quick-reply-variables>div{display:flex;flex-wrap:wrap;gap:7px}
+.quick-reply-variables button{min-height:28px;padding:0 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s1);color:var(--primary-ink);font:650 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer;transition:background .14s,border-color .14s}
+.quick-reply-variables button:hover{border-color:var(--primary);background:var(--primary-soft)}
+/* Janela de transferência — premium (flyout ancorado no botão, como as respostas rápidas) */
+.thread-header-actions .handoff-menu .handoff-popover{position:absolute;top:calc(100% + 10px);right:0;left:auto;transform:none;z-index:190;max-height:min(78dvh,640px);overflow:auto}
+.handoff-popover{display:grid;gap:12px;width:min(400px,calc(100vw - 24px));padding:16px;border-radius:20px;border:1px solid var(--ln);background:var(--s1)}
+.handoff-popover-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.handoff-popover-heading strong{font:800 15px/1.25 var(--font-display);color:var(--tx);letter-spacing:-.01em}
+.handoff-popover-heading small{display:block;margin-top:2px;font-size:11px;line-height:1.35;color:var(--tx2)}
+.handoff-popover-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary);flex:none}
+.handoff-section-label{font:750 9.5px/1 var(--font-display);letter-spacing:.14em;color:color-mix(in srgb,var(--tx2) 88%,var(--tx));display:flex;align-items:center;gap:8px;padding-top:2px}
+.handoff-section-label::after{content:"";flex:1;height:1px;background:var(--ln)}
+.handoff-option{display:flex;align-items:center;gap:11px;width:100%;min-height:46px;padding:8px 11px;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--tx);text-align:left;cursor:pointer;transition:background .14s,border-color .14s,box-shadow .14s}
+.handoff-option:hover{background:var(--s2);border-color:var(--ln)}
+.handoff-option.selected{background:color-mix(in srgb,var(--primary) 7%,var(--s1));border-color:color-mix(in srgb,var(--primary) 45%,var(--ln2));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 26%,transparent)}
+.handoff-option-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);flex:none}
+.handoff-option.selected .handoff-option-icon{background:var(--primary-soft);border-color:color-mix(in srgb,var(--primary) 40%,var(--ln2));color:var(--primary-ink)}
+.handoff-avatar{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;color:#FFFFFF;font:800 11.5px/1 var(--font-display);letter-spacing:.02em;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.handoff-option-copy{flex:1;min-width:0;display:grid;gap:1px}
+.handoff-option-copy strong{font-size:12.5px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.handoff-option-copy small{font-size:10.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.handoff-option svg[aria-hidden]{flex:none;color:var(--primary)}
+.handoff-context{display:grid;gap:6px;padding:10px 11px;border:1px dashed var(--ln2);border-radius:14px;background:color-mix(in srgb,var(--s2) 60%,transparent)}
+.handoff-context label{display:grid;gap:5px;font-size:10px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--tx2)}
+.handoff-context input,.handoff-context textarea{border:1px solid var(--ln);border-radius:10px;background:var(--s1);padding:8px 10px;font:13px/1.4 var(--font-ui);color:var(--tx);outline:0;transition:border-color .14s,box-shadow .14s}
+.handoff-context input:focus,.handoff-context textarea:focus{border-color:var(--primary);box-shadow:var(--ring)}
+.handoff-context small{font-size:10.5px;color:var(--tx2);line-height:1.4}
+.handoff-popover-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--ln);padding-top:11px}
+.handoff-popover-footer span{font-size:11px;color:var(--tx2);min-width:0}
+.handoff-popover-footer b{color:var(--tx);font-weight:750}
+.handoff-confirm{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 18px;border-radius:12px;border:0;background:var(--primary);color:var(--primary-contrast);font:750 12.5px/1 var(--font-display);cursor:pointer;box-shadow:0 8px 20px -8px color-mix(in srgb,var(--primary) 70%,transparent);transition:background .14s,transform .14s}
+.handoff-confirm:hover{background:var(--primary-strong);transform:translateY(-1px)}
+.handoff-confirm:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.invite-popover{display:grid;gap:8px;max-height:min(60dvh,420px);overflow:auto}
+.invite-option{display:flex;align-items:center;gap:11px;padding:8px 10px;border:1px solid transparent;border-radius:14px;transition:background .14s,border-color .14s}
+.invite-option:hover{background:var(--s2);border-color:var(--ln)}
+.invite-person-button{flex:none;display:grid;place-items:center;width:34px;height:34px;border:1px solid color-mix(in srgb,var(--amber) 45%,var(--ln));border-radius:11px;background:color-mix(in srgb,var(--amber) 12%,var(--s1));color:var(--amber-ink);cursor:pointer;transition:background .14s,transform .14s}
+.invite-person-button:hover{background:color-mix(in srgb,var(--amber) 22%,var(--s1));transform:translateY(-1px)}
+.handoff-empty{margin:4px 2px;font-size:11.5px;color:var(--tx2)}

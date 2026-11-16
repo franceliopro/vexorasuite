@@ -364,6 +364,15 @@ services:
       retries: 10
 
 
+  # Institutional site for the company (static, self-contained HTML).
+  institucional:
+    image: nginx:alpine
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./sites/institucional:/usr/share/nginx/html:ro
+
   # Static bundles uploaded by the app: extracted here and served by nginx.
   static:
     image: nginx:alpine

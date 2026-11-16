@@ -17,6 +17,7 @@ import { WahaService } from "./waha.service";
 import { ZernioService } from "./zernio.service";
 import { accessiblePipeline } from "./crm-pipelines.controller";
 import { EmailMailboxService } from "../mail/email-mailbox.service";
+import { transferScopeOf } from "./transfer-policy";
 
 
 function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
@@ -413,10 +414,25 @@ export class ConversationsController {
     if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de assumi-la.");
     const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId: request.user.sub }, select: { id: true } });
     if (!membership) throw new BadRequestException("Você não faz parte desta empresa.");
-    // Conditional update prevents two agents from simultaneously taking the same unassigned conversation.
+    // Conditional update prevents two agents from simultaneously taking the same conversation.
+    // Attendants may take unassigned conversations, their own, conversations in their own
+    // department (take over from a teammate), conversations they participate in, and admins any HUMAN one.
+    const myDepts = await this.memberDepartmentIds(tenantId, request.user.sub);
+    const isAdmin = ["OWNER", "ADMIN"].includes(request.user.role);
     const claimed = await this.prisma.$transaction(async tx => {
       const result = await tx.conversation.updateMany({
-        where: { id, tenantId, status: { in: ["OPEN", "PENDING"] }, OR: [{ assigneeId: null }, { assigneeId: request.user.sub }] },
+        where: {
+          id,
+          tenantId,
+          status: { in: ["OPEN", "PENDING"] },
+          OR: [
+            { assigneeId: null },
+            { assigneeId: request.user.sub },
+            ...(isAdmin ? [{ handlingMode: "HUMAN" as const }] : []),
+            ...(myDepts.length ? [{ departmentId: { in: myDepts }, handlingMode: "HUMAN" as const }] : []),
+            { participants: { some: { tenantId, userId: request.user.sub } } },
+          ],
+        },
         data: { assigneeId: request.user.sub,handlingMode:"HUMAN" },
       });
       if (result.count) await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.assumed", entityType: "conversation", entityId: id, details: { previousAssigneeId: conversation.assigneeId, assigneeId: request.user.sub } } });
@@ -500,18 +516,34 @@ export class ConversationsController {
     }
     const departmentId = typeof input.departmentId === "string" && input.departmentId ? input.departmentId : null;
     const assigneeId = typeof input.assigneeId === "string" && input.assigneeId ? input.assigneeId : null;
+    const scope = await transferScopeOf(this.prisma, tenantId, request.user.sub);
+    const myDepts = await this.memberDepartmentIds(tenantId, request.user.sub);
     if (departmentId) {
       if (!isUUID(departmentId) || !await this.prisma.department.findFirst({ where: { id: departmentId, tenantId, isActive: true }, select: { id: true } })) {
         throw new BadRequestException("Departamento inválido para esta empresa.");
+      }
+      const isOwn = myDepts.includes(departmentId);
+      if (isOwn ? !scope.ownDepartment : !scope.anyDepartment) {
+        throw new ForbiddenException(
+          isOwn
+            ? "Você não está liberado para transferir para o seu setor. Peça ao administrador (Setores e permissões) para liberar."
+            : "Você não está liberado para transferir para outros setores. Peça ao administrador (Setores e permissões) para liberar.",
+        );
       }
     }
     if (assigneeId) {
       if (!isUUID(assigneeId) || !await this.prisma.membership.findFirst({ where: { tenantId, userId: assigneeId, user: { isActive: true } }, select: { id: true } })) {
         throw new BadRequestException("Atendente inválido para esta empresa.");
       }
+      if (!scope.directAgent) {
+        const destinationDepartmentIdForAgent = departmentId || conversation.departmentId;
+        if (destinationDepartmentIdForAgent && !await this.prisma.departmentMember.findFirst({ where: { tenantId, departmentId: destinationDepartmentIdForAgent, userId: assigneeId }, select: { id: true } })) {
+          throw new ForbiddenException("Você não pode transferir diretamente para atendente que não pertence ao setor escolhido. Peça ao administrador para liberar 'Transferir para atendente direto' nas permissões.");
+        }
+      }
     }
     const destinationDepartmentId = departmentId || conversation.departmentId;
-    if(assigneeId&&destinationDepartmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:destinationDepartmentId,userId:assigneeId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento escolhido.");
+    if(assigneeId&&destinationDepartmentId&&!scope.directAgent&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:destinationDepartmentId,userId:assigneeId},select:{id:true}}))throw new ForbiddenException("O atendente não pertence ao setor escolhido. Peça ao administrador para liberar 'Transferir para atendente direto' nas permissões.");
     const note = this.internalNoteText(input.note, true);
     const access = await this.accessWhere(request, view);
     const author = await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});

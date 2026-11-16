@@ -25,6 +25,8 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { assertPasswordResetTargetAllowed } from "../auth/password-reset-policy";
+import { mutateTenantSetting } from "../prisma/tenant-settings";
+import { sanitizeTransferScope, readTransferScopeFromIntegrations } from "./transfer-policy";
 @AuditCovered()
 @Controller("team")
 @UseGuards(AuthGuard)
@@ -87,6 +89,7 @@ export class TeamController {
       departmentIds: members
         .filter((m) => m.userId === r.user.id)
         .map((m) => m.departmentId),
+      transferScope: readTransferScopeFromIntegrations(tenant.integrations, r.user.id),
     }));
   }
   @Post() async create(@Req() req: AuthenticatedRequest, @Body() input: any) {
@@ -187,6 +190,22 @@ export class TeamController {
     }
   }
  @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);const knownBy=input.knownBy===undefined?undefined:knownByValue(input.knownBy);let modules:string[],deniedModules:string[];try{modules=moduleSelection(input.modules||[]);deniedModules=moduleSelection(input.deniedModules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});if(member?.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('O acesso da administração Véxora não pode ser alterado por uma empresa.');if(member&&!req.user.isPlatformAdmin){if(req.user.role!=="OWNER"&&member.role!=="AGENT")throw new ForbiddenException('Somente a administração da Véxora altera acessos administrativos.');if(req.user.role!=="OWNER"){const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException('Você não pode conceder módulos que não possui.');deniedModules=[...new Set([...member.deniedModules,...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}else if(member.role==="OWNER"){modules=[...MODULES];deniedModules=[];}}if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules,deniedModules,...(knownBy===undefined?{}:{knownBy})}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,deniedModules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
+
+ @Patch(':id/transfer-scope') async setTransferScope(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
+  this.admin(req);
+  if(!isUUID(id))throw new BadRequestException('Atendente inválido.');
+  const scope=sanitizeTransferScope(input);
+  if(!scope)throw new BadRequestException('Permissões de transferência inválidas.');
+  const member=await this.prisma.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true}});
+  if(!member)throw new BadRequestException('Atendente ou setor não pertence à empresa.');
+  await mutateTenantSetting(this.prisma,req.user.tenantId,'teamTransferScope',(current)=>{
+    const map=current&&typeof current==='object'&&!Array.isArray(current)?(current as Record<string,unknown>):{};
+    return {...map,[id]:scope} as Record<string,unknown> as any;
+  });
+  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.transfer_scope_updated',entityType:'user',entityId:id,details:scope}});
+  this.events.publish(req.user.tenantId,'team.updated',{id});
+  return {updated:true,transferScope:scope};
+ }
 
  @Patch(':id/profile') async profile(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
   this.admin(req);

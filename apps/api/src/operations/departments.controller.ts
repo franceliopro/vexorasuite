@@ -18,6 +18,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { administrative, moduleSelection } from "../auth/module-policy";
+import { transferScopeOf } from "./transfer-policy";
 import { EventsService } from "./events.service";
 /** Utilidades de nome/chave únicos e de duplicação de setor. */
 const normalizeName = (s: string) => s.trim().replace(/\s+/g, " ");
@@ -70,10 +71,13 @@ export class DepartmentsController {
       );
   }
   @Get() async list(@Req() req: AuthenticatedRequest) {
-    return this.prisma.department.findMany({
+    const scope = await transferScopeOf(this.prisma, req.user.tenantId, req.user.sub);
+    const seeAll = administrative(req.user.role) || scope.anyDepartment;
+    const mine = new Set(req.user.departmentIds || []);
+    return (await this.prisma.department.findMany({
       where: {
         tenantId: req.user.tenantId,
-        ...(!administrative(req.user.role)
+        ...(!seeAll
           ? { id: { in: req.user.departmentIds || [] }, isActive: true }
           : {}),
       },
@@ -93,7 +97,7 @@ export class DepartmentsController {
         },
       },
       orderBy: { name: "asc" },
-    });
+    })).map((department) => ({ ...department, isMine: mine.has(department.id) }));
   }
   private fields(input: any, creating = false) {
     const data: any = {};

@@ -20,7 +20,7 @@ export function moduleSelection(value: unknown): ModuleKey[] {
     value.length > MODULES.length ||
     value.some((v) => !MODULES.includes(v as ModuleKey))
   )
-    throw Error("SeleÃ§Ã£o de mÃ³dulos invÃ¡lida.");
+    throw Error("Seleção de módulos inválida.");
   return [...new Set(value)] as ModuleKey[];
 }
 export function effectiveModules(

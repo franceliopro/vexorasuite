@@ -3,7 +3,7 @@ describe("private conversation collaboration",()=>{
  const req:any={user:{tenantId:"tenant",sub:"author",role:"OWNER"}};
  function setup(){
   const tx:any={internalMention:{createMany:jest.fn()},membership:{findFirst:jest.fn().mockResolvedValue({id:"member"})},department:{findFirst:jest.fn().mockResolvedValue({name:"Atual"})},departmentMember:{findFirst:jest.fn().mockResolvedValue({id:"department-member"})},conversationParticipant:{upsert:jest.fn()},$queryRaw:jest.fn(),conversation:{findFirst:jest.fn().mockResolvedValue({id:"conversation",status:"OPEN",handlingMode:"HUMAN"}),update:jest.fn().mockResolvedValue({id:"conversation",status:"OPEN",department:{name:"Financeiro"},assignee:{name:"Ana"}})},message:{create:jest.fn().mockImplementation(async({data}:any)=>({id:"note",...data}))},auditLog:{create:jest.fn()}};
-  const prisma:any={channelConnection:{findMany:jest.fn().mockResolvedValue([])},...tx,$transaction:jest.fn((fn:any)=>fn(tx)),user:{findUnique:jest.fn().mockResolvedValue({name:"João"})},departmentMember:{findMany:jest.fn().mockResolvedValue([]),findFirst:jest.fn().mockResolvedValue({id:"department-member"})}};
+  const prisma:any={channelConnection:{findMany:jest.fn().mockResolvedValue([])},...tx,$transaction:jest.fn((fn:any)=>fn(tx)),user:{findUnique:jest.fn().mockResolvedValue({name:"João"})},tenant:{findUnique:jest.fn().mockResolvedValue({integrations:{}})},departmentMember:{findMany:jest.fn().mockResolvedValue([]),findFirst:jest.fn().mockResolvedValue({id:"department-member"})}};
   const events:any={publish:jest.fn()},waha:any={sendText:jest.fn()},zernio:any={request:jest.fn()};
   return {tx,prisma,events,waha,zernio,controller:new ConversationsController(prisma,events,waha,zernio)};
  }

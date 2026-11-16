@@ -44,7 +44,7 @@ services:
   api:
     volumes:
       - automation_media:/var/lib/vexora/media
-      build:
+    build:
       context: .
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped

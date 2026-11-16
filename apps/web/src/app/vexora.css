@@ -4681,3 +4681,46 @@ input[type=tel]{letter-spacing:.02em}
 .alarm-actions{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
 .alarm-snooze{min-height:54px;padding:0 18px !important;border-radius:15px !important;background:rgba(255,255,255,.06) !important;border:1px solid rgba(160,195,255,.25) !important;color:#D7E4FF !important;gap:8px;display:inline-flex;align-items:center}
 .alarm-stop{min-height:54px;padding:0 26px !important;border-radius:15px !important;font-size:15px !important;gap:9px;display:inline-flex;align-items:center}
+/* ===== Widgets da tela inicial (relógio, clima, calendário) ===== */
+.vx-widgets{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,1fr);gap:var(--gap);margin:0 0 18px}
+.vx-widget{border-radius:var(--r-xl);padding:18px 20px;border:1px solid var(--ln);box-shadow:var(--shadow-sm);overflow:hidden;position:relative;min-height:150px}
+.vx-widget-label{font-size:11px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+/* Relógio — noite azul-profunda com brilho */
+.vx-widget-clock{border:0;color:#F4F8FF;background:radial-gradient(120% 150% at 85% -20%,color-mix(in srgb,#5B8DEF 38%,transparent),transparent 55%),linear-gradient(160deg,#101C3F 0%,#0B1330 100%)}
+.vx-widget-clock::after{content:"";position:absolute;right:-34px;bottom:-38px;width:150px;height:150px;border-radius:50%;border:1px solid rgba(160,200,255,.28)}
+.vx-widget-clock::before{content:"";position:absolute;right:-10px;bottom:-12px;width:96px;height:96px;border-radius:50%;border:1px solid rgba(160,200,255,.4)}
+.vx-widget-clock-inner{display:grid;gap:8px;position:relative}
+.vx-widget-clock-chip{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9CC4FF}
+.vx-widget-clock-time{font:800 clamp(40px,4.2vw,54px)/1 var(--font-display);letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:#FFFFFF}
+.vx-widget-clock-date{font-size:12.5px;color:#B9CCF2;text-transform:capitalize}
+/* Clima — gradiente quente/claro de dia, frio de noite */
+.vx-widget-weather{display:flex;flex-direction:column;gap:8px;color:#3B2A05;background:linear-gradient(155deg,#FFE9B8 0%,#FFD98A 48%,#FFC46B 100%)}
+.vx-widget-weather.is-night{color:#DCE6FF;background:linear-gradient(160deg,#1B2650 0%,#141C3C 100%)}
+.vx-widget-weather-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:rgba(59,42,5,.78)}
+.vx-widget-weather.is-night .vx-widget-weather-head{color:rgba(220,230,255,.78)}
+.vx-widget-weather-main{display:flex;align-items:center;gap:16px}
+.vx-widget-weather-icon{color:#E56A00;flex:none}
+.vx-widget-weather.is-night .vx-widget-weather-icon{color:#8FC4FF}
+.vx-widget-weather-temp{display:grid;gap:2px}
+.vx-widget-weather-temp b{font:800 clamp(38px,4vw,52px)/1 var(--font-display);letter-spacing:-.04em}
+.vx-widget-weather-temp span{font-size:12px;font-weight:650;color:inherit;opacity:.85}
+.vx-widget-weather-loading{margin:0;font-size:12.5px;opacity:.85}
+.vx-widget-weather-fallback{margin:0;font-size:12px;line-height:1.45;opacity:.9}
+.vx-widget-weather-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;font-weight:650;color:inherit;opacity:.92}
+.vx-widget-weather-meta span{display:inline-flex;align-items:center;gap:5px}
+/* Calendário — verde profundo com o dia de hoje em destaque */
+.vx-widget-calendar{display:flex;flex-direction:column;gap:10px;color:#EAF8EF;background:linear-gradient(160deg,#0E3A2B 0%,#082A20 100%)}
+.vx-widget-calendar-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vx-widget-calendar-head strong{font:800 14.5px/1.2 var(--font-display);letter-spacing:.01em}
+.vx-widget-calendar-nav{display:flex;gap:4px}
+.vx-widget-calendar-nav button{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;border:1px solid rgba(200,255,222,.22);background:rgba(255,255,255,.05);color:#C9F2DB;cursor:pointer;transition:background .14s}
+.vx-widget-calendar-nav button:hover{background:rgba(255,255,255,.12)}
+.vx-widget-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.vx-widget-calendar-wd{display:grid;place-items:center;min-height:22px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#8FE3B2;opacity:.85;text-transform:uppercase}
+.vx-widget-calendar-day{display:grid;place-items:center;min-height:27px;border-radius:8px;font-size:11.5px;font-weight:600;color:#EAF8EF;font-variant-numeric:tabular-nums}
+.vx-widget-calendar-day.is-empty{background:transparent}
+.vx-widget-calendar-day.is-weekend{color:#9AD4B4}
+.vx-widget-calendar-day.is-today{background:#38E08E;color:#05301E;font-weight:800;box-shadow:0 0 0 2px rgba(56,224,142,.35)}
+.vx-widget-calendar-today{margin:0;font-size:11px;color:#8FE3B2;text-transform:capitalize}
+@media (max-width:1100px){.vx-widgets{grid-template-columns:1fr 1fr}.vx-widget-calendar{grid-column:1/-1}}
+@media (max-width:680px){.vx-widgets{grid-template-columns:1fr}.vx-widget-calendar{grid-column:auto}}

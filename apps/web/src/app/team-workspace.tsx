@@ -20,7 +20,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
       departmentIds: [] as string[],
       modules: [] as string[],
       agendaKey: "",
-      transferScope: { anyDepartment: false, ownDepartment: true, directAgent: true },
+      transferScope: { anyDepartment: false, ownDepartment: true, directAgent: false },
     }),
     [photoFile, setPhotoFile] = useState<File | null>(null),
     [photoPreview, setPhotoPreview] = useState<string | null>(null),
@@ -87,7 +87,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
         </div>
         <button
           className="primary-button team-hero-cta"
-          onClick={() => {setEditingId('');setPhotoFile(null);setPhotoPreview(null);setForm({name:'',knownBy:'',email:'',password:'',role:'AGENT',deniedModules:[],departmentIds:[],modules:[],agendaKey:'',transferScope:{anyDepartment:false,ownDepartment:true,directAgent:true}});setEditing(v=>!v)}}
+          onClick={() => {setEditingId('');setPhotoFile(null);setPhotoPreview(null);setForm({name:'',knownBy:'',email:'',password:'',role:'AGENT',deniedModules:[],departmentIds:[],modules:[],agendaKey:'',transferScope:{anyDepartment:false,ownDepartment:true,directAgent:false}});setEditing(v=>!v)}}
         >
           {editing ? "Fechar cadastro" : (<><UserRoundPlus size={16} aria-hidden="true" />Cadastrar atendente</>)}
         </button>
@@ -171,7 +171,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                     departmentIds: [],
                     modules: [],
                     agendaKey: "",
-                    transferScope: { anyDepartment: false, ownDepartment: true, directAgent: true },
+                    transferScope: { anyDepartment: false, ownDepartment: true, directAgent: false },
                   });
                   setEditing(false);
                   setPhotoFile(null);

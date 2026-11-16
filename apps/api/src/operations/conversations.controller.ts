@@ -417,8 +417,8 @@ export class ConversationsController {
     // Conditional update prevents two agents from simultaneously taking the same conversation.
     // Attendants may take unassigned conversations, their own, conversations in their own
     // department (take over from a teammate), conversations they participate in, and admins any HUMAN one.
-    const myDepts = await this.memberDepartmentIds(tenantId, request.user.sub);
     const isAdmin = ["OWNER", "ADMIN"].includes(request.user.role);
+    const myDepts = isAdmin ? [] : await this.memberDepartmentIds(tenantId, request.user.sub);
     const claimed = await this.prisma.$transaction(async tx => {
       const result = await tx.conversation.updateMany({
         where: {
@@ -538,12 +538,10 @@ export class ConversationsController {
       if (!scope.directAgent) {
         const destinationDepartmentIdForAgent = departmentId || conversation.departmentId;
         if (destinationDepartmentIdForAgent && !await this.prisma.departmentMember.findFirst({ where: { tenantId, departmentId: destinationDepartmentIdForAgent, userId: assigneeId }, select: { id: true } })) {
-          throw new ForbiddenException("Você não pode transferir diretamente para atendente que não pertence ao setor escolhido. Peça ao administrador para liberar 'Transferir para atendente direto' nas permissões.");
+          throw new ForbiddenException("O atendente não pertence ao departamento escolhido. Peça ao administrador para liberar 'Transferir para atendente direto' nas permissões.");
         }
       }
     }
-    const destinationDepartmentId = departmentId || conversation.departmentId;
-    if(assigneeId&&destinationDepartmentId&&!scope.directAgent&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:destinationDepartmentId,userId:assigneeId},select:{id:true}}))throw new ForbiddenException("O atendente não pertence ao setor escolhido. Peça ao administrador para liberar 'Transferir para atendente direto' nas permissões.");
     const note = this.internalNoteText(input.note, true);
     const access = await this.accessWhere(request, view);
     const author = await this.prisma.user.findUnique({where:{id:request.user.sub},select:{name:true}});

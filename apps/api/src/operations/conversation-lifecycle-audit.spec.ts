@@ -16,6 +16,8 @@ describe("conversation lifecycle audit", () => {
       channelConnection: { findMany: jest.fn().mockResolvedValue([]) },
       conversation: { findFirst: jest.fn().mockResolvedValue({ id: "conversation", status: "OPEN", contactId: "contact", handlingMode: "HUMAN", contact: { metadata: {} } }) },
       contact: { findFirst: jest.fn().mockResolvedValue({ metadata: {} }) },
+      tenant: { findUnique: jest.fn().mockResolvedValue({ integrations: {} }) },
+      departmentMember: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn().mockResolvedValue({ id: "department-member" }) },
       $transaction: jest.fn((fn: any) => fn(tx)),
     };
     const events: any = { publish: jest.fn() };

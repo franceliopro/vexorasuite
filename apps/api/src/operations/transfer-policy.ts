@@ -2,7 +2,7 @@ import { PrismaService } from "../prisma/prisma.service";
 
 export type TransferScope = { anyDepartment: boolean; ownDepartment: boolean; directAgent: boolean };
 
-const DEFAULT_SCOPE: TransferScope = { anyDepartment: false, ownDepartment: true, directAgent: true };
+const DEFAULT_SCOPE: TransferScope = { anyDepartment: false, ownDepartment: true, directAgent: false };
 
 export function sanitizeTransferScope(input: unknown): TransferScope | undefined {
   if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
@@ -35,7 +35,8 @@ export function readTransferScopeFromIntegrations(integrations: unknown, userId:
 
 /**
  * Permissões de transferência por atendente (mapa em integrations.teamTransferScope).
- * Padrão seguro: próprio setor + atendente direto liberados; outros setores bloqueados.
+ * Padrão seguro (compatível com o comportamento legado): somente próprio setor liberado;
+ * outros setores e atendente direto passam a exigir liberação explícita do administrador.
  */
 export async function transferScopeOf(
   prisma: PrismaService,

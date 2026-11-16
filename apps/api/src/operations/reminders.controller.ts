@@ -2,11 +2,13 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, 
 import { AuthGuard } from "../auth/auth.guard";
 import type { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { randomBytes } from "node:crypto";
 
 const DEFAULT_SETTINGS = { enabled: true, minutesBefore: [15, 60], sound: true, push: true };
 const clampMinute = (v: unknown) => Math.min(Math.max(Math.floor(Number(v)), 1), 1440);
 
 type AgendaReminder = { enabled: boolean; minutesBefore: number[] };
+export type PersonalAlarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
 
 function sanitizeAgendaKey(key: unknown): string | null {
   const value = String(key || "").trim();
@@ -25,6 +27,26 @@ function sanitizeAgendaMap(input: unknown): Record<string, AgendaReminder> {
     const minutesBefore = [...new Set<number>(list.map(clampMinute))].sort((a, b) => a - b).slice(0, 5);
     if (!minutesBefore.length) continue;
     out[key] = { enabled, minutesBefore };
+  }
+  return out;
+}
+
+/** Valida e normaliza os alarmes pessoais do atendente. */
+function sanitizeAlarms(input: unknown): PersonalAlarm[] {
+  const list = Array.isArray(input) ? input : Array.isArray((input as { alarms?: unknown[] } | null)?.alarms) ? (input as { alarms: unknown[] }).alarms : [];
+  const out: PersonalAlarm[] = [];
+  for (const raw of list.slice(0, 60)) {
+    const item = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+    const title = typeof item.title === "string" ? item.title.trim().slice(0, 120) : "";
+    const time = typeof item.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(item.time) ? item.time : "";
+    if (title.length < 1 || !time) continue;
+    const date = typeof item.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.date) && !Number.isNaN(Date.parse(item.date + "T00:00:00")) ? item.date : undefined;
+    const weekdays = Array.isArray(item.weekdays)
+      ? [...new Set(item.weekdays.map(Number).filter((n: number) => Number.isInteger(n) && n >= 0 && n <= 6))].sort((a: number, b: number) => a - b).slice(0, 7)
+      : undefined;
+    if (!date && !(weekdays && weekdays.length)) continue;
+    const id = typeof item.id === "string" && /^[A-Za-z0-9_-]{6,40}$/.test(item.id) ? item.id : randomBytes(6).toString("hex");
+    out.push({ id, title, time, ...(date ? { date } : {}), ...(weekdays && weekdays.length ? { weekdays } : {}), enabled: item.enabled !== false });
   }
   return out;
 }
@@ -80,6 +102,27 @@ export class RemindersController {
       await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: next as any } });
     });
     return { agendas };
+  }
+
+  @Get("alarms") async getAlarms(@Req() req: AuthenticatedRequest) {
+    const root = await this.root(req);
+    const map = root.personalAlarms && typeof root.personalAlarms === "object" && !Array.isArray(root.personalAlarms) ? root.personalAlarms as Record<string, unknown> : {};
+    return { alarms: sanitizeAlarms(map[req.user.sub]) };
+  }
+
+  @Put("alarms") async putAlarms(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    const alarms = sanitizeAlarms(body);
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;
+      const current = await this.root(req);
+      const map = current.personalAlarms && typeof current.personalAlarms === "object" && !Array.isArray(current.personalAlarms)
+        ? { ...(current.personalAlarms as Record<string, unknown>) }
+        : {};
+      map[req.user.sub] = alarms;
+      const next = { ...current, personalAlarms: map };
+      await tx.tenant.update({ where: { id: req.user.tenantId }, data: { integrations: next as any } });
+    });
+    return { alarms };
   }
 
   /** Itens devidos do usuário atual: tarefas atrasadas ou prestes a vencer. */

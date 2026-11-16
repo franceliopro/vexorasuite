@@ -4906,3 +4906,8 @@ input[type=tel]{letter-spacing:.02em}
 .tasks-metric-alert{border-color:color-mix(in srgb,var(--bad) 45%,var(--ln))!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 18%,transparent),var(--shadow-sm)}
 .tasks-metric-alert strong{color:var(--bad)}
 .tasks-overdue-banner{display:flex;align-items:center;gap:9px;margin:0 0 4px;padding:11px 13px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--bad) 40%,var(--ln));background:color-mix(in srgb,var(--bad) 10%,var(--s1));color:var(--bad);font-size:12px;font-weight:700}
+/* ===== Audit Chatbot: z-index da barra de comandos e caret de <select> visivel em todos os temas ===== */
+.vx-flow-command-menu{position:relative;z-index:80}
+.vx-flow-command-menu button[data-tip]::after{z-index:90}
+:root[data-theme=dark] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23CBD6F2' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 5 4 4 4-4'/%3E%3C/svg%3E")}
+:root[data-theme=dark] .crm-pipeline-selector select,:root[data-theme=dark] .calendar-toolbar select,:root[data-theme=dark] .calendar-layout-control select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23CBD6F2' stroke-width='2.4'><polyline points='6 9 12 15 18 9'/></svg>")}

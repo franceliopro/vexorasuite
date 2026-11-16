@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 const RichPromptEditor=dynamic(()=>import("./rich-prompt-editor").then(m=>m.RichPromptEditor),{ssr:false});
 import {InboxesManagement} from "./inboxes-management";
@@ -16,12 +16,17 @@ import {
   X,
   Phone,
   Workflow,
+  BrainCircuit,
+  Zap,
+  Cpu,
 } from "lucide-react";
 import { PlatformIcon, platformLabel } from "./platform-icon";
 
 type KnowledgeDocument = { id: string; name: string; content: string };
 type BusinessSegment = { id: string; name: string; guidance: string };
 type VoiceModelSelection={provider:string;model:string;endpoint?:string;voice?:string};
+const agentHue = (value: string) => { let h = 0; for (let index = 0; index < value.length; index++) h = (h * 31 + value.charCodeAt(index)) >>> 0; return h % 360; };
+
 type Agent = { personalAssistant?: boolean; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[]; inboxes: string[] }; knowledgeUrls?: string[]; llm?: {provider:string;model:string;tier:string;endpoint?:string}; stt?: VoiceModelSelection; tts?: VoiceModelSelection; id: string; name: string; role: string; tier: "Econômico" | "Equilíbrio" | "Inteligente"; enabled: boolean; instructions: string };
 function voiceModel(kind:string,provider:string){return provider==='browser'?'browser':provider==='local'?(kind==='stt'?'Systran/faster-whisper-small':'speaches-ai/Kokoro-82M-v1.0-ONNX'):kind==='stt'?'gpt-4o-transcribe':'gpt-4o-mini-tts';}
 const DEFAULT_COMPANY_PROHIBITIONS = [
@@ -257,7 +262,7 @@ export function AiAgentsWorkspace() {
     {workspaceTab==="Agentes"&&<div className="ai-admin-grid ai-agent-layout">
       <section className="content-card ai-admin-card">
         <div className="ai-admin-heading ai-agent-list-heading"><h2><Bot size={19}/> Agentes</h2><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates de negócio…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className="secondary-button" onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className="primary-button" type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>
-        {agents.map(a => <button key={a.id} type="button" className={selected === a.id ? "ai-agent-row selected" : "ai-agent-row"} onClick={() => setSelected(a.id)}><span><strong>{a.name}</strong><small>{a.role}</small></span><span>{a.enabled ? "Ligado" : "Off"}</span></button>)}
+        {agents.length ? <div className="ai-agents-grid" role="listbox" aria-label="Agentes de IA">{agents.map((a) => { const hue = agentHue(String(a.id)); const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[hue % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={"ai-agent-card" + (selected === a.id ? " selected" : "")} style={{"--hue": String(hue)} as CSSProperties} onClick={() => setSelected(a.id)}><span className="ai-agent-card-face"><Face size={36} strokeWidth={1.8} aria-hidden="true"/></span><span className="ai-agent-card-body"><strong>{a.name}</strong><small>{a.role}</small><em>{a.profile?.tone || "Cordial e objetivo"}</em></span><span className="ai-agent-card-foot"><span className={"ai-agent-status" + (a.enabled ? " is-on" : "")}>{a.enabled ? "Ligado" : "Off"}</span><span className="ai-agent-tier">{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className="ai-agents-grid-empty"><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Clique em Novo acima para criar o primeiro.</p></div>}
       </section>
       <section className="content-card ai-admin-card">
         <h2><ShieldCheck size={19}/> Configuração</h2>

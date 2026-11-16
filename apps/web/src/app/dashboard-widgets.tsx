@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Droplets,
-  Moon, Sun, Sunrise, Sunset, Wind, ChevronLeft, ChevronRight,
+  Moon, Sun, Sunrise, Sunset, Wind, ChevronLeft, ChevronRight, MapPin,
 } from "lucide-react";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -48,13 +48,20 @@ function ClockWidget() {
 }
 
 function WeatherWidget() {
+  const [configuredCity, setConfiguredCity] = useState<string | null>(() => { try { return window.localStorage.getItem("vx:weather-city"); } catch { return null; } });
+  const [editing, setEditing] = useState(false);
+  const [draftCity, setDraftCity] = useState(configuredCity || "");
   const [state, setState] = useState<{ status: "loading" | "ready" | "error"; city?: string; code?: number; temp?: number; min?: number; max?: number; humidity?: number; isDay?: boolean }>({ status: "loading" });
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const organization = await fetch("/api/backend/auth/organization", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null));
-        const city = String(organization?.city || "").trim() || "São Paulo";
+        let city = configuredCity || "";
+        if (!city) {
+          const organization = await fetch("/api/backend/auth/organization", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null));
+          city = String(organization?.city || "").trim();
+        }
+        if (!city) city = "São Paulo";
         const geoKey = "vx:geo:" + city.toLowerCase();
         let geo = JSON.parse(window.localStorage.getItem(geoKey) || "null") as { lat: number; lon: number; name?: string } | null;
         if (!geo) {
@@ -84,7 +91,15 @@ function WeatherWidget() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [configuredCity]);
+
+  const saveCity = () => {
+    const value = draftCity.trim();
+    if (!value) return;
+    try { window.localStorage.setItem("vx:weather-city", value); } catch { /* ignore */ }
+    setConfiguredCity(value);
+    setEditing(false);
+  };
 
   const info = state.status === "ready" ? weatherFor(state.code ?? 0) : null;
   const Icon = info?.Icon ?? CloudSun;
@@ -93,11 +108,20 @@ function WeatherWidget() {
     <article className={"vx-widget vx-widget-weather" + (night ? " is-night" : "")} aria-label="Clima agora">
       <div className="vx-widget-weather-head">
         <span className="vx-widget-label">Clima{state.city ? ` · ${state.city}` : ""}</span>
-        {night ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
+        <span className="vx-widget-weather-head-actions">
+          <button type="button" className="vx-widget-weather-config" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
+          {night ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
+        </span>
       </div>
+      {editing ? (
+        <form className="vx-widget-weather-config-form" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
+          <input autoFocus value={draftCity} onChange={(event) => setDraftCity(event.target.value)} aria-label="Cidade para o clima" placeholder="Ex.: Rondonópolis, MT" />
+          <button type="submit" className="vx-widget-weather-config-save">Salvar</button>
+        </form>
+      ) : null}
       {state.status === "loading" ? <p className="vx-widget-weather-loading">Buscando o tempo…</p> : null}
       {state.status === "error" ? (
-        <p className="vx-widget-weather-fallback">Não consegui consultar o clima agora.<br />Ajuste a Cidade nos dados da empresa.</p>
+        <p className="vx-widget-weather-fallback">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
       ) : null}
       {state.status === "ready" ? (
         <>

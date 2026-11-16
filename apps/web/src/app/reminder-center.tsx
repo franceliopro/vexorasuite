@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, CalendarClock, CheckCircle2, X } from "lucide-react";
 
 type Reminder = { fireKey: string; kind: "task" | "event"; title: string; when: string; overdue: boolean; url?: string };
-type Settings = { enabled: boolean; minutesBefore: number[]; sound: boolean; push: boolean };
+type Settings = { enabled: boolean; minutesBefore: number[]; sound: boolean; push: boolean; mutedWeekdays?: number[]; maxPerDay?: number };
 type AgendaReminders = Record<string, { enabled: boolean; minutesBefore: number[] }>;
 
 const FIRED_KEY = "vx:reminders:fired";
@@ -50,6 +50,14 @@ export function ReminderCenter() {
       const s = await fetch("/api/backend/reminders/settings", { cache: "no-store" }).then(r => r.ok ? r.json() : null) as Settings | null;
       setSettings(s);
       if (!s || s.enabled === false) return;
+      if (Array.isArray(s.mutedWeekdays) && s.mutedWeekdays.includes(new Date().getDay())) return;
+      const pad2 = (n: number) => String(n).padStart(2, "0");
+      const now = new Date();
+      const budgetKey = `vx:reminders:budget:${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+      const budgetSpent = Number(window.localStorage.getItem(budgetKey) || 0);
+      const maxPerDay = typeof s.maxPerDay === "number" ? s.maxPerDay : 15;
+      if (budgetSpent >= maxPerDay) return;
+      const room = Math.max(1, maxPerDay - budgetSpent);
       const lookahead = Math.max(...(s.minutesBefore || [15, 60]));
       const fired = readJson<Record<string, number>>(FIRED_KEY, {});
       const snoozeUntil = Number(window.localStorage.getItem(SNOOZE_KEY) || 0);
@@ -83,11 +91,12 @@ export function ReminderCenter() {
         return Date.now() - last > 30 * 60000; // repete no máx. a cada 30 min por item
       });
       if (!fresh.length) return;
-      const next = [...fresh].sort((a, b) => +new Date(a.when) - +new Date(b.when)).slice(0, 5);
+      const next = [...fresh].sort((a, b) => +new Date(a.when) - +new Date(b.when)).slice(0, Math.min(5, room));
       setQueue(next);
       setOpen(true);
       for (const item of next) fired[item.fireKey] = Date.now();
       writeJson(FIRED_KEY, fired);
+      try { window.localStorage.setItem(budgetKey, String(budgetSpent + next.length)); } catch { /* ignore */ }
       if (s.sound !== false) beep();
     } catch { /* silencioso — tenta de novo no próximo ciclo */ }
   }, []);

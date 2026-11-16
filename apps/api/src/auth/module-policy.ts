@@ -1,4 +1,4 @@
-export const MODULES = [
+﻿export const MODULES = [
   "INBOX",
   "CRM",
   "CALENDAR",
@@ -10,7 +10,6 @@ export const MODULES = [
   "FINANCE",
   "CHANNELS",
   "SETTINGS",
-  "SITES",
 ] as const;
 export type ModuleKey = (typeof MODULES)[number];
 export const administrative = (role: string) =>
@@ -21,7 +20,7 @@ export function moduleSelection(value: unknown): ModuleKey[] {
     value.length > MODULES.length ||
     value.some((v) => !MODULES.includes(v as ModuleKey))
   )
-    throw Error("Seleção de módulos inválida.");
+    throw Error("SeleÃ§Ã£o de mÃ³dulos invÃ¡lida.");
   return [...new Set(value)] as ModuleKey[];
 }
 export function effectiveModules(
@@ -71,7 +70,7 @@ export function routeModules(path: string, method: string): string[] {
     )
   )
     return ["MARKETING"];
-  if (/^sites(?:\/|$)/.test(p)) return ["SITES"];   if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
+  if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
   if (/^integrations|^communications/.test(p)) return ["CHANNELS"];
   if (/^push/.test(p)) return ["INBOX"];
   return ["SETTINGS"];

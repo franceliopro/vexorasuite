@@ -370,14 +370,13 @@ services:
       retries: 10
 
 
-  # Institutional site for the company (static, self-contained HTML).
+  # Institutional site for the company (static HTML). Built from the repo so the
+  # content ships inside the image instead of depending on a bind mount.
   institucional:
-    image: nginx:alpine
+    build: ./sites/institucional
     restart: unless-stopped
     expose:
       - "80"
-    volumes:
-      - ./sites/institucional:/usr/share/nginx/html:ro
 
   # Static bundles uploaded by the app: extracted here and served by nginx.
   static:

@@ -4938,7 +4938,7 @@ input[type=tel]{letter-spacing:.02em}
 /* ===== Audit Atendimento: sidebar de conversas e ficha redimensionavel (desktop) ===== */
 .inbox-resizer{display:none}
 @media (min-width:981px){
-  .inbox-workspace{grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 8px var(--inbox-ficha-w,minmax(300px,380px))}
+  .inbox-workspace{grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 8px var(--inbox-ficha-w,minmax(300px,380px))!important}
   .inbox-resizer{display:flex;align-self:stretch;align-items:stretch;justify-content:center;position:relative;z-index:4;cursor:col-resize;user-select:none;touch-action:none;border-radius:10px}
   .inbox-resizer::after{content:"";width:2px;border-radius:2px;background:var(--ln);transition:background .14s}
   .inbox-resizer:hover::after,.inbox-resizer:focus-visible::after,.inbox-resizer:active::after{background:var(--primary)}

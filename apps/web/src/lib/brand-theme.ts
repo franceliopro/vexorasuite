@@ -65,9 +65,9 @@ export function applyHybridSidebar(
   root.style.setProperty("--sb-bg", background);
   root.style.setProperty("--sb-tx", foreground);
   root.style.setProperty("--sb-on", hoverColor);
-  root.style.setProperty("--sb-ln", `color-mix(in srgb, ${foreground} 15%, transparent)`);
+  root.style.setProperty("--sb-ln", `color-mix(in srgb, ${foreground} 20%, ${background})`);
   root.style.setProperty("--sb-mut", `color-mix(in srgb, ${foreground} 68%, ${background})`);
-  root.style.setProperty("--sb-thumb", `color-mix(in srgb, ${foreground} 52%, transparent)`);
+  root.style.setProperty("--sb-thumb", `color-mix(in srgb, ${foreground} 52%, ${background})`);
 }
 
 /** Applies brand tokens that depend on the active theme (primary always; hybrid sidebar only). */

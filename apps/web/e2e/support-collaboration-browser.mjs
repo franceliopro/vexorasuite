@@ -68,6 +68,20 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:950}});
  await fixtures(page);
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
+ const activeItem=page.locator(".sidebar .nav-item.active").first();
+ await expect(activeItem).toBeVisible();
+ const sidebarColors=await activeItem.evaluate(item=>{
+  const root=document.documentElement, sidebar=item.closest(".sidebar");
+  root.dataset.theme="hybrid";
+  root.style.setProperty("--sb-bg","#f46708");
+  root.style.setProperty("--sb-tx","#201909");
+  const active=getComputedStyle(item), rail=getComputedStyle(sidebar);
+  return { background:active.backgroundColor, rail:rail.backgroundColor, text:active.color, shadow:active.boxShadow };
+ });
+ assert.equal(sidebarColors.background,sidebarColors.rail);
+ assert.equal(sidebarColors.background,"rgb(244, 103, 8)");
+ assert.equal(sidebarColors.text,"rgb(32, 25, 9)");
+ assert.match(sidebarColors.shadow,/rgba\(255, 255, 255, 0\.12\)/);
  await page.getByRole("button",{name:"Contexto e apoio"}).click();
  const context=page.getByRole("dialog",{name:"Contexto e apoio"});
  await expect(context.getByLabel("Equipamento")).toHaveValue("R-32");

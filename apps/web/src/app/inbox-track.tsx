@@ -22,7 +22,7 @@ function location(point: Position) {
   return "https://www.openstreetmap.org/?mlat=" + latitude + "&mlon=" + longitude + "#map=15/" + latitude + "/" + longitude;
 }
 
-export function InboxTrack() {
+export function InboxTrack({ menuItem = false }: { menuItem?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [catalog, setCatalog] = useState<Devices>();
   const [page, setPage] = useState(1);
@@ -85,7 +85,7 @@ export function InboxTrack() {
   }
 
   return <>
-    <button type="button" className="secondary-button vx-track-trigger" onClick={() => { dialog.current?.showModal(); void run(() => refresh()); }}>
+    <button type="button" role={menuItem ? "menuitem" : undefined} className={menuItem ? undefined : "secondary-button vx-track-trigger"} onClick={() => { dialog.current?.showModal(); void run(() => refresh()); }}>
       <MapPin size={16} aria-hidden="true" /> Véxora Track
     </button>
     <dialog ref={dialog} className="vx-track" aria-label="Véxora Track" onClose={() => setToken("")}>

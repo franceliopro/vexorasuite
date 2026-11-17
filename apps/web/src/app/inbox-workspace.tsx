@@ -1359,10 +1359,11 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
             <button type="button" role="menuitem" onClick={() => { setQueueView("completed"); setMobileThreadOpen(false); }}><CheckCircle2 size={12} aria-hidden="true" /> Concluídos</button>
             <button type="button" role="menuitem" onClick={() => { setQueueView("archived"); setMobileThreadOpen(false); }}><Archive size={12} aria-hidden="true" /> Arquivados</button>
             <button type="button" role="menuitem" onClick={() => { setQueueView("trash"); setMobileThreadOpen(false); }}><Trash2 size={12} aria-hidden="true" /> Lixeira</button>
+            <InboxSupportQueue menuItem />
+            <InboxTrack menuItem />
           </div>
         </details>
       </nav>
-      <div className="vx-support-queue-control"><InboxSupportQueue /><InboxTrack /></div>
       <ConversationList conversations={conversations} conversationsLoading={conversationsLoading} selectedId={selectedId} queueView={queueView} onSelect={(item) => { notificationFocus.current = null; setSelectedId(item.id); setMobileThreadOpen(true); }} />
     </aside>
     <div className="inbox-resizer inbox-resizer-left" role="separator" aria-orientation="vertical" aria-label="Ajustar a largura da lista de conversas" tabIndex={0} onPointerDown={startResize("list")} onKeyDown={resizeByKey("list")} />

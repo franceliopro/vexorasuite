@@ -1,0 +1,18 @@
+.vx-inbox-service-offers { border-block-end: 1px solid var(--ln); padding: 8px 12px; min-width: 0; }
+.vx-inbox-service-offers summary { cursor: pointer; font-weight: 650; }
+.vx-service-offer-panel { margin-top: 10px; max-height: 45vh; overflow: auto; }
+.vx-service-offer-panel, .vx-service-offer-panel form, .vx-service-offer-record, .vx-public-offer form { display: grid; gap: 10px; }
+.vx-service-offer-record { border: 1px solid var(--ln); padding: 12px; border-radius: 12px; }
+.vx-service-offer-panel label, .vx-public-offer label { display: grid; gap: 4px; min-width: 0; }
+.vx-service-offer-panel input, .vx-service-offer-panel textarea, .vx-public-offer input, .vx-public-offer textarea { width: 100%; }
+.vx-service-offer-prices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.vx-public-offer { min-height: 100dvh; display: grid; place-items: start center; padding: clamp(16px, 5vw, 60px); background: #edf2f7; color: #17233b; }
+.vx-public-offer article { width: min(100%, 640px); display: grid; gap: 14px; padding: clamp(18px, 5vw, 42px); border-radius: 20px; background: white; box-shadow: 0 12px 45px #233a601c; }
+.vx-public-offer h1, .vx-public-offer h2, .vx-public-offer dd, .vx-public-offer p { margin: 0; }
+.vx-public-offer h2 { font-size: 1rem; }
+.vx-public-offer dl > div { border-radius: 12px; padding: 12px; background: #edf2f7; }
+.vx-public-offer dd { font-size: 1.15rem; font-weight: 750; }
+.vx-public-offer-scope { white-space: pre-wrap; overflow-wrap: anywhere; }
+.vx-public-offer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.vx-public-offer button, .vx-public-offer input, .vx-public-offer textarea { min-height: 44px; border-radius: 9px; border: 1px solid #a9b6c8; padding: 8px 12px; background: white; color: #17233b; }
+.vx-public-offer button[aria-pressed="true"], .vx-public-offer form button { background: #154eae; color: white; border-color: #154eae; }

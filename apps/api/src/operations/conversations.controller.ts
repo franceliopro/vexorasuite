@@ -5,7 +5,8 @@ import { whatsappPhone } from './whatsapp-bridge';
 import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, StreamableFile, UseGuards } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import { offerAmount, offerText, offerTokenHash } from "./public-service-offers.controller";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -905,6 +906,82 @@ export class ConversationsController {
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
     const scope = assignedConversationScope(request.user.tenantId,request.user.sub,departmentIds);
     return { ...scope, AND: [ ...((scope as any).AND || []), attachmentScope ] };
+  }
+
+
+  @Get(":id/service-offers")
+  async listServiceOffers(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
+    const offers = await this.prisma.serviceOffer.findMany({
+      where: { tenantId: request.user.tenantId, conversationId: id },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { order: true },
+    });
+    return offers.map(({ publicTokenHash: _token, ...offer }) => offer);
+  }
+
+  @Post(":id/service-offers")
+  async createServiceOffer(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() input: { title?: unknown; scope?: unknown; platform?: unknown; setupCents?: unknown; monthlyCents?: unknown },
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const tenantId = request.user.tenantId;
+    const token = randomBytes(32).toString("base64url");
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true } });
+    const offer = await this.prisma.serviceOffer.create({
+      data: {
+        tenantId, conversationId: id, sellerName: tenant.name, publicTokenHash: offerTokenHash(token),
+        title: offerText(input?.title, "Título", 120), scope: offerText(input?.scope, "Escopo", 4000),
+        platform: offerText(input?.platform, "Plataforma", 120),
+        setupCents: offerAmount(input?.setupCents), monthlyCents: offerAmount(input?.monthlyCents),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+      select: { id: true },
+    });
+    return { id: offer.id, path: "/proposta/" + token };
+  }
+
+  @Post(":id/service-offers/:offerId/revoke")
+  async revokeServiceOffer(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("offerId", ParseUUIDPipe) offerId: string,
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const result = await this.prisma.serviceOffer.updateMany({
+      where: { id: offerId, tenantId: request.user.tenantId, conversationId: id, state: "OPEN" },
+      data: { state: "REVOKED" },
+    });
+    if (!result.count) throw new BadRequestException("Somente uma proposta em aberto pode ser cancelada.");
+    return { ok: true };
+  }
+
+  @Post(":id/service-offers/:offerId/order")
+  async updateServiceOrder(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("offerId", ParseUUIDPipe) offerId: string,
+    @Body() input: { scheduledAt?: unknown; installation?: unknown },
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const where = { offerId, completedAt: null, offer: { tenantId: request.user.tenantId, conversationId: id, state: "ACCEPTED" } };
+    let data: { scheduledAt?: Date; installation?: string; completedAt?: Date };
+    if (input?.installation !== undefined) {
+      data = { installation: offerText(input.installation, "Registro da instalação", 4000), completedAt: new Date() };
+    } else {
+      const date = typeof input?.scheduledAt === "string" ? new Date(input.scheduledAt) : null;
+      if (!date || !Number.isFinite(date.getTime()) || date <= new Date()) throw new BadRequestException("Escolha uma data futura.");
+      data = { scheduledAt: date };
+    }
+    const result = await this.prisma.serviceOrder.updateMany({ where, data });
+    if (!result.count) throw new NotFoundException("Ordem de serviço ativa não encontrada.");
+    return { ok: true };
   }
 
   private async assertCanAccess(request: AuthenticatedRequest, conversationId: string, view = "new"): Promise<void> {

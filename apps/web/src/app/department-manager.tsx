@@ -27,7 +27,18 @@ const initial = {
   maxOpenConversations: 0,
   crmTemplate: "GENERAL",
 };
+async function readDepartmentResponse(response: Response, fallback: string) {
+  const data = await response.json().catch(() => null);
+  if (!response.ok || data === null) {
+    const message = typeof data?.message === "string" ? data.message : Array.isArray(data?.message) ? data.message.join(" ") : "";
+    const requestId = response.headers.get("x-request-id");
+    throw new Error(message || fallback + " (HTTP " + response.status + ")" + (requestId ? " · Referência " + requestId : ""));
+  }
+  return data;
+}
+
 export function DepartmentManager() {
+  const [copy, setCopy] = useState<{ id: string; source: string; name: string; routingPlatform: string; sourcePlatform: string; copyMembers: boolean } | null>(null);
   const [rows, setRows] = useState<any[]>([]),
     [agents, setAgents] = useState<{ id: string; name: string; email?: string; isActive?: boolean }[]>([]),
     [members, setMembers] = useState<Record<string, string[]>>({}),
@@ -45,8 +56,8 @@ export function DepartmentManager() {
     fetch("/api/backend/integrations/google/calendar/assignments", { cache: "no-store" }).then(x => x.ok ? x.json() : []).then((rows: any[]) => setAssignments(Array.isArray(rows) ? rows.map((row: any) => ({ departmentId: row.departmentId ?? null, userId: row.userId ?? null })) : [])).catch(() => setAssignments([]));
     if (!r.ok) throw Error("Não foi possível carregar setores.");
     if (!teamResponse.ok) throw Error("Não foi possível carregar os atendentes.");
-    const departments = await r.json();
-    const team = await teamResponse.json();
+    const departments = await readDepartmentResponse(r, "Não foi possível carregar setores.");
+    const team = await readDepartmentResponse(teamResponse, "Não foi possível carregar os atendentes.");
     const pairs = await Promise.all(
       departments.map(async (department: any) => {
         const response = await fetch(
@@ -54,7 +65,7 @@ export function DepartmentManager() {
           { cache: "no-store" },
         );
         if (!response.ok) throw Error("Não foi possível carregar os atendentes do setor.");
-        const assigned = await response.json();
+        const assigned = await readDepartmentResponse(response, "Não foi possível carregar os atendentes do setor.");
         return [department.id, assigned.map((agent: { id: string }) => agent.id)] as const;
       }),
     );
@@ -66,6 +77,7 @@ export function DepartmentManager() {
     void load().catch((e) => setNotice(e.message));
   }, []);
   function edit(d?: any) {
+    setCopy(null);
     setId(d?.id || "");
     setForm(
       d
@@ -85,17 +97,36 @@ export function DepartmentManager() {
     setEditing(true);
   }
 
-  async function duplicateDepartment(department: any) {
+  function prepareDuplicate(department: { id: string; name: string; routingPlatform?: string | null }) {
+    const platform = department.routingPlatform ?? "";
+    setEditing(false);
+    setNotice("");
+    setCopy({ id: department.id, source: department.name, name: (department.name + " (cópia)").slice(0, 80), routingPlatform: platform, sourcePlatform: platform, copyMembers: true });
+  }
+
+  async function duplicateDepartment() {
+    if (!copy) return;
     setNotice(""); setBusy(true);
     try {
-      const response = await fetch("/api/backend/departments/" + department.id + "/duplicate", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Não foi possível duplicar o setor.");
-      setNotice("Setor duplicado como \"" + data.name + "\" — mesmos módulos, atendentes, funil, workflows e agendas.");
-      await load();
+      const response = await fetch("/api/backend/departments/" + copy.id + "/duplicate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: copy.name.trim(), routingPlatform: copy.routingPlatform.trim(), copyMembers: copy.copyMembers }),
+      });
+      const data = await readDepartmentResponse(response, "Não foi possível confirmar a duplicação. Confira a lista antes de tentar novamente.");
+      if (typeof data?.id !== "string" || typeof data?.name !== "string") {
+        throw new Error("Resposta inesperada ao duplicar. Confira a lista antes de tentar novamente.");
+      }
+      setCopy(null);
       window.dispatchEvent(new Event("vexora:team-updated"));
+      try {
+        await load();
+        setNotice("Setor duplicado como “" + data.name + "”.");
+      } catch {
+        setNotice("Setor “" + data.name + "” criado. Recarregue a página para atualizar a lista.");
+      }
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Não foi possível duplicar o setor.");
+      setNotice(e instanceof Error ? e.message : "Não foi possível confirmar a duplicação. Confira a lista antes de tentar novamente.");
     } finally {
       setBusy(false);
     }
@@ -187,6 +218,20 @@ export function DepartmentManager() {
         </button>
       </div>
       {notice && <p role="status">{notice}</p>}
+      {copy && <form className="workspace-surface department-form" onSubmit={event => { event.preventDefault(); void duplicateDepartment(); }}>
+        <h3>Duplicar {copy.source}</h3>
+        <label>Nome do novo setor <input value={copy.name} maxLength={80} required onChange={event => setCopy({ ...copy, name: event.target.value })} /></label>
+        <label>Plataforma de destino <input value={copy.routingPlatform} maxLength={80} onChange={event => {
+          const value = event.target.value;
+          setCopy({ ...copy, routingPlatform: value, copyMembers: value.trim() === copy.sourcePlatform && copy.copyMembers });
+        }} /></label>
+        <label><input type="checkbox" checked={copy.copyMembers} onChange={event => setCopy({ ...copy, copyMembers: event.target.checked })} /> Copiar atendentes</label>
+        <p>As rotinas copiadas começam desativadas. Para outra plataforma, configure a agenda no novo setor.</p>
+        <div className="workspace-actions">
+          <button type="submit" className="primary-button" disabled={busy || !copy.name.trim()}>Confirmar duplicação</button>
+          <button type="button" className="text-button" disabled={busy} onClick={() => setCopy(null)}>Cancelar</button>
+        </div>
+      </form>}
       {editing && (
         <form
           className="workspace-surface department-form"
@@ -236,6 +281,10 @@ export function DepartmentManager() {
               <option value="ADMIN">Administrativo</option>
               <option value="OTHER">Outro</option>
             </select>
+          </label>
+          <label>
+            Plataforma
+            <input maxLength={80} value={form.routingPlatform} onChange={event => setForm(v => ({ ...v, routingPlatform: event.target.value }))} />
           </label>
           <label>
             Palavras-chave · separadas por vírgula
@@ -327,7 +376,7 @@ export function DepartmentManager() {
               <header className="department-card-head">
                 <span className={"department-card-icon " + meta.tone} aria-hidden="true"><Icon size={20} /></span>
                 <div className="department-card-title">
-                  <strong>{d.name}</strong>
+                  <strong>{d.name}</strong>{d.routingPlatform && <small>{d.routingPlatform}</small>}
                   <small>{meta.label}</small>
                 </div>
                 <span className={"department-status " + (d.isActive ? "is-active" : "is-inactive")}>{d.isActive ? "Ativo" : "Desativado"}</span>
@@ -353,7 +402,7 @@ export function DepartmentManager() {
               <div className="department-card-actions">
                 <button className="secondary-button" onClick={() => edit(d)}>{d.isActive ? "Editar" : "Reativar"}</button>
                 {d.isActive && (
-                  <button className="secondary-button" disabled={busy} onClick={() => void duplicateDepartment(d)} title="Criair uma cópia: mesmos módulos, atendentes, funil de CRM, workflows e agendas"><Copy size={13} aria-hidden="true" /> Duplicar</button>
+                  <button className="secondary-button" disabled={busy} onClick={() => prepareDuplicate(d)} title="Duplicar configuração do setor"><Copy size={13} aria-hidden="true" /> Duplicar</button>
                 )}
                 {d.isActive && (
                   <button className="text-button danger-text" disabled={busy} onClick={() => { if (window.confirm("Desativar " + d.name + "? O acesso do setor ser\u00e1 revogado e o hist\u00f3rico ser\u00e1 preservado.")) void save({}, "DELETE", d.id); }}>Desativar</button>

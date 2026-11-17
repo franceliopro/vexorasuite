@@ -31,10 +31,10 @@ function conversationUrl(id: string) {
   return "/?module=Atendimento&conversation=" + encodeURIComponent(id);
 }
 
-function SupportDialog({ title, icon, children, onOpen, onClose }: { title: string; icon: ReactNode; children: ReactNode; onOpen: () => void; onClose?: () => void }) {
+function SupportDialog({ title, icon, children, onOpen, onClose, menuItem }: { title: string; icon: ReactNode; children: ReactNode; onOpen: () => void; onClose?: () => void; menuItem?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return <>
-    <button className="secondary-button vx-support-trigger" type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
+    <button className={menuItem ? undefined : "secondary-button vx-support-trigger"} role={menuItem ? "menuitem" : undefined} type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
     <dialog ref={dialog} onClose={onClose} className="vx-support-dialog" aria-label={title}>
       <header><h2>{title}</h2><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
       {children}
@@ -138,7 +138,7 @@ function SupportSettingsForm({ settings, onSave, busy }: { settings: Settings; o
   </form>;
 }
 
-export function InboxSupportQueue() {
+export function InboxSupportQueue({ menuItem = false }: { menuItem?: boolean }) {
   const [queue, setQueue] = useState<Queue>();
   const [settings, setSettings] = useState<Settings>();
   const [error, setError] = useState("");
@@ -175,7 +175,7 @@ export function InboxSupportQueue() {
     return () => { active = false; window.clearInterval(timer); };
   }, [open, busy]);
 
-  return <SupportDialog title="Fila de apoio" icon={<ClipboardList size={16} aria-hidden="true" />} onOpen={() => { setOpen(true); setAcceptedConversation(undefined); void run(refresh); }} onClose={() => setOpen(false)}>
+  return <SupportDialog menuItem={menuItem} title="Fila de apoio" icon={<ClipboardList size={16} aria-hidden="true" />} onOpen={() => { setOpen(true); setAcceptedConversation(undefined); void run(refresh); }} onClose={() => setOpen(false)}>
     <div className="vx-support-buttons"><button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar fila</button>
       {queue?.manager && <button type="button" className="secondary-button" disabled={busy} onClick={() => void run(async () => setSettings(await supportApi<Settings>("support-settings")))}>Configurar campos e prazos</button>}
     </div>

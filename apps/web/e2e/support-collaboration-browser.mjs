@@ -16,6 +16,9 @@ const config={name:"Véxora",wakeWord:"Olá Véxora",enabled:true,dailyAiLimit:1
 const supportSettings={fields:[{key:"asset",label:"Equipamento"}],helpMinutes:45,escalationMinutes:15,replyMinutes:20};
 const departmentId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 let submitted;
+let departmentCopied=false;
+let duplicateAttempts=0;
+const finance={id:"finance-a",name:"Financeiro A",key:"FINANCE_A",routingCategory:"FINANCE",routingPlatform:"A",modules:[],keywords:[],isActive:true};
 let simulatedPoint;
 const trackerId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef";
 async function fixtures(page){
@@ -44,7 +47,16 @@ async function fixtures(page){
   else if(path==="/conversations/quick-replies")data=[];
   else if(path==="/conversations/quick-reply-settings")data={};
   else if(path==="/conversations/assignees")data=[{id:userId,name:"Chefão",email:"vexora@example.test"}];
-  else if(path==="/departments")data=[];
+  else if(path==="/team")data=[];
+  else if(path==="/departments")data=[finance,...(departmentCopied ? [{...finance,id:"finance-b",name:"Financeiro B",key:"FINANCE_B",routingPlatform:"B"}] : [])];
+  else if(/^\/departments\/[^/]+\/members$/.test(path))data=[];
+  else if(path==="/departments/finance-a/duplicate"){
+   duplicateAttempts++;
+   if(duplicateAttempts===1)return route.fulfill({status:502,contentType:"text/plain",body:"502 Bad Gateway"});
+   assert.deepEqual(request.postDataJSON(),{name:"Financeiro B",routingPlatform:"B",copyMembers:false});
+   departmentCopied=true;
+   data={id:"finance-b",name:"Financeiro B"};
+  }
   else if(path==="/channels")data=[];
   else if(path==="/supervision/overview"||path.startsWith("/supervision/overview"))data={slaMinutes:30,totals:{open:2,pending:1,waiting:1,stale:0},oldestWaiting:null,byDepartment:[],staleConversations:[]};
   else if(/^\/conversations\/[^/]+\/messages/.test(path))data=messages;
@@ -110,5 +122,16 @@ try{
  await tracker.getByRole("button",{name:"Registrar posição simulada"}).click();
  await expect(tracker.getByRole("status")).toHaveText("Posição simulada registrada.");
  await expect(tracker.getByRole("link",{name:"Abrir última posição no mapa"})).toHaveAttribute("href",/mlat=-5\.19000/);
+ await page.goto("http://127.0.0.1:3101/?module=Atendentes");
+ await page.getByRole("button",{name:"Setores e permissões",exact:true}).click();
+ await page.getByRole("button",{name:"Duplicar",exact:true}).click();
+ await page.getByLabel("Nome do novo setor").fill("Financeiro B");
+ await page.getByLabel("Plataforma de destino").fill("B");
+ await expect(page.getByLabel("Copiar atendentes")).not.toBeChecked();
+ await page.getByRole("button",{name:"Confirmar duplicação"}).click();
+ await expect(page.getByText(/Não foi possível confirmar a duplicação.*HTTP 502/)).toBeVisible();
+ await page.getByRole("button",{name:"Confirmar duplicação"}).click();
+ await expect(page.getByText("Setor duplicado como “Financeiro B”.")).toBeVisible();
+ await expect(page.getByText("Financeiro B",{exact:true})).toBeVisible();
  console.log("Inbox: configurable context, escalation and manager queue OK.");
 }finally{await browser?.close();server.kill("SIGTERM");}

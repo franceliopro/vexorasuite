@@ -111,6 +111,15 @@ jobs:
         run: pnpm --filter @vexorasuite/web exec playwright install --with-deps chromium
       - name: Copilot and rich editor browser checks
         run: pnpm --filter @vexorasuite/web exec node e2e/copilot-browser.mjs
+      - name: Chatbot canvas browser checks
+        run: pnpm --filter @vexorasuite/web exec node e2e/chatbot-canvas-browser.mjs
+      - name: Chatbot canvas screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatbot-canvas-interface
+          path: apps/web/artifacts/chatbot
+          if-no-files-found: ignore
       - name: Interface screenshots
         if: always()
         uses: actions/upload-artifact@v4

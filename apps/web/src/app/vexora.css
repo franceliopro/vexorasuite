@@ -4944,3 +4944,12 @@ input[type=tel]{letter-spacing:.02em}
   .inbox-resizer:hover::after,.inbox-resizer:focus-visible::after,.inbox-resizer:active::after{background:var(--primary)}
   .inbox-resizer:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 }
+/* ===== Audit Tarefas: duas colunas (lateral com lembretes/KPIs, lista principal) ===== */
+.tasks-columns{display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:var(--gap);align-items:start}
+.tasks-side{display:grid;gap:var(--gap);align-content:start}
+.tasks-main{display:grid;gap:var(--gap);align-content:start}
+.tasks-side .tasks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:1100px){.tasks-columns{grid-template-columns:1fr}}
+/* ===== Audit Tarefas: feedback visual nos cartoes ===== */
+.tasks-item:hover{border-color:var(--ln2);box-shadow:var(--shadow-lg)}
+.tasks-item-head strong{font-size:15px;letter-spacing:-.01em}

@@ -7,6 +7,13 @@ type AgendaOption = { key: string; accountId: string; calendarId: string; label:
 type AgendaAssignment = { id: string; accountId: string; calendarId: string; userId: string | null; departmentId: string | null };
 const ROLE_LABELS: Record<string, string> = { OWNER: "Proprietário", ADMIN: "Administrador", MANAGER: "Gestor", AGENT: "Atendente" };
 const initials = (name: string) => String(name || "?").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+function temporaryPasswordNotice(success: string, data: { temporaryPassword?: unknown; passwordEmail?: unknown }) {
+  if (data.passwordEmail === "accepted") return success + " O servidor de e-mail aceitou o envio da senha temporária.";
+  const status = data.passwordEmail === "unavailable" ? "O envio por e-mail está indisponível." : "O envio por e-mail não foi confirmado.";
+  return success + " " + status + (typeof data.temporaryPassword === "string"
+    ? " Senha temporária: " + data.temporaryPassword + ". A troca será obrigatória no próximo acesso." : "");
+}
+
 export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
   const [editingId,setEditingId]=useState('');
   const [tab, setTab] = useState("agents");
@@ -141,7 +148,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                     const scopeResponse = await fetch("/api/backend/team/" + editingId + "/transfer-scope", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(form.transferScope) });
                     if (!scopeResponse.ok) { const sd = await scopeResponse.json().catch(() => ({})); throw Error(sd.message || "Não foi possível salvar as permissões de transferência."); }
                   }
-                  const temporaryPassword = !editingId && typeof d.temporaryPassword === "string" ? d.temporaryPassword : "";
+                  const createdNotice = !editingId ? temporaryPasswordNotice("Atendente cadastrado.", d) : "";
                   const memberId = editingId || d.id;
                   if (memberId) {
                     for (const assignment of agendaAssignments.filter(item => item.userId === memberId)) {
@@ -178,7 +185,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   setPhotoPreview(null);
                   await load();
                   window.dispatchEvent(new Event("vexora:team-updated"));
-                  setNotice(temporaryPassword ? "Atendente cadastrado. Senha temporária: " + temporaryPassword + ". Guarde-a agora; ela será exigida apenas no primeiro acesso." : editingId ? "Permissões e setores atualizados." : "Atendente cadastrado e disponível nos fluxos.");setEditingId('');
+                  setNotice(editingId ? "Permissões e setores atualizados." : createdNotice);setEditingId('');
                 } catch (e) {
                   const msg = e instanceof Error ? e.message : "Não foi possível cadastrar.";
                   setNotice(msg);
@@ -305,7 +312,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               />
               </div>
               <footer className="team-form-footer">
-                <small>{!editingId ? "Uma senha temporária aleatória será gerada e trocada no primeiro acesso." : "Nome e e-mail não podem ser alterados após o cadastro."}</small>
+                <small>{!editingId ? "O atendente receberá uma senha temporária por e-mail. A troca é obrigatória no primeiro acesso." : "Nome e e-mail não podem ser alterados após o cadastro."}</small>
                 <div className="team-form-actions">
                   <button type="button" className="secondary-button" onClick={() => setEditing(false)}>Cancelar</button>
                   <button className="primary-button" disabled={busy}>{editingId?"Salvar permissões":"Cadastrar atendente"}</button>
@@ -328,13 +335,25 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   {departments.filter((d) => r.departmentIds.includes(d.id)).map((d) => <span key={d.id}>{d.name}</span>)}
                   {!r.departmentIds.length && <span className="team-dept-empty">Sem setor definido</span>}
                 </div>
+                <div className="team-access-summary">
+                  <strong>Permissões por módulo</strong>
+                  <ul className="team-dept-chips" aria-label={"Permissões de " + r.name} style={{ listStyle: "none", padding: 0, margin: "5px 0 0" }}>
+                    {Object.entries(moduleLabels).map(([id, label]) => {
+                      const allowed = r.isActive !== false && (r.effectiveAccessModules ?? r.modules ?? []).includes(id);
+                      return <li key={id} data-allowed={allowed}><span className={allowed ? undefined : "team-dept-empty"}>
+                        <b aria-hidden="true">{allowed ? "✓ " : "− "}</b>{label}
+                        <i className="sr-only">{allowed ? " — com acesso" : " — sem acesso"}</i>
+                      </span></li>;
+                    })}
+                  </ul>
+                </div>
 <label className="team-known-by"><span>Conhecido por</span><input key={r.id+":"+(r.knownBy||"")} defaultValue={r.knownBy||""} maxLength={80} placeholder={r.fullName||r.name} onBlur={async e=>{const knownBy=e.target.value.trim();if(knownBy===(r.knownBy||""))return;try{const response=await fetch("/api/backend/team/"+r.id+"/identity",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({knownBy})});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível salvar o nome.");await load();window.dispatchEvent(new Event("vexora:team-updated"));setNotice("Nome de atendimento atualizado.");}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar.");}}}/></label>
 <div className="team-card-actions">{r.isActive === false ? (<>
               <button className="secondary-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/reactivate",{method:"PATCH"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível reativar.");setNotice("Atendente reativado. Senha temporária: "+(data.temporaryPassword||"")+". Troca obrigatória no próximo acesso.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível reativar.")}finally{setBusy(false)}}}>Reativar</button>
               <button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Excluir definitivamente "+r.name+" da empresa? O e-mail fica liberado e o vínculo é desfeito; quando possível, o histórico é preservado. Esta ação não pode ser desfeita."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/permanent",{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível excluir definitivamente.");setNotice(data.emailFreed?"Atendente excluído definitivamente: e-mail liberado para novo cadastro.":"Vínculo do atendente removido desta empresa.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível excluir definitivamente.")}finally{setBusy(false)}}}>Excluir definitivamente</button>
               </>) : (<>
               {r.canEditAccess&&<button className="secondary-button" onClick={()=>{setEditingId(r.id);setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||"",transferScope:{anyDepartment:r.transferScope?.anyDepartment===true,ownDepartment:r.transferScope?.ownDepartment!==false,directAgent:r.transferScope?.directAgent!==false}});setEditing(true)}}>Setores e permissões</button>}
-              {platformAdmin&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice(typeof data.temporaryPassword === "string" ? "Senha temporária de "+r.name+": "+data.temporaryPassword+". Guarde-a agora; a troca será obrigatória no próximo acesso." : "Senha redefinida. A troca será obrigatória no próximo acesso.");await load();}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
+              {(r.canResetPassword ?? platformAdmin)&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice(temporaryPasswordNotice("Senha redefinida para " + r.name + ".", data));await load().catch(() => undefined);}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               {r.id!==undefined&&r.isActive&&r.id!==undefined&&<button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Desativar "+r.name+"? O histórico de conversas será preservado."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id,{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível desativar.");setNotice("Usuário desativado. O histórico foi preservado.");await load();}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível desativar.")}finally{setBusy(false)}}}>Desativar</button>}
                             </>)}
               </div>

@@ -23,6 +23,7 @@ async function fixtures(page){
   const request=route.request(),url=new URL(request.url()),path=url.pathname.replace("/api/backend","");let data={};
   if(path==="/events")return route.fulfill({status:200,contentType:"text/event-stream",body:": ready\n\n"});
   if(path==="/auth/me")data={user:{id:userId,name:"Chefão",email:"vexora@example.test",isPlatformAdmin:true,mustChangePassword:false},tenant:{id:tenantId,name:"Clínica Lume",slug:"qa",kind:"CLIENT"},role:"OWNER",allowedModules:["INBOX","CRM","AUTOMATION","SETTINGS","CHANNELS","TASKS","CALENDAR"]};
+  else if(path==="/contacts/brand-settings")data={sidebarBackground:"#F46708",sidebarForeground:"#201909"};
   else if(path==="/profile")data={name:"Chefão",email:"vexora@example.test"};
   else if(path==="/overview")data=overview;
   else if(path==="/assistant/config")data=config;
@@ -68,6 +69,14 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:950}});
  await fixtures(page);
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
+ const activeItem=page.locator(".sidebar .nav-item.active").first();
+ await expect(activeItem).toBeVisible();
+ await expect.poll(()=>activeItem.evaluate(item=>{
+  const active=getComputedStyle(item), rail=getComputedStyle(item.closest(".sidebar"));
+  return { background:active.backgroundColor, rail:rail.backgroundColor, text:active.color };
+ })).toEqual({background:"rgb(244, 103, 8)",rail:"rgb(244, 103, 8)",text:"rgb(32, 25, 9)"});
+ const shadow=await activeItem.evaluate(item=>getComputedStyle(item).boxShadow);
+ assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
  await page.getByRole("button",{name:"Contexto e apoio"}).click();
  const context=page.getByRole("dialog",{name:"Contexto e apoio"});
  await expect(context.getByLabel("Equipamento")).toHaveValue("R-32");

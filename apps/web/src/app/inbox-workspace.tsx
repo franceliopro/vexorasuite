@@ -1,4 +1,5 @@
 "use client";
+import { InboxTrack } from "./inbox-track";
 import { InboxSupportContext, InboxSupportQueue } from "./inbox-support";
 import { formatDateBR } from "../lib/date-format";
 import dynamic from "next/dynamic";
@@ -1361,7 +1362,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
           </div>
         </details>
       </nav>
-      <div className="vx-support-queue-control"><InboxSupportQueue /></div>
+      <div className="vx-support-queue-control"><InboxSupportQueue /><InboxTrack /></div>
       <ConversationList conversations={conversations} conversationsLoading={conversationsLoading} selectedId={selectedId} queueView={queueView} onSelect={(item) => { notificationFocus.current = null; setSelectedId(item.id); setMobileThreadOpen(true); }} />
     </aside>
     <div className="inbox-resizer inbox-resizer-left" role="separator" aria-orientation="vertical" aria-label="Ajustar a largura da lista de conversas" tabIndex={0} onPointerDown={startResize("list")} onKeyDown={resizeByKey("list")} />

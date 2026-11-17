@@ -4982,3 +4982,8 @@ input[type=tel]{letter-spacing:.02em}
 .team-hero{align-items:center}
 .team-hero-cta{min-height:40px;padding:0 16px;font-size:12.5px;border-radius:11px;gap:7px;flex:none}
 @media (max-width:760px){.team-hero{align-items:stretch}.team-hero-cta{width:100%;justify-content:center}}
+/* ===== Audit Conexoes: reforco final de respiro e de distancias entre ferramentas ===== */
+.channels-configuration-shell{padding:clamp(18px,2.4vw,30px)!important;gap:clamp(16px,2vw,26px)!important}
+.channels-configuration-shell .channels-shell-section{padding:clamp(16px,2vw,24px);gap:16px}
+.channels-configuration-shell .channels-section-heading{margin-bottom:2px;padding-bottom:14px}
+.channels-configuration-shell .channels-section-heading h2{font-size:14.5px}

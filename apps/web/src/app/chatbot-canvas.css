@@ -1,0 +1,186 @@
+.vx-flow-stage.vx-flow-freeform {
+  isolation: isolate;
+  border-radius: 16px;
+  background: var(--s1);
+}
+
+.vx-flow-freeform .vx-flow-stage-bar {
+  padding: 9px 12px;
+  min-height: 54px;
+  gap: 6px 12px;
+}
+
+.vx-flow-freeform .vx-flow-stage-bar strong {
+  font-size: 13px;
+  color: var(--tx);
+}
+
+.vx-flow-freeform .vx-flow-stage-bar button {
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding-inline: 8px;
+  border-radius: 9px;
+}
+
+.vx-flow-freeform .vx-flow-stage-bar button[aria-pressed="true"] {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+
+.vx-flow-freeform .vx-flow-scroll {
+  overflow: clip;
+  touch-action: none;
+  user-select: none;
+  background-color: var(--bg);
+}
+
+.vx-flow-freeform .vx-flow-scroll:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.vx-flow-freeform.chatbot-grid-visible .vx-flow-scroll {
+  background-image: radial-gradient(circle, var(--ln2) 0.75px, transparent 1px);
+}
+
+.vx-flow-freeform .vx-flow-board {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  background-image: none;
+}
+
+.vx-flow-freeform .vx-flow-wires {
+  overflow: visible;
+}
+
+.vx-flow-freeform .vx-flow-scroll.is-panning,
+.vx-flow-freeform .vx-flow-node:active,
+.vx-flow-freeform .vx-flow-node-head:active,
+.vx-flow-freeform .vx-flow-start-node:active {
+  cursor: grabbing;
+}
+
+.vx-flow-freeform .vx-flow-node,
+.vx-flow-freeform .vx-flow-start-node {
+  border-radius: 14px;
+}
+
+.vx-flow-freeform .vx-flow-node-head {
+  width: 100%;
+  text-align: start;
+  border-radius: 13px 13px 0 0;
+}
+
+.vx-flow-freeform .vx-flow-stage-foot {
+  min-height: 40px;
+  padding: 6px 12px;
+  color: var(--tx2);
+}
+
+.vx-flow-freeform .vx-flow-minimap {
+  width: clamp(112px, 30%, 176px);
+  height: auto;
+  aspect-ratio: 3 / 2;
+  border-radius: 12px;
+  bottom: 60px;
+}
+
+@media (pointer: coarse) {
+  .vx-flow-freeform .vx-flow-stage-bar button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .vx-flow-freeform .vx-flow-node-quick-actions {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.vx-flow-more {
+  position: relative;
+}
+
+.vx-flow-more summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ln);
+  border-radius: 9px;
+  background: var(--s1);
+  color: var(--tx);
+  cursor: pointer;
+  list-style: none;
+}
+
+.vx-flow-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.vx-flow-more-actions {
+  position: absolute;
+  inset: calc(100% + 6px) auto auto 0;
+  z-index: 30;
+  display: grid;
+  min-width: 180px;
+  padding: 5px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  background: var(--s1);
+  box-shadow: var(--shadow-lg);
+}
+
+.vx-flow-more .vx-flow-more-actions button {
+  justify-content: flex-start;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.vx-flow-freeform .vx-flow-node-quick-actions {
+  top: auto;
+  bottom: 3px;
+  right: 5px;
+}
+
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell.vx-right-collapsed,
+  .chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chatbot-workspace.vx-flow-fullscreen {
+    overflow-y: auto;
+  }
+
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell {
+    height: auto;
+  }
+}
+
+.vx-flow-freeform .vx-flow-start-node {
+  display: grid;
+  gap: 5px;
+  padding: 11px 13px;
+}
+
+.vx-flow-freeform .vx-flow-trigger-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx);
+}
+
+.vx-flow-freeform .vx-flow-trigger-preview {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tx2);
+  font-size: 12px;
+}

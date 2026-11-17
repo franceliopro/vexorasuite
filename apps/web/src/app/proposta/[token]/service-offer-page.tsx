@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import "../../service-offers.css";
 
-type Offer = { sellerName: string; title: string; scope: string; platform: string; setupCents: number; monthlyCents: number; state: string; expiresAt: string };
+type Offer = { sellerName: string; title: string; scope: string; platform: string; setupCents: number; monthlyCents: number; requiresContract: boolean; depositCents: number; state: string; expiresAt: string };
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const statuses: Record<string, string> = { ACCEPTED: "Proposta aprovada", CHANGES_REQUESTED: "Pedido de alteração recebido", EXPIRED: "Esta proposta expirou" };
 
@@ -52,6 +52,8 @@ export function ServiceOfferPage({ token }: { token: string }) {
           <div><dt>Instalação</dt><dd>{brl.format(offer.setupCents / 100)}</dd></div>
           <div><dt>Mensalidade</dt><dd>{brl.format(offer.monthlyCents / 100)}</dd></div>
         </dl>
+        {offer.depositCents > 0 && <p>Sinal da instalação: {brl.format(offer.depositCents / 100)}.</p>}
+        {offer.requiresContract && <p>A instalação depende da assinatura do contrato.</p>}
         <h2>Escopo e condições</h2>
         <p className="vx-public-offer-scope">{offer.scope}</p>
         {offer.state === "OPEN" ? <>

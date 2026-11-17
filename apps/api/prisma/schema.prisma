@@ -990,6 +990,10 @@ model ServiceOffer {
   platform          String
   setupCents        Int          @map("setup_cents")
   monthlyCents      Int          @map("monthly_cents")
+  requiresContract  Boolean      @default(false) @map("requires_contract")
+  depositCents      Int          @default(0) @map("deposit_cents")
+  signedAt          DateTime?    @map("signed_at")
+  depositReceivedAt DateTime?    @map("deposit_received_at")
   state             String       @default("OPEN")
   customerReply     String?      @map("customer_reply")
   acceptedBy        String?      @map("accepted_by")
@@ -1011,7 +1015,20 @@ model ServiceOrder {
   scheduledAt     DateTime?    @map("scheduled_at")
   completedAt     DateTime?    @map("completed_at")
   installation    String?
+  assets          ServiceInstallationAsset[]
   offer           ServiceOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
 
   @@map("service_orders")
+}
+
+model ServiceInstallationAsset {
+  id          String       @id @default(uuid()) @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  vehicle     String
+  equipment   String
+  order       ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, vehicle])
+  @@unique([orderId, equipment])
+  @@map("service_installation_assets")
 }

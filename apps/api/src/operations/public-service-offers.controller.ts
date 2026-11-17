@@ -22,7 +22,7 @@ export function offerAmount(value: unknown) {
 
 const publicFields = {
   sellerName: true, title: true, scope: true, platform: true, setupCents: true,
-  monthlyCents: true, expiresAt: true, state: true, acceptedAt: true,
+  monthlyCents: true, requiresContract: true, depositCents: true, expiresAt: true, state: true, acceptedAt: true,
 } as const;
 
 @Controller("public/service-offers")

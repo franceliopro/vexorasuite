@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import "./service-offers.css";
 
 type Order = { id: string; scheduledAt: string | null; completedAt: string | null; installation: string | null };
-type Offer = { id: string; title: string; platform: string; state: string; expiresAt: string; customerReply: string | null; order: Order | null };
+type Offer = { id: string; title: string; platform: string; state: string; expiresAt: string; customerReply: string | null; requiresContract: boolean; signedAt: string | null; depositCents: number; depositReceivedAt: string | null; order: Order | null };
+type Asset = { id: string; vehicle: string; equipment: string; order: { id: string; installation: string | null; offer: { platform: string } } };
 const labels: Record<string, string> = { OPEN: "Aguardando cliente", ACCEPTED: "Aceita", CHANGES_REQUESTED: "Alterações solicitadas", REVOKED: "Cancelada", EXPIRED: "Expirada" };
 
 async function request<T>(path: string, body?: object): Promise<T> {
@@ -20,13 +21,16 @@ function cents(value: FormDataEntryValue | null) {
 
 export function InboxServiceOffers({ id, view, onLink }: { id: string; view: string; onLink: (link: string) => void }) {
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
   const base = "/api/backend/conversations/" + id + "/service-offers";
   const query = "?view=" + encodeURIComponent(view);
   async function refresh() {
-    setOffers(await request<Offer[]>(base + query));
+    const [proposals, installations] = await Promise.all([request<Offer[]>(base + query), request<Asset[]>("/api/backend/conversations/" + id + "/service-assets" + query)]);
+    setOffers(proposals);
+    setAssets(installations);
   }
   async function run(operation: () => Promise<void>) {
     setBusy(true);
@@ -42,7 +46,7 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
     void run(async () => {
       const data = await request<{ path: string }>(base + query, {
         title: fields.get("title"), platform: fields.get("platform"), scope: fields.get("scope"),
-        setupCents: cents(fields.get("setup")), monthlyCents: cents(fields.get("monthly")),
+        setupCents: cents(fields.get("setup")), monthlyCents: cents(fields.get("monthly")), depositCents: cents(fields.get("deposit")), requiresContract: fields.get("requiresContract") === "on",
       });
       setLink(new URL(data.path, window.location.origin).toString());
       form.reset();
@@ -55,7 +59,12 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
     const installation = fields.get("installation");
     const scheduledAt = fields.get("scheduledAt");
     void run(async () => {
-      const body = installation ? { installation } : { scheduledAt: new Date(String(scheduledAt)).toISOString() };
+      const assets = String(fields.get("assets") || "").split(/\r?\n/).filter(line => line.trim()).map(line => {
+        const parts = line.split("|");
+        if (parts.length !== 2 || parts.some(part => !part.trim())) throw new Error("Use uma linha por instalação no formato veículo | equipamento.");
+        return { vehicle: parts[0], equipment: parts[1] };
+      });
+      const body = installation ? { installation, assets } : { scheduledAt: new Date(String(scheduledAt)).toISOString() };
       await request(base + "/" + offer.id + "/order" + query, body);
       await refresh();
     });
@@ -79,13 +88,25 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
             <label>Instalação (R$) <input name="setup" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
             <label>Mensalidade (R$) <input name="monthly" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
           </div>
-          <p>O aceite desta proposta abre a ordem de serviço. Use este fluxo quando o aceite for suficiente para liberar a execução.</p>
+          <label>Sinal (R$) <input name="deposit" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
+          <label>Exigir contrato antes de agendar <input name="requiresContract" type="checkbox" /></label>
           <button className="primary-button" disabled={busy}>Gerar link de aprovação</button>
         </form>
       </details>
       <button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar</button>
+      {assets.length > 0 && <details>
+        <summary>Equipamentos do cliente</summary>
+        {assets.map(asset => <article className="vx-service-offer-record" key={asset.id}>
+          <strong>{asset.vehicle} · {asset.equipment}</strong>
+          <span>{asset.order.offer.platform} · OS {asset.order.id.slice(0, 8).toUpperCase()}</span>
+          {asset.order.installation && <p>{asset.order.installation}</p>}
+        </article>)}
+      </details>}
       {offers.map(offer => {
         const status = offer.state === "OPEN" && Date.parse(offer.expiresAt) <= Date.now() ? "EXPIRED" : offer.state;
+        const contractPending = offer.requiresContract && !offer.signedAt;
+        const depositPending = offer.depositCents > 0 && !offer.depositReceivedAt;
+        const blocked = contractPending || depositPending;
         return <article className="vx-service-offer-record" key={offer.id}>
           <strong>{offer.title}</strong>
           <span>{offer.platform} · {labels[status] ?? status}</span>
@@ -99,13 +120,15 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
             <strong>OS {offer.order.id.slice(0, 8).toUpperCase()}</strong>
             <span>{offer.order.completedAt ? "Concluída" : offer.order.scheduledAt ? "Agendada para " + new Date(offer.order.scheduledAt).toLocaleString("pt-BR") : "Aguardando agendamento"}</span>
             {offer.order.installation && <p>{offer.order.installation}</p>}
-            {!offer.order.completedAt && <>
+            {blocked && <p>Instalação bloqueada. {contractPending && "Contrato pendente. "}{depositPending && "Sinal pendente."}</p>}
+            {!offer.order.completedAt && !blocked && <>
               <form onSubmit={event => update(event, offer)}>
                 <label>Data e hora <input name="scheduledAt" type="datetime-local" required /></label>
                 <button className="secondary-button" disabled={busy}>Agendar</button>
               </form>
               <form onSubmit={event => update(event, offer)}>
-                <label>Veículos, equipamentos e testes <textarea name="installation" maxLength={4000} required /></label>
+                <label>Veículo e equipamento · um par por linha <textarea name="assets" placeholder="ABC1D23 | código do equipamento" maxLength={3600} required /></label>
+                <label>Serviço executado e testes <textarea name="installation" maxLength={4000} required /></label>
                 <button className="secondary-button" disabled={busy}>Concluir instalação</button>
               </form>
             </>}

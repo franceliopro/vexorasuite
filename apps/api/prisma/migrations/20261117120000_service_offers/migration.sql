@@ -9,6 +9,10 @@ CREATE TABLE "service_offers" (
   "platform" TEXT NOT NULL,
   "setup_cents" INTEGER NOT NULL,
   "monthly_cents" INTEGER NOT NULL,
+  "requires_contract" BOOLEAN NOT NULL DEFAULT FALSE,
+  "deposit_cents" INTEGER NOT NULL DEFAULT 0,
+  "signed_at" TIMESTAMP(3),
+  "deposit_received_at" TIMESTAMP(3),
   "state" TEXT NOT NULL DEFAULT 'OPEN',
   "customer_reply" TEXT,
   "accepted_by" TEXT,
@@ -32,3 +36,14 @@ CREATE TABLE "service_orders" (
 );
 
 CREATE UNIQUE INDEX "service_orders_offer_id_key" ON "service_orders" ("offer_id");
+
+CREATE TABLE "service_installation_assets" (
+  "id" UUID NOT NULL,
+  "order_id" UUID NOT NULL REFERENCES "service_orders"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "vehicle" TEXT NOT NULL,
+  "equipment" TEXT NOT NULL,
+  CONSTRAINT "service_installation_assets_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX "service_installation_assets_order_id_vehicle_key" ON "service_installation_assets" ("order_id", "vehicle");
+CREATE UNIQUE INDEX "service_installation_assets_order_id_equipment_key" ON "service_installation_assets" ("order_id", "equipment");

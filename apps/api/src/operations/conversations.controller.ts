@@ -909,6 +909,27 @@ export class ConversationsController {
   }
 
 
+
+  @Get(":id/service-assets")
+  async listServiceAssets(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    const tenantId = request.user.tenantId;
+    const access = await this.accessWhere(request, view);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, tenantId, AND: [access] },
+      select: { contactId: true },
+    });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
+    return this.prisma.serviceInstallationAsset.findMany({
+      where: { order: { offer: { tenantId, conversation: { tenantId, contactId: conversation.contactId, AND: [access] } } } },
+      orderBy: { order: { completedAt: "desc" } },
+      take: 100,
+      select: {
+        id: true, vehicle: true, equipment: true,
+        order: { select: { id: true, completedAt: true, installation: true, offer: { select: { platform: true } } } },
+      },
+    });
+  }
+
   @Get(":id/service-offers")
   async listServiceOffers(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
@@ -925,11 +946,15 @@ export class ConversationsController {
   async createServiceOffer(
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() input: { title?: unknown; scope?: unknown; platform?: unknown; setupCents?: unknown; monthlyCents?: unknown },
+    @Body() input: { title?: unknown; scope?: unknown; platform?: unknown; setupCents?: unknown; monthlyCents?: unknown; requiresContract?: unknown; depositCents?: unknown },
     @Query("view") view = "new",
   ) {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
+    const setupCents = offerAmount(input?.setupCents);
+    const depositCents = offerAmount(input?.depositCents ?? 0);
+    if (depositCents > setupCents) throw new BadRequestException("O sinal não pode exceder o valor da instalação.");
+    if (input?.requiresContract !== undefined && typeof input.requiresContract !== "boolean") throw new BadRequestException("Indique se a proposta exige contrato.");
     const token = randomBytes(32).toString("base64url");
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true } });
     const offer = await this.prisma.serviceOffer.create({
@@ -937,7 +962,8 @@ export class ConversationsController {
         tenantId, conversationId: id, sellerName: tenant.name, publicTokenHash: offerTokenHash(token),
         title: offerText(input?.title, "Título", 120), scope: offerText(input?.scope, "Escopo", 4000),
         platform: offerText(input?.platform, "Plataforma", 120),
-        setupCents: offerAmount(input?.setupCents), monthlyCents: offerAmount(input?.monthlyCents),
+        setupCents, monthlyCents: offerAmount(input?.monthlyCents),
+        requiresContract: input.requiresContract === true, depositCents,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
       select: { id: true },
@@ -966,21 +992,39 @@ export class ConversationsController {
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
     @Param("offerId", ParseUUIDPipe) offerId: string,
-    @Body() input: { scheduledAt?: unknown; installation?: unknown },
+    @Body() input: { scheduledAt?: unknown; installation?: unknown; assets?: unknown },
     @Query("view") view = "new",
   ) {
     await this.assertCanAccess(request, id, view);
-    const where = { offerId, completedAt: null, offer: { tenantId: request.user.tenantId, conversationId: id, state: "ACCEPTED" } };
-    let data: { scheduledAt?: Date; installation?: string; completedAt?: Date };
-    if (input?.installation !== undefined) {
-      data = { installation: offerText(input.installation, "Registro da instalação", 4000), completedAt: new Date() };
-    } else {
-      const date = typeof input?.scheduledAt === "string" ? new Date(input.scheduledAt) : null;
-      if (!date || !Number.isFinite(date.getTime()) || date <= new Date()) throw new BadRequestException("Escolha uma data futura.");
-      data = { scheduledAt: date };
-    }
-    const result = await this.prisma.serviceOrder.updateMany({ where, data });
-    if (!result.count) throw new NotFoundException("Ordem de serviço ativa não encontrada.");
+    const where = { offerId, completedAt: null, offer: { tenantId: request.user.tenantId, conversationId: id, state: "ACCEPTED", AND: [
+      { OR: [{ requiresContract: false }, { signedAt: { not: null } }] },
+      { OR: [{ depositCents: 0 }, { depositReceivedAt: { not: null } }] },
+    ] } };
+    await this.prisma.$transaction(async tx => {
+      if (input?.installation !== undefined) {
+        if (!Array.isArray(input.assets) || !input.assets.length || input.assets.length > 20) {
+          throw new BadRequestException("Informe de um a vinte veículos com seus equipamentos.");
+        }
+        const assets = input.assets.map(asset => ({
+          vehicle: offerText(asset?.vehicle, "Veículo", 64).toUpperCase(),
+          equipment: offerText(asset?.equipment, "Equipamento", 100).toUpperCase(),
+        }));
+        if (new Set(assets.map(asset => asset.vehicle)).size !== assets.length ||
+            new Set(assets.map(asset => asset.equipment)).size !== assets.length) {
+          throw new BadRequestException("Cada veículo e equipamento deve aparecer uma única vez nesta instalação.");
+        }
+        const installation = offerText(input.installation, "Registro da instalação", 4000);
+        const result = await tx.serviceOrder.updateMany({ where, data: { installation, completedAt: new Date() } });
+        if (!result.count) throw new NotFoundException("Ordem de serviço indisponível ou com condições de liberação pendentes.");
+        const order = await tx.serviceOrder.findUniqueOrThrow({ where: { offerId }, select: { id: true } });
+        await tx.serviceInstallationAsset.createMany({ data: assets.map(asset => ({ orderId: order.id, ...asset })) });
+      } else {
+        const date = typeof input?.scheduledAt === "string" ? new Date(input.scheduledAt) : null;
+        if (!date || !Number.isFinite(date.getTime()) || date <= new Date()) throw new BadRequestException("Escolha uma data futura.");
+        const result = await tx.serviceOrder.updateMany({ where, data: { scheduledAt: date } });
+        if (!result.count) throw new NotFoundException("Ordem de serviço indisponível ou com condições de liberação pendentes.");
+      }
+    });
     return { ok: true };
   }
 

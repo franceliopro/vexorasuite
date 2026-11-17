@@ -236,6 +236,8 @@ model Conversation {
   participants        ConversationParticipant[]
   payments            Payment[]
   serviceProtocol     ServiceProtocol?
+  supportContext      Json                      @default("{}") @map("support_context")
+  supportRequests     SupportRequest[]
 
   @@index([tenantId, status, lastMessageAt])
   @@index([tenantId, contactId])
@@ -285,6 +287,7 @@ model Department {
   tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversations        Conversation[]
   members              DepartmentMember[]
+  supportRequests      SupportRequest[]
 
   @@unique([tenantId, key])
   @@index([tenantId, isActive])
@@ -975,4 +978,28 @@ model ChannelAttachment {
 
   @@unique([channelConnectionId, service])
   @@map("channel_attachments")
+}
+
+model SupportRequest {
+  id                 String       @id @default(uuid()) @db.Uuid
+  tenantId           String       @map("tenant_id") @db.Uuid
+  conversationId     String       @map("conversation_id") @db.Uuid
+  destinationId      String       @map("destination_id") @db.Uuid
+  originDepartmentId String?      @map("origin_department_id") @db.Uuid
+  originAssigneeId   String       @map("origin_assignee_id") @db.Uuid
+  requestedBy        String       @map("requested_by") @db.Uuid
+  completedBy        String?      @map("completed_by") @db.Uuid
+  kind               String
+  state              String       @default("OPEN")
+  note               String
+  answer             String?
+  createdAt          DateTime     @default(now()) @map("created_at")
+  dueAt              DateTime     @map("due_at")
+  completedAt        DateTime?    @map("completed_at")
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  destination        Department   @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, state, destinationId, dueAt])
+  @@index([conversationId, state])
+  @@map("support_requests")
 }

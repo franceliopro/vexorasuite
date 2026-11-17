@@ -45,7 +45,7 @@ try{
  await page.goto(origin+"/?module=Chatbots");
  const canvas=page.getByRole("region",{name:/Canvas do fluxo/});
  const board=canvas.locator(".vx-flow-board");
- const node=page.getByRole("button",{name:/Bloco à esquerda/});
+ const node=board.locator(".vx-flow-node-head").filter({hasText:"Bloco à esquerda"});
  const fit=page.getByRole("button",{name:"Enquadrar fluxo"});
  const camera=()=>board.evaluate(element=>{
   const matrix=new DOMMatrixReadOnly(getComputedStyle(element).transform);
@@ -74,7 +74,7 @@ try{
  await expect.poll(camera).toEqual(initial);
  const title=await node.boundingBox();
  assert(title);
- const x=title.x+title.width/2,y=title.y+title.height/2;
+ const x=title.x+12,y=title.y+title.height/2;
  await page.mouse.move(x,y);
  await page.mouse.down();
  await page.mouse.move(x-22,y-20,{steps:5});
@@ -92,6 +92,7 @@ try{
  await page.setViewportSize({width:390,height:844});
  await fit.click();
  await expect(canvas).toBeVisible();
+ await canvas.scrollIntoViewIfNeeded();
  await expect(node).toBeInViewport();
  await page.screenshot({path:"artifacts/chatbot/editor-mobile.png",animations:"disabled"});
  console.log("Chatbot: pan, negative coordinates, dragging, zoom and responsive fit OK");

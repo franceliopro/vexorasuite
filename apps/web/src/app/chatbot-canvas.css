@@ -142,3 +142,24 @@
   gap: 8px;
   white-space: nowrap;
 }
+
+.vx-flow-freeform .vx-flow-node-quick-actions {
+  top: auto;
+  bottom: 3px;
+  right: 5px;
+}
+
+@media (max-width: 760px) {
+  .chatbot-workspace .vx-flow-shell.vx-right-collapsed,
+  .chatbot-workspace .vx-flow-shell.vx-inspector-empty {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chatbot-workspace.vx-flow-fullscreen {
+    overflow-y: auto;
+  }
+
+  .chatbot-workspace.vx-flow-fullscreen .vx-flow-shell {
+    height: auto;
+  }
+}

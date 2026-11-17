@@ -29,7 +29,7 @@ describe("team temporary passwords", () => {
     const prisma: any = {
       $transaction: jest.fn(async (callback: any) => callback({
         $queryRaw: jest.fn(),
-        membership: { findFirst: jest.fn().mockResolvedValue({ id: "membership-1" }) },
+        membership: { findFirst: jest.fn().mockResolvedValue({ id: "membership-1", knownBy: "Ana", user: { name: "Ana Costa", email: "ana@example.com", isPlatformAdmin: false } }) },
         user: { update: userUpdate },
         pushSubscription: { deleteMany: jest.fn() },
         auditLog: { create: jest.fn() },

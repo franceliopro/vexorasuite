@@ -125,6 +125,7 @@ async function proxyRequest(request: Request, context: Context) {
     return applyResponseRequestId(Response.json({ error: "api_unavailable", message: "A API da Véxora está indisponível no momento." }, { status: 502 }), requestId);
   };
   const timeoutFor = () => {
+    if (request.method === "POST" && (pathValue === "team" || /^team\/[^/]+\/reset-password$/.test(pathValue))) return 55_000;
     if (isChatbotFlow) return 315_000;
     if (isSiteAi) return 300000;
     const isAiGeneration = pathValue==='assistant/ask'||pathValue==='marketing/drafts'||/^assistant\/agents\/[^/]+\/test$/.test(pathValue);

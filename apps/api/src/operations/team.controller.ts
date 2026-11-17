@@ -7,6 +7,7 @@ import {
   ConflictException,
   Controller,
   ForbiddenException,
+  Optional,
   Get,
   Post,
   Patch, Delete, Param, ParseUUIDPipe,
@@ -24,6 +25,9 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
+import { MailService } from "../mail/mail.service";
+import { allowedModulesOf } from "../auth/entitlements";
+import { teamPasswordMessage } from "./team-password-message";
 import { assertPasswordResetTargetAllowed } from "../auth/password-reset-policy";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { sanitizeTransferScope, readTransferScopeFromIntegrations } from "./transfer-policy";
@@ -34,7 +38,18 @@ export class TeamController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
+    @Optional() private readonly mail?: MailService,
   ) {}
+  private async sendTemporaryPassword(input: Parameters<typeof teamPasswordMessage>[0]) {
+    // Log transport prints email bodies and must never receive credentials.
+    if (!this.mail?.configured) return "unavailable" as const;
+    try {
+      return (await this.mail.send(teamPasswordMessage(input))).delivered ? "accepted" as const : "failed" as const;
+    } catch {
+      return "failed" as const;
+    }
+  }
+
   private admin(req: AuthenticatedRequest) {
     if (!["OWNER", "ADMIN"].includes(req.user.role))
       throw new ForbiddenException(
@@ -70,7 +85,7 @@ export class TeamController {
         role: true,
         modules: true,
         deniedModules:true,
-        user: { select: { id: true, name: true, email: true, avatarUrl:true, isActive: true,mustChangePassword:true } },
+        user: { select: { id: true, name: true, email: true, avatarUrl:true, isActive: true,mustChangePassword:true,isPlatformAdmin:true } },
       },
       orderBy: { user: { name: "asc" } },
     });
@@ -78,12 +93,19 @@ export class TeamController {
       where: { tenantId: req.user.tenantId },
       select: { departmentId: true, userId: true,department:{select:{modules:true,isActive:true}} },
     });
-    const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
+    const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true,kind:true,entitlements:true}});
+    const allowed = allowedModulesOf(tenant.kind, tenant.entitlements);
     return rows.map((r) => ({
       ...r.user,
       fullName:r.user.name,knownBy:r.knownBy,name:attendantName({name:r.user.name,knownBy:r.knownBy}),
       role: r.role,
       modules: effectiveModules(r.role,r.modules,members.filter(m=>m.userId===r.user.id).map(m=>m.department),patternModules(tenant.integrations,r.user.id,members.filter(m=>m.userId===r.user.id).map(m=>m.departmentId)),r.deniedModules),
+      effectiveAccessModules: r.user.isActive ? effectiveModules(
+        r.role, r.modules, members.filter(m => m.userId === r.user.id).map(m => m.department),
+        patternModules(tenant.integrations, r.user.id, members.filter(m => m.userId === r.user.id && m.department.isActive).map(m => m.departmentId)),
+        r.deniedModules,
+      ).filter(module => allowed.includes(module)) : [],
+      canResetPassword: req.user.isPlatformAdmin === true || !r.user.isPlatformAdmin,
       deniedModules:r.deniedModules,
       canEditAccess:req.user.isPlatformAdmin===true||req.user.role==="OWNER"||r.role==="AGENT",
       departmentIds: members
@@ -182,7 +204,10 @@ export class TeamController {
         return user;
       });
       this.events.publish(req.user.tenantId, "team.updated", { id: user.id });
-      return { ...user, temporaryPassword: password, mustChangePassword: true };
+      const passwordEmail = await this.sendTemporaryPassword({
+        name: attendantName({ name: user.name, knownBy }), email: user.email, company: req.user.tenantSlug, password, reason: "create",
+      });
+      return { ...user, temporaryPassword: password, mustChangePassword: true, passwordEmail };
     } catch (e) {
       if ((e as any).code === "P2002")
         throw new BadRequestException("Este e-mail já possui uma conta.");
@@ -314,17 +339,19 @@ export class TeamController {
   if(!req.user.isPlatformAdmin&&!['OWNER','ADMIN'].includes(req.user.role))throw new ForbiddenException('Somente administradores podem redefinir senhas.');
   const password=generateTemporaryPassword();
   const passwordHash=await hash(password,12);
-  await this.prisma.$transaction(async tx=>{
+  const recipient = await this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR UPDATE`;
-   const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true,user:{select:{isPlatformAdmin:true}}}});
+   const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},select:{id:true,knownBy:true,user:{select:{isPlatformAdmin:true,name:true,email:true}}}});
    if(!member)throw new BadRequestException('Usuário não pertence a esta empresa.');
    assertPasswordResetTargetAllowed(req.user.isPlatformAdmin,member.user?.isPlatformAdmin);
    await tx.user.update({where:{id},data:{passwordHash,mustChangePassword:true,authVersion:{increment:1}}});
    await tx.pushSubscription.deleteMany({where:{userId:id}});
    await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'user.password.reset',entityType:'user',entityId:id}});
+   return { name: attendantName({ name: member.user.name, knownBy: member.knownBy }), email: member.user.email };
   });
   this.events.publish(req.user.tenantId,'team.updated',{id});
-  return {reset:true,mustChangePassword:true,temporaryPassword:password};
+  const passwordEmail = await this.sendTemporaryPassword({ ...recipient, company: req.user.tenantSlug, password, reason: "reset" });
+  return {reset:true,mustChangePassword:true,temporaryPassword:password,passwordEmail};
  }
 
 }

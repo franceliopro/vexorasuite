@@ -8,7 +8,7 @@ import { ReminderCenter } from "./reminder-center";
 import { AlarmCenter } from "./alarm-center";
 import { DashboardWidgets } from "./dashboard-widgets";
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
-import { applyBrandAll } from "../lib/brand-theme";
+import { applyBrandAll, sanitizeHex, wcagRatio, HYBRID_SIDEBAR_DEFAULTS } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ClientPlansWorkspace=dynamic(()=>import("./client-plans-workspace").then(module=>module.ClientPlansWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -91,6 +91,7 @@ import {
   ArrowRightLeft,
   UserRoundPlus,
   CheckCircle2,
+  X,
 } from "lucide-react";
 
 const iconMap = {
@@ -228,12 +229,74 @@ export default function HomePage() {
   }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
   type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean;fontScalePercent?:number;sidebarBackground?:string;sidebarForeground?:string;sidebarHover?:string};
-  const defaultBrandAssets:BrandAssets={primaryColor:"#2E7CF6",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100};
+  const defaultBrandAssets:BrandAssets={primaryColor:"#2E7CF6",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
   const brandApplyRef = useRef<((themeName: string) => void) | null>(null);
   const [theme, setTheme] = useState<ThemeMode>("hybrid");
   const [themeReady,setThemeReady]=useState(false);
+  const [sidebarColorMenu,setSidebarColorMenu]=useState<{x:number;y:number}|null>(null);
+  const [sidebarColorSaving,setSidebarColorSaving]=useState(false);
+  const [sidebarColorError,setSidebarColorError]=useState("");
+  const [sidebarDraft,setSidebarDraft]=useState<{sidebarBackground:string;sidebarForeground:string;sidebarHover:string}|null>(null);
   const [brandAssets,setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);
   const [greeting,setGreeting] = useState("Bom dia");
+  const currentTheme = () => (typeof document !== "undefined" ? document.documentElement.dataset.theme || "hybrid" : "hybrid");
+  const validOrEmpty = (v: string) => v === "" || /^#[0-9a-fA-F]{6}$/.test(v);
+  const setSidebarField = (key: "sidebarBackground" | "sidebarForeground" | "sidebarHover", rawValue: string) => {
+    setSidebarDraft(prev => {
+      const base = prev || { sidebarBackground: brandAssets.sidebarBackground || "", sidebarForeground: brandAssets.sidebarForeground || "", sidebarHover: brandAssets.sidebarHover || "" };
+      const next = { ...base, [key]: rawValue.trim().toUpperCase() };
+      if (validOrEmpty(next.sidebarBackground) && validOrEmpty(next.sidebarForeground) && validOrEmpty(next.sidebarHover)) {
+        applyBrandAll({ ...brandAssets, ...next }, currentTheme());
+      }
+      return next;
+    });
+  };
+  const openSidebarColorMenu = (x: number, y: number) => {
+    setSidebarColorError("");
+    setSidebarDraft({ sidebarBackground: brandAssets.sidebarBackground || "", sidebarForeground: brandAssets.sidebarForeground || "", sidebarHover: brandAssets.sidebarHover || "" });
+    setSidebarColorMenu({ x, y });
+  };
+  const closeSidebarColorMenu = (revert: boolean) => {
+    setSidebarColorMenu(null);
+    setSidebarDraft(null);
+    if (revert) applyBrandAll(brandAssets, currentTheme());
+  };
+  const saveSidebarColors = async () => {
+    if (!sidebarDraft) return;
+    setSidebarColorSaving(true);
+    setSidebarColorError("");
+    try {
+      const clean = {
+        sidebarBackground: sanitizeHex(sidebarDraft.sidebarBackground),
+        sidebarForeground: sanitizeHex(sidebarDraft.sidebarForeground),
+        sidebarHover: sanitizeHex(sidebarDraft.sidebarHover),
+      };
+      const payload = { ...brandAssets, ...clean };
+      const response = await fetch("/api/backend/contacts/brand-settings", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result && typeof result.message === "string" ? result.message : "Não foi possível salvar as cores.");
+      const saved = { ...defaultBrandAssets, ...result };
+      setBrandAssets(saved);
+      applyBrandAll(saved, currentTheme());
+      brandApplyRef.current = (themeName: string) => applyBrandAll(saved, themeName);
+      window.dispatchEvent(new CustomEvent("vexora:brand-updated", { detail: saved }));
+      setSidebarColorMenu(null);
+      setSidebarDraft(null);
+    } catch (caught) {
+      setSidebarColorError(caught instanceof Error ? caught.message : "Não foi possível salvar as cores.");
+    } finally {
+      setSidebarColorSaving(false);
+    }
+  };
+  useEffect(() => {
+    if (!sidebarColorMenu) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeSidebarColorMenu(true); };
+    const onDown = (event: MouseEvent) => { const target = event.target as Element | null; if (target?.closest(".sidebar-color-popover")) return; closeSidebarColorMenu(true); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("mousedown", onDown); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sidebarColorMenu, brandAssets]);
   useEffect(() => { try { const saved = localStorage.getItem("vexora:theme"); if(saved==="dark"||saved==="hybrid"||saved==="light")setTheme(saved); } catch {} finally{setThemeReady(true)} }, []);
   useEffect(() => { if(!themeReady)return; document.documentElement.dataset.theme = theme; applyThemeColor(theme); try { localStorage.setItem("vexora:theme", theme); } catch {} brandApplyRef.current?.(theme); }, [theme,themeReady]);
   useEffect(() => { const updateGreeting=()=>{const hour=new Date().getHours();setGreeting(hour>=5&&hour<12?"Bom dia":hour>=12&&hour<18?"Boa tarde":hour>=18?"Boa noite":"Boa madrugada");};updateGreeting();const timer=window.setInterval(updateGreeting,60000);return()=>window.clearInterval(timer); }, []);
@@ -274,7 +337,7 @@ export default function HomePage() {
   if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
   return (
     <div className="suite-app">
-      <aside id="mobile-navigation-menu" className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`}>
+      <aside id="mobile-navigation-menu" className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`} onContextMenu={(event) => { const target = event.target as Element; if (target.closest("button,a,summary,input,select,textarea,img,details,[role=\"menuitem\"]")) return; event.preventDefault(); const padding = 300; openSidebarColorMenu(Math.max(8, Math.min(event.clientX, window.innerWidth - padding)), Math.max(8, Math.min(event.clientY, window.innerHeight - 340))); }}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("Visão geral");setMenuOpen(false); }}>
           {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+((theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?"has-custom-logo ":"")+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
@@ -314,6 +377,44 @@ export default function HomePage() {
           {session&&<SidebarProfile user={session.user} canManage={canManage&&moduleVisible("Atendentes")} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
         </div>
       </aside>
+      {sidebarColorMenu && sidebarDraft ? (
+        <div className="sidebar-color-popover" role="dialog" aria-labelledby="sidebar-color-title" style={{ left: sidebarColorMenu.x, top: sidebarColorMenu.y }}>
+          <header className="sidebar-color-popover-header">
+            <div><h3 id="sidebar-color-title">Cor Modo Híbrido</h3><p>Fundo, texto e ícones e hover da sidebar. Vale no tema Híbrido; o item ativo segue a cor da marca.</p></div>
+            <button type="button" className="sidebar-color-close" onClick={() => closeSidebarColorMenu(true)} aria-label="Fechar"><X size={16} aria-hidden="true" /></button>
+          </header>
+          {theme !== "hybrid" ? <p className="sidebar-color-warning">Você está no tema {theme === "light" ? "Claro" : "Escuro"} — as cores valem para o Modo Híbrido (a prévia só aparece nele).</p> : null}
+          {([
+            { key: "sidebarBackground", label: "Fundo da sidebar", hint: "Cor da coluna de navegação" },
+            { key: "sidebarForeground", label: "Texto e ícones", hint: "Letras, ícones e divisores" },
+            { key: "sidebarHover", label: "Hover", hint: "Destaque ao passar o mouse" },
+          ] as const).map(item => {
+            const value = sidebarDraft[item.key];
+            return (
+              <label key={item.key} className="settings-field sidebar-color-field">
+                <span>{item.label}<small className="settings-hint">{item.hint}</small></span>
+                <span className="brand-color-picker sidebar-color-picker">
+                  <input type="color" value={value || "#000000"} aria-label={"Escolher " + item.label.toLowerCase()} onChange={event => setSidebarField(item.key, event.target.value)} />
+                  <input aria-label={item.label + " (HEX)"} value={value} maxLength={7} placeholder="#HEXADECIMAL" onChange={event => setSidebarField(item.key, event.target.value)} />
+                </span>
+              </label>
+            );
+          })}
+          {(() => {
+            const ratio = wcagRatio(sanitizeHex(sidebarDraft.sidebarBackground) || HYBRID_SIDEBAR_DEFAULTS.background, sanitizeHex(sidebarDraft.sidebarForeground) || HYBRID_SIDEBAR_DEFAULTS.foreground);
+            const ok = ratio >= 4.5;
+            return <p className={"brand-contrast-badge " + (ok ? "is-ok" : "is-warn")}>Contraste {ratio.toFixed(2)}:1 · {ok ? "excelente para leitura" : "abaixo de 4,5:1 — recomendamos ajustar"}</p>;
+          })()}
+          <footer className="sidebar-color-popover-footer">
+            <button type="button" className="text-button" onClick={() => { setSidebarDraft({ sidebarBackground: "", sidebarForeground: "", sidebarHover: "" }); applyBrandAll({ ...brandAssets, sidebarBackground: "", sidebarForeground: "", sidebarHover: "" }, currentTheme()); }}>Restaurar padrão</button>
+            <span className="sidebar-color-actions">
+              <button type="button" className="text-button sidebar-color-cancel" onClick={() => closeSidebarColorMenu(true)}>Cancelar</button>
+              <button type="button" className="primary-button" onClick={saveSidebarColors} disabled={sidebarColorSaving}>{sidebarColorSaving ? "Salvando…" : "Salvar"}</button>
+            </span>
+          </footer>
+          {sidebarColorError ? <p className="sidebar-color-error" role="alert">{sidebarColorError}</p> : null}
+        </div>
+      ) : null}
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="main-area">

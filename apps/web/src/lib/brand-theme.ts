@@ -14,6 +14,16 @@ export type BrandAssets = {
   sidebarHover?: string;
 };
 
+/** WCAG contrast ratio between two #RRGGBB colors. */
+export function wcagRatio(hexA: string, hexB: string): number {
+  const lum = (hex: string) => {
+    const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+  };
+  const a = lum(hexA), b = lum(hexB);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 /** Applies the tenant brand color to the document. Single source of truth for --primary* tokens. */
@@ -66,7 +76,7 @@ export function applyHybridSidebar(
   root.style.setProperty("--sb-tx", foreground);
   root.style.setProperty("--sb-on", hoverColor);
   root.style.setProperty("--sb-ln", `color-mix(in srgb, ${foreground} 20%, ${background})`);
-  root.style.setProperty("--sb-mut", `color-mix(in srgb, ${foreground} 68%, ${background})`);
+  root.style.setProperty("--sb-mut", `color-mix(in srgb, ${foreground} 84%, ${background})`);
   root.style.setProperty("--sb-thumb", `color-mix(in srgb, ${foreground} 52%, ${background})`);
 }
 

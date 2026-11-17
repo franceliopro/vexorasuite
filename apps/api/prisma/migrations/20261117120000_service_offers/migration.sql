@@ -19,9 +19,11 @@ CREATE TABLE "service_offers" (
   "accepted_at" TIMESTAMP(3),
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "expires_at" TIMESTAMP(3) NOT NULL,
+  "parent_offer_id" UUID REFERENCES "service_offers"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "service_offers_pkey" PRIMARY KEY ("id")
 );
 
+CREATE INDEX "service_offers_parent_offer_id_idx" ON "service_offers" ("parent_offer_id");
 CREATE UNIQUE INDEX "service_offers_public_token_hash_key" ON "service_offers" ("public_token_hash");
 CREATE INDEX "service_offers_tenant_id_conversation_id_created_at_idx" ON "service_offers" ("tenant_id", "conversation_id", "created_at");
 

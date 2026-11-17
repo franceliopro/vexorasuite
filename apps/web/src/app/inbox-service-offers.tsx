@@ -25,6 +25,7 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
+  const [parent, setParent] = useState<Offer | null>(null);
   const base = "/api/backend/conversations/" + id + "/service-offers";
   const query = "?view=" + encodeURIComponent(view);
   async function refresh() {
@@ -45,11 +46,12 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
     const fields = new FormData(form);
     void run(async () => {
       const data = await request<{ path: string }>(base + query, {
-        title: fields.get("title"), platform: fields.get("platform"), scope: fields.get("scope"),
+        title: fields.get("title"), platform: parent?.platform ?? fields.get("platform"), scope: fields.get("scope"), parentOfferId: parent?.id,
         setupCents: cents(fields.get("setup")), monthlyCents: cents(fields.get("monthly")), depositCents: cents(fields.get("deposit")), requiresContract: fields.get("requiresContract") === "on",
       });
       setLink(new URL(data.path, window.location.origin).toString());
       form.reset();
+      setParent(null);
       await refresh();
     });
   }
@@ -78,19 +80,20 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
         <label>Link da proposta <input value={link} readOnly onFocus={event => event.currentTarget.select()} /></label>
         <button type="button" className="secondary-button" onClick={() => onLink(link)}>Inserir link na mensagem</button>
       </div>}
-      <details>
-        <summary>Nova proposta</summary>
+      <details open={parent ? true : undefined}>
+        <summary>{parent ? "Adicional de " + parent.title : "Nova proposta"}</summary>
         <form onSubmit={create}>
           <label>Título <input name="title" maxLength={120} required /></label>
-          <label>Plataforma <input name="platform" maxLength={120} required /></label>
+          {!parent && <label>Plataforma <input name="platform" maxLength={120} required /></label>}
           <label>Escopo e condições <textarea name="scope" maxLength={4000} required /></label>
           <div className="vx-service-offer-prices">
-            <label>Instalação (R$) <input name="setup" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
-            <label>Mensalidade (R$) <input name="monthly" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
+            <label>{parent ? "Valor adicional (R$)" : "Instalação (R$)"} <input name="setup" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
+            {!parent && <label>Mensalidade (R$) <input name="monthly" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>}
           </div>
-          <label>Sinal (R$) <input name="deposit" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
-          <label>Exigir contrato antes de agendar <input name="requiresContract" type="checkbox" /></label>
+          {!parent && <><label>Sinal (R$) <input name="deposit" type="number" min="0" max="1000000" step="0.01" defaultValue="0" required /></label>
+          <label>Exigir contrato antes de agendar <input name="requiresContract" type="checkbox" /></label></>}
           <button className="primary-button" disabled={busy}>Gerar link de aprovação</button>
+          {parent && <button type="button" onClick={() => setParent(null)}>Cancelar adicional</button>}
         </form>
       </details>
       <button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar</button>
@@ -122,6 +125,7 @@ export function InboxServiceOffers({ id, view, onLink }: { id: string; view: str
             {offer.order.installation && <p>{offer.order.installation}</p>}
             {blocked && <p>Instalação bloqueada. {contractPending && "Contrato pendente. "}{depositPending && "Sinal pendente."}</p>}
             {!offer.order.completedAt && !blocked && <>
+              <button type="button" className="secondary-button" onClick={() => setParent(offer)}>Propor adicional</button>
               <form onSubmit={event => update(event, offer)}>
                 <label>Data e hora <input name="scheduledAt" type="datetime-local" required /></label>
                 <button className="secondary-button" disabled={busy}>Agendar</button>

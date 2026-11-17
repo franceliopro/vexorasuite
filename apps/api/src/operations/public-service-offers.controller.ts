@@ -22,7 +22,7 @@ export function offerAmount(value: unknown) {
 
 const publicFields = {
   sellerName: true, title: true, scope: true, platform: true, setupCents: true,
-  monthlyCents: true, requiresContract: true, depositCents: true, expiresAt: true, state: true, acceptedAt: true,
+  monthlyCents: true, parentOfferId: true, requiresContract: true, depositCents: true, expiresAt: true, state: true, acceptedAt: true,
 } as const;
 
 @Controller("public/service-offers")
@@ -42,7 +42,8 @@ export class PublicServiceOffersController {
       select: publicFields,
     });
     if (!offer || offer.state === "REVOKED") throw new NotFoundException("Proposta indisponível.");
-    return { ...offer, state: offer.state === "OPEN" && offer.expiresAt <= new Date() ? "EXPIRED" : offer.state };
+    const { parentOfferId, ...content } = offer;
+    return { ...content, isSupplement: Boolean(parentOfferId), state: offer.state === "OPEN" && offer.expiresAt <= new Date() ? "EXPIRED" : offer.state };
   }
 
   @Post(":token/respond")
@@ -60,13 +61,13 @@ export class PublicServiceOffersController {
         where: { publicTokenHash, state: "OPEN", expiresAt: { gt: now } },
         data: { state, customerReply: reason, acceptedBy: name, acceptedAt: name ? now : null },
       });
-      const offer = await tx.serviceOffer.findUnique({ where: { publicTokenHash }, select: { id: true, tenantId: true, state: true } });
+      const offer = await tx.serviceOffer.findUnique({ where: { publicTokenHash }, select: { id: true, tenantId: true, state: true, parentOfferId: true } });
       if (!offer || offer.state === "REVOKED") throw new NotFoundException("Proposta indisponível.");
       if (!result.count) {
         if (offer.state === state) return;
         throw new ConflictException("Esta proposta já foi respondida ou expirou.");
       }
-      if (state === "ACCEPTED") await tx.serviceOrder.create({ data: { offerId: offer.id } });
+      if (state === "ACCEPTED" && !offer.parentOfferId) await tx.serviceOrder.create({ data: { offerId: offer.id } });
       await tx.auditLog.create({
         data: { tenantId: offer.tenantId, entityType: "service_offer", entityId: offer.id, action: "service_offer." + state.toLowerCase() },
       });

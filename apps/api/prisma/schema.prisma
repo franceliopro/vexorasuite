@@ -1002,9 +1002,13 @@ model ServiceOffer {
   expiresAt         DateTime     @map("expires_at")
   tenant            Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  parentOfferId     String?      @map("parent_offer_id") @db.Uuid
+  parentOffer       ServiceOffer? @relation("ServiceSupplement", fields: [parentOfferId], references: [id], onDelete: Cascade)
+  supplements       ServiceOffer[] @relation("ServiceSupplement")
   order             ServiceOrder?
 
   @@index([tenantId, conversationId, createdAt])
+  @@index([parentOfferId])
   @@map("service_offers")
 }
 

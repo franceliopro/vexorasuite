@@ -163,7 +163,14 @@ details>summary::-webkit-details-marker{display:none}
 .nav-glyph{display:grid;place-items:center;color:currentColor;transition:transform .16s var(--ease)}
 .nav-item:hover,.nav-subitem:hover{background:var(--sb-on);color:var(--sb-tx)}
 .nav-item:hover .nav-glyph{transform:translateY(-1px)}
-.nav-item.active,.nav-subitem.active{background:linear-gradient(150deg,color-mix(in srgb,var(--sb-active) 82%,#FFFFFF),var(--sb-active) 72%,color-mix(in srgb,var(--sb-active) 88%,#000));color:var(--sb-active-tx);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--sb-active) 72%,#FFFFFF),0 12px 24px -16px color-mix(in srgb,var(--primary) 95%,transparent)}
+.nav-item.active,.nav-subitem.active{
+  --nav-active-base:var(--sb-surface,var(--sb-bg));
+  background-color:var(--nav-active-base);
+  background-image:linear-gradient(140deg,color-mix(in srgb,var(--nav-active-base) 84%,white),var(--nav-active-base) 42%,color-mix(in srgb,var(--nav-active-base) 88%,black));
+  color:var(--sb-tx);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sb-tx) 18%,transparent),inset 0 1px 0 rgb(255 255 255 / .35),inset 0 -1px 0 rgb(0 0 0 / .22),0 14px 32px -10px rgb(255 255 255 / .18),0 3px 8px rgb(255 255 255 / .12);
+  font-weight:700;
+}
 .nav-accordion{position:relative}
 .nav-accordion-chevron{margin-left:auto;opacity:.7;transition:transform .18s}
 .nav-accordion.expanded .nav-accordion-chevron{transform:rotate(180deg)}
@@ -1337,8 +1344,8 @@ details>summary:hover{color:var(--tx)}
 .inbox-queue-more[open]>.inbox-queue-more-trigger{background:var(--s3);border-color:var(--ln2);color:var(--tx)}
 .inbox-queue-more[open] .inbox-queue-more-trigger::after { display: none; }
 .inbox-queue-more-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:50;display:grid;gap:2px;min-width:180px;padding:6px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);box-shadow:var(--shadow-lg)}
-.inbox-queue-more-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--tx);font-size:11.5px;text-align:left;cursor:pointer}
-.inbox-queue-more-menu button:hover{background:var(--s3)}
+.inbox-queue-more-menu > button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--tx);font-size:11.5px;text-align:left;cursor:pointer}
+.inbox-queue-more-menu > button:hover{background:var(--s3)}
 
 /* ===== Ficha · avatar e telefone bem juntos no topo ===== */
 .contact-profile-heading{padding:12px 12px 6px}
@@ -3124,8 +3131,8 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
   --sb-bg:#0E1530;--sb-on:#162040;--sb-ln:#212E52;--sb-mut:#B9CCF0;--sb-tx:#FAFCFF;--sb-thumb:#5B8DEF;--sb-active:var(--primary);--sb-active-tx:#04122A;
 }
 /* Sidebar: feixes diagonais de luz azul + brilho do diamante */
-.sidebar{background:#FBFCFE;border-right:1px solid var(--sb-ln)}
-:root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{background:var(--sb-bg);border-right:1px solid var(--sb-ln)}
+.sidebar{--sb-surface:#FBFCFE;background:var(--sb-surface);border-right:1px solid var(--sb-ln)}
+:root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{--sb-surface:var(--sb-bg)}
 
 
 /* Botões primários: degradê safira + brilho */
@@ -3281,13 +3288,12 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .sites-wizard .vx-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--ln);background:var(--s2)}
 .sites-wizard .vx-dialog-footer .footer-note{font-size:10px;color:var(--tx2)}
 
-/* ===== 73. Sidebar uniforme — azul vivo, sem brilhos estranhos ===== */
+/* ===== 73. Acabamento da sidebar ===== */
 :root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{box-shadow:none!important}
 :root .sidebar{box-shadow:none!important}
 :root[data-theme=hybrid] .brand-mark,:root[data-theme=dark] .brand-mark{background:linear-gradient(155deg,#6EB2FF 0%,#2E7CF6 52%,#164E8A 100%);color:#04122A;box-shadow:inset 0 1px 0 #9CC4FF,inset 0 -2px 4px #0D2C52,0 10px 26px -8px color-mix(in srgb,#2E7CF6 82%,#000)}
 .brand-mark.custom-round{border-radius:13px}
-.nav-item.active,.nav-subitem.active{background:linear-gradient(140deg,#3A87FB 0%,#2E7CF6 42%,#1F5FD0 100%)!important;color:#FFFFFF!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(4,18,42,.35),0 14px 32px -10px color-mix(in srgb,#2E7CF6 80%,#000)!important}
-.nav-item.active::after,.nav-subitem.active::after{content:"";position:absolute;left:-12px;top:10px;bottom:10px;width:3px;border-radius:99px;background:linear-gradient(180deg,#7DD3FC,#2E7CF6);box-shadow:0 0 12px #3D9CFF}
+.nav-item.active::after,.nav-subitem.active::after{content:"";position:absolute;left:-12px;top:10px;bottom:10px;width:3px;border-radius:99px;background:linear-gradient(180deg,color-mix(in srgb,var(--sb-tx) 68%,white),color-mix(in srgb,var(--sb-tx) 62%,transparent));box-shadow:0 0 10px rgb(255 255 255 / .24)}
 .nav-item,.nav-subitem{position:relative}
 .nav-glyph{color:currentColor}
 .sidebar-bottom{background:transparent}

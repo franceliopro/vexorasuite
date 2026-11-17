@@ -65,10 +65,21 @@ function WeatherWidget() {
         const geoKey = "vx:geo:" + city.toLowerCase();
         let geo = JSON.parse(window.localStorage.getItem(geoKey) || "null") as { lat: number; lon: number; name?: string } | null;
         if (!geo) {
-          const found = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=pt&countryCode=BR`).then((r) => r.json());
-          const first = found?.results?.[0];
+          const parts = city.split(",");
+          const name = (parts[0] || "").trim();
+          const stateHint = (parts[1] || "").trim().toUpperCase();
+          const found = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=6&language=pt&countryCode=BR`).then((r) => r.json());
+          let first = found?.results?.[0];
+          if (stateHint && found?.results?.length) {
+            const match = found.results.find((item: { admin1?: string }) => {
+              const admin = String(item.admin1 || "").toUpperCase();
+              return admin === stateHint || admin.startsWith(stateHint) || admin.slice(0, 2).toUpperCase() === stateHint.slice(0, 2);
+            });
+            if (match) first = match;
+          }
           if (first) {
-            geo = { lat: first.latitude, lon: first.longitude, name: first.name };
+            const shortState = String(first.admin1 || "").trim();
+            geo = { lat: first.latitude, lon: first.longitude, name: first.name + (shortState ? " · " + shortState : "") };
             try { window.localStorage.setItem(geoKey, JSON.stringify(geo)); } catch { /* ignore */ }
           }
         }

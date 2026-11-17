@@ -3,13 +3,13 @@
 import { contactDisplayName, readablePhone } from "../lib/contact-identity";
 import { WhatsAppGlyph } from "./brand-glyph";
 import { tagForeground } from "../lib/tag-contrast";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   Clock3,
   Compass,
   Link2,
-  PanelRightClose,
-  PanelRightOpen,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Save,
   StickyNote,
@@ -347,6 +347,10 @@ export function ContactProfilePanel({
       ? (contact.metadata.crmFinalization as { outcome?: string; reason?: string })
       : null;
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [photoAttempt, setPhotoAttempt] = useState(0);
+  const photoTimer = useRef<number | null>(null);
+  useEffect(() => { setPhotoFailed(false); setPhotoAttempt(0); }, [contact.id]);
+  useEffect(() => () => { if (photoTimer.current) window.clearTimeout(photoTimer.current); }, []);
   const asaas =
     contact.metadata?.asaas && typeof contact.metadata.asaas === "object"
       ? (contact.metadata.asaas as {
@@ -391,7 +395,7 @@ export function ContactProfilePanel({
           <>
             <span className="contact-profile-avatar">
               {!photoFailed ? (
-                <img src={"/api/backend/contacts/" + contact.id + "/avatar"} alt={"Foto de " + (displayName || contactDisplayName(contact))} loading="lazy" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} />
+                <img key={photoAttempt} src={"/api/backend/contacts/" + contact.id + "/avatar?v=" + photoAttempt} alt={"Foto de " + (displayName || contactDisplayName(contact))} loading="lazy" referrerPolicy="no-referrer" onError={() => { if (photoTimer.current) window.clearTimeout(photoTimer.current); if (photoAttempt < 2) { photoTimer.current = window.setTimeout(() => setPhotoAttempt(v => v + 1), 1500); } else { setPhotoFailed(true); } }} />
               ) : (
                 initialsOf(displayName || contactDisplayName(contact))
               )}
@@ -409,7 +413,7 @@ export function ContactProfilePanel({
             aria-label={expanded ? "Recolher ficha" : "Expandir ficha"}
             onClick={() => onExpandedChange(!expanded)}
           >
-            {expanded ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}
+            {expanded ? <ChevronRight size={18} strokeWidth={2.2} /> : <ChevronLeft size={18} strokeWidth={2.2} />}
           </button>
         )}
       </div>

@@ -135,11 +135,14 @@ export class ContactsController {
       logoShape: brand.logoShape === "square" || brand.logoShape === "round" ? brand.logoShape : "rectangular",
       showCompanyName: typeof brand.showCompanyName === "boolean" ? brand.showCompanyName : true,
       fontScalePercent: (fontScales as readonly number[]).includes(rawFontScale) ? rawFontScale : 100,
+      sidebarBackground: typeof brand.sidebarBackground === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.sidebarBackground) ? brand.sidebarBackground : "",
+      sidebarForeground: typeof brand.sidebarForeground === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.sidebarForeground) ? brand.sidebarForeground : "",
+      sidebarHover: typeof brand.sidebarHover === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.sidebarHover) ? brand.sidebarHover : "",
     };
   }
 
   @Patch("brand-settings")
-  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown; logoLight?: unknown; logoDark?: unknown; favicon?: unknown; logoShape?: unknown; showCompanyName?: unknown; fontScalePercent?: unknown }) {
+  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown; logoLight?: unknown; logoDark?: unknown; favicon?: unknown; logoShape?: unknown; showCompanyName?: unknown; fontScalePercent?: unknown; sidebarBackground?: unknown; sidebarForeground?: unknown; sidebarHover?: unknown }) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes((request.user.role || "").toUpperCase())) throw new ForbiddenException("Somente administradores podem alterar a identidade visual.");
     const primaryColor = typeof input.primaryColor === "string" ? input.primaryColor.toUpperCase() : "";
     if (!/^#[0-9A-F]{6}$/.test(primaryColor)) throw new BadRequestException("Escolha uma cor hexadecimal válida.");
@@ -150,14 +153,26 @@ export class ContactsController {
     if (input.logoShape !== undefined && !["square", "round", "rectangular"].includes(String(input.logoShape))) throw new BadRequestException("Formato do logo inválido.");
     if (input.showCompanyName !== undefined && typeof input.showCompanyName !== "boolean") throw new BadRequestException("A opção de nome da empresa é inválida.");
     if (input.fontScalePercent !== undefined && ![100, 110, 120, 130, 140, 150].includes(Number(input.fontScalePercent))) throw new BadRequestException("O tamanho do texto deve ser 100%, 110%, 120%, 130%, 140% ou 150%.");
+    const sidebarHex = (value: unknown, label: string) => {
+      if (value === undefined || value === "") return "";
+      const clean = typeof value === "string" ? value.toUpperCase() : "";
+      if (!/^#[0-9A-F]{6}$/.test(clean)) throw new BadRequestException(`A ${label} deve ser uma cor hexadecimal válida (ex.: #060F26) ou vazia.`);
+      return clean;
+    };
+    const sidebarBackground = sidebarHex(input.sidebarBackground, "cor de fundo da sidebar");
+    const sidebarForeground = sidebarHex(input.sidebarForeground, "cor do texto/ícones da sidebar");
+    const sidebarHover = sidebarHex(input.sidebarHover, "cor de hover da sidebar");
     const tenant = await this.prisma.tenant.findUnique({ where: { id: request.user.tenantId }, select: { integrations: true } });
     const integrations = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
     const existing = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
     const brandSettings: Record<string, unknown> = { ...existing, primaryColor };
     for (const key of ["logoLight", "logoDark", "favicon", "logoShape", "showCompanyName"] as const) if (input[key] !== undefined) (brandSettings as Record<string, unknown>)[key] = input[key];
     if (input.fontScalePercent !== undefined) brandSettings.fontScalePercent = Number(input.fontScalePercent);
+    if (input.sidebarBackground !== undefined) brandSettings.sidebarBackground = sidebarBackground;
+    if (input.sidebarForeground !== undefined) brandSettings.sidebarForeground = sidebarForeground;
+    if (input.sidebarHover !== undefined) brandSettings.sidebarHover = sidebarHover;
     await mutateTenantSetting(this.prisma, request.user.tenantId, "brandSettings", current => ({ ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}), ...brandSettings }) as any);
-    return { primaryColor, logoLight: brandSettings.logoLight || "", logoDark: brandSettings.logoDark || "", favicon: brandSettings.favicon || "", logoShape: brandSettings.logoShape || "rectangular", showCompanyName: brandSettings.showCompanyName !== false, fontScalePercent: Number(brandSettings.fontScalePercent) || 100 };
+    return { primaryColor, logoLight: brandSettings.logoLight || "", logoDark: brandSettings.logoDark || "", favicon: brandSettings.favicon || "", logoShape: brandSettings.logoShape || "rectangular", showCompanyName: brandSettings.showCompanyName !== false, fontScalePercent: Number(brandSettings.fontScalePercent) || 100, sidebarBackground: typeof brandSettings.sidebarBackground === "string" ? brandSettings.sidebarBackground : "", sidebarForeground: typeof brandSettings.sidebarForeground === "string" ? brandSettings.sidebarForeground : "", sidebarHover: typeof brandSettings.sidebarHover === "string" ? brandSettings.sidebarHover : "" };
   }
 
   @Get("profile-config")

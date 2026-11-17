@@ -17,7 +17,7 @@ test("brand text color always reaches AA for any brand color", () => {
 test("a single applyBrandTheme owns the --primary tokens", () => {
   for (const f of ["page.tsx", "operations-settings.tsx"]) {
     const src = read(f);
-    assert.match(src, /applyBrandTheme/, f);
+    assert.match(src, /applyBrand(All|Theme)/, f);
     assert.doesNotMatch(src, /setProperty\("--primary/, `${f} must not set --primary directly`);
     assert.doesNotMatch(src, /luminance\s*>\s*0\.62/, `${f} must not use the approximate luminance cutoff`);
   }

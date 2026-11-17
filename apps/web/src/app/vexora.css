@@ -5039,3 +5039,12 @@ input[type=tel]{letter-spacing:.02em}
 .sidebar-color-actions{display:flex;align-items:center;gap:8px}
 .sidebar-color-cancel{color:var(--tx2)}
 .sidebar-color-error{margin:0;font-size:11px;color:var(--bad)}
+/* ===== Audit Atendimento: ficha do cliente e composer ===== */
+.contact-profile-heading{display:flex!important;align-items:center!important;gap:10px!important}
+.contact-profile .profile-toggle{flex:none!important;align-self:center!important;width:32px!important;height:32px!important;border:1px solid var(--ln2)!important;border-radius:10px!important;background:var(--s1)!important;color:var(--tx2)!important;display:inline-grid!important;place-items:center!important;padding:0!important;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
+.contact-profile .profile-toggle:hover{background:var(--hover)!important;color:var(--tx)!important;border-color:var(--ln2)!important}
+.composer-shell .inbox-composer .composer-toolbar>textarea{padding-left:14px!important}
+@media (min-width:761px){
+  .composer-shell .inbox-composer .composer-toolbar>.composer-tools{flex:none!important}
+  .composer-shell .inbox-composer .composer-toolbar>textarea{flex:1 1 auto;min-width:0;padding-left:16px!important}
+}

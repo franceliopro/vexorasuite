@@ -4922,24 +4922,25 @@ input[type=tel]{letter-spacing:.02em}
 /* ===== Audit Conexões: blocos de ferramenta com distancia e hero da pagina com respiro ===== */
 .channels-configuration-shell{display:grid;gap:clamp(14px,1.8vw,22px);padding:clamp(16px,2.2vw,26px)!important;border:1px solid var(--ln)!important;border-radius:var(--r-xl)!important;background:var(--s2)!important;box-shadow:var(--shadow-sm)!important}
 .channels-configuration-shell .channels-shell-section{gap:14px;padding:clamp(14px,1.8vw,20px);border:1px solid var(--ln2);border-radius:var(--r-lg);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 94%,var(--bg)));box-shadow:0 14px 34px -18px rgba(6,12,9,.28)}
-/* ===== Audit Mobile: dock de acoes, mais ações colapsado e opcao de filas visiveis ===== */
-.mobile-action-dock{display:none}
+/* ===== Audit Mobile: botao de mais acoes colapsado, filas compactas e dock no menu inferior ===== */
 .thread-more-toggle{display:none}
 @media (max-width:760px){
   .thread-heading{position:relative;flex-wrap:wrap}
   .thread-heading .thread-more-toggle{display:grid;place-items:center;order:3;width:40px;height:40px;flex:none;border:1px solid var(--ln2);border-radius:11px;background:var(--s2);color:var(--tx);cursor:pointer}
   .thread-heading .thread-more-toggle svg{display:block}
-  .thread-header-actions{display:none;position:absolute;top:calc(100% + 6px);right:8px;z-index:250;grid-auto-flow:column;gap:4px;align-items:center;padding:6px;border:1px solid var(--ln);border-radius:14px;background:var(--s1);box-shadow:var(--shadow-lg)}
+  .thread-header-actions{display:none;position:absolute;top:calc(100% + 6px);right:8px;z-index:250;gap:4px;align-items:center;padding:6px;border:1px solid var(--ln);border-radius:14px;background:var(--s1);box-shadow:var(--shadow-lg)}
   .thread-header-actions.more-open{display:flex}
-  .mobile-action-dock{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:none;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ln);background:var(--s1);z-index:30}
-  .mobile-dock-button{display:grid;justify-items:center;gap:4px;padding:7px 2px;min-height:48px;border:1px solid var(--ln);border-radius:12px;background:var(--s2);color:var(--tx2);font:700 10px/1.15 var(--font-display);letter-spacing:.02em;cursor:pointer;transition:background .14s,border-color .14s}
-  .mobile-dock-button svg{color:var(--primary-ink)}
-  .mobile-dock-button:hover:not(:disabled){background:var(--hover);border-color:var(--ln2)}
-  .mobile-dock-button:disabled{opacity:.45;cursor:default}
-  .mobile-dock-button.danger{color:var(--bad)}
-  .mobile-dock-button.danger svg{color:var(--bad)}
   .inbox-queues{padding:8px 6px;gap:3px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
   .inbox-queues::-webkit-scrollbar{height:0}
   .inbox-queue-button{font-size:9px!important;padding:0 7px!important;min-height:22px!important}
   .inbox-queue-more-trigger{width:26px!important;min-width:26px!important}
+}
+/* ===== Audit Atendimento: sidebar de conversas e ficha redimensionavel (desktop) ===== */
+.inbox-resizer{display:none}
+@media (min-width:981px){
+  .inbox-workspace{grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 8px var(--inbox-ficha-w,minmax(300px,380px))}
+  .inbox-resizer{display:flex;align-self:stretch;align-items:stretch;justify-content:center;position:relative;z-index:4;cursor:col-resize;user-select:none;touch-action:none;border-radius:10px}
+  .inbox-resizer::after{content:"";width:2px;border-radius:2px;background:var(--ln);transition:background .14s}
+  .inbox-resizer:hover::after,.inbox-resizer:focus-visible::after,.inbox-resizer:active::after{background:var(--primary)}
+  .inbox-resizer:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 }

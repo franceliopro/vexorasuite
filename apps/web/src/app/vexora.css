@@ -4919,3 +4919,6 @@ input[type=tel]{letter-spacing:.02em}
 .team-claim-box{display:grid;gap:12px;margin:14px 0;padding:14px 16px;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--ln));border-radius:var(--r-lg);background:color-mix(in srgb,var(--warn) 9%,var(--s2))}
 .team-claim-box p{margin:0;font-size:12.5px;line-height:1.55;color:var(--tx)}
 .team-claim-actions{display:flex;gap:8px;flex-wrap:wrap}
+/* ===== Audit Conexões: blocos de ferramenta com distancia e hero da pagina com respiro ===== */
+.channels-configuration-shell{display:grid;gap:clamp(14px,1.8vw,22px);padding:clamp(16px,2.2vw,26px)!important;border:1px solid var(--ln)!important;border-radius:var(--r-xl)!important;background:var(--s2)!important;box-shadow:var(--shadow-sm)!important}
+.channels-configuration-shell .channels-shell-section{gap:14px;padding:clamp(14px,1.8vw,20px);border:1px solid var(--ln2);border-radius:var(--r-lg);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 94%,var(--bg)));box-shadow:0 14px 34px -18px rgba(6,12,9,.28)}

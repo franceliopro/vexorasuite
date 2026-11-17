@@ -16,6 +16,8 @@ const config={name:"Véxora",wakeWord:"Olá Véxora",enabled:true,dailyAiLimit:1
 const supportSettings={fields:[{key:"asset",label:"Equipamento"}],helpMinutes:45,escalationMinutes:15,replyMinutes:20};
 const departmentId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 let submitted;
+let simulatedPoint;
+const trackerId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef";
 async function fixtures(page){
  await page.route("**/api/backend/**",async route=>{
   const request=route.request(),url=new URL(request.url()),path=url.pathname.replace("/api/backend","");let data={};
@@ -34,6 +36,9 @@ async function fixtures(page){
   else if(path==="/conversations/"+convId+"/support-requests"){submitted=request.postDataJSON();data={id:"request-fixture"};}
   else if(path==="/conversations/support-queue")data={manager:true,requests:[],waiting:[{id:convId,name:"Francélio",team:"Equipe de teste",assignee:"Operador",since:iso(40)}]};
   else if(path==="/conversations/support-settings")data=supportSettings;
+  else if(path==="/track/devices")data={manager:true,hasNext:false,departments:[],devices:[{id:trackerId,name:"Equipamento de teste",reference:"SIM-01",isActive:true,isSimulation:true,department:null,position:simulatedPoint??null,lastSeenAt:simulatedPoint?.receivedAt??null}]};
+  else if(path==="/track/devices/"+trackerId+"/history")data=simulatedPoint?[simulatedPoint]:[];
+  else if(path==="/track/devices/"+trackerId+"/simulate"){simulatedPoint={...request.postDataJSON(),id:"event",recordedAt:iso(1),receivedAt:iso(0)};data={ok:true};}
   else if(path==="/conversations/counts")data={new:1,mine:1,team:0,others:0};
   else if(path==="/conversations/quick-replies")data=[];
   else if(path==="/conversations/quick-reply-settings")data={};
@@ -78,5 +83,14 @@ try{
  await expect(queue.getByRole("heading",{name:"Clientes sem retorno no prazo"})).toBeVisible();
  await queue.getByRole("button",{name:"Configurar campos e prazos"}).click();
  await expect(queue.getByLabel("Nome visível")).toHaveValue("Equipamento");
+ await queue.getByRole("button",{name:"Fechar"}).click();
+ await page.getByRole("button",{name:"Véxora Track"}).click();
+ const tracker=page.getByRole("dialog",{name:"Véxora Track"});
+ await tracker.getByRole("button",{name:/Equipamento de teste/}).click();
+ await tracker.getByLabel("Latitude").fill("-5.19");
+ await tracker.getByLabel("Longitude").fill("-37.34");
+ await tracker.getByRole("button",{name:"Registrar posição simulada"}).click();
+ await expect(tracker.getByRole("status")).toHaveText("Posição simulada registrada.");
+ await expect(tracker.getByRole("link",{name:"Abrir última posição no mapa"})).toHaveAttribute("href",/mlat=-5\.19000/);
  console.log("Inbox: configurable context, escalation and manager queue OK.");
 }finally{await browser?.close();server.kill("SIGTERM");}

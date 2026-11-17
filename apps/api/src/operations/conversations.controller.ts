@@ -18,6 +18,7 @@ import { ZernioService } from "./zernio.service";
 import { accessiblePipeline } from "./crm-pipelines.controller";
 import { EmailMailboxService } from "../mail/email-mailbox.service";
 import { transferScopeOf } from "./transfer-policy";
+import { readSupportSettings, supportRecord, supportText, validateSupportSettings } from "./support-settings";
 
 
 function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
@@ -905,6 +906,260 @@ export class ConversationsController {
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
     const scope = assignedConversationScope(request.user.tenantId,request.user.sub,departmentIds);
     return { ...scope, AND: [ ...((scope as any).AND || []), attachmentScope ] };
+  }
+
+
+  private async supportSettings(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { integrations: true } });
+    return readSupportSettings(tenant.integrations);
+  }
+
+  @Get("support-settings")
+  getSupportSettings(@Req() request: AuthenticatedRequest) {
+    return this.supportSettings(request.user.tenantId);
+  }
+
+  @Post("support-settings")
+  setSupportSettings(@Req() request: AuthenticatedRequest, @Body() input: unknown) {
+    if (!["OWNER", "ADMIN"].includes(request.user.role)) throw new ForbiddenException("Somente administradores configuram o suporte.");
+    const settings = validateSupportSettings(input);
+    return mutateTenantSetting(this.prisma, request.user.tenantId, "supportSettings", () => settings);
+  }
+
+  @Get("support-queue")
+  async supportQueue(@Req() request: AuthenticatedRequest) {
+    const {tenantId, sub, role} = request.user;
+    const manager = ["OWNER", "ADMIN"].includes(role);
+    const teams = await this.memberDepartmentIds(tenantId, sub);
+    const attachment = await this.attachmentScope(tenantId);
+    const visible = await this.accessWhere(request);
+    const [items, settings] = await Promise.all([
+      this.prisma.supportRequest.findMany({
+        where: {
+          tenantId, state: "OPEN",
+          conversation: { tenantId, ...attachment, handlingMode: "HUMAN", archivedAt: null, deletedAt: null, status: { in: ["OPEN", "PENDING"] } },
+          ...(manager ? {} : { OR: [{ requestedBy: sub }, { destinationId: { in: teams } }, { conversation: visible }] }),
+        },
+        select: {
+          id: true, conversationId: true, kind: true, note: true, dueAt: true, requestedBy: true,
+          destinationId: true, destination: { select: { name: true, isActive: true } },
+          originAssigneeId: true, originDepartmentId: true,
+          conversation: { select: { assigneeId: true, departmentId: true } },
+        },
+        orderBy: [{ dueAt: "asc" }, { id: "asc" }],
+        take: 100,
+      }),
+      this.supportSettings(tenantId),
+    ]);
+    const waiting = manager ? await this.prisma.$queryRaw<{
+      id: string; name: string; team: string | null; assignee: string | null; since: Date;
+    }[]>`
+      SELECT c.id, p.name, d.name AS team, u.name AS assignee, waiting.occurred_at AS since
+      FROM conversations c
+      JOIN contacts p ON p.id = c.contact_id AND p.tenant_id = c.tenant_id
+      LEFT JOIN departments d ON d.id = c.department_id AND d.tenant_id = c.tenant_id
+      LEFT JOIN users u ON u.id = c.assignee_id
+      LEFT JOIN LATERAL (
+        SELECT m.occurred_at, m.created_at, m.id
+        FROM messages m
+        WHERE m.conversation_id = c.id AND m.tenant_id = c.tenant_id
+          AND m.direction = 'OUTBOUND' AND m.status IN ('SENT', 'DELIVERED', 'READ')
+        ORDER BY m.occurred_at DESC, m.created_at DESC, m.id DESC LIMIT 1
+      ) last_reply ON TRUE
+      CROSS JOIN LATERAL (
+        SELECT m.occurred_at
+        FROM messages m
+        WHERE m.conversation_id = c.id AND m.tenant_id = c.tenant_id AND m.direction = 'INBOUND'
+          AND (last_reply.id IS NULL OR (m.occurred_at, m.created_at, m.id) > (last_reply.occurred_at, last_reply.created_at, last_reply.id))
+        ORDER BY m.occurred_at, m.created_at, m.id LIMIT 1
+      ) waiting
+      WHERE c.tenant_id = ${tenantId}::uuid AND c.handling_mode = 'HUMAN'
+        AND c.status IN ('OPEN', 'PENDING') AND c.archived_at IS NULL AND c.deleted_at IS NULL
+        AND (c.channel_connection_id IS NULL OR EXISTS (
+          SELECT 1 FROM channel_attachments attach WHERE attach.channel_connection_id = c.channel_connection_id
+          AND attach.service = 'INBOX' AND attach.attached = TRUE
+        ))
+        AND waiting.occurred_at <= ${new Date(Date.now() - settings.replyMinutes * 60000)}
+      ORDER BY waiting.occurred_at, c.id LIMIT 100
+    ` : [];
+    return {
+      manager,
+      requests: items.map(item => {
+        const stale = item.kind === "ESCALATION" &&
+          (item.originAssigneeId !== item.conversation.assigneeId || item.originDepartmentId !== item.conversation.departmentId);
+        return {
+          id: item.id, conversationId: item.conversationId, kind: item.kind, note: item.note, dueAt: item.dueAt,
+          destination: item.destination.name, stale,
+          canAct: item.destination.isActive && teams.includes(item.destinationId) && !stale && (item.kind !== "ESCALATION" || item.originAssigneeId !== sub),
+          canCancel: manager || item.requestedBy === sub || item.conversation.assigneeId === sub,
+        };
+      }),
+      waiting,
+    };
+  }
+
+  @Get(":id/support-context")
+  async getSupportContext(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const { tenantId, sub, role } = request.user;
+    const access = await this.accessWhere(request);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, tenantId, AND: [access] },
+      select: {
+        supportContext: true, assigneeId: true, handlingMode: true, status: true, archivedAt: true, deletedAt: true,
+        department: { select: { routingPlatform: true } },
+        supportRequests: {
+          where: { tenantId }, orderBy: { createdAt: "desc" }, take: 50,
+          select: { id: true, kind: true, state: true, note: true, answer: true, dueAt: true, destination: { select: { name: true } } },
+        },
+      },
+    });
+    if (!conversation) throw new NotFoundException("Conversa indisponível.");
+    const canEdit = conversation.handlingMode === "HUMAN" && ["OPEN", "PENDING"].includes(conversation.status)
+      && !conversation.deletedAt && !conversation.archivedAt && (conversation.assigneeId === sub || ["OWNER", "ADMIN"].includes(role));
+    const canRequest = canEdit && Boolean(conversation.assigneeId);
+    const [settings, teams, scope, departments] = await Promise.all([
+      this.supportSettings(tenantId), this.memberDepartmentIds(tenantId, sub), transferScopeOf(this.prisma, tenantId, sub),
+      canRequest ? this.prisma.department.findMany({
+        where: { tenantId, isActive: true, modules: { has: "INBOX" }, members: { some: { user: { isActive: true } } } },
+        orderBy: { name: "asc" }, select: { id: true, name: true },
+      }) : [],
+    ]);
+    const values = supportRecord(conversation.supportContext);
+    return {
+      settings, canEdit, canRequest, platform: conversation.department?.routingPlatform ?? null,
+      values: Object.fromEntries(settings.fields.map(field => [field.key, typeof values[field.key] === "string" ? values[field.key] : ""])),
+      departments: departments.filter(team => teams.includes(team.id) ? scope.ownDepartment : scope.anyDepartment),
+      history: conversation.supportRequests,
+    };
+  }
+
+  @Post(":id/support-context")
+  async saveSupportContext(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: unknown) {
+    const { tenantId, sub, role } = request.user;
+    const access = await this.accessWhere(request);
+    const settings = await this.supportSettings(tenantId);
+    const values = supportRecord(supportRecord(input).values);
+    const patch = Object.fromEntries(settings.fields.filter(field => Object.prototype.hasOwnProperty.call(values, field.key))
+      .map(field => [field.key, supportText(values[field.key], field.label, 800, true)]));
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
+      const current = await tx.conversation.findFirst({
+        where: { id, tenantId, AND: [access], handlingMode: "HUMAN", archivedAt: null, deletedAt: null, status: { in: ["OPEN","PENDING"] } },
+        select: { supportContext: true, assigneeId: true },
+      });
+      if (!current || (current.assigneeId !== sub && !["OWNER","ADMIN"].includes(role))) throw new ForbiddenException("Assuma a conversa para editar o contexto.");
+      const previous = supportRecord(current.supportContext) as Record<string,string>;
+      await tx.conversation.update({ where: { id }, data: { supportContext: { ...previous, ...patch } } });
+    });
+    return { ok: true };
+  }
+
+  @Post(":id/support-requests")
+  async requestSupport(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() value: unknown) {
+    const { tenantId, sub, role } = request.user;
+    const input = supportRecord(value);
+    const { kind, destinationId } = input;
+    if ((kind !== "HELP" && kind !== "ESCALATION") || typeof destinationId !== "string" || !isUUID(destinationId)) {
+      throw new BadRequestException("Escolha a ação e a equipe de destino.");
+    }
+    const note = supportText(input.note, "Contexto do pedido", 1800);
+    const [settings, scope, teams, access] = await Promise.all([
+      this.supportSettings(tenantId), transferScopeOf(this.prisma, tenantId, sub),
+      this.memberDepartmentIds(tenantId, sub), this.accessWhere(request),
+    ]);
+    if (!(teams.includes(destinationId) ? scope.ownDepartment : scope.anyDepartment)) {
+      throw new ForbiddenException("Sua permissão de transferência não permite selecionar esta equipe.");
+    }
+    const minutes = input.minutes ?? (kind === "HELP" ? settings.helpMinutes : settings.escalationMinutes);
+    if (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 1 || minutes > 10080) {
+      throw new BadRequestException("Informe um prazo entre 1 e 10080 minutos.");
+    }
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
+      const current = await tx.conversation.findFirst({
+        where: { id, tenantId, AND: [access], handlingMode: "HUMAN", archivedAt: null, deletedAt: null, status: { in: ["OPEN","PENDING"] } },
+        select: { assigneeId: true, departmentId: true },
+      });
+      if (!current?.assigneeId || (current.assigneeId !== sub && !["OWNER","ADMIN"].includes(role))) {
+        throw new ForbiddenException("A conversa precisa de um responsável antes de solicitar apoio.");
+      }
+      const target = await tx.department.findFirst({
+        where: { id: destinationId, tenantId, isActive: true, modules: { has: "INBOX" }, members: { some: { user: { isActive: true } } } },
+        select: { id: true },
+      });
+      if (!target) throw new BadRequestException("A equipe selecionada está indisponível.");
+      const existing = await tx.supportRequest.findFirst({
+        where: { tenantId, conversationId: id, kind, state: "OPEN", ...(kind === "HELP" ? { destinationId } : {}) }, select: { id: true },
+      });
+      if (existing) throw new BadRequestException("Já existe uma solicitação aberta para este caso.");
+      const item = await tx.supportRequest.create({
+        data: {
+          tenantId, conversationId: id, kind, destinationId, note, requestedBy: sub,
+          originAssigneeId: current.assigneeId, originDepartmentId: current.departmentId,
+          dueAt: new Date(Date.now() + minutes * 60_000),
+        }, select: { id: true },
+      });
+      await tx.auditLog.create({ data: { tenantId, userId: sub, action: "support.requested", entityType: "conversation", entityId: id, details: { requestId: item.id, kind, destinationId } } });
+      return item;
+    });
+  }
+
+  @Post("support-requests/:requestId/respond")
+  async respondToSupport(@Req() request: AuthenticatedRequest, @Param("requestId", ParseUUIDPipe) requestId: string, @Body() value: unknown) {
+    const { tenantId, sub, role } = request.user;
+    const input = supportRecord(value);
+    const decision = input.decision;
+    if (decision !== "cancel" && decision !== "answer" && decision !== "accept") throw new BadRequestException("Ação inválida.");
+    const [teams, attachment] = await Promise.all([this.memberDepartmentIds(tenantId, sub), this.attachmentScope(tenantId)]);
+    const result = await this.prisma.$transaction(async tx => {
+      const row = await tx.supportRequest.findFirst({ where: { id: requestId, tenantId, conversation: { tenantId, ...attachment } } });
+      if (!row) throw new NotFoundException("Solicitação indisponível.");
+      const id = row.conversationId;
+      await tx.$queryRaw`SELECT id FROM conversations WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`;
+      const current = await tx.conversation.findFirst({
+        where: { id, tenantId, ...attachment },
+        select: { assigneeId: true, departmentId: true, handlingMode: true, status: true, archivedAt: true, deletedAt: true },
+      });
+      if (!current) throw new NotFoundException("Conversa indisponível.");
+      const cancel = decision === "cancel";
+      if (cancel ? !["OWNER","ADMIN"].includes(role) && row.requestedBy !== sub && current.assigneeId !== sub : !teams.includes(row.destinationId)) {
+        throw new ForbiddenException("Você não pode responder a esta solicitação.");
+      }
+      if (!cancel && (current.handlingMode !== "HUMAN" || !["OPEN","PENDING"].includes(current.status) || current.archivedAt || current.deletedAt)) {
+        throw new BadRequestException("A conversa precisa estar ativa e em atendimento humano.");
+      }
+      if (!cancel && ((row.kind === "HELP") !== (decision === "answer"))) throw new BadRequestException("Ação incompatível com a solicitação.");
+      if (decision === "accept" && sub === row.originAssigneeId) throw new BadRequestException("Outra pessoa da equipe precisa aceitar o escalonamento.");
+      if (decision === "accept" && (current.assigneeId !== row.originAssigneeId || current.departmentId !== row.originDepartmentId)) {
+        throw new BadRequestException("A responsabilidade mudou. Cancele este escalonamento e abra outro, se necessário.");
+      }
+      const answer = decision === "answer" ? supportText(input.answer, "Resposta", 1800) : null;
+      const state = cancel ? "CANCELLED" : "DONE";
+      const updated = await tx.supportRequest.updateMany({
+        where: { id: requestId, tenantId, state: "OPEN" },
+        data: { state, answer, completedBy: sub, completedAt: new Date() },
+      });
+      if (!updated.count) throw new BadRequestException("Esta solicitação já foi concluída.");
+      if (decision === "accept") {
+        await tx.conversation.update({ where: { id }, data: { assigneeId: sub, departmentId: row.destinationId, status: "OPEN" } });
+      }
+      if (!cancel) {
+        await tx.message.create({
+          data: {
+            tenantId, conversationId: id, direction: "INTERNAL", status: "SENT", contentType: "text",
+            content: decision === "accept" ? "Escalonamento aceito.\n\n" + row.note : "Resposta ao pedido de ajuda.\n\n" + answer,
+            metadata: { kind: "support_response", requestId, authorId: sub },
+          },
+        });
+      }
+      await tx.auditLog.create({ data: {
+        tenantId, userId: sub, action: "support." + decision, entityType: "conversation", entityId: id, details: { requestId },
+      } });
+      return { id, accepted: decision === "accept" };
+    });
+    this.events.publish(tenantId, "conversation.updated", { id: result.id });
+    if (result.accepted) this.events.publish(tenantId, "conversation.assigned", { id: result.id });
+    return { ok: true, conversationId: result.id };
   }
 
   private async assertCanAccess(request: AuthenticatedRequest, conversationId: string, view = "new"): Promise<void> {

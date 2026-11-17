@@ -284,7 +284,7 @@ export class DepartmentsController {
     const tenantId = req.user.tenantId;
     const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM tenants WHERE id=${tenantId}::uuid FOR UPDATE`;
-      const source = await tx.department.findFirst({ where: { id, tenantId }, include: { pipeline: { select: { template: true } } } });
+      const source = await tx.department.findFirst({ where: { id, tenantId }, include: { pipeline: { select: { template: true, stages: true } } } });
       if (!source) throw new BadRequestException("Setor não encontrado nesta empresa.");
       const siblings = await tx.department.findMany({ where: { tenantId }, select: { name: true, key: true } });
       const requestedName = typeof body?.name === "string" && body.name.trim() ? normalizeName(body.name).slice(0, 80) : null;
@@ -292,21 +292,28 @@ export class DepartmentsController {
       if (requestedKey && !/^[A-Z0-9_-]+$/.test(requestedKey)) throw new BadRequestException("Use uma chave com letras maiúsculas, números e sublinhado.");
       const name = requestedName ? nextFreeName(requestedName, siblings.map(s => s.name)) : nextFreeName(source.name, siblings.map(s => s.name));
       const key = requestedKey ? nextFreeKey(requestedKey, siblings.map(s => s.key)) : nextFreeKey(source.key, siblings.map(s => s.key));
-      const created = await tx.department.create({ data: { tenantId, name, key, keywords: source.keywords, modules: source.modules, routingCategory: source.routingCategory, routingPlatform: source.routingPlatform, routingStrategy: source.routingStrategy, maxOpenConversations: source.maxOpenConversations, isActive: source.isActive } });
-      const memberRows = await tx.departmentMember.findMany({ where: { tenantId, departmentId: source.id }, select: { userId: true } });
+      const platformFields = this.fields({ routingPlatform: body?.routingPlatform });
+      const routingPlatform = body?.routingPlatform === undefined ? source.routingPlatform : platformFields.routingPlatform;
+      const samePlatform = routingPlatform === source.routingPlatform;
+      if (body?.copyMembers !== undefined && typeof body.copyMembers !== "boolean") {
+        throw new BadRequestException("Informe se deseja copiar os atendentes.");
+      }
+      const copyMembers = body?.copyMembers ?? samePlatform;
+      const created = await tx.department.create({ data: { tenantId, name, key, keywords: source.keywords, modules: source.modules, routingCategory: source.routingCategory, routingPlatform, routingStrategy: source.routingStrategy, maxOpenConversations: source.maxOpenConversations, isActive: source.isActive } });
+      const memberRows = copyMembers ? await tx.departmentMember.findMany({ where: { tenantId, departmentId: source.id }, select: { userId: true } }) : [];
       if (memberRows.length) await tx.departmentMember.createMany({ data: memberRows.map(r => ({ tenantId, departmentId: created.id, userId: r.userId })) });
       if (source.modules.includes("CRM")) {
         const template = source.pipeline?.template && Object.hasOwn(PIPELINE_TEMPLATES, source.pipeline.template) ? source.pipeline.template as keyof typeof PIPELINE_TEMPLATES : "GENERAL";
-        await tx.crmPipeline.create({ data: { tenantId, departmentId: created.id, name: "CRM · " + created.name, template, stages: pipelineStages(template), enabled: created.isActive } });
+        await tx.crmPipeline.create({ data: { tenantId, departmentId: created.id, name: "CRM · " + created.name, template, stages: Array.isArray(source.pipeline?.stages) ? source.pipeline.stages : pipelineStages(template), enabled: created.isActive } });
       }
-      const workflows = await tx.$queryRawUnsafe<{ id: string; name: string; trigger: string; timezone: string; repeatDays: number; filters: any; steps: any }[]>(
-        "SELECT id, name, trigger, timezone, repeat_days AS \"repeatDays\", filters, steps FROM internal_workflows WHERE tenant_id = $1::uuid AND filters->>'departmentId' = $2",
-        tenantId, source.id,
-      );
+      const workflows = await tx.internalWorkflow.findMany({
+        where: { tenantId, filters: { path: ["departmentId"], equals: source.id } },
+        select: { name: true, trigger: true, timezone: true, repeatDays: true, filters: true, steps: true },
+      });
       for (const workflow of workflows) {
         await tx.internalWorkflow.create({ data: { tenantId, userId: req.user.sub, name: (String(workflow.name).replace(source.name, "").trim() ? workflow.name.replace(source.name, created.name) : workflow.name + " · " + created.name).slice(0, 120), enabled: false, trigger: workflow.trigger, timezone: workflow.timezone, nextRunAt: new Date(), repeatDays: workflow.repeatDays, filters: { ...(workflow.filters as any), departmentId: created.id }, steps: workflow.steps as any } });
       }
-      const assignments = await tx.calendarAssignment.findMany({ where: { tenantId, departmentId: source.id } });
+      const assignments = samePlatform ? await tx.calendarAssignment.findMany({ where: { tenantId, departmentId: source.id } }) : [];
       if (assignments.length) await tx.calendarAssignment.createMany({ data: assignments.map(a => ({ tenantId, accountId: a.accountId, calendarId: a.calendarId, userId: null, departmentId: created.id })) });
       await tx.auditLog.create({ data: { tenantId, userId: req.user.sub, action: "department.duplicated", entityType: "department", entityId: created.id, details: { sourceId: source.id, name: created.name, key: created.key, members: memberRows.length, workflows: workflows.length, calendars: assignments.length } } });
       return created;

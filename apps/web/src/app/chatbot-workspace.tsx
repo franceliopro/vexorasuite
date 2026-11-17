@@ -392,6 +392,17 @@ function dictateAiRequest(){
   setView({zoom:scale*100,x:canvas.clientWidth/2-(minX+width/2)*scale,y:canvas.clientHeight/2-(minY+height/2)*scale});
  }
 
+ useEffect(()=>{try{const saved=window.localStorage.getItem("vexora-flow-panels-v1");if(saved){const state=JSON.parse(saved) as {left?:boolean;right?:boolean;auto?:boolean};setLeftCollapsed(!!state.left);setRightCollapsed(!!state.right);setAutoHidePanels(!!state.auto)}else if(matchMedia("(max-width:760px)").matches)setLeftCollapsed(true)}catch{}},[]);
+ useEffect(()=>{try{window.localStorage.setItem("vexora-flow-panels-v1",JSON.stringify({left:leftCollapsed,right:rightCollapsed,auto:autoHidePanels}))}catch{}},[leftCollapsed,rightCollapsed,autoHidePanels]);
+ useEffect(()=>{let live=true;setReady(false);setLoadError("");fetch("/api/backend/channels",{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(data=>{if(live)setChannels(Array.isArray(data)?data:[])}).catch(()=>{if(live)setChannelNotice("Não foi possível carregar os canais vinculados.")});fetch("/api/backend/chatbot/draft",{cache:"no-store",signal:AbortSignal.timeout(15000)}).then(async r=>{if(!r.ok)throw Error("Não foi possível recuperar o fluxo salvo. Tente novamente antes de editar.");return r.json()}).then(data=>{if(!live)return;const legacyTemplate=data?.draft?.name==="Fluxo Suporte+Financeiro";const loaded:Flow=!legacyTemplate&&data?.draft&&Array.isArray(data.draft.steps)?{...data.draft,steps:data.draft.steps.map((step:Step)=>({...step,config:step.config&&typeof step.config!=="string"?JSON.stringify(step.config):step.config}))}:structuredClone(emptyFlow);setFlow(loaded);setSelected(loaded.steps[0]?.id||"");setLastSaved(JSON.stringify(loaded));writeTenantCache(tenantId,"chatbot-draft",loaded);setReady(true);setNotice(legacyTemplate?"Rascunho antigo removido. Comece pelo Gatilho.":data?.draft?"":"Comece adicionando um bloco.");}).catch(error=>{if(live)setLoadError(error instanceof Error?error.message:"Falha ao carregar o fluxo")});return()=>{live=false}},[tenantId,loadAttempt]);
+ useEffect(()=>{if(!ready||flowSerialized===lastSaved)return;writeTenantCache(tenantId,"chatbot-draft-recovery",flow);let timer:ReturnType<typeof setTimeout>;const attempt=()=>{if(saveInFlight.current){timer=setTimeout(attempt,500);return;}void save(flow,true)};timer=setTimeout(attempt,1500);return()=>clearTimeout(timer)},[flow,flowSerialized,lastSaved,ready]);
+ useEffect(()=>{if(!ready||flowSerialized===lastSaved)return;const prevent=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue=""};window.addEventListener("beforeunload",prevent);return()=>window.removeEventListener("beforeunload",prevent)},[flow,flowSerialized,lastSaved,ready]);
+ const graphEdges=flow.steps.flatMap(step=>Object.entries(step.transitions||{}).filter(([option,target])=>step.options.includes(option)&&target!=="__start__"&&flow.steps.some(item=>item.id===target)).map(([option,target])=>({from:step.id,to:target,option})));
+ const disconnected=flow.steps.filter(step=>!graphEdges.some(edge=>edge.to===step.id));
+ const completion=flow.steps.reduce((n,step)=>n+step.options.filter(option=>step.transitions?.[option]).length,0);
+ const missingPaths=flow.steps.flatMap(step=>step.options.filter(option=>!step.transitions?.[option]).map(option=>({step:step.title,option})));
+ const current=flow.steps.find(x=>x.id===selected);
+ const messageRef=useRef<HTMLTextAreaElement|null>(null); const welcomeRef=useRef<HTMLTextAreaElement|null>(null);
  function insertMessageMarkup(prefix:string,suffix=prefix){
    if(!current)return;
    const input=messageRef.current;

@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const { randomBytes, randomUUID } = require("node:crypto");
 const { PrismaClient } = require("@prisma/client");
+const { ConversationsController } = require("../dist/operations/conversations.controller");
 const { PublicServiceOffersController, offerTokenHash } = require("../dist/operations/public-service-offers.controller");
 
 async function main() {
@@ -36,6 +37,34 @@ async function main() {
     const changes = await createOffer(60000);
     await controller.respond(changes.token, { decision: "changes", reason: "Trocar a data" });
     assert.equal(await prisma.serviceOrder.count({ where: { offerId: changes.offer.id } }), 0);
+    const staff = new ConversationsController(prisma, {}, {}, {});
+    const request = { user: { tenantId: tenant.id, role: "OWNER" } };
+    const main = await staff.createServiceOffer(request, conversation.id, {
+      title: "Instalação com contrato", scope: "Instalação", platform: "Plataforma A",
+      setupCents: 10000, monthlyCents: 0, requiresContract: true, depositCents: 2000,
+    });
+    await controller.respond(main.path.split("/").at(-1), { decision: "accept", name: "Cliente de teste" });
+    const schedule = { scheduledAt: new Date(Date.now() + 3600000).toISOString() };
+    await assert.rejects(staff.updateServiceOrder(request, conversation.id, main.id, schedule), { status: 404 });
+    await prisma.serviceOffer.update({ where: { id: main.id }, data: { signedAt: new Date() } });
+    await assert.rejects(staff.updateServiceOrder(request, conversation.id, main.id, schedule), { status: 404 });
+    await prisma.serviceOffer.update({ where: { id: main.id }, data: { depositReceivedAt: new Date() } });
+    await staff.updateServiceOrder(request, conversation.id, main.id, schedule);
+
+    const extra = await staff.createServiceOffer(request, conversation.id, {
+      title: "Adicional", scope: "Acessório", platform: "Plataforma A",
+      setupCents: 1000, monthlyCents: 0, parentOfferId: main.id,
+    });
+    const installation = { installation: "Instalado e testado.", assets: [{ vehicle: "ABC1D23", equipment: "DEV123" }] };
+    await assert.rejects(staff.updateServiceOrder(request, conversation.id, main.id, installation), { status: 404 });
+    await controller.respond(extra.path.split("/").at(-1), { decision: "accept", name: "Cliente de teste" });
+    assert.equal(await prisma.serviceOrder.count({ where: { offerId: extra.id } }), 0);
+    await staff.updateServiceOrder(request, conversation.id, main.id, installation);
+    const followUp = await prisma.conversation.create({ data: { tenantId: tenant.id, contactId: contact.id } });
+    const history = await staff.listServiceAssets(request, followUp.id);
+    assert.equal(history.length, 1);
+    assert.equal(history[0].equipment, "DEV123");
+
     console.log("Service offers: concurrent acceptance generates one order; expired and change-requested offers generate none.");
   } finally {
     await prisma.tenant.delete({ where: { id: tenant.id } });

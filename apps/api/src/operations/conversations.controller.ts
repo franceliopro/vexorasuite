@@ -5,7 +5,8 @@ import { whatsappPhone } from './whatsapp-bridge';
 import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, StreamableFile, UseGuards } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import { offerAmount, offerText, offerTokenHash } from "./public-service-offers.controller";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -905,6 +906,144 @@ export class ConversationsController {
     const departmentIds = await this.memberDepartmentIds(request.user.tenantId, request.user.sub);
     const scope = assignedConversationScope(request.user.tenantId,request.user.sub,departmentIds);
     return { ...scope, AND: [ ...((scope as any).AND || []), attachmentScope ] };
+  }
+
+
+
+  @Get(":id/service-assets")
+  async listServiceAssets(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    const tenantId = request.user.tenantId;
+    const access = await this.accessWhere(request, view);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id, tenantId, AND: [access] },
+      select: { contactId: true },
+    });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
+    return this.prisma.serviceInstallationAsset.findMany({
+      where: { order: { offer: { tenantId, conversation: { tenantId, contactId: conversation.contactId, AND: [access] } } } },
+      orderBy: { order: { completedAt: "desc" } },
+      take: 100,
+      select: {
+        id: true, vehicle: true, equipment: true,
+        order: { select: { id: true, completedAt: true, installation: true, offer: { select: { platform: true } } } },
+      },
+    });
+  }
+
+  @Get(":id/service-offers")
+  async listServiceOffers(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
+    await this.assertCanAccess(request, id, view);
+    const offers = await this.prisma.serviceOffer.findMany({
+      where: { tenantId: request.user.tenantId, conversationId: id },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { order: true },
+    });
+    return offers.map(({ publicTokenHash: _token, ...offer }) => offer);
+  }
+
+  @Post(":id/service-offers")
+  async createServiceOffer(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() input: { title?: unknown; scope?: unknown; platform?: unknown; setupCents?: unknown; monthlyCents?: unknown; requiresContract?: unknown; depositCents?: unknown; parentOfferId?: unknown },
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const tenantId = request.user.tenantId;
+    const setupCents = offerAmount(input?.setupCents);
+    const depositCents = offerAmount(input?.depositCents ?? 0);
+    if (depositCents > setupCents) throw new BadRequestException("O sinal não pode exceder o valor da instalação.");
+    if (input?.requiresContract !== undefined && typeof input.requiresContract !== "boolean") throw new BadRequestException("Indique se a proposta exige contrato.");
+    const token = randomBytes(32).toString("base64url");
+    const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true } });
+    const parentOfferId = input?.parentOfferId;
+    const platform = offerText(input?.platform, "Plataforma", 120);
+    const monthlyCents = offerAmount(input?.monthlyCents);
+    if (parentOfferId !== undefined && (typeof parentOfferId !== "string" || !isUUID(parentOfferId))) {
+      throw new BadRequestException("Proposta original inválida.");
+    }
+    if (parentOfferId && (monthlyCents || depositCents || input.requiresContract)) {
+      throw new BadRequestException("O adicional desta OS deve ter somente um valor único.");
+    }
+    const offer = await this.prisma.$transaction(async tx => {
+      if (parentOfferId) {
+        await tx.$queryRaw`SELECT id FROM service_orders WHERE offer_id = ${parentOfferId}::uuid FOR UPDATE`;
+        const parent = await tx.serviceOffer.findFirst({
+          where: { id: parentOfferId, tenantId, conversationId: id, state: "ACCEPTED", order: { completedAt: null } },
+          select: { platform: true },
+        });
+        if (!parent || parent.platform !== platform) throw new BadRequestException("Ordem de serviço original indisponível.");
+      }
+      return tx.serviceOffer.create({
+        data: {
+          tenantId, conversationId: id, sellerName: tenant.name, publicTokenHash: offerTokenHash(token),
+          title: offerText(input?.title, "Título", 120), scope: offerText(input?.scope, "Escopo", 4000),
+          platform, parentOfferId, setupCents, monthlyCents, requiresContract: input.requiresContract === true,
+          depositCents, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+        select: { id: true },
+      });
+    });
+    return { id: offer.id, path: "/proposta/" + token };
+  }
+
+  @Post(":id/service-offers/:offerId/revoke")
+  async revokeServiceOffer(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("offerId", ParseUUIDPipe) offerId: string,
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const result = await this.prisma.serviceOffer.updateMany({
+      where: { id: offerId, tenantId: request.user.tenantId, conversationId: id, state: "OPEN" },
+      data: { state: "REVOKED" },
+    });
+    if (!result.count) throw new BadRequestException("Somente uma proposta em aberto pode ser cancelada.");
+    return { ok: true };
+  }
+
+  @Post(":id/service-offers/:offerId/order")
+  async updateServiceOrder(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("offerId", ParseUUIDPipe) offerId: string,
+    @Body() input: { scheduledAt?: unknown; installation?: unknown; assets?: unknown },
+    @Query("view") view = "new",
+  ) {
+    await this.assertCanAccess(request, id, view);
+    const where = { offerId, completedAt: null, offer: { tenantId: request.user.tenantId, conversationId: id, state: "ACCEPTED", AND: [
+      { OR: [{ requiresContract: false }, { signedAt: { not: null } }] },
+      { OR: [{ depositCents: 0 }, { depositReceivedAt: { not: null } }] },
+    ] } };
+    await this.prisma.$transaction(async tx => {
+      if (input?.installation !== undefined) {
+        if (!Array.isArray(input.assets) || !input.assets.length || input.assets.length > 20) {
+          throw new BadRequestException("Informe de um a vinte veículos com seus equipamentos.");
+        }
+        const assets = input.assets.map(asset => ({
+          vehicle: offerText(asset?.vehicle, "Veículo", 64).toUpperCase(),
+          equipment: offerText(asset?.equipment, "Equipamento", 100).toUpperCase(),
+        }));
+        if (new Set(assets.map(asset => asset.vehicle)).size !== assets.length ||
+            new Set(assets.map(asset => asset.equipment)).size !== assets.length) {
+          throw new BadRequestException("Cada veículo e equipamento deve aparecer uma única vez nesta instalação.");
+        }
+        const installation = offerText(input.installation, "Registro da instalação", 4000);
+        await tx.$queryRaw`SELECT id FROM service_orders WHERE offer_id = ${offerId}::uuid FOR UPDATE`;
+        const result = await tx.serviceOrder.updateMany({ where: { ...where, offer: { ...where.offer, supplements: { none: { state: "OPEN", expiresAt: { gt: new Date() } } } } }, data: { installation, completedAt: new Date() } });
+        if (!result.count) throw new NotFoundException("Ordem de serviço indisponível ou com condições de liberação pendentes.");
+        const order = await tx.serviceOrder.findUniqueOrThrow({ where: { offerId }, select: { id: true } });
+        await tx.serviceInstallationAsset.createMany({ data: assets.map(asset => ({ orderId: order.id, ...asset })) });
+      } else {
+        const date = typeof input?.scheduledAt === "string" ? new Date(input.scheduledAt) : null;
+        if (!date || !Number.isFinite(date.getTime()) || date <= new Date()) throw new BadRequestException("Escolha uma data futura.");
+        const result = await tx.serviceOrder.updateMany({ where, data: { scheduledAt: date } });
+        if (!result.count) throw new NotFoundException("Ordem de serviço indisponível ou com condições de liberação pendentes.");
+      }
+    });
+    return { ok: true };
   }
 
   private async assertCanAccess(request: AuthenticatedRequest, conversationId: string, view = "new"): Promise<void> {

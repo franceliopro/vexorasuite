@@ -1,5 +1,5 @@
 "use client";
-import { applyBrandTheme, applyBrandAll } from "../lib/brand-theme";
+import { applyBrandTheme, applyBrandAll, wcagRatio } from "../lib/brand-theme";
 import {NotificationSettings} from "./notification-settings";
 import {PersonalAlarms} from "./personal-alarms";
 import {BusinessTemplates} from "./business-templates";
@@ -32,7 +32,6 @@ type MailTestResult={delivered:boolean;transport?:string;reason?:string;accepted
 const defaultBrand:BrandSettings={primaryColor:"#2E7CF6",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,displayName:"",fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
 function settingsTabKey(tab:string){return tab.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g,"-");}
 async function api<T>(url:string,init?:RequestInit):Promise<T>{const r=await fetch(url,{...init,cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(Array.isArray(d.message)?d.message.join(" "):d.message||d.error||"Falha na operação.");return d as T;}
-function wcagRatio(hexA:string,hexB:string):number{const lum=(hex:string)=>{const c=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]!+.7152*c[1]!+.0722*c[2]!};const a=lum(hexA),b=lum(hexB);const l1=Math.max(a,b),l2=Math.min(a,b);return (l1+.05)/(l2+.05)}
 export function OperationsSettings({canConfigureAsaas,companyName="Sua empresa",isPlatformAdmin=false}:{canConfigureAsaas:boolean;companyName?:string;isPlatformAdmin?:boolean}){
  const sessionCompanyNameFallback=()=>companyName;
  const [channels,setChannels]=useState<Channel[]>([]),[groups,setGroups]=useState<Groups>({groupsEnabled:false,allowedGroupIds:[]}),[ids,setIds]=useState(""),[available,setAvailable]=useState<Group[]>([]),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false);

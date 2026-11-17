@@ -158,7 +158,7 @@ details>summary::-webkit-details-marker{display:none}
 .nav-group{display:grid;gap:2px;padding:6px 0 10px;border-bottom:1px solid var(--sb-ln)}
 .nav-group:last-child{border:0}
 .nav-section{display:block;margin:8px 0 4px;padding:0 12px;font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--sb-mut)}
-.nav-item,.nav-subitem{display:flex;align-items:center;gap:11px;width:100%;border-radius:var(--r-sm);color:var(--sb-mut);font-weight:600;font-size:13px;transition:background .15s,color .15s}
+.nav-item,.nav-subitem{display:flex;align-items:center;gap:11px;width:100%;border-radius:var(--r-sm);color:var(--sb-tx);font-weight:600;font-size:13px;transition:background .15s,color .15s}
 .nav-item{justify-content:flex-start;min-height:42px;padding:0 13px}
 .nav-glyph{display:grid;place-items:center;color:currentColor;transition:transform .16s var(--ease)}
 .nav-item:hover,.nav-subitem:hover{background:var(--sb-on);color:var(--sb-tx)}
@@ -1313,7 +1313,7 @@ details>summary:hover{color:var(--tx)}
 .sidebar-utilities { display: flex; align-items: center; gap: 4px; }
 .sidebar-collapse { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--sb-ln); border-radius: 9px; background: transparent; color: var(--sb-tx); cursor: pointer; }
 .sidebar-collapse:hover { background: var(--sb-on); border-color: var(--sb-tx); }
-.sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--sb-mut); cursor: pointer; list-style: none; }
+.sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--sb-tx); cursor: pointer; list-style: none; }
 .sidebar-icon::-webkit-details-marker { display: none; }
 .sidebar-icon:hover { background: var(--sb-on); color: var(--sb-tx); }
 .sidebar-help > div { background: var(--sb-bg); border-color: var(--sb-ln); }
@@ -3876,11 +3876,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;bo
 /* 4. Tabs topbar (Links/Agenda/etc) desativadas bem legíveis */
 :root[data-theme=dark] .topbar-link,:root[data-theme=dark] .topbar-badge{color:#CDD8F2!important}
 /* 5. Sidebar bottom icons — mesmo tom nem tão claro nem tão escuro */
-.sidebar-icon{color:var(--sb-mut)!important}
-.sidebar-icon:hover,.sidebar-icon:focus-visible{color:var(--sb-tx)!important;background:var(--sb-on)!important}
-/* 6. Override: ícones da barra inferior forçados a um tom visível em clara e escura */
-:root[data-theme=light] .sidebar-icon,:root:not([data-theme=dark]) .sidebar-icon{color:#7484BF!important}
-:root:not([data-theme=dark]) .sidebar-icon:hover{color:#0B1F3A!important}
+
 
 /* ===== 94/95. Mobile premium — app nativo, ações sempre visíveis ===== */
 
@@ -3974,12 +3970,10 @@ input[type=tel]{letter-spacing:.02em}
 /* ===== 96. Sidebar híbrido/claro — ícones finais coerentes com a sidebar ===== */
 .sidebar .sidebar-collapse{background:transparent!important;border:1px solid var(--sb-ln)!important;color:var(--sb-tx)!important}
 .sidebar .sidebar-collapse:hover{background:var(--sb-on)!important}
-.sidebar .sidebar-icon{background:transparent!important;border:0!important;color:var(--sb-mut)!important;box-shadow:none!important}
+.sidebar .sidebar-icon{background:transparent!important;border:0!important;color:var(--sb-tx)!important;box-shadow:none!important}
 .sidebar .sidebar-icon:hover,.sidebar .sidebar-icon:focus-visible{background:var(--sb-on)!important;color:var(--sb-tx)!important;border:0!important}
 .sidebar .sidebar-icon:focus-visible{outline:2px solid color-mix(in srgb,var(--primary) 55%,transparent);outline-offset:2px}
-:root[data-theme=light] .sidebar .sidebar-icon{color:#52608C!important}
-:root[data-theme=light] .sidebar .sidebar-icon:hover,:root[data-theme=light] .sidebar .sidebar-icon:focus-visible{color:#0B1F3A!important;background:var(--hover)!important}
-:root[data-theme=light] .sidebar .sidebar-collapse{color:#52608C!important}
+
 :root[data-theme=light] .sidebar .sidebar-collapse:hover{color:#0B1F3A!important;background:var(--hover)!important}
 
 /* ===== 97. CRM — pipeline 4 cores bem distintas + formulário contido ===== */
@@ -5030,3 +5024,18 @@ input[type=tel]{letter-spacing:.02em}
 .brand-contrast-badge.is-warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--ln));color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--s1))}
 /* ===== Audit Configuracoes: bloco Tecnico com distancia entre blocos ===== */
 .settings-stack{display:grid;gap:var(--gap);align-content:start}
+/* ===== Popover Cor Modo Hibrido (botao direito na sidebar) ===== */
+.sidebar-color-popover{position:fixed;z-index:80;display:grid;gap:12px;width:300px;max-height:calc(100vh - 24px);overflow:auto;padding:14px;border:1px solid var(--ln);border-radius:16px;background:var(--s1);color:var(--tx);box-shadow:0 30px 64px -18px rgba(2,8,25,.5),0 4px 16px rgba(2,8,25,.2)}
+.sidebar-color-popover-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.sidebar-color-popover-header h3{margin:0;font:800 14px/1.25 var(--font-display);letter-spacing:.01em}
+.sidebar-color-popover-header p{margin:2px 0 0;font-size:11px;line-height:1.4;color:var(--tx2)}
+.sidebar-color-close{display:grid;place-items:center;flex:none;width:30px;height:30px;border:1px solid var(--ln);border-radius:9px;background:none;color:var(--tx2);cursor:pointer}
+.sidebar-color-close:hover{background:var(--s2);color:var(--tx)}
+.sidebar-color-warning{margin:0;padding:8px 10px;border-radius:10px;font-size:11px;line-height:1.35;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--ln));background:color-mix(in srgb,var(--warn) 12%,var(--s1));color:var(--warn)}
+.sidebar-color-field{gap:5px}
+.sidebar-color-picker input[type="color"]{flex:none;width:46px;height:32px;padding:2px;border:1px solid var(--ln);border-radius:9px;background:var(--s2);cursor:pointer}
+.sidebar-color-picker input:not([type="color"]){flex:1 1 auto;min-width:0}
+.sidebar-color-popover-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--ln);padding-top:10px}
+.sidebar-color-actions{display:flex;align-items:center;gap:8px}
+.sidebar-color-cancel{color:var(--tx2)}
+.sidebar-color-error{margin:0;font-size:11px;color:var(--bad)}

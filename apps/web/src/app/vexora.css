@@ -4953,3 +4953,28 @@ input[type=tel]{letter-spacing:.02em}
 /* ===== Audit Tarefas: feedback visual nos cartoes ===== */
 .tasks-item:hover{border-color:var(--ln2);box-shadow:var(--shadow-lg)}
 .tasks-item-head strong{font-size:15px;letter-spacing:-.01em}
+/* ===== Audit Chatbots: nos limpos com acento por tipo e fios discretos ===== */
+.vx-flow-node{--tone:#64748B;border-left:3px solid var(--tone);border-radius:12px;box-shadow:0 1px 2px rgba(11,18,34,.05),0 12px 28px -14px rgba(11,18,34,.28)}
+.vx-flow-node[data-tone="start"]{--tone:#10B981}
+.vx-flow-node[data-tone="message"]{--tone:#3B82F6}
+.vx-flow-node[data-tone="choice"]{--tone:#8B5CF6}
+.vx-flow-node[data-tone="input"]{--tone:#06B6D4}
+.vx-flow-node[data-tone="logic"]{--tone:#F59E0B}
+.vx-flow-node[data-tone="ai"]{--tone:#A855F7}
+.vx-flow-node[data-tone="asaas"]{--tone:#22C55E}
+.vx-flow-node[data-tone="transfer"]{--tone:#14B8A6}
+.vx-flow-node[data-tone="crm"]{--tone:#F97316}
+.vx-flow-node[data-tone="tag"]{--tone:#EC4899}
+.vx-flow-node[data-tone="finish"]{--tone:#EF4444}
+.vx-flow-node[data-tone="default"]{--tone:#64748B}
+.vx-flow-node-symbol{width:30px;height:30px;border-radius:9px;background:color-mix(in srgb,var(--tone) 16%,var(--s1));color:var(--tone)}
+.vx-flow-node-head{padding:8px 10px;gap:8px;border-bottom:1px solid color-mix(in srgb,var(--ln) 80%,transparent)}
+.vx-flow-node-head strong{font-size:11px;font-weight:800;letter-spacing:-.005em}
+.vx-flow-node-body{padding:8px 10px}
+.vx-flow-node-summary{font-size:9.5px;line-height:1.4}
+.vx-flow-outputs button{min-height:24px;padding:0 8px;font-size:9px;border-color:var(--ln)}
+.vx-flow-outputs button i{border-color:color-mix(in srgb,var(--tone) 55%,var(--ln2))}
+.vx-flow-input-port{background:var(--s1);border:2px solid color-mix(in srgb,var(--tone) 55%,#0B6B84);box-shadow:0 0 0 3px color-mix(in srgb,var(--tone) 20%,transparent)}
+.vx-flow-node.selected{border-color:var(--tone);box-shadow:0 0 0 2px color-mix(in srgb,var(--tone) 45%,transparent),0 14px 34px -14px rgba(11,18,34,.35)}
+.vx-flow-start-node{--tone:#10B981;border-left:3px solid var(--tone);border-radius:12px;box-shadow:0 1px 2px rgba(11,18,34,.05),0 12px 28px -14px rgba(11,18,34,.28)}
+.chatbot-grid-visible .vx-flow-board{background-image:radial-gradient(color-mix(in srgb,var(--ln2) 55%,transparent) .9px,transparent 1px);background-size:22px 22px}

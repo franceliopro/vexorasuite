@@ -73,6 +73,8 @@ type CrmPipeline = {
   template?: string;
   stages?: PipelineStage[] | unknown;
   department?: { id: string; name: string } | null;
+  won?: number;
+  lost?: number;
 };
 type CrmPipelinesPayload = { pipelines?: CrmPipeline[] };
 type OriginGroup = { name: string; total: number; won: number; lost: number; open: number; withCampaign: number };
@@ -635,7 +637,7 @@ function ReportsWorkspaceInner() {
       rows.push(["Pipelines e etapas"]);
       for (const pipeline of pipelines) {
         const stages = Array.isArray(pipeline.stages) ? (pipeline.stages as PipelineStage[]) : [];
-        rows.push([pipeline.name, pipeline.department?.name ?? "Sem setor", stages.map((stage) => stage.label ?? stage.id ?? "").filter(Boolean).join(" → ")]);
+        rows.push([pipeline.name, pipeline.department?.name ?? "Sem setor", stages.map((stage) => (stage.label ?? stage.id ?? "") + (typeof stage.count === "number" ? " (" + stage.count + ")" : "")).filter(Boolean).join(" → ")]);
       }
     } else if (tab === "finance") {
       const finance = financeSection.data;
@@ -967,7 +969,7 @@ function ReportsWorkspaceInner() {
                 <section className="rw-card">
                   <CardHead
                     title="Pipelines e etapas"
-                    hint="Estrutura comercial ativa · contagem de cards por etapa não é exposta pela API"
+                    hint="Estrutura comercial ativa · cards por etapa, ganhos e perdas"
                     aside={<span className="rw-count-pill">{pipelines.length} {pipelines.length === 1 ? "pipeline" : "pipelines"}</span>}
                   />
                   {pipelines.length ? (
@@ -979,6 +981,12 @@ function ReportsWorkspaceInner() {
                             <div className="rw-pipeline-head">
                               <strong>{pipeline.name}</strong>
                               <span>{pipeline.department?.name ?? "Sem setor vinculado"}{pipeline.template ? " · " + pipeline.template : ""}</span>
+                              {(typeof pipeline.won === "number" || typeof pipeline.lost === "number") ? (
+                                <span className="rw-pipeline-outcome">
+                                  <span className="rw-outcome-won">{"Ganhos "}<strong>{numberBR(pipeline.won ?? 0)}</strong></span>
+                                  <span className="rw-outcome-lost">{"Perdas "}<strong>{numberBR(pipeline.lost ?? 0)}</strong></span>
+                                </span>
+                              ) : null}
                             </div>
                             <div className="rw-stage-chips">
                               {stages.length ? stages.map((stage, index) => {
@@ -1265,6 +1273,10 @@ const REPORTS_CSS = `
 .rw-pipeline-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .rw-pipeline-head strong{font:750 13.5px var(--font-display);color:var(--tx)}
 .rw-pipeline-head span{font-size:11.5px;color:var(--tx2)}
+.rw-pipeline-outcome{display:inline-flex;gap:8px;margin-left:auto}
+.rw-outcome-won,.rw-outcome-lost{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:750}
+.rw-outcome-won{background:color-mix(in srgb,var(--ok) 12%,var(--s1));color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 34%,var(--ln))}
+.rw-outcome-lost{background:color-mix(in srgb,var(--bad) 10%,var(--s1));color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 30%,var(--ln))}
 .rw-pipeline-empty{font-size:12px;color:var(--tx2)}
 
 /* ---------- Vazio / erro ---------- */

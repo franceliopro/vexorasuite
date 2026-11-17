@@ -102,27 +102,57 @@ export class CrmPipelinesController {
   }
 
   @Get("pipelines") async list(@Req() req: AuthenticatedRequest) {
+    const pipelines = await this.prisma.crmPipeline.findMany({
+      where: {
+        tenantId: req.user.tenantId,
+        enabled: true,
+        ...(!administrative(req.user.role)
+          ? {
+              department: {
+                isActive: true,
+                modules: { has: "CRM" },
+                members: {
+                  some: { tenantId: req.user.tenantId, userId: req.user.sub },
+                },
+              },
+            }
+          : {}),
+      },
+      include: { department: { select: { id: true, name: true } } },
+      orderBy: { name: "asc" },
+    });
+    const enriched = [] as any[];
+    for (const pipeline of pipelines) {
+      let stageCounts: Array<{ stage: string | null; count: bigint }> = [];
+      let finalizationCounts: Array<{ outcome: string | null; count: bigint }> = [];
+      try {
+        stageCounts = await this.prisma.$queryRaw<Array<{ stage: string | null; count: bigint }>>`
+          SELECT metadata->>'crmStage' AS stage, COUNT(*)::bigint AS count
+          FROM contacts
+          WHERE tenant_id = ${req.user.tenantId}::uuid AND pipeline_id = ${pipeline.id}::uuid AND metadata->>'crmStage' IS NOT NULL
+          GROUP BY metadata->>'crmStage'`;
+        finalizationCounts = await this.prisma.$queryRaw<Array<{ outcome: string | null; count: bigint }>>`
+          SELECT metadata->'crmFinalization'->>'outcome' AS outcome, COUNT(*)::bigint AS count
+          FROM contacts
+          WHERE tenant_id = ${req.user.tenantId}::uuid AND pipeline_id = ${pipeline.id}::uuid AND metadata->'crmFinalization'->>'outcome' IS NOT NULL
+          GROUP BY metadata->'crmFinalization'->>'outcome'`;
+      } catch {
+        stageCounts = [];
+        finalizationCounts = [];
+      }
+      const stages = Array.isArray(pipeline.stages) ? (pipeline.stages as Array<Record<string, unknown>>) : [];
+      const countOf = (id: unknown) => Number(stageCounts.find((row) => row.stage === id)?.count ?? 0n);
+      const outcomeOf = (value: string) => Number(finalizationCounts.find((row) => row.outcome === value)?.count ?? 0n);
+      enriched.push({
+        ...pipeline,
+        stages: stages.map((stage) => ({ ...stage, count: countOf(stage.id) })),
+        won: outcomeOf("WON"),
+        lost: outcomeOf("LOSS"),
+      });
+    }
     return {
       templates: PIPELINE_TEMPLATES,
-      pipelines: await this.prisma.crmPipeline.findMany({
-        where: {
-          tenantId: req.user.tenantId,
-          enabled: true,
-          ...(!administrative(req.user.role)
-            ? {
-                department: {
-                  isActive: true,
-                  modules: { has: "CRM" },
-                  members: {
-                    some: { tenantId: req.user.tenantId, userId: req.user.sub },
-                  },
-                },
-              }
-            : {}),
-        },
-        include: { department: { select: { id: true, name: true } } },
-        orderBy: { name: "asc" },
-      }),
+      pipelines: enriched,
     };
   }
 }

@@ -89,6 +89,8 @@ import {
   ArrowRight,
   ArrowUpRight,
   ArrowRightLeft,
+  UserRoundPlus,
+  CheckCircle2,
 } from "lucide-react";
 
 const iconMap = {
@@ -110,6 +112,8 @@ const iconMap = {
   more: MoreHorizontal,
   transfer: ArrowRightLeft,
   image: Image,
+  assume: UserRoundPlus,
+  finalize: CheckCircle2,
 };
 
 function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
@@ -394,10 +398,21 @@ export default function HomePage() {
         </div>
       </main>
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
-      <nav className="mobile-bottom-nav" aria-label="Navegação principal no celular">
-        <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
-        <button type="button" onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
-        <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20}/><span>Mais</span></button>
+      <nav className="mobile-bottom-nav" aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
+        {active === "Atendimento" ? (
+          <>
+            <button type="button" className="active" aria-current="page" onClick={() => setMenuOpen(false)}><Icon name="messages" size={20}/><span>Conversa</span></button>
+            <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-assume")); }}><Icon name="assume" size={20}/><span>Assumir</span></button>
+            <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
+            <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-finalize")); }}><Icon name="finalize" size={20}/><span>Finalizar</span></button>
+          </>
+        ) : (
+          <>
+            <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
+            <button type="button" onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
+            <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20}/><span>Mais</span></button>
+          </>
+        )}
       </nav>
     </div>
   );

@@ -163,3 +163,24 @@
     height: auto;
   }
 }
+
+.vx-flow-freeform .vx-flow-start-node {
+  display: grid;
+  gap: 5px;
+  padding: 11px 13px;
+}
+
+.vx-flow-freeform .vx-flow-trigger-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx);
+}
+
+.vx-flow-freeform .vx-flow-trigger-preview {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tx2);
+  font-size: 12px;
+}

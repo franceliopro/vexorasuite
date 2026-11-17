@@ -82,6 +82,13 @@ try{
  await expect.poll(()=>node.evaluate(element=>parseFloat(element.parentElement.style.left))).toBeLessThan(-300);
  await expect.poll(()=>node.evaluate(element=>parseFloat(element.parentElement.style.top))).toBeLessThan(-240);
 
+ await expect(board.locator(".vx-flow-node-summary").first()).toHaveText("Olá");
+ const minimap=page.getByRole("button",{name:"Minimapa"});
+ await minimap.click();
+ await expect(page.getByRole("navigation",{name:"Mapa do fluxo"})).toBeVisible();
+ await minimap.click();
+ await expect(page.getByRole("navigation",{name:"Mapa do fluxo"})).toHaveCount(0);
+
  const beforeZoom=await camera();
  await page.getByRole("button",{name:"Aumentar zoom"}).click();
  await expect.poll(async()=> (await camera()).zoom).toBeGreaterThan(beforeZoom.zoom);

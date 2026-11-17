@@ -123,7 +123,7 @@ try{
  await expect(tracker.getByRole("status")).toHaveText("Posição simulada registrada.");
  await expect(tracker.getByRole("link",{name:"Abrir última posição no mapa"})).toHaveAttribute("href",/mlat=-5\.19000/);
  await page.goto("http://127.0.0.1:3101/?module=Atendentes");
- await page.getByRole("tab",{name:"Setores e permissões"}).click();
+ await page.getByRole("button",{name:"Setores e permissões",exact:true}).click();
  await page.getByRole("button",{name:"Duplicar",exact:true}).click();
  await page.getByLabel("Nome do novo setor").fill("Financeiro B");
  await page.getByLabel("Plataforma de destino").fill("B");

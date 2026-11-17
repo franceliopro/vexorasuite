@@ -31,11 +31,11 @@ function conversationUrl(id: string) {
   return "/?module=Atendimento&conversation=" + encodeURIComponent(id);
 }
 
-function SupportDialog({ title, icon, children, onOpen }: { title: string; icon: ReactNode; children: ReactNode; onOpen: () => void }) {
+function SupportDialog({ title, icon, children, onOpen, onClose }: { title: string; icon: ReactNode; children: ReactNode; onOpen: () => void; onClose?: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return <>
     <button className="secondary-button vx-support-trigger" type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
-    <dialog ref={dialog} className="vx-support-dialog" aria-label={title}>
+    <dialog ref={dialog} onClose={onClose} className="vx-support-dialog" aria-label={title}>
       <header><h2>{title}</h2><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
       {children}
     </dialog>
@@ -145,6 +145,8 @@ export function InboxSupportQueue() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [acceptedConversation, setAcceptedConversation] = useState<string>();
   async function refresh() {
     setQueue(await supportApi<Queue>("support-queue"));
     setNow(Date.now());
@@ -158,21 +160,28 @@ export function InboxSupportQueue() {
     void run(async () => {
       await supportApi("support-requests/" + row.id + "/respond", { decision, answer });
       await refresh();
+      if (decision === "accept") setAcceptedConversation(row.conversationId);
       setNotice(decision === "accept" ? "Escalonamento aceito. A conversa foi atribuída a você." : decision === "answer" ? "Resposta registrada." : "Solicitação cancelada.");
     });
   }
   useEffect(() => {
-    if (!queue) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, [queue]);
+    if (!open || busy) return;
+    let active = true;
+    const timer = window.setInterval(() => {
+      void supportApi<Queue>("support-queue").then(data => {
+        if (active) { setQueue(data); setNow(Date.now()); }
+      }).catch(() => {});
+    }, 30_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [open, busy]);
 
-  return <SupportDialog title="Fila de apoio" icon={<ClipboardList size={16} aria-hidden="true" />} onOpen={() => void run(refresh)}>
+  return <SupportDialog title="Fila de apoio" icon={<ClipboardList size={16} aria-hidden="true" />} onOpen={() => { setOpen(true); setAcceptedConversation(undefined); void run(refresh); }} onClose={() => setOpen(false)}>
     <div className="vx-support-buttons"><button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar fila</button>
       {queue?.manager && <button type="button" className="secondary-button" disabled={busy} onClick={() => void run(async () => setSettings(await supportApi<Settings>("support-settings")))}>Configurar campos e prazos</button>}
     </div>
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
+    {acceptedConversation && <a href={conversationUrl(acceptedConversation)}>Abrir atendimento assumido <ArrowUpRight size={14} aria-hidden="true" /></a>}
     {busy && !queue && <p role="status">Carregando fila…</p>}
     {settings && <section><h3>Configuração da empresa</h3>
       <SupportSettingsForm settings={settings} busy={busy} onSave={value => void run(async () => {

@@ -1,0 +1,82 @@
+import {chromium,expect} from "@playwright/test";
+import {spawn} from "node:child_process";
+import {createRequire} from "node:module";
+import assert from "node:assert/strict";
+const require=createRequire(import.meta.url);
+const server=spawn(process.execPath,[require.resolve("next/dist/bin/next"),"start","--hostname","127.0.0.1","--port","3101"],{stdio:["ignore","pipe","pipe"]});
+let diagnostics="";server.stdout.on("data",chunk=>{diagnostics+=chunk});server.stderr.on("data",chunk=>{diagnostics+=chunk});
+let browser;
+const userId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",tenantId="cccccccc-cccc-4ccc-8ccc-cccccccccccc",convId="aaaaaaaa-0001-4000-8000-000000000001",contactId="ffffffff-ffff-4fff-8fff-ffffffffffff";
+const iso=(mins)=>new Date(Date.now()-mins*60000).toISOString();
+const minutes=(value)=>Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/60000));
+const messages=[{id:"dddddddd-0001-4000-8000-000000000001",content:"Olá! Quero agendar uma avaliação.",contentType:"text",direction:"INBOUND",status:"RECEIVED",occurredAt:iso(4),senderName:"Francélio"}];
+const conversations=[{id:convId,status:"OPEN",createdAt:iso(220),channel:"WHATSAPP",handlingMode:"HUMAN",isOverdue:false,subject:"Agendamento",lastMessageAt:iso(4),priority:null,contact:{id:contactId,name:"Francélio",phone:"5511999990001",metadata:{avatarUrl:"https://example.test/frances.jpg",tags:[{name:"Lead",color:"#FDE68A"}]}},department:null,assignee:null,messages}];
+const overview={openConversations:5,contacts:18,contactsNewWeek:4,activeAgents:3,agentsTotal:5,completedConversations:42,recent:[{id:"rec-1",status:"OPEN",updatedAt:iso(12),createdAt:iso(200),handlingMode:"HUMAN",contact:{name:"Francélio",id:contactId}}],waiting:{total:5,oldestMinutes:2,items:[{id:convId,contactName:"Francélio",contactId,departmentName:"Atendimento",channel:"WHATSAPP",waitingMinutes:2}]},team:[{id:userId,name:"Chefão",initials:"CH",openCount:3,loadPercent:60,departmentName:"Atendimento",presence:"active"}],hourly:{labels:["8h","12h","18h"],values:[2,5,3],average:[2,3,2],peakIndex:1,peakValue:5},topics:[{label:"Agendamento",count:8,percent:60}],channels:[{label:"WhatsApp",count:9,percent:90}],kpis:{resolvedByAi:11,resolvedByAiPercent:26,revenue:12400.5,payments:31,firstResponseSeconds:95}};
+const config={name:"Véxora",wakeWord:"Olá Véxora",enabled:true,dailyAiLimit:100,agents:[],stt:{provider:"browser",model:"browser"},tts:{provider:"browser",model:"browser"},llm:{provider:"ollama",model:"qa-local",tier:"Econômico"},companyRules:"Use as informações aprovadas.",companyKnowledge:"Atendemos de segunda a sexta.",knowledgeDocuments:[]};
+const supportSettings={fields:[{key:"asset",label:"Equipamento"}],helpMinutes:45,escalationMinutes:15,replyMinutes:20};
+const departmentId="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+let submitted;
+async function fixtures(page){
+ await page.route("**/api/backend/**",async route=>{
+  const request=route.request(),url=new URL(request.url()),path=url.pathname.replace("/api/backend","");let data={};
+  if(path==="/events")return route.fulfill({status:200,contentType:"text/event-stream",body:": ready\n\n"});
+  if(path==="/auth/me")data={user:{id:userId,name:"Chefão",email:"vexora@example.test",isPlatformAdmin:true,mustChangePassword:false},tenant:{id:tenantId,name:"Clínica Lume",slug:"qa",kind:"CLIENT"},role:"OWNER",allowedModules:["INBOX","CRM","AUTOMATION","SETTINGS","CHANNELS","TASKS","CALENDAR"]};
+  else if(path==="/profile")data={name:"Chefão",email:"vexora@example.test"};
+  else if(path==="/overview")data=overview;
+  else if(path==="/assistant/config")data=config;
+  else if(path==="/assistant/model-catalog")data={models:[],services:[],voiceOptions:[]};
+  else if(path==="/assistant/engine/status")data={active:false,publications:[]};
+  else if(path==="/assistant/skills")data={skills:[]};
+  else if(path==="/assistant/custom-skills")data={skills:[]};
+  else if(path==="/business-templates")data={segments:[]};
+  else if(path==="/conversations/mentions")data=[];
+  else if(path==="/conversations/"+convId+"/support-context")data={settings:supportSettings,values:{asset:"R-32"},canEdit:true,canRequest:true,platform:"Piloto",departments:[{id:departmentId,name:"Especialistas"}],history:[]};
+  else if(path==="/conversations/"+convId+"/support-requests"){submitted=request.postDataJSON();data={id:"request-fixture"};}
+  else if(path==="/conversations/support-queue")data={manager:true,requests:[],waiting:[{id:convId,name:"Francélio",team:"Equipe de teste",assignee:"Operador",since:iso(40)}]};
+  else if(path==="/conversations/support-settings")data=supportSettings;
+  else if(path==="/conversations/counts")data={new:1,mine:1,team:0,others:0};
+  else if(path==="/conversations/quick-replies")data=[];
+  else if(path==="/conversations/quick-reply-settings")data={};
+  else if(path==="/conversations/assignees")data=[{id:userId,name:"Chefão",email:"vexora@example.test"}];
+  else if(path==="/departments")data=[];
+  else if(path==="/channels")data=[];
+  else if(path==="/supervision/overview"||path.startsWith("/supervision/overview"))data={slaMinutes:30,totals:{open:2,pending:1,waiting:1,stale:0},oldestWaiting:null,byDepartment:[],staleConversations:[]};
+  else if(/^\/conversations\/[^/]+\/messages/.test(path))data=messages;
+  else if(/^\/conversations\/[^/]+\/internal-notes/.test(path))data=[];
+  else if(path==="/conversations")data=conversations;
+  else if(/^\/service-protocols\/conversations\//.test(path))data={code:"AT-0412",conversationId:convId};
+  else if(path==="/contacts/profile-config")data={tags:[],fields:[]};
+  else if(/^\/contacts\/.+\/identities/.test(path))data=[];
+  else if(/^\/contacts\/.+\/procedures/.test(path))data=[];
+  else if(/^\/tasks/.test(path))data=[];
+  return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(data)});
+ });
+ await page.route("https://fonts.googleapis.com/**",route=>route.abort());
+}
+try{
+ for(let i=0;i<60;i++){
+  try{if((await fetch("http://127.0.0.1:3101")).ok)break;}catch{}
+  if(i===59)throw Error("Preview unavailable\n"+diagnostics);
+  await new Promise(resolve=>setTimeout(resolve,500));
+ }
+ browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:950}});
+ await fixtures(page);
+ await page.goto("http://127.0.0.1:3101/?module=Atendimento");
+ await page.getByRole("button",{name:"Contexto e apoio"}).click();
+ const context=page.getByRole("dialog",{name:"Contexto e apoio"});
+ await expect(context.getByLabel("Equipamento")).toHaveValue("R-32");
+ await context.getByRole("button",{name:"Escalar",exact:true}).click();
+ await context.getByLabel("Equipe de destino").selectOption(departmentId);
+ await context.getByLabel("Motivo e testes já realizados").fill("Medições registradas");
+ await context.getByRole("button",{name:"Enviar escalonamento"}).click();
+ await expect(context.getByRole("status")).toContainText("Escalonamento enviado");
+ assert.deepEqual(submitted,{kind:"ESCALATION",destinationId:departmentId,note:"Medições registradas",minutes:15});
+ await context.getByRole("button",{name:"Fechar"}).click();
+ await page.getByRole("button",{name:"Fila de apoio"}).click();
+ const queue=page.getByRole("dialog",{name:"Fila de apoio"});
+ await expect(queue.getByRole("heading",{name:"Clientes sem retorno no prazo"})).toBeVisible();
+ await queue.getByRole("button",{name:"Configurar campos e prazos"}).click();
+ await expect(queue.getByLabel("Nome visível")).toHaveValue("Equipamento");
+ console.log("Inbox: configurable context, escalation and manager queue OK.");
+}finally{await browser?.close();server.kill("SIGTERM");}

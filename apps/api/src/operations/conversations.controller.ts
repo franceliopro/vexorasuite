@@ -956,8 +956,8 @@ export class ConversationsController {
     }[]>`
       SELECT c.id, p.name, d.name AS team, u.name AS assignee, waiting.occurred_at AS since
       FROM conversations c
-      JOIN contacts p ON p.id = c.contact_id
-      LEFT JOIN departments d ON d.id = c.department_id
+      JOIN contacts p ON p.id = c.contact_id AND p.tenant_id = c.tenant_id
+      LEFT JOIN departments d ON d.id = c.department_id AND d.tenant_id = c.tenant_id
       LEFT JOIN users u ON u.id = c.assignee_id
       LEFT JOIN LATERAL (
         SELECT m.occurred_at, m.created_at, m.id

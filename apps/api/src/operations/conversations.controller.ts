@@ -1,3 +1,4 @@
+import { assertConversationClaim, lockConversationClaim } from "./conversation-claim";
 import { AuditCovered } from "../common/audit/audit.decorator";
 import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
@@ -410,9 +411,9 @@ export class ConversationsController {
   async assume(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Query("view") view = "new") {
     await this.assertCanAccess(request, id, view);
     const tenantId = request.user.tenantId;
-    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, assigneeId: true, status: true } });
+    const conversation = await this.prisma.conversation.findFirst({ where: { id, tenantId }, select: { id: true, assigneeId: true, claimedById: true, handlingMode: true, status: true, archivedAt: true, deletedAt: true } });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    if (conversation.status === "CLOSED" || conversation.status === "RESOLVED") throw new BadRequestException("Reabra a conversa antes de assumi-la.");
+    if (conversation.archivedAt || conversation.deletedAt || !["OPEN", "PENDING"].includes(conversation.status)) throw new BadRequestException("Reabra ou restaure a conversa antes de assumi-la.");
     const membership = await this.prisma.membership.findFirst({ where: { tenantId, userId: request.user.sub }, select: { id: true } });
     if (!membership) throw new BadRequestException("Você não faz parte desta empresa.");
     // Conditional update prevents two agents from simultaneously taking the same conversation.
@@ -426,6 +427,11 @@ export class ConversationsController {
           id,
           tenantId,
           status: { in: ["OPEN", "PENDING"] },
+          archivedAt: null,
+          deletedAt: null,
+          assigneeId: conversation.assigneeId,
+          claimedById: conversation.claimedById,
+          handlingMode: conversation.handlingMode,
           OR: [
             { assigneeId: null },
             { assigneeId: request.user.sub },
@@ -434,7 +440,7 @@ export class ConversationsController {
             { participants: { some: { tenantId, userId: request.user.sub } } },
           ],
         },
-        data: { assigneeId: request.user.sub,handlingMode:"HUMAN" },
+        data: { assigneeId: request.user.sub, claimedById: request.user.sub, handlingMode:"HUMAN" },
       });
       if (result.count) await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.assumed", entityType: "conversation", entityId: id, details: { previousAssigneeId: conversation.assigneeId, assigneeId: request.user.sub } } });
       return result;
@@ -461,7 +467,7 @@ export class ConversationsController {
       if(conversation.departmentId&&!await this.prisma.departmentMember.findFirst({where:{tenantId,departmentId:conversation.departmentId,userId},select:{id:true}}))throw new BadRequestException("O atendente não pertence ao departamento desta conversa. Use a transferência para mudar de departamento.");
     }
     const updated = await this.prisma.$transaction(async tx => {
-      const next = await tx.conversation.update({ where: { id }, data: { assigneeId: userId ?? null,...(userId?{handlingMode:"HUMAN" as const}:{}) }, include: { assignee: { select: { id: true, name: true } } } });
+      const next = await tx.conversation.update({ where: { id }, data: { assigneeId: userId ?? null, claimedById: null,...(userId?{handlingMode:"HUMAN" as const}:{}) }, include: { assignee: { select: { id: true, name: true } } } });
       await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.assigned", entityType: "conversation", entityId: id, details: { fromAssigneeId: conversation.assigneeId, toAssigneeId: userId ?? null, departmentId: conversation.departmentId } } });
       return next;
     });
@@ -554,7 +560,7 @@ export class ConversationsController {
       if(!current)throw new NotFoundException("Conversa não encontrada ou você não tem acesso a ela.");
       if(current.deletedAt||current.archivedAt||!["OPEN","PENDING"].includes(current.status))throw new BadRequestException("Reabra ou restaure a conversa antes de transferir.");
       const next = await tx.conversation.update({
-        where:{id},data:{handlingMode:"HUMAN",departmentId,assigneeId,status:"OPEN"},
+        where:{id},data:{handlingMode:"HUMAN",departmentId,assigneeId,claimedById:null,status:"OPEN"},
         include:{assignee:{select:{id:true,name:true}},department:{select:{id:true,key:true,name:true}}}
       });
       const targetIdentity=assigneeId?await tx.membership.findFirst({where:{tenantId,userId:assigneeId},select:{knownBy:true}}):null;
@@ -813,6 +819,7 @@ export class ConversationsController {
     if (isFinalizedConversation(conversation.contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado. Consulte o histórico em Contatos.");
     if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
+    assertConversationClaim(conversation, request.user.sub);
     const kind = input.kind || "text";
     const isLocation = kind === "location";
     const isContact = kind === "contact";
@@ -828,7 +835,7 @@ export class ConversationsController {
     const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(latitude + "," + longitude);
     const content = isLocation ? locationTitle + "\n" + mapUrl :
       isContact ? [sharedName, sharedPhone, conversation.contact.email].filter(Boolean).join("\n") :
-      (input.content || input.caption || "").trim();
+      kind === "audio" ? "Mensagem de voz" : (input.content || input.caption || "").trim();
 
     if (conversation.channelConnection?.provider === "EMAIL") {
       const attachment = input.data && input.filename && input.mimetype && input.kind !== "text" ? { filename: input.filename, contentType: input.mimetype, data: input.data } : undefined;
@@ -876,16 +883,31 @@ export class ConversationsController {
     const agentLabel=`*${senderName}${departmentName?" · "+departmentName:""}*`;
     if (kind === "text" && !content) throw new BadRequestException("Digite uma mensagem antes de enviar.");
     if (kind !== "text" && !isZernio && !isLocation && !isContact && (!input.data || !input.mimetype)) throw new BadRequestException("O anexo está incompleto.");
-    if (isZernio && kind !== "text" && !isLocation && !isContact) throw new BadRequestException("Este canal ainda não aceita esse tipo de anexo.");
     const isOfficialWhatsApp = isZernio && String((conversation.channelConnection.settings as Record<string, unknown> | null)?.platform || "").toLowerCase() === "whatsapp";
+    if (isZernio && kind !== "text" && !isLocation && !isContact && !(isOfficialWhatsApp && kind === "audio")) throw new BadRequestException("Este canal ainda não aceita esse tipo de anexo.");
+    let zernioVoice: FormData | undefined;
+    if (isOfficialWhatsApp && kind === "audio") {
+      const mimeType = input.mimetype?.split(";")[0]?.trim().toLowerCase();
+      const extension = mimeType && ({ "audio/ogg": "ogg", "audio/webm": "webm", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/aac": "aac", "audio/wav": "wav" } as Record<string, string>)[mimeType];
+      if (!input.data || !extension || !mimeType) throw new BadRequestException("O formato do áudio não é compatível com este canal.");
+      const bytes = Buffer.from(input.data, "base64");
+      if (!bytes.length || bytes.length > 16 * 1024 * 1024) throw new BadRequestException("O áudio precisa ter até 16 MB.");
+      zernioVoice = new FormData();
+      zernioVoice.set("accountId", linkedAccountId);
+      zernioVoice.set("voiceNote", "true");
+      zernioVoice.set("attachment", new Blob([new Uint8Array(bytes)], { type: mimeType }), "audio-vexora." + extension);
+    }
     if (isOfficialWhatsApp && isContact && !sharedPhone) throw new BadRequestException("O contato ainda não possui telefone para compartilhar.");
 
-    const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName, provider: isZernio ? "ZERNIO" : "WAHA", agentSignature: senderName + (departmentName ? " · " + departmentName : ""), filename: input.filename || null, mimetype: input.mimetype || null } } });
+    const queued = await this.prisma.$transaction(async tx => {
+      await lockConversationClaim(tx, tenantId, id, request.user.sub);
+      return tx.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName, provider: isZernio ? "ZERNIO" : "WAHA", agentSignature: senderName + (departmentName ? " · " + departmentName : ""), filename: input.filename || null, mimetype: input.mimetype || null } } });
+    });
     this.events.publish(tenantId, "message.queued", { conversationId: conversation.id, message: { id: queued.id, direction: queued.direction, status: queued.status, content: queued.content } });
     let providerMessageId: string | null;
     try {
       if (isZernio) {
-        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: {
+        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: zernioVoice ?? {
           accountId: linkedAccountId,
           ...(isOfficialWhatsApp && isLocation
             ? { location: { latitude, longitude, name: locationTitle, ...(input.address ? { address: input.address } : {}) } }
@@ -922,12 +944,7 @@ export class ConversationsController {
       throw new BadGatewayException("A mensagem não foi enviada." + detail + " A falha ficou registrada no histórico.");
     }
     const sent = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "SENT", providerMessageId } });
-    await this.prisma.$transaction(async tx => {
-      await tx.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: sent.occurredAt, ...(conversation.status === "RESOLVED" ? { status: "OPEN" } : {}) } });
-      if (conversation.status === "RESOLVED") {
-        await tx.auditLog.create({ data: { tenantId, userId: request.user.sub, action: "conversation.reopened_by_reply", entityType: "conversation", entityId: conversation.id, details: { messageId: sent.id, fromStatus: "RESOLVED", toStatus: "OPEN" } } });
-      }
-    });
+    await this.prisma.conversation.update({ where: { id: conversation.id }, data: { lastMessageAt: sent.occurredAt } });
     this.events.publish(tenantId, "message.sent", { conversationId: conversation.id, message: { id: sent.id, direction: sent.direction, status: sent.status, content: sent.content, occurredAt: sent.occurredAt.toISOString() } });
     return sent;
   }
@@ -1184,7 +1201,7 @@ export class ConversationsController {
       });
       if (!updated.count) throw new BadRequestException("Esta solicitação já foi concluída.");
       if (decision === "accept") {
-        await tx.conversation.update({ where: { id }, data: { assigneeId: sub, departmentId: row.destinationId, status: "OPEN" } });
+        await tx.conversation.update({ where: { id }, data: { assigneeId: sub, claimedById: null, departmentId: row.destinationId, status: "OPEN" } });
       }
       if (!cancel) {
         await tx.message.create({

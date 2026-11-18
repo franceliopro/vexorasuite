@@ -217,6 +217,7 @@ model Conversation {
   contactId           String                    @map("contact_id") @db.Uuid
   channelConnectionId String?                   @map("channel_connection_id") @db.Uuid
   assigneeId          String?                   @map("assignee_id") @db.Uuid
+  claimedById         String?                   @map("claimed_by_id") @db.Uuid
   departmentId        String?                   @map("department_id") @db.Uuid
   handlingMode        ConversationHandlingMode  @default(BOT) @map("handling_mode")
   archivedAt          DateTime?                 @map("archived_at")

@@ -37,6 +37,7 @@ async function fixtures(page){
   else if(path==="/supervision/overview"||path.startsWith("/supervision/overview"))data={slaMinutes:30,totals:{open:2,pending:1,waiting:1,stale:0},oldestWaiting:null,byDepartment:[],staleConversations:[]};
   else if(/^\/conversations\/[^/]+\/messages/.test(path))data=messages;
   else if(/^\/conversations\/[^/]+\/internal-notes/.test(path))data=[];
+  else if(path==="/conversations/"+convId+"/assume")data=Object.assign(conversations[0],{handlingMode:"HUMAN",claimedById:userId,assignee:{id:userId,name:"Chefão"}});
   else if(path==="/conversations")data=conversations;
   else if(/^\/service-protocols\/conversations\//.test(path))data={code:"AT-0412",conversationId:convId};
   else if(path==="/contacts/profile-config")data={tags:[],fields:[]};
@@ -79,7 +80,9 @@ try{
 
  assert.equal(await page.locator(".composer-tabs-row, .inbox-assume-wrap, .vx-support-context").count(),0);
  assert.equal(await page.locator("header.thread-heading").evaluate(el=>getComputedStyle(el).marginBottom),"0px");
+ await page.getByRole("button",{name:"Assumir conversa",exact:true}).click();
  const mode=page.locator(".composer-mode-button");
+ await mode.waitFor();
  assert.equal(await mode.getAttribute("aria-label"),"Responder");
  await page.getByRole("button",{name:"Ferramentas da conversa"}).click();
  const tools=page.getByRole("menu",{name:"Mais ações"});

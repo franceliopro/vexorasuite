@@ -37,6 +37,7 @@ export type Conversation = {
   updatedAt?: string;
   channel?: string;
   handlingMode?: "BOT" | "HUMAN";
+  claimedById?: string | null;
   botState?: Record<string, unknown>;
   isOverdue?: boolean;
   department?: { id: string; key: string; name: string } | null;

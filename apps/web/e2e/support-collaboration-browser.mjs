@@ -10,7 +10,7 @@ const userId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",tenantId="cccccccc-cccc-4ccc
 const iso=(mins)=>new Date(Date.now()-mins*60000).toISOString();
 const minutes=(value)=>Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/60000));
 const messages=[{id:"dddddddd-0001-4000-8000-000000000001",content:"Olá! Quero agendar uma avaliação.",contentType:"text",direction:"INBOUND",status:"RECEIVED",occurredAt:iso(4),senderName:"Francélio"}];
-const conversations=[{id:convId,status:"OPEN",createdAt:iso(220),channel:"WHATSAPP",handlingMode:"HUMAN",isOverdue:false,subject:"Agendamento",lastMessageAt:iso(4),priority:null,contact:{id:contactId,name:"Francélio",phone:"5511999990001",metadata:{avatarUrl:"https://example.test/frances.jpg",tags:[{name:"Lead",color:"#FDE68A"}]}},department:null,assignee:null,messages}];
+const conversations=[{id:convId,status:"OPEN",createdAt:iso(220),channel:"WHATSAPP",handlingMode:"BOT",claimedById:null,isOverdue:false,subject:"Agendamento",lastMessageAt:iso(4),priority:null,contact:{id:contactId,name:"Francélio",phone:"5511999990001",metadata:{avatarUrl:"https://example.test/frances.jpg",tags:[{name:"Lead",color:"#FDE68A"}]}},department:null,assignee:null,messages}];
 const overview={openConversations:5,contacts:18,contactsNewWeek:4,activeAgents:3,agentsTotal:5,completedConversations:42,recent:[{id:"rec-1",status:"OPEN",updatedAt:iso(12),createdAt:iso(200),handlingMode:"HUMAN",contact:{name:"Francélio",id:contactId}}],waiting:{total:5,oldestMinutes:2,items:[{id:convId,contactName:"Francélio",contactId,departmentName:"Atendimento",channel:"WHATSAPP",waitingMinutes:2}]},team:[{id:userId,name:"Chefão",initials:"CH",openCount:3,loadPercent:60,departmentName:"Atendimento",presence:"active"}],hourly:{labels:["8h","12h","18h"],values:[2,5,3],average:[2,3,2],peakIndex:1,peakValue:5},topics:[{label:"Agendamento",count:8,percent:60}],channels:[{label:"WhatsApp",count:9,percent:90}],kpis:{resolvedByAi:11,resolvedByAiPercent:26,revenue:12400.5,payments:31,firstResponseSeconds:95}};
 const config={name:"Véxora",wakeWord:"Olá Véxora",enabled:true,dailyAiLimit:100,agents:[],stt:{provider:"browser",model:"browser"},tts:{provider:"browser",model:"browser"},llm:{provider:"ollama",model:"qa-local",tier:"Econômico"},companyRules:"Use as informações aprovadas.",companyKnowledge:"Atendemos de segunda a sexta.",knowledgeDocuments:[]};
 const supportSettings={fields:[{key:"asset",label:"Equipamento"}],helpMinutes:45,escalationMinutes:15,replyMinutes:20};
@@ -36,6 +36,13 @@ async function fixtures(page){
   else if(path==="/integrations/google/calendar/calendar-account/calendars")data={items:[{id:"primary",summary:"Agenda de teste",primary:true,accessRole:"owner"}]};
   else if(path==="/integrations/google/calendar/calendar-account/events")data={items:[]};
   else if(path==="/integrations/google/calendar/places")data={suggestions:[{id:"place-one",label:suggestedAddress}]};
+  else if(path==="/conversations/"+convId+"/assume"){
+   const conversation=conversations[0];
+   conversation.handlingMode="HUMAN";
+   conversation.assignee={id:userId,name:"Chefão"};
+   conversation.claimedById=userId;
+   data=conversation;
+  }
   else if(path==="/conversations/"+convId+"/messages"&&request.method()==="POST"){
    attachmentRequests.push(request.postDataJSON());
    data={id:"sent-fixture"};
@@ -90,6 +97,21 @@ try{
  }
  browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:1440,height:950}});
+ await page.addInitScript(() => {
+  Object.defineProperty(navigator.mediaDevices, "getUserMedia", {value: async () => {
+   const context = new AudioContext();
+   const destination = context.createMediaStreamDestination();
+   const oscillator = context.createOscillator();
+   oscillator.connect(destination);
+   oscillator.start();
+   await context.resume();
+   for (const track of destination.stream.getAudioTracks()) {
+    const stop = track.stop.bind(track);
+    track.stop = () => { stop(); if (context.state !== "closed") void context.close(); };
+   }
+   return destination.stream;
+  }});
+ });
  await fixtures(page);
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
  const activeItem=page.locator(".sidebar .nav-item.active").first();
@@ -101,6 +123,12 @@ try{
  const shadow=await activeItem.evaluate(item=>getComputedStyle(item).boxShadow);
  assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
  await expect(page.locator(".vx-support-context, .inbox-assume-wrap")).toHaveCount(0);
+ const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
+ const assume=page.getByRole("button",{name:"Assumir conversa",exact:true});
+ await expect(composer).toHaveCount(0);
+ await expect(page.getByText("Em atendimento pelo chatbot.")).toBeVisible();
+ await assume.click();
+ await expect(composer).toBeVisible();
  const statusMenu=page.locator(".thread-status-pill");
  await expect(statusMenu.getByRole("menuitem",{name:"Contexto e apoio"})).toBeHidden();
  await statusMenu.locator("summary").click();
@@ -172,7 +200,6 @@ try{
  await expect(profile.getByRole("button",{name:"Expandir ficha"})).toBeVisible();
  await page.keyboard.press("Alt+c");
  await expect(profile.getByRole("button",{name:"Recolher ficha"})).toBeVisible();
- const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
  await composer.focus();
  await page.keyboard.insertText("/");
  await expect(page.locator(".quick-replies-popover")).toBeVisible();
@@ -200,6 +227,19 @@ try{
  await page.keyboard.press("Alt+p");
  await expect(mode).toHaveAccessibleName("Responder");
 
+ async function checkRecording(expectedCount) {
+  await page.getByRole("button",{name:"Gravar áudio",exact:true}).click();
+  await expect(page.locator(".voice-wave")).toBeVisible();
+  await expect.poll(()=>page.locator(".voice-wave span").count()).toBe(26);
+  await expect.poll(()=>page.locator(".voice-wave span").evaluateAll(bars=>bars.some(bar=>parseFloat(bar.style.height)>4))).toBe(true);
+  await page.getByRole("button",{name:"Enviar áudio",exact:true}).click();
+  await expect.poll(()=>attachmentRequests.filter(message=>message.kind==="audio").length).toBe(expectedCount);
+ }
+ await checkRecording(1);
+ conversations[0].handlingMode="HUMAN";
+ conversations[0].department={id:departmentId,key:"SPECIALISTS",name:"Especialistas"};
+ conversations[0].assignee={id:userId,name:"Chefão"};
+ conversations[0].claimedById=null;
  await page.setViewportSize({width:390,height:844});
  await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
  const dock=page.locator(".mobile-bottom-nav");
@@ -209,7 +249,11 @@ try{
  assert(position && Math.abs(position.x+position.width/2-195)<2,"mobile conversation shortcut is centered");
  await shortcut.click();
  await page.locator(".inbox-conversation").first().click();
+ await expect(composer).toHaveCount(0);
+ await expect(assume).toBeVisible();
+ await dock.getByRole("button",{name:"Assumir",exact:true}).click();
  await expect(mode).toBeVisible();
+ await checkRecording(2);
  for (const [index, label] of buttonLabels.entries()) {
   await expect(composerButtons.nth(index)).toBeVisible();
   await expect(composerButtons.nth(index)).toHaveAccessibleName(label);
@@ -290,5 +334,30 @@ try{
  await expect(calendarDialog.locator("iframe")).toHaveCount(0);
  await calendarDialog.getByRole("button",{name:"Ver no mapa"}).click();
  await expect(calendarDialog.locator("iframe")).toHaveAttribute("src",/Rua%20Manual/);
+ await page.route("**/api/backend/documents/recent",route=>route.fulfill({status:500,contentType:"application/json",body:JSON.stringify({message:"Internal server error"})}));
+ await page.route("**/api/backend/documents/templates",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({templates:[{id:"existing",kind:"QUOTE",name:"Modelo de teste",description:"",variables:[]}]})}));
+ await page.route("**/api/backend/contacts",route=>route.fulfill({status:200,contentType:"application/json",body:"[]"}));
+ for (const width of [1440,390]) {
+  await page.setViewportSize({width,height:700});
+  await page.goto("http://127.0.0.1:3101/?module=Documentos");
+  await expect(page.getByText("Modelo de teste", {exact:true})).toBeVisible();
+  await expect(page.getByRole("alert").filter({hasText:"Não foi possível carregar documentos recentes"})).toBeVisible();
+  await page.getByRole("button",{name:"Novo modelo",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Novo modelo"});
+  await expect(dialog).toBeVisible();
+  await expect.poll(async()=>{
+   const frame=await dialog.boundingBox();
+   if (!frame) return null;
+   return {x:Math.round(frame.x),y:Math.round(frame.y),width:Math.round(frame.width),height:Math.round(frame.height)};
+  }).toEqual({x:0,y:0,width,height:700});
+  const fields=dialog.getByRole("region",{name:"Campos do modelo"});
+  for (let i=0;i<8;i++) await fields.getByRole("button",{name:"Adicionar variável"}).click();
+  await fields.evaluate(el=>{el.scrollTop=el.scrollHeight});
+  await expect.poll(()=>fields.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+  await expect(fields.getByRole("textbox",{name:"Conteúdo do modelo"})).toBeInViewport();
+  await expect(dialog.getByRole("button",{name:"Salvar modelo"})).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+ }
  console.log("Inbox: configurable context, escalation and manager queue OK.");
 }finally{await browser?.close();server.kill("SIGTERM");}

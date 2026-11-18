@@ -1,3 +1,4 @@
+import { assertConversationClaim, lockConversationClaim } from "./conversation-claim";
 import {
   BadGatewayException,
   BadRequestException,
@@ -355,11 +356,13 @@ export class DocumentsController {
       where: { id: conversationId, tenantId: req.user.tenantId, deletedAt: null, archivedAt: null },
       select: {
         id: true,
+        assigneeId: true, claimedById: true, handlingMode: true, status: true,
         contact: { select: { externalId: true, phone: true, name: true } },
         channelConnection: { select: { id: true, provider: true, isActive: true } },
       },
     });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    assertConversationClaim(conversation, req.user.sub);
     if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA" || !conversation.channelConnection.isActive) {
       throw new BadRequestException("O envio pelo WhatsApp exige um canal WAHA ativo para esta conversa.");
     }
@@ -371,8 +374,10 @@ export class DocumentsController {
     const filename = document.name.replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80) + ".pdf";
     const member = await this.prisma.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: req.user.sub }, select: { knownBy: true } });
     const senderName = (typeof member?.knownBy === "string" && member.knownBy.trim()) || "Atendimento";
-    const queued = await this.prisma.message.create({
-      data: {
+    const queued = await this.prisma.$transaction(async tx => {
+      await lockConversationClaim(tx, req.user.tenantId, conversation.id, req.user.sub);
+      return tx.message.create({
+        data: {
         tenantId: req.user.tenantId,
         conversationId: conversation.id,
         direction: "OUTBOUND",
@@ -382,7 +387,8 @@ export class DocumentsController {
         senderName,
         metadata: { provider: "WAHA", documentId: document.id, filename, mimetype: "application/pdf" },
       },
-      select: { id: true, conversationId: true, direction: true, status: true, content: true },
+        select: { id: true, conversationId: true, direction: true, status: true, content: true },
+      });
     });
     this.events.publish(req.user.tenantId, "message.queued", { conversationId: queued.conversationId, message: queued });
     try {

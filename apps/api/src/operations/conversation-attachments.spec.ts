@@ -6,12 +6,13 @@ describe("conversation location and contact attachments", () => {
   const contact = { name: "Contato", phone: "+55 11 99999-0001", email: "contato@example.test", metadata: {} };
   const vcard = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Contato\r\nEND:VCARD";
 
-  function setup(platform: string) {
+  function setup(platform: string, claim = { assigneeId: "agent", claimedById: "agent", handlingMode: "HUMAN" }) {
     const conversation = {
-      id: "conversation", status: "OPEN", contact,
+      id: "conversation", status: "OPEN", contact, ...claim,
       channelConnection: { provider: "ZERNIO", isActive: true, settings: { platform, accountId: "official-account" } },
     };
     const prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([conversation]),
       channelConnection: { findMany: jest.fn().mockResolvedValue([]) },
       conversation: {
         findFirst: jest.fn().mockResolvedValue(conversation),
@@ -31,6 +32,35 @@ describe("conversation location and contact attachments", () => {
     const controller = new ConversationsController(prisma as never, events as never, {} as never, zernio as never);
     return { controller, prisma, zernio };
   }
+
+  it.each([
+    ["BOT", "", ""],
+    ["HUMAN", "agent", ""],
+    ["HUMAN", "teammate", "teammate"],
+  ])("blocks sending before this operator claims the conversation (%s)", async (handlingMode, assigneeId, claimedById) => {
+    const { controller, prisma, zernio } = setup("whatsapp", { handlingMode, assigneeId, claimedById });
+    await expect(controller.sendMessage(user, "conversation", { content: "teste" })).rejects.toThrow("Assumir conversa");
+    expect(prisma.message.create).not.toHaveBeenCalled();
+    expect(zernio.request).not.toHaveBeenCalled();
+  });
+
+  it("rechecks the claim under lock before reserving an outgoing message", async () => {
+    const { controller, prisma, zernio } = setup("whatsapp");
+    prisma.$queryRaw.mockResolvedValue([{ status: "OPEN", handlingMode: "BOT", assigneeId: null, claimedById: null }]);
+    await expect(controller.sendMessage(user, "conversation", { content: "teste" })).rejects.toThrow("Assumir conversa");
+    expect(prisma.message.create).not.toHaveBeenCalled();
+    expect(zernio.request).not.toHaveBeenCalled();
+  });
+
+  it("uploads a mobile recording as an official WhatsApp voice note", async () => {
+    const { controller, zernio } = setup("whatsapp");
+    await controller.sendMessage(user, "conversation", { kind: "audio", mimetype: "audio/mp4", data: "dGVzdGU=" });
+    const body = zernio.request.mock.calls[0]?.[1]?.body as FormData;
+    expect(body).toBeInstanceOf(FormData);
+    expect(body.get("accountId")).toBe("official-account");
+    expect(body.get("voiceNote")).toBe("true");
+    expect(body.get("attachment")).toMatchObject({ type: "audio/mp4", name: "audio-vexora.m4a" });
+  });
 
   it("sends a location pin and contact card through official WhatsApp", async () => {
     const { controller, prisma, zernio } = setup("whatsapp");
@@ -53,6 +83,19 @@ describe("conversation location and contact attachments", () => {
     await controller.sendMessage(user, "conversation", { kind: "location", latitude: -5.19, longitude: -37.34 });
     expect(zernio.request).toHaveBeenCalledWith("/inbox/conversations/thread/messages",
       expect.objectContaining({ body: { accountId: "official-account", message: expect.stringContaining("google.com/maps/search") } }), "tenant");
+  });
+
+  it("sends browser recordings to WAHA with conversion and the original media type", async () => {
+    const waha = new WahaService({} as never);
+    const request = jest.spyOn(waha as any, "request").mockResolvedValue(Response.json({ id: "voice-sent" }));
+    await expect(waha.sendMedia({ sessionName: "default" } as never, "5511999990001@c.us", "audio", {
+      mimetype: "audio/mp4", filename: "audio-vexora.m4a", base64: "dGVzdGU=",
+    })).resolves.toBe("voice-sent");
+    expect(request).toHaveBeenCalledWith("/api/sendVoice", expect.objectContaining({ method: "POST", signal: expect.any(AbortSignal) }));
+    expect(JSON.parse((request.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string || "{}")).toEqual({
+      session: "default", chatId: "5511999990001@c.us", convert: true,
+      file: { mimetype: "audio/mp4", filename: "audio-vexora.m4a", data: "dGVzdGU=" },
+    });
   });
 
   it("wraps the vCard in the contacts array expected by WAHA", async () => {

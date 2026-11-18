@@ -3,6 +3,7 @@ import { DocumentNormalizationPipe } from "./common/documents";
 import { GlobalExceptionFilter } from "./common/http/global-exception.filter";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 
 const DEFAULT_CORS_ORIGIN = "http://localhost:3000";
@@ -64,7 +65,9 @@ export function isAllowedCorsOrigin(requestOrigin: string | undefined, allowedOr
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
+  // The web proxy accepts up to 22 MiB, including the base64 overhead of audio and attachments.
+  app.useBodyParser("json", { limit: "22mb" });
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new GlobalExceptionFilter());
   // Behind Dokploy/Traefik the real client address comes in X-Forwarded-For. Without this the

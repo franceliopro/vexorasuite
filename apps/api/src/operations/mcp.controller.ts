@@ -7,6 +7,7 @@ import { EventsService } from "./events.service";
 import { AiService } from "../ai/ai.service";
 import { economicalProviders } from "../ai/economical-providers";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
+import { companyAutofill, contactAutofill, renderTemplate, missingKeys } from "./document-helpers";
 
 /**
  * Véxora MCP Server (Model Context Protocol sobre HTTP, JSON-RPC 2.0).
@@ -149,6 +150,29 @@ const TOOLS: Array<{
       type: "object",
       properties: { conversationId: { type: "string" } },
       required: ["conversationId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "list_document_templates",
+    description: "Lista os modelos de documento preparados (orçamentos, contratos, OS, recibos).",
+    inputSchema: {
+      type: "object",
+      properties: { kind: { type: "string", enum: ["QUOTE", "CONTRACT", "WORK_ORDER", "RECEIPT"] } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "create_document",
+    description: "Gera um documento a partir de um modelo já existente (opcionalmente com dados de contato) e o persiste.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["QUOTE", "CONTRACT", "WORK_ORDER", "RECEIPT"] },
+        templateId: { type: "string" },
+        contactId: { type: "string" },
+        values: { type: "object", additionalProperties: { type: "string" } },
+      },
       additionalProperties: false,
     },
   },
@@ -450,6 +474,61 @@ export class McpController {
         await this.prisma.auditLog.create({ data: { tenantId, userId: null, action: "conversation.crm_updated", entityType: "contact", entityId: contact.id, details: { fromPipelineId: metadata.pipelineId ?? null, toPipelineId: pipeline.id, toStage: stageId, source: "mcp" } } });
         this.events.publish(tenantId, "contact.updated", { id: updated.id, pipelineId: updated.pipelineId, crmStage: stageId });
         return { contactId: updated.id, pipelineId: updated.pipelineId, stageId };
+      }
+      case "list_document_templates": {
+        const kind = typeof args.kind === "string" ? args.kind.trim().toUpperCase() : undefined;
+        const templates = await this.prisma.documentTemplate.findMany({
+          where: { tenantId, ...(kind ? { kind } : {}) },
+          select: { id: true, kind: true, name: true, description: true },
+          orderBy: [{ kind: "asc" }, { name: "asc" }],
+        });
+        return { templates };
+      }
+      case "create_document": {
+        const kind = typeof args.kind === "string" ? args.kind.trim().toUpperCase() : undefined;
+        const templateId = typeof args.templateId === "string" ? args.templateId.trim() : undefined;
+        const contactId = typeof args.contactId === "string" ? args.contactId.trim() : undefined;
+        if (!templateId && !kind) this.mcpError("Informe kind ou templateId.");
+        if (kind && !["QUOTE", "CONTRACT", "WORK_ORDER", "RECEIPT"].includes(kind)) this.mcpError("kind inválido.");
+        const template = templateId
+          ? await this.prisma.documentTemplate.findFirst({ where: { id: templateId, tenantId }, include: { tenant: { select: { name: true, integrations: true } } } })
+          : await this.prisma.documentTemplate.findFirst({ where: { tenantId, kind }, orderBy: { createdAt: "asc" }, include: { tenant: { select: { name: true, integrations: true } } } });
+        if (!template) this.mcpError(templateId ? "Modelo não encontrado." : `Nenhum modelo de ${kind} cadastrado. Crie um em Documentos → Novo modelo.`);
+        let contact: any = null;
+        if (contactId) {
+          contact = await this.prisma.contact.findFirst({ where: { id: contactId, tenantId }, select: { id: true, name: true, phone: true, email: true, metadata: true } });
+          if (!contact) this.mcpError("Contato não encontrado nesta empresa.");
+        }
+        const valuesInput = args.values && typeof args.values === "object" && !Array.isArray(args.values) ? args.values as Record<string, unknown> : {};
+        const company = companyAutofill(template.tenant?.integrations, template.tenant?.name || "");
+        const merged: Record<string, string> = { ...contactAutofill(contact), ...company };
+        for (const key of Object.keys(valuesInput)) {
+          const raw = typeof valuesInput[key] === "string" ? valuesInput[key] as string : String(valuesInput[key] ?? "");
+          const clean = raw.trim().slice(0, 4000);
+          if (clean) merged[key.toLowerCase()] = clean;
+        }
+        const variables = Array.isArray(template.variables) ? (template.variables as Array<{ key: string; required?: boolean; label?: string }>) : [];
+        const today = new Date().toLocaleDateString("pt-BR");
+        if (!merged.data) merged.data = today;
+        if (!merged.documento && !merged.protocolo) merged.documento = String(Math.floor(Math.random() * 900000) + 100000);
+        const missing = missingKeys(template.body, merged);
+        const requiredMissing = variables.filter((v) => v.required && missing.includes(v.key));
+        if (requiredMissing.length) this.mcpError("Preencha: " + requiredMissing.map((v) => v.label || v.key).join(", "));
+        const content = renderTemplate(template.body, merged);
+        const doc = await this.prisma.generatedDocument.create({
+          data: {
+            tenantId,
+            templateId: template.id,
+            name: template.name,
+            kind: template.kind,
+            contactId: contact?.id ?? null,
+            contactName: contact?.name ? String(contact.name).slice(0, 160) : null,
+            values: merged as any,
+            content,
+          },
+          select: { id: true, name: true, kind: true, contactName: true, createdAt: true },
+        });
+        return { documentId: doc.id, name: doc.name, kind: doc.kind, content };
       }
       case "draft_reply": {
         const conversationId = typeof args.conversationId === "string" ? args.conversationId : "";

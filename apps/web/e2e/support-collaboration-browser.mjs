@@ -137,5 +137,56 @@ try{
  await page.getByRole("button",{name:"Confirmar duplicação"}).click();
  await expect(page.getByText("Setor duplicado como “Financeiro B”.")).toBeVisible();
  await expect(page.getByText("Financeiro B",{exact:true})).toBeVisible();
+ await page.goto("http://127.0.0.1:3101/?module=Atendimento");
+ const thread=page.locator(".inbox-thread");
+ const profile=page.locator(".contact-profile");
+ await expect(profile).toBeVisible();
+ await expect(page.locator("header.thread-heading")).toHaveCSS("margin-bottom","0px");
+ await expect(page.locator(".composer-tabs-row")).toHaveCount(0);
+ const originalWidth=(await thread.boundingBox()).width;
+ await profile.getByRole("button",{name:"Recolher ficha"}).click();
+ await expect.poll(async()=>Math.round((await profile.boundingBox()).width)).toBeLessThanOrEqual(54);
+ await expect.poll(async()=>(await thread.boundingBox()).width).toBeGreaterThan(originalWidth+100);
+ await profile.getByRole("button",{name:"Expandir ficha"}).click();
+ await expect.poll(async()=>Math.abs((await thread.boundingBox()).width-originalWidth)).toBeLessThan(2);
+ const tools=page.getByRole("button",{name:"Ferramentas da conversa"});
+ await tools.click();
+ const menu=page.getByRole("menu",{name:"Mais ações"});
+ for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas","Anexos"]){
+  await expect(menu.getByRole("menuitem",{name:new RegExp(label)})).toBeVisible();
+ }
+ await page.keyboard.press("Escape");
+ await expect(menu).toBeHidden();
+ const mode=page.locator(".composer-mode-button");
+ await expect(mode).toHaveAccessibleName("Responder");
+ await page.keyboard.press("Alt+p");
+ await expect(mode).toHaveAccessibleName("Nota privada");
+ await expect(page.locator(".inbox-composer")).toHaveCSS("border-top-style","dashed");
+ await page.keyboard.press("Alt+p");
+ await expect(mode).toHaveAccessibleName("Responder");
+
+ await page.setViewportSize({width:390,height:844});
+ await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
+ const dock=page.locator(".mobile-bottom-nav");
+ await expect(dock.getByRole("button")).toHaveCount(1);
+ const shortcut=dock.getByRole("button",{name:"Conversa",exact:true});
+ const position=await shortcut.boundingBox();
+ assert(position && Math.abs(position.x+position.width/2-195)<2,"mobile conversation shortcut is centered");
+ await shortcut.click();
+ await page.locator(".inbox-conversation").first().click();
+ await expect(mode).toBeVisible();
+ await expect(page.getByRole("button",{name:"Melhorar texto com IA"})).toBeVisible();
+ await tools.click();
+ await expect(menu.getByRole("menuitem",{name:/Emojis/})).toBeVisible();
+ await page.keyboard.press("Escape");
+ await mode.click();
+ await expect(mode).toHaveAccessibleName("Nota privada");
+ await mode.click();
+ await expect(mode).toHaveAccessibleName("Responder");
+ await page.getByRole("button",{name:"Mais ações",exact:true}).click();
+ await page.getByRole("button",{name:"Abrir ficha do cliente"}).click();
+ await expect(profile).toBeVisible();
+ await profile.getByRole("button",{name:"Recolher ficha"}).click();
+ await expect(profile).toBeHidden();
  console.log("Inbox: configurable context, escalation and manager queue OK.");
 }finally{await browser?.close();server.kill("SIGTERM");}

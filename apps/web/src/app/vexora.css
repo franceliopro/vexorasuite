@@ -5108,3 +5108,8 @@ input[type=tel]{letter-spacing:.02em}
 @media (max-width:760px){.docs-variable-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}}
 .docs-required-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:650;color:var(--tx2)}
 @media print{.docs-preview-actions,.docs-send,.docs-tabs,.workspace-actions,.sidebar,.topbar{display:none!important}.docs-document{max-height:none;border:0;box-shadow:none}}
+
+/* ===== Planos: ações e aviso de ativação ===== */
+.client-plan-actions{display:flex;flex-direction:column;gap:8px}
+.client-plan-actions .primary-button{width:100%;justify-content:center;min-height:38px;font-size:12.5px}
+.client-plans-notice{margin:0;padding:10px 14px;border:1px solid var(--ln2);border-radius:12px;background:var(--s2);color:var(--tx);font-size:12px;line-height:1.45;max-width:640px}

@@ -11,6 +11,28 @@ export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { cur
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activating, setActivating] = useState<string | null>(null);
+  const [activateNotice, setActivateNotice] = useState("");
+
+  async function activate(code: string, planName: string) {
+    setActivating(code); setActivateNotice("");
+    try {
+      const response = await fetch("/api/backend/billing/activate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ planCode: code }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 424) { setActivateNotice(typeof data?.message === "string" ? data.message : "A cobrança automática está indisponível — fale com o comercial."); return; }
+      if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "Falha ao iniciar a cobrança.");
+      setActivateNotice(data?.paymentUrl ? `Cobrança de ${planName} criada. Abrindo a fatura em uma nova aba — o plano é ativado automaticamente assim que o pagamento for confirmado.` : `Cobrança de ${planName} criada. O plano é ativado automaticamente assim que o pagamento for confirmado.`);
+      if (typeof data?.paymentUrl === "string" && data.paymentUrl) window.open(data.paymentUrl, "_blank", "noopener,noreferrer");
+    } catch (caught) {
+      setActivateNotice(caught instanceof Error ? caught.message : "Falha ao iniciar a cobrança.");
+    } finally {
+      setActivating(null);
+    }
+  }
   useEffect(() => {
     let mounted = true;
     fetch("/api/backend/plans", { cache: "no-store" })
@@ -29,6 +51,7 @@ export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { cur
         <a className="primary-button" href="https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20na%20V%C3%A9xora" target="_blank" rel="noopener noreferrer"><MessageCircle size={16} aria-hidden="true" /> Falar com a Véxora</a>
       </header>
       {error && <p className="client-plans-error" role="alert">{error}</p>}
+      {activateNotice ? <p role="status" className="client-plans-notice">{activateNotice}</p> : null}
       <div className="client-plans-grid">
         {plans.map(p => (
           <article key={p.id} className={"client-plan-card " + (featured?.id === p.id ? "is-featured" : "") + (currentPlanCode === p.code ? " is-current" : "")}>
@@ -39,7 +62,16 @@ export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { cur
             <div className="client-plan-price"><b>{PRICE(p.priceCents, p.cycle)}</b><small>{p.cycle === "YEAR" ? "cobrança anual" : p.cycle === "MONTH" ? "cobrança mensal" : "cobrança única"}</small></div>
             <ul className="client-plan-benefits">{BENEFIT_KEYS.map(([key, label]) => { const v = p.limits?.[key]; const on = typeof v === "boolean" ? v : typeof v === "number" ? v > 0 : !!v; return <li key={key} className={on ? "" : "is-off"}><Check size={13} aria-hidden="true" /> <span>{label}</span>{typeof v === "number" && v > 0 ? <b>{v}</b> : null}</li>; })}</ul>
             <p className="client-plan-modules">{Array.isArray(p.limits?.modules) ? p.limits.modules.map((m: string) => MODULE_LABEL[m] || m).join(" · ") : ""}</p>
-            <footer><a className="secondary-button" href={"https://wa.me/5562999990000?text=Quero%20ativar%20o%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">{currentPlanCode === p.code ? "Adicionar serviços" : "Quero este plano"}</a></footer>
+            <footer>
+              {currentPlanCode === p.code ? (
+                <a className="secondary-button" href={"https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Revisar plano</a>
+              ) : (
+                <div className="client-plan-actions">
+                  <button type="button" className="primary-button" disabled={activating === p.code} onClick={() => void activate(p.code, p.name)}>{activating === p.code ? "Gerando cobrança…" : "Ativar agora"}</button>
+                  <a className="text-button" href={"https://wa.me/5562999990000?text=Quero%20ativar%20o%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Fale com a Véxora</a>
+                </div>
+              )}
+            </footer>
           </article>
         ))}
       </div>

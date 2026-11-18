@@ -1129,21 +1129,6 @@ enum DomainStatus {
   FAILED
 }
 
-model Site {
-  id          String   @id @default(cuid())
-  tenantId    String
-  name        String
-  slug        String   @unique
-  status      SiteStatus @default(DRAFT)
-  createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  domains     SiteDomain[]
-  deployments SiteDeployment[]
-
-  @@index([tenantId])
-}
 
 model SiteDomain {
   id             String       @id @default(cuid())

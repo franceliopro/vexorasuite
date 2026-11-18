@@ -54,6 +54,7 @@ function prismaMock(overrides: Record<string, any> = {}) {
     },
     siteDomain: {
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
       upsert: jest.fn().mockImplementation(async ({ create }: any) => ({ id: "dom-1", createdAt: new Date(), ...create })),
       update: jest.fn().mockImplementation(async ({ data }: any) => ({ id: "dom-1", createdAt: new Date(), ...data })),

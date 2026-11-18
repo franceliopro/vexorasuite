@@ -5187,3 +5187,18 @@ input[type=tel]{letter-spacing:.02em}
 .course-certificate-text{margin:0;color:var(--tx2);font-size:13px;line-height:1.5}
 .course-certificate-foot{margin:0;color:var(--tx2);font-size:11px}
 @media print{.sidebar,.topbar,.workspace-actions,.course-lessons{display:none!important}.course-certificate{display:block}.course-certificate-inner{max-width:none;width:100%;border:0;border-radius:0;background:#fff}}
+
+/* ===== Catálogo + Orçamento rápido da inbox ===== */
+.catalog-quote-panel{display:grid;gap:10px;padding:12px 14px;min-height:320px}
+.catalog-quote-search input{width:100%;min-height:36px;padding:8px 10px;border:1px solid var(--ln);border-radius:9px;background:var(--s2);color:var(--tx);font:inherit}
+.catalog-quote-list{display:grid;gap:6px;max-height:56vh;overflow:auto;align-content:start}
+.catalog-quote-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--ln);border-radius:12px;background:var(--s2)}
+.catalog-quote-item-info{display:grid;gap:2px;min-width:0}
+.catalog-quote-item-info strong{font-size:12.5px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.catalog-quote-item-info small{font-size:11px;color:var(--tx2)}
+.catalog-quote-qty-btn{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 9px;border:1px solid var(--ln);border-radius:8px;background:var(--s1);color:var(--tx);font-size:11px;font-weight:700;cursor:pointer}
+.catalog-quote-qty-btn:hover{border-color:var(--primary);color:var(--primary)}
+.catalog-quote-footer{display:flex;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid var(--ln);padding-top:10px}
+.catalog-quote-footer strong{font-size:13px}
+.catalog-quote-empty{color:var(--tx2);font-size:12px;line-height:1.5;max-width:70%}
+.catalog-quote-notice{margin:0;padding:8px 10px;border-radius:8px;border:1px solid color-mix(in srgb,var(--ok) 35%,var(--ln));background:color-mix(in srgb,var(--ok) 10%,var(--s1));color:var(--ok);font-size:11.5px}

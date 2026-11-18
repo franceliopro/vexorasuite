@@ -344,8 +344,12 @@ try{
   await expect(page.getByRole("alert").filter({hasText:"Não foi possível carregar documentos recentes"})).toBeVisible();
   await page.getByRole("button",{name:"Novo modelo",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Novo modelo"});
-  const frame=await dialog.boundingBox();
-  assert(frame && frame.x===0 && frame.y===0 && frame.width===width);
+  await expect(dialog).toBeVisible();
+  await expect.poll(async()=>{
+   const frame=await dialog.boundingBox();
+   if (!frame) return null;
+   return {x:Math.round(frame.x),y:Math.round(frame.y),width:Math.round(frame.width),height:Math.round(frame.height)};
+  }).toEqual({x:0,y:0,width,height:700});
   const fields=dialog.getByRole("region",{name:"Campos do modelo"});
   for (let i=0;i<8;i++) await fields.getByRole("button",{name:"Adicionar variável"}).click();
   await fields.evaluate(el=>{el.scrollTop=el.scrollHeight});

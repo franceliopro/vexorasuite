@@ -309,7 +309,7 @@ function TemplateEditor({ kind, template, onClose, onSaved }: { kind: string; te
   }
 
   return createPortal(
-    <div className="docs-editor-backdrop">
+    <div className="docs-editor-window">
       <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="docs-template-title" className="docs-editor-frame">
       <form className="docs-editor" onSubmit={submit}>
         <header className="docs-editor-head"><h2 id="docs-template-title">{template ? "Editar modelo" : "Novo modelo"}</h2><button type="button" className="text-button" onClick={onClose} disabled={busy}>Fechar</button></header>

@@ -320,5 +320,26 @@ try{
  await expect(calendarDialog.locator("iframe")).toHaveCount(0);
  await calendarDialog.getByRole("button",{name:"Ver no mapa"}).click();
  await expect(calendarDialog.locator("iframe")).toHaveAttribute("src",/Rua%20Manual/);
+ await page.route("**/api/backend/documents/recent",route=>route.fulfill({status:500,contentType:"application/json",body:JSON.stringify({message:"Internal server error"})}));
+ await page.route("**/api/backend/documents/templates",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({templates:[{id:"existing",kind:"QUOTE",name:"Modelo de teste",description:"",variables:[]}]})}));
+ await page.route("**/api/backend/contacts",route=>route.fulfill({status:200,contentType:"application/json",body:"[]"}));
+ for (const width of [1440,390]) {
+  await page.setViewportSize({width,height:700});
+  await page.goto("http://127.0.0.1:3101/?module=Documentos");
+  await expect(page.getByText("Modelo de teste", {exact:true})).toBeVisible();
+  await expect(page.getByRole("alert").filter({hasText:"Não foi possível carregar documentos recentes"})).toBeVisible();
+  await page.getByRole("button",{name:"Novo modelo",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Novo modelo"});
+  const frame=await dialog.boundingBox();
+  assert(frame && frame.x===0 && frame.y===0 && frame.width===width);
+  const fields=dialog.getByRole("region",{name:"Campos do modelo"});
+  for (let i=0;i<8;i++) await fields.getByRole("button",{name:"Adicionar variável"}).click();
+  await fields.evaluate(el=>{el.scrollTop=el.scrollHeight});
+  await expect.poll(()=>fields.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+  await expect(fields.getByRole("textbox",{name:"Conteúdo do modelo"})).toBeInViewport();
+  await expect(dialog.getByRole("button",{name:"Salvar modelo"})).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+ }
  console.log("Inbox: configurable context, escalation and manager queue OK.");
 }finally{await browser?.close();server.kill("SIGTERM");}

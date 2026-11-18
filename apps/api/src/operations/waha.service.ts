@@ -31,7 +31,7 @@ export class WahaService {
     if (apiKey) headers.set("X-Api-Key", apiKey);
     if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
     try {
-      return await fetch(`${baseUrl}${path}`, { ...init, headers, cache: "no-store", signal: AbortSignal.timeout(10000) });
+      return await fetch(`${baseUrl}${path}`, { ...init, headers, cache: "no-store", signal: init.signal ?? AbortSignal.timeout(10000) });
     } catch {
       throw new BadGatewayException("Não foi possível acessar o gateway WhatsApp. Confira o endereço e a rede interna.");
     }
@@ -293,7 +293,11 @@ export class WahaService {
  async sendVoice(channel:ChannelConnection,chatId:string,buffer:Buffer):Promise<string|null>{if(!buffer.length||buffer.length>12*1024*1024)throw new BadGatewayException('Áudio inválido.');const response=await this.request('/api/sendVoice',{method:'POST',body:JSON.stringify({session:channel.sessionName,chatId,file:{mimetype:'audio/mpeg',data:buffer.toString('base64'),filename:'resposta.mp3'},convert:true})});if(!response.ok)throw new BadGatewayException('Não foi possível confirmar o áudio.');const result=await response.json() as any;return typeof result.id==='string'?result.id:result.id?._serialized||null;}
 
   private async sendPayload(path: string, payload: Record<string, unknown>): Promise<string | null> {
-    const response = await this.request(path, { method: "POST", body: JSON.stringify(payload) });
+    const response = await this.request(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      ...(path === "/api/sendVoice" ? { signal: AbortSignal.timeout(30000) } : {}),
+    });
     if (!response.ok) throw new BadGatewayException("WAHA não enviou o conteúdo (" + response.status + ").");
     const result = await response.json().catch(() => ({})) as { id?: string | { _serialized?: string } };
     return typeof result.id === "string" ? result.id : result.id?._serialized || null;

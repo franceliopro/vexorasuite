@@ -494,7 +494,7 @@ export default function HomePage() {
           ) : active === "Workflows" ? (
             canManage ? <WorkflowsWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Atendimento" ? (
-            <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} canManageChannels={canConfigure} />
+            <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} userId={session?.user.id||""} canManageChannels={canConfigure} />
           ) : active === "Conexões" || active === "Canais e integrações" ? (
             canConfigure ? <ChannelsIntegrations /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (

@@ -77,22 +77,53 @@ try{
  await page.screenshot({path:"artifacts/inbox-visual/atendimento-balao-filas.png",fullPage:false,animations:"disabled"});
  await page.keyboard.press("Escape");
 
- const composerBefore=await page.locator(".inbox-composer textarea").getAttribute("aria-label");
- await page.getByRole("tab",{name:"Nota privada"}).click();
+ assert.equal(await page.locator(".composer-tabs-row, .inbox-assume-wrap, .vx-support-context").count(),0);
+ assert.equal(await page.locator("header.thread-heading").evaluate(el=>getComputedStyle(el).marginBottom),"0px");
+ const mode=page.locator(".composer-mode-button");
+ assert.equal(await mode.getAttribute("aria-label"),"Responder");
+ await page.getByRole("button",{name:"Ferramentas da conversa"}).click();
+ const tools=page.getByRole("menu",{name:"Mais ações"});
+ for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas","Anexos"])assert(await tools.getByRole("menuitem",{name:new RegExp(label)}).isVisible());
+ await page.keyboard.press("Escape");
+ await mode.click();
  await page.waitForSelector(".inbox-composer.composer-is-note",{timeout:5000});
  const noteStyle=await page.locator(".inbox-composer").evaluate(el=>({borderStyle:getComputedStyle(el).borderTopStyle,cls:el.className,color:getComputedStyle(el).backgroundColor}));
  assert(noteStyle.cls.includes("composer-is-note"),"composer switches to note mode");
  assert(noteStyle.borderStyle==="dashed","note composer keeps the dashed amber border");
  await page.screenshot({path:"artifacts/inbox-visual/atendimento-nota-privada.png",fullPage:false,animations:"disabled"});
 
+ await page.keyboard.press("Alt+p");
+ assert.equal(await mode.getAttribute("aria-label"),"Responder");
+ await page.keyboard.press("Alt+p");
+ assert.equal(await mode.getAttribute("aria-label"),"Nota privada");
  const profileVisible=await page.locator(".contact-profile").first().isVisible();
  assert(profileVisible,"contact card is visible next to the thread");
  const phoneText=await page.locator(".contact-profile-identity").innerText();
  assert(phoneText.includes("+55"),"contact card shows the formatted phone");
 
+ const thread=page.locator(".inbox-thread");
+ const widthBefore=(await thread.boundingBox()).width;
+ await page.getByRole("button",{name:"Recolher ficha"}).click();
+ assert((await thread.boundingBox()).width>widthBefore+100,"collapsed client card releases space");
+ await page.getByRole("button",{name:"Expandir ficha"}).click();
+ assert(Math.abs((await thread.boundingBox()).width-widthBefore)<2,"expand restores the previous width");
+
  await page.setViewportSize({width:390,height:844});
- await page.goto("http://127.0.0.1:3101/?module=Atendimento");
- await page.waitForSelector(".inbox-conversation",{timeout:20000});
+ await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
+ const dock=page.locator(".mobile-bottom-nav");
+ await dock.getByRole("button",{name:"Conversa"}).waitFor();
+ assert.equal(await dock.getByRole("button").count(),1);
+ const dockButton=await dock.getByRole("button",{name:"Conversa"}).boundingBox();
+ assert(Math.abs(dockButton.x+dockButton.width/2-195)<2,"conversation button is centered");
+ await dock.getByRole("button",{name:"Conversa"}).click();
+ await page.locator(".inbox-conversation").first().click();
+ await page.getByRole("button",{name:"Responder",exact:true}).waitFor();
+ await page.getByRole("button",{name:"Melhorar texto com IA"}).waitFor();
+ await page.getByRole("button",{name:"Ferramentas da conversa"}).click();
+ await page.getByRole("menuitem",{name:/Emojis/}).waitFor();
+ await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Responder",exact:true}).click();
+ await page.getByRole("button",{name:"Nota privada",exact:true}).waitFor();
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"no horizontal overflow on mobile");
  await page.screenshot({path:"artifacts/inbox-visual/atendimento-mobile.png",fullPage:false,animations:"disabled"});
 

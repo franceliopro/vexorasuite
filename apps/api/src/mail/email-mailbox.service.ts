@@ -1,3 +1,4 @@
+import { assertConversationClaim, lockConversationClaim } from "../operations/conversation-claim";
 import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from "@nestjs/common";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { ImapFlow } from "imapflow";
@@ -379,6 +380,7 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     }
     const conversation = await this.prisma.conversation.findFirst({ where: { id: conversationId, tenantId, channel: "EMAIL" }, include: { contact: true, channelConnection: { include: { emailMailbox: true } } } });
     if (!conversation?.channelConnection?.emailMailbox) throw new NotFoundException("Inbox de e-mail não encontrada para esta conversa.");
+    assertConversationClaim(conversation, userId);
     const mailbox = conversation.channelConnection.emailMailbox;
     if (!mailbox.smtpHost || !mailbox.smtpUser || (mailbox.authMode === "PASSWORD" && !mailbox.smtpPasswordEncrypted) || !mailbox.smtpFrom) throw new ServiceUnavailableException("SMTP de resposta não configurado para esta caixa.");
     const smtpEndpoint = await mailHost(mailbox.smtpHost);
@@ -387,13 +389,14 @@ export class EmailMailboxService implements OnModuleInit, OnModuleDestroy {
     const subject = conversation.subject?.startsWith("Re:") ? conversation.subject : "Re: " + (conversation.subject || "(sem assunto)");
     let result: Awaited<ReturnType<SmtpMailTransport["send"]>>;
     try {
+      await this.prisma.$transaction(tx => lockConversationClaim(tx, tenantId, conversationId, userId));
       result = await transport.send({ to: conversation.contact.email || "", subject, text: text.trim() || "Arquivo anexado: " + attachment!.filename, replyTo: mailbox.address, ...(attachment ? { attachments: [{ filename: attachment.filename, content: Buffer.from(attachment.data, "base64"), contentType: attachment.contentType }] } : {}) });
     } finally {
       transport.close();
     }
     if (!result.delivered) throw new BadGatewayException(result.reason || "O servidor SMTP não aceitou a resposta.");
     const message = await this.prisma.message.create({ data: { tenantId, conversationId, providerMessageId: result.providerId || null, direction: "OUTBOUND", status: "SENT", content: text.trim() || "[Anexo] " + attachment!.filename, contentType: attachment ? "file" : "text", senderName: mailbox.smtpFrom, metadata: { provider: "EMAIL", mailboxId: mailbox.id, replyTo: conversation.contact.email, senderUserId: userId, ...(attachment ? { attachment: { filename: attachment.filename, contentType: attachment.contentType, size: Math.floor(attachment.data.length * 3 / 4) } } : {}) }, occurredAt: new Date() } });
-    await this.prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: message.occurredAt, status: "OPEN" } });
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: message.occurredAt } });
     this.events.publish(tenantId, "message.sent", { conversationId, message: { id: message.id, direction: message.direction, status: message.status, content: message.content, occurredAt: message.occurredAt.toISOString(), channel: "EMAIL" } });
     return message;
   }

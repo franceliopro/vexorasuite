@@ -114,6 +114,8 @@ model Tenant {
   siteFolders          SiteFolder[]
   propertyApplications PropertyApplication[]
   propertyScopes       PropertyScope[]
+  siteDomains          SiteDomain[]
+  siteDeployments      SiteDeployment[]
 
   @@map("tenants")
 }
@@ -818,8 +820,8 @@ model Site {
   submissions  SiteFormSubmission[]
   propertyApplications PropertyApplication[]
 
-  siteDomains  SiteDomain[]
-  siteDeployments SiteDeployment[]
+  deployments  SiteDeployment[]
+  domainBinding SiteDomain?
 
 }
 
@@ -1105,129 +1107,52 @@ model CatalogItem {
   @@index([tenantId, active, kind])
   @@map("catalog_items")
 }
-  url      = env("DATABASE_URL")
-}
-
-enum SiteStatus {
-  DRAFT
-  DEPLOYING
-  LIVE
-  FAILED
-}
-
-enum DeployStatus {
-  QUEUED
-  UPLOADING
-  DEPLOYED
-  FAILED
-}
-
-enum DomainStatus {
-  PENDING_DNS
-  VERIFYING
-  ACTIVE
-  FAILED
-}
-
-
 model SiteDomain {
-  id             String       @id @default(cuid())
-  siteId         String
-  domain         String       @unique
-  status         DomainStatus @default(PENDING_DNS)
-  cfProjectName  String?
-  cfZoneId       String?
-  dnsRecordId    String?
-  sslStatus      String?
-  verifiedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  siteId         String    @unique @map("site_id") @db.Uuid
+  hostname       String    @unique
+  zoneId         String?   @map("zone_id")
+  providerStatus String    @default("PENDING") @map("provider_status")
+  validation     Json      @default("{}")
+  dnsRecord      Json      @default("{}") @map("dns_record")
+  lastCheckedAt  DateTime? @map("last_checked_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  deployments    SiteDeployment[]
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site           Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
-  @@index([siteId])
+  @@index([tenantId])
+  @@index([providerStatus, lastCheckedAt])
+  @@map("site_domains")
 }
 
 model SiteDeployment {
-  id             String       @id @default(cuid())
-  siteId         String
-  domainId       String?
-  status         DeployStatus  @default(QUEUED)
-  cfDeploymentId String?
-  cfDeploymentUrl String?
-  contentHash    String?
-  errorMessage   String?
-  startedAt      DateTime     @default(now())
-  finishedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                   String    @id @default(uuid()) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  siteId               String    @map("site_id") @db.Uuid
+  provider             String    @default("CLOUDFLARE_PAGES")
+  projectName          String    @map("project_name")
+  status               String    @default("UPLOADING")
+  sourceHash           String    @map("source_hash")
+  branch               String    @default("main")
+  providerDeploymentId String?   @map("provider_deployment_id")
+  url                  String?
+  pageCount            Int       @default(0) @map("page_count")
+  fileCount            Int       @default(0) @map("file_count")
+  totalBytes           Int       @default(0) @map("total_bytes")
+  error                String?
+  startedAt            DateTime  @default(now()) @map("started_at")
+  finishedAt           DateTime? @map("finished_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  domain         SiteDomain?  @relation(fields: [domainId], references: [id])
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site                 Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
-  @@index([siteId])
-  @@index([contentHash])
+  @@index([tenantId, siteId, createdAt], name: "site_deployments_tenant_site_created_idx")
+  @@index([status, updatedAt], name: "site_deployments_status_updated_idx")
+  @@map("site_deployments")
 }
 
-enum SiteStatus {
-  DRAFT
-  DEPLOYING
-  LIVE
-  FAILED
-}
-
-enum DeployStatus {
-  QUEUED
-  UPLOADING
-  DEPLOYED
-  FAILED
-}
-
-enum DomainStatus {
-  PENDING_DNS
-  VERIFYING
-  ACTIVE
-  FAILED
-}
-
-
-model SiteDomain {
-  id             String       @id @default(cuid())
-  siteId         String
-  domain         String       @unique
-  status         DomainStatus @default(PENDING_DNS)
-  cfProjectName  String?
-  cfZoneId       String?
-  dnsRecordId    String?
-  sslStatus      String?
-  verifiedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  deployments    SiteDeployment[]
-
-  @@index([siteId])
-}
-
-model SiteDeployment {
-  id             String       @id @default(cuid())
-  siteId         String
-  domainId       String?
-  status         DeployStatus  @default(QUEUED)
-  cfDeploymentId String?
-  cfDeploymentUrl String?
-  contentHash    String?
-  errorMessage   String?
-  startedAt      DateTime     @default(now())
-  finishedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  domain         SiteDomain?  @relation(fields: [domainId], references: [id])
-
-  @@index([siteId])
-  @@index([contentHash])
-}

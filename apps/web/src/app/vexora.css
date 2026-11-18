@@ -5039,7 +5039,7 @@ input[type=tel]{letter-spacing:.02em}
 .inbox-workspace.inbox-full-screen .inbox-resizer{display:none}
 .inbox-composer .composer-tools{position:relative}
 .composer-tools .composer-popover{left:0;right:auto}
-.composer-tools .composer-tool-wrap:has(.composer-emoji-button){position:static}
+.composer-tools .composer-tool-wrap:has(.composer-emoji-button, .attach-popover){position:static}
 .composer-actions-popover{width:min(288px,calc(100vw - 24px));gap:4px;padding:8px}
 .composer-actions-popover button[role="menuitem"]{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;color:var(--tx);font-size:13px;text-align:left}
 .composer-actions-popover button[role="menuitem"]:hover{background:var(--s2);border-color:var(--ln)}

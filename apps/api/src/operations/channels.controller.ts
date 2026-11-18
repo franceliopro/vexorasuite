@@ -11,6 +11,10 @@ import { CreateWahaChannelDto } from "./dto/create-waha-channel.dto";
 import { WahaService } from "./waha.service";
 import { ZernioService } from "./zernio.service";
 import { zernioConnectionStatus } from "./zernio-credentials";
+import { encryptMetaCredential } from "./meta-credentials";
+
+const objMeta = (v: unknown): Record<string, any> =>
+  v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, any> : {};
 
 const zernioProfileId = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -363,6 +367,62 @@ export class ChannelConnectionsController {
     await createDefaultAttachments(this.prisma,created.id);
     this.events.publish(request.user.tenantId,"channel.created",{id:created.id,provider:created.provider,status:created.status});
     return {id:created.id,name:created.name,platform,accountId,status:created.status};
+  }
+
+  @Post("meta")
+  async createMeta(@Req() request: AuthenticatedRequest, @Body() input: any) {
+    if (!["OWNER","ADMIN","MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem conectar o WhatsApp Oficial.");
+    const tenantId = request.user.tenantId;
+    const phoneNumberId = typeof input.phoneNumberId === "string" ? input.phoneNumberId.trim() : "";
+    const wabaId = typeof input.wabaId === "string" ? input.wabaId.trim() : "";
+    const accessToken = typeof input.accessToken === "string" ? input.accessToken.trim() : "";
+    const appSecret = typeof input.appSecret === "string" ? input.appSecret.trim() : "";
+    const name = typeof input.name === "string" && input.name.trim() ? input.name.trim().slice(0, 100) : "WhatsApp Oficial";
+    if (!/^\d{5,25}$/.test(phoneNumberId)) throw new BadRequestException("Informe o Phone Number ID (apenas números, ex.: 123456789012345).");
+    if (!/^\d{5,25}$/.test(wabaId)) throw new BadRequestException("Informe o WhatsApp Business Account ID (apenas números).");
+    if (accessToken.length < 40) throw new BadRequestException("Informe o token de acesso permanente (System User) gerado no Meta.");
+    if (appSecret.length < 10) throw new BadRequestException("Informe o App Secret do seu app Meta.");
+    let verifiedName: string | undefined;
+    let displayPhoneNumber: string | undefined;
+    try {
+      const response = await fetch("https://graph.facebook.com/v21.0/" + encodeURIComponent(phoneNumberId) + "?fields=verified_name,display_phone_number", { headers: { authorization: "Bearer " + accessToken } });
+      const data = await response.json().catch(() => ({} as any));
+      if (!response.ok) {
+        const detail = typeof data?.error?.message === "string" ? String(data.error.message).slice(0, 240) : "HTTP " + response.status;
+        throw new BadRequestException("A Meta recusou o token: " + detail);
+      }
+      verifiedName = typeof data?.verified_name === "string" ? data.verified_name : undefined;
+      displayPhoneNumber = typeof data?.display_phone_number === "string" ? data.display_phone_number : undefined;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadGatewayException("Não foi possível validar o token na Meta. Verifique a rede do servidor.");
+    }
+    const sessionName = "meta-" + tenantId.replace(/-/g, "").slice(0, 12) + "-" + randomBytes(4).toString("hex");
+    const channel = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id=${tenantId}::uuid FOR UPDATE`;
+      const duplicate = await tx.channelConnection.findFirst({ where: { provider: "META", tenantId, isActive: true, settings: { path: ["phoneNumberId"], equals: phoneNumberId } } });
+      if (duplicate) throw new BadRequestException("Este número já está vinculado nesta empresa.");
+      const created = await tx.channelConnection.create({
+        data: {
+          tenantId, provider: "META", name, sessionName, status: "CONNECTED",
+          settings: { phoneNumberId, wabaId, sessionId: sessionName, healthCheckedAt: new Date().toISOString(), healthProviderStatus: "CONNECTED", verifiedName: verifiedName ?? null, displayPhoneNumber: displayPhoneNumber ?? null },
+        },
+      });
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { integrations: true } });
+      const integrations = objMeta(tenant.integrations);
+      const creds = objMeta(integrations.metaCredentials);
+      const metaCredentials = {
+        ...creds,
+        accessToken: { encryptedKey: encryptMetaCredential(tenantId, "accessToken", accessToken), updatedAt: new Date().toISOString() },
+        appSecret: { encryptedKey: encryptMetaCredential(tenantId, "appSecret", appSecret), updatedAt: new Date().toISOString() },
+        verifyToken: { encryptedKey: encryptMetaCredential(tenantId, "verifyToken", randomBytes(24).toString("base64url")), updatedAt: new Date().toISOString() },
+      };
+      await tx.tenant.update({ where: { id: tenantId }, data: { integrations: { ...integrations, metaCredentials } } });
+      return created;
+    });
+    await createDefaultAttachments(this.prisma, channel.id);
+    this.events.publish(tenantId, "channel.created", { id: channel.id, provider: channel.provider, status: channel.status });
+    return { id: channel.id, name: channel.name, provider: channel.provider, phoneNumberId, wabaId, status: channel.status, webhookUrl: "/api/webhooks/meta/" + channel.id };
   }
 
   @Post(":id/connect")

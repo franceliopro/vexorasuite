@@ -230,5 +230,25 @@ try{
  await expect(profile).toBeVisible();
  await profile.getByRole("button",{name:"Recolher ficha"}).click();
  await expect(profile).toBeHidden();
+ for (const viewportWidth of [390,320]) {
+  await page.setViewportSize({width:viewportWidth,height:844});
+  const first=dock.getByRole("button",{name:"Conversa",exact:true});
+  const last=dock.getByRole("button",{name:"Finalizar",exact:true});
+  await expect.poll(async()=>(await first.boundingBox()).x).toBeGreaterThanOrEqual(12);
+  await expect.poll(async()=>{
+   const box=await last.boundingBox();
+   return viewportWidth-box.x-box.width;
+  }).toBeGreaterThanOrEqual(12);
+ }
+ const fullscreen=page.getByRole("button",{name:"Tela cheia",exact:true});
+ await expect(fullscreen).toBeVisible();
+ await fullscreen.click();
+ await expect(page.locator(".inbox-workspace")).toHaveClass(/inbox-full-screen/);
+ await expect(dock).toBeHidden();
+ const exitFullscreen=page.getByRole("button",{name:"Sair de tela cheia",exact:true});
+ await expect(exitFullscreen).toBeVisible();
+ await exitFullscreen.click();
+ await expect(fullscreen).toBeVisible();
+ await expect(dock).toBeVisible();
  console.log("Inbox: configurable context, escalation and manager queue OK.");
 }finally{await browser?.close();server.kill("SIGTERM");}

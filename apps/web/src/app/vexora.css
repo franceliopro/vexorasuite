@@ -183,8 +183,8 @@ details>summary::-webkit-details-marker{display:none}
 .sidebar-utilities{display:flex;align-items:center;gap:4px}
 .sidebar-icon{display:grid;place-items:center;width:36px;height:36px;min-height:0;border:0;background:none;color:var(--sb-tx);border-radius:var(--r-sm)}
 .sidebar-icon:hover{background:var(--sb-on);color:var(--sb-tx)}
-.sidebar-help,.sidebar-profile-menu{position:relative}
-.sidebar-help>div,.sidebar-profile-popover{position:fixed;left:calc(var(--sb) + 10px);bottom:12px;z-index:70;display:grid;gap:8px;width:248px;padding:16px;border:1px solid var(--sb-ln);border-radius:var(--r-sm);background:var(--sb-bg);color:var(--sb-tx);font-size:13px;box-shadow:0 20px 50px rgba(0,0,0,.28)}
+.sidebar-profile-menu{position:relative}
+.sidebar-profile-popover{position:fixed;left:calc(var(--sb) + 10px);bottom:12px;z-index:70;display:grid;gap:8px;width:248px;padding:16px;border:1px solid var(--sb-ln);border-radius:var(--r-sm);background:var(--sb-bg);color:var(--sb-tx);font-size:13px;box-shadow:0 20px 50px rgba(0,0,0,.28)}
 .sidebar-profile-menu>summary{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);list-style:none}
 .sidebar-profile-menu>summary:hover{background:var(--sb-on)}
 .profile-avatar{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;overflow:hidden;background:linear-gradient(150deg,#2E7CF6,var(--primary));color:#FFFFFF;font-weight:800;font-size:11px}
@@ -709,7 +709,7 @@ details>summary:hover{color:var(--tx)}
   .sidebar.sidebar-compact .sidebar-utilities{flex-direction:row}
   .mobile-sidebar-backdrop{display:block;position:fixed;inset:0;z-index:35;padding:0;background:rgba(6,12,9,.5);backdrop-filter:blur(2px)}
   .main-area{margin-left:0;padding-bottom:var(--dock);transition:none}
-  .sidebar-help>div,.sidebar-profile-popover{position:fixed;left:12px;right:12px;bottom:78px;width:auto;max-width:calc(100vw - 24px)}
+  .sidebar-profile-popover{position:fixed;left:12px;right:12px;bottom:78px;width:auto;max-width:calc(100vw - 24px)}
   .topbar{padding:0 14px;gap:8px}
   .mobile-menu{display:inline-grid;place-items:center;width:var(--ctl);height:var(--ctl)}
   .breadcrumbs span,.crumb-slash{display:none}
@@ -1303,8 +1303,6 @@ details>summary:hover{color:var(--tx)}
 .sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--sb-tx); cursor: pointer; list-style: none; }
 .sidebar-icon::-webkit-details-marker { display: none; }
 .sidebar-icon:hover { background: var(--sb-on); color: var(--sb-tx); }
-.sidebar-help > div { background: var(--sb-bg); border-color: var(--sb-ln); }
-.sidebar-help p { color: var(--sb-mut); font-size: 12.5px; line-height: 1.5; }
 .sidebar-profile-menu { width: 100%; position: relative; }
 .sidebar-profile-menu > .profile-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 12px; list-style: none; cursor: pointer; border: 1px solid transparent; overflow: hidden; }
 .sidebar-profile-menu > .profile-row::-webkit-details-marker { display: none; }
@@ -5047,11 +5045,9 @@ input[type=tel]{letter-spacing:.02em}
 .composer-actions-popover button[role="menuitem"]:hover{background:var(--s2);border-color:var(--ln)}
 .composer-actions-popover button svg{color:var(--primary-ink);flex:none}
 .composer-actions-popover button small{margin-left:auto;color:var(--tx2);font-size:10px}
-.composer-actions-popover button.composer-mobile-emoji[role="menuitem"]{display:none}
 .composer-is-note .composer-mode-button{background:color-mix(in srgb,#F7D774 46%,var(--s1));color:color-mix(in srgb,#553803 82%,var(--tx))}
 @media (max-width:760px){
   .inbox-composer .composer-tools .composer-popover{left:0;right:auto;max-width:calc(100vw - 24px)}
-  .composer-tools .composer-emoji-button{display:none}
-  .composer-actions-popover button.composer-mobile-emoji[role="menuitem"]{display:flex}
+  .inbox-composer .composer-tools .composer-icon-button{width:30px!important;height:34px!important;min-height:34px}
   .mobile-bottom-nav.mobile-overview-nav{justify-content:center!important;grid-auto-columns:minmax(84px,120px)!important}
 }

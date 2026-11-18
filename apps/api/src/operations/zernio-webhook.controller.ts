@@ -135,8 +135,8 @@ export class ZernioWebhookController {
         select: { id: true, conversationId: true },
         take: 2,
       });
-      if (candidates.length !== 1) return { ok: true, ignored: true };
       const [message] = candidates;
+      if (!message || candidates.length !== 1) return { ok: true, ignored: true };
       const allowedPrevious: ("QUEUED" | "SENT" | "FAILED" | "DELIVERED")[] =
         deliveryStatus === "FAILED" ? ["QUEUED", "SENT"] :
           deliveryStatus === "DELIVERED" ? ["QUEUED", "SENT", "FAILED"] :

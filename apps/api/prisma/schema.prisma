@@ -1105,9 +1105,6 @@ model CatalogItem {
   @@index([tenantId, active, kind])
   @@map("catalog_items")
 }
-  url      = env("DATABASE_URL")
-}
-
 enum SiteStatus {
   DRAFT
   DEPLOYING
@@ -1170,64 +1167,3 @@ model SiteDeployment {
   @@index([contentHash])
 }
 
-enum SiteStatus {
-  DRAFT
-  DEPLOYING
-  LIVE
-  FAILED
-}
-
-enum DeployStatus {
-  QUEUED
-  UPLOADING
-  DEPLOYED
-  FAILED
-}
-
-enum DomainStatus {
-  PENDING_DNS
-  VERIFYING
-  ACTIVE
-  FAILED
-}
-
-
-model SiteDomain {
-  id             String       @id @default(cuid())
-  siteId         String
-  domain         String       @unique
-  status         DomainStatus @default(PENDING_DNS)
-  cfProjectName  String?
-  cfZoneId       String?
-  dnsRecordId    String?
-  sslStatus      String?
-  verifiedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  deployments    SiteDeployment[]
-
-  @@index([siteId])
-}
-
-model SiteDeployment {
-  id             String       @id @default(cuid())
-  siteId         String
-  domainId       String?
-  status         DeployStatus  @default(QUEUED)
-  cfDeploymentId String?
-  cfDeploymentUrl String?
-  contentHash    String?
-  errorMessage   String?
-  startedAt      DateTime     @default(now())
-  finishedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  domain         SiteDomain?  @relation(fields: [domainId], references: [id])
-
-  @@index([siteId])
-  @@index([contentHash])
-}

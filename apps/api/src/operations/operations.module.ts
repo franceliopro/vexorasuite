@@ -60,6 +60,7 @@ import { BillingController } from "./billing.controller";
 import { BillingWebhookController } from "./billing-webhook.controller";
 import { MetaWebhookController } from "./meta-webhook.controller";
 import { MetaService } from "./meta.service";
+import { CatalogController } from "./catalog.controller";
 import { WebhooksController } from "./webhooks.controller";
 import { MailModule } from "../mail/mail.module";
 
@@ -67,7 +68,7 @@ import { MailModule } from "../mail/mail.module";
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule, EventsModule],
-  controllers: [TrackController, TrackIngestController, InboxesController,CopilotController, PublicFlowController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, RemindersController, DemoController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, ZernioConnectionsController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController, McpController, DocumentsController, BillingController, BillingWebhookController, MetaWebhookController],
+  controllers: [TrackController, TrackIngestController, InboxesController,CopilotController, PublicFlowController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, RemindersController, DemoController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, ZernioConnectionsController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController, McpController, DocumentsController, BillingController, BillingWebhookController, MetaWebhookController, CatalogController],
   providers: [TrackService, JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService, MetaService],
   exports: [WahaService, ZernioService, JobLeaseService],
 })

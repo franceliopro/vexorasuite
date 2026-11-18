@@ -69,6 +69,7 @@ enum ConversationHandlingMode {
 
 model Tenant {
   pipelines            CrmPipeline[]
+  catalogItems         CatalogItem[]
   documentTemplates    DocumentTemplate[]
   generatedDocuments   GeneratedDocument[]
   internalWorkflows    InternalWorkflow[]
@@ -1081,4 +1082,24 @@ model GeneratedDocument {
 
   @@index([tenantId, createdAt, id])
   @@map("generated_documents")
+}
+model CatalogItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  kind        String   @default("PRODUCT")
+  name        String
+  description String   @default("")
+  sku         String?
+  priceCents  Int      @map("price_cents")
+  currency    String   @default("BRL")
+  unit        String   @default("un")
+  imageUrl    String?  @map("image_url")
+  category    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, active, kind])
+  @@map("catalog_items")
 }

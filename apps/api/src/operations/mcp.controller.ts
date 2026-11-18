@@ -163,6 +163,19 @@ const TOOLS: Array<{
     },
   },
   {
+    name: "search_catalog",
+    description: "Busca produtos/serviços no catálogo da empresa (nome, SKU ou categoria).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        q: { type: "string" },
+        kind: { type: "string", enum: ["PRODUCT", "SERVICE"] },
+        limit: { type: "integer", minimum: 1, maximum: 50 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "create_document",
     description: "Gera um documento a partir de um modelo já existente (opcionalmente com dados de contato) e o persiste.",
     inputSchema: {
@@ -474,6 +487,23 @@ export class McpController {
         await this.prisma.auditLog.create({ data: { tenantId, userId: null, action: "conversation.crm_updated", entityType: "contact", entityId: contact.id, details: { fromPipelineId: metadata.pipelineId ?? null, toPipelineId: pipeline.id, toStage: stageId, source: "mcp" } } });
         this.events.publish(tenantId, "contact.updated", { id: updated.id, pipelineId: updated.pipelineId, crmStage: stageId });
         return { contactId: updated.id, pipelineId: updated.pipelineId, stageId };
+      }
+      case "search_catalog": {
+        const q = typeof args.q === "string" ? args.q.trim() : "";
+        const kind = typeof args.kind === "string" && ["PRODUCT", "SERVICE"].includes(args.kind) ? args.kind : undefined;
+        const limit = clampInt(args.limit, 20, 1, 50);
+        const items = await this.prisma.catalogItem.findMany({
+          where: {
+            tenantId,
+            active: true,
+            ...(kind ? { kind } : {}),
+            ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }, { sku: { contains: q, mode: "insensitive" as const } }, { category: { contains: q, mode: "insensitive" as const } }] } : {}),
+          },
+          select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, category: true, imageUrl: true },
+          take: limit,
+          orderBy: [{ kind: "asc" }, { name: "asc" }],
+        });
+        return { items, count: items.length };
       }
       case "list_document_templates": {
         const kind = typeof args.kind === "string" ? args.kind.trim().toUpperCase() : undefined;

@@ -1,0 +1,88 @@
+import {
+  BadRequestException, Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Put, Query, Req, UseGuards,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { AuthGuard } from "../auth/auth.guard";
+import { AuthenticatedRequest } from "../auth/auth.types";
+import { administrative } from "../auth/module-policy";
+
+const trim = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+const KINDS = new Set(["PRODUCT", "SERVICE"]);
+const object = (v: unknown): Record<string, any> => v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, any> : {};
+
+@Controller("catalog")
+@UseGuards(AuthGuard)
+export class CatalogController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private adminOnly(req: AuthenticatedRequest) {
+    if (!administrative(req.user.role)) throw new ForbiddenException("Somente administradores gerenciam o catálogo.");
+  }
+
+  @Get()
+  async list(@Req() req: AuthenticatedRequest, @Query("q") qRaw?: string, @Query("kind") kindRaw?: string, @Query("limit") limitRaw?: string) {
+    const limit = Math.max(1, Math.min(200, Number.parseInt(limitRaw || "50", 10) || 50));
+    const q = trim(qRaw, 120);
+    const kind = typeof kindRaw === "string" && KINDS.has(kindRaw) ? kindRaw : undefined;
+    const items = await this.prisma.catalogItem.findMany({
+      where: { tenantId: req.user.tenantId, active: true, ...(kind ? { kind } : {}), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } : {}) },
+      select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, imageUrl: true, category: true },
+      orderBy: [{ kind: "asc" }, { name: "asc" }] ,
+      take: limit,
+    });
+    return { items };
+  }
+
+  @Get(":id")
+  async detail(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    const item = await this.prisma.catalogItem.findFirst({ where: { id, tenantId: req.user.tenantId, active: true } });
+    if (!item) throw new NotFoundException("Item não encontrado.");
+    return { item };
+  }
+
+  @Post()
+  async create(@Req() req: AuthenticatedRequest, @Body() input: any) {
+    this.adminOnly(req);
+    const kind = typeof input?.kind === "string" && KINDS.has(input.kind) ? input.kind : "PRODUCT";
+    const name = trim(input?.name, 160);
+    if (name.length < 2) throw new BadRequestException("Informe um nome.");
+    const description = trim(input?.description, 2000);
+    const sku = trim(input?.sku, 80) || undefined;
+    const price = Number(input?.priceCents);
+    if (!Number.isFinite(price) || price < 0) throw new BadRequestException("Preço inválido.");
+    const currency = trim(input?.currency, 3).toUpperCase() || "BRL";
+    if (currency.length !== 3) throw new BadRequestException("Moeda inválida.");
+    const unit = trim(input?.unit, 10) || "un";
+    const imageUrl = trim(input?.imageUrl, 1000) || undefined;
+    const category = trim(input?.category, 80) || undefined;
+    const item = await this.prisma.catalogItem.create({ data: { tenantId: req.user.tenantId, kind, name, description, sku, priceCents: Math.round(price), currency, unit, imageUrl, category } });
+    return { item };
+  }
+
+  @Put(":id")
+  async update(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: any) {
+    this.adminOnly(req);
+    const existing = await this.prisma.catalogItem.findFirst({ where: { id, tenantId: req.user.tenantId }, select: { id: true } });
+    if (!existing) throw new NotFoundException("Item não encontrado.");
+    const data: any = {};
+    if (input?.kind !== undefined) { const kind = String(input.kind); if (!KINDS.has(kind)) throw new BadRequestException("Tipo inválido."); data.kind = kind; }
+    if (input?.name !== undefined) { const name = trim(input.name, 160); if (name.length < 2) throw new BadRequestException("Informe um nome."); data.name = name; }
+    if (input?.description !== undefined) data.description = trim(input.description, 2000);
+    if (input?.sku !== undefined) data.sku = trim(input.sku, 80) || null;
+    if (input?.priceCents !== undefined) { const price = Number(input.priceCents); if (!Number.isFinite(price) || price < 0) throw new BadRequestException("Preço inválido."); data.priceCents = Math.round(price); }
+    if (input?.currency !== undefined) { const currency = trim(input.currency, 3).toUpperCase(); if (currency.length !== 3) throw new BadRequestException("Moeda inválida."); data.currency = currency; }
+    if (input?.unit !== undefined) data.unit = trim(input.unit, 10) || "un";
+    if (input?.imageUrl !== undefined) data.imageUrl = trim(input.imageUrl, 1000) || null;
+    if (input?.category !== undefined) data.category = trim(input.category, 80) || null;
+    if (input?.active !== undefined) data.active = input.active === true;
+    const item = await this.prisma.catalogItem.update({ where: { id }, data, select: { id: true, kind: true, name: true, priceCents: true, unit: true, imageUrl: true, active: true } });
+    return { item };
+  }
+
+  @Delete(":id")
+  async remove(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
+    this.adminOnly(req);
+    await this.prisma.catalogItem.update({ where: { id }, data: { active: false } });
+    return { deactivated: true };
+  }
+}

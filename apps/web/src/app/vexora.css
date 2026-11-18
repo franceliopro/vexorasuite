@@ -967,7 +967,7 @@ details>summary:hover{color:var(--tx)}
 .thread-action-button.resolve{background:var(--primary);color:var(--primary-contrast);border-color:var(--primary)}
 .inbox-thread .thread-heading{justify-content:flex-start;gap:8px}
 .thread-header-actions{margin-left:auto;gap:8px}
-.thread-header-actions .thread-icon-action{width:34px;height:34px;border-radius:9px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
+.thread-heading > .fullscreen-toggle,.thread-header-actions .thread-icon-action{width:34px;height:34px;border-radius:9px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
 .thread-header-actions .thread-icon-action:hover{background:var(--hover);color:var(--tx);transform:translateY(-1px)}
 .thread-header-actions .thread-icon-action.chatbot-return{color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 30%,var(--ln));background:color-mix(in srgb,var(--accent2) 8%,var(--s1))}
 .thread-header-actions .thread-icon-action.chatbot-return:hover{color:var(--accent2);background:color-mix(in srgb,var(--accent2) 14%,var(--s1));border-color:color-mix(in srgb,var(--accent2) 48%,var(--ln))}
@@ -4926,10 +4926,13 @@ input[type=tel]{letter-spacing:.02em}
 .channels-configuration-shell{display:grid;gap:clamp(14px,1.8vw,22px);padding:clamp(16px,2.2vw,26px)!important;border:1px solid var(--ln)!important;border-radius:var(--r-xl)!important;background:var(--s2)!important;box-shadow:var(--shadow-sm)!important}
 .channels-configuration-shell .channels-shell-section{gap:14px;padding:clamp(14px,1.8vw,20px);border:1px solid var(--ln2);border-radius:var(--r-lg);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 94%,var(--bg)));box-shadow:0 14px 34px -18px rgba(6,12,9,.28)}
 /* ===== Audit Mobile: botao de mais acoes colapsado, filas compactas e dock no menu inferior ===== */
+.thread-heading > .fullscreen-toggle{margin-left:auto}
+.thread-heading > .fullscreen-toggle ~ .thread-header-actions{margin-left:0}
 .thread-more-toggle{display:none}
 @media (max-width:760px){
   .thread-heading{position:relative;flex-wrap:wrap}
   .thread-heading .thread-more-toggle{display:grid;place-items:center;order:3;width:40px;height:40px;flex:none;border:1px solid var(--ln2);border-radius:11px;background:var(--s2);color:var(--tx);cursor:pointer}
+  .thread-heading > .fullscreen-toggle{order:2;flex:none;margin-left:0}
   .thread-heading .thread-more-toggle svg{display:block}
   .thread-header-actions{display:none;position:absolute;top:calc(100% + 6px);right:8px;z-index:250;gap:4px;align-items:center;padding:6px;border:1px solid var(--ln);border-radius:14px;background:var(--s1);box-shadow:var(--shadow-lg)}
   .thread-header-actions.more-open{display:flex}
@@ -5049,5 +5052,7 @@ input[type=tel]{letter-spacing:.02em}
 @media (max-width:760px){
   .inbox-composer .composer-tools .composer-popover{left:0;right:auto;max-width:calc(100vw - 24px)}
   .inbox-composer .composer-tools .composer-icon-button{width:30px!important;height:34px!important;min-height:34px}
+  .mobile-bottom-nav.mobile-inbox-nav{grid-auto-columns:minmax(0,1fr)!important;column-gap:clamp(4px,2vw,12px)!important;padding-left:max(12px,env(safe-area-inset-left))!important;padding-right:max(12px,env(safe-area-inset-right))!important}
+  .mobile-bottom-nav.mobile-inbox-nav button{padding-inline:4px!important}
   .mobile-bottom-nav.mobile-overview-nav{justify-content:center!important;grid-auto-columns:minmax(84px,120px)!important}
 }

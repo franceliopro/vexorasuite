@@ -499,7 +499,7 @@ export default function HomePage() {
         </div>
       </main>
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
-      <nav className={"mobile-bottom-nav" + (active === "Visão geral" ? " mobile-overview-nav" : "")} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
+      <nav className={"mobile-bottom-nav" + (active === "Visão geral" ? " mobile-overview-nav" : active === "Atendimento" ? " mobile-inbox-nav" : "")} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => setMenuOpen(false)}><Icon name="messages" size={20}/><span>Conversa</span></button>

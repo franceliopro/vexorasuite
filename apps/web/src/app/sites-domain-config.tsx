@@ -113,7 +113,7 @@ export function SiteDomainConfig({
     await new Promise((r) => setTimeout(r, 1200));
     const dns: DnsSslStatus =
       Math.random() > 0.15 ? "verified" : "error";
-    const ssl: DnsSslStatus = dns === "verified" ? "verified" : "pending";
+    const ssl: DnsSslStatus = dns === "verified" ? "verified" : "error";
     return {
       dns,
       ssl,
@@ -343,7 +343,7 @@ export function SiteDomainConfig({
               value={domain}
               onChange={handleDomainChange}
               placeholder={DOMAIN_PLACEHOLDER}
-              maxLength="253"
+              maxLength={253}
               disabled={busy || noPermission}
               aria-invalid={!!domainError}
               aria-describedby="domain-error domain-hint"
@@ -444,7 +444,7 @@ export function SiteDomainConfig({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="sites-domain-records-empty">
+                    <td colSpan={4} className="sites-domain-records-empty">
                       Os registros aparecerão após a validação do domínio.
                     </td>
                   </tr>

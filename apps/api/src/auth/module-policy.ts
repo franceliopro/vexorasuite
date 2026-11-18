@@ -56,7 +56,7 @@ export function routeModules(path: string, method: string): string[] {
     return ["INBOX"];
   if (/^departments(?:\/|$)/.test(p) && method === "GET")
     return ["INBOX", "CRM", "SETTINGS", "AUTOMATION"];
-  if (/^departments(?:\/|$)|^team(?:\/|$)/.test(p)) return ["SETTINGS"];
+  if (/^departments(?:\/|$)|^team(?:\/|$)|^billing(?:\/|$)/.test(p)) return ["SETTINGS"];
   if (/^channels(?:\/|$)/.test(p) && method === "GET")
     return ["INBOX", "AUTOMATION", "MARKETING", "CHANNELS"];
   if (/^channels(?:\/|$)/.test(p)) return ["CHANNELS"];

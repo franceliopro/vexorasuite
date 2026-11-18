@@ -40,16 +40,17 @@ export class ZernioService {
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("..") || path.includes("#")) {
       throw new ServiceUnavailableException("Caminho de integração inválido.");
     }
+    const multipart = options.body instanceof FormData;
     let response: Response;
     try {
       response = await fetch(BASE_URL + path, {
         method: options.method ?? "GET",
         headers: {
           authorization: "Bearer " + apiKey,
-          ...(options.body !== undefined ? { "content-type": "application/json" } : {}),
+          ...(options.body !== undefined && !multipart ? { "content-type": "application/json" } : {}),
           ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
         },
-        ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+        ...(options.body !== undefined ? { body: options.body instanceof FormData ? options.body : JSON.stringify(options.body) } : {}),
         redirect: "error",
         signal: AbortSignal.timeout(30000),
       });

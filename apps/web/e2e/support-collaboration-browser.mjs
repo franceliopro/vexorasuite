@@ -10,7 +10,7 @@ const userId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",tenantId="cccccccc-cccc-4ccc
 const iso=(mins)=>new Date(Date.now()-mins*60000).toISOString();
 const minutes=(value)=>Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/60000));
 const messages=[{id:"dddddddd-0001-4000-8000-000000000001",content:"Olá! Quero agendar uma avaliação.",contentType:"text",direction:"INBOUND",status:"RECEIVED",occurredAt:iso(4),senderName:"Francélio"}];
-const conversations=[{id:convId,status:"OPEN",createdAt:iso(220),channel:"WHATSAPP",handlingMode:"HUMAN",isOverdue:false,subject:"Agendamento",lastMessageAt:iso(4),priority:null,contact:{id:contactId,name:"Francélio",phone:"5511999990001",metadata:{avatarUrl:"https://example.test/frances.jpg",tags:[{name:"Lead",color:"#FDE68A"}]}},department:null,assignee:null,messages}];
+const conversations=[{id:convId,status:"OPEN",createdAt:iso(220),channel:"WHATSAPP",handlingMode:"BOT",claimedById:null,isOverdue:false,subject:"Agendamento",lastMessageAt:iso(4),priority:null,contact:{id:contactId,name:"Francélio",phone:"5511999990001",metadata:{avatarUrl:"https://example.test/frances.jpg",tags:[{name:"Lead",color:"#FDE68A"}]}},department:null,assignee:null,messages}];
 const overview={openConversations:5,contacts:18,contactsNewWeek:4,activeAgents:3,agentsTotal:5,completedConversations:42,recent:[{id:"rec-1",status:"OPEN",updatedAt:iso(12),createdAt:iso(200),handlingMode:"HUMAN",contact:{name:"Francélio",id:contactId}}],waiting:{total:5,oldestMinutes:2,items:[{id:convId,contactName:"Francélio",contactId,departmentName:"Atendimento",channel:"WHATSAPP",waitingMinutes:2}]},team:[{id:userId,name:"Chefão",initials:"CH",openCount:3,loadPercent:60,departmentName:"Atendimento",presence:"active"}],hourly:{labels:["8h","12h","18h"],values:[2,5,3],average:[2,3,2],peakIndex:1,peakValue:5},topics:[{label:"Agendamento",count:8,percent:60}],channels:[{label:"WhatsApp",count:9,percent:90}],kpis:{resolvedByAi:11,resolvedByAiPercent:26,revenue:12400.5,payments:31,firstResponseSeconds:95}};
 const config={name:"Véxora",wakeWord:"Olá Véxora",enabled:true,dailyAiLimit:100,agents:[],stt:{provider:"browser",model:"browser"},tts:{provider:"browser",model:"browser"},llm:{provider:"ollama",model:"qa-local",tier:"Econômico"},companyRules:"Use as informações aprovadas.",companyKnowledge:"Atendemos de segunda a sexta.",knowledgeDocuments:[]};
 const supportSettings={fields:[{key:"asset",label:"Equipamento"}],helpMinutes:45,escalationMinutes:15,replyMinutes:20};
@@ -36,6 +36,13 @@ async function fixtures(page){
   else if(path==="/integrations/google/calendar/calendar-account/calendars")data={items:[{id:"primary",summary:"Agenda de teste",primary:true,accessRole:"owner"}]};
   else if(path==="/integrations/google/calendar/calendar-account/events")data={items:[]};
   else if(path==="/integrations/google/calendar/places")data={suggestions:[{id:"place-one",label:suggestedAddress}]};
+  else if(path==="/conversations/"+convId+"/assume"){
+   const conversation=conversations[0];
+   conversation.handlingMode="HUMAN";
+   conversation.assignee={id:userId,name:"Chefão"};
+   conversation.claimedById=userId;
+   data=conversation;
+  }
   else if(path==="/conversations/"+convId+"/messages"&&request.method()==="POST"){
    attachmentRequests.push(request.postDataJSON());
    data={id:"sent-fixture"};
@@ -88,7 +95,7 @@ try{
   if(i===59)throw Error("Preview unavailable\n"+diagnostics);
   await new Promise(resolve=>setTimeout(resolve,500));
  }
- browser=await chromium.launch({headless:true});
+ browser=await chromium.launch({headless:true,args:["--use-fake-device-for-media-stream"]});
  const page=await browser.newPage({viewport:{width:1440,height:950}});
  await fixtures(page);
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
@@ -101,6 +108,12 @@ try{
  const shadow=await activeItem.evaluate(item=>getComputedStyle(item).boxShadow);
  assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
  await expect(page.locator(".vx-support-context, .inbox-assume-wrap")).toHaveCount(0);
+ const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
+ const assume=page.getByRole("button",{name:"Assumir conversa",exact:true});
+ await expect(composer).toHaveCount(0);
+ await expect(page.getByText("Em atendimento pelo chatbot.")).toBeVisible();
+ await assume.click();
+ await expect(composer).toBeVisible();
  const statusMenu=page.locator(".thread-status-pill");
  await expect(statusMenu.getByRole("menuitem",{name:"Contexto e apoio"})).toBeHidden();
  await statusMenu.locator("summary").click();
@@ -172,7 +185,6 @@ try{
  await expect(profile.getByRole("button",{name:"Expandir ficha"})).toBeVisible();
  await page.keyboard.press("Alt+c");
  await expect(profile.getByRole("button",{name:"Recolher ficha"})).toBeVisible();
- const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
  await composer.focus();
  await page.keyboard.insertText("/");
  await expect(page.locator(".quick-replies-popover")).toBeVisible();
@@ -200,6 +212,20 @@ try{
  await page.keyboard.press("Alt+p");
  await expect(mode).toHaveAccessibleName("Responder");
 
+ async function checkRecording(expectedCount) {
+  await page.context().grantPermissions(["microphone"]);
+  await page.getByRole("button",{name:"Gravar áudio",exact:true}).click();
+  await expect(page.locator(".voice-wave")).toBeVisible();
+  await expect.poll(()=>page.locator(".voice-wave span").count()).toBe(26);
+  await expect.poll(()=>page.locator(".voice-wave span").evaluateAll(bars=>bars.some(bar=>parseFloat(bar.style.height)>4))).toBe(true);
+  await page.getByRole("button",{name:"Enviar áudio",exact:true}).click();
+  await expect.poll(()=>attachmentRequests.filter(message=>message.kind==="audio").length).toBe(expectedCount);
+ }
+ await checkRecording(1);
+ conversations[0].handlingMode="HUMAN";
+ conversations[0].department={id:departmentId,key:"SPECIALISTS",name:"Especialistas"};
+ conversations[0].assignee={id:userId,name:"Chefão"};
+ conversations[0].claimedById=null;
  await page.setViewportSize({width:390,height:844});
  await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
  const dock=page.locator(".mobile-bottom-nav");
@@ -209,7 +235,11 @@ try{
  assert(position && Math.abs(position.x+position.width/2-195)<2,"mobile conversation shortcut is centered");
  await shortcut.click();
  await page.locator(".inbox-conversation").first().click();
+ await expect(composer).toHaveCount(0);
+ await expect(assume).toBeVisible();
+ await dock.getByRole("button",{name:"Assumir",exact:true}).click();
  await expect(mode).toBeVisible();
+ await checkRecording(2);
  for (const [index, label] of buttonLabels.entries()) {
   await expect(composerButtons.nth(index)).toBeVisible();
   await expect(composerButtons.nth(index)).toHaveAccessibleName(label);

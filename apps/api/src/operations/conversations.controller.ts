@@ -826,10 +826,29 @@ export class ConversationsController {
     const isZernio = conversation.channelConnection.provider === "ZERNIO";
     const contactMetadata = conversation.contact.metadata && typeof conversation.contact.metadata === "object" && !Array.isArray(conversation.contact.metadata)
       ? conversation.contact.metadata as Record<string, unknown> : {};
-    const externalConversationId = typeof contactMetadata.externalConversationId === "string" ? contactMetadata.externalConversationId : "";
     const linkedAccountId = isZernio ? String((conversation.channelConnection.settings as Record<string, unknown> | null)?.accountId || "") : "";
-    if (isZernio && (!linkedAccountId || contactMetadata.accountId !== linkedAccountId || contactMetadata.provider !== "ZERNIO")) {
-      throw new BadRequestException("A conversa não corresponde à conta Zernio vinculada a este canal.");
+    let externalConversationId = "";
+    if (isZernio) {
+      if (!linkedAccountId) throw new BadRequestException("O canal Zernio não possui uma conta vinculada.");
+      const inbound = await this.prisma.message.findFirst({
+        where: {
+          tenantId,
+          conversationId: conversation.id,
+          direction: "INBOUND",
+          metadata: { path: ["provider"], equals: "ZERNIO" },
+        },
+        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+        select: { metadata: true },
+      });
+      const inboundMetadata = inbound?.metadata as Record<string, unknown> | null | undefined;
+      if (inboundMetadata?.accountId && inboundMetadata.accountId !== linkedAccountId) {
+        throw new BadRequestException("A conversa não corresponde à conta Zernio vinculada a este canal.");
+      }
+      if (typeof inboundMetadata?.externalConversationId === "string") {
+        externalConversationId = inboundMetadata.externalConversationId;
+      } else if (contactMetadata.accountId === linkedAccountId && contactMetadata.provider === "ZERNIO" && typeof contactMetadata.externalConversationId === "string") {
+        externalConversationId = contactMetadata.externalConversationId;
+      }
     }
     const chatId = isZernio ? externalConversationId : (conversation.contact.externalId?.includes("@") ? conversation.contact.externalId
       : conversation.contact.phone ? `${conversation.contact.phone.replace(/\D/g, "")}@c.us` : conversation.contact.externalId);

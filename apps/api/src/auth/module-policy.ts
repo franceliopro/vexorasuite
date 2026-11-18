@@ -50,7 +50,7 @@ export function routeModules(path: string, method: string): string[] {
   if (/^contacts\/(brand-settings|profile-config)/.test(p) && method === "GET")
     return ["INBOX", "CRM", "SETTINGS"];
   if(/^contacts\/[^/]+\/(profile|history)$/.test(p))return ['INBOX','CRM'];
-  if (/^contacts(?:\/|$)|^crm(?:\/|$)|^reports(?:\/|$)/.test(p)) return ["CRM"];
+  if (/^contacts(?:\/|$)|^crm(?:\/|$)|^reports(?:\/|$)|^documents(?:\/|$)/.test(p)) return ["CRM"];
   if (/^track(?:\/|$)/.test(p)) return ["INBOX"];
   if (/^conversations(?:\/|$)|^events$|^overview$|^service-protocols/.test(p))
     return ["INBOX"];

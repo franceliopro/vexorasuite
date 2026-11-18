@@ -13,8 +13,7 @@ const CourseWorkspace=dynamic(()=>import("./course-workspace").then(module=>modu
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { applyBrandAll, sanitizeHex, wcagRatio, HYBRID_SIDEBAR_DEFAULTS } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
-const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace)
-const SiteDomainConfig=dynamic(()=>import("./sites-domain-config").then(module=>module.SiteDomainConfig),{loading:()=> <p role="status">Carregando modulo.</p>});,{loading:()=> <p role="status">Carregando módulo…</p>});
+const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ClientPlansWorkspace=dynamic(()=>import("./client-plans-workspace").then(module=>module.ClientPlansWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ReportsWorkspace=dynamic(()=>import("./reports-workspace").then(module=>module.ReportsWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const PlatformAdminWorkspace=dynamic(()=>import("./platform-admin-workspace").then(module=>module.PlatformAdminWorkspace),{loading:()=> <p role="status">Carregando painel…</p>});
@@ -52,7 +51,6 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Marketing":()=>import("./creative-library-workspace"),
   "Referências criativas":()=>import("./creative-library-workspace"),
   "Google Drive":()=>import("./creative-library-workspace"),
-  "Sites":()=>import("./sites-domain-config"),
   "Relatórios":()=>import("./reports-workspace"),
   "Planos e preços":()=>import("./client-plans-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
@@ -136,7 +134,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }, { label: "Sites", icon: "globe" }] },
+    { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
     { label: "Financeiro", icon: "wallet" },
     { label: "Documentos", icon: "file-text" },
   ] },
@@ -327,7 +325,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Sites':'MARKETING',  'Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING',  'Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
@@ -481,9 +479,7 @@ export default function HomePage() {
             canConfigure ? <AiAgentsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Chatbots" ? (
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
-          ) : active === "Sites" ? (
-  <SiteDomainConfig key={active} />
-) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
+          ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
             canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Relatórios" ? (
             canManage ? <ReportsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>

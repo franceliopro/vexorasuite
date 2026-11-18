@@ -80,7 +80,6 @@ import {
   UsersRound,
   Share2,
   Download,
-  CircleHelp,
   MoreHorizontal,
   Image,
   Menu,
@@ -373,7 +372,7 @@ export default function HomePage() {
           })}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-utilities"><button type="button" className="sidebar-collapse" aria-label={sidebarCollapsed ? "Expansir menu" : "Recolher menu"} onClick={() => setSidebarCollapsed(v => !v)}>{sidebarCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}</button><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button><details className="sidebar-help"><summary className="sidebar-icon" aria-label="Ajuda" title="Ajuda"><CircleHelp size={18}/></summary><div><strong>Precisa de ajuda?</strong><p>Consulte as configurações dos canais ou peça orientação no assistente Véxora.</p><button className="text-button" onClick={()=>setAssistantOpen(true)}>Abrir assistente</button></div></details></div>
+          <div className="sidebar-utilities"><button type="button" className="sidebar-collapse" aria-label={sidebarCollapsed ? "Expansir menu" : "Recolher menu"} onClick={() => setSidebarCollapsed(v => !v)}>{sidebarCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}</button><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button></div>
           {session&&<SidebarProfile user={session.user} canManage={canManage&&moduleVisible("Atendentes")} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
         </div>
       </aside>

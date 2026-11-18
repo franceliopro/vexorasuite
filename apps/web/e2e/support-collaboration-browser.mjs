@@ -141,7 +141,15 @@ try{
  const thread=page.locator(".inbox-thread");
  const profile=page.locator(".contact-profile");
  await expect(profile).toBeVisible();
+ await expect(page.locator('.sidebar [aria-label="Ajuda"]')).toHaveCount(0);
  await expect(page.locator("header.thread-heading")).toHaveCSS("margin-bottom","0px");
+ const composerButtons=page.locator(".composer-tools > button, .composer-tools > .composer-tool-wrap > button");
+ const buttonLabels=["Ferramentas da conversa","Responder","Emojis","Anexar","Melhorar texto com IA"];
+ await expect(composerButtons).toHaveCount(buttonLabels.length);
+ for (const [index, label] of buttonLabels.entries()) {
+  await expect(composerButtons.nth(index)).toBeVisible();
+  await expect(composerButtons.nth(index)).toHaveAccessibleName(label);
+ }
  await expect(page.locator(".composer-tabs-row")).toHaveCount(0);
  const originalWidth=(await thread.boundingBox()).width;
  await profile.getByRole("button",{name:"Recolher ficha"}).click();
@@ -149,10 +157,26 @@ try{
  await expect.poll(async()=>(await thread.boundingBox()).width).toBeGreaterThan(originalWidth+100);
  await profile.getByRole("button",{name:"Expandir ficha"}).click();
  await expect.poll(async()=>Math.abs((await thread.boundingBox()).width-originalWidth)).toBeLessThan(2);
+ await page.keyboard.press("Alt+c");
+ await expect(profile.getByRole("button",{name:"Expandir ficha"})).toBeVisible();
+ await page.keyboard.press("Alt+c");
+ await expect(profile.getByRole("button",{name:"Recolher ficha"})).toBeVisible();
+ const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
+ await composer.focus();
+ await page.keyboard.insertText("/");
+ await expect(page.locator(".quick-replies-popover")).toBeVisible();
+ await expect(composer).toHaveValue("");
+ await page.keyboard.press("Escape");
+ await page.keyboard.press("Alt+r");
+ await expect(page.locator(".quick-replies-popover")).toBeHidden();
+ await page.keyboard.insertText("https://example.test/pagina");
+ await expect(composer).toHaveValue("https://example.test/pagina");
+ await expect(page.locator(".quick-replies-popover")).toBeHidden();
+ await composer.fill("");
  const tools=page.getByRole("button",{name:"Ferramentas da conversa"});
  await tools.click();
  const menu=page.getByRole("menu",{name:"Mais ações"});
- for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas","Anexos"]){
+ for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas"]){
   await expect(menu.getByRole("menuitem",{name:new RegExp(label)})).toBeVisible();
  }
  await page.keyboard.press("Escape");
@@ -175,10 +199,28 @@ try{
  await shortcut.click();
  await page.locator(".inbox-conversation").first().click();
  await expect(mode).toBeVisible();
+ for (const [index, label] of buttonLabels.entries()) {
+  await expect(composerButtons.nth(index)).toBeVisible();
+  await expect(composerButtons.nth(index)).toHaveAccessibleName(label);
+ }
  await expect(page.getByRole("button",{name:"Melhorar texto com IA"})).toBeVisible();
- await tools.click();
- await expect(menu.getByRole("menuitem",{name:/Emojis/})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Emojis",exact:true})).toBeVisible();
+ const attach=page.getByRole("button",{name:"Anexar",exact:true});
+ await expect(attach).toBeVisible();
+ await attach.click();
+ await expect(page.getByRole("menu",{name:"O que você quer anexar"})).toBeVisible();
  await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Emojis",exact:true}).click();
+ await expect(page.getByRole("textbox",{name:"Buscar emoji",exact:true})).toBeVisible();
+ await page.keyboard.press("Escape");
+ await composer.focus();
+ await page.keyboard.insertText("/");
+ await expect(page.locator(".quick-replies-popover")).toBeVisible();
+ await page.keyboard.press("Escape");
+ await page.keyboard.press("Alt+c");
+ await expect(profile).toBeVisible();
+ await page.keyboard.press("Alt+c");
+ await expect(profile).toBeHidden();
  await mode.click();
  await expect(mode).toHaveAccessibleName("Nota privada");
  await mode.click();

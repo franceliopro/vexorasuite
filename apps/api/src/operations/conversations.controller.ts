@@ -5,7 +5,7 @@ import {assignedConversationScope} from "./conversation-visibility";
 import { whatsappPhone } from './whatsapp-bridge';
 import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
-import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, StreamableFile, UseGuards } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, ServiceUnavailableException, StreamableFile, UseGuards } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
@@ -18,6 +18,7 @@ import { WahaService } from "./waha.service";
 import { ZernioService } from "./zernio.service";
 import { accessiblePipeline } from "./crm-pipelines.controller";
 import { EmailMailboxService } from "../mail/email-mailbox.service";
+import { MetaService } from "./meta.service";
 import { transferScopeOf } from "./transfer-policy";
 import { readSupportSettings, supportRecord, supportText, validateSupportSettings } from "./support-settings";
 
@@ -34,7 +35,7 @@ function isFinalizedConversation(metadata: unknown, conversationId: string): boo
 @Controller("conversations")
 @UseGuards(AuthGuard)
 export class ConversationsController {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly email: EmailMailboxService = null as unknown as EmailMailboxService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly email: EmailMailboxService = null as unknown as EmailMailboxService, private readonly meta?: MetaService) {}
 
   // Quick replies are stored per tenant so all agents in the same company share
   // the same catalog without browser-local storage or cross-tenant leakage.
@@ -842,10 +843,11 @@ export class ConversationsController {
       if (kind !== "text" && !isLocation && !isContact && !attachment) throw new BadRequestException("Anexo de e-mail incompleto.");
       return this.email.send(tenantId, conversation.id, content, request.user.sub, attachment);
     }
-    if (!conversation.channelConnection || !["WAHA", "ZERNIO"].includes(conversation.channelConnection.provider) || !conversation.channelConnection.isActive) {
+    if (!conversation.channelConnection || !["WAHA", "ZERNIO", "META"].includes(conversation.channelConnection.provider) || !conversation.channelConnection.isActive) {
       throw new BadRequestException("Esta conversa não possui um canal de mensagens conectado.");
     }
     const isZernio = conversation.channelConnection.provider === "ZERNIO";
+    const isMeta = conversation.channelConnection.provider === "META";
     const contactMetadata = conversation.contact.metadata && typeof conversation.contact.metadata === "object" && !Array.isArray(conversation.contact.metadata)
       ? conversation.contact.metadata as Record<string, unknown> : {};
     const linkedAccountId = isZernio ? String((conversation.channelConnection.settings as Record<string, unknown> | null)?.accountId || "") : "";
@@ -872,9 +874,10 @@ export class ConversationsController {
         externalConversationId = contactMetadata.externalConversationId;
       }
     }
-    const chatId = isZernio ? externalConversationId : (conversation.contact.externalId?.includes("@") ? conversation.contact.externalId
+    const metaPhoneNumberId = isMeta ? String((conversation.channelConnection.settings as Record<string, unknown> | null)?.phoneNumberId ?? "").trim() : "";
+    const chatId = isZernio ? externalConversationId : isMeta ? (conversation.contact.phone ? conversation.contact.phone.replace(/\D/g, "") : String(conversation.contact.externalId ?? "").replace(/\D/g, "")) : (conversation.contact.externalId?.includes("@") ? conversation.contact.externalId
       : conversation.contact.phone ? `${conversation.contact.phone.replace(/\D/g, "")}@c.us` : conversation.contact.externalId);
-    if (!chatId) throw new BadRequestException(isZernio ? "A conversa não possui um identificador externo para resposta." : "O contato não possui um identificador WhatsApp válido.");
+    if (!chatId) throw new BadRequestException(isZernio ? "A conversa não possui um identificador externo para resposta." : isMeta ? "Configure o WhatsApp Oficial para responder neste canal." : "O contato não possui um identificador WhatsApp válido.");
     const user = await this.prisma.user.findUnique({ where: { id: request.user.sub }, select: { name: true } });
     const senderMembership=await this.prisma.membership.findFirst({where:{tenantId,userId:request.user.sub},select:{knownBy:true}});
     const senderName=attendantName({name:user?.name,knownBy:senderMembership?.knownBy});
@@ -882,7 +885,8 @@ export class ConversationsController {
     // Etiqueta pública do atendente (WhatsApp não tem fonte menor — só negrito): o cliente vê quem respondeu.
     const agentLabel=`*${senderName}${departmentName?" · "+departmentName:""}*`;
     if (kind === "text" && !content) throw new BadRequestException("Digite uma mensagem antes de enviar.");
-    if (kind !== "text" && !isZernio && !isLocation && !isContact && (!input.data || !input.mimetype)) throw new BadRequestException("O anexo está incompleto.");
+    if (kind !== "text" && !isZernio && !isMeta && !isLocation && !isContact && (!input.data || !input.mimetype)) throw new BadRequestException("O anexo está incompleto.");
+    if (isMeta && kind !== "text" && !isLocation && !isContact) throw new BadRequestException("O WhatsApp Oficial (Meta Cloud API) aceita apenas mensagens de texto por enquanto.");
     const isOfficialWhatsApp = isZernio && String((conversation.channelConnection.settings as Record<string, unknown> | null)?.platform || "").toLowerCase() === "whatsapp";
     if (isZernio && kind !== "text" && !isLocation && !isContact && !(isOfficialWhatsApp && kind === "audio")) throw new BadRequestException("Este canal ainda não aceita esse tipo de anexo.");
     let zernioVoice: FormData | undefined;
@@ -901,7 +905,7 @@ export class ConversationsController {
 
     const queued = await this.prisma.$transaction(async tx => {
       await lockConversationClaim(tx, tenantId, id, request.user.sub);
-      return tx.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName, provider: isZernio ? "ZERNIO" : "WAHA", agentSignature: senderName + (departmentName ? " · " + departmentName : ""), filename: input.filename || null, mimetype: input.mimetype || null } } });
+      return tx.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName, provider: isMeta ? "META" : isZernio ? "ZERNIO" : "WAHA", agentSignature: senderName + (departmentName ? " · " + departmentName : ""), filename: input.filename || null, mimetype: input.mimetype || null } } });
     });
     this.events.publish(tenantId, "message.queued", { conversationId: conversation.id, message: { id: queued.id, direction: queued.direction, status: queued.status, content: queued.content } });
     let providerMessageId: string | null;
@@ -920,6 +924,11 @@ export class ConversationsController {
               : { message: agentLabel + "\n" + content }),
         }, idempotencyKey: randomUUID() }, request.user.tenantId);
         providerMessageId = result?.data?.messageId || result?.id || null;
+      } else if (isMeta) {
+        if (kind !== "text") throw new BadRequestException("O WhatsApp Oficial (Meta Cloud API) pelo Véxora aceita apenas mensagens de texto por enquanto.");
+        if (!this.meta) throw new ServiceUnavailableException("WhatsApp Oficial indisponível nesta instalação.");
+        if (!metaPhoneNumberId) throw new BadRequestException("O canal oficial não possui o Phone Number ID configurado.");
+        providerMessageId = await this.meta.sendText(tenantId, metaPhoneNumberId, chatId, agentLabel + "\n" + content);
       } else if (kind === "text") {
         providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, agentLabel + "\n" + content);
       } else if (kind === "location") {
@@ -939,7 +948,7 @@ export class ConversationsController {
     catch (error) {
       const underlying = error && typeof error === "object" && "message" in error && typeof (error as any).message === "string" ? String((error as any).message) : "";
       const detail = underlying ? " (" + underlying.slice(0, 300) + ")" : "";
-      const failed = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "FAILED", metadata: { provider: isZernio ? "ZERNIO" : "WAHA", errorCode: "SEND_FAILED", providerDetail: underlying.slice(0, 500) || null } } });
+      const failed = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "FAILED", metadata: { provider: isMeta ? "META" : isZernio ? "ZERNIO" : "WAHA", errorCode: "SEND_FAILED", providerDetail: underlying.slice(0, 500) || null } } });
       this.events.publish(tenantId, "message.failed", { conversationId: conversation.id, message: { id: failed.id, status: failed.status, content: failed.content } });
       throw new BadGatewayException("A mensagem não foi enviada." + detail + " A falha ficou registrada no histórico.");
     }

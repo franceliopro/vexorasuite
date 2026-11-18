@@ -89,7 +89,11 @@ try{
  })).toEqual({background:"rgb(244, 103, 8)",rail:"rgb(244, 103, 8)",text:"rgb(32, 25, 9)"});
  const shadow=await activeItem.evaluate(item=>getComputedStyle(item).boxShadow);
  assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
- await page.getByRole("button",{name:"Contexto e apoio"}).click();
+ await expect(page.locator(".vx-support-context, .inbox-assume-wrap")).toHaveCount(0);
+ const statusMenu=page.locator(".thread-status-pill");
+ await expect(statusMenu.getByRole("menuitem",{name:"Contexto e apoio"})).toBeHidden();
+ await statusMenu.locator("summary").click();
+ await statusMenu.getByRole("menuitem",{name:"Contexto e apoio"}).click();
  const context=page.getByRole("dialog",{name:"Contexto e apoio"});
  await expect(context.getByLabel("Equipamento")).toHaveValue("R-32");
  await context.getByRole("button",{name:"Escalar",exact:true}).click();

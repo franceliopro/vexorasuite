@@ -14,8 +14,9 @@ function temporaryPasswordNotice(success: string, data: { temporaryPassword?: un
     ? " Senha temporária: " + data.temporaryPassword + ". A troca será obrigatória no próximo acesso." : "");
 }
 
-export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
+export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmin?:boolean;canManageAdmin?:boolean}) {
   const [editingId,setEditingId]=useState('');
+  const [editRole,setEditRole]=useState('');
   const [tab, setTab] = useState("agents");
   const [rows, setRows] = useState<any[]>([]),
     [departments, setDepartments] = useState<any[]>([]),
@@ -147,6 +148,13 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                   if (editingId) {
                     const scopeResponse = await fetch("/api/backend/team/" + editingId + "/transfer-scope", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(form.transferScope) });
                     if (!scopeResponse.ok) { const sd = await scopeResponse.json().catch(() => ({})); throw Error(sd.message || "Não foi possível salvar as permissões de transferência."); }
+                    const profileResponse = await fetch("/api/backend/team/" + editingId + "/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: form.name, email: form.email, knownBy: form.knownBy }) });
+                    if (!profileResponse.ok) { const pd = await profileResponse.json().catch(() => ({})); throw Error(pd.message || "Não foi possível salvar nome e e-mail."); }
+                    if (canManageAdmin && form.role && form.role !== editRole) {
+                      const roleResponse = await fetch("/api/backend/team/" + editingId + "/role", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ role: form.role }) });
+                      if (!roleResponse.ok) { const rd = await roleResponse.json().catch(() => ({})); throw Error(rd.message || "Não foi possível alterar o nível de acesso."); }
+                      setEditRole(form.role);
+                    }
                   }
                   const createdNotice = !editingId ? temporaryPasswordNotice("Atendente cadastrado.", d) : "";
                   const memberId = editingId || d.id;
@@ -199,8 +207,8 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               <header className="team-form-head">
                 <span className="team-form-icon" aria-hidden="true"><UserRoundPlus size={20} /></span>
                 <div>
-                  <h2>{editingId ? "Setores e permissões" : "Cadastrar atendente"}</h2>
-                  <p>{editingId ? "Ajuste os setores e os módulos liberados para esta pessoa." : "Preencha os dados abaixo. Uma senha temporária é gerada no primeiro acesso."}</p>
+                  <h2>{editingId ? "Editar atendente" : "Cadastrar atendente"}</h2>
+                  <p>{editingId ? "Altere dados, permissões e setores. O histórico da pessoa é preservado." : "Preencha os dados abaixo. Uma senha temporária é gerada no primeiro acesso."}</p>
                 </div>
                 <button type="button" className="team-form-close" aria-label="Fechar cadastro" onClick={() => setEditing(false)}><X size={16} aria-hidden="true" /></button>
               </header>
@@ -214,8 +222,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               <label>
                 Nome
                 <input
-                  required={!editingId}
-                  disabled={!!editingId}
+                  required
                   maxLength={160}
                   value={form.name}
                   onChange={(e) =>
@@ -228,8 +235,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 E-mail de acesso
                 <input
                   type="email"
-                  required={!editingId}
-                  disabled={!!editingId}
+                  required
                   autoComplete="off"
                   value={form.email}
                   onChange={(e) =>
@@ -244,7 +250,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
                 </select>
                 <small>O atendente verá somente esta agenda. O nome exibido é o nome amigável do Google.</small>
               </label>
-              {platformAdmin&&!editingId&&<label>Perfil<select value={form.role} onChange={e=>setForm(v=>({...v,role:e.target.value,modules:e.target.value==="OWNER"?Object.keys(moduleLabels):v.modules,deniedModules:[]}))}><option value="AGENT">Atendente</option><option value="OWNER">Proprietário da empresa</option></select></label>}
+              {(platformAdmin||canManageAdmin)&&<label>Permissão<select value={form.role} onChange={e=>setForm(v=>({...v,role:e.target.value,modules:e.target.value==="OWNER"?Object.keys(moduleLabels):v.modules,deniedModules:[]}))}><option value="AGENT">Atendente</option><option value="ADMIN">Administrador</option>{platformAdmin?<option value="OWNER">Proprietário da empresa</option>:null}</select><small>Administrador tem acesso a todas as permissões e setores da empresa, exceto a administração da Véxora.</small></label>}
               </div>
               <fieldset className="team-sectors-fieldset">
                 <legend>Setores</legend>
@@ -312,10 +318,10 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               />
               </div>
               <footer className="team-form-footer">
-                <small>{!editingId ? "O atendente receberá uma senha temporária por e-mail. A troca é obrigatória no primeiro acesso." : "Nome e e-mail não podem ser alterados após o cadastro."}</small>
+                <small>{!editingId ? "O atendente receberá uma senha temporária por e-mail. A troca é obrigatória no primeiro acesso." : "Nome e e-mail podem ser alterados; o histórico da pessoa é preservado."}</small>
                 <div className="team-form-actions">
                   <button type="button" className="secondary-button" onClick={() => setEditing(false)}>Cancelar</button>
-                  <button className="primary-button" disabled={busy}>{editingId?"Salvar permissões":"Cadastrar atendente"}</button>
+                  <button className="primary-button" disabled={busy}>{editingId?"Salvar alterações":"Cadastrar atendente"}</button>
                 </div>
               </footer>
             </form>
@@ -352,7 +358,7 @@ export function TeamWorkspace({platformAdmin=false}:{platformAdmin?:boolean}) {
               <button className="secondary-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/reactivate",{method:"PATCH"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível reativar.");setNotice("Atendente reativado. Senha temporária: "+(data.temporaryPassword||"")+". Troca obrigatória no próximo acesso.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível reativar.")}finally{setBusy(false)}}}>Reativar</button>
               <button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Excluir definitivamente "+r.name+" da empresa? O e-mail fica liberado e o vínculo é desfeito; quando possível, o histórico é preservado. Esta ação não pode ser desfeita."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/permanent",{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível excluir definitivamente.");setNotice(data.emailFreed?"Atendente excluído definitivamente: e-mail liberado para novo cadastro.":"Vínculo do atendente removido desta empresa.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível excluir definitivamente.")}finally{setBusy(false)}}}>Excluir definitivamente</button>
               </>) : (<>
-              {r.canEditAccess&&<button className="secondary-button" onClick={()=>{setEditingId(r.id);setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||"",transferScope:{anyDepartment:r.transferScope?.anyDepartment===true,ownDepartment:r.transferScope?.ownDepartment!==false,directAgent:r.transferScope?.directAgent!==false}});setEditing(true)}}>Setores e permissões</button>}
+              {r.canEditAccess&&<button className="secondary-button" onClick={()=>{setEditingId(r.id);setEditRole(r.role||'');setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||"",transferScope:{anyDepartment:r.transferScope?.anyDepartment===true,ownDepartment:r.transferScope?.ownDepartment!==false,directAgent:r.transferScope?.directAgent!==false}});setEditing(true)}}>Editar atendente</button>}
               {(r.canResetPassword ?? platformAdmin)&&<button className="text-button" disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice(temporaryPasswordNotice("Senha redefinida para " + r.name + ".", data));await load().catch(() => undefined);}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               {r.id!==undefined&&r.isActive&&r.id!==undefined&&<button className="text-button danger-text" disabled={busy} onClick={async()=>{if(!window.confirm("Desativar "+r.name+"? O histórico de conversas será preservado."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id,{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível desativar.");setNotice("Usuário desativado. O histórico foi preservado.");await load();}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível desativar.")}finally{setBusy(false)}}}>Desativar</button>}
                             </>)}

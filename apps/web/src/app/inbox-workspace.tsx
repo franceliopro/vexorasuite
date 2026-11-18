@@ -320,6 +320,7 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
   const [attendantNoteError, setAttendantNoteError] = useState("");
   const [messageMenu, setMessageMenu] = useState<{message: Message; x: number; y: number} | null>(null);
   useEffect(()=>{setCopilotOpen(false);setCopilotMessage(null);setHandoffNote("");setHandoffPhone("");setHandoffDepartment("");setHandoffAssignee("");},[selectedId]);
+  useEffect(() => { setComposerTab("reply"); setComposerMenuOpen(false); }, [selectedId]);
   useEffect(()=>{const close=(event:MouseEvent)=>{if(!(event.target as Element)?.closest(".message-context-menu"))setMessageMenu(null)};window.addEventListener("click",close);return()=>window.removeEventListener("click",close)},[]);
   const threadScrollRef=useRef<HTMLDivElement|null>(null);
   useEffect(()=>{

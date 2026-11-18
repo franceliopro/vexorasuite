@@ -713,15 +713,26 @@ export function InboxWorkspace({tenantId,canManageChannels=false}:{tenantId:stri
     };
   }, []);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [orgMapsUrl, setOrgMapsUrl] = useState("");
+  const loadOrgMapsUrl = useCallback(async () => {
+    const organization = await api<{ mapsUrl?: string | null; address?: string; city?: string; state?: string; zipCode?: string }>("/api/backend/auth/organization");
+    const address = [organization.address, organization.city, organization.state, organization.zipCode].filter(part => part?.trim()).join(", ");
+    return organization.mapsUrl?.trim() || (address && "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address));
+  }, []);
+  useEffect(() => {
+    let active = true;
+    void loadOrgMapsUrl().then(url => { if (active) setOrgMapsUrl(url); }).catch(() => {});
+    return () => { active = false; };
+  }, [loadOrgMapsUrl]);
+
   async function insertCompanyMap() {
     if (!selectedId) return;
     setAttachOpen(false);
     setError("");
     try {
-      const organization = await api<{ mapsUrl?: string | null; address?: string; city?: string; state?: string; zipCode?: string }>("/api/backend/auth/organization");
+      const url = await loadOrgMapsUrl();
+      setOrgMapsUrl(url);
       if (selectedRef.current !== selectedId) return;
-      const address = [organization.address, organization.city, organization.state, organization.zipCode].filter(part => part?.trim()).join(", ");
-      const url = organization.mapsUrl?.trim() || (address && "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address));
       if (!url) {
         setError("Cadastre o endereço ou o link do mapa em Configurações → Dados da empresa.");
         return;

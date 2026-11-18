@@ -1,5 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import {
   FileText, Plus, RefreshCw, Printer, Mail, Trash2, Pencil, Sparkles,
 } from "lucide-react";
@@ -33,6 +35,7 @@ export function DocumentsWorkspace() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selected, setSelected] = useState<Template | null>(null);
   const [editing, setEditing] = useState<Template | null | "new">(null);
+  const [loadErrors, setLoadErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -62,18 +65,19 @@ export function DocumentsWorkspace() {
 
   const load = useCallback(async () => {
     setError("");
-    try {
-      const [list, recent, contactList] = await Promise.all([
-        api<{ templates: Template[] }>("documents/templates"),
-        api<{ documents: Generated[] }>("documents/recent"),
-        api<Contact[]>("contacts?size=50"),
-      ]);
-      setTemplates(list.templates);
-      setDocuments(recent.documents);
-      setContacts(contactList);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível carregar os documentos.");
-    }
+    const [list, recent, contactList] = await Promise.allSettled([
+      api<{ templates: Template[] }>("documents/templates"),
+      api<{ documents: Generated[] }>("documents/recent"),
+      api<Contact[]>("contacts"),
+    ]);
+    if (list.status === "fulfilled") setTemplates(list.value.templates);
+    if (recent.status === "fulfilled") setDocuments(recent.value.documents);
+    if (contactList.status === "fulfilled") setContacts(contactList.value);
+    const failures: string[] = [];
+    if (list.status === "rejected") failures.push("modelos");
+    if (recent.status === "rejected") failures.push("documentos recentes");
+    if (contactList.status === "rejected") failures.push("contatos");
+    setLoadErrors(failures);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -155,6 +159,9 @@ export function DocumentsWorkspace() {
       </header>
       {error ? <p role="alert" className="docs-error">{error}</p> : null}
       {notice ? <p role="status" className="docs-notice">{notice}</p> : null}
+      {loadErrors.length > 0 && <div className="docs-error" role="alert">
+        Não foi possível carregar {loadErrors.join(", ")}. <button type="button" className="text-button" onClick={() => void load()}>Tentar novamente</button>
+      </div>}
 
       <div className="docs-tabs" role="tablist" aria-label="Tipo de documento">
         {KINDS.map((item) => (
@@ -170,7 +177,7 @@ export function DocumentsWorkspace() {
           <div className="docs-list">
             <div className="docs-list-head">
               <strong>Modelos de {kindLabel.toLowerCase()}</strong>
-              {!filtered.length ? <button type="button" className="primary-button" disabled={busy} onClick={() => void seed()}><Sparkles size={16} /> Criar modelos iniciais</button> : null}
+              {!filtered.length && !loadErrors.includes("modelos") ? <button type="button" className="primary-button" disabled={busy} onClick={() => void seed()}><Sparkles size={16} /> Criar modelos iniciais</button> : null}
             </div>
             {filtered.map((template) => (
               <div key={template.id} role="button" tabIndex={0} className="docs-template-item" onClick={() => startGenerate(template)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startGenerate(template); } }}>
@@ -253,9 +260,11 @@ function TemplateEditor({ kind, template, onClose, onSaved }: { kind: string; te
   const [variables, setVariables] = useState<Variable[]>(template?.variables?.length ? template.variables : [emptyVariable()]);
   const [body, setBody] = useState("");
   const [loadingBody, setLoadingBody] = useState(template !== null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useModalDialog(true, dialogRef, () => { if (!busy) onClose(); });
   useEffect(() => {
     if (!template) return;
     let live = true;
@@ -299,11 +308,14 @@ function TemplateEditor({ kind, template, onClose, onSaved }: { kind: string; te
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao salvar."); } finally { setBusy(false); }
   }
 
-  return (
-    <div className="docs-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(
+    <div className="docs-editor-backdrop">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="docs-template-title" className="docs-editor-frame">
       <form className="docs-editor" onSubmit={submit}>
-        <header className="docs-editor-head"><strong>{template ? "Editar modelo" : "Novo modelo"}</strong><button type="button" className="text-button" onClick={onClose}>Fechar</button></header>
+        <header className="docs-editor-head"><h2 id="docs-template-title">{template ? "Editar modelo" : "Novo modelo"}</h2><button type="button" className="text-button" onClick={onClose} disabled={busy}>Fechar</button></header>
+        <div className="docs-editor-scroll" role="region" aria-label="Campos do modelo" tabIndex={0}>
         {error ? <p role="alert" className="docs-error">{error}</p> : null}
+        {loadingBody && <p role="status">Carregando modelo…</p>}
         <label>Nome<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Orçamento de manutenção" /></label>
         <label>Descrição<textarea rows={2} maxLength={240} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
         <fieldset className="docs-variables">
@@ -325,8 +337,11 @@ function TemplateEditor({ kind, template, onClose, onSaved }: { kind: string; te
           <button type="button" className="secondary-button" onClick={() => setVariables((v) => [...v, emptyVariable()])}><Plus size={14} /> Adicionar variável</button>
         </fieldset>
         <label>Conteúdo do modelo<textarea required rows={10} value={body} onChange={(e) => setBody(e.target.value)} spellCheck={false} placeholder={"CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nContratante: {{nome_cliente}}\nObjeto: {{objetivo}}\nValor: {{valor}}"} /></label>
-        <div className="docs-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="submit" className="primary-button" disabled={busy}>{busy ? "Salvando…" : "Salvar modelo"}</button></div>
+        </div>
+        <div className="docs-actions"><button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancelar</button><button type="submit" className="primary-button" disabled={busy || loadingBody}>{busy ? "Salvando…" : "Salvar modelo"}</button></div>
       </form>
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

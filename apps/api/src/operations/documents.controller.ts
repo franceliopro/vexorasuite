@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   Body,
   Controller,
@@ -22,6 +23,8 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { administrative } from "../auth/module-policy";
 import { MailService } from "../mail/mail.service";
+import { WahaService } from "./waha.service";
+import { EventsService } from "./events.service";
 
 const KINDS = new Set(["QUOTE", "CONTRACT", "WORK_ORDER", "RECEIPT"]);
 const VARIABLE_TYPES = new Set(["text", "longtext", "date", "money"]);
@@ -108,7 +111,7 @@ async function buildPdf(name: string, content: string): Promise<Buffer> {
 @Controller("documents")
 @UseGuards(AuthGuard)
 export class DocumentsController {
-  constructor(private readonly prisma: PrismaService, private readonly mail: MailService) {}
+  constructor(private readonly prisma: PrismaService, private readonly mail: MailService, private readonly waha: WahaService, private readonly events: EventsService) {}
 
   private adminOnly(req: AuthenticatedRequest) {
     if (!administrative(req.user.role)) throw new ForbiddenException("Somente administradores gerenciam modelos de documentos.");
@@ -340,6 +343,60 @@ export class DocumentsController {
     res.setHeader("content-type", "application/pdf");
     res.setHeader("content-disposition", `attachment; filename="${document.name.replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80)}.pdf"`);
     res.send(pdf);
+  }
+
+  @Post(":id/send-whatsapp")
+  async sendWhatsapp(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: any) {
+    const conversationId = typeof input?.conversationId === "string" ? input.conversationId.trim() : "";
+    if (!conversationId) throw new BadRequestException("Informe a conversa para enviar o documento.");
+    const document = await this.prisma.generatedDocument.findFirst({ where: { id, tenantId: req.user.tenantId } });
+    if (!document) throw new NotFoundException("Documento não encontrado.");
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId: req.user.tenantId, deletedAt: null, archivedAt: null },
+      select: {
+        id: true,
+        contact: { select: { externalId: true, phone: true, name: true } },
+        channelConnection: { select: { id: true, provider: true, isActive: true } },
+      },
+    });
+    if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
+    if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA" || !conversation.channelConnection.isActive) {
+      throw new BadRequestException("O envio pelo WhatsApp exige um canal WAHA ativo para esta conversa.");
+    }
+    const externalId = conversation.contact.externalId ?? "";
+    const chatId = externalId.includes("@") ? externalId : conversation.contact.phone ? `${conversation.contact.phone.replace(/\D/g, "")}@c.us` : null;
+    if (!chatId) throw new BadRequestException("O contato não possui um identificador WhatsApp válido.");
+    const pdf = await buildPdf(document.name, document.content);
+    const base64 = pdf.toString("base64");
+    const filename = document.name.replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80) + ".pdf";
+    const member = await this.prisma.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: req.user.sub }, select: { knownBy: true } });
+    const senderName = (typeof member?.knownBy === "string" && member.knownBy.trim()) || "Atendimento";
+    const queued = await this.prisma.message.create({
+      data: {
+        tenantId: req.user.tenantId,
+        conversationId: conversation.id,
+        direction: "OUTBOUND",
+        status: "QUEUED",
+        contentType: "file",
+        content: document.name,
+        senderName,
+        metadata: { provider: "WAHA", documentId: document.id, filename, mimetype: "application/pdf" },
+      },
+      select: { id: true, conversationId: true, direction: true, status: true, content: true },
+    });
+    this.events.publish(req.user.tenantId, "message.queued", { conversationId: queued.conversationId, message: queued });
+    try {
+      const providerMessageId = await this.waha.sendMedia(conversation.channelConnection as any, chatId, "file", { mimetype: "application/pdf", filename, base64, caption: document.name });
+      const sent = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "SENT", providerMessageId }, select: { id: true, status: true, providerMessageId: true } });
+      await this.prisma.generatedDocument.update({ where: { id: document.id }, data: { sentAt: new Date(), sentTo: chatId.startsWith("@g") ? "whatsapp:grupo" : `whatsapp:${chatId}` } });
+      this.events.publish(req.user.tenantId, "message.sent", { conversationId: queued.conversationId, messageId: sent.id });
+      return { sent: true, providerMessageId };
+    } catch (error) {
+      const detail = error instanceof Error ? error.message.slice(0, 300) : "";
+      const failed = await this.prisma.message.update({ where: { id: queued.id }, data: { status: "FAILED", metadata: { provider: "WAHA", documentId: document.id, filename, errorCode: "SEND_FAILED", providerDetail: detail || null } }, select: { id: true, status: true } });
+      this.events.publish(req.user.tenantId, "message.failed", { conversationId: queued.conversationId, messageId: failed.id });
+      throw new BadGatewayException("A mensagem não foi enviada." + (detail ? " " + detail : ""));
+    }
   }
 
   @Post(":id/send")

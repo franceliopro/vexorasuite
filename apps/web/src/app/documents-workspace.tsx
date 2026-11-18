@@ -40,6 +40,25 @@ export function DocumentsWorkspace() {
   const [contactId, setContactId] = useState("");
   const [generated, setGenerated] = useState<Generated | null>(null);
   const [emailTo, setEmailTo] = useState("");
+  const [conversationTo, setConversationTo] = useState("");
+
+  useEffect(() => {
+    try { const preset = new URLSearchParams(window.location.search).get("conversationId"); if (preset) setConversationTo(preset); } catch {}
+  }, []);
+
+  async function sendWhatsapp() {
+    if (!generated) return;
+    const conversationId = conversationTo.trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) { setError("Informe o ID de uma conversa válida (ou abra pelo atendimento)."); return; }
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(`/api/backend/documents/${generated.id}/send-whatsapp`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ conversationId }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "Não foi possível enviar.");
+      setNotice("Documento enviado pelo WhatsApp e registrado na conversa.");
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Falha ao enviar."); } finally { setBusy(false); }
+  }
 
   const load = useCallback(async () => {
     setError("");
@@ -199,6 +218,10 @@ export function DocumentsWorkspace() {
                 <div className="docs-send">
                   <label>Enviar por e-mail<input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="e-mail do cliente" /></label>
                   <button type="button" className="secondary-button" disabled={busy} onClick={() => void sendEmail()}><Mail size={15} /> Enviar</button>
+                </div>
+                <div className="docs-send">
+                  <label>Enviar pelo WhatsApp<input value={conversationTo} onChange={(e) => setConversationTo(e.target.value)} placeholder="ID da conversa (ou abra com ?conversationId=...)" /></label>
+                  <button type="button" className="secondary-button" disabled={busy} onClick={() => void sendWhatsapp()}><Mail size={15} /> Enviar</button>
                 </div>
               </>
             ) : <p className="docs-hint">O documento gerado aparece aqui. Preencha os campos e clique em “Gerar documento”.</p>}

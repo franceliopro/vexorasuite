@@ -1135,6 +1135,8 @@ details>summary:hover{color:var(--tx)}
 .composer-ai-improve{cursor:pointer}
 .composer-ai-improve:hover{background:var(--primary-soft);color:var(--primary-ink);border-color:color-mix(in srgb,var(--primary) 22%,transparent)}
 .composer-icon-button.recording{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 48%,var(--ln));background:color-mix(in srgb,var(--bad) 9%,var(--s1));animation:recording-pulse 1.15s ease-in-out infinite}
+.composer-claim-gate{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--ln);font-size:12px;color:var(--tx2)}
+.composer-claim-gate .inbox-assume-button{display:inline-flex;align-items:center;gap:6px;min-height:34px}
 .voice-recording{flex:0 0 100%;display:flex;align-items:center;gap:10px;padding:6px 10px;margin-bottom:8px;border:1px dashed color-mix(in srgb,#E5484D 45%,var(--ln));border-radius:12px;background:color-mix(in srgb,#E5484D 4%,var(--s1))}
 .voice-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#E5484D;box-shadow:0 0 0 0 color-mix(in srgb,#E5484D 55%,transparent);animation:voice-dot-pulse 1.2s ease-out infinite}
 .voice-timer{flex:none;min-width:38px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:#C2494E}
@@ -3988,7 +3990,7 @@ input[type=tel]{letter-spacing:.02em}
   /* gravação de áudio cabe na tela — sem estourar pela direita */
   .voice-recording{flex-wrap:wrap;max-width:calc(100vw - 10px);min-width:0;gap:8px;padding:6px 9px}
   .voice-hint{display:none}
-  .voice-wave{display:none}
+  .voice-wave{display:flex;flex:1 1 40px}
   .voice-cancel,.voice-send{width:36px!important;height:36px!important}
   /* app nativo: textarea em linha própria; ícones + mic + enviar abaixo, enviar à direita */
   .inbox-composer .composer-toolbar{flex-wrap:wrap!important;padding:2px 4px 4px!important;gap:4px 6px!important}
@@ -4059,7 +4061,7 @@ input[type=tel]{letter-spacing:.02em}
   .composer-shell,.composer-shell>.inbox-composer{border-radius:0!important;border-left:0!important;border-right:0!important;border-bottom:0!important;box-shadow:none!important}
   .voice-recording{flex-wrap:wrap;max-width:calc(100vw - 10px);min-width:0;gap:8px;padding:6px 9px}
   .voice-hint{display:none}
-  .voice-wave{display:none}
+  .voice-wave{display:flex;flex:1 1 40px}
   .voice-cancel,.voice-send{width:36px!important;height:36px!important}
   /* Melhorar com IA visível e compacta ao lado de Nota privada */
   .composer-ai-improve{display:inline-flex!important;align-items:center!important;gap:5px!important;height:26px!important;min-height:26px!important;padding:0 8px!important;font-size:10px!important;font-weight:750!important;border-radius:99px!important;flex:none!important}

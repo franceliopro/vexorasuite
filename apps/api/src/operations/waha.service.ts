@@ -309,7 +309,7 @@ export class WahaService {
   }
 
   async sendContact(channel: ChannelConnection, chatId: string, contact: { vcard: string; name?: string }): Promise<string | null> {
-    return this.sendPayload("/api/sendContactVcard", { session: channel.sessionName, chatId, vcard: contact.vcard, name: contact.name });
+    return this.sendPayload("/api/sendContactVcard", { session: channel.sessionName, chatId, contacts: [{ vcard: contact.vcard }] });
   }
 
 }

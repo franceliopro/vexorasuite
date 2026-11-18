@@ -3230,6 +3230,12 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 /* Corpos internos não criam suas próprias barras — a rolagem acontece num único lugar: o diálogo */
 .sites-wizard-body{overflow-y:auto!important;max-height:none}.platform-admin-editor-body,.sites-studio-panel,.sites-studio-blocks,.sites-items-grid,.sites-forms-grid,.sites-items-list,.sites-item-form{overflow-y:auto;max-height:none}
 .calendar-modal{overflow:visible}
+.calendar-event-modal{width:min(620px,100%);max-height:calc(100dvh - 24px);overflow-y:auto;align-content:start}
+.calendar-location-field,.calendar-place-suggestions{display:grid;gap:6px;min-width:0}
+.calendar-place-suggestions button{border:1px solid var(--ln);border-radius:8px;background:var(--s2);padding:8px 10px;text-align:left;color:var(--tx)}
+.calendar-place-suggestions button:hover,.calendar-place-suggestions button:focus-visible{background:var(--hover)}
+.calendar-location-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:12px}
+.calendar-location-field iframe{width:100%;height:clamp(180px,38dvh,320px);border:1px solid var(--ln);border-radius:10px;background:var(--s2)}
 /* Abas em diálogo alto (setup, preferências, criação) — criar site usa abas quando há muito conteúdo */
 .sites-wizard-body{display:flex;flex-direction:column;gap:14px;padding:16px 20px}
 .sites-wizard-body .sites-areas{max-height:420px;overflow-y:auto}

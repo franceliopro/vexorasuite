@@ -813,11 +813,26 @@ export class ConversationsController {
     if (isFinalizedConversation(conversation.contact.metadata, conversation.id)) throw new BadRequestException("Este atendimento foi finalizado. Consulte o histórico em Contatos.");
     if (conversation.deletedAt || conversation.archivedAt) throw new BadRequestException("Restaure a conversa antes de enviar novas mensagens.");
     if (conversation.status === "CLOSED") throw new BadRequestException("Esta conversa já foi encerrada.");
+    const kind = input.kind || "text";
+    const isLocation = kind === "location";
+    const isContact = kind === "contact";
+    const latitude = Number(input.latitude);
+    const longitude = Number(input.longitude);
+    if (isLocation && (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180)) {
+      throw new BadRequestException("Informe uma localização válida.");
+    }
+    if (isContact && !input.vcard?.trim()) throw new BadRequestException("Informe o contato a enviar.");
+    const sharedName = input.contactName?.trim() || conversation.contact.name;
+    const sharedPhone = conversation.contact.phone?.replace(/[^\d+]/g, "") || "";
+    const locationTitle = input.title?.trim() || "Localização";
+    const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(latitude + "," + longitude);
+    const content = isLocation ? locationTitle + "\n" + mapUrl :
+      isContact ? [sharedName, sharedPhone, conversation.contact.email].filter(Boolean).join("\n") :
+      (input.content || input.caption || "").trim();
+
     if (conversation.channelConnection?.provider === "EMAIL") {
-      const content = (input.content || input.caption || "").trim();
       const attachment = input.data && input.filename && input.mimetype && input.kind !== "text" ? { filename: input.filename, contentType: input.mimetype, data: input.data } : undefined;
-      if (input.kind && input.kind !== "text" && !attachment) throw new BadRequestException("Anexo de e-mail incompleto.");
-      if (input.kind && ["location", "contact"].includes(input.kind)) throw new BadRequestException("Localização e contato ainda não são suportados em respostas por e-mail.");
+      if (kind !== "text" && !isLocation && !isContact && !attachment) throw new BadRequestException("Anexo de e-mail incompleto.");
       return this.email.send(tenantId, conversation.id, content, request.user.sub, attachment);
     }
     if (!conversation.channelConnection || !["WAHA", "ZERNIO"].includes(conversation.channelConnection.provider) || !conversation.channelConnection.isActive) {
@@ -859,20 +874,29 @@ export class ConversationsController {
     const departmentName=conversation.department?.name||"";
     // Etiqueta pública do atendente (WhatsApp não tem fonte menor — só negrito): o cliente vê quem respondeu.
     const agentLabel=`*${senderName}${departmentName?" · "+departmentName:""}*`;
-    const kind = input.kind || "text";
-    const content = (input.content || input.caption || "").trim();
     if (kind === "text" && !content) throw new BadRequestException("Digite uma mensagem antes de enviar.");
-    if (kind !== "text" && !isZernio && kind !== "location" && kind !== "contact" && (!input.data || !input.mimetype)) throw new BadRequestException("O anexo está incompleto.");
-    if (kind === "location" && (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude))) throw new BadRequestException("Informe uma localização válida.");
-    if (kind === "contact" && !input.vcard?.trim()) throw new BadRequestException("Informe o contato a enviar.");
-    if (isZernio && kind !== "text") throw new BadRequestException("Este canal ainda aceita somente mensagens de texto.");
+    if (kind !== "text" && !isZernio && !isLocation && !isContact && (!input.data || !input.mimetype)) throw new BadRequestException("O anexo está incompleto.");
+    if (isZernio && kind !== "text" && !isLocation && !isContact) throw new BadRequestException("Este canal ainda não aceita esse tipo de anexo.");
+    const isOfficialWhatsApp = isZernio && String((conversation.channelConnection.settings as Record<string, unknown> | null)?.platform || "").toLowerCase() === "whatsapp";
+    if (isOfficialWhatsApp && isContact && !sharedPhone) throw new BadRequestException("O contato ainda não possui telefone para compartilhar.");
 
     const queued = await this.prisma.message.create({ data: { tenantId, conversationId: conversation.id, direction: "OUTBOUND", status: "QUEUED", content, contentType: kind, senderName, metadata: {departmentName, provider: isZernio ? "ZERNIO" : "WAHA", agentSignature: senderName + (departmentName ? " · " + departmentName : ""), filename: input.filename || null, mimetype: input.mimetype || null } } });
     this.events.publish(tenantId, "message.queued", { conversationId: conversation.id, message: { id: queued.id, direction: queued.direction, status: queued.status, content: queued.content } });
     let providerMessageId: string | null;
     try {
       if (isZernio) {
-        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: { accountId: linkedAccountId, message: kind === "text" ? agentLabel + "\n" + content : content }, idempotencyKey: randomUUID() }, request.user.tenantId);
+        const result = await this.zernio.request<any>("/inbox/conversations/" + encodeURIComponent(chatId) + "/messages", { method: "POST", body: {
+          accountId: linkedAccountId,
+          ...(isOfficialWhatsApp && isLocation
+            ? { location: { latitude, longitude, name: locationTitle, ...(input.address ? { address: input.address } : {}) } }
+            : isOfficialWhatsApp && isContact
+              ? { contacts: [{
+                  name: { formatted_name: sharedName },
+                  phones: [{ phone: sharedPhone, type: "CELL" }],
+                  ...(conversation.contact.email ? { emails: [{ email: conversation.contact.email }] } : {}),
+                }] }
+              : { message: agentLabel + "\n" + content }),
+        }, idempotencyKey: randomUUID() }, request.user.tenantId);
         providerMessageId = result?.data?.messageId || result?.id || null;
       } else if (kind === "text") {
         providerMessageId = await this.waha.sendText(conversation.channelConnection, chatId, agentLabel + "\n" + content);

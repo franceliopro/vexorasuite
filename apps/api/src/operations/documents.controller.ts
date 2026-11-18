@@ -18,7 +18,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Response } from "express";
-import PDFDocument from "pdfkit";
+
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
@@ -27,87 +27,20 @@ import { MailService } from "../mail/mail.service";
 import { WahaService } from "./waha.service";
 import { EventsService } from "./events.service";
 
-const KINDS = new Set(["QUOTE", "CONTRACT", "WORK_ORDER", "RECEIPT"]);
-const VARIABLE_TYPES = new Set(["text", "longtext", "date", "money"]);
-const KEY_RE = /^[a-z][a-z0-9_]{0,39}$/;
-const MAX_BODY = 40_000;
+import {
+  KINDS,
 
-const trim = (value: unknown, max: number) =>
-  typeof value === "string" ? value.trim().slice(0, max) : "";
-
-function parseVariables(input: unknown) {
-  if (!Array.isArray(input)) throw new BadRequestException("As variáveis devem ser uma lista.");
-  if (input.length > 40) throw new BadRequestException("No máximo 40 variáveis por modelo.");
-  return input.map((raw: any) => {
-    const key = typeof raw?.key === "string" ? raw.key.trim().toLowerCase() : "";
-    const label = trim(raw?.label, 80);
-    const type = typeof raw?.type === "string" && VARIABLE_TYPES.has(raw.type) ? raw.type : "text";
-    const required = raw?.required === true;
-    if (!KEY_RE.test(key)) throw new BadRequestException(`Variável inválida: "${String(raw?.key ?? "")}". Use minúsculas, números e underscore (ex.: nome_cliente).`);
-    if (!label) throw new BadRequestException(`A variável "${key}" precisa de um rótulo.`);
-    return { key, label, type, required };
-  });
-}
-
-const object = (value: unknown): Record<string, unknown> =>
-  value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-
-function renderTemplate(body: string, values: Record<string, string>) {
-  return body.replace(/\{\{([a-z0-9_]{1,40})\}\}/gi, (_, key: string) => {
-    const value = values[String(key).toLowerCase()];
-    return value === undefined ? `{{${key}}}` : value;
-  });
-}
-
-function missingKeys(body: string, values: Record<string, string>) {
-  const missing = new Set<string>();
-  const matches = body.matchAll(/\{\{([a-z0-9_]{1,40})\}\}/gi);
-  for (const match of matches) {
-    const key = String(match[1]).toLowerCase();
-    if (!values[key]?.trim()) missing.add(key);
-  }
-  return [...missing];
-}
-
-function contactAutofill(contact: any): Record<string, string> {
-  const meta = object(contact?.metadata);
-  const digits = (value: unknown) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
-  const out: Record<string, string> = {};
-  if (contact?.name) out.nome_cliente = String(contact.name);
-  if (contact?.phone) out.telefone = String(contact.phone);
-  if (contact?.email) out.email = String(contact.email);
-  const asaas = object(meta.asaas);
-  const document = digits(meta.document) || digits(asaas.cpfCnpj) || digits(asaas.document);
-  if (document) out.cpf_cnpj = document;
-  const company = trim(asaas.companyName, 160) || trim(asaas.company, 160) || trim(meta.company, 160) || trim(meta.razaoSocial, 160);
-  if (company) out.empresa = company;
-  const address = trim(asaas.address, 240) || trim(meta.endereco, 240) || trim(meta.address, 240) || trim(asaas.addressLine1, 240);
-  if (address) out.endereco = address;
-  return out;
-}
-
-async function buildPdf(name: string, content: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A4", margins: { top: 56, bottom: 56, left: 52, right: 52 }, info: { Title: name } });
-    const chunks: Buffer[] = [];
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-    doc.fillColor("#2456a7").fontSize(10).text("VÉXORA SUITE", { align: "left" });
-    doc.moveDown(0.4);
-    doc.fillColor("#16243a").fontSize(20).text(name, { lineGap: 4 });
-    doc.moveDown(0.4);
-    doc.strokeColor("#204f9c").lineWidth(1.2).moveTo(52, doc.y).lineTo(543, doc.y).stroke();
-    doc.moveDown(0.6);
-    doc.fillColor("#1f2a44").fontSize(11);
-    for (const paragraph of content.split(/\n{2,}/)) {
-      doc.text(paragraph.replace(/\n/g, " "), { lineGap: 3.5, paragraphGap: 4 });
-    }
-    doc.moveDown(1);
-    doc.fontSize(9).fillColor("#5a6b86").text("Gerado pela Véxora Suite em " + new Date().toLocaleDateString("pt-BR"), { align: "left" });
-    doc.end();
-  });
-}
+  MAX_BODY,
+  parseVariables,
+  object,
+  trim,
+  renderTemplate,
+  missingKeys,
+  contactAutofill,
+  companyAutofill,
+  companyHeader,
+  buildPdf,
+} from "./document-helpers";
 
 @Controller("documents")
 @UseGuards(AuthGuard)
@@ -116,6 +49,11 @@ export class DocumentsController {
 
   private adminOnly(req: AuthenticatedRequest) {
     if (!administrative(req.user.role)) throw new ForbiddenException("Somente administradores gerenciam modelos de documentos.");
+  }
+
+  private async companyHeaderFor(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true, integrations: true } });
+    return tenant ? companyHeader(tenant.integrations, tenant.name) : null;
   }
 
   private cleanBody(value: unknown) {
@@ -292,7 +230,8 @@ export class DocumentsController {
     }
     const variables = Array.isArray(template.variables) ? (template.variables as Array<{ key: string; required?: boolean; label?: string }>) : [];
     const manual = object(input?.values);
-    const merged: Record<string, string> = { ...contactAutofill(contact) };
+    const tenantInfo = await this.prisma.tenant.findUnique({ where: { id: req.user.tenantId }, select: { name: true, integrations: true } });
+    const merged: Record<string, string> = { ...contactAutofill(contact), ...companyAutofill(tenantInfo?.integrations, tenantInfo?.name || "") };
     for (const key of Object.keys(manual)) {
       const value = trim(manual[key], 4000);
       if (value) merged[key.toLowerCase()] = value;
@@ -340,7 +279,7 @@ export class DocumentsController {
       select: { name: true, content: true },
     });
     if (!document) throw new NotFoundException("Documento não encontrado.");
-    const pdf = await buildPdf(document.name, document.content);
+    const pdf = await buildPdf(document.name, document.content, await this.companyHeaderFor(req.user.tenantId));
     res.setHeader("content-type", "application/pdf");
     res.setHeader("content-disposition", `attachment; filename="${document.name.replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80)}.pdf"`);
     res.send(pdf);
@@ -369,7 +308,7 @@ export class DocumentsController {
     const externalId = conversation.contact.externalId ?? "";
     const chatId = externalId.includes("@") ? externalId : conversation.contact.phone ? `${conversation.contact.phone.replace(/\D/g, "")}@c.us` : null;
     if (!chatId) throw new BadRequestException("O contato não possui um identificador WhatsApp válido.");
-    const pdf = await buildPdf(document.name, document.content);
+    const pdf = await buildPdf(document.name, document.content, await this.companyHeaderFor(req.user.tenantId));
     const base64 = pdf.toString("base64");
     const filename = document.name.replace(/[^a-z0-9-_]+/gi, "_").slice(0, 80) + ".pdf";
     const member = await this.prisma.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: req.user.sub }, select: { knownBy: true } });
@@ -416,7 +355,7 @@ export class DocumentsController {
     if (!this.mail.configured) {
       throw new BadRequestException("O envio por e-mail está indisponível nesta instalação. Use o botão Baixar PDF e envie manualmente.");
     }
-    const pdf = await buildPdf(document.name, document.content);
+    const pdf = await buildPdf(document.name, document.content, await this.companyHeaderFor(req.user.tenantId));
     const result = await this.mail.send({
       to,
       subject: document.name,

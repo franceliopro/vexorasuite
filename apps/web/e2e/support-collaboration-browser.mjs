@@ -95,8 +95,23 @@ try{
   if(i===59)throw Error("Preview unavailable\n"+diagnostics);
   await new Promise(resolve=>setTimeout(resolve,500));
  }
- browser=await chromium.launch({headless:true,args:["--use-fake-device-for-media-stream"]});
+ browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:1440,height:950}});
+ await page.addInitScript(() => {
+  Object.defineProperty(navigator.mediaDevices, "getUserMedia", {value: async () => {
+   const context = new AudioContext();
+   const destination = context.createMediaStreamDestination();
+   const oscillator = context.createOscillator();
+   oscillator.connect(destination);
+   oscillator.start();
+   await context.resume();
+   for (const track of destination.stream.getAudioTracks()) {
+    const stop = track.stop.bind(track);
+    track.stop = () => { stop(); if (context.state !== "closed") void context.close(); };
+   }
+   return destination.stream;
+  }});
+ });
  await fixtures(page);
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
  const activeItem=page.locator(".sidebar .nav-item.active").first();
@@ -213,7 +228,6 @@ try{
  await expect(mode).toHaveAccessibleName("Responder");
 
  async function checkRecording(expectedCount) {
-  await page.context().grantPermissions(["microphone"]);
   await page.getByRole("button",{name:"Gravar áudio",exact:true}).click();
   await expect(page.locator(".voice-wave")).toBeVisible();
   await expect.poll(()=>page.locator(".voice-wave span").count()).toBe(26);

@@ -4954,8 +4954,8 @@ input[type=tel]{letter-spacing:.02em}
 }
 @media (min-width:1101px){
   .inbox-workspace{grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 8px var(--inbox-ficha-w,minmax(300px,380px))!important}
-  .inbox-workspace.ficha-compact{grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 54px!important}
-  .inbox-workspace.ficha-compact:not(:has(.contact-profile)){grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr)!important}
+  .inbox-workspace.ficha-compact:not(.inbox-full-screen){grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 54px!important}
+  .inbox-workspace.ficha-compact:not(.inbox-full-screen):not(:has(.contact-profile)){grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr)!important}
   .inbox-workspace .contact-profile.profile-collapsed .contact-profile-heading{justify-content:center;padding:8px}
 }
 /* ===== Audit Tarefas: duas colunas (lateral com lembretes/KPIs, lista principal) ===== */
@@ -5038,19 +5038,20 @@ input[type=tel]{letter-spacing:.02em}
 .team-access-summary .team-dept-chips{gap:5px;margin:0}
 .team-access-summary .team-dept-chips span{display:inline-flex;align-items:center;gap:4px}
 /* Compact conversation tools */
-.composer-tools .composer-popover{left:auto;right:0}
+.inbox-workspace.inbox-full-screen .inbox-resizer{display:none}
+.inbox-composer .composer-tools{position:relative}
+.composer-tools .composer-popover{left:0;right:auto}
+.composer-tools .composer-tool-wrap:has(.composer-emoji-button){position:static}
 .composer-actions-popover{width:min(288px,calc(100vw - 24px));gap:4px;padding:8px}
 .composer-actions-popover button[role="menuitem"]{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:9px;color:var(--tx);font-size:13px;text-align:left}
 .composer-actions-popover button[role="menuitem"]:hover{background:var(--s2);border-color:var(--ln)}
 .composer-actions-popover button svg{color:var(--primary-ink);flex:none}
 .composer-actions-popover button small{margin-left:auto;color:var(--tx2);font-size:10px}
-.composer-actions-popover .composer-mobile-emoji{display:none}
+.composer-actions-popover button.composer-mobile-emoji[role="menuitem"]{display:none}
 .composer-is-note .composer-mode-button{background:color-mix(in srgb,#F7D774 46%,var(--s1));color:color-mix(in srgb,#553803 82%,var(--tx))}
 @media (max-width:760px){
-  .inbox-composer .composer-tools{position:relative}
   .inbox-composer .composer-tools .composer-popover{left:0;right:auto;max-width:calc(100vw - 24px)}
   .composer-tools .composer-emoji-button{display:none}
-  .composer-tools .composer-tool-wrap:has(.composer-emoji-button){position:static}
   .composer-actions-popover button.composer-mobile-emoji[role="menuitem"]{display:flex}
   .mobile-bottom-nav.mobile-overview-nav{justify-content:center!important;grid-auto-columns:minmax(84px,120px)!important}
 }

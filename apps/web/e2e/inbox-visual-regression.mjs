@@ -83,7 +83,7 @@ try{
  assert.equal(await mode.getAttribute("aria-label"),"Responder");
  await page.getByRole("button",{name:"Ferramentas da conversa"}).click();
  const tools=page.getByRole("menu",{name:"Mais ações"});
- for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas","Anexos"])assert(await tools.getByRole("menuitem",{name:new RegExp(label)}).isVisible());
+ for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas"])assert(await tools.getByRole("menuitem",{name:new RegExp(label)}).isVisible());
  await page.keyboard.press("Escape");
  await mode.click();
  await page.waitForSelector(".inbox-composer.composer-is-note",{timeout:5000});
@@ -119,9 +119,8 @@ try{
  await page.locator(".inbox-conversation").first().click();
  await page.getByRole("button",{name:"Responder",exact:true}).waitFor();
  await page.getByRole("button",{name:"Melhorar texto com IA"}).waitFor();
- await page.getByRole("button",{name:"Ferramentas da conversa"}).click();
- await page.getByRole("menuitem",{name:/Emojis/}).waitFor();
- await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Emojis",exact:true}).waitFor();
+ await page.getByRole("button",{name:"Anexar",exact:true}).waitFor();
  await page.getByRole("button",{name:"Responder",exact:true}).click();
  await page.getByRole("button",{name:"Nota privada",exact:true}).waitFor();
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),"no horizontal overflow on mobile");

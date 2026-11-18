@@ -85,6 +85,19 @@ describe("conversation location and contact attachments", () => {
       expect.objectContaining({ body: { accountId: "official-account", message: expect.stringContaining("google.com/maps/search") } }), "tenant");
   });
 
+  it("sends browser recordings to WAHA with conversion and the original media type", async () => {
+    const waha = new WahaService({} as never);
+    const request = jest.spyOn(waha as any, "request").mockResolvedValue(Response.json({ id: "voice-sent" }));
+    await expect(waha.sendMedia({ sessionName: "default" } as never, "5511999990001@c.us", "audio", {
+      mimetype: "audio/mp4", filename: "audio-vexora.m4a", base64: "dGVzdGU=",
+    })).resolves.toBe("voice-sent");
+    expect(request).toHaveBeenCalledWith("/api/sendVoice", expect.objectContaining({ method: "POST", signal: expect.any(AbortSignal) }));
+    expect(JSON.parse((request.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string || "{}")).toEqual({
+      session: "default", chatId: "5511999990001@c.us", convert: true,
+      file: { mimetype: "audio/mp4", filename: "audio-vexora.m4a", data: "dGVzdGU=" },
+    });
+  });
+
   it("wraps the vCard in the contacts array expected by WAHA", async () => {
     const waha = new WahaService({} as never);
     const send = jest.spyOn(waha as any, "sendPayload").mockResolvedValue("sent");

@@ -7,7 +7,9 @@ import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 import { ReminderCenter } from "./reminder-center";
 import { AlarmCenter } from "./alarm-center";
 import { DashboardWidgets } from "./dashboard-widgets";
+import { OnboardingChecklist } from "./onboarding-checklist";
 const DocumentsWorkspace=dynamic(()=>import("./documents-workspace").then(module=>module.DocumentsWorkspace),{loading:()=> <p role="status">Carregando módulo.</p>});
+const CourseWorkspace=dynamic(()=>import("./course-workspace").then(module=>module.CourseWorkspace),{loading:()=> <p role="status">Carregando curso.</p>});
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { applyBrandAll, sanitizeHex, wcagRatio, HYBRID_SIDEBAR_DEFAULTS } from "../lib/brand-theme";
 import { applyThemeColor } from "../lib/theme-color";
@@ -92,6 +94,7 @@ import {
   UserRoundPlus,
   CheckCircle2,
   FileText,
+  GraduationCap,
   X,
 } from "lucide-react";
 
@@ -117,6 +120,7 @@ const iconMap = {
   assume: UserRoundPlus,
   finalize: CheckCircle2,
   "file-text": FileText,
+  "graduation-cap": GraduationCap,
 };
 
 function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
@@ -134,7 +138,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
     { label: "Financeiro", icon: "wallet" },
     { label: "Documentos", icon: "file-text" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
@@ -445,6 +449,7 @@ export default function HomePage() {
             <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
+          {isOverview ? <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} /> : null}
 
           {!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className="secondary-button" onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>
@@ -468,6 +473,8 @@ export default function HomePage() {
             canManage ? <FinanceWorkspace /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
           ) : active === "Documentos" ? (
             <DocumentsWorkspace />
+          ) : active === "Curso" ? (
+            <CourseWorkspace companyName={session?.tenant?.name || "Sua empresa"} />
           ) : active === "Agentes de IA" ? (
             canConfigure ? <AiAgentsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "Chatbots" ? (

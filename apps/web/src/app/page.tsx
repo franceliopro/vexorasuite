@@ -476,7 +476,7 @@ export default function HomePage() {
           ) : active === "Planos e preços" ? (
             !platformPanel ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className="content-card"><h2>Este painel é para clientes</h2></section>
           ) : active === "Atendentes" ? (
-            canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true}/> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true} canManageAdmin={session?.user.isPlatformAdmin===true||session?.role==="OWNER"}/> : <section className="content-card"><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (
             <section className="content-card"><h2>Recurso fora do escopo atual</h2></section>
           ) : active === "Workflows" ? (

@@ -69,6 +69,8 @@ enum ConversationHandlingMode {
 
 model Tenant {
   pipelines            CrmPipeline[]
+  documentTemplates    DocumentTemplate[]
+  generatedDocuments   GeneratedDocument[]
   internalWorkflows    InternalWorkflow[]
   pushConfiguration    PushConfiguration?
   pushSubscriptions    PushSubscription[]
@@ -1041,4 +1043,41 @@ model TrackPosition {
   @@index([deviceId, recordedAt, receivedAt, id])
   @@index([deviceId, receivedAt])
   @@map("track_positions")
+}
+
+model DocumentTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  kind        String   @default("QUOTE")
+  name        String
+  description String   @default("")
+  variables   Json     @default("[]")
+  body        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  documents   GeneratedDocument[]
+
+  @@index([tenantId, kind])
+  @@map("document_templates")
+}
+
+model GeneratedDocument {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  templateId  String   @map("template_id") @db.Uuid
+  name        String
+  kind        String
+  contactId   String?  @map("contact_id") @db.Uuid
+  contactName String?  @map("contact_name")
+  values      Json     @default("{}")
+  content     String
+  sentAt      DateTime? @map("sent_at")
+  sentTo      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  template    DocumentTemplate @relation(fields: [templateId], references: [id])
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt, id])
+  @@map("generated_documents")
 }

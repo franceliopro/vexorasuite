@@ -119,6 +119,38 @@ export class ZernioWebhookController {
       this.events.publish(channel.tenantId, "channel.status", { id: channel.id, status: "CONNECTED" });
     }
 
+    const deliveryStatus = event === "message.delivered" ? "DELIVERED" :
+      event === "message.read" ? "READ" : event === "message.failed" ? "FAILED" : null;
+    if (deliveryStatus) {
+      const ids = [body.message?.id, body.message?.platformMessageId]
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      if (!ids.length) return { ok: true, ignored: true };
+      const candidates = await this.prisma.message.findMany({
+        where: {
+          tenantId: channel.tenantId,
+          direction: "OUTBOUND",
+          providerMessageId: { in: ids },
+          conversation: { channelConnectionId: channel.id },
+        },
+        select: { id: true, conversationId: true },
+        take: 2,
+      });
+      const [message] = candidates;
+      if (!message || candidates.length !== 1) return { ok: true, ignored: true };
+      const allowedPrevious: ("QUEUED" | "SENT" | "FAILED" | "DELIVERED")[] =
+        deliveryStatus === "FAILED" ? ["QUEUED", "SENT"] :
+          deliveryStatus === "DELIVERED" ? ["QUEUED", "SENT", "FAILED"] :
+            ["QUEUED", "SENT", "FAILED", "DELIVERED"];
+      const updated = await this.prisma.message.updateMany({
+        where: { id: message.id, tenantId: channel.tenantId, status: { in: allowedPrevious } },
+        data: { status: deliveryStatus },
+      });
+      if (updated.count) this.events.publish(channel.tenantId, "message.status", {
+        conversationId: message.conversationId, messageId: message.id, status: deliveryStatus,
+      });
+      return { ok: true, accepted: updated.count === 1 };
+    }
+
     if (event === "message.received") {
       const message = body.message && typeof body.message === "object" ? body.message as JsonObject : {};
       const sender = message.sender || body.sender || {};
@@ -159,6 +191,7 @@ export class ZernioWebhookController {
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });
           const metadata = {
             provider: "ZERNIO",
+            accountId,
             externalConversationId,
             platform,
             attachments: Array.isArray(message.attachments) ? message.attachments : [],

@@ -57,6 +57,46 @@ export class ChannelConnectionsController {
     return { id, name };
   }
 
+  @Get(":id/whatsapp/templates")
+  async listApprovedWhatsAppTemplates(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    if (!["OWNER", "ADMIN", "MANAGER"].includes(request.user.role)) {
+      throw new ForbiddenException("Somente gestores podem consultar templates do WhatsApp.");
+    }
+    const tenantId = request.user.tenantId;
+    const channel = await this.prisma.channelConnection.findFirst({
+      where: { id, tenantId, provider: "ZERNIO", isActive: true },
+      select: { settings: true, status: true },
+    });
+    const settings = channel?.settings as Record<string, unknown> | null | undefined;
+    const accountId = settings?.accountId;
+    if (String(settings?.platform).toLowerCase() !== "whatsapp" || typeof accountId !== "string" || !accountId) {
+      throw new NotFoundException("Canal de WhatsApp oficial não encontrado nesta empresa.");
+    }
+    if (channel?.status !== "CONNECTED") {
+      throw new BadRequestException("Conecte o WhatsApp oficial para consultar os templates.");
+    }
+    const profile = await this.prisma.zernioProfile.findUnique({ where: { tenantId }, select: { profileId: true } });
+    if (!profile || settings?.profileId !== profile.profileId) {
+      throw new ForbiddenException("O canal não pertence ao perfil Zernio desta empresa.");
+    }
+    const query = new URLSearchParams({ accountId, status: "APPROVED" });
+    const result = await this.zernio.request<{ templates?: unknown[]; data?: unknown[] }>(
+      "/whatsapp/templates?" + query.toString(), {}, tenantId,
+    );
+    const rows = result?.templates ?? result?.data;
+    if (!Array.isArray(rows)) throw new BadGatewayException("A Zernio retornou um catálogo de templates inválido.");
+    const templates = rows.flatMap(row => {
+      if (!row || typeof row !== "object") return [];
+      const { name, language, category, status } = row as Record<string, unknown>;
+      if (status !== "APPROVED" || typeof name !== "string" || typeof language !== "string") return [];
+      return [{ name, language, category: typeof category === "string" ? category : null }];
+    });
+    return { templates };
+  }
+
   @Post("zernio/oauth/start/:platform")
   async startZernioOAuth(@Req() request: AuthenticatedRequest, @Param("platform") platformValue: string) {
     if (!["OWNER","ADMIN","MANAGER"].includes(request.user.role)) throw new ForbiddenException("Somente gestores podem autorizar contas sociais.");

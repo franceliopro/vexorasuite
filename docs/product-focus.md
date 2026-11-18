@@ -6,6 +6,10 @@ Manter: WhatsApp e chat no site; atendimento com bot/IA e transferência humana;
 
 Retirar: telefonia, SMS, campanhas em massa/e-mail, anúncios pagos, WordPress, vídeo automático e publicação social automática/recorrente. Não retomar expansões verticais, troca de motores, integrações adicionais ou BI livre antes do aceite do núcleo.
 
+## Ampliação aprovada de atendimento e CRM
+
+O WhatsApp oficial via Zernio usa a caixa de entrada existente. Templates aprovados e campanhas segmentadas por WhatsApp e e-mail entram no escopo, junto com acompanhamento comercial por eventos do CRM. Usar permissões por empresa, registrar o consentimento por canal, respeitar descadastros e manter histórico por destinatário. Vincular respostas e resultados ao CRM quando houver evidência para a atribuição. A habilitação em uma empresa depende da configuração do canal e da validação do piloto.
+
 ## Limpeza autorizada
 Excluídos arquivos de campanhas/e-mail, gateways, renderização de vídeo, filas de Marketing e publicação automática, juntamente com dependências exclusivas e tabelas aposentadas. Histórico de criações/pesquisas de Marketing e mídias geradas são removidos na atualização. Marcas, referências, contatos, conversas, pagamentos e permissões permanecem.
 

@@ -275,7 +275,7 @@ try{
  await expect.poll(()=>attachmentRequests.find(message=>message.kind==="contact")?.vcard).toContain("BEGIN:VCARD\r\nVERSION:3.0\r\n");
  await page.setViewportSize({width:1440,height:950});
  await page.route("https://maps.google.com/**",route=>route.fulfill({status:200,contentType:"text/html",body:"<p>Mapa de teste</p>"}));
- await page.goto("http://127.0.0.1:3101/?module=Agenda");
+ await page.goto("http://127.0.0.1:3101/?module=Calend%C3%A1rios");
  await page.getByRole("button",{name:"Novo compromisso",exact:true}).click();
  const calendarDialog=page.getByRole("dialog",{name:"Compromisso",exact:true});
  const location=calendarDialog.getByRole("textbox",{name:"Local",exact:true});
@@ -285,7 +285,7 @@ try{
  await expect(location).toHaveValue(suggestedAddress);
  await expect(calendarDialog.locator("iframe")).toHaveAttribute("src",/maps\.google\.com/);
  await expect(calendarDialog.getByRole("link",{name:"Abrir no Google Maps"})).toHaveAttribute("target","_blank");
- await expect(page).toHaveURL(/module=Agenda/);
+ await expect(page).toHaveURL(/module=Calend%C3%A1rios/);
  await location.fill("Rua Manual");
  await expect(calendarDialog.locator("iframe")).toHaveCount(0);
  await calendarDialog.getByRole("button",{name:"Ver no mapa"}).click();

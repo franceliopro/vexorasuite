@@ -42,7 +42,7 @@ function SupportDialog({ title, icon, children, onOpen, onClose, menuItem }: { t
   </>;
 }
 
-export function InboxSupportContext({ conversationId, customerName }: { conversationId: string; customerName: string }) {
+export function InboxSupportContext({ conversationId, customerName, menuItem }: { conversationId: string; customerName: string; menuItem?: boolean }) {
   const [context, setContext] = useState<Context>();
   const [values, setValues] = useState<Record<string,string>>({});
   const [kind, setKind] = useState<Kind>("HELP");
@@ -74,8 +74,7 @@ export function InboxSupportContext({ conversationId, customerName }: { conversa
       setNotice(kind === "HELP" ? "Pedido enviado à equipe. O responsável pelo cliente foi mantido." : "Escalonamento enviado. O responsável atual acompanha até o aceite.");
     });
   }
-  return <div className="vx-support-context">
-    <SupportDialog title="Contexto e apoio" icon={<CircleHelp size={16} aria-hidden="true" />} onOpen={() => void run(refresh)}>
+  return <SupportDialog menuItem={menuItem} title="Contexto e apoio" icon={<CircleHelp size={16} aria-hidden="true" />} onOpen={() => void run(refresh)}>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {busy && !context && <p role="status">Carregando contexto…</p>}
@@ -113,8 +112,7 @@ export function InboxSupportContext({ conversationId, customerName }: { conversa
           </article>)}
         </section>
       </>}
-    </SupportDialog>
-  </div>;
+    </SupportDialog>;
 }
 
 function SupportSettingsForm({ settings, onSave, busy }: { settings: Settings; onSave: (value: Settings) => void; busy: boolean }) {

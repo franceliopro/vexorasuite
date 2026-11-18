@@ -121,8 +121,22 @@ export class TeamController {
     const email =
       typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
     const password=generateTemporaryPassword();
-    const role=input.role==="OWNER"&&req.user.isPlatformAdmin?"OWNER":"AGENT";
-    if(input.role&&input.role!==role)throw new ForbiddenException("Somente a administração da Véxora cadastra proprietários.");
+    const requestedRole = typeof input.role === "string" ? input.role.trim().toUpperCase() : "";
+    if (requestedRole && !["OWNER", "ADMIN", "AGENT"].includes(requestedRole))
+      throw new BadRequestException("Escolha Atendente, Administrador ou Proprietário.");
+    const platformElevated = req.user.isPlatformAdmin === true;
+    const role =
+      requestedRole === "OWNER" && platformElevated
+        ? "OWNER"
+        : requestedRole === "ADMIN" && (platformElevated || req.user.role === "OWNER")
+          ? "ADMIN"
+          : "AGENT";
+    if (requestedRole && requestedRole !== role)
+      throw new ForbiddenException(
+        req.user.role === "OWNER"
+          ? "Como proprietário, você só pode cadastrar Atendentes ou Administradores."
+          : "Somente a administração da Véxora cadastra proprietários.",
+      );
     if (
       name.length < 2 ||
       name.length > 160 ||
@@ -216,7 +230,25 @@ export class TeamController {
   }
  @Patch(':id/access') async access(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){this.admin(req);const knownBy=input.knownBy===undefined?undefined:knownByValue(input.knownBy);let modules:string[],deniedModules:string[];try{modules=moduleSelection(input.modules||[]);deniedModules=moduleSelection(input.deniedModules||[])}catch{throw new BadRequestException('Módulos inválidos.');}const ids=Array.isArray(input.departmentIds)?[...new Set(input.departmentIds)] as string[]:[];if(ids.length>50||ids.some(x=>!isUUID(x)))throw new BadRequestException('Setores inválidos.');await this.prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;const member=await tx.membership.findFirst({where:{tenantId:req.user.tenantId,userId:id},include:{user:{select:{isPlatformAdmin:true}}}});if(member?.user.isPlatformAdmin&&!req.user.isPlatformAdmin)throw new ForbiddenException('O acesso da administração Véxora não pode ser alterado por uma empresa.');if(member&&!req.user.isPlatformAdmin){if(req.user.role!=="OWNER"&&member.role!=="AGENT")throw new ForbiddenException('Somente a administração da Véxora altera acessos administrativos.');if(req.user.role!=="OWNER"){const allowed=req.user.allowedModules||[];if(modules.some(m=>!allowed.includes(m)))throw new ForbiddenException('Você não pode conceder módulos que não possui.');deniedModules=[...new Set([...member.deniedModules,...deniedModules,...MODULES.filter(m=>!allowed.includes(m))])];}else if(member.role==="OWNER"){modules=[...MODULES];deniedModules=[];}}if(!member||await tx.department.count({where:{tenantId:req.user.tenantId,id:{in:ids},isActive:true}})!==ids.length)throw new BadRequestException('Atendente ou setor não pertence à empresa.');await tx.membership.update({where:{id:member.id},data:{modules,deniedModules,...(knownBy===undefined?{}:{knownBy})}});await tx.departmentMember.deleteMany({where:{tenantId:req.user.tenantId,userId:id}});if(ids.length)await tx.departmentMember.createMany({data:ids.map(departmentId=>({tenantId:req.user.tenantId,departmentId,userId:id}))});await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'team.access.updated',entityType:'user',entityId:id,details:{modules,deniedModules,departmentIds:ids}}});});this.events.publish(req.user.tenantId,'team.updated',{id});return {updated:true};}
 
- @Patch(':id/transfer-scope') async setTransferScope(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
+ @Patch(':id/role') async setRole(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
+    if (!req.user.isPlatformAdmin && req.user.role !== "OWNER")
+      throw new ForbiddenException("Somente a administração da Véxora ou o proprietário pode alterar o nível de acesso.");
+    const role = typeof input?.role === "string" ? input.role.trim().toUpperCase() : "";
+    if (!["ADMIN", "AGENT"].includes(role)) throw new BadRequestException("Escolha Atendente ou Administrador.");
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id=${req.user.tenantId}::uuid FOR UPDATE`;
+      const member = await tx.membership.findFirst({ where: { tenantId: req.user.tenantId, userId: id }, include: { user: { select: { isPlatformAdmin: true } } } });
+      if (!member) throw new BadRequestException("Atendente não pertence a esta empresa.");
+      if (member.user.isPlatformAdmin) throw new ForbiddenException("A administração Véxora não pode ser alterada pela empresa.");
+      if (member.role === "OWNER") throw new ForbiddenException("O proprietário não pode ser rebaixado.");
+      await tx.membership.update({ where: { id: member.id }, data: { role } });
+      await tx.auditLog.create({ data: { tenantId: req.user.tenantId, userId: req.user.sub, action: "team.role.updated", entityType: "user", entityId: id, details: { role } } });
+    });
+    this.events.publish(req.user.tenantId, "team.updated", { id });
+    return { updated: true, role };
+  }
+
+  @Patch(':id/transfer-scope') async setTransferScope(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() input:any){
   this.admin(req);
   if(!isUUID(id))throw new BadRequestException('Atendente inválido.');
   const scope=sanitizeTransferScope(input);

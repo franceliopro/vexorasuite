@@ -159,6 +159,7 @@ export class ZernioWebhookController {
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });
           const metadata = {
             provider: "ZERNIO",
+            accountId,
             externalConversationId,
             platform,
             attachments: Array.isArray(message.attachments) ? message.attachments : [],

@@ -87,6 +87,9 @@ services:
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
       REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
       REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
+      # Cloudflare (Sites): cria projetos/deploys no Cloudflare Pages e zonas/DNS.
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
@@ -187,6 +190,9 @@ services:
       WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-https://app.vexorasuite.com.br}
       REALTIME_POLL_MS: ${REALTIME_POLL_MS:-5000}
       REALTIME_EVENT_RETENTION_DAYS: ${REALTIME_EVENT_RETENTION_DAYS:-7}
+      # Cloudflare (Sites): cria projetos/deploys no Cloudflare Pages e zonas/DNS.
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       # Local liveness marker; it does not claim database/provider health.
       WORKER_HEARTBEAT_FILE: /tmp/vexora-worker-heartbeat
     depends_on:

@@ -113,6 +113,8 @@ model Tenant {
   siteAssets           SiteAsset[]
   siteFolders          SiteFolder[]
   propertyApplications PropertyApplication[]
+  siteDomains          SiteDomain[]
+  siteDeployments      SiteDeployment[]
   propertyScopes       PropertyScope[]
 
   @@map("tenants")

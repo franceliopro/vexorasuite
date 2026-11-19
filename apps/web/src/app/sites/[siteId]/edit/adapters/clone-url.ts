@@ -1,4 +1,4 @@
-import type { SiteDocument, SiteNode } from '../../../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument, SiteNode } from '../../../../../../../../../../packages/shared-types/src/site-document';
 import { createNode } from '../nodes/registry';
 
 // Adapter clone-url: baixa HTML, sanitiza e converte para árvore de nós.
@@ -56,3 +56,7 @@ export async function cloneUrl(url: string): Promise<SiteDocument> {
 function defaultTheme() {
   return { primary: '#2563eb', secondary: '#1e40af', background: '#ffffff', text: '#111827', fontHeading: 'Inter', fontBody: 'Inter' };
 }
+
+
+
+

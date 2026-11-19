@@ -1,4 +1,4 @@
-import type { SiteDocument } from '../../../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument } from '../../../../../../../../../../packages/shared-types/src/site-document';
 import { createNode } from '../nodes/registry';
 
 // Adapter ai-generate: prompt -> árvore. Em produção chama a API de IA do Véxora.
@@ -62,3 +62,7 @@ export function aiEditNode(node: any, prompt: string): any {
 function defaultTheme() {
   return { primary: '#2563eb', secondary: '#1e40af', background: '#ffffff', text: '#111827', fontHeading: 'Inter', fontBody: 'Inter' };
 }
+
+
+
+

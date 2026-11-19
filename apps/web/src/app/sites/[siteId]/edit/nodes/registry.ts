@@ -1,4 +1,4 @@
-import type { BlockDescriptor, NodeType, SiteNode } from '../../../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument, SiteNode } from '../../../../../../../../../../packages/shared-types/src/site-document';
 
 // Registry de blocos do editor visual.
 // Cada bloco é um descritor com defaultProps/schema/render.
@@ -128,3 +128,7 @@ export const BLOCK_REGISTRY: Record<NodeType, BlockDescriptor> = {
 };
 
 export const BLOCK_TYPES: NodeType[] = Object.keys(BLOCK_REGISTRY) as NodeType[];
+
+
+
+

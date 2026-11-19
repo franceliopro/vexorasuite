@@ -1,4 +1,4 @@
-import type { SiteDocument } from '../../../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument } from '../../../../../../../../../../packages/shared-types/src/site-document';
 import { createNode } from '../nodes/registry';
 
 // Adapter import-zip: aceita ZIP compatível Elementor/Divi.
@@ -98,3 +98,8 @@ function mapDivi(m: any): any {
 function defaultTheme() {
   return { primary: 'var(--primary, #2563eb)', secondary: 'var(--secondary, #1e40af)', background: 'var(--background, #ffffff)', text: 'var(--text, #111827)', fontHeading: 'var(--font-heading, Inter)', fontBody: 'var(--font-body, Inter)' };
 }
+
+
+
+
+

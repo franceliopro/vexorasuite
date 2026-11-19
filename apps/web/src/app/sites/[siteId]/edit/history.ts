@@ -22,7 +22,7 @@ export function pushHistory(state: HistoryState, next: SiteDocument): HistorySta
 
 export function undo(state: HistoryState): HistoryState {
   if (state.past.length === 0) return state;
-  const previous = state.past[state.past.length - 1];
+  const previous = state.past[state.past.length - 1]!;
   return {
     past: state.past.slice(0, -1),
     present: previous,
@@ -32,7 +32,7 @@ export function undo(state: HistoryState): HistoryState {
 
 export function redo(state: HistoryState): HistoryState {
   if (state.future.length === 0) return state;
-  const next = state.future[0];
+  const next = state.future[0]!;
   return {
     past: [...state.past, state.present],
     present: next,

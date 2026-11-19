@@ -1,5 +1,5 @@
 import React from 'react';
-import type { SiteDocument, SiteNode } from '../../../../packages/shared-types/src/site-document';
+import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
 
 // Renderer determinístico de entrega: mesmo JSON usado no site publicado.
 

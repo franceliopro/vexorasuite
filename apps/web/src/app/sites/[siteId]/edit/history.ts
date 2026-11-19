@@ -1,4 +1,4 @@
-import type { SiteDocument } from '../../../../../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument } from '@/shared-types/site-document';
 
 // Undo/redo sobre SiteDocument (imutável por snapshot).
 
@@ -47,6 +47,7 @@ export function canUndo(state: HistoryState): boolean {
 export function canRedo(state: HistoryState): boolean {
   return state.future.length > 0;
 }
+
 
 
 

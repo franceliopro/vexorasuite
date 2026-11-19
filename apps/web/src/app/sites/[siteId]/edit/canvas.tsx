@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { SiteDocument, SiteNode } from '../../../../../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
 
 // Canvas: iframe sandbox + runtime de seleção via postMessage.
 
@@ -110,6 +110,7 @@ function buildIframeHtml(doc: SiteDocument): string {
 function camelToKebab(s: string): string {
   return s.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
 }
+
 
 
 

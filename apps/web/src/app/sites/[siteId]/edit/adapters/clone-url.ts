@@ -19,29 +19,29 @@ export async function cloneUrl(url: string): Promise<SiteDocument> {
   const headingRe = /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi;
   let m;
   while ((m = headingRe.exec(sanitized))) {
-    const level = m[1];
-    const text = m[2].replace(/<[^>]+>/g, '').trim();
+    const level = m[1]!;
+    const text = m[2]!.replace(/<[^>]+>/g, '').trim();
     if (text) children.push(createNode('text', { props: { content: text, tag: `h${level}` } }));
   }
 
   // paragraphs
   const pRe = /<p[^>]*>([\s\S]*?)<\/p>/gi;
   while ((m = pRe.exec(sanitized))) {
-    const text = m[1].replace(/<[^>]+>/g, '').trim();
+    const text = m[1]!.replace(/<[^>]+>/g, '').trim();
     if (text) children.push(createNode('text', { props: { content: text, tag: 'p' } }));
   }
 
   // images
   const imgRe = /<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*>/gi;
   while ((m = imgRe.exec(sanitized))) {
-    children.push(createNode('image', { props: { src: m[1], alt: m[2] } }));
+    children.push(createNode('image', { props: { src: m[1]!, alt: m[2] } }));
   }
 
   // links -> buttons
   const aRe = /<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   while ((m = aRe.exec(sanitized))) {
-    const label = m[2].replace(/<[^>]+>/g, '').trim();
-    if (label) children.push(createNode('button', { props: { label, href: m[1] } }));
+    const label = m[2]!.replace(/<[^>]+>/g, '').trim();
+    if (label) children.push(createNode('button', { props: { label, href: m[1]! } }));
   }
 
   root.children = children.length ? children : [createNode('text', { props: { content: 'Conteúdo clonado' } })];

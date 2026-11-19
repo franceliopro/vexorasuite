@@ -160,7 +160,7 @@ export class SitesDeployService {
 
       await this.prisma.site.update({
         where: { id: siteId },
-        data: { status: 'LIVE' },
+        data: { domainStatus: 'LIVE' },
       });
 
       return { deploymentId: deployment.id, status: 'DEPLOYED', url: cfDeployment.url, idempotent: false };

@@ -16,7 +16,7 @@ export class SiteEditorService {
     if (existing) {
       const nextVersion = existing.version + 1;
       await this.prisma.siteVersion.create({
-        data: { siteDocumentId: existing.id, version: existing.version, document: existing.document, createdBy },
+        data: { siteDocumentId: existing.id, version: existing.version, document: existing.document as any, createdBy },
       });
       return this.prisma.siteDocument.update({
         where: { siteId },

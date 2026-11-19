@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+// Config via process.env (sem @nestjs/config)
 
 /**
  * Cliente fino para a API REST da Cloudflare (Pages + DNS).
@@ -13,9 +13,9 @@ export class CloudflareService {
   private readonly accountId: string;
   private readonly baseUrl = 'https://api.cloudflare.com/client/v4';
 
-  constructor(private readonly config: ConfigService) {
-    this.token = this.config.get<string>('CLOUDFLARE_API_TOKEN') ?? '';
-    this.accountId = this.config.get<string>('CLOUDFLARE_ACCOUNT_ID') ?? '';
+  constructor() {
+    this.token = process.env.CLOUDFLARE_API_TOKEN ?? '';
+    this.accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? '';
     if (!this.token || !this.accountId) {
       this.logger.warn('CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID não configurados; chamadas falharão.');
     }
@@ -70,7 +70,7 @@ export class CloudflareService {
       const hash = crypto.createHash('sha256').update(f.content).digest('hex');
       manifest[f.path.replace(/^\/+/, '')] = hash;
       // envia o arquivo sob o nome do hash (Cloudflare espera parte nomeada pelo hash)
-      form.append(hash, new Blob([f.content]), f.path.replace(/^\/+/, ''));
+      form.append(hash, new Blob([f.content as any]), f.path.replace(/^\/+/, ''));
     }
     form.append('manifest', JSON.stringify(manifest));
     form.append('branch', branch);

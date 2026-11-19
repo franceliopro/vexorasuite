@@ -57,6 +57,14 @@ export function Palette({ blocks, onAdd, disabled = false, loading = false }: Pa
     return 'content';
   }
 
+  const handleAdd = useCallback(
+    (type: NodeType) => {
+      if (disabled) return;
+      onAdd(type);
+    },
+    [disabled, onAdd],
+  );
+
   if (loading) {
     return (
       <aside className="vx-palette vx-palette-loading" aria-label="Paleta de blocos">
@@ -86,14 +94,6 @@ export function Palette({ blocks, onAdd, disabled = false, loading = false }: Pa
       </aside>
     );
   }
-
-  const handleAdd = useCallback(
-    (type: NodeType) => {
-      if (disabled) return;
-      onAdd(type);
-    },
-    [disabled, onAdd],
-  );
 
   return (
     <aside className="vx-palette" aria-label="Paleta de blocos">

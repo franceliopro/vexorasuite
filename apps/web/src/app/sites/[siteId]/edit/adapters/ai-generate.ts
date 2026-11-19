@@ -11,7 +11,7 @@ export async function aiGenerate(prompt: string): Promise<SiteDocument> {
 
   // título
   const titleMatch = prompt.match(/(?:titulo|title|headline)[:：]?\s*(.+)/i);
-  children.push(createNode('text', { props: { content: titleMatch ? titleMatch[1].trim() : 'Bem-vindo', tag: 'h1' } }));
+  children.push(createNode('text', { props: { content: titleMatch?.[1]?.trim() ?? 'Bem-vindo', tag: 'h1' } }));
 
   if (lower.includes('blog') || lower.includes('post')) {
     children.push(createNode('post-list', { props: { count: 6, layout: 'grid' } }));

@@ -1,26 +1,33 @@
-import { Controller, Post, Get, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, Req, ParseUUIDPipe } from '@nestjs/common';
 import { SitesDeployService } from './sites-deploy.service';
+import { AuthGuard } from '../../auth/auth.guard';
+import { AuthenticatedRequest } from '../../auth/auth.types';
 
-// TODO: integrar guards reais do Véxora (JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(AuthGuard)
 @Controller('sites')
 export class SitesDeployController {
   constructor(private readonly service: SitesDeployService) {}
 
   @Post(':id/domain')
-  async bindDomain(@Param('id') id: string, @Body() body: { domain: string; tenantId: string }) {
-    return this.service.bindDomain(id, body.domain, body.tenantId);
+  async bindDomain(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { domain: string },
+  ) {
+    return this.service.bindDomain(id, body.domain, req.user.tenantId);
   }
 
   @Get(':id/domain/verify')
-  async verifyDomain(@Param('id') id: string, @Body() body: { tenantId: string }) {
-    return this.service.verifyDomain(id, body.tenantId);
+  async verifyDomain(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
+    return this.service.verifyDomain(id, req.user.tenantId);
   }
 
   @Post(':id/deploy')
   async deploy(
-    @Param('id') id: string,
-    @Body() body: { tenantId: string; files: { path: string; contentBase64: string }[] },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { files: { path: string; contentBase64: string }[] },
   ) {
-    return this.service.deploy(id, body.tenantId, body.files);
+    return this.service.deploy(id, req.user.tenantId, body.files);
   }
 }

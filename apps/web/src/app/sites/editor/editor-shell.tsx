@@ -22,7 +22,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { SiteDocument, SiteNode } from '../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
 import {
   BLOCK_REGISTRY,
   createNode,
@@ -98,7 +98,9 @@ export function EditorShell({
 
   const selectedNode = useMemo(() => {
     if (!doc || selectedIds.length === 0) return null;
-    return findNodeById(doc.root, selectedIds[0]);
+    const firstId = selectedIds[0];
+    if (!firstId) return null;
+    return findNodeById(doc.root, firstId);
   }, [doc, selectedIds]);
 
   const schema = useMemo(() => {
@@ -116,8 +118,7 @@ export function EditorShell({
   useEffect(() => {
     if (!doc) return;
     if (
-      historyRef.current.present.id !== doc.id ||
-      historyRef.current.present.version !== doc.version
+      historyRef.current.present !== doc
     ) {
       historyRef.current = createHistory(doc);
     }
@@ -160,7 +161,7 @@ export function EditorShell({
           ? selectedIds.filter((i) => i !== id)
           : [...selectedIds, id];
         setSelectedIds(next);
-        onSelectNode(next.length ? next[0] : null, true);
+        onSelectNode(next.length ? next[0] ?? null : null, true);
       } else {
         setSelectedIds([id]);
         onSelectNode(id, false);
@@ -215,7 +216,7 @@ export function EditorShell({
 
         <div className="vx-editor-topbar-right">
           <div className="vx-editor-device-group" role="group" aria-label="Dispositivo de preview">
-            {['desktop', 'tablet', 'mobile'].map((d) => (
+            {(['desktop', 'tablet', 'mobile'] as const).map((d) => (
               <button
                 key={d}
                 type="button"
@@ -293,9 +294,15 @@ export function EditorShell({
         <main className="vx-editor-canvas-area">
           <Canvas
             doc={doc}
-            selectedId={selectedIds.length ? selectedIds[0] : null}
-            onSelect={handleSelect}
-            onHover={() => {}}
+            selectedId={selectedIds.length ? selectedIds[0] ?? null : null}
+            hoverId={null}
+            dragOverId={null}
+            dropTarget={null}
+            loading={loading}
+            onSelectNode={(nodeId, multi) => handleSelect(nodeId, multi)}
+            onDrop={() => {}}
+            device={device}
+            onDeviceChange={onDeviceChange}
           />
         </main>
 

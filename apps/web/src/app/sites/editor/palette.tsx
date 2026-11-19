@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import type { BlockDescriptor, NodeType } from '../../../../../../packages/shared-types/src/site-document';
+import type { BlockDescriptor, NodeType } from '@/shared-types/site-document';
 import { Layout, AlertCircle, Loader2 } from 'lucide-react';
 import './editor.css';
 

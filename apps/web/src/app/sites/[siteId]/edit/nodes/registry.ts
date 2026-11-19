@@ -1,4 +1,4 @@
-import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
+import type { SiteDocument, SiteNode, NodeType, BlockDescriptor } from '@/shared-types/site-document';
 
 // Registry de blocos do editor visual.
 // Cada bloco é um descritor com defaultProps/schema/render.

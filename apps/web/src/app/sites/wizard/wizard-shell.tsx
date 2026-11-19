@@ -100,13 +100,15 @@ export default function WizardShell({
 
   const handleNext = useCallback(() => {
     if (!canNext) return;
-    setStep(STEP_ORDER[currentIndex + 1]);
-  }, [canNext, currentIndex, STEP_ORDER]);
+    const next = STEP_ORDER[currentIndex + 1];
+    if (next) setStep(next);
+  }, [canNext, currentIndex]);
 
   const handleBack = useCallback(() => {
     if (isFirst) return;
-    setStep(STEP_ORDER[currentIndex - 1]);
-  }, [isFirst, currentIndex, STEP_ORDER]);
+    const prev = STEP_ORDER[currentIndex - 1];
+    if (prev) setStep(prev);
+  }, [isFirst, currentIndex]);
 
   const handleMinimize = useCallback(() => {
     setMinimized((p) => !p);

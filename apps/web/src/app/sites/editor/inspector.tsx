@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import type { SiteNode, BlockPropSchema } from '../../../../../../packages/shared-types/src/site-document';
+import type { SiteNode, BlockPropSchema } from '@/shared-types/site-document';
 import {
   Settings,
   Sparkles,

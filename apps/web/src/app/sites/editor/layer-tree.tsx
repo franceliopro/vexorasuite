@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import type { SiteNode } from '../../../../../../packages/shared-types/src/site-document';
+import type { SiteNode } from '@/shared-types/site-document';
 import {
   ChevronRight,
   ChevronDown,
@@ -70,24 +70,6 @@ export function LayerTree({
     [onSelect],
   );
 
-  const handleVisibility = useCallback(
-    (id: string, visible: boolean, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onToggleVisibility?.(id, visible);
-    },
-    [onToggleVisibility],
-  );
-
-  const handleLock = useCallback(
-    (id: string, locked: boolean, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onLock?.(id, locked);
-    },
-    [onLock],
-  );
-
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent, id: string) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -111,12 +93,13 @@ export function LayerTree({
               key={node.id}
               node={node}
               depth={0}
-              isSelected={isSelected(node.id)}
+              isSelected={isSelected}
               expanded={!!expanded[node.id]}
               onSelect={(id, e, multi) => handleSelect(id, e, multi)}
-              onVisibility={(id, v) => handleVisibility(id, v, e as React.MouseEvent)}
-              onLock={(id, l) => handleLock(id, l, e as React.MouseEvent)}
-              onToggleExpanded={() => toggleExpanded(node.id)}
+              expandedMap={expanded}
+              onVisibility={(id, v) => onToggleVisibility?.(id, v)}
+              onLock={(id, l) => onLock?.(id, l)}
+              onToggleExpanded={toggleExpanded}
               onKeyDown={(e) => handleKeyDown(e, node.id)}
               disabled={disabled}
             />
@@ -136,12 +119,13 @@ export function LayerTree({
 interface LayerTreeNodeProps {
   node: SiteNode;
   depth: number;
-  isSelected: boolean;
+  isSelected: (id: string) => boolean;
   expanded: boolean;
-  onSelect: (id: string, e: any, multi: boolean) => void;
+  expandedMap: Record<string, boolean>;
+  onSelect: (id: string, e: React.MouseEvent | React.KeyboardEvent, multi: boolean) => void;
   onVisibility: (id: string, visible: boolean) => void;
   onLock: (id: string, locked: boolean) => void;
-  onToggleExpanded: () => void;
+  onToggleExpanded: (id: string) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
   disabled: boolean;
 }
@@ -151,6 +135,7 @@ function LayerTreeNode({
   depth,
   isSelected,
   expanded,
+  expandedMap,
   onSelect,
   onVisibility,
   onLock,
@@ -165,10 +150,10 @@ function LayerTreeNode({
   return (
     <li
       role="treeitem"
-      aria-selected={isSelected}
+      aria-selected={isSelected(node.id)}
       aria-expanded={hasChildren ? expanded : undefined}
       tabIndex={0}
-      className={`vx-layer-tree-node ${isSelected ? 'is-selected' : ''} ${
+      className={`vx-layer-tree-node ${isSelected(node.id) ? 'is-selected' : ''} ${
         disabled ? 'is-disabled' : ''
       }`}
       style={{ paddingLeft: 16 + depth * 18 }}
@@ -184,7 +169,7 @@ function LayerTreeNode({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onToggleExpanded();
+              onToggleExpanded(node.id);
             }}
           >
             {expanded ? (
@@ -237,12 +222,13 @@ function LayerTreeNode({
               key={child.id}
               node={child}
               depth={depth + 1}
-              isSelected={isSelected(child.id)}
-              expanded={!!expanded[child.id]}
+              isSelected={isSelected}
+              expanded={!!expandedMap[child.id]}
+              expandedMap={expandedMap}
               onSelect={onSelect}
               onVisibility={onVisibility}
               onLock={onLock}
-              onToggleExpanded={() => toggleExpanded(child.id)}
+              onToggleExpanded={onToggleExpanded}
               onKeyDown={onKeyDown}
               disabled={disabled}
             />

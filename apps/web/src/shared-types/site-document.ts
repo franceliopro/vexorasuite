@@ -50,6 +50,7 @@ export interface BlockDescriptor {
   type: NodeType;
   label: string;
   icon: string;
+  category?: 'layout' | 'content' | 'media' | 'commerce';
   defaultProps: Record<string, unknown>;
   defaultStyles: SiteNodeStyles;
   schema: BlockPropSchema[];
@@ -61,5 +62,6 @@ export interface BlockPropSchema {
   label: string;
   type: 'text' | 'textarea' | 'number' | 'color' | 'select' | 'image' | 'boolean';
   options?: { value: string; label: string }[];
+  placeholder?: string;
   aiEditable?: boolean;
 }

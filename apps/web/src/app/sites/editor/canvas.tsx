@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { SiteDocument, SiteNode } from '../../../../../../packages/shared-types/src/site-document';
+import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
 import { Loader2, Eye, Maximize, Minimize } from 'lucide-react';
 import './editor.css';
 

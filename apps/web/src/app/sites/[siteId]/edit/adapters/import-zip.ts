@@ -7,7 +7,7 @@ import { createNode } from '../nodes/registry';
 export async function importZip(file: File): Promise<SiteDocument> {
   let JSZip: any;
   try {
-    JSZip = (await import('jszip')).default;
+    JSZip = (await import('jszip' as any)).default;
   } catch {
     JSZip = null;
   }

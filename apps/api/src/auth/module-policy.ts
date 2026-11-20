@@ -5,6 +5,7 @@
   "TASKS",
   "AUTOMATION",
   "MARKETING",
+  "SITES",
   "WORDPRESS",
   "EMAIL",
   "FINANCE",
@@ -63,6 +64,11 @@ export function routeModules(path: string, method: string): string[] {
   if (/^integrations\/google\/calendar(?:\/|$)/.test(p)) return ["CALENDAR"];
   if (/^calendar|^google-calendar/.test(p)) return ["CALENDAR"];
   if (/^tasks(?:\/|$)/.test(p)) return ["TASKS"];
+  // Geração de imagem por bloco já existia sob MARKETING antes do módulo SITES; manter a
+  // alternativa evita quebrar empresas que já usam esse endpoint.
+  if (/^sites\/[^/]+\/blocks\/[^/]+\/ai-image$/.test(p)) return ["SITES", "MARKETING"];
+  // Criador, editor, domínio e publicação exigem o módulo SITES (igual ao menu da UI).
+  if (/^sites(?:\/|$)/.test(p)) return ["SITES"];
   if (/^mail(?:\/|$)/.test(p)) return ["EMAIL"];
   if (/^finance|^asaas/.test(p)) return ["FINANCE"];
   if (

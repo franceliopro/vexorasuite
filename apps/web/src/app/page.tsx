@@ -36,9 +36,11 @@ const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module
 const ChatbotWorkspace=dynamic(()=>import("./chatbot-workspace").then(module=>module.ChatbotWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const AiAgentsWorkspace=dynamic(()=>import("./ai-agents-workspace").then(module=>module.AiAgentsWorkspace));
 const PersonalAssistantPanel=dynamic(()=>import("./ai-agents-workspace").then(module=>module.PersonalAssistantPanel));
+const SitesWorkspace=dynamic(()=>import("./sites-workspace").then(module=>module.SitesWorkspace),{loading:()=> <p role="status">Carregando sites…</p>});
 
 const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Atendimento":()=>import("./inbox-workspace"),
+  "Sites":()=>import("./sites-workspace"),
   "CRM":()=>import("./crm-workspace"),
   "Calendários":()=>import("./calendar-workspace"),
   "Agenda":()=>import("./calendar-workspace"),
@@ -85,6 +87,7 @@ import {
   Download,
   MoreHorizontal,
   Image,
+  Globe,
   Menu,
   Search,
   Plus,
@@ -117,6 +120,7 @@ const iconMap = {
   more: MoreHorizontal,
   transfer: ArrowRightLeft,
   image: Image,
+  globe: Globe,
   assume: UserRoundPlus,
   finalize: CheckCircle2,
   "file-text": FileText,
@@ -135,6 +139,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
     { label: "Marketing", icon: "megaphone", children: [{ label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
+    { label: "Sites", icon: "globe" },
     { label: "Financeiro", icon: "wallet" },
     { label: "Documentos", icon: "file-text" },
   ] },
@@ -325,7 +330,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING',  'Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Sites':'SITES','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING',  'Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   const isOverview = active === "Visão geral";
@@ -463,6 +468,8 @@ export default function HomePage() {
                 </article>
               } />
             </>
+          ) : active === "Sites" ? (
+            canConfigure ? <SitesWorkspace canManage={canConfigure} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
           ) : active === "Calendários" || active === "Agenda" ? (

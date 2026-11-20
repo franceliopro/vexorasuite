@@ -12,7 +12,7 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day
 const fmtSize = (a: Asset) => a.kind === "image" ? `${a.width}×${a.height}` : "PDF";
 
 /** Gerenciador de arquivos dos sites: criar/navegar/renomear/mover/excluir pastas e arquivos, com preview visual. */
-export function FileManager({ onNotice }: { onNotice?: (v: string) => void }) {
+export function FileManager({ onNotice, onSelect, selectable }: { onNotice?: (v: string) => void; onSelect?: (url: string, name: string) => void; selectable?: boolean }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [allFolders, setAllFolders] = useState<FolderRow[]>([]);
   const [query, setQuery] = useState("");
@@ -156,7 +156,7 @@ export function FileManager({ onNotice }: { onNotice?: (v: string) => void }) {
             ))}
             {visibleAssets.map(asset => (
               <article key={asset.id} className="file-manager-item">
-                <button type="button" className="file-manager-preview" onClick={() => asset.kind === "image" ? setPreview(asset) : copy(asset)} aria-label={asset.kind === "image" ? "Ampliar imagem " + asset.name : "Copiar URL de " + asset.name}>{asset.kind === "image" ? <img src={asset.url} alt={asset.name || "Arquivo"} loading="lazy" /> : <span className="file-manager-pdf"><FileIcon size={34} aria-hidden="true" /><small>PDF</small></span>}</button>
+                <button type="button" className="file-manager-preview" onClick={() => { if (selectable && asset.kind === "image" && onSelect) { onSelect(asset.url, asset.name); return; } asset.kind === "image" ? setPreview(asset) : copy(asset); }} aria-label={selectable && asset.kind === "image" ? "Selecionar imagem " + asset.name : (asset.kind === "image" ? "Ampliar imagem " + asset.name : "Copiar URL de " + asset.name)}>{asset.kind === "image" ? <img src={asset.url} alt={asset.name || "Arquivo"} loading="lazy" /> : <span className="file-manager-pdf"><FileIcon size={34} aria-hidden="true" /><small>PDF</small></span>}</button>
                 <div className="file-manager-item-body">
                   {renameId === asset.id ? <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onBlur={() => void rename(asset)} onKeyDown={e => { if (e.key === "Enter") void rename(asset); if (e.key === "Escape") setRenameId(""); }} aria-label="Renomear arquivo" /> : <strong title={asset.name}>{asset.name || "Arquivo"}</strong>}
                   <small>{fmtDate(asset.createdAt)} · {fmtSize(asset)}</small>

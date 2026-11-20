@@ -1,4 +1,5 @@
 import { renderSiteHtml } from "./site-html";
+import { renderDocumentFiles } from "./sites-deploy.service";
 
 describe("static site HTML renderer", () => {
   it("escapes user content and rejects executable URLs", () => {
@@ -94,6 +95,45 @@ describe("static site HTML renderer", () => {
     expect(html).toContain("URLSearchParams");
     expect(html).toContain("application/x-www-form-urlencoded");
     expect(html).not.toContain("será ativado em uma próxima etapa");
+  });
+
+  it("gera index.html e arquivos por página a partir do documento salvo", () => {
+    const text = (id: string, content: string) => ({ id, type: "text", props: { tag: "p", content }, styles: {}, children: [] });
+    const document = {
+      version: 1,
+      root: { id: "root", type: "section", props: {}, styles: {}, children: [text("home", "Conteúdo da home")] },
+      pages: [
+        {
+          slug: "servicos",
+          title: "Serviços",
+          kind: "content",
+          root: { id: "servicos_root", type: "section", props: {}, styles: {}, children: [text("servicos_text", "Página de serviços")] },
+        },
+        {
+          slug: "privacidade",
+          title: "Política de Privacidade — rascunho",
+          kind: "legal",
+          root: { id: "privacidade_root", type: "section", props: {}, styles: {}, children: [text("privacidade_text", "Rascunho legal")] },
+        },
+        { slug: "../invalido", title: "Inválida", root: { id: "x", type: "section", props: {}, styles: {}, children: [] } },
+      ],
+      meta: { title: "Site", type: "static", theme: {} },
+    };
+
+    const files = renderDocumentFiles(
+      document,
+      { name: "Site", slug: "site" },
+      { siteId: "11111111-1111-4111-8111-111111111111", apiBase: "https://api.vexorasuite.com.br" },
+    );
+
+    expect(files.map((file) => file.path)).toEqual(["index.html", "servicos/index.html", "privacidade/index.html"]);
+    const home = Buffer.from(files[0]!.contentBase64, "base64").toString("utf8");
+    const services = Buffer.from(files[1]!.contentBase64, "base64").toString("utf8");
+    expect(home).toContain("Conteúdo da home");
+    expect(home).not.toContain("Página de serviços");
+    expect(services).toContain("<title>Serviços</title>");
+    expect(services).toContain("Página de serviços");
+    expect(services).not.toContain("Conteúdo da home");
   });
 
   it("does not promise submissions when the API base is missing", () => {

@@ -3,6 +3,52 @@ import { PrismaService } from '../../common/prisma.service';
 import { CloudflareService } from './cloudflare.service';
 import { createHash } from 'node:crypto';
 import { renderSiteHtml } from './site-html';
+import type { HtmlNode } from './site-html';
+
+export type DeployFile = { path: string; contentBase64: string };
+
+type RenderableSite = {
+  name: string;
+  slug: string;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+};
+
+type RenderablePage = { slug?: unknown; title?: unknown; root?: unknown };
+
+/**
+ * Transforma o SiteDocument salvo em arquivos estáticos: a home vira index.html e
+ * cada página secundária vira <slug>/index.html. Nenhum arquivo vem do navegador.
+ */
+export function renderDocumentFiles(
+  document: unknown,
+  site: RenderableSite,
+  context: { siteId: string; apiBase: string },
+): DeployFile[] {
+  const doc = (document ?? {}) as { root?: unknown; pages?: unknown };
+  const files: DeployFile[] = [
+    {
+      path: 'index.html',
+      contentBase64: Buffer.from(renderSiteHtml(document, site, context), 'utf8').toString('base64'),
+    },
+  ];
+  const pages = Array.isArray(doc.pages) ? (doc.pages as RenderablePage[]) : [];
+  for (const page of pages.slice(0, 30)) {
+    const slug = String(page?.slug ?? '');
+    const root = page?.root;
+    if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(slug) || !root || typeof root !== 'object') continue;
+    const html = renderSiteHtml(document, site, {
+      ...context,
+      root: root as HtmlNode,
+      pageTitle: String(page?.title || slug),
+    });
+    files.push({
+      path: `${slug}/index.html`,
+      contentBase64: Buffer.from(html, 'utf8').toString('base64'),
+    });
+  }
+  return files;
+}
 
 @Injectable()
 export class SitesDeployService {
@@ -143,13 +189,11 @@ export class SitesDeployService {
     // formulário precisa da URL pública da API. Se não houver configuração HTTPS,
     // o formulário é renderizado desabilitado com aviso honesto em vez de prometer envio.
     const apiBase = (process.env.API_PUBLIC_URL ?? "").trim().replace(/\/+$/, "");
-    const html = renderSiteHtml(document.document, site, {
+    const files = renderDocumentFiles(document.document, site, {
       siteId,
       apiBase: /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(apiBase) ? apiBase : "",
     });
-    return this.deploy(siteId, tenantId, [
-      { path: 'index.html', contentBase64: Buffer.from(html, 'utf8').toString('base64') },
-    ]);
+    return this.deploy(siteId, tenantId, files);
   }
 
   async deploy(siteId: string, tenantId: string, files: { path: string; contentBase64: string }[]) {

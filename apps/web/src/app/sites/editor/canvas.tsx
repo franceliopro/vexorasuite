@@ -137,6 +137,14 @@ export function Canvas({
   );
 }
 
+function escapePreview(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function buildIframeHtml(doc: SiteDocument): string {
   const renderNode = (n: SiteNode): string => {
     const style = Object.entries(n.styles).map(([k, v]) => `${camelToKebab(k)}:${v}`).join(';');
@@ -153,6 +161,8 @@ function buildIframeHtml(doc: SiteDocument): string {
         return `<section data-node="${n.id}" style="${style}">${inner}</section>`;
       case 'video':
         return `<div data-node="${n.id}" style="${style}">video</div>`;
+      case 'faq':
+        return `<details data-node="${n.id}" style="${style}"><summary>${escapePreview((n.props as Record<string, unknown>).question)}</summary><p>${escapePreview((n.props as Record<string, unknown>).answer)}</p></details>`;
       default:
         return `<div data-node="${n.id}" style="${style}">${inner}</div>`;
     }

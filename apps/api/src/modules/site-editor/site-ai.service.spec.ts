@@ -95,6 +95,31 @@ describe("IA por bloco do editor", () => {
     );
   });
 
+  it("ajusta perguntas e respostas de FAQ sem chamar o modelo", async () => {
+    const faqNode = () => ({
+      id: "landing_faq_1",
+      type: "faq",
+      props: { question: "Pergunta antiga?", answer: "Resposta antiga." },
+      styles: {},
+      children: [],
+    });
+    const prompt = "pergunta: Como faço o orçamento?\nresposta: Preencha o formulário de contato.";
+
+    expect(deterministicPatch(faqNode() as any, prompt).props).toMatchObject({
+      question: "Como faço o orçamento?",
+      answer: "Preencha o formulário de contato.",
+    });
+
+    const { service, ai } = setup();
+    const result = await service.edit("site-1", "tenant-1", "user-1", faqNode(), prompt);
+    expect(result.appliedBy).toBe("rules");
+    expect(result.node.props).toMatchObject({
+      question: "Como faço o orçamento?",
+      answer: "Preencha o formulário de contato.",
+    });
+    expect(ai.generate).not.toHaveBeenCalled();
+  });
+
   it("mantém apenas regras e URLs com esquema seguro", () => {
     expect(deterministicPatch(baseNode() as any, "centralize").styles.textAlign).toBe("center");
     expect(deterministicPatch(baseNode() as any, "sem espaçamento").styles.padding).toBe("0");

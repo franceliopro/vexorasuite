@@ -1,5 +1,12 @@
 import { BadRequestException, HttpException, NotFoundException } from "@nestjs/common";
-import { SiteFormsService, allowedFields, cleanValues, findFormBlock, formUuid } from "./site-forms.service";
+import {
+  SiteFormsService,
+  allowedFields,
+  cleanValues,
+  findFormBlock,
+  findFormBlockInDocument,
+  formUuid,
+} from "./site-forms.service";
 
 const SITE = "11111111-1111-4111-8111-111111111111";
 const TENANT = "22222222-2222-4222-8222-222222222222";
@@ -98,6 +105,52 @@ describe("formulários de sites publicados", () => {
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ action: "site.form.submitted" }) }),
+    );
+  });
+
+  it("localiza formulário em página secundária e registra o slug correto", async () => {
+    const document = {
+      root: { id: "root", type: "section", props: {}, styles: {}, children: [] },
+      pages: [
+        {
+          slug: "contato",
+          title: "Contato",
+          kind: "content",
+          root: {
+            id: "contato_root",
+            type: "section",
+            props: {},
+            styles: {},
+            children: [
+              {
+                id: "contato_form",
+                type: "form",
+                props: { fields: ["Nome", "Email"] },
+                styles: {},
+                children: [],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const located = findFormBlockInDocument(document, "contato_form");
+    expect(located?.pageSlug).toBe("contato");
+
+    const { service, prisma } = setup({
+      siteDocument: { findUnique: jest.fn().mockResolvedValue({ document }) },
+    });
+    await service.submit(
+      SITE,
+      "contato_form",
+      { values: { nome: "Ana", email: "ana@example.com" } },
+      "198.51.100.20",
+    );
+
+    expect(prisma.siteFormSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ siteId: SITE, pageSlug: "contato" }),
+      }),
     );
   });
 

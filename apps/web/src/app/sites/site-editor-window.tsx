@@ -5,15 +5,14 @@
  *
  * Não é uma rota solta nem um modal de confirmação: cobre o viewport da aplicação,
  * mantém o estado do documento e reduz a um dock na própria interface quando minimizada.
- * Publicação de domínio fica para a próxima fatia — o botão existe, mas está desabilitado
- * com aviso honesto em vez de simular um deploy.
+ * Domínio e publicação usam endpoints reais; o ajuste por IA volta como patch para revisão
+ * humana e só entra no documento depois que a pessoa aplica e salva.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2, Maximize2, X } from "lucide-react";
 import type { SiteDocument } from "@/shared-types/site-document";
 import { EditorShell, findNodeById, replaceNodeById } from "./editor/editor-shell";
-import { aiEditNode } from "./[siteId]/edit/adapters/ai-generate";
 
 type DocumentRow = { document: SiteDocument; version: number };
 
@@ -47,6 +46,7 @@ export default function SiteEditorWindow({
   const [publishResult, setPublishResult] = useState<{ url: string; idempotent: boolean } | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiMessage, setAiMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [domainInput, setDomainInput] = useState(domain ?? "");
   const [domainState, setDomainState] = useState(domainStatus ?? "NONE");
   const [domainBusy, setDomainBusy] = useState(false);
@@ -184,22 +184,39 @@ export default function SiteEditorWindow({
   }, [siteId]);
 
   const handleAIChange = useCallback(
-    (prompt: string, nodeId: string) => {
-      if (!doc || !prompt.trim()) return;
+    async (prompt: string, nodeId: string): Promise<void> => {
+      if (!doc || !prompt.trim() || aiBusy) return;
       const node = findNodeById(doc.root, nodeId);
       if (!node) return;
       setAiBusy(true);
+      setAiMessage(null);
       try {
-        const edited = aiEditNode(node, prompt);
+        const response = await fetch(`/api/backend/sites/${siteId}/document/ai-edit`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ node, prompt }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.message || "Não foi possível ajustar o bloco.");
+        }
         setDoc((current) =>
-          current ? { ...current, root: replaceNodeById(current.root, nodeId, edited) } : current,
+          current ? { ...current, root: replaceNodeById(current.root, nodeId, payload.node) } : current,
         );
         setDirty(true);
+        setAiMessage({
+          text: payload.appliedBy === "model"
+            ? `IA aplicou o ajuste${payload.model ? ` (${String(payload.model)})` : ""}. Revise e salve.`
+            : "Ajuste rápido aplicado. Revise e salve.",
+          error: false,
+        });
+      } catch (cause) {
+        setAiMessage({ text: cause instanceof Error ? cause.message : "Não foi possível ajustar o bloco.", error: true });
       } finally {
         setAiBusy(false);
       }
     },
-    [doc],
+    [doc, aiBusy, siteId],
   );
 
   if (minimized) {
@@ -304,6 +321,22 @@ export default function SiteEditorWindow({
               </a>
             ) : null}
           </p>
+        </div>
+      ) : null}
+
+      {aiMessage ? (
+        <div
+          role={aiMessage.error ? "alert" : "status"}
+          style={{
+            margin: "0 16px",
+            padding: "8px 12px",
+            fontSize: "0.8125rem",
+            borderRadius: "var(--r)",
+            border: `1px solid ${aiMessage.error ? "var(--bad)" : "var(--ok)"}`,
+            color: aiMessage.error ? "var(--bad)" : "var(--ok)",
+          }}
+        >
+          {aiMessage.text}
         </div>
       ) : null}
 

@@ -16,6 +16,15 @@ import { EditorShell, findNodeById, replaceNodeById } from "./editor/editor-shel
 
 type DocumentRow = { document: SiteDocument; version: number };
 
+type FormSubmission = {
+  id: string;
+  createdAt: string;
+  formName: string;
+  values: Record<string, unknown>;
+};
+
+type SubmissionsRow = { total: number; submissions: FormSubmission[] };
+
 type SiteEditorWindowProps = {
   siteId: string;
   title: string;
@@ -47,6 +56,9 @@ export default function SiteEditorWindow({
   const [publishError, setPublishError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMessage, setAiMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [submissions, setSubmissions] = useState<SubmissionsRow | null>(null);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null);
   const [domainInput, setDomainInput] = useState(domain ?? "");
   const [domainState, setDomainState] = useState(domainStatus ?? "NONE");
   const [domainBusy, setDomainBusy] = useState(false);
@@ -219,6 +231,21 @@ export default function SiteEditorWindow({
     [doc, aiBusy, siteId],
   );
 
+  const loadSubmissions = useCallback(async (): Promise<void> => {
+    setSubmissionsLoading(true);
+    setSubmissionsError(null);
+    try {
+      const response = await fetch(`/api/backend/sites/${siteId}/forms/submissions?limit=50`, { cache: "no-store" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.message || "Não foi possível carregar as respostas.");
+      setSubmissions(payload as SubmissionsRow);
+    } catch (cause) {
+      setSubmissionsError(cause instanceof Error ? cause.message : "Não foi possível carregar as respostas.");
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  }, [siteId]);
+
   if (minimized) {
     return (
       <div className="vx-editor-editor-dock" role="region" aria-label="Editor minimizado">
@@ -338,6 +365,47 @@ export default function SiteEditorWindow({
         >
           {aiMessage.text}
         </div>
+      ) : null}
+
+      {!loading && !error && doc ? (
+        <details
+          className="vx-editor-responses"
+          onToggle={(event) => {
+            if (event.currentTarget.open && !submissions && !submissionsLoading) void loadSubmissions();
+          }}
+        >
+          <summary>Respostas do formulário{submissions ? ` (${submissions.total})` : ""}</summary>
+          <div className="vx-editor-responses-body">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void loadSubmissions()}
+              disabled={submissionsLoading}
+            >
+              {submissionsLoading ? "Atualizando…" : "Atualizar"}
+            </button>
+            {submissionsError ? <p role="alert" style={{ color: "var(--bad)" }}>{submissionsError}</p> : null}
+            {!submissions && !submissionsError && !submissionsLoading ? (
+              <p style={{ color: "var(--text-secondary)" }}>As respostas enviadas pelo site publicado aparecem aqui.</p>
+            ) : null}
+            {submissions && !submissions.submissions.length ? (
+              <p style={{ color: "var(--text-secondary)" }}>Nenhuma resposta recebida ainda.</p>
+            ) : null}
+            {submissions?.submissions.map((row) => (
+              <article key={row.id} className="vx-editor-response">
+                <header>
+                  <strong>{row.formName}</strong>
+                  <time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString("pt-BR")}</time>
+                </header>
+                <p>
+                  {Object.entries(row.values ?? {})
+                    .map(([key, value]) => `${key}: ${String(value ?? "")}`)
+                    .join(" · ")}
+                </p>
+              </article>
+            ))}
+          </div>
+        </details>
       ) : null}
 
       {!loading && !error && doc ? (

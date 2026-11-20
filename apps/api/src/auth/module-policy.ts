@@ -44,7 +44,9 @@ export function routeModules(path: string, method: string): string[] {
     .replace(/^\/api\//, "")
     .replace(/^\//, "")
     .split("?")[0]!;
-  if (/^public\/flows(?:\/|$)/.test(p)) return [];
+  // Submissão pública de formulário de site publicado: o visitante não tem sessão.
+  // O service valida publicação, bloco, honeypot e limite de taxa antes de gravar.
+  if (/^public\/(?:flows|sites)(?:\/|$)/.test(p)) return [];
   if (/^(auth\/|profile(?:\/|$))/.test(p)) return [];
   if (/^wordpress(?:\/|$)/.test(p)) return ["WORDPRESS"];
   if (/^department-resources\/context$/.test(p) && method === "GET") return ["INBOX","CRM","CALENDAR","MARKETING","TASKS"];

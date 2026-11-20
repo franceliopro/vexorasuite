@@ -220,7 +220,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
               {site.domain ? <small style={{ opacity: 0.8 }}>Domínio: {site.domain}</small> : null}
               <small style={{ opacity: 0.6 }}>Atualizado em {dateBR(site.updatedAt)}</small>
               <p style={{ margin: "8px 0 0", fontSize: 12, opacity: 0.75 }}>
-                Editor visual disponível. Publicação com domínio próprio: próxima etapa.
+                Editor visual, domínio próprio e publicação via Cloudflare no editor.
               </p>
               <div style={{ marginTop: "auto", paddingTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {canManage ? (
@@ -267,6 +267,8 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         <SiteEditorWindow
           siteId={editingSite.id}
           title={editingSite.name}
+          domain={editingSite.domain}
+          domainStatus={editingSite.domainStatus}
           onClose={() => setEditingSite(null)}
         />
       ) : null}

@@ -13,6 +13,7 @@
 import type { SiteKindValue } from "./sites.service";
 import { landingDocument } from "./landing-template";
 import { fakeIdentity, generatedPages, type GeneratedPage } from "./site-pages";
+import type { SiteIllustrations } from "./site-images";
 
 type TemplateNode = {
   id: string;
@@ -29,6 +30,7 @@ export type PromptDocumentInput = {
   primary: string;
   accent: string;
   logoUrl?: string | null;
+  images?: SiteIllustrations;
 };
 
 type SegmentRule = {
@@ -297,7 +299,7 @@ function walk(node: TemplateNode, collected: TemplateNode[] = []): TemplateNode[
   return collected;
 }
 
-export function promptDocument({ prompt, name, kind, primary, accent, logoUrl }: PromptDocumentInput) {
+export function promptDocument({ prompt, name, kind, primary, accent, logoUrl, images }: PromptDocumentInput) {
   const cleanPrompt = cleanText(prompt, 2000);
   const document = JSON.parse(JSON.stringify(landingDocument(name, primary, accent, logoUrl))) as {
     version: number;
@@ -363,10 +365,25 @@ export function promptDocument({ prompt, name, kind, primary, accent, logoUrl }:
   setContent("landing_contact_text", segment.contactText);
   setContent("landing_contact_point_1", `Um formulário curto para ${cta.toLowerCase()}.`);
 
+  if (images) {
+    const aboutVisual = byId.get("landing_about_visual");
+    if (aboutVisual) {
+      setContent("landing_about_visual_label", "IMAGEM ILUSTRATIVA · TROQUE POR FOTO REAL");
+      setContent("landing_about_visual_text", "Arte gerada automaticamente para dar forma ao rascunho. Substitua por uma imagem sua antes de publicar.");
+      aboutVisual.children.push({
+        id: "landing_about_visual_image",
+        type: "image",
+        props: { src: images.about, alt: "Ilustração automática do rascunho; troque por uma foto real antes de publicar." },
+        styles: { borderRadius: "1rem", display: "block", marginTop: "1rem", objectFit: "cover", width: "100%" },
+        children: [],
+      });
+    }
+  }
+
   document.meta.title = name;
   document.meta.type = kind.toLowerCase().replace(/_/g, "-");
   document.meta.generatedFrom = "prompt";
-  document.pages = generatedPages(fakeIdentity(name, slugify(name), logoUrl), primary, accent);
+  document.pages = generatedPages(fakeIdentity(name, slugify(name), logoUrl), primary, accent, images);
   return document;
 }
 

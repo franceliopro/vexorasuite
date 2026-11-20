@@ -23,6 +23,8 @@ export type GeneratedPage = {
   root: PageNode;
 };
 
+import type { SiteIllustrations } from "./site-images";
+
 export type FakeIdentity = {
   name: string;
   slug: string;
@@ -53,6 +55,16 @@ function node(
 
 function text(id: string, content: string, tag = 'p', styles: Record<string, string> = {}): PageNode {
   return node(id, 'text', { content, tag }, { color: tag === 'p' ? MUTED : INK, lineHeight: '1.7', margin: '0 0 1rem', ...styles });
+}
+
+function imageNode(id: string, src: string, alt: string): PageNode {
+  return node(id, 'image', { src, alt }, {
+    borderRadius: '1rem',
+    display: 'block',
+    margin: '0 0 1rem',
+    objectFit: 'cover',
+    width: '100%',
+  });
 }
 
 function link(id: string, label: string, href: string, primary = '#0e7a5c'): PageNode {
@@ -195,7 +207,7 @@ function contactLines(prefix: string, identity: FakeIdentity): PageNode[] {
   ];
 }
 
-export function generatedPages(identity: FakeIdentity, primary: string, accent: string): GeneratedPage[] {
+export function generatedPages(identity: FakeIdentity, primary: string, accent: string, images?: SiteIllustrations): GeneratedPage[] {
   const p = identity.slug;
   const i = fakeIdentity(identity.name, p, identity.logoUrl);
 
@@ -206,12 +218,15 @@ export function generatedPages(identity: FakeIdentity, primary: string, accent: 
     text('page_sobre_values', 'Escuta atenta, transparência nas etapas e acompanhamento depois da entrega. Substitua por missão, valores e história reais da sua equipe.'),
     sectionTitle('page_sobre_team_title', 'Nossa equipe'),
     text('page_sobre_team', 'Espaço reservado para foto real da equipe, do fundador ou do espaço físico. Adicione uma imagem exclusiva no editor.'),
+    ...(images ? [imageNode('page_sobre_team_image', images.team, 'Ilustração automática do rascunho; troque por uma foto real antes de publicar.')] : []),
+    ...(images ? [text('page_sobre_team_note', 'Imagem ilustrativa gerada automaticamente. Substitua por uma foto real antes de publicar.', 'span', { fontSize: '0.8rem' })] : []),
     ...contactLines('page_sobre', i),
   ]);
 
   const servicos = shell('page_servicos', i.name, primary, accent, i.logoUrl, [
     heading('page_servicos_title', 'Serviços e soluções'),
     text('page_servicos_intro', 'Apresente aqui os principais serviços da empresa. Os textos abaixo são exemplos e devem ser trocados pelo que você realmente oferece.'),
+    ...(images ? [imageNode('page_servicos_image', images.service, 'Ilustração automática do rascunho; troque por uma imagem sua antes de publicar.')] : []),
     sectionTitle('page_servicos_1_title', 'Consultoria inicial'),
     text('page_servicos_1_text', 'Entendemos o contexto e o resultado esperado antes de propor qualquer caminho.'),
     sectionTitle('page_servicos_2_title', 'Execução organizada'),

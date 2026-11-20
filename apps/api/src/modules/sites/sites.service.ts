@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { resolveEntitlements } from "../../auth/entitlements";
 import { landingDocument } from "./landing-template";
 import { promptDocument } from "./prompt-template";
+import { buildSiteIllustrations } from "./site-images";
 
 /**
  * Sites: registros raiz do criador de sites.
@@ -204,7 +205,8 @@ export class SitesService {
     const siteKind = kind(input.kind);
     const primary = color(input.primaryColor, "primaryColor", "#0E7A5C");
     const accent = color(input.accentColor, "accentColor", "#6258DF");
-    const document = promptDocument({ prompt, name, kind: siteKind, primary, accent, logoUrl: logo(input.logoUrl) });
+    const images = await buildSiteIllustrations({ name, primary, accent });
+    const document = promptDocument({ prompt, name, kind: siteKind, primary, accent, logoUrl: logo(input.logoUrl), images });
     return this.createWithDocument(tenantId, role, input, document);
   }
 

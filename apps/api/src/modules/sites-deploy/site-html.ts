@@ -3,7 +3,8 @@
  *
  * O navegador do editor nunca envia arquivos para o deploy: o backend lê o documento
  * salvo e produz o index.html. Toda interpolação é escapada; URLs passam por filtro
- * para impedir javascript: e data: em atributos publicados.
+ * para impedir javascript: e data: em atributos publicados. A única exceção é um
+ * PNG base64 com assinatura válida e tamanho limitado, usado pelas ilustrações do rascunho.
  */
 
 export type HtmlNode = {
@@ -28,6 +29,10 @@ type HtmlDocument = {
 const SAFE_TAG = /^(h1|h2|h3|h4|h5|h6|p|span|div|strong|em|blockquote|ul|ol|li)$/;
 const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 const SAFE_URL = /^(https?:\/\/|mailto:|\/|#|\.\/|\.\.\/)/i;
+// PNG é inerte: não executa script nem carrega recursos externos. SVG e outros
+// formatos data: continuam bloqueados. A assinatura base64 garante que é PNG.
+const SAFE_PNG_DATA = /^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/]*={0,2}$/;
+const MAX_DATA_URL = 120_000;
 
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
@@ -41,6 +46,13 @@ function escapeHtml(value: unknown): string {
 function safeUrl(value: unknown): string {
   const url = String(value ?? "").trim();
   return SAFE_URL.test(url) ? url : "#";
+}
+
+/** Usado somente em <img>: PNG base64 é inerte; links continuam restritos a SAFE_URL. */
+function safeImageUrl(value: unknown): string {
+  const url = String(value ?? "").trim();
+  if (SAFE_URL.test(url)) return url;
+  return url.length <= MAX_DATA_URL && SAFE_PNG_DATA.test(url) ? url : "#";
 }
 
 function safeColor(value: unknown, fallback: string): string {
@@ -115,7 +127,7 @@ function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContex
       return `<${tag}${style}>${escapeHtml(props.content)}</${tag}>`;
     }
     case "image":
-      return `<img src="${escapeHtml(safeUrl(props.src))}" alt="${escapeHtml(props.alt ?? "")}"${style} loading="lazy">`;
+      return `<img src="${escapeHtml(safeImageUrl(props.src))}" alt="${escapeHtml(props.alt ?? "")}"${style} loading="lazy">`;
     case "button":
       return `<a href="${escapeHtml(safeUrl(props.href))}"${style}>${escapeHtml(props.label ?? "Saiba mais")}</a>`;
     case "video": {

@@ -1,8 +1,30 @@
 import sharp from "sharp";
-import { parseLayoutImage } from "./layout-image";
+import { analyzeLayoutImage, parseLayoutImage } from "./layout-image";
 
 async function png(width: number, height: number): Promise<string> {
   const bytes = await sharp({ create: { width, height, channels: 3, background: "#ffffff" } }).png().toBuffer();
+  return `data:image/png;base64,${bytes.toString("base64")}`;
+}
+
+function band(width: number, height: number, color: [number, number, number]): Buffer {
+  const buffer = Buffer.alloc(width * height * 3);
+  for (let index = 0; index < buffer.length; index += 3) {
+    buffer[index] = color[0];
+    buffer[index + 1] = color[1];
+    buffer[index + 2] = color[2];
+  }
+  return buffer;
+}
+
+async function layoutPng(): Promise<string> {
+  const width = 256;
+  const bytes = await sharp({ create: { width, height: 512, channels: 3, background: "#ffffff" } })
+    .composite([
+      { input: band(width, 128, [194, 65, 12]), raw: { width, height: 128, channels: 3 }, top: 96, left: 0 },
+      { input: band(width, 128, [29, 78, 216]), raw: { width, height: 128, channels: 3 }, top: 320, left: 0 },
+    ])
+    .png()
+    .toBuffer();
   return `data:image/png;base64,${bytes.toString("base64")}`;
 }
 
@@ -27,5 +49,21 @@ describe("referência de layout enviada no wizard", () => {
     await expect(parseLayoutImage({ dataUrl: "data:image/png;base64,bmFvIGVhIGltYWdl" })).rejects.toThrow();
     await expect(parseLayoutImage({ dataUrl: await png(32, 32) })).rejects.toThrow(/64x64/);
     await expect(parseLayoutImage("javascript:alert(1)")).rejects.toThrow();
+  });
+
+  it("extrai paleta e estrutura determinísticas sem usar modelo de visão", async () => {
+    const image = await parseLayoutImage({ dataUrl: await layoutPng(), fileName: "layout.png" });
+    const first = await analyzeLayoutImage(image);
+    const second = await analyzeLayoutImage(image);
+
+    expect(first).toEqual(second);
+    expect(first.primary).toMatch(/^#[0-9a-f]{6}$/);
+    expect(first.accent).toMatch(/^#[0-9a-f]{6}$/);
+    expect(first.primary).not.toBe(first.accent);
+    expect(first.brief.sections.slice(0, 2)).toEqual(["topo", "hero"]);
+    expect(first.brief.sections.slice(-2)).toEqual(["contato", "rodape"]);
+    expect(first.brief.sections).toContain("servicos");
+    expect(["compacta", "equilibrada", "generosa"]).toContain(first.brief.density);
+    expect(first.brief.notes).toContain("Estimativa determinística");
   });
 });

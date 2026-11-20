@@ -5,7 +5,7 @@ import { resolveEntitlements } from "../../auth/entitlements";
 import { landingDocument } from "./landing-template";
 import { promptDocument } from "./prompt-template";
 import { buildSiteIllustrations } from "./site-images";
-import { parseLayoutImage } from "./layout-image";
+import { analyzeLayoutImage, parseLayoutImage } from "./layout-image";
 import { SiteLayoutVisionService } from "./site-layout-vision.service";
 
 /**
@@ -202,8 +202,9 @@ export class SitesService {
 
   async create(tenantId: string, role: string, input: CreateSiteInput, userId?: string) {
     // Sem descrição e sem imagem, o comportamento permanece o de sempre: template de
-    // landing ou documento vazio conforme o tipo. Com imagem, a IA pode sugerir apenas
-    // a estrutura; o conteúdo e as regras determinísticas continuam no template.
+    // landing ou documento vazio conforme o tipo. Com imagem, regras determinísticas
+    // leem faixas e cores; um modelo com visão pode refinar apenas a estrutura, nunca
+    // o conteúdo, que continua vindo do template.
     const hasPrompt = input.prompt !== undefined && input.prompt !== null && input.prompt !== "";
     const hasLayout = input.layoutImage !== undefined && input.layoutImage !== null && input.layoutImage !== "";
     if (!hasPrompt && !hasLayout) {
@@ -211,23 +212,24 @@ export class SitesService {
     }
     const name = text(input.name, "name", 2, 100);
     const siteKind = kind(input.kind);
-    const primary = color(input.primaryColor, "primaryColor", "#0E7A5C");
-    const accent = color(input.accentColor, "accentColor", "#6258DF");
     const prompt = hasPrompt ? text(input.prompt, "prompt", 3, 2000) : "";
     const image = hasLayout ? await parseLayoutImage(input.layoutImage) : undefined;
+    const analysis = image ? await analyzeLayoutImage(image) : undefined;
+    const primary = color(input.primaryColor, "primaryColor", analysis?.primary ?? "#0E7A5C");
+    const accent = color(input.accentColor, "accentColor", analysis?.accent ?? "#6258DF");
     const warnings: string[] = [];
     let layoutBrief;
 
     if (image) {
       if (!this.layoutVision) {
-        warnings.push("A imagem foi recebida, mas a análise com IA não está disponível neste ambiente; usamos o template padrão.");
+        warnings.push("A imagem foi recebida, mas nenhum modelo com visão a analisou; estrutura e paleta vieram de regras determinísticas.");
       } else {
         try {
           const analyzed = await this.layoutVision.analyze({ tenantId, userId, siteName: name, prompt, image });
           if (analyzed.brief) layoutBrief = analyzed.brief;
           if (analyzed.warning) warnings.push(analyzed.warning);
         } catch {
-          warnings.push("A imagem foi recebida, mas a IA não pôde analisá-la; criamos o rascunho com o template padrão.");
+          warnings.push("A imagem foi recebida, mas a IA não pôde analisá-la; usamos regras determinísticas para estrutura e paleta.");
         }
       }
     }
@@ -241,9 +243,14 @@ export class SitesService {
       accent,
       logoUrl: logo(input.logoUrl),
       images,
-      layoutBrief: layoutBrief ?? null,
+      layoutBrief: layoutBrief ?? analysis?.brief ?? null,
     });
-    const site = await this.createWithDocument(tenantId, role, input, document);
+    const site = await this.createWithDocument(
+      tenantId,
+      role,
+      { ...input, primaryColor: primary, accentColor: accent },
+      document,
+    );
     return warnings.length ? { ...site, warnings } : site;
   }
 

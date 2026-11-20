@@ -21,11 +21,22 @@ export class CloudflareService {
     }
   }
 
+  isConfigured(): boolean {
+    return Boolean(this.token && this.accountId);
+  }
+
   private headers(extra: Record<string, string> = {}): Record<string, string> {
     return { Authorization: `Bearer ${this.token}`, ...extra };
   }
 
+  private assertConfigured(): void {
+    if (!this.isConfigured()) {
+      throw new Error("Cloudflare não configurado. Defina CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID.");
+    }
+  }
+
   private async request<T>(method: string, path: string, body?: any, isForm = false): Promise<T> {
+    this.assertConfigured();
     const url = `${this.baseUrl}${path}`;
     const init: RequestInit = { method, headers: this.headers(isForm ? {} : { 'Content-Type': 'application/json' }) };
     if (body) {
@@ -63,6 +74,7 @@ export class CloudflareService {
    * Cloudflare retorna deployment com url.
    */
   async createDeployment(projectName: string, files: { path: string; content: Buffer }[], branch = 'main'): Promise<any> {
+    this.assertConfigured();
     const crypto = await import('node:crypto');
     const manifest: Record<string, string> = {};
     const form = new FormData();

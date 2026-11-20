@@ -281,7 +281,7 @@ export function EditorShell({
             className="vx-editor-btn-primary"
             disabled={disabled || loading || publishDisabled}
             onClick={handlePublish}
-            title={publishDisabled ? 'Publicação disponível na próxima etapa' : undefined}
+            title={publishDisabled ? 'Publicando…' : undefined}
           >
             <Play size={15} aria-hidden="true" /> Publicar
           </button>

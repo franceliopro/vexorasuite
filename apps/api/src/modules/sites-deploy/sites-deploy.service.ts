@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../common/prisma.service';
 import { CloudflareService } from './cloudflare.service';
 import { createHash } from 'node:crypto';
+import { renderSiteHtml } from './site-html';
 
 @Injectable()
 export class SitesDeployService {
@@ -13,13 +14,22 @@ export class SitesDeployService {
   // --- Domínio ---
 
   async bindDomain(siteId: string, domain: string, tenantId: string) {
+    const normalized = String(domain ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '');
+    if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(normalized)) {
+      throw new BadRequestException('Domínio inválido. Informe algo como www.exemplo.com.br.');
+    }
+
     const site = await this.prisma.site.findFirst({ where: { id: siteId, tenantId } });
     if (!site) throw new NotFoundException('Site não encontrado');
 
     const projectName = this.projectName(site);
 
     // Idempotência: upsert por domínio
-    const existing = await this.prisma.siteDomain.findUnique({ where: { domain } });
+    const existing = await this.prisma.siteDomain.findUnique({ where: { domain: normalized } });
     if (existing && existing.siteId !== siteId) {
       throw new BadRequestException('Domínio já vinculado a outro site');
     }
@@ -30,7 +40,7 @@ export class SitesDeployService {
           data: { siteId, status: 'PENDING_DNS', cfProjectName: projectName },
         })
       : await this.prisma.siteDomain.create({
-          data: { siteId, domain, status: 'PENDING_DNS', cfProjectName: projectName },
+          data: { siteId, domain: normalized, status: 'PENDING_DNS', cfProjectName: projectName },
         });
 
     // Cria projeto no Cloudflare Pages se necessário (idempotente: getProject primeiro)
@@ -42,7 +52,7 @@ export class SitesDeployService {
 
     // Vincula domínio customizado no projeto Pages
     try {
-      await this.cf.addCustomDomain(projectName, domain);
+      await this.cf.addCustomDomain(projectName, normalized);
     } catch (e: any) {
       // já pode existir; não bloqueia
       if (!String(e.message).toLowerCase().includes('already')) {
@@ -51,14 +61,20 @@ export class SitesDeployService {
     }
 
     // DNS: se a zona do domínio estiver na conta Cloudflare do usuário, cria CNAME automaticamente
-    const zoneId = await this.cf.getZoneId(domain.split('.').slice(-2).join('.'));
+    // Tenta o domínio completo e depois o registrável (ex.: exemplo.com.br, não com.br).
+    const labels = normalized.split('.');
+    let zoneId: string | null = null;
+    for (let i = 0; i < Math.min(2, labels.length); i += 1) {
+      zoneId = await this.cf.getZoneId(labels.slice(i).join('.'));
+      if (zoneId) break;
+    }
     if (zoneId) {
       await this.prisma.siteDomain.update({
         where: { id: domainRecord.id },
         data: { cfZoneId: zoneId },
       });
       try {
-        await this.cf.createDnsCname(zoneId, domain, `${projectName}.pages.dev`, true);
+        await this.cf.createDnsCname(zoneId, normalized, `${projectName}.pages.dev`, true);
       } catch (e: any) {
         // registro pode já existir
         if (!String(e.message).toLowerCase().includes('already')) {
@@ -110,7 +126,34 @@ export class SitesDeployService {
 
   // --- Deploy ---
 
+  /** Publica o SiteDocument salvo. O cliente nunca escolhe quais arquivos vão para o Pages. */
+  async publishFromDocument(siteId: string, tenantId: string) {
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, tenantId },
+      select: { id: true, name: true, slug: true, primaryColor: true, accentColor: true },
+    });
+    if (!site) throw new NotFoundException('Site não encontrado');
+    if (!this.cf.isConfigured()) {
+      throw new BadRequestException('Cloudflare não configurado nesta instalação. Avise a administração.');
+    }
+    const document = await this.prisma.siteDocument.findUnique({ where: { siteId } });
+    if (!document) throw new BadRequestException('Salve o site no editor antes de publicar.');
+
+    const html = renderSiteHtml(document.document, site);
+    return this.deploy(siteId, tenantId, [
+      { path: 'index.html', contentBase64: Buffer.from(html, 'utf8').toString('base64') },
+    ]);
+  }
+
   async deploy(siteId: string, tenantId: string, files: { path: string; contentBase64: string }[]) {
+    if (!files.length || files.length > 200) {
+      throw new BadRequestException('Nenhum arquivo válido para publicar.');
+    }
+    for (const file of files) {
+      if (!/^[a-zA-Z0-9._/-]+$/.test(file.path) || file.path.includes('..') || file.contentBase64.length > 10_000_000) {
+        throw new BadRequestException('Arquivo de publicação inválido.');
+      }
+    }
     const site = await this.prisma.site.findFirst({ where: { id: siteId, tenantId } });
     if (!site) throw new NotFoundException('Site não encontrado');
 

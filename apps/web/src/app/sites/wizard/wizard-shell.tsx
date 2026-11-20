@@ -35,7 +35,15 @@ type WizardStep = 'origem' | 'tipo' | 'tema' | 'dominio' | 'publicar';
 
 type OrigemKind = 'zero' | 'clone' | 'html' | 'zip' | 'ia';
 
-type SiteType = 'static' | 'blog' | 'real-estate' | 'ecommerce';
+type SiteType = 'static' | 'landing' | 'blog' | 'real-estate' | 'ecommerce';
+
+const TYPE_LABEL: Record<SiteType, string> = {
+  static: 'Site institucional',
+  landing: 'Landing page',
+  blog: 'Blog / portal',
+  'real-estate': 'Imobiliária',
+  ecommerce: 'E-commerce',
+};
 
 const STEP_ORDER: WizardStep[] = ['origem', 'tipo', 'tema', 'dominio', 'publicar'];
 
@@ -718,6 +726,7 @@ interface TipoStepProps {
 function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepProps) {
   const types: Array<{ id: SiteType; label: string; desc: string; icon: React.ElementType }> = [
     { id: 'static', label: 'Estático', desc: 'Site institucional simples.', icon: Globe },
+    { id: 'landing', label: 'Landing page', desc: 'Uma página focada em converter visitantes em contatos.', icon: CheckCircle2 },
     { id: 'blog', label: 'Blog / Portal', desc: 'Posts automáticos e busca.', icon: Palette },
     { id: 'real-estate', label: 'Imobiliária', desc: 'Imóveis com filtros e visitas.', icon: Link },
     { id: 'ecommerce', label: 'E-commerce', desc: 'Loja completa com checkout.', icon: Rocket },
@@ -933,7 +942,7 @@ function PublicarStep({ siteTitle, siteType, domain }: PublicarStepProps) {
         </div>
         <div className="vx-wizard-publicar-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: TOKENS.surface, border: `1px solid ${TOKENS.border}`, borderRadius: TOKENS.radius }}>
           <span className="vx-wizard-publicar-label" style={{ fontSize: '0.875rem', color: TOKENS.textSecondary }}>Tipo</span>
-          <span className="vx-wizard-publicar-value" style={{ fontSize: '0.9375rem', fontWeight: 600, color: TOKENS.text }}>{siteType}</span>
+          <span className="vx-wizard-publicar-value" style={{ fontSize: '0.9375rem', fontWeight: 600, color: TOKENS.text }}>{TYPE_LABEL[siteType]}</span>
         </div>
         <div className="vx-wizard-publicar-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: TOKENS.surface, border: `1px solid ${TOKENS.border}`, borderRadius: TOKENS.radius }}>
           <span className="vx-wizard-publicar-label" style={{ fontSize: '0.875rem', color: TOKENS.textSecondary }}>Domínio</span>

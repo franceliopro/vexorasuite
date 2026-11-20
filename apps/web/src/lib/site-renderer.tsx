@@ -19,6 +19,13 @@ function renderNode(node: SiteNode): React.ReactElement {
     case 'button':
       return React.createElement('a', { href: node.props.href, style, key: node.id }, String(node.props.label ?? ''));
     case 'section':
+      return React.createElement('section', {
+        id: typeof node.props.anchor === 'string' && /^[a-z][a-z0-9-]{0,60}$/.test(node.props.anchor)
+          ? node.props.anchor
+          : undefined,
+        style,
+        key: node.id,
+      }, node.children.map(renderNode));
     case 'container':
       return React.createElement('section', { style, key: node.id }, node.children.map(renderNode));
     case 'video': {

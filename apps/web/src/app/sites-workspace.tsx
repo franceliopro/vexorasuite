@@ -114,7 +114,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         let endpoint = "/api/backend/sites";
         let body: Record<string, unknown> = { name: input.title, kind };
         const source = input.source;
-        if (source.kind === "ia") {
+        if (source.kind === "ia" || source.kind === "image") {
           if (source.prompt) body.prompt = source.prompt;
           if (source.layoutImage) body.layoutImage = source.layoutImage;
         }
@@ -162,11 +162,13 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         const prefix = imported ? `Site "${summary.name}" importado.` : `Site "${summary.name}" criado como rascunho.`;
         const detail = warnings.length
           ? ` Avisos: ${warnings.slice(0, 2).join(" ")}`
-          : source.kind === "ia"
-            ? source.layoutImage
-              ? " Rascunho com estrutura sugerida pela imagem de layout — revise no editor."
-              : " Rascunho premium com textos sugeridos pela sua descrição — revise no editor."
-            : "";
+          : source.kind === "image"
+            ? " Rascunho recriado a partir da imagem de layout — revise no editor."
+            : source.kind === "ia"
+              ? source.layoutImage
+                ? " Rascunho com estrutura sugerida pela imagem de layout — revise no editor."
+                : " Rascunho premium com textos sugeridos pela sua descrição — revise no editor."
+              : "";
         setNotice(prefix + detail);
       } catch (cause) {
         setActionError(cause instanceof Error ? cause.message : "Não foi possível criar o site.");

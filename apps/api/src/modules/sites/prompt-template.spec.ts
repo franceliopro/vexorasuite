@@ -1,7 +1,24 @@
+import sharp from "sharp";
 import { SitesService } from "./sites.service";
 import { LANDING_CONTACT_ANCHOR, LANDING_FORM_BLOCK_ID } from "./landing-template";
 import { promptDocument } from "./prompt-template";
 import { parseLayoutBrief } from "./layout-brief";
+
+async function imageDataUrl(): Promise<string> {
+  const width = 256;
+  const height = 512;
+  const band = Buffer.alloc(width * 128 * 3);
+  for (let index = 0; index < band.length; index += 3) {
+    band[index] = 194;
+    band[index + 1] = 65;
+    band[index + 2] = 12;
+  }
+  const bytes = await sharp({ create: { width, height, channels: 3, background: "#ffffff" } })
+    .composite([{ input: band, raw: { width, height: 128, channels: 3 }, top: 160, left: 0 }])
+    .png()
+    .toBuffer();
+  return `data:image/png;base64,${bytes.toString("base64")}`;
+}
 
 const TENANT = "22222222-2222-4222-8222-222222222222";
 const SITE = "11111111-1111-4111-8111-111111111111";
@@ -212,6 +229,42 @@ describe("rascunho premium a partir da descrição do wizard", () => {
         layoutImage: { dataUrl: "javascript:alert(1)" },
       }),
     ).rejects.toThrow();
+  });
+
+  it("recria o rascunho somente com a imagem, usando regras determinísticas quando não há visão", async () => {
+    const { prisma, created } = prismaMock();
+    const service = new SitesService(prisma);
+    const result: any = await service.create(TENANT, "OWNER", {
+      name: "Site da imagem",
+      kind: "LANDING",
+      layoutImage: { dataUrl: await imageDataUrl(), fileName: "layout.png" },
+    });
+
+    expect(result.warnings).toEqual([expect.stringContaining("regras determinísticas")]);
+    expect(created.site.primaryColor).toMatch(/^#[0-9a-f]{6}$/);
+    expect(created.site.primaryColor).not.toBe("#0e7a5c");
+    expect(created.document.meta.generatedFrom).toBe("layout");
+    expect(created.document.meta.layoutReference).toMatchObject({ analyzed: true, source: "deterministic" });
+    expect(created.document.meta.theme.primary).toBe(created.site.primaryColor);
+    expect(created.document.root.children[0].id).toBe("landing_nav");
+    expect(created.document.root.children[created.document.root.children.length - 1].id).toBe("landing_footer");
+  });
+
+  it("não sobrescreve cores explícitas com a paleta da imagem", async () => {
+    const { prisma, created } = prismaMock();
+    const service = new SitesService(prisma);
+    await service.create(TENANT, "OWNER", {
+      name: "Site com cores",
+      kind: "LANDING",
+      primaryColor: "#123456",
+      accentColor: "#abcdef",
+      layoutImage: { dataUrl: await imageDataUrl(), fileName: "layout.png" },
+    });
+
+    expect(created.site.primaryColor).toBe("#123456");
+    expect(created.site.accentColor).toBe("#abcdef");
+    expect(created.document.meta.theme.primary).toBe("#123456");
+    expect(created.document.meta.theme.secondary).toBe("#abcdef");
   });
 
   it("entrega imagens ilustrativas editáveis no rascunho a partir do prompt", () => {

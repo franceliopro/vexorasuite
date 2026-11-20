@@ -26,10 +26,22 @@ test("wizard resizes the layout image locally before sending it", () => {
   assert.ok(wizard.includes("URL.revokeObjectURL(url)"));
 });
 
+test("wizard exposes image upload as an explicit source and requires the capture", () => {
+  assert.ok(wizard.includes("| { kind: 'image'; layoutImage: LayoutImageReference; prompt?: string }"));
+  assert.ok(wizard.includes("label: 'Upload de imagem'"));
+  assert.ok(wizard.includes("(origem === 'image' && layoutImage !== null)"));
+  assert.ok(wizard.includes("if (origem === 'image' && !layoutImage)"));
+  assert.ok(wizard.includes("Imagem do layout (obrigatória)"));
+  assert.ok(wizard.includes("aria-required={value === 'image'}"));
+  assert.ok(wizard.includes("A imagem recria a estrutura do rascunho"));
+  assert.ok(wizard.includes("source = { kind: 'image', layoutImage, ...(prompt.trim() ? { prompt: prompt.trim() } : {}) };"));
+});
+
 test("site creation forwards prompt and layout image to the backend", () => {
-  assert.ok(workspace.includes('if (source.kind === "ia") {'));
+  assert.ok(workspace.includes('if (source.kind === "ia" || source.kind === "image") {'));
   assert.ok(workspace.includes('if (source.prompt) body.prompt = source.prompt;'));
   assert.ok(workspace.includes('if (source.layoutImage) body.layoutImage = source.layoutImage;'));
+  assert.ok(workspace.includes("Rascunho recriado a partir da imagem de layout"));
   assert.ok(workspace.includes("Rascunho com estrutura sugerida pela imagem de layout"));
   assert.ok(workspace.includes('Avisos: ${warnings.slice(0, 2).join(" ")}'));
 });

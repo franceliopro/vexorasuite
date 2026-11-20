@@ -4,8 +4,13 @@
  * aqui define um default neutro, recolorido pela marca da empresa em tempo de execução.
  */
 
-/* ---------- Tokens Véxora ---------- */
-:root {
+/* ---------- Tokens Véxora ----------
+ * Escopados às janelas do produto Sites: importar esta folha não pode recolorir o restante
+ * da Véxora quando o wizard/editor for carregado dentro do workspace. */
+.vx-editor-shell,
+.vx-wizard,
+.vx-wizard-dock,
+.vx-editor-window {
   --primary: #0e7a5c;
   --primary-contrast: #ffffff;
   --primary-soft: color-mix(in srgb, var(--primary) 12%, var(--s1));
@@ -42,6 +47,38 @@
 }
 
 /* ---------- Editor shell ---------- */
+/* A janela cobre o viewport sem sair da aplicação Véxora; minimizar vira dock. */
+.vx-editor-window {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  color: var(--text);
+}
+.vx-editor-window .vx-editor-shell { flex: 1; min-height: 0; }
+.vx-editor-editor-dock {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10001;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+.vx-editor-editor-dock span {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  padding-left: 6px;
+}
 .vx-editor-shell {
   display: flex;
   flex-direction: column;

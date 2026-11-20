@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useState } from 'react';
+import './../editor/editor.css';
 import {
   X,
   Maximize,
@@ -96,6 +97,7 @@ export default function WizardShell({
   const isLast = currentIndex === STEP_ORDER.length - 1;
   const canNext =
     currentIndex < STEP_ORDER.length - 1 &&
+    (step !== 'tipo' || siteTitle.trim().length >= 2) &&
     (step !== 'dominio' || domainValidated);
 
   const handleNext = useCallback(() => {
@@ -115,11 +117,11 @@ export default function WizardShell({
   }, []);
 
   const handleFinish = useCallback(async () => {
+    if (siteTitle.trim().length < 2) return;
     setBusy(true);
     try {
-      // TODO: programador persiste o site e dispara deploy via endpoints de domínio
-      await new Promise((r) => setTimeout(r, 800));
-      onComplete({ title: siteTitle, type: siteType, domain: domain || undefined });
+      // O chamador persiste o site. Domínio e deploy entram na próxima fatia; não prometer aqui.
+      onComplete({ title: siteTitle.trim(), type: siteType, domain: domain || undefined });
     } finally {
       setBusy(false);
     }
@@ -302,6 +304,7 @@ export default function WizardShell({
         {STEP_ORDER.map((s, i) => {
           const isDone = i < currentIndex;
           const isCurrent = i === currentIndex;
+          const StepIcon = STEP_ICONS[s];
           return (
             <li
               key={s}
@@ -354,7 +357,10 @@ export default function WizardShell({
                 >
                   {isDone ? <CheckCircle2 size={12} aria-hidden="true" /> : i + 1}
                 </span>
-                <span className="vx-wizard-step-label">{STEP_LABELS[s]}</span>
+                <span className="vx-wizard-step-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <StepIcon size={13} aria-hidden="true" />
+                  {STEP_LABELS[s]}
+                </span>
               </button>
               {i < STEP_ORDER.length - 1 && (
                 <span
@@ -375,7 +381,15 @@ export default function WizardShell({
 
       <div className="vx-wizard-body" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
         {step === 'origem' && <OrigemStep value={origem} onChange={setOrigem} cloneUrl={cloneUrl} onCloneUrlChange={setCloneUrl} disabled={disabled} />}
-        {step === 'tipo' && <TipoStep value={siteType} onChange={setSiteType} disabled={disabled} />}
+        {step === 'tipo' && (
+          <TipoStep
+            value={siteType}
+            onChange={setSiteType}
+            title={siteTitle}
+            onTitleChange={setSiteTitle}
+            disabled={disabled}
+          />
+        )}
         {step === 'tema' && <TemaStep value={theme} onChange={setTheme} disabled={disabled} />}
         {step === 'dominio' && (
           <DominioStep
@@ -387,14 +401,7 @@ export default function WizardShell({
           />
         )}
         {step === 'publicar' && (
-          <PublicarStep
-            siteTitle={siteTitle}
-            siteType={siteType}
-            domain={domain}
-            onFinish={handleFinish}
-            busy={busy}
-            disabled={disabled}
-          />
+          <PublicarStep siteTitle={siteTitle} siteType={siteType} domain={domain} />
         )}
       </div>
 
@@ -432,15 +439,15 @@ export default function WizardShell({
           <button
             type="button"
             className="vx-wizard-btn-primary"
-            disabled={disabled || busy || !domain}
-            onClick={handleFinish}
+            disabled={disabled || busy}
+            onClick={() => void handleFinish()}
             style={{
               padding: '0.5rem 1.25rem',
               borderRadius: TOKENS.radius,
               border: 'none',
-              background: (disabled || busy || !domain) ? TOKENS.border : TOKENS.primary,
-              color: (disabled || busy || !domain) ? TOKENS.textSecondary : 'var(--on-primary, var(--surface))',
-              cursor: (disabled || busy || !domain) ? 'not-allowed' : 'pointer',
+              background: (disabled || busy) ? TOKENS.border : TOKENS.primary,
+              color: (disabled || busy) ? TOKENS.textSecondary : 'var(--on-primary, var(--surface))',
+              cursor: (disabled || busy) ? 'not-allowed' : 'pointer',
               fontWeight: 600,
             }}
           >
@@ -452,7 +459,7 @@ export default function WizardShell({
             ) : (
               <>
                 <Rocket size={15} aria-hidden="true" style={{ marginRight: 6 }} />
-                Publicar site
+                Criar site
               </>
             )}
           </button>
@@ -576,10 +583,12 @@ function OrigemStep({ value, onChange, cloneUrl, onCloneUrlChange, disabled }: O
 interface TipoStepProps {
   value: SiteType;
   onChange: (v: SiteType) => void;
+  title: string;
+  onTitleChange: (v: string) => void;
   disabled: boolean;
 }
 
-function TipoStep({ value, onChange, disabled }: TipoStepProps) {
+function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepProps) {
   const types: Array<{ id: SiteType; label: string; desc: string; icon: React.ElementType }> = [
     { id: 'static', label: 'Estático', desc: 'Site institucional simples.', icon: Globe },
     { id: 'blog', label: 'Blog / Portal', desc: 'Posts automáticos e busca.', icon: Palette },
@@ -592,8 +601,31 @@ function TipoStep({ value, onChange, disabled }: TipoStepProps) {
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Que tipo de site?</h3>
         <p className="vx-wizard-step-sub">
-          O tipo define os blocos e layouts disponíveis no editor.
+          Dê um nome ao site e escolha o tipo. O nome aparece no painel e no editor.
         </p>
+        <label style={{ display: 'block', marginTop: 12 }}>
+          <span style={{ display: 'block', fontSize: '0.8125rem', color: TOKENS.textSecondary, marginBottom: 4 }}>
+            Nome do site
+          </span>
+          <input
+            type="text"
+            value={title}
+            maxLength={100}
+            disabled={disabled}
+            onChange={(event) => onTitleChange(event.target.value)}
+            placeholder="Ex.: Site da Minha Empresa"
+            aria-label="Nome do site"
+            style={{
+              width: '100%',
+              padding: '0.65rem 0.75rem',
+              borderRadius: TOKENS.radius,
+              border: `1px solid ${TOKENS.border}`,
+              background: TOKENS.surface,
+              color: TOKENS.text,
+              fontSize: '0.9375rem',
+            }}
+          />
+        </label>
       </header>
       <div className="vx-wizard-options" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         {types.map((t) => {
@@ -708,7 +740,7 @@ function DominioStep({ domain, onChange, onDomainValidated, disabled, siteSlug }
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Domínio próprio</h3>
         <p className="vx-wizard-step-sub">
-          Conecte o domínio do seu site. Deploy via Cloudflare (SSL incluso).
+          Informe o domínio que pretende usar. A configuração de DNS e o deploy via Cloudflare entram na próxima etapa.
         </p>
       </header>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -750,7 +782,7 @@ function DominioStep({ domain, onChange, onDomainValidated, disabled, siteSlug }
         </button>
       </div>
       <p className="vx-wizard-field-hint" style={{ marginTop: 10, fontSize: '0.8125rem', color: TOKENS.textSecondary }}>
-        Exemplo: {siteSlug || 'suaempresa'}.com.br. O deploy via Cloudflare será configurado no próximo passo.
+        Exemplo: {siteSlug || 'suaempresa'}.com.br. O domínio fica registrado no rascunho; a validação de DNS e a publicação vêm depois.
       </p>
     </section>
   );
@@ -762,12 +794,9 @@ interface PublicarStepProps {
   siteTitle: string;
   siteType: SiteType;
   domain: string;
-  onFinish: () => void;
-  busy: boolean;
-  disabled: boolean;
 }
 
-function PublicarStep({ siteTitle, siteType, domain, onFinish, busy, disabled }: PublicarStepProps) {
+function PublicarStep({ siteTitle, siteType, domain }: PublicarStepProps) {
   return (
     <section className="vx-wizard-step-panel vx-wizard-step-publicar" style={{ padding: '1rem 0' }}>
       <div className="vx-wizard-publicar-summary" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -787,7 +816,7 @@ function PublicarStep({ siteTitle, siteType, domain, onFinish, busy, disabled }:
       <div className="vx-wizard-publicar-notice" style={{ marginTop: 16, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '1rem', background: `color-mix(in srgb, ${TOKENS.ok} 8%, transparent)`, border: `1px solid ${TOKENS.ok}`, borderRadius: TOKENS.radius }}>
         <AlertCircle size={16} style={{ color: TOKENS.ok, flexShrink: 0 }} aria-hidden="true" />
         <span style={{ fontSize: '0.875rem', color: TOKENS.text, lineHeight: 1.5 }}>
-          O deploy será disparado via Cloudflare. O site estará acessível em alguns minutos.
+          O site será criado como rascunho. Depois você edita as páginas no editor visual; domínio próprio e publicação entram na próxima etapa.
         </span>
       </div>
     </section>

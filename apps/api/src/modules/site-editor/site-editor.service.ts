@@ -1,5 +1,30 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
+
+const MAX_DOCUMENT_CHARS = 1_000_000;
+
+/** Aceita apenas a forma mínima do SiteDocument publicado no contrato compartilhado. */
+function assertDocument(document: unknown): void {
+  if (!document || typeof document !== 'object' || Array.isArray(document)) {
+    throw new BadRequestException('Documento inválido.');
+  }
+  const doc = document as { root?: unknown; meta?: unknown; version?: unknown };
+  const root = doc.root as { type?: unknown; children?: unknown } | undefined;
+  const meta = doc.meta as { title?: unknown } | undefined;
+  if (!root || typeof root !== 'object' || typeof root.type !== 'string' || !Array.isArray(root.children)) {
+    throw new BadRequestException('Documento inválido: árvore de blocos ausente.');
+  }
+  if (!meta || typeof meta !== 'object' || typeof meta.title !== 'string') {
+    throw new BadRequestException('Documento inválido: metadados ausentes.');
+  }
+  if (typeof doc.version !== 'number' || !Number.isFinite(doc.version)) {
+    throw new BadRequestException('Documento inválido: versão ausente.');
+  }
+  if (JSON.stringify(document).length > MAX_DOCUMENT_CHARS) {
+    throw new BadRequestException('Documento muito grande. Reduza imagens embutidas e blocos.');
+  }
+}
 
 @Injectable()
 export class SiteEditorService {
@@ -18,7 +43,8 @@ export class SiteEditorService {
     return doc;
   }
 
-  async save(siteId: string, tenantId: string, document: any, createdBy: string) {
+  async save(siteId: string, tenantId: string, document: unknown, createdBy: string) {
+    assertDocument(document);
     await this.ownedSite(siteId, tenantId);
     const existing = await this.prisma.siteDocument.findUnique({ where: { siteId } });
     if (existing) {
@@ -28,11 +54,11 @@ export class SiteEditorService {
       });
       return this.prisma.siteDocument.update({
         where: { siteId },
-        data: { document, version: nextVersion },
+        data: { document: document as Prisma.InputJsonValue, version: nextVersion },
       });
     }
     return this.prisma.siteDocument.create({
-      data: { siteId, document, version: 1 },
+      data: { siteId, document: document as Prisma.InputJsonValue, version: 1 },
     });
   }
 

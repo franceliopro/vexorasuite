@@ -61,4 +61,48 @@ describe("static site HTML renderer", () => {
     expect(html).toContain("Conteúdo salvo");
     expect(html).toContain("--primary:#123456");
   });
+
+  it("wire published forms to the public API with normalized field names", () => {
+    const html = renderSiteHtml(
+      {
+        root: {
+          id: "root",
+          type: "section",
+          children: [
+            {
+              id: "bloco_contato",
+              type: "form",
+              props: { fields: ["Nome completo", "E-mail", "Mensagem"], submitLabel: "Enviar agora" },
+              styles: {},
+              children: [],
+            },
+          ],
+        },
+        meta: { title: "Contato", theme: {} },
+      },
+      { name: "Contato", slug: "contato" },
+      { siteId: "11111111-1111-4111-8111-111111111111", apiBase: "https://api.vexorasuite.com.br/" },
+    );
+
+    expect(html).toContain('name="nome_completo"');
+    expect(html).toContain('name="e_mail" type="email"');
+    expect(html).toContain('name="mensagem"');
+    expect(html).toContain('name="website"');
+    expect(html).toContain("Enviar agora");
+    expect(html).toContain("/api/public/sites/11111111-1111-4111-8111-111111111111/forms");
+    expect(html).toContain('data-vx-block="bloco_contato"');
+    expect(html).toContain("URLSearchParams");
+    expect(html).toContain("application/x-www-form-urlencoded");
+    expect(html).not.toContain("será ativado em uma próxima etapa");
+  });
+
+  it("does not promise submissions when the API base is missing", () => {
+    const html = renderSiteHtml(
+      { root: { type: "form", id: "f1", props: { fields: ["nome"] }, styles: {}, children: [] }, meta: {} },
+      { name: "Site", slug: "site" },
+    );
+    expect(html).toContain("disabled");
+    expect(html).toContain("não foi configurada nesta instalação");
+    expect(html).not.toContain("URLSearchParams");
+  });
 });

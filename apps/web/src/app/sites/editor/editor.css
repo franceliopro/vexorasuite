@@ -422,3 +422,22 @@
   background: var(--surface); color: var(--text); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
 }
+
+/* Respostas do formulário publicado: recolhido por padrão para não atrapalhar o editor. */
+.vx-editor-responses { flex: 0 0 auto; padding: 0 16px; color: var(--text); }
+.vx-editor-responses > summary {
+  cursor: pointer; font-size: 0.8125rem; font-weight: 700; padding: 6px 0;
+  color: var(--text-secondary); list-style-position: inside;
+}
+.vx-editor-responses[open] > summary { color: var(--text); }
+.vx-editor-responses-body {
+  max-height: 168px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  padding: 8px 12px 12px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); margin-bottom: 8px;
+}
+.vx-editor-responses-body p { margin: 0; font-size: 0.8125rem; }
+.vx-editor-responses-body .secondary-button { align-self: flex-start; }
+.vx-editor-response { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--r-sm); }
+.vx-editor-response header { display: flex; justify-content: space-between; gap: 12px; font-size: 0.75rem; }
+.vx-editor-response time { color: var(--text-secondary); }
+.vx-editor-response p { margin-top: 4px; overflow-wrap: anywhere; }

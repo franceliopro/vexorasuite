@@ -160,6 +160,7 @@ async function main() {
     expect("POST /api/sites/import/url without token", (await call(baseUrl, "POST", "/api/sites/import/url", { url: "https://example.com" })).status, 401);
     expect("POST /api/sites/import/html without token", (await call(baseUrl, "POST", "/api/sites/import/html", { html: "<p>teste</p>" })).status, 401);
     expect("POST /api/sites/import/zip without token", (await call(baseUrl, "POST", "/api/sites/import/zip", { contentBase64: "" })).status, 401);
+    expect("POST /api/sites/:id/document/ai-edit without token", (await call(baseUrl, "POST", `/api/sites/${routeId}/document/ai-edit`, {})).status, 401);
 
     // Sanity: unknown routes still answer 404, so the 401s above are meaningful.
     expect("GET /api/rota-inexistente", (await call(baseUrl, "GET", "/api/rota-inexistente")).status, 404);

@@ -39,25 +39,9 @@ export async function aiGenerate(prompt: string): Promise<SiteDocument> {
   };
 }
 
-// Caixa de IA do inspector: altera props/estilos do nó selecionado a partir de um prompt.
-export function aiEditNode(node: any, prompt: string): any {
-  const lower = prompt.toLowerCase();
-  const next = { ...node, props: { ...node.props }, styles: { ...node.styles } };
-  if (lower.includes('maior') || lower.includes('grande')) {
-    next.styles.fontSize = '2rem';
-  }
-  if (lower.includes('azul')) {
-    next.styles.color = '#2563eb';
-    next.props.background = '#2563eb';
-  }
-  if (lower.includes('vermelho')) {
-    next.styles.color = '#dc2626';
-  }
-  if (lower.includes('centralizado') || lower.includes('centro')) {
-    next.styles.textAlign = 'center';
-  }
-  return next;
-}
+// A caixa de IA do inspetor chama POST /sites/:id/document/ai-edit. A edição determinística
+// (regras rápidas) e o modelo real vivem no backend, para que o mesmo contrato valha para
+// qualquer cliente e o documento publicado nunca dependa de lógica local do navegador.
 
 function defaultTheme() {
   return { primary: '#2563eb', secondary: '#1e40af', background: '#ffffff', text: '#111827', fontHeading: 'Inter', fontBody: 'Inter' };

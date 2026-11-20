@@ -145,4 +145,25 @@ describe("static site HTML renderer", () => {
     expect(html).toContain("não foi configurada nesta instalação");
     expect(html).not.toContain("URLSearchParams");
   });
+
+  it("preserva apenas PNGs base64 inertes em imagens", () => {
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
+    const svg = "data:image/svg+xml;base64,PHN2Zz48c2NyaXB0PmFsZXJ0KDEpPC9zY3JpcHQ+PC9zdmc+";
+    const html = renderSiteHtml(
+      {
+        root: {
+          type: "section",
+          children: [
+            { type: "image", props: { src: png, alt: "Ilustração" } },
+            { type: "image", props: { src: svg, alt: "Ataque" } },
+          ],
+        },
+        meta: { title: "Imagens", theme: {} },
+      },
+      { name: "Imagens", slug: "imagens" },
+    );
+    expect(html).toContain(`src="${png}"`);
+    expect(html).not.toContain(svg);
+    expect(html).toContain('src="#"');
+  });
 });

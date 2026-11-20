@@ -729,7 +729,7 @@ function TipoStep({ value, onChange, title, onTitleChange, logoUrl, onLogoUrlCha
             }}
           />
           <small style={{ display: 'block', marginTop: 4, color: TOKENS.textSecondary, fontSize: '0.75rem' }}>
-            Se deixar em branco, criamos um logotipo provisório para você trocar depois.
+            Se deixar em branco, criamos um logotipo provisório. O wizard também gera ilustrações editáveis, marcadas como rascunho, para você trocar por fotos reais antes de publicar.
           </small>
         </label>
       </header>

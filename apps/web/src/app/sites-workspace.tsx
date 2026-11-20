@@ -310,6 +310,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
           title={editingSite.name}
           domain={editingSite.domain}
           domainStatus={editingSite.domainStatus}
+          canEdit={canManage}
           onClose={() => setEditingSite(null)}
         />
       ) : null}

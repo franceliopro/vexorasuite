@@ -46,8 +46,8 @@ import {
   Undo,
   Redo,
   X,
+  Minimize2,
   AlertCircle,
-  Loader2,
   CheckCircle2,
 } from 'lucide-react';
 import './editor.css';
@@ -56,10 +56,12 @@ interface EditorShellProps {
   siteId: string;
   doc: SiteDocument | null;
   onChange: (doc: SiteDocument) => void;
-  onSave: () => void;
+  /** Retorna false quando a persistência falhou, para o aviso não mentir. */
+  onSave: () => void | Promise<boolean | void>;
   onPublish: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
+  publishDisabled?: boolean;
+  onMinimize?: () => void;
+  dirty?: boolean;
   onSelectNode: (id: string | null, multi: boolean) => void;
   onPropChange: (nodeId: string, key: string, value: string | number | boolean) => void;
   onAIChange: (prompt: string, nodeId: string) => void;
@@ -77,8 +79,9 @@ export function EditorShell({
   onChange,
   onSave,
   onPublish,
-  onUndo,
-  onRedo,
+  publishDisabled = false,
+  onMinimize,
+  dirty = false,
   onSelectNode,
   onPropChange,
   onAIChange,
@@ -124,30 +127,38 @@ export function EditorShell({
     }
   }, [doc]);
 
-  const handleSave = useCallback(() => {
-    onSave();
-    setNotice('Site salvo.');
-    setNoticeKind('ok');
-    setTimeout(() => setNotice(''), 1500);
+  const handleSave = useCallback(async () => {
+    let saved = true;
+    try {
+      saved = (await onSave()) !== false;
+    } catch {
+      saved = false;
+    }
+    setNotice(saved ? 'Site salvo.' : 'Não foi possível salvar. Tente novamente.');
+    setNoticeKind(saved ? 'ok' : 'bad');
+    setTimeout(() => setNotice(''), 2500);
   }, [onSave]);
 
   const handlePublish = useCallback(() => {
+    if (publishDisabled) return;
     onPublish();
     setNotice('Publicando…');
     setNoticeKind('info');
-  }, [onPublish]);
+  }, [onPublish, publishDisabled]);
 
+  // Undo/redo já move o ponteiro do histórico: avisar o pai sem empurrar um novo snapshot,
+  // senão desfazer viraria uma entrada nova e o botão nunca esvaziaria a pilha.
   const handleUndo = useCallback(() => {
     if (!canUndo(historyRef.current)) return;
     historyRef.current = undo(historyRef.current);
-    setDoc(historyRef.current.present);
-  }, [setDoc]);
+    onChange(historyRef.current.present);
+  }, [onChange]);
 
   const handleRedo = useCallback(() => {
     if (!canRedo(historyRef.current)) return;
     historyRef.current = redo(historyRef.current);
-    setDoc(historyRef.current.present);
-  }, [setDoc]);
+    onChange(historyRef.current.present);
+  }, [onChange]);
 
   const handleSelect = useCallback(
     (id: string | null, multi = false) => {
@@ -204,9 +215,20 @@ export function EditorShell({
           >
             <X size={16} aria-hidden="true" />
           </button>
+          {onMinimize ? (
+            <button
+              type="button"
+              className="vx-editor-btn-icon"
+              aria-label="Minimizar editor"
+              title="Minimizar para a interface da Véxora"
+              onClick={onMinimize}
+            >
+              <Minimize2 size={16} aria-hidden="true" />
+            </button>
+          ) : null}
           <div className="vx-editor-site-info">
-            <span className="vx-editor-site-id">{siteId}</span>
-            <span className="vx-editor-site-title">{doc.meta.title}</span>
+            <span className="vx-editor-site-id">v{doc.version}{dirty ? ' • não salvo' : ''}</span>
+            <span className="vx-editor-site-title" title={siteId}>{doc.meta.title}</span>
           </div>
         </div>
 
@@ -250,15 +272,16 @@ export function EditorShell({
             type="button"
             className="vx-editor-btn-primary"
             disabled={disabled || loading}
-            onClick={handleSave}
+            onClick={() => void handleSave()}
           >
             <Save size={15} aria-hidden="true" /> Salvar
           </button>
           <button
             type="button"
             className="vx-editor-btn-primary"
-            disabled={disabled || loading}
+            disabled={disabled || loading || publishDisabled}
             onClick={handlePublish}
+            title={publishDisabled ? 'Publicação disponível na próxima etapa' : undefined}
           >
             <Play size={15} aria-hidden="true" /> Publicar
           </button>
@@ -372,13 +395,23 @@ function emptyDocument(): SiteDocument {
   };
 }
 
-function findNodeById(root: SiteNode, id: string): SiteNode | null {
+export function findNodeById(root: SiteNode, id: string): SiteNode | null {
   if (root.id === id) return root;
   for (const child of root.children) {
     const found = findNodeById(child, id);
     if (found) return found;
   }
   return null;
+}
+
+export function replaceNodeById(root: SiteNode, id: string, next: SiteNode): SiteNode {
+  if (root.id === id) return next;
+  if (!root.children.some((child) => containsId(child, id))) return root;
+  return { ...root, children: root.children.map((child) => replaceNodeById(child, id, next)) };
+}
+
+function containsId(node: SiteNode, id: string): boolean {
+  return node.id === id || node.children.some((child) => containsId(child, id));
 }
 
 function setNodeProp(

@@ -9,8 +9,14 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Globe, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { AlertCircle, Globe, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import WizardShell from "./sites/wizard/wizard-shell";
+
+const SiteEditorWindow = dynamic(() => import("./sites/site-editor-window"), {
+  ssr: false,
+  loading: () => <p role="status">Carregando editor…</p>,
+});
 
 type SiteSummary = {
   id: string;
@@ -64,6 +70,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [editingSite, setEditingSite] = useState<SiteSummary | null>(null);
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -212,11 +219,18 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
               </div>
               {site.domain ? <small style={{ opacity: 0.8 }}>Domínio: {site.domain}</small> : null}
               <small style={{ opacity: 0.6 }}>Atualizado em {dateBR(site.updatedAt)}</small>
-              <p style={{ margin: "8px 0 0", fontSize: 12, opacity: 0.75 }}>Editor visual e publicação: próxima etapa.</p>
-              {canManage ? (
-                <div style={{ marginTop: "auto", paddingTop: 8 }}>
-                  {confirmingId === site.id ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <p style={{ margin: "8px 0 0", fontSize: 12, opacity: 0.75 }}>
+                Editor visual disponível. Publicação com domínio próprio: próxima etapa.
+              </p>
+              <div style={{ marginTop: "auto", paddingTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {canManage ? (
+                  <button type="button" className="primary-button" onClick={() => setEditingSite(site)}>
+                    <Pencil size={15} aria-hidden="true" /> Abrir editor
+                  </button>
+                ) : null}
+                {canManage ? (
+                  confirmingId === site.id ? (
+                    <>
                       <button
                         type="button"
                         className="secondary-button"
@@ -229,14 +243,14 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
                       <button type="button" className="secondary-button" onClick={() => setConfirmingId(null)} disabled={removingId === site.id}>
                         Cancelar
                       </button>
-                    </div>
+                    </>
                   ) : (
                     <button type="button" className="secondary-button" onClick={() => setConfirmingId(site.id)}>
                       <Trash2 size={15} aria-hidden="true" /> Excluir
                     </button>
-                  )}
-                </div>
-              ) : null}
+                  )
+                ) : null}
+              </div>
             </article>
           ))}
         </div>
@@ -248,6 +262,14 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         onComplete={(site) => void createSite({ title: site.title, type: site.type })}
         disabled={creating}
       />
+
+      {editingSite ? (
+        <SiteEditorWindow
+          siteId={editingSite.id}
+          title={editingSite.name}
+          onClose={() => setEditingSite(null)}
+        />
+      ) : null}
     </section>
   );
 }

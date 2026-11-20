@@ -11,7 +11,7 @@ import { LAYOUT_SECTION_IDS, LayoutBrief, parseLayoutBrief } from "./layout-brie
 import type { LayoutImageInput } from "./layout-image";
 
 const FALLBACK_WARNING =
-  "A imagem de layout foi recebida, mas a IA não pôde analisá-la; criamos o rascunho com o template padrão.";
+  "A imagem de layout foi recebida, mas a IA não pôde analisá-la; usamos regras determinísticas para estrutura e paleta.";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
@@ -41,7 +41,7 @@ export class SiteLayoutVisionService {
       const { providers, persona } = resolveCreativeAgent(root, tenantId);
       const visible = await visionProviders(providers);
       if (!visible.length || !this.ai) {
-        return { warning: "A imagem foi recebida, mas o modelo configurado não tem visão; usamos o template padrão." };
+        return { warning: "A imagem foi recebida, mas o modelo configurado não tem visão; usamos regras determinísticas para estrutura e paleta." };
       }
 
       const assistant = isRecord(root.assistant) ? root.assistant : {};

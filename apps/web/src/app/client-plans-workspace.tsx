@@ -5,7 +5,7 @@ import { Check, Loader2, Star, MessageCircle, ShieldCheck, Sparkles } from "luci
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isPublic: boolean };
 const PRICE = (cents: number, cycle = "MONTH") => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + (cycle === "YEAR" ? "/ano" : cycle === "MONTH" ? "/mês" : "");
 const BENEFIT_KEYS: Array<[string, string]> = [ ["attendants","Atendentes"],["bots","Robôs com IA"],["ia","Crédito de IA / mês"],["sites","Sites incluídos"],["dynamic","Site dinâmico (posts/imóveis)"],["forms","Formulários de captura"],["socialAccounts","Redes vinculadas"],["whatsapp","WhatsApp vinculado"],["crm","CRM completo"],["finance","Financeiro Asaas"],["followups","Follow-ups / cobrança"],["marketingPublishing","Publicação automática"] ];
-const MODULE_LABEL: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", AUTOMATION: "Chatbot / IA", MARKETING: "Marketing", FINANCE: "Financeiro", CHANNELS: "Canais", CALENDAR: "Agenda", TASKS: "Tarefas", SETTINGS: "Configurações" };
+const MODULE_LABEL: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", AUTOMATION: "Chatbot / IA", MARKETING: "Marketing", SITES: "Sites", FINANCE: "Financeiro", CHANNELS: "Canais", CALENDAR: "Agenda", TASKS: "Tarefas", SETTINGS: "Configurações" };
 
 export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { currentPlanCode?: string | null; currentPlanName?: string | null }) {
   const [plans, setPlans] = useState<Plan[]>([]);

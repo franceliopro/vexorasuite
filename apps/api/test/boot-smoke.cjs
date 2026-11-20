@@ -151,6 +151,8 @@ async function main() {
 
     // Sites: proves both remodeled modules are registered and behind AuthGuard.
     // 404 here would mean the module disappeared from AppModule; 200/500 would mean no guard.
+    expect("GET /api/sites without token", (await call(baseUrl, "GET", "/api/sites")).status, 401);
+    expect("POST /api/sites without token", (await call(baseUrl, "POST", "/api/sites", { name: "Site de teste" })).status, 401);
     expect("POST /api/sites/:id/deploy without token", (await call(baseUrl, "POST", `/api/sites/${routeId}/deploy`, { files: [] })).status, 401);
     expect("GET /api/sites/:id/domain/verify without token", (await call(baseUrl, "GET", `/api/sites/${routeId}/domain/verify`)).status, 401);
     expect("POST /api/sites/:id/domain without token", (await call(baseUrl, "POST", `/api/sites/${routeId}/domain`, { domain: "example.com" })).status, 401);

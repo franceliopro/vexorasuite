@@ -61,6 +61,23 @@ function styleAttr(styles: Record<string, string> | undefined): string {
   return declarations.length ? ` style="${escapeHtml(declarations.join(";"))}"` : "";
 }
 
+/** Espelha a normalização do service de formulários para que chave e whitelist coincidam. */
+function formFieldName(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 48);
+}
+
+type RenderContext = {
+  siteId?: string;
+  /** Base da API pública, sem a parte do formulário (ex.: https://api.vexorasuite.com.br). */
+  apiBase?: string;
+};
+
 function youtubeEmbed(src: string): string | null {
   try {
     const url = new URL(src);
@@ -80,11 +97,11 @@ function youtubeEmbed(src: string): string | null {
   }
 }
 
-function renderNode(node: HtmlNode | undefined, depth: number): string {
+function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContext = {}): string {
   if (!node || depth > 24) return "";
   const props = node.props ?? {};
   const style = styleAttr(node.styles);
-  const children = (node.children ?? []).map((child) => renderNode(child, depth + 1)).join("");
+  const children = (node.children ?? []).map((child) => renderNode(child, depth + 1, ctx)).join("");
 
   switch (node.type) {
     case "text": {
@@ -108,16 +125,30 @@ function renderNode(node: HtmlNode | undefined, depth: number): string {
       return "";
     }
     case "form": {
-      const fields = Array.isArray(props.fields) ? props.fields.filter((f): f is string => typeof f === "string") : ["nome", "email", "mensagem"];
+      const rawFields = Array.isArray(props.fields)
+        ? props.fields.filter((field): field is string => typeof field === "string")
+        : ["nome", "email", "mensagem"];
+      const fields = [...new Set(rawFields.map(formFieldName).filter(Boolean))].slice(0, 20);
       const inputs = fields
         .map((field) => {
-          const name = escapeHtml(field.toLowerCase().replace(/[^a-z0-9_-]/g, ""));
-          const label = escapeHtml(field);
-          const type = field.toLowerCase().includes("email") ? "email" : "text";
-          return `<label>${label}<input name="${name}" type="${type}"></label>`;
+          const type = field.replace(/_/g, "").includes("email")
+            ? "email"
+            : /telefone|celular|phone/.test(field)
+              ? "tel"
+              : "text";
+          const human = escapeHtml(field.replace(/_/g, " "));
+          return `<label>${human}<input name="${escapeHtml(field)}" type="${type}" autocomplete="${type === "email" ? "email" : type === "tel" ? "tel" : "off"}"></label>`;
         })
         .join("");
-      return `<form class="vx-form"${style}>${inputs}<button type="submit">${escapeHtml(props.submitLabel ?? "Enviar")}</button><p class="vx-note">Formulário visual: o recebimento de respostas será ativado em uma próxima etapa.</p></form>`;
+      const blockId = typeof node.id === "string" && /^[\w-]{1,80}$/.test(node.id) ? node.id : "";
+      const base = String(ctx.apiBase ?? "").replace(/\/+$/, "");
+      const endpoint = base && /^https:\/\//i.test(base)
+        ? `${base}/api/public/sites/${encodeURIComponent(ctx.siteId ?? "")}/forms`
+        : "";
+      const unavailable = endpoint
+        ? ""
+        : '<p class="vx-note">Formulário indisponível: a URL pública da API não foi configurada nesta instalação.</p>';
+      return `<form class="vx-form"${style} data-vx-form data-vx-block="${escapeHtml(blockId)}" data-vx-endpoint="${escapeHtml(endpoint)}">${inputs}<input class="vx-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit"${endpoint ? "" : " disabled"}>${escapeHtml(props.submitLabel ?? "Enviar")}</button><p class="vx-form-status" role="status" aria-live="polite"></p>${unavailable}</form>`;
     }
     case "post-list":
       return `<section class="vx-placeholder"${style}><p>Lista de posts: será preenchida com as publicações do site.</p></section>`;
@@ -135,6 +166,7 @@ function renderNode(node: HtmlNode | undefined, depth: number): string {
 export function renderSiteHtml(
   document: unknown,
   site: { name: string; slug: string; primaryColor?: string | null; accentColor?: string | null },
+  context: RenderContext = {},
 ): string {
   const doc = (document ?? {}) as HtmlDocument;
   const theme = doc.meta?.theme ?? {};
@@ -143,6 +175,9 @@ export function renderSiteHtml(
   const background = safeColor(theme.background, "#ffffff");
   const text = safeColor(theme.text, "#101d33");
   const title = escapeHtml(doc.meta?.title || site.name || "Site Véxora");
+  const html = renderNode(doc.root, 0, context);
+  // Só injeta o script quando há ao menos um formulário realmente habilitado.
+  const hasForm = /data-vx-endpoint="https/.test(html);
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -162,11 +197,15 @@ a{color:var(--primary)}
 .vx-form label{display:flex;flex-direction:column;gap:.25rem;font-size:.875rem}
 .vx-form input{padding:.65rem;border:1px solid #cbd5e1;border-radius:.5rem}
 .vx-form button{padding:.7rem 1rem;border:0;border-radius:.5rem;background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
+.vx-form button[disabled]{opacity:.5;cursor:not-allowed}
+.vx-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
+.vx-form-status{font-size:.8125rem;min-height:1em}
 .vx-note,.vx-placeholder p{font-size:.8125rem;opacity:.7}
 </style>
 </head>
 <body>
-${renderNode(doc.root, 0)}
+${html}
+${hasForm ? `<script>(function(){var started=Date.now();document.querySelectorAll('form[data-vx-form]').forEach(function(form){form.addEventListener('submit',function(ev){ev.preventDefault();var endpoint=form.getAttribute('data-vx-endpoint');var status=form.querySelector('.vx-form-status');var button=form.querySelector('button[type=submit]');if(!endpoint){if(status)status.textContent='Formulário indisponível no momento.';return}var values={};Array.prototype.forEach.call(form.querySelectorAll('input[name]'),function(el){if(el.name&&el.name!=='website')values[el.name]=el.value});var hp=form.querySelector('input[name=website]');var body=new URLSearchParams();Object.keys(values).forEach(function(k){body.append('values['+k+']',values[k])});body.append('website',hp?hp.value:'');body.append('startedAt',String(started));if(button)button.disabled=true;if(status)status.textContent='Enviando…';fetch(endpoint+'/'+encodeURIComponent(form.getAttribute('data-vx-block')||'')+'/submit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json'},body:body.toString()}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){return{ok:r.ok,message:j&&j.message}})}).then(function(x){if(status)status.textContent=x.message||(x.ok?'Mensagem enviada. Obrigado pelo contato!':'Não foi possível enviar. Tente novamente.');if(x.ok)form.reset()}).catch(function(){if(status)status.textContent='Não foi possível enviar. Tente novamente.'}).finally(function(){if(button)button.disabled=false})})})})();</script>` : ""}
 </body>
 </html>`;
 }

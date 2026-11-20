@@ -139,7 +139,14 @@ export class SitesDeployService {
     const document = await this.prisma.siteDocument.findUnique({ where: { siteId } });
     if (!document) throw new BadRequestException('Salve o site no editor antes de publicar.');
 
-    const html = renderSiteHtml(document.document, site);
+    // O HTML publicado roda em outra origem (Pages/domínio do cliente), então o
+    // formulário precisa da URL pública da API. Se não houver configuração HTTPS,
+    // o formulário é renderizado desabilitado com aviso honesto em vez de prometer envio.
+    const apiBase = (process.env.API_PUBLIC_URL ?? "").trim().replace(/\/+$/, "");
+    const html = renderSiteHtml(document.document, site, {
+      siteId,
+      apiBase: /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(apiBase) ? apiBase : "",
+    });
     return this.deploy(siteId, tenantId, [
       { path: 'index.html', contentBase64: Buffer.from(html, 'utf8').toString('base64') },
     ]);

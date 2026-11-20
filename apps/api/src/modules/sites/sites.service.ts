@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { resolveEntitlements } from "../../auth/entitlements";
 
@@ -175,6 +176,14 @@ export class SitesService {
   }
 
   async create(tenantId: string, role: string, input: CreateSiteInput) {
+    return this.createWithDocument(tenantId, role, input);
+  }
+
+  /**
+   * Criação usada pelos adapters de importação. O documento já vem convertido e validado
+   * pelo adaptador; o endpoint público de criação continua gerando o documento padrão.
+   */
+  async createWithDocument(tenantId: string, role: string, input: CreateSiteInput, importedDocument?: unknown) {
     this.assertManager(role);
     await this.assertQuota(tenantId);
 
@@ -192,8 +201,9 @@ export class SitesService {
         data: { tenantId, name, slug, kind: siteKind, businessArea, primaryColor: primary, accentColor: accent },
         select: { id: true, name: true, slug: true, kind: true, domain: true, domainStatus: true, published: true, createdAt: true },
       });
+      const document = importedDocument ?? defaultDocument(name, siteKind, primary, accent);
       await tx.siteDocument.create({
-        data: { siteId: site.id, document: defaultDocument(name, siteKind, primary, accent) as any, version: 1 },
+        data: { siteId: site.id, document: document as Prisma.InputJsonValue, version: 1 },
       });
       return site;
     });

@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertCircle, Loader2, Maximize2, X } from "lucide-react";
 import type { SiteDocument } from "@/shared-types/site-document";
 import { EditorShell, findNodeById, replaceNodeById } from "./editor/editor-shell";
@@ -246,8 +247,13 @@ export default function SiteEditorWindow({
     }
   }, [siteId]);
 
+  // O workspace anima .page-content > * com `vx-page-in ... both`; o transform
+  // resultante vira containing block de position: fixed. O portal em document.body
+  // garante que a janela do editor cubra o viewport de verdade.
+  if (typeof document === "undefined") return null;
+
   if (minimized) {
-    return (
+    return createPortal(
       <div className="vx-editor-editor-dock" role="region" aria-label="Editor minimizado">
         <button type="button" className="vx-wizard-dock-btn" onClick={() => setMinimized(false)} title="Restaurar editor">
           <Maximize2 size={16} aria-hidden="true" />
@@ -256,11 +262,12 @@ export default function SiteEditorWindow({
         <button type="button" className="vx-wizard-dock-close" onClick={requestClose} aria-label="Fechar editor" title="Fechar editor">
           <X size={16} aria-hidden="true" />
         </button>
-      </div>
+      </div>,
+      document.body,
     );
   }
 
-  return (
+  return createPortal(
     <div className="vx-editor-window" role="region" aria-label={`Editor do site ${title}`}>
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 24, color: "var(--text-secondary)" }} role="status">
@@ -432,6 +439,7 @@ export default function SiteEditorWindow({
           onClose={requestClose}
         />
       ) : null}
-    </div>
+    </div>,
+    document.body,
   );
 }

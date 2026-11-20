@@ -291,10 +291,24 @@
 .vx-layer-tree-empty { padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-secondary); }
 
 /* ---------- Wizard ---------- */
+/* O wizard é renderizado via portal em document.body: nenhum ancestor
+   transformado pode limitar o position: fixed (o workspace anima .page-content > *
+   com `vx-page-in ... both`, que mantém um transform e cria containing block). */
 .vx-wizard {
-  position: fixed; inset: 0; background: var(--background); z-index: 10000;
-  display: flex; flex-direction: column; color: var(--text);
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--background); color: var(--text);
   font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+.vx-wizard--window {
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(1080px, calc(100vw - 48px));
+  height: min(760px, calc(100dvh - 48px));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px -30px rgba(6, 12, 9, .55);
+  overflow: hidden;
 }
 .vx-wizard-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -306,11 +320,13 @@
 .vx-wizard-title { margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--text); }
 .vx-wizard-sub { margin: 0; font-size: 0.875rem; color: var(--text-secondary); }
 .vx-wizard-btn {
-  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface); color: var(--text-secondary); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
 }
 .vx-wizard-btn:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.vx-wizard-btn--close:hover { background: var(--bad); border-color: var(--bad); color: #fff; }
 .vx-wizard-progress {
   display: flex; gap: 6px; padding: 0.75rem 1rem; background: var(--surface);
   border-bottom: 1px solid var(--border); overflow-x: auto; flex: 0 0 auto;
@@ -335,7 +351,13 @@
 .vx-wizard-step.is-done .vx-wizard-step-badge { background: var(--ok); color: #fff; border-color: var(--ok); }
 .vx-wizard-step-connector { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
 .vx-wizard-step.is-done .vx-wizard-step-connector { background: var(--ok); }
-.vx-wizard-body { flex: 1; overflow: auto; padding: 1rem; }
+.vx-wizard-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 1.75rem clamp(1rem, 4vw, 3rem) 2rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text) 32%, transparent) transparent;
+}
+.vx-wizard-body > * { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
 .vx-wizard-footer {
   display: flex; justify-content: space-between; padding: 0.75rem 1rem;
   background: var(--surface); border-top: 1px solid var(--border); flex: 0 0 auto;
@@ -350,28 +372,29 @@
 .vx-wizard-btn-secondary { border: 1px solid var(--border); background: var(--surface); color: var(--text); }
 .vx-wizard-btn-secondary:hover:not(:disabled) { background: var(--hover); }
 .vx-wizard-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
-.vx-wizard-step-panel { padding: 1rem 0; }
-.vx-wizard-step-head { margin-bottom: 14px; }
-.vx-wizard-step-title { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0 0 4px 0; }
-.vx-wizard-step-sub { font-size: 0.875rem; color: var(--text-secondary); margin: 0; }
-.vx-wizard-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.vx-wizard-step-panel { padding: 0; }
+.vx-wizard-step-head { margin-bottom: 1.5rem; }
+.vx-wizard-step-title { font-size: 1.5rem; line-height: 1.25; font-weight: 750; color: var(--text); margin: 0 0 8px 0; }
+.vx-wizard-step-sub { font-size: 1rem; line-height: 1.5; color: var(--text-secondary); margin: 0; max-width: 68ch; }
+.vx-wizard-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .vx-wizard-option {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0.75rem 1rem; border-radius: var(--r-sm);
+  display: flex; align-items: center; gap: 14px; min-height: 78px;
+  padding: 1.1rem 1.25rem; border-radius: var(--r-sm);
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
-  cursor: pointer; font-size: 0.875rem;
+  cursor: pointer; font-size: 1rem; text-align: left;
 }
 .vx-wizard-option:hover:not(.is-disabled) { border-color: var(--primary); background: var(--primary-soft); }
 .vx-wizard-option.is-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--surface)); }
 .vx-wizard-option.is-disabled { opacity: 0.5; cursor: not-allowed; }
 .vx-wizard-option-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border);
   background: var(--surface); flex-shrink: 0;
 }
 .vx-wizard-option.is-active .vx-wizard-option-icon { background: var(--primary); border-color: var(--primary); color: #fff; }
-.vx-wizard-option-label { display: block; font-size: 0.9375rem; font-weight: 700; color: var(--text); }
-.vx-wizard-option-desc { font-size: 0.8125rem; color: var(--text-secondary); }
+.vx-wizard-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.vx-wizard-option-label { display: block; font-size: 1rem; font-weight: 700; color: var(--text); }
+.vx-wizard-option-desc { font-size: 0.875rem; line-height: 1.4; color: var(--text-secondary); }
 .vx-wizard-clone-field { margin-top: 16px; }
 .vx-wizard-field-label { display: block; font-size: 0.875rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 .vx-wizard-input {
@@ -381,7 +404,7 @@
 }
 .vx-wizard-input:disabled { opacity: 0.5; cursor: not-allowed; background: var(--surface-2); }
 .vx-wizard-field-hint { font-size: 0.8125rem; color: var(--text-secondary); margin-top: 6px; }
-.vx-wizard-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.vx-wizard-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
 .vx-wizard-theme {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 0.75rem; border-radius: var(--r-sm);

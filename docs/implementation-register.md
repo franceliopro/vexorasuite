@@ -99,3 +99,17 @@ O proprietário substituiu as expansões acima pelo escopo de docs/product-focus
 - **Atendimento/UX** (#771/#772, #782, #804): grid do atendimento restaurado (fix em 5 colunas), alinhamento do mic/enviar no composer, dock mobile e tela cheia corrigidos, foto do contato com retry antes de cair nas iniciais, toggle da ficha alinhado e respiro ícones↔placeholder no composer.
 - **Tema** (#774/#776/#798): tema escuro em cinza (não azul); "super poder" da sidebar no híbrido por empresa (fundo/texto/ícones/hover + badge de contraste, persistido via brand-settings); remoção das transparências da sidebar; ícones de rodapé (?/instalar) seguindo a cor da fonte; botão direito na sidebar abre o popover "Cor Modo Híbrido"; ícones do calendário/relógio visíveis no widget.
 
+## Estado atual do criador de Sites (fatiamento 2026-11-20)
+
+As seções acima são inventário histórico; a fonte da verdade do criador hoje é o par `SiteDocument` (JSONB) + `apps/api/src/modules/sites-deploy/site-html.ts`. Os blocos legados `BLOCKS_META` em `apps/web/src/app/sites-shared.ts` não são o registry do editor atual.
+
+- **Fatia 1** (#849): API `/api/sites` protegida por `SITES`, listagem/criação no workspace e entrada no wizard em tela cheia.
+- **Fatia 2** (#851): editor visual integrado ao workspace (paleta, canvas, inspetor, árvore, salvar versionado), sem rota solta nem modal.
+- **Fatia 3** (#853): publicação via Cloudflare Direct Upload a partir do documento salvo; domínio próprio com vínculo e verificação; `SiteDeployment` e `SiteDomain`.
+- **Fatia 4** (#855): importação de URL, HTML e ZIP no backend (`htmlparser2`), com adapters antigos fora da fonte da verdade.
+- **Fatia 5** (#857): IA por bloco com regras determinísticas primeiro, modelo real só quando necessário, patch validado por whitelist, cota e auditoria; o endpoint não salva sozinho.
+- **Fatia 6** (#859): formulário publicado com submissão anônima, UUID determinístico `siteId + blockId`, honeypot, rate limit, `SiteFormSubmission` + `Contact` + `auditLog` na mesma transação e painel "Respostas" no editor.
+- **Fatia 7** (em revisão): `LANDING` como tipo no wizard, com template de uma página (oferta, benefícios e formulário com ID estável). A âncora do CTA passa a ser emitida pelo renderizador HTML; importações não são sobrescritas pelo template.
+
+**Ainda não entregue/conferido:** publicação real na Cloudflare e Cloudflare for SaaS dependem de credenciais configuradas no ambiente e de evidência de deploy; não afirmar publicação, domínio ativo ou envio de formulário em site publicado sem essa confirmação. `post-list`/`product-grid` seguem como placeholders; a rota pública `/sites/<slug>` citada no histórico não existe no checkout atual (o middleware a reescreve, mas não há `page.tsx` nem endpoint `public/sites/resolve`). Textos legais publicados anteriormente precisam de revisão jurídica do proprietário (bases legais, prazos, operadores, DPO e endereço físico).
+

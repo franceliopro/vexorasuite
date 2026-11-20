@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { resolveEntitlements } from "../../auth/entitlements";
+import { landingDocument } from "./landing-template";
 
 /**
  * Sites: registros raiz do criador de sites.
@@ -10,7 +11,7 @@ import { resolveEntitlements } from "../../auth/entitlements";
  * imediatamente; páginas/blocos legados (SitePage/SiteBlock) continuam disponíveis para
  * conteúdo dinâmico (posts, produtos, imóveis) em etapas seguintes.
  */
-export const SITE_KINDS = ["STATIC", "BLOG", "REAL_ESTATE", "ECOMMERCE"] as const;
+export const SITE_KINDS = ["STATIC", "LANDING", "BLOG", "REAL_ESTATE", "ECOMMERCE"] as const;
 export type SiteKindValue = (typeof SITE_KINDS)[number];
 
 type CreateSiteInput = {
@@ -201,7 +202,10 @@ export class SitesService {
         data: { tenantId, name, slug, kind: siteKind, businessArea, primaryColor: primary, accentColor: accent },
         select: { id: true, name: true, slug: true, kind: true, domain: true, domainStatus: true, published: true, createdAt: true },
       });
-      const document = importedDocument ?? defaultDocument(name, siteKind, primary, accent);
+      // Uma landing page já nasce com o funil completo: oferta, benefícios e formulário.
+      // Importações continuam usando o documento convertido pelo adaptador.
+      const document = importedDocument
+        ?? (siteKind === "LANDING" ? landingDocument(name, primary, accent) : defaultDocument(name, siteKind, primary, accent));
       await tx.siteDocument.create({
         data: { siteId: site.id, document: document as Prisma.InputJsonValue, version: 1 },
       });

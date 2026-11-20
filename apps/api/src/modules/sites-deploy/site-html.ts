@@ -154,8 +154,14 @@ function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContex
       return `<section class="vx-placeholder"${style}><p>Lista de posts: será preenchida com as publicações do site.</p></section>`;
     case "product-grid":
       return `<section class="vx-placeholder"${style}><p>Vitrine de produtos: será preenchida com o catálogo do site.</p></section>`;
-    case "section":
-      return `<section${style}>${children}</section>`;
+    case "section": {
+      // `anchor` é um detalhe do template de landing page: permite que o botão
+      // de chamada para ação role até o formulário no HTML publicado.
+      const anchor = typeof props.anchor === "string" && /^[a-z][a-z0-9-]{0,60}$/.test(props.anchor)
+        ? ` id="${escapeHtml(props.anchor)}"`
+        : "";
+      return `<section${anchor}${style}>${children}</section>`;
+    }
     case "container":
       return `<div${style}>${children}</div>`;
     default:

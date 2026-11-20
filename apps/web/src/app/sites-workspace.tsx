@@ -33,6 +33,7 @@ type SiteSummary = {
 
 const KIND_LABEL: Record<string, string> = {
   STATIC: "Site institucional",
+  LANDING: "Landing page",
   BLOG: "Blog / portal",
   REAL_ESTATE: "Imobiliária",
   ECOMMERCE: "Loja / e-commerce",
@@ -48,6 +49,8 @@ const DOMAIN_LABEL: Record<string, string> = {
 
 function wizardKind(value: string): string {
   switch (value) {
+    case "landing":
+      return "LANDING";
     case "blog":
       return "BLOG";
     case "real-estate":
@@ -188,7 +191,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       <header className="page-heading">
         <div>
           <h1>Sites</h1>
-          <p className="page-subtitle">Crie a presença digital da sua empresa: site institucional, blog, imobiliária ou loja.</p>
+          <p className="page-subtitle">Crie a presença digital da sua empresa: site institucional, landing page, blog, imobiliária ou loja.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button type="button" className="secondary-button" onClick={() => setAttempt((value) => value + 1)} disabled={loading}>

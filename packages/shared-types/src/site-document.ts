@@ -11,7 +11,7 @@ export type NodeType =
   | 'video'
   | 'container';
 
-export type SiteKind = 'static' | 'blog' | 'real-estate' | 'ecommerce';
+export type SiteKind = 'static' | 'landing' | 'blog' | 'real-estate' | 'ecommerce';
 
 export interface ThemeTokens {
   primary: string;

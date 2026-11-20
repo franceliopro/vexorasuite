@@ -13,11 +13,13 @@
  */
 
 import { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import './../editor/editor.css';
 import {
   X,
   Maximize,
   Minimize,
+  Minimize2,
   ChevronRight,
   ChevronLeft,
   Globe,
@@ -32,6 +34,12 @@ import {
 } from 'lucide-react';
 
 type WizardStep = 'origem' | 'tipo' | 'tema' | 'dominio' | 'publicar';
+
+/**
+ * O wizard abre em tela cheia. `window` é o modo reduzido (restaurar) e
+ * `minimized` vira um dock; os três são controlados pelos botões do cabeçalho.
+ */
+type WizardMode = 'fullscreen' | 'window' | 'minimized';
 
 type OrigemKind = 'zero' | 'clone' | 'html' | 'zip' | 'ia';
 
@@ -107,8 +115,7 @@ export default function WizardShell({
   disabled = false,
 }: WizardShellProps) {
   const [step, setStep] = useState<WizardStep>('origem');
-  const [minimized, setMinimized] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [mode, setMode] = useState<WizardMode>('fullscreen');
   const [busy, setBusy] = useState(false);
   const [domainValidated, setDomainValidated] = useState(false);
 
@@ -151,7 +158,11 @@ export default function WizardShell({
   }, [isFirst, currentIndex]);
 
   const handleMinimize = useCallback(() => {
-    setMinimized((p) => !p);
+    setMode('minimized');
+  }, []);
+
+  const handleToggleFullscreen = useCallback(() => {
+    setMode((current) => (current === 'fullscreen' ? 'window' : 'fullscreen'));
   }, []);
 
   const handleFinish = useCallback(async () => {
@@ -175,139 +186,71 @@ export default function WizardShell({
     }
   }, [siteTitle, siteType, domain, onComplete, origem, cloneUrl, htmlInput, zipFile, prompt]);
 
-  if (minimized) {
-    return (
-      <div
-        className="vx-wizard-dock"
-        role="region"
-        aria-label="Assistente de criação de site minimizado"
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: 8,
-          zIndex: 9999,
-        }}
-      >
-        <button
-          type="button"
-          className="vx-wizard-dock-btn"
-          onClick={handleMinimize}
-          title="Restaurar assistente"
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: TOKENS.radius,
-            background: TOKENS.primary,
-            color: 'var(--on-primary, var(--surface))',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <Globe size={16} aria-hidden="true" />
-          <span>Criar site — {STEP_LABELS[step]}</span>
-        </button>
-        <button
-          type="button"
-          className="vx-wizard-dock-close"
-          onClick={onClose}
-          aria-label="Fechar assistente"
-          style={{
-            padding: '0.5rem',
-            borderRadius: TOKENS.radius,
-            background: TOKENS.surface,
-            color: TOKENS.text,
-            border: `1px solid ${TOKENS.border}`,
-            cursor: 'pointer',
-          }}
-        >
-          <X size={16} aria-hidden="true" />
-        </button>
-      </div>
-    );
-  }
-
   if (!open) return null;
 
-  return (
+  const isMinimized = mode === 'minimized';
+  const isFullscreen = mode === 'fullscreen';
+
+  /**
+   * Portal para `document.body`: o workspace aplica `animation: vx-page-in ... both`
+   * em `.page-content > *`, e o `transform` resultante vira containing block de
+   * `position: fixed`. Sem o portal o wizard fica preso ao cartão do workspace
+   * (784x307 em vez do viewport inteiro) e a área das opções tem só ~94px.
+   */
+  const content = isMinimized ? (
+    <div className="vx-wizard-dock" role="region" aria-label="Assistente de criação de site minimizado">
+      <button
+        type="button"
+        className="vx-wizard-dock-btn"
+        onClick={() => setMode('fullscreen')}
+        title="Restaurar assistente em tela cheia"
+      >
+        <Globe size={16} aria-hidden="true" />
+        <span>Criar site — {STEP_LABELS[step]}</span>
+      </button>
+      <button
+        type="button"
+        className="vx-wizard-dock-close"
+        onClick={onClose}
+        aria-label="Fechar assistente"
+        title="Fechar assistente"
+      >
+        <X size={16} aria-hidden="true" />
+      </button>
+    </div>
+  ) : (
     <div
-      className="vx-wizard"
+      className={`vx-wizard vx-wizard--${mode}`}
       role="dialog"
       aria-modal="true"
       aria-label="Assistente de criação de site"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: TOKENS.background,
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}
     >
-      <header
-        className="vx-wizard-header"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.75rem 1rem',
-          background: TOKENS.surface,
-          borderBottom: `1px solid ${TOKENS.border}`,
-        }}
-      >
-        <div className="vx-wizard-header-left" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <header className="vx-wizard-header">
+        <div className="vx-wizard-header-left">
           <button
             type="button"
             className="vx-wizard-btn"
-            aria-label={minimized ? 'Restaurar' : 'Minimizar'}
+            aria-label="Minimizar assistente"
+            title="Minimizar"
             onClick={handleMinimize}
-            style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '8px',
-              border: `1px solid ${TOKENS.border}`,
-              background: TOKENS.surface,
-              color: TOKENS.text,
-              cursor: 'pointer',
-            }}
           >
-            {minimized ? <Maximize size={16} aria-hidden="true" /> : <Minimize size={16} aria-hidden="true" />}
+            <Minimize size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
             className="vx-wizard-btn"
-            aria-label={fullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-            onClick={() => setFullscreen((p) => !p)}
-            style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '8px',
-              border: `1px solid ${TOKENS.border}`,
-              background: TOKENS.surface,
-              color: TOKENS.text,
-              cursor: 'pointer',
-            }}
+            aria-label={isFullscreen ? 'Restaurar janela' : 'Tela cheia'}
+            title={isFullscreen ? 'Restaurar janela' : 'Tela cheia'}
+            onClick={handleToggleFullscreen}
           >
-            {fullscreen ? <Minimize size={16} aria-hidden="true" /> : <Maximize size={16} aria-hidden="true" />}
+            {isFullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize size={16} aria-hidden="true" />}
           </button>
           <button
             type="button"
-            className="vx-wizard-btn"
+            className="vx-wizard-btn vx-wizard-btn--close"
             aria-label="Fechar assistente"
+            title="Fechar assistente"
             onClick={onClose}
-            style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '8px',
-              border: `1px solid ${TOKENS.border}`,
-              background: TOKENS.surface,
-              color: TOKENS.text,
-              cursor: 'pointer',
-            }}
           >
             <X size={16} aria-hidden="true" />
           </button>
@@ -427,7 +370,7 @@ export default function WizardShell({
         })}
       </ol>
 
-      <div className="vx-wizard-body" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+      <div className="vx-wizard-body">
         {step === 'origem' && (
           <OrigemStep
             value={origem}
@@ -548,6 +491,8 @@ export default function WizardShell({
       </footer>
     </div>
   );
+
+  return typeof document === 'undefined' ? null : createPortal(content, document.body);
 }
 
 /* ---------- Etapa: Origem ---------- */
@@ -597,14 +542,14 @@ function OrigemStep({
   const hintStyle: React.CSSProperties = { marginTop: 6, fontSize: '0.8125rem', color: TOKENS.textSecondary };
 
   return (
-    <section className="vx-wizard-step-panel" style={{ padding: '1rem 0' }}>
+    <section className="vx-wizard-step-panel">
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Como você quer começar?</h3>
         <p className="vx-wizard-step-sub">
           Escolha a origem do site. Você poderá editar tudo no editor depois.
         </p>
       </header>
-      <div className="vx-wizard-options" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      <div className="vx-wizard-options">
         {options.map((opt) => {
           const active = value === opt.id;
           const Icon = opt.icon;
@@ -615,25 +560,13 @@ function OrigemStep({
               className={`vx-wizard-option ${active ? 'is-active' : ''} ${disabled ? 'is-disabled' : ''}`}
               aria-pressed={active}
               onClick={() => !disabled && onChange(opt.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '0.75rem 1rem',
-                borderRadius: TOKENS.radius,
-                border: active ? `1px solid ${TOKENS.primary}` : `1px solid ${TOKENS.border}`,
-                background: active ? `color-mix(in srgb, ${TOKENS.primary} 10%, transparent)` : TOKENS.surface,
-                color: TOKENS.text,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}
             >
-              <div className="vx-wizard-option-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: active ? TOKENS.primary : TOKENS.surface, border: `1px solid ${active ? TOKENS.primary : TOKENS.border}` }}>
-                <Icon size={16} aria-hidden="true" style={{ color: active ? 'var(--on-primary, var(--surface))' : TOKENS.textSecondary }} />
+              <div className="vx-wizard-option-icon">
+                <Icon size={18} aria-hidden="true" />
               </div>
-              <div>
-                <strong className="vx-wizard-option-label" style={{ display: 'block', fontSize: '0.9375rem', fontWeight: 700, color: TOKENS.text }}>{opt.label}</strong>
-                <span className="vx-wizard-option-desc" style={{ fontSize: '0.8125rem', color: TOKENS.textSecondary }}>{opt.desc}</span>
+              <div className="vx-wizard-option-text">
+                <strong className="vx-wizard-option-label">{opt.label}</strong>
+                <span className="vx-wizard-option-desc">{opt.desc}</span>
               </div>
             </button>
           );
@@ -733,7 +666,7 @@ function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepP
   ];
 
   return (
-    <section className="vx-wizard-step-panel" style={{ padding: '1rem 0' }}>
+    <section className="vx-wizard-step-panel">
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Que tipo de site?</h3>
         <p className="vx-wizard-step-sub">
@@ -763,7 +696,7 @@ function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepP
           />
         </label>
       </header>
-      <div className="vx-wizard-options" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      <div className="vx-wizard-options">
         {types.map((t) => {
           const active = value === t.id;
           const Icon = t.icon;
@@ -774,24 +707,13 @@ function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepP
               className={`vx-wizard-option ${active ? 'is-active' : ''} ${disabled ? 'is-disabled' : ''}`}
               aria-pressed={active}
               onClick={() => !disabled && onChange(t.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '0.75rem 1rem',
-                borderRadius: TOKENS.radius,
-                border: active ? `1px solid ${TOKENS.primary}` : `1px solid ${TOKENS.border}`,
-                background: active ? `color-mix(in srgb, ${TOKENS.primary} 10%, transparent)` : TOKENS.surface,
-                color: TOKENS.text,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-              }}
             >
-              <div className="vx-wizard-option-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: active ? TOKENS.primary : TOKENS.surface, border: `1px solid ${active ? TOKENS.primary : TOKENS.border}` }}>
-                <Icon size={16} aria-hidden="true" style={{ color: active ? 'var(--on-primary, var(--surface))' : TOKENS.textSecondary }} />
+              <div className="vx-wizard-option-icon">
+                <Icon size={18} aria-hidden="true" />
               </div>
-              <div>
-                <strong className="vx-wizard-option-label" style={{ display: 'block', fontSize: '0.9375rem', fontWeight: 700, color: TOKENS.text }}>{t.label}</strong>
-                <span className="vx-wizard-option-desc" style={{ fontSize: '0.8125rem', color: TOKENS.textSecondary }}>{t.desc}</span>
+              <div className="vx-wizard-option-text">
+                <strong className="vx-wizard-option-label">{t.label}</strong>
+                <span className="vx-wizard-option-desc">{t.desc}</span>
               </div>
             </button>
           );
@@ -819,14 +741,14 @@ function TemaStep({ value, onChange, disabled }: TemaStepProps) {
   ];
 
   return (
-    <section className="vx-wizard-step-panel" style={{ padding: '1rem 0' }}>
+    <section className="vx-wizard-step-panel">
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Escolha o tema</h3>
         <p className="vx-wizard-step-sub">
           A cor da marca vem da empresa; aqui você escolhe a variação visual.
         </p>
       </header>
-      <div className="vx-wizard-themes" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+      <div className="vx-wizard-themes">
         {themes.map((t) => {
           const active = value === t.id;
           return (
@@ -872,7 +794,7 @@ interface DominioStepProps {
 
 function DominioStep({ domain, onChange, onDomainValidated, disabled, siteSlug }: DominioStepProps) {
   return (
-    <section className="vx-wizard-step-panel vx-wizard-step-dominio" style={{ padding: '1rem 0' }}>
+    <section className="vx-wizard-step-panel vx-wizard-step-dominio">
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Domínio próprio</h3>
         <p className="vx-wizard-step-sub">
@@ -934,7 +856,7 @@ interface PublicarStepProps {
 
 function PublicarStep({ siteTitle, siteType, domain }: PublicarStepProps) {
   return (
-    <section className="vx-wizard-step-panel vx-wizard-step-publicar" style={{ padding: '1rem 0' }}>
+    <section className="vx-wizard-step-panel vx-wizard-step-publicar">
       <div className="vx-wizard-publicar-summary" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="vx-wizard-publicar-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: TOKENS.surface, border: `1px solid ${TOKENS.border}`, borderRadius: TOKENS.radius }}>
           <span className="vx-wizard-publicar-label" style={{ fontSize: '0.875rem', color: TOKENS.textSecondary }}>Título do site</span>

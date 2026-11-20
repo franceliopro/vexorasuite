@@ -104,7 +104,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
   }, [attempt]);
 
   const createSite = useCallback(
-    async (input: { title: string; type: string; source: WizardSource }) => {
+    async (input: { title: string; type: string; source: WizardSource; logoUrl?: string }) => {
       setWizardOpen(false);
       setCreating(true);
       setActionError(null);
@@ -114,6 +114,8 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         let endpoint = "/api/backend/sites";
         let body: Record<string, unknown> = { name: input.title, kind };
         const source = input.source;
+        if (source.kind === "ia" && source.prompt) body.prompt = source.prompt;
+        if (input.logoUrl) body.logoUrl = input.logoUrl;
         if (source.kind === "clone") {
           endpoint = "/api/backend/sites/import/url";
           body = { name: input.title, kind, url: source.url };
@@ -152,7 +154,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         setEditingSite(summary);
         const prefix = imported ? `Site "${summary.name}" importado.` : `Site "${summary.name}" criado como rascunho.`;
         const detail = source.kind === "ia"
-          ? " Descreva ajustes na caixa de IA do editor."
+          ? " Rascunho premium com textos sugeridos pela sua descrição — revise no editor."
           : warnings.length
             ? ` Avisos: ${warnings.slice(0, 2).join(" ")}`
             : "";
@@ -298,7 +300,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       <WizardShell
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        onComplete={(site) => void createSite({ title: site.title, type: site.type, source: site.source })}
+        onComplete={(site) => void createSite({ title: site.title, type: site.type, logoUrl: site.logoUrl, source: site.source })}
         disabled={creating}
       />
 

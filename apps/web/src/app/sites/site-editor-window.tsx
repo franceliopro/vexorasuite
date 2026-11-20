@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertCircle, Loader2, Maximize2, X } from "lucide-react";
-import type { SiteDocument } from "@/shared-types/site-document";
+import type { SiteDocument, SiteNode } from "@/shared-types/site-document";
 import { EditorShell, findNodeById, replaceNodeById } from "./editor/editor-shell";
 
 type DocumentRow = { document: SiteDocument; version: number };
@@ -40,6 +40,25 @@ function isDocument(value: unknown): value is SiteDocument {
   if (!value || typeof value !== "object") return false;
   const doc = value as Partial<SiteDocument>;
   return !!doc.root && typeof doc.root === "object" && !!doc.meta && typeof doc.meta === "object";
+}
+
+/** O bloco pode estar na home ou em qualquer página secundária. */
+function findNodeInDocument(doc: SiteDocument, nodeId: string): SiteNode | null {
+  const home = findNodeById(doc.root, nodeId);
+  if (home) return home;
+  for (const page of doc.pages ?? []) {
+    const found = findNodeById(page.root, nodeId);
+    if (found) return found;
+  }
+  return null;
+}
+
+function replaceNodeInDocument(doc: SiteDocument, nodeId: string, next: SiteNode): SiteDocument {
+  const root = findNodeById(doc.root, nodeId) ? replaceNodeById(doc.root, nodeId, next) : doc.root;
+  const pages = (doc.pages ?? []).map((page) =>
+    findNodeById(page.root, nodeId) ? { ...page, root: replaceNodeById(page.root, nodeId, next) } : page,
+  );
+  return { ...doc, root, pages };
 }
 
 export default function SiteEditorWindow({
@@ -199,7 +218,7 @@ export default function SiteEditorWindow({
   const handleAIChange = useCallback(
     async (prompt: string, nodeId: string): Promise<void> => {
       if (!doc || !prompt.trim() || aiBusy) return;
-      const node = findNodeById(doc.root, nodeId);
+      const node = findNodeInDocument(doc, nodeId);
       if (!node) return;
       setAiBusy(true);
       setAiMessage(null);
@@ -214,7 +233,7 @@ export default function SiteEditorWindow({
           throw new Error(payload?.message || "Não foi possível ajustar o bloco.");
         }
         setDoc((current) =>
-          current ? { ...current, root: replaceNodeById(current.root, nodeId, payload.node) } : current,
+          current ? replaceNodeInDocument(current, nodeId, payload.node as SiteNode) : current,
         );
         setDirty(true);
         setAiMessage({

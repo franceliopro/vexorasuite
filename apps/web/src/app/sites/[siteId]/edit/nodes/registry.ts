@@ -125,6 +125,18 @@ export const BLOCK_REGISTRY: Record<NodeType, BlockDescriptor> = {
     ],
     render: (n) => n,
   },
+  faq: {
+    type: 'faq',
+    label: 'Pergunta frequente',
+    icon: 'list',
+    defaultProps: { question: 'Pergunta frequente', answer: 'Resposta objetiva.' },
+    defaultStyles: { borderBottom: '1px solid var(--border, #e5e8ef)', padding: '1rem 0' },
+    schema: [
+      { key: 'question', label: 'Pergunta', type: 'text', aiEditable: true },
+      { key: 'answer', label: 'Resposta', type: 'textarea', aiEditable: true },
+    ],
+    render: (n) => n,
+  },
 };
 
 export const BLOCK_TYPES: NodeType[] = Object.keys(BLOCK_REGISTRY) as NodeType[];

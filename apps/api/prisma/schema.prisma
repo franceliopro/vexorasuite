@@ -1130,7 +1130,7 @@ enum DomainStatus {
 
 model SiteDomain {
   id             String       @id @default(cuid())
-  siteId         String
+  siteId         String       @db.Uuid
   domain         String       @unique
   status         DomainStatus @default(PENDING_DNS)
   cfProjectName  String?
@@ -1149,7 +1149,7 @@ model SiteDomain {
 
 model SiteDeployment {
   id             String       @id @default(cuid())
-  siteId         String
+  siteId         String       @db.Uuid
   domainId       String?
   status         DeployStatus  @default(QUEUED)
   cfDeploymentId String?
@@ -1170,7 +1170,7 @@ model SiteDeployment {
 
 model SiteDocument {
   id        String   @id @default(cuid())
-  siteId    String   @unique
+  siteId    String   @unique @db.Uuid
   document  Json
   version   Int      @default(1)
   createdAt DateTime @default(now())

@@ -5,6 +5,8 @@ import { resolveEntitlements } from "../../auth/entitlements";
 import { landingDocument } from "./landing-template";
 import { promptDocument } from "./prompt-template";
 import { buildSiteIllustrations } from "./site-images";
+import { parseLayoutImage } from "./layout-image";
+import { SiteLayoutVisionService } from "./site-layout-vision.service";
 
 /**
  * Sites: registros raiz do criador de sites.
@@ -24,6 +26,7 @@ type CreateSiteInput = {
   accentColor?: unknown;
   prompt?: unknown;
   logoUrl?: unknown;
+  layoutImage?: unknown;
 };
 
 type UpdateSiteInput = Partial<CreateSiteInput>;
@@ -102,7 +105,10 @@ function defaultDocument(name: string, siteKind: SiteKindValue, primary: string,
 
 @Injectable()
 export class SitesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly layoutVision?: SiteLayoutVisionService,
+  ) {}
 
   private async ownedSite(siteId: string, tenantId: string) {
     const site = await this.prisma.site.findFirst({ where: { id: siteId, tenantId } });
@@ -194,20 +200,51 @@ export class SitesService {
     return site;
   }
 
-  async create(tenantId: string, role: string, input: CreateSiteInput) {
-    // A descrição do wizard gera um rascunho determinístico. Sem prompt, o comportamento
-    // permanece o de sempre: template de landing ou documento vazio conforme o tipo.
-    if (input.prompt === undefined || input.prompt === null || input.prompt === "") {
+  async create(tenantId: string, role: string, input: CreateSiteInput, userId?: string) {
+    // Sem descrição e sem imagem, o comportamento permanece o de sempre: template de
+    // landing ou documento vazio conforme o tipo. Com imagem, a IA pode sugerir apenas
+    // a estrutura; o conteúdo e as regras determinísticas continuam no template.
+    const hasPrompt = input.prompt !== undefined && input.prompt !== null && input.prompt !== "";
+    const hasLayout = input.layoutImage !== undefined && input.layoutImage !== null && input.layoutImage !== "";
+    if (!hasPrompt && !hasLayout) {
       return this.createWithDocument(tenantId, role, input);
     }
-    const prompt = text(input.prompt, "prompt", 3, 2000);
     const name = text(input.name, "name", 2, 100);
     const siteKind = kind(input.kind);
     const primary = color(input.primaryColor, "primaryColor", "#0E7A5C");
     const accent = color(input.accentColor, "accentColor", "#6258DF");
+    const prompt = hasPrompt ? text(input.prompt, "prompt", 3, 2000) : "";
+    const image = hasLayout ? await parseLayoutImage(input.layoutImage) : undefined;
+    const warnings: string[] = [];
+    let layoutBrief;
+
+    if (image) {
+      if (!this.layoutVision) {
+        warnings.push("A imagem foi recebida, mas a análise com IA não está disponível neste ambiente; usamos o template padrão.");
+      } else {
+        try {
+          const analyzed = await this.layoutVision.analyze({ tenantId, userId, siteName: name, prompt, image });
+          if (analyzed.brief) layoutBrief = analyzed.brief;
+          if (analyzed.warning) warnings.push(analyzed.warning);
+        } catch {
+          warnings.push("A imagem foi recebida, mas a IA não pôde analisá-la; criamos o rascunho com o template padrão.");
+        }
+      }
+    }
+
     const images = await buildSiteIllustrations({ name, primary, accent });
-    const document = promptDocument({ prompt, name, kind: siteKind, primary, accent, logoUrl: logo(input.logoUrl), images });
-    return this.createWithDocument(tenantId, role, input, document);
+    const document = promptDocument({
+      prompt,
+      name,
+      kind: siteKind,
+      primary,
+      accent,
+      logoUrl: logo(input.logoUrl),
+      images,
+      layoutBrief: layoutBrief ?? null,
+    });
+    const site = await this.createWithDocument(tenantId, role, input, document);
+    return warnings.length ? { ...site, warnings } : site;
   }
 
   /**

@@ -31,6 +31,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 
 type WizardStep = 'origem' | 'tipo' | 'tema' | 'dominio' | 'publicar';
@@ -79,12 +81,63 @@ interface WizardShellProps {
 }
 
 /** Origem informada ao chamador: ele decide qual endpoint de criação/importação usar. */
+export type LayoutImageReference = {
+  dataUrl: string;
+  mimeType: string;
+  fileName: string;
+  width: number;
+  height: number;
+};
+
 export type WizardSource =
   | { kind: 'zero' }
   | { kind: 'clone'; url: string }
   | { kind: 'html'; html: string }
   | { kind: 'zip'; fileName: string; contentBase64: string }
-  | { kind: 'ia'; prompt: string };
+  | { kind: 'ia'; prompt: string; layoutImage?: LayoutImageReference };
+
+const LAYOUT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const LAYOUT_IMAGE_MAX_SIDE = 1600;
+const LAYOUT_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/** Reduz a captura no navegador para não enviar uma imagem grande sem necessidade. */
+async function fileToLayoutImage(file: File): Promise<LayoutImageReference> {
+  if (!LAYOUT_IMAGE_TYPES.includes(file.type)) throw new Error('Use uma imagem PNG, JPG ou WebP.');
+  if (file.size > LAYOUT_IMAGE_MAX_BYTES) throw new Error('A imagem de layout deve ter até 8 MB.');
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Não foi possível abrir a imagem de layout.'));
+      image.src = url;
+    });
+    const sourceSide = Math.max(image.naturalWidth, image.naturalHeight);
+    if (image.naturalWidth < 64 || image.naturalHeight < 64 || !sourceSide) {
+      throw new Error('A imagem de layout deve ter pelo menos 64x64 pixels.');
+    }
+    const scale = Math.min(1, LAYOUT_IMAGE_MAX_SIDE / sourceSide);
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Seu navegador não pôde preparar a imagem de layout.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    return {
+      dataUrl: canvas.toDataURL('image/jpeg', 0.82),
+      mimeType: 'image/jpeg',
+      fileName: file.name,
+      width,
+      height,
+    };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 async function fileToBase64(file: File): Promise<string> {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -130,6 +183,9 @@ export default function WizardShell({
   const [domain, setDomain] = useState('');
   const [siteTitle, setSiteTitle] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [layoutImage, setLayoutImage] = useState<LayoutImageReference | null>(null);
+  const [layoutImageError, setLayoutImageError] = useState('');
+  const [readingLayoutImage, setReadingLayoutImage] = useState(false);
 
   const currentIndex = STEP_ORDER.indexOf(step);
   const isFirst = currentIndex === 0;
@@ -139,7 +195,7 @@ export default function WizardShell({
     currentIndex < STEP_ORDER.length - 1 &&
     (step !== 'origem' ||
       origem === 'zero' ||
-      (origem === 'ia' && prompt.trim().length >= 3) ||
+      (origem === 'ia' && (prompt.trim().length >= 3 || layoutImage !== null)) ||
       (origem === 'clone' && cloneLooksValid) ||
       (origem === 'html' && htmlInput.trim().length >= 10) ||
       (origem === 'zip' && zipFile !== null)) &&
@@ -158,6 +214,23 @@ export default function WizardShell({
     if (prev) setStep(prev);
   }, [isFirst, currentIndex]);
 
+  const handleLayoutImageChange = useCallback(async (file: File | null) => {
+    setLayoutImageError('');
+    if (!file) {
+      setLayoutImage(null);
+      return;
+    }
+    setReadingLayoutImage(true);
+    try {
+      setLayoutImage(await fileToLayoutImage(file));
+    } catch (cause) {
+      setLayoutImage(null);
+      setLayoutImageError(cause instanceof Error ? cause.message : 'Não foi possível preparar a imagem de layout.');
+    } finally {
+      setReadingLayoutImage(false);
+    }
+  }, []);
+
   const handleMinimize = useCallback(() => {
     setMode('minimized');
   }, []);
@@ -168,13 +241,18 @@ export default function WizardShell({
 
   const handleFinish = useCallback(async () => {
     if (siteTitle.trim().length < 2) return;
+    if (origem === 'ia' && prompt.trim().length < 3 && !layoutImage) {
+      setStep('origem');
+      setOrigemError('Descreva a ideia ou envie uma imagem de layout para continuar.');
+      return;
+    }
     setBusy(true);
     setOrigemError('');
     try {
       let source: WizardSource = { kind: 'zero' };
       if (origem === 'clone') source = { kind: 'clone', url: cloneUrl.trim() };
       if (origem === 'html') source = { kind: 'html', html: htmlInput.trim() };
-      if (origem === 'ia') source = { kind: 'ia', prompt: prompt.trim() };
+      if (origem === 'ia') source = { kind: 'ia', prompt: prompt.trim(), layoutImage: layoutImage ?? undefined };
       if (origem === 'zip') {
         if (!zipFile) throw new Error('Selecione o arquivo ZIP para continuar.');
         source = { kind: 'zip', fileName: zipFile.name, contentBase64: await fileToBase64(zipFile) };
@@ -191,7 +269,7 @@ export default function WizardShell({
     } finally {
       setBusy(false);
     }
-  }, [siteTitle, siteType, domain, logoUrl, onComplete, origem, cloneUrl, htmlInput, zipFile, prompt]);
+  }, [siteTitle, siteType, domain, logoUrl, onComplete, origem, cloneUrl, htmlInput, zipFile, prompt, layoutImage]);
 
   if (!open) return null;
 
@@ -389,6 +467,10 @@ export default function WizardShell({
             onZipFileChange={setZipFile}
             prompt={prompt}
             onPromptChange={setPrompt}
+            layoutImage={layoutImage}
+            onLayoutImageChange={(file) => void handleLayoutImageChange(file)}
+            layoutImageError={layoutImageError}
+            readingLayoutImage={readingLayoutImage}
             disabled={disabled}
           />
         )}
@@ -414,7 +496,7 @@ export default function WizardShell({
           />
         )}
         {step === 'publicar' && (
-          <PublicarStep siteTitle={siteTitle} siteType={siteType} domain={domain} />
+          <PublicarStep siteTitle={siteTitle} siteType={siteType} domain={domain} layoutImage={layoutImage} />
         )}
         {origemError ? <p role="alert" style={{ color: TOKENS.bad, fontSize: '0.875rem', marginTop: 12 }}>{origemError}</p> : null}
       </div>
@@ -516,6 +598,10 @@ interface OrigemStepProps {
   onZipFileChange: (v: File | null) => void;
   prompt: string;
   onPromptChange: (v: string) => void;
+  layoutImage: LayoutImageReference | null;
+  onLayoutImageChange: (file: File | null) => void;
+  layoutImageError: string;
+  readingLayoutImage: boolean;
   disabled: boolean;
 }
 
@@ -529,6 +615,10 @@ function OrigemStep({
   onZipFileChange,
   prompt,
   onPromptChange,
+  layoutImage,
+  onLayoutImageChange,
+  layoutImageError,
+  readingLayoutImage,
   disabled,
 }: OrigemStepProps) {
   const options: Array<{ id: OrigemKind; label: string; desc: string; icon: React.ElementType }> = [
@@ -536,7 +626,7 @@ function OrigemStep({
     { id: 'clone', label: 'Clonar link', desc: 'Importe a estrutura de um site público.', icon: Link },
     { id: 'html', label: 'Colar HTML', desc: 'Traga o código de uma página existente.', icon: Code2 },
     { id: 'zip', label: 'Importar ZIP', desc: 'Pacote Elementor, Divi, Beaver ou Crocoblock.', icon: Cloud },
-    { id: 'ia', label: 'Descrever ideia', desc: 'Escreva a ideia e receba um rascunho premium com textos sugeridos.', icon: Rocket },
+    { id: 'ia', label: 'Criar com IA', desc: 'Descreva a ideia e/ou envie uma imagem de layout como referência.', icon: Rocket },
   ];
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.875rem', fontWeight: 600, color: TOKENS.text, marginBottom: 6 };
   const fieldStyle: React.CSSProperties = {
@@ -634,19 +724,61 @@ function OrigemStep({
           )}
           {value === 'ia' && (
             <>
-              <label className="vx-wizard-field-label" style={labelStyle}>Descreva a ideia</label>
+              <label className="vx-wizard-field-label" style={labelStyle}>Descreva a ideia (opcional se houver imagem)</label>
               <textarea
                 className="vx-wizard-input"
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
                 placeholder="Ex.: site para uma clínica veterinária com contato e horários"
-                rows={5}
+                rows={4}
                 disabled={disabled}
                 style={{ ...fieldStyle, resize: 'vertical' }}
               />
-              <p className="vx-wizard-field-hint" style={hintStyle}>
-                Criamos um rascunho premium com layout e textos sugeridos pela sua descrição. Revise e ajuste tudo no editor.
-              </p>
+              <div className="vx-wizard-layout-upload" style={{ marginTop: 14 }}>
+                <label className="vx-wizard-field-label" htmlFor="vx-wizard-layout-image" style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ImageIcon size={14} aria-hidden="true" />
+                  Imagem de layout (opcional)
+                </label>
+                <input
+                  id="vx-wizard-layout-image"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => {
+                    onLayoutImageChange(e.target.files?.[0] ?? null);
+                    e.target.value = '';
+                  }}
+                  disabled={disabled || readingLayoutImage}
+                  style={{ ...fieldStyle, padding: '0.5rem' }}
+                />
+                {readingLayoutImage ? (
+                  <p className="vx-wizard-field-hint" style={hintStyle}>Preparando a imagem…</p>
+                ) : null}
+                {layoutImageError ? (
+                  <p role="alert" style={{ color: TOKENS.bad, fontSize: '0.8125rem', marginTop: 6 }}>{layoutImageError}</p>
+                ) : null}
+                {layoutImage ? (
+                  <div className="vx-wizard-layout-preview">
+                    <img src={layoutImage.dataUrl} alt="Prévia da imagem de layout enviada" />
+                    <div className="vx-wizard-layout-preview-meta">
+                      <strong>{layoutImage.fileName}</strong>
+                      <span>{layoutImage.width} × {layoutImage.height} px</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="vx-wizard-btn"
+                      aria-label="Remover imagem de layout"
+                      title="Remover imagem de layout"
+                      disabled={disabled}
+                      onClick={() => onLayoutImageChange(null)}
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : null}
+                <p className="vx-wizard-field-hint" style={hintStyle}>
+                  Envie uma captura do layout que você gosta. A IA usa a imagem para sugerir a estrutura (seções, hierarquia e densidade); textos, marca e ativos não são copiados. Se não houver modelo com visão configurado, criamos o rascunho com o template padrão e avisamos.
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -889,9 +1021,10 @@ interface PublicarStepProps {
   siteTitle: string;
   siteType: SiteType;
   domain: string;
+  layoutImage: LayoutImageReference | null;
 }
 
-function PublicarStep({ siteTitle, siteType, domain }: PublicarStepProps) {
+function PublicarStep({ siteTitle, siteType, domain, layoutImage }: PublicarStepProps) {
   return (
     <section className="vx-wizard-step-panel vx-wizard-step-publicar">
       <div className="vx-wizard-publicar-summary" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -902,6 +1035,12 @@ function PublicarStep({ siteTitle, siteType, domain }: PublicarStepProps) {
         <div className="vx-wizard-publicar-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: TOKENS.surface, border: `1px solid ${TOKENS.border}`, borderRadius: TOKENS.radius }}>
           <span className="vx-wizard-publicar-label" style={{ fontSize: '0.875rem', color: TOKENS.textSecondary }}>Tipo</span>
           <span className="vx-wizard-publicar-value" style={{ fontSize: '0.9375rem', fontWeight: 600, color: TOKENS.text }}>{TYPE_LABEL[siteType]}</span>
+        </div>
+        <div className="vx-wizard-publicar-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: TOKENS.surface, border: `1px solid ${TOKENS.border}`, borderRadius: TOKENS.radius }}>
+          <span className="vx-wizard-publicar-label" style={{ fontSize: '0.875rem', color: TOKENS.textSecondary }}>Referência de layout</span>
+          <span className="vx-wizard-publicar-value" style={{ fontSize: '0.9375rem', fontWeight: 600, color: TOKENS.text }}>
+            {layoutImage ? `Imagem enviada (${layoutImage.width}×${layoutImage.height})` : '— (somente descrição)'}
+          </span>
         </div>
         <div className="vx-wizard-publicar-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: TOKENS.surface, border: `1px solid ${TOKENS.border}`, borderRadius: TOKENS.radius }}>
           <span className="vx-wizard-publicar-label" style={{ fontSize: '0.875rem', color: TOKENS.textSecondary }}>Domínio</span>

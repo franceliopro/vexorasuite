@@ -114,7 +114,10 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         let endpoint = "/api/backend/sites";
         let body: Record<string, unknown> = { name: input.title, kind };
         const source = input.source;
-        if (source.kind === "ia" && source.prompt) body.prompt = source.prompt;
+        if (source.kind === "ia") {
+          if (source.prompt) body.prompt = source.prompt;
+          if (source.layoutImage) body.layoutImage = source.layoutImage;
+        }
         if (input.logoUrl) body.logoUrl = input.logoUrl;
         if (source.kind === "clone") {
           endpoint = "/api/backend/sites/import/url";
@@ -149,14 +152,20 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
           createdAt: String(site.createdAt ?? new Date().toISOString()),
           updatedAt: String(site.updatedAt ?? new Date().toISOString()),
         };
-        const warnings: string[] = Array.isArray(payload?.warnings) ? payload.warnings : [];
+        const warnings: string[] = Array.isArray(payload?.warnings)
+          ? payload.warnings
+          : Array.isArray(site.warnings)
+            ? site.warnings
+            : [];
         setAttempt((value) => value + 1);
         setEditingSite(summary);
         const prefix = imported ? `Site "${summary.name}" importado.` : `Site "${summary.name}" criado como rascunho.`;
-        const detail = source.kind === "ia"
-          ? " Rascunho premium com textos sugeridos pela sua descrição — revise no editor."
-          : warnings.length
-            ? ` Avisos: ${warnings.slice(0, 2).join(" ")}`
+        const detail = warnings.length
+          ? ` Avisos: ${warnings.slice(0, 2).join(" ")}`
+          : source.kind === "ia"
+            ? source.layoutImage
+              ? " Rascunho com estrutura sugerida pela imagem de layout — revise no editor."
+              : " Rascunho premium com textos sugeridos pela sua descrição — revise no editor."
             : "";
         setNotice(prefix + detail);
       } catch (cause) {

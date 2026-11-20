@@ -14,6 +14,7 @@ import type { SiteKindValue } from "./sites.service";
 import { landingDocument } from "./landing-template";
 import { fakeIdentity, generatedPages, type GeneratedPage } from "./site-pages";
 import type { SiteIllustrations } from "./site-images";
+import { LAYOUT_SECTION_IDS, type LayoutBrief } from "./layout-brief";
 
 type TemplateNode = {
   id: string;
@@ -31,6 +32,7 @@ export type PromptDocumentInput = {
   accent: string;
   logoUrl?: string | null;
   images?: SiteIllustrations;
+  layoutBrief?: LayoutBrief | null;
 };
 
 type SegmentRule = {
@@ -299,7 +301,46 @@ function walk(node: TemplateNode, collected: TemplateNode[] = []): TemplateNode[
   return collected;
 }
 
-export function promptDocument({ prompt, name, kind, primary, accent, logoUrl, images }: PromptDocumentInput) {
+/** Reordena apenas seções conhecidas; navegação, hero, contato e rodapé preservam suas posições. */
+function applyLayoutBrief(root: TemplateNode, brief: LayoutBrief): void {
+  const fixedFirst: string[] = [LAYOUT_SECTION_IDS.topo, LAYOUT_SECTION_IDS.hero];
+  const fixedLast: string[] = [LAYOUT_SECTION_IDS.contato, LAYOUT_SECTION_IDS.rodape];
+  const byId = new Map(root.children.map((child) => [child.id, child]));
+  const movableIds = root.children
+    .map((child) => child.id)
+    .filter((id) => !fixedFirst.includes(id) && !fixedLast.includes(id));
+  const suggested: string[] = brief.sections
+    .map((key) => LAYOUT_SECTION_IDS[key])
+    .filter((id) => movableIds.includes(id) && !fixedFirst.includes(id) && !fixedLast.includes(id));
+  const ordered = [...new Set(suggested), ...movableIds.filter((id) => !suggested.includes(id))];
+  root.children = [
+    ...fixedFirst.map((id) => byId.get(id)).filter((node): node is TemplateNode => !!node),
+    ...ordered.map((id) => byId.get(id)).filter((node): node is TemplateNode => !!node),
+    ...fixedLast.map((id) => byId.get(id)).filter((node): node is TemplateNode => !!node),
+  ];
+
+  const hero = byId.get(LAYOUT_SECTION_IDS.hero);
+  if (hero) {
+    const padding =
+      brief.density === "compacta"
+        ? "clamp(2.5rem, 5vw, 4rem) clamp(1rem, 6vw, 5rem)"
+        : brief.density === "generosa"
+          ? "clamp(4.5rem, 10vw, 9rem) clamp(1rem, 6vw, 5rem)"
+          : "clamp(3.5rem, 8vw, 7rem) clamp(1rem, 6vw, 5rem)";
+    hero.props.padding = padding;
+  }
+}
+
+export function promptDocument({
+  prompt,
+  name,
+  kind,
+  primary,
+  accent,
+  logoUrl,
+  images,
+  layoutBrief,
+}: PromptDocumentInput) {
   const cleanPrompt = cleanText(prompt, 2000);
   const document = JSON.parse(JSON.stringify(landingDocument(name, primary, accent, logoUrl))) as {
     version: number;
@@ -380,9 +421,21 @@ export function promptDocument({ prompt, name, kind, primary, accent, logoUrl, i
     }
   }
 
+  if (layoutBrief) {
+    applyLayoutBrief(document.root, layoutBrief);
+    document.meta.layoutReference = {
+      analyzed: true,
+      sections: layoutBrief.sections,
+      emphasis: layoutBrief.emphasis,
+      density: layoutBrief.density,
+      confidence: layoutBrief.confidence,
+      ...(layoutBrief.model ? { model: layoutBrief.model } : {}),
+    };
+  }
+
   document.meta.title = name;
   document.meta.type = kind.toLowerCase().replace(/_/g, "-");
-  document.meta.generatedFrom = "prompt";
+  document.meta.generatedFrom = layoutBrief ? "prompt+layout" : "prompt";
   document.pages = generatedPages(fakeIdentity(name, slugify(name), logoUrl), primary, accent, images);
   return document;
 }

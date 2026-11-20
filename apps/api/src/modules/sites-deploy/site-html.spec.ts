@@ -136,6 +136,24 @@ describe("static site HTML renderer", () => {
     expect(services).not.toContain("Conteúdo da home");
   });
 
+  it("omits blocks marked hidden in the layer tree", () => {
+    const html = renderSiteHtml(
+      {
+        root: {
+          type: "section",
+          children: [
+            { type: "text", props: { content: "Visível" } },
+            { type: "text", props: { content: "Oculto", visible: false } },
+          ],
+        },
+        meta: { title: "Site", theme: {} },
+      },
+      { name: "Site", slug: "site" },
+    );
+    expect(html).toContain("Visível");
+    expect(html).not.toContain("Oculto");
+  });
+
   it("does not promise submissions when the API base is missing", () => {
     const html = renderSiteHtml(
       { root: { type: "form", id: "f1", props: { fields: ["nome"] }, styles: {}, children: [] }, meta: {} },

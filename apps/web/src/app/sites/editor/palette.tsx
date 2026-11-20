@@ -2,15 +2,14 @@
 
 /**
  * Véxora Sites — Editor Visual: paleta de blocos à esquerda do canvas.
- * Renderiza os descritores do BLOCK_REGISTRY para adicionar blocos ao site.
- * Consome shared-types (BlockDescriptor, NodeType). Sem tipos próprios.
- * Estados: vazio, desabilitado (sem permissão), loading.
- * Classes CSS em editor.css (tokens Véxora, sem hex direto).
+ * Renderiza os descritores do BLOCK_REGISTRY. Blocos podem ser clicados ou
+ * arrastados para o canvas/árvore de camadas; o clique permanece como fallback.
  */
 
 import { useCallback, useState } from 'react';
 import type { BlockDescriptor, NodeType } from '@/shared-types/site-document';
 import { Layout, AlertCircle, Loader2 } from 'lucide-react';
+import { writeDragPayload } from './dnd';
 import './editor.css';
 
 const ICONS: Record<string, React.ElementType> = {
@@ -33,11 +32,20 @@ function blockIcon(name: string) {
 interface PaletteProps {
   blocks: BlockDescriptor[];
   onAdd: (type: NodeType) => void;
+  onDragStart?: (type: NodeType, event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
   disabled?: boolean;
   loading?: boolean;
 }
 
-export function Palette({ blocks, onAdd, disabled = false, loading = false }: PaletteProps) {
+export function Palette({
+  blocks,
+  onAdd,
+  onDragStart,
+  onDragEnd,
+  disabled = false,
+  loading = false,
+}: PaletteProps) {
   const categories = ['layout', 'content', 'media', 'commerce'] as const;
   const categoryLabels: Record<string, string> = {
     layout: 'Estrutura',
@@ -45,6 +53,7 @@ export function Palette({ blocks, onAdd, disabled = false, loading = false }: Pa
     media: 'Mídia',
     commerce: 'Comércio',
   };
+  const [draggingType, setDraggingType] = useState<NodeType | null>(null);
 
   function categoryOf(block: BlockDescriptor): (typeof categories)[number] {
     const c = block.category as (typeof categories)[number] | undefined;
@@ -64,6 +73,24 @@ export function Palette({ blocks, onAdd, disabled = false, loading = false }: Pa
     },
     [disabled, onAdd],
   );
+
+  const handleDragStart = useCallback(
+    (type: NodeType, event: React.DragEvent<HTMLDivElement>) => {
+      if (disabled) {
+        event.preventDefault();
+        return;
+      }
+      writeDragPayload(event.dataTransfer, { kind: 'palette', nodeType: type }, String(type));
+      setDraggingType(type);
+      onDragStart?.(type, event);
+    },
+    [disabled, onDragStart],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingType(null);
+    onDragEnd?.();
+  }, [onDragEnd]);
 
   if (loading) {
     return (
@@ -121,7 +148,12 @@ export function Palette({ blocks, onAdd, disabled = false, loading = false }: Pa
                 {catBlocks.map((block) => (
                   <div
                     key={block.type}
-                    className={`vx-palette-item ${disabled ? 'vx-palette-item-disabled' : ''}`}
+                    className={`vx-palette-item ${disabled ? 'vx-palette-item-disabled' : ''} ${
+                      draggingType === block.type ? 'vx-palette-item-dragging' : ''
+                    }`}
+                    draggable={!disabled}
+                    onDragStart={(event) => handleDragStart(block.type as NodeType, event)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => handleAdd(block.type as NodeType)}
                     title={block.label}
                   >

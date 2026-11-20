@@ -2,20 +2,19 @@
 
 /**
  * Véxora Sites — Editor Visual: canvas com iframe isolado.
- * Preview do site dentro de <iframe sandbox>. O editor injeta um runtime de
- * seleção (outline/handles) via postMessage, evitando que o CSS do site quebre o editor.
- * Consome shared-types (SiteDocument, SiteNode). Sem tipos próprios.
- * Estados visuais: seleção, hover, drag-over/drop, vazio, loading.
- * Classes CSS em editor.css (tokens Véxora, sem hex direto).
- *
- * Integração com o programador: o runtime de seleção dentro do iframe responde a
- * postMessage (highlight) e emite mensagens de volta (select/hover/ready).
+ * Preview do site dentro de <iframe sandbox>. O runtime injetado responde a
+ * postMessage (highlight, editable, drag-source, drop-indicator) e emite
+ * select/hover/ready/drag-start/drag-over/drop/drag-end de volta ao editor.
+ * O HTML do iframe só muda quando o documento muda; arrastar atualiza apenas
+ * mensagens e o indicador, sem remontar o preview.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
 import { Loader2, Eye, Maximize, Minimize } from 'lucide-react';
+import { DND_MIME_BLOCK, DND_MIME_NODE, isDragPayload, type DragPayload } from './dnd';
+import type { DropPosition } from './site-tree';
 import './editor.css';
 
 interface CanvasProps {
@@ -23,12 +22,21 @@ interface CanvasProps {
   selectedId: string | null;
   hoverId: string | null;
   dragOverId: string | null;
-  dropTarget: 'before' | 'after' | 'inside' | null;
+  dropTarget: DropPosition | null;
+  draggingNodeId?: string | null;
+  editable?: boolean;
   loading: boolean;
   onSelectNode: (nodeId: string, multi: boolean) => void;
-  onDrop: (nodeId: string, position: 'before' | 'after' | 'inside') => void;
+  onDragOver: (targetId: string | null, position: DropPosition | null) => void;
+  onDrop: (targetId: string | null, position: DropPosition, payload?: DragPayload | null) => void;
+  onNodeDragStart?: (nodeId: string) => void;
+  onDragEnd?: () => void;
   device: 'desktop' | 'tablet' | 'mobile';
   onDeviceChange: (device: 'desktop' | 'tablet' | 'mobile') => void;
+}
+
+function isDropPosition(value: unknown): value is DropPosition {
+  return value === 'before' || value === 'after' || value === 'inside';
 }
 
 export function Canvas({
@@ -37,9 +45,14 @@ export function Canvas({
   hoverId,
   dragOverId,
   dropTarget,
+  draggingNodeId = null,
+  editable = true,
   loading,
   onSelectNode,
+  onDragOver,
   onDrop,
+  onNodeDragStart,
+  onDragEnd,
   device,
   onDeviceChange,
 }: CanvasProps) {
@@ -72,26 +85,77 @@ export function Canvas({
     };
   }, [isFullscreen]);
 
-  // Recebe seleções/hover do runtime do iframe
+  const postToFrame = useCallback((message: Record<string, unknown>) => {
+    const frame = iframeRef.current;
+    if (!frame?.contentWindow) return;
+    frame.contentWindow.postMessage({ source: 'vexora-editor', ...message }, '*');
+  }, []);
+
+  // Recebe seleções e eventos de arraste do runtime do iframe.
   useEffect(() => {
     function handler(e: MessageEvent) {
       if (!e.data || e.data.source !== 'vexora-runtime') return;
-      if (e.data.type === 'select') onSelectNode(e.data.id, false);
-      if (e.data.type === 'hover') {
-        // hover é apenas visual; o shell gerencia via selectedId quando clica
+      // Ignora mensagens de um iframe antigo após troca de doc/fullscreen.
+      if (iframeRef.current?.contentWindow && e.source !== iframeRef.current.contentWindow) return;
+      switch (e.data.type) {
+        case 'select':
+          if (typeof e.data.id === 'string') onSelectNode(e.data.id, false);
+          break;
+        case 'hover':
+          // hover é apenas visual; o shell gerencia via selectedId quando clica.
+          break;
+        case 'ready':
+          setReady(true);
+          break;
+        case 'drag-start':
+          if (typeof e.data.id === 'string') onNodeDragStart?.(e.data.id);
+          break;
+        case 'drag-over':
+          onDragOver(
+            typeof e.data.targetId === 'string' ? e.data.targetId : null,
+            isDropPosition(e.data.position) ? e.data.position : null,
+          );
+          break;
+        case 'drop':
+          if (typeof e.data.targetId === 'string' && isDropPosition(e.data.position)) {
+            onDrop(
+              e.data.targetId,
+              e.data.position,
+              isDragPayload(e.data.payload) ? e.data.payload : null,
+            );
+          }
+          break;
+        case 'drag-end':
+          onDragEnd?.();
+          break;
+        default:
+          break;
       }
-      if (e.data.type === 'ready') setReady(true);
     }
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [onSelectNode]);
+  }, [onDragEnd, onDragOver, onDrop, onNodeDragStart, onSelectNode]);
 
-  // Envia seleção atual para o iframe (highlight)
+  // Envia seleção atual para o iframe (highlight).
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow || !ready) return;
-    iframe.contentWindow.postMessage({ source: 'vexora-editor', type: 'highlight', id: selectedId }, '*');
-  }, [selectedId, ready]);
+    if (!ready) return;
+    postToFrame({ type: 'highlight', id: selectedId });
+  }, [postToFrame, ready, selectedId]);
+
+  useEffect(() => {
+    if (!ready) return;
+    postToFrame({ type: 'editable', enabled: editable });
+  }, [editable, postToFrame, ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    postToFrame({ type: 'drag-source', id: draggingNodeId });
+  }, [draggingNodeId, postToFrame, ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    postToFrame({ type: 'drop-indicator', targetId: dragOverId, position: dropTarget });
+  }, [dragOverId, dropTarget, postToFrame, ready]);
 
   const deviceLabel = device === 'desktop' ? 'Desktop' : device === 'tablet' ? 'Tablet' : 'Celular';
 
@@ -183,11 +247,22 @@ function escapePreview(value: unknown): string {
 }
 
 function buildIframeHtml(doc: SiteDocument): string {
-  const renderNode = (n: SiteNode): string => {
+  const renderNode = (n: SiteNode, isRoot = false): string => {
     if (n.props?.visible === false) return '';
     const style = Object.entries(n.styles).map(([k, v]) => `${camelToKebab(k)}:${escapePreview(v)}`).join(';');
-    const inner = n.children.map(renderNode).join('');
-    const attrs = `data-node="${escapePreview(n.id)}" data-locked="${n.props?.locked === true ? 'true' : 'false'}" style="${style}"`;
+    const inner = n.children.map((child) => renderNode(child)).join('');
+    const locked = n.props?.locked === true;
+    const container = n.type === 'section' || n.type === 'container';
+    const draggable = !isRoot && !locked;
+    const attrs = [
+      `data-node="${escapePreview(n.id)}"`,
+      `data-root="${isRoot ? 'true' : 'false'}"`,
+      `data-locked="${locked ? 'true' : 'false'}"`,
+      `data-container="${container ? 'true' : 'false'}"`,
+      `data-draggable="${draggable ? 'true' : 'false'}"`,
+      `draggable="${draggable ? 'true' : 'false'}"`,
+      `style="${style}"`,
+    ].join(' ');
     switch (n.type) {
       case 'text': {
         const wanted = String((n.props as Record<string, unknown>)?.tag ?? 'p');
@@ -213,29 +288,203 @@ function buildIframeHtml(doc: SiteDocument): string {
   const runtime = `
     <script>
     (function(){
+      var MIME_BLOCK = ${JSON.stringify(DND_MIME_BLOCK)};
+      var MIME_NODE = ${JSON.stringify(DND_MIME_NODE)};
+      var editable = true;
       var selected = null;
-      function post(type, id){ parent.postMessage({ source:'vexora-runtime', type, id }, '*'); }
-      document.addEventListener('click', function(e){
-        var t = e.target;
-        while(t && t !== document.body && !t.getAttribute('data-node')) t = t.parentNode;
-        if(t && t.getAttribute('data-node')){
-          if(t.getAttribute('data-locked') === 'true') return;
-          e.preventDefault(); e.stopPropagation(); post('select', t.getAttribute('data-node'));
+      var draggingId = null;
+      var lastTarget = null;
+      var lastPosition = null;
+      var indicator = null;
+
+      function post(type, data){
+        var payload = { source:'vexora-runtime', type:type };
+        if (data) { for (var key in data) { if (Object.prototype.hasOwnProperty.call(data, key)) payload[key] = data[key]; } }
+        parent.postMessage(payload, '*');
+      }
+      function byId(id){
+        var nodes = document.querySelectorAll('[data-node]');
+        for (var i = 0; i < nodes.length; i += 1) {
+          if (nodes[i].getAttribute('data-node') === id) return nodes[i];
         }
+        return null;
+      }
+      function nodeFrom(target){
+        var node = target;
+        while (node && node !== document.body) {
+          if (node.getAttribute && node.getAttribute('data-node')) return node;
+          node = node.parentNode;
+        }
+        return null;
+      }
+      function externalDrag(e){
+        var types = e.dataTransfer && e.dataTransfer.types
+          ? Array.prototype.slice.call(e.dataTransfer.types)
+          : [];
+        return types.indexOf(MIME_BLOCK) >= 0 || types.indexOf(MIME_NODE) >= 0;
+      }
+      function isInsideDragged(el){
+        if (!draggingId || !el) return false;
+        if (el.getAttribute('data-node') === draggingId) return true;
+        var source = byId(draggingId);
+        return !!(source && source.contains(el));
+      }
+      function positionFor(el, clientY){
+        var rect = el.getBoundingClientRect();
+        if (!rect.height) return 'after';
+        var offset = clientY - rect.top;
+        var container = el.getAttribute('data-container') === 'true' && el.getAttribute('data-locked') !== 'true';
+        if (container) {
+          if (offset < rect.height * 0.28) return 'before';
+          if (offset > rect.height * 0.72) return 'after';
+          return 'inside';
+        }
+        return offset < rect.height / 2 ? 'before' : 'after';
+      }
+      function report(targetId, position){
+        if (lastTarget === targetId && lastPosition === position) return;
+        lastTarget = targetId;
+        lastPosition = position;
+        post('drag-over', { targetId: targetId, position: position });
+      }
+      function dropPayload(e){
+        if (!e.dataTransfer) return draggingId ? { kind:'node', nodeId:draggingId } : null;
+        var rawBlock = e.dataTransfer.getData(MIME_BLOCK);
+        if (rawBlock) {
+          try {
+            var block = JSON.parse(rawBlock);
+            if (block && block.kind === 'palette' && typeof block.nodeType === 'string') return block;
+          } catch (err) {}
+        }
+        var rawNode = e.dataTransfer.getData(MIME_NODE);
+        if (rawNode) {
+          try {
+            var parsedNode = JSON.parse(rawNode);
+            if (parsedNode && parsedNode.kind === 'node' && typeof parsedNode.nodeId === 'string') return parsedNode;
+          } catch (err) {
+            return { kind:'node', nodeId: rawNode };
+          }
+        }
+        return draggingId ? { kind:'node', nodeId:draggingId } : null;
+      }
+      function clearIndicator(){
+        if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
+        indicator = null;
+      }
+      function drawIndicator(targetId, position){
+        clearIndicator();
+        if (!editable || !targetId || !position) return;
+        var el = byId(targetId);
+        if (!el) return;
+        var rect = el.getBoundingClientRect();
+        indicator = document.createElement('div');
+        indicator.setAttribute('data-vx-dnd-indicator', 'true');
+        indicator.style.position = 'absolute';
+        indicator.style.zIndex = '2147483647';
+        indicator.style.pointerEvents = 'none';
+        indicator.style.boxSizing = 'border-box';
+        if (position === 'inside') {
+          indicator.style.left = (rect.left + window.scrollX) + 'px';
+          indicator.style.top = (rect.top + window.scrollY) + 'px';
+          indicator.style.width = rect.width + 'px';
+          indicator.style.height = rect.height + 'px';
+          indicator.style.border = '2px dashed var(--primary, #0e7a5c)';
+          indicator.style.background = 'color-mix(in srgb, var(--primary, #0e7a5c) 12%, transparent)';
+        } else {
+          var top = position === 'before' ? rect.top : rect.bottom - 3;
+          indicator.style.left = (rect.left + window.scrollX) + 'px';
+          indicator.style.top = (top + window.scrollY) + 'px';
+          indicator.style.width = rect.width + 'px';
+          indicator.style.height = '3px';
+          indicator.style.borderRadius = '2px';
+          indicator.style.background = 'var(--primary, #0e7a5c)';
+        }
+        document.body.appendChild(indicator);
+      }
+
+      document.addEventListener('click', function(e){
+        var t = nodeFrom(e.target);
+        if (!t) return;
+        if (t.getAttribute('data-locked') === 'true') return;
+        e.preventDefault(); e.stopPropagation(); post('select', { id: t.getAttribute('data-node') });
       }, true);
       document.addEventListener('mouseover', function(e){
-        var t = e.target;
-        while(t && t !== document.body && !t.getAttribute('data-node')) t = t.parentNode;
-        if(t && t.getAttribute('data-node')) post('hover', t.getAttribute('data-node'));
+        var t = nodeFrom(e.target);
+        if (t) post('hover', { id: t.getAttribute('data-node') });
       });
+
+      document.addEventListener('dragstart', function(e){
+        var el = nodeFrom(e.target);
+        if (!editable || !el || el.getAttribute('data-root') === 'true' ||
+            el.getAttribute('data-locked') === 'true' || el.getAttribute('data-draggable') !== 'true') {
+          e.preventDefault();
+          return;
+        }
+        draggingId = el.getAttribute('data-node');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData(MIME_NODE, draggingId);
+        }
+        e.stopPropagation();
+        post('drag-start', { id: draggingId });
+      }, true);
+
+      document.addEventListener('dragover', function(e){
+        if (!editable || (!draggingId && !externalDrag(e))) return;
+        var el = nodeFrom(e.target);
+        if (!el || isInsideDragged(el)) { report(null, null); return; }
+        var position = positionFor(el, e.clientY);
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = draggingId ? 'move' : 'copy';
+        report(el.getAttribute('data-node'), position);
+      }, true);
+
+      document.addEventListener('drop', function(e){
+        if (!editable) return;
+        var el = nodeFrom(e.target);
+        if (el && !isInsideDragged(el)) {
+          var position = positionFor(el, e.clientY);
+          e.preventDefault();
+          e.stopPropagation();
+          post('drop', {
+            targetId: el.getAttribute('data-node'),
+            position: position,
+            payload: dropPayload(e),
+          });
+        }
+        report(null, null);
+        draggingId = null;
+        post('drag-end', {});
+      }, true);
+
+      document.addEventListener('dragend', function(){
+        draggingId = null;
+        report(null, null);
+        post('drag-end', {});
+      }, true);
+
+      document.addEventListener('dragleave', function(e){
+        if (!e.relatedTarget || !document.documentElement.contains(e.relatedTarget)) report(null, null);
+      }, true);
+
       window.addEventListener('message', function(e){
-        if(!e.data || e.data.source !== 'vexora-editor') return;
-        if(e.data.type === 'highlight'){
-          if(selected) selected.style.outline = '';
-          if(e.data.id){
-            var el = document.querySelector('[data-node="'+e.data.id+'"]');
-            if(el){ el.style.outline = '2px solid var(--primary, #0e7a5c)'; selected = el; }
-          } else { selected = null; }
+        if (e.source !== parent) return;
+        if (!e.data || e.data.source !== 'vexora-editor') return;
+        if (e.data.type === 'highlight') {
+          if (selected) selected.style.outline = '';
+          selected = null;
+          if (e.data.id) {
+            var el = byId(e.data.id);
+            if (el) { el.style.outline = '2px solid var(--primary, #0e7a5c)'; selected = el; }
+          }
+        } else if (e.data.type === 'editable') {
+          editable = e.data.enabled !== false;
+          if (!editable) { draggingId = null; report(null, null); clearIndicator(); }
+        } else if (e.data.type === 'drag-source') {
+          draggingId = typeof e.data.id === 'string' ? e.data.id : null;
+          if (!draggingId) report(null, null);
+        } else if (e.data.type === 'drop-indicator') {
+          drawIndicator(e.data.targetId, e.data.position);
         }
       });
       parent.postMessage({ source:'vexora-runtime', type:'ready' }, '*');
@@ -243,7 +492,7 @@ function buildIframeHtml(doc: SiteDocument): string {
     </script>
   `;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;font-family:Inter,sans-serif;background:var(--background, #f6f7f4)}</style></head><body>${renderNode(doc.root)}${runtime}</body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;font-family:Inter,sans-serif;background:var(--background, #f6f7f4)}</style></head><body>${renderNode(doc.root, true)}${runtime}</body></html>`;
 }
 
 function camelToKebab(s: string): string {

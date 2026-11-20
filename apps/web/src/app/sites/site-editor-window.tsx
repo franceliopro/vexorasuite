@@ -287,10 +287,12 @@ export default function SiteEditorWindow({
       ) : null}
 
       {!loading && !error && doc ? (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
+        <details className="vx-editor-settings">
+          <summary>Domínio, publicação e respostas</summary>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
             alignItems: "center",
             gap: 8,
             padding: "10px 16px",
@@ -334,10 +336,9 @@ export default function SiteEditorWindow({
               {domainError}
             </small>
           ) : null}
-        </div>
-      ) : null}
+          </div>
 
-      {publishError ? (
+          {publishError ? (
         <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--bad)", borderRadius: "var(--r)" }} role="alert">
           <p style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
             <AlertCircle size={16} aria-hidden="true" /> {publishError}
@@ -374,9 +375,8 @@ export default function SiteEditorWindow({
         </div>
       ) : null}
 
-      {!loading && !error && doc ? (
-        <details
-          className="vx-editor-responses"
+          <details
+            className="vx-editor-responses"
           onToggle={(event) => {
             if (event.currentTarget.open && !submissions && !submissionsLoading) void loadSubmissions();
           }}
@@ -412,6 +412,7 @@ export default function SiteEditorWindow({
               </article>
             ))}
           </div>
+        </details>
         </details>
       ) : null}
 

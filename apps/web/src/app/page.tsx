@@ -436,8 +436,7 @@ export default function HomePage() {
           <div className="topbar-actions">
             {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
-            <ReminderCenter />
-            <AlarmCenter />
+            {/* ReminderCenter and AlarmCenter are rendered at the app root so their fixed overlays escape the topbar stacking context. */}
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
             <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
@@ -519,6 +518,8 @@ export default function HomePage() {
         </div>
       </main>
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
+      <ReminderCenter />
+      <AlarmCenter />
       <nav className={"mobile-bottom-nav" + (active === "Visão geral" ? " mobile-overview-nav" : active === "Atendimento" ? " mobile-inbox-nav" : "")} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>

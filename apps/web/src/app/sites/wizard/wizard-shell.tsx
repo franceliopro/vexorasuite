@@ -43,7 +43,7 @@ type WizardStep = 'origem' | 'tipo' | 'tema' | 'dominio' | 'publicar';
  */
 type WizardMode = 'fullscreen' | 'window' | 'minimized';
 
-type OrigemKind = 'zero' | 'clone' | 'html' | 'zip' | 'ia';
+type OrigemKind = 'zero' | 'clone' | 'html' | 'zip' | 'ia' | 'image';
 
 type SiteType = 'static' | 'landing' | 'blog' | 'real-estate' | 'ecommerce';
 
@@ -94,7 +94,8 @@ export type WizardSource =
   | { kind: 'clone'; url: string }
   | { kind: 'html'; html: string }
   | { kind: 'zip'; fileName: string; contentBase64: string }
-  | { kind: 'ia'; prompt: string; layoutImage?: LayoutImageReference };
+  | { kind: 'ia'; prompt: string; layoutImage?: LayoutImageReference }
+  | { kind: 'image'; layoutImage: LayoutImageReference; prompt?: string };
 
 const LAYOUT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 const LAYOUT_IMAGE_MAX_SIDE = 1600;
@@ -196,6 +197,7 @@ export default function WizardShell({
     (step !== 'origem' ||
       origem === 'zero' ||
       (origem === 'ia' && (prompt.trim().length >= 3 || layoutImage !== null)) ||
+      (origem === 'image' && layoutImage !== null) ||
       (origem === 'clone' && cloneLooksValid) ||
       (origem === 'html' && htmlInput.trim().length >= 10) ||
       (origem === 'zip' && zipFile !== null)) &&
@@ -246,6 +248,11 @@ export default function WizardShell({
       setOrigemError('Descreva a ideia ou envie uma imagem de layout para continuar.');
       return;
     }
+    if (origem === 'image' && !layoutImage) {
+      setStep('origem');
+      setOrigemError('Envie a imagem do layout para recriar a estrutura do site.');
+      return;
+    }
     setBusy(true);
     setOrigemError('');
     try {
@@ -253,6 +260,9 @@ export default function WizardShell({
       if (origem === 'clone') source = { kind: 'clone', url: cloneUrl.trim() };
       if (origem === 'html') source = { kind: 'html', html: htmlInput.trim() };
       if (origem === 'ia') source = { kind: 'ia', prompt: prompt.trim(), layoutImage: layoutImage ?? undefined };
+      if (origem === 'image' && layoutImage) {
+        source = { kind: 'image', layoutImage, ...(prompt.trim() ? { prompt: prompt.trim() } : {}) };
+      }
       if (origem === 'zip') {
         if (!zipFile) throw new Error('Selecione o arquivo ZIP para continuar.');
         source = { kind: 'zip', fileName: zipFile.name, contentBase64: await fileToBase64(zipFile) };
@@ -623,6 +633,7 @@ function OrigemStep({
 }: OrigemStepProps) {
   const options: Array<{ id: OrigemKind; label: string; desc: string; icon: React.ElementType }> = [
     { id: 'zero', label: 'Do zero', desc: 'Comece com uma página em branco.', icon: Palette },
+    { id: 'image', label: 'Upload de imagem', desc: 'Envie uma captura do layout e recrie a estrutura do site.', icon: ImageIcon },
     { id: 'clone', label: 'Clonar link', desc: 'Importe a estrutura de um site público.', icon: Link },
     { id: 'html', label: 'Colar HTML', desc: 'Traga o código de uma página existente.', icon: Code2 },
     { id: 'zip', label: 'Importar ZIP', desc: 'Pacote Elementor, Divi, Beaver ou Crocoblock.', icon: Cloud },
@@ -639,6 +650,7 @@ function OrigemStep({
     fontSize: '0.9375rem',
   };
   const hintStyle: React.CSSProperties = { marginTop: 6, fontSize: '0.8125rem', color: TOKENS.textSecondary };
+  const usesLayoutImage = value === 'ia' || value === 'image';
 
   return (
     <section className="vx-wizard-step-panel">
@@ -722,9 +734,11 @@ function OrigemStep({
               </p>
             </>
           )}
-          {value === 'ia' && (
+          {usesLayoutImage && (
             <>
-              <label className="vx-wizard-field-label" style={labelStyle}>Descreva a ideia (opcional se houver imagem)</label>
+              <label className="vx-wizard-field-label" style={labelStyle}>
+                {value === 'image' ? 'Descreva o site (opcional)' : 'Descreva a ideia (opcional se houver imagem)'}
+              </label>
               <textarea
                 className="vx-wizard-input"
                 value={prompt}
@@ -737,12 +751,13 @@ function OrigemStep({
               <div className="vx-wizard-layout-upload" style={{ marginTop: 14 }}>
                 <label className="vx-wizard-field-label" htmlFor="vx-wizard-layout-image" style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <ImageIcon size={14} aria-hidden="true" />
-                  Imagem de layout (opcional)
+                  {value === 'image' ? 'Imagem do layout (obrigatória)' : 'Imagem de layout (opcional)'}
                 </label>
                 <input
                   id="vx-wizard-layout-image"
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
+                  aria-required={value === 'image'}
                   onChange={(e) => {
                     onLayoutImageChange(e.target.files?.[0] ?? null);
                     e.target.value = '';
@@ -776,7 +791,9 @@ function OrigemStep({
                   </div>
                 ) : null}
                 <p className="vx-wizard-field-hint" style={hintStyle}>
-                  Envie uma captura do layout que você gosta. A IA usa a imagem para sugerir a estrutura (seções, hierarquia e densidade); textos, marca e ativos não são copiados. Se não houver modelo com visão configurado, criamos o rascunho com o template padrão e avisamos.
+                  {value === 'image'
+                    ? 'A imagem recria a estrutura do rascunho: ordem das seções, hierarquia, densidade e paleta. Textos, marca, fotos e dados da captura não são copiados. Sem modelo de visão configurado, usamos regras determinísticas e avisamos.'
+                    : 'Envie uma captura do layout que você gosta. A IA usa a imagem para sugerir a estrutura (seções, hierarquia e densidade); textos, marca e ativos não são copiados. Se não houver modelo com visão configurado, criamos o rascunho com o template padrão e avisamos.'}
                 </p>
               </div>
             </>

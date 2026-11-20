@@ -97,6 +97,6 @@ describe("visão aplicada à imagem de layout", () => {
     const result = await service.analyze({ tenantId: "tenant-1", siteName: "Minha Empresa", prompt: "", image });
 
     expect(result.brief).toBeUndefined();
-    expect(result.warning).toContain("template padrão");
+    expect(result.warning).toContain("regras determinísticas");
   });
 });

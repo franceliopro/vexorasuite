@@ -429,13 +429,13 @@ export function promptDocument({
       emphasis: layoutBrief.emphasis,
       density: layoutBrief.density,
       confidence: layoutBrief.confidence,
-      ...(layoutBrief.model ? { model: layoutBrief.model } : {}),
+      ...(layoutBrief.model ? { model: layoutBrief.model } : { source: "deterministic" }),
     };
   }
 
   document.meta.title = name;
   document.meta.type = kind.toLowerCase().replace(/_/g, "-");
-  document.meta.generatedFrom = layoutBrief ? "prompt+layout" : "prompt";
+  document.meta.generatedFrom = layoutBrief ? (cleanPrompt ? "prompt+layout" : "layout") : "prompt";
   document.pages = generatedPages(fakeIdentity(name, slugify(name), logoUrl), primary, accent, images);
   return document;
 }

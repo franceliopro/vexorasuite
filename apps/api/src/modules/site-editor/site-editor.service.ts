@@ -21,6 +21,33 @@ function assertDocument(document: unknown): void {
   if (typeof doc.version !== 'number' || !Number.isFinite(doc.version)) {
     throw new BadRequestException('Documento inválido: versão ausente.');
   }
+  const pages = (doc as { pages?: unknown }).pages;
+  if (pages !== undefined) {
+    if (!Array.isArray(pages) || pages.length > 30) {
+      throw new BadRequestException('Documento inválido: lista de páginas inválida.');
+    }
+    const slugs = new Set<string>();
+    for (const page of pages) {
+      const item = page as { slug?: unknown; title?: unknown; root?: unknown };
+      const pageRoot = item?.root as { type?: unknown; children?: unknown } | undefined;
+      if (
+        !item ||
+        typeof item.slug !== 'string' ||
+        !/^[a-z0-9][a-z0-9-]{0,60}$/.test(item.slug) ||
+        typeof item.title !== 'string' ||
+        !item.title.trim() ||
+        !pageRoot ||
+        typeof pageRoot.type !== 'string' ||
+        !Array.isArray(pageRoot.children)
+      ) {
+        throw new BadRequestException('Documento inválido: página incompleta.');
+      }
+      if (slugs.has(item.slug)) {
+        throw new BadRequestException('Documento inválido: slug de página repetido.');
+      }
+      slugs.add(item.slug);
+    }
+  }
   if (JSON.stringify(document).length > MAX_DOCUMENT_CHARS) {
     throw new BadRequestException('Documento muito grande. Reduza imagens embutidas e blocos.');
   }

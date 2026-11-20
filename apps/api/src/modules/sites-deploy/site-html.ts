@@ -6,7 +6,7 @@
  * para impedir javascript: e data: em atributos publicados.
  */
 
-type HtmlNode = {
+export type HtmlNode = {
   id?: string;
   type?: string;
   props?: Record<string, unknown>;
@@ -17,6 +17,7 @@ type HtmlNode = {
 type HtmlDocument = {
   version?: number;
   root?: HtmlNode;
+  pages?: Array<{ slug?: unknown; title?: unknown; root?: HtmlNode }>;
   meta?: {
     title?: string;
     type?: string;
@@ -72,10 +73,14 @@ function formFieldName(value: unknown): string {
     .slice(0, 48);
 }
 
-type RenderContext = {
+export type RenderContext = {
   siteId?: string;
   /** Base da API pública, sem a parte do formulário (ex.: https://api.vexorasuite.com.br). */
   apiBase?: string;
+  /** Raiz específica de uma página secundária; quando ausente, renderiza a home. */
+  root?: HtmlNode;
+  /** Título da página secundária; quando ausente, usa o título do documento. */
+  pageTitle?: string;
 };
 
 function youtubeEmbed(src: string): string | null {
@@ -150,6 +155,8 @@ function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContex
         : '<p class="vx-note">Formulário indisponível: a URL pública da API não foi configurada nesta instalação.</p>';
       return `<form class="vx-form"${style} data-vx-form data-vx-block="${escapeHtml(blockId)}" data-vx-endpoint="${escapeHtml(endpoint)}">${inputs}<input class="vx-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit"${endpoint ? "" : " disabled"}>${escapeHtml(props.submitLabel ?? "Enviar")}</button><p class="vx-form-status" role="status" aria-live="polite"></p>${unavailable}</form>`;
     }
+    case "faq":
+      return `<details${style}><summary>${escapeHtml(props.question ?? "Pergunta")}</summary><p>${escapeHtml(props.answer ?? "")}</p></details>`;
     case "post-list":
       return `<section class="vx-placeholder"${style}><p>Lista de posts: será preenchida com as publicações do site.</p></section>`;
     case "product-grid":
@@ -180,8 +187,8 @@ export function renderSiteHtml(
   const accent = safeColor(site.accentColor || theme.secondary, "#6258DF");
   const background = safeColor(theme.background, "#ffffff");
   const text = safeColor(theme.text, "#101d33");
-  const title = escapeHtml(doc.meta?.title || site.name || "Site Véxora");
-  const html = renderNode(doc.root, 0, context);
+  const title = escapeHtml(context.pageTitle || doc.meta?.title || site.name || "Site Véxora");
+  const html = renderNode(context.root ?? doc.root, 0, context);
   // Só injeta o script quando há ao menos um formulário realmente habilitado.
   const hasForm = /data-vx-endpoint="https/.test(html);
 
@@ -207,6 +214,11 @@ a{color:var(--primary)}
 .vx-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
 .vx-form-status{font-size:.8125rem;min-height:1em}
 .vx-note,.vx-placeholder p{font-size:.8125rem;opacity:.7}
+details summary{cursor:pointer;font-weight:700;list-style:none;padding:.25rem 0}
+details summary::-webkit-details-marker{display:none}
+details summary:after{content:"+";float:right;font-weight:400}
+details[open] summary:after{content:"−"}
+details p{margin:.65rem 0 .25rem;opacity:.8}
 </style>
 </head>
 <body>

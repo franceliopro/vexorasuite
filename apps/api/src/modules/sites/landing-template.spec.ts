@@ -70,10 +70,35 @@ describe("landing page no criador de sites", () => {
 
     const site = await service.create(TENANT, "OWNER", { name: "Página da campanha", kind: "landing" });
 
+    const nodes = walk(created.document.root);
+
     expect(site.kind).toBe("LANDING");
     expect(created.document.meta.type).toBe("landing");
-    expect(created.document.root.children).toHaveLength(3);
+    expect(created.document.root.children).toHaveLength(12);
+    expect(nodes.some((node) => node.type === "section" && node.props.anchor === LANDING_CONTACT_ANCHOR)).toBe(true);
+    expect(nodes.some((node) => node.type === "section" && node.props.anchor === "servicos")).toBe(true);
+    expect(nodes.some((node) => node.type === "section" && node.props.anchor === "como-funciona")).toBe(true);
+    expect(nodes.some((node) => node.type === "section" && node.props.anchor === "faq")).toBe(true);
+    expect(nodes.find((node) => node.id === "landing_benefit_1")?.styles.display).toBe("flex");
+    expect(nodes.filter((node) => node.type === "faq")).toHaveLength(3);
+    expect(nodes.some((node) => /Substitua este texto|Apresente sua oferta/.test(String(node.props.content ?? "")))).toBe(false);
     expect(prisma.siteDocument.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("usa o logotipo informado no template padrão", async () => {
+    const { prisma, created } = prismaMock();
+    const service = new SitesService(prisma);
+
+    await service.create(TENANT, "OWNER", {
+      name: "Página da campanha",
+      kind: "landing",
+      logoUrl: "https://exemplo.com/logo.png",
+    });
+
+    const nodes = walk(created.document.root);
+    expect(created.site.logoUrl).toBe("https://exemplo.com/logo.png");
+    expect(nodes.find((node) => node.id === "landing_logo_image")?.props.src).toBe("https://exemplo.com/logo.png");
+    expect(nodes.some((node) => node.id === "landing_logo_fake_mark")).toBe(false);
   });
 
   it("não sobrescreve documento importado de uma landing page", async () => {
@@ -98,6 +123,11 @@ describe("landing page no criador de sites", () => {
     expect(html).toContain(`data-vx-block="${LANDING_FORM_BLOCK_ID}"`);
     expect(html).toContain('name="email" type="email"');
     expect(html).toContain("Enviar mensagem");
+    expect(html).toContain('href="/servicos/"');
+    expect(html).toContain('href="/#como-funciona"');
+    expect(html).toContain('href="/faq/"');
+    expect(html).toContain("<details");
+    expect(html).toContain("<summary>Como faço para falar com a equipe?</summary>");
     expect(html).toContain("data-vx-endpoint=\"https://api.vexorasuite.com.br/api/public/sites/");
   });
 });

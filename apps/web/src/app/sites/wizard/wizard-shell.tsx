@@ -74,7 +74,7 @@ const STEP_ICONS: Record<WizardStep, React.ElementType> = {
 interface WizardShellProps {
   open: boolean;
   onClose: () => void;
-  onComplete: (site: { title: string; type: SiteType; domain?: string; source: WizardSource }) => void;
+  onComplete: (site: { title: string; type: SiteType; domain?: string; logoUrl?: string; source: WizardSource }) => void;
   disabled?: boolean;
 }
 
@@ -129,6 +129,7 @@ export default function WizardShell({
   const [theme, setTheme] = useState('default');
   const [domain, setDomain] = useState('');
   const [siteTitle, setSiteTitle] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
 
   const currentIndex = STEP_ORDER.indexOf(step);
   const isFirst = currentIndex === 0;
@@ -138,7 +139,7 @@ export default function WizardShell({
     currentIndex < STEP_ORDER.length - 1 &&
     (step !== 'origem' ||
       origem === 'zero' ||
-      origem === 'ia' ||
+      (origem === 'ia' && prompt.trim().length >= 3) ||
       (origem === 'clone' && cloneLooksValid) ||
       (origem === 'html' && htmlInput.trim().length >= 10) ||
       (origem === 'zip' && zipFile !== null)) &&
@@ -178,13 +179,19 @@ export default function WizardShell({
         if (!zipFile) throw new Error('Selecione o arquivo ZIP para continuar.');
         source = { kind: 'zip', fileName: zipFile.name, contentBase64: await fileToBase64(zipFile) };
       }
-      onComplete({ title: siteTitle.trim(), type: siteType, domain: domain || undefined, source });
+      onComplete({
+        title: siteTitle.trim(),
+        type: siteType,
+        domain: domain || undefined,
+        logoUrl: logoUrl.trim() || undefined,
+        source,
+      });
     } catch (cause) {
       setOrigemError(cause instanceof Error ? cause.message : 'Não foi possível preparar a importação.');
     } finally {
       setBusy(false);
     }
-  }, [siteTitle, siteType, domain, onComplete, origem, cloneUrl, htmlInput, zipFile, prompt]);
+  }, [siteTitle, siteType, domain, logoUrl, onComplete, origem, cloneUrl, htmlInput, zipFile, prompt]);
 
   if (!open) return null;
 
@@ -391,6 +398,8 @@ export default function WizardShell({
             onChange={setSiteType}
             title={siteTitle}
             onTitleChange={setSiteTitle}
+            logoUrl={logoUrl}
+            onLogoUrlChange={setLogoUrl}
             disabled={disabled}
           />
         )}
@@ -527,7 +536,7 @@ function OrigemStep({
     { id: 'clone', label: 'Clonar link', desc: 'Importe a estrutura de um site público.', icon: Link },
     { id: 'html', label: 'Colar HTML', desc: 'Traga o código de uma página existente.', icon: Code2 },
     { id: 'zip', label: 'Importar ZIP', desc: 'Pacote Elementor, Divi, Beaver ou Crocoblock.', icon: Cloud },
-    { id: 'ia', label: 'Descrever ideia', desc: 'Anote a ideia; a IA por elemento fica no editor.', icon: Rocket },
+    { id: 'ia', label: 'Descrever ideia', desc: 'Escreva a ideia e receba um rascunho premium com textos sugeridos.', icon: Rocket },
   ];
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.875rem', fontWeight: 600, color: TOKENS.text, marginBottom: 6 };
   const fieldStyle: React.CSSProperties = {
@@ -625,7 +634,7 @@ function OrigemStep({
           )}
           {value === 'ia' && (
             <>
-              <label className="vx-wizard-field-label" style={labelStyle}>Descreva a ideia (opcional)</label>
+              <label className="vx-wizard-field-label" style={labelStyle}>Descreva a ideia</label>
               <textarea
                 className="vx-wizard-input"
                 value={prompt}
@@ -636,7 +645,7 @@ function OrigemStep({
                 style={{ ...fieldStyle, resize: 'vertical' }}
               />
               <p className="vx-wizard-field-hint" style={hintStyle}>
-                O site é criado como rascunho. A IA por elemento fica na caixa do inspetor do editor.
+                Criamos um rascunho premium com layout e textos sugeridos pela sua descrição. Revise e ajuste tudo no editor.
               </p>
             </>
           )}
@@ -653,10 +662,12 @@ interface TipoStepProps {
   onChange: (v: SiteType) => void;
   title: string;
   onTitleChange: (v: string) => void;
+  logoUrl: string;
+  onLogoUrlChange: (v: string) => void;
   disabled: boolean;
 }
 
-function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepProps) {
+function TipoStep({ value, onChange, title, onTitleChange, logoUrl, onLogoUrlChange, disabled }: TipoStepProps) {
   const types: Array<{ id: SiteType; label: string; desc: string; icon: React.ElementType }> = [
     { id: 'static', label: 'Estático', desc: 'Site institucional simples.', icon: Globe },
     { id: 'landing', label: 'Landing page', desc: 'Uma página focada em converter visitantes em contatos.', icon: CheckCircle2 },
@@ -694,6 +705,32 @@ function TipoStep({ value, onChange, title, onTitleChange, disabled }: TipoStepP
               fontSize: '0.9375rem',
             }}
           />
+        </label>
+        <label style={{ display: 'block', marginTop: 12 }}>
+          <span style={{ display: 'block', fontSize: '0.8125rem', color: TOKENS.textSecondary, marginBottom: 4 }}>
+            URL do logotipo (opcional)
+          </span>
+          <input
+            type="url"
+            value={logoUrl}
+            maxLength={500}
+            disabled={disabled}
+            onChange={(event) => onLogoUrlChange(event.target.value)}
+            placeholder="https://seusite.com.br/logo.png"
+            aria-label="URL do logotipo"
+            style={{
+              width: '100%',
+              padding: '0.65rem 0.75rem',
+              borderRadius: TOKENS.radius,
+              border: `1px solid ${TOKENS.border}`,
+              background: TOKENS.surface,
+              color: TOKENS.text,
+              fontSize: '0.9375rem',
+            }}
+          />
+          <small style={{ display: 'block', marginTop: 4, color: TOKENS.textSecondary, fontSize: '0.75rem' }}>
+            Se deixar em branco, criamos um logotipo provisório para você trocar depois.
+          </small>
         </label>
       </header>
       <div className="vx-wizard-options">

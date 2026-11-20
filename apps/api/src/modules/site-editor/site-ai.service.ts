@@ -40,7 +40,7 @@ export type AiEditResult = {
 };
 
 const NODE_TYPES = new Set([
-  "section", "text", "image", "button", "form", "post-list", "product-grid", "video", "container",
+  "section", "text", "image", "button", "form", "post-list", "product-grid", "video", "container", "faq",
 ]);
 
 const PROP_KEYS: Record<string, Set<string>> = {
@@ -53,6 +53,7 @@ const PROP_KEYS: Record<string, Set<string>> = {
   form: new Set(["fields", "submitLabel"]),
   "post-list": new Set(["count", "layout"]),
   "product-grid": new Set(["count", "columns"]),
+  faq: new Set(["question", "answer"]),
 };
 
 const LENGTH = /^\d+(?:\.\d+)?(?:px|rem|em|%)$/;
@@ -110,8 +111,9 @@ function sanitizePatch(nodeType: string, value: unknown): NodePatch {
   const props = isRecord(value.props) ? value.props : {};
   for (const [key, raw] of Object.entries(props)) {
     if (!allowedProps.has(key)) continue;
-    if (["content", "label", "alt", "submitLabel", "title"].includes(key)) {
-      const clean = text(raw, key === "content" ? 4000 : 200);
+    if (["content", "label", "alt", "submitLabel", "title", "question", "answer"].includes(key)) {
+      const limit = key === "content" || key === "answer" ? 4000 : 200;
+      const clean = text(raw, limit);
       if (clean !== null) patch.props[key] = clean;
     } else if (key === "tag") {
       if (["h1", "h2", "h3", "p"].includes(String(raw))) patch.props.tag = String(raw);
@@ -159,6 +161,13 @@ function applyPatch(node: EditableNode, patch: NodePatch): EditableNode {
   };
 }
 
+/** Lê um valor rotulado mesmo quando o frontend normaliza quebras de linha em espaço. */
+function labeledValue(prompt: string, labels: string[], stops: string[] = []): string | undefined {
+  const stop = stops.length ? `(?=\\s+(?:${stops.join("|")})\\s*:|$)` : "$";
+  const match = prompt.match(new RegExp(`(?:^|\\s)(?:${labels.join("|")})\\s*:?\\s*(.+?)${stop}`, "i"));
+  return match?.[1]?.trim();
+}
+
 /** Regras rápidas: cobrem pedidos comuns sem chamar modelo nem consumir cota. */
 function deterministicPatch(node: EditableNode, prompt: string): NodePatch {
   const lower = prompt.toLowerCase();
@@ -179,6 +188,10 @@ function deterministicPatch(node: EditableNode, prompt: string): NodePatch {
   if (content && node.type === "text") patch.props.content = content.trim().slice(0, 4000);
   const label = prompt.match(/^(?:r[oó]tulo|label|bot[aã]o)\s*:?\s*(.+)$/i)?.[1];
   if (label && node.type === "button") patch.props.label = label.trim().slice(0, 200);
+  const question = labeledValue(prompt, ["pergunta", "question"], ["resposta", "answer"]);
+  if (question && node.type === "faq") patch.props.question = question.slice(0, 200);
+  const answer = labeledValue(prompt, ["resposta", "answer"]);
+  if (answer && node.type === "faq") patch.props.answer = answer.slice(0, 4000);
   return sanitizePatch(node.type, patch);
 }
 

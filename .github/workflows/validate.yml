@@ -95,6 +95,8 @@ jobs:
         run: pnpm --filter @vexorasuite/api typecheck
       - name: API build
         run: pnpm --filter @vexorasuite/api build
+      - name: API boot smoke test (DI, routes and database)
+        run: pnpm --filter @vexorasuite/api exec node test/boot-smoke.cjs
       - name: Support collaboration and escalation regressions
         run: pnpm --filter @vexorasuite/api exec node test/support-collaboration.cjs
       - name: Track telemetry and tenant isolation

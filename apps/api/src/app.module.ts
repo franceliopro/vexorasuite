@@ -11,11 +11,12 @@ import { RateLimitInterceptor } from "./common/rate-limit/rate-limit.interceptor
 import { RateLimitService } from "./common/rate-limit/rate-limit.service";
 import { MailModule } from "./mail/mail.module";
 import { SitesModule } from "./modules/sites/sites.module";
+import { SitesImportModule } from "./modules/sites-import/sites-import.module";
 import { SitesDeployModule } from "./modules/sites-deploy/sites-deploy.module";
 import { SiteEditorModule } from "./modules/site-editor/site-editor.module";
 
 @Module({
-  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule, SitesDeployModule, SiteEditorModule, ],
+  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule, SitesImportModule, SitesDeployModule, SiteEditorModule, ],
   controllers: [HealthController],
   providers: [
     RateLimitService,

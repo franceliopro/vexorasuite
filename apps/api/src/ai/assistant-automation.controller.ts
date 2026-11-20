@@ -11,5 +11,5 @@ export class AssistantAutomationController {
  @Get(':id')
  async read(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string){const data=await this.automation.read(req,id);return {id,details:data.details};}
  @Get(':id/slides/:index')
- async slide(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Res() res:Response){res.setHeader('Content-Type','image/png');res.setHeader('Cache-Control','private, no-store');res.send(await this.automation.preview(req,id,index));}
+ async slide(@Req() req:AuthenticatedRequest,@Param('id',ParseUUIDPipe) id:string,@Param('index',ParseIntPipe) index:number,@Res() res:Response,@Query('source') source?:string,@Query('theme') theme?:string){res.setHeader('Content-Type','image/png');res.setHeader('Cache-Control','private, no-store');res.send(await this.automation.preview(req,id,index,{source:source==='cover'?'cover':'slide',theme:theme==='light'||theme==='dark'?theme:undefined}));}
 }

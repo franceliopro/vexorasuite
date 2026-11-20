@@ -206,4 +206,25 @@ describe("rascunho premium a partir da descrição do wizard", () => {
       service.create(TENANT, "OWNER", { name: "Site simples", prompt: "Site novo", logoUrl: "javascript:alert(1)" }),
     ).rejects.toThrow();
   });
+
+  it("entrega imagens ilustrativas editáveis no rascunho a partir do prompt", () => {
+    const img = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
+    const document = promptDocument({
+      prompt: "Clínica veterinária",
+      name: "Pet Care",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+      images: { about: img + "A", team: img + "B", service: img + "C" },
+    });
+    const all = nodes(document);
+    const heroImage = all.find((node) => node.id === "landing_about_visual_image");
+
+    expect(heroImage?.type).toBe("image");
+    expect(String(heroImage?.props.src)).toMatch(/^data:image\/png;base64,/);
+    expect(content(document, "landing_about_visual_label")).toMatch(/TROQUE POR FOTO REAL/);
+    expect(all.find((node) => node.id === "page_sobre_team_image")?.type).toBe("image");
+    expect(all.find((node) => node.id === "page_servicos_image")?.type).toBe("image");
+    expect(JSON.stringify(document)).not.toContain("FOTO REAL DA EQUIPE OU DO ESPAÇO");
+  });
 });

@@ -740,7 +740,7 @@ function DominioStep({ domain, onChange, onDomainValidated, disabled, siteSlug }
       <header className="vx-wizard-step-head">
         <h3 className="vx-wizard-step-title">Domínio próprio</h3>
         <p className="vx-wizard-step-sub">
-          Informe o domínio que pretende usar. A configuração de DNS e o deploy via Cloudflare entram na próxima etapa.
+          Informe o domínio que pretende usar. Você poderá vinculá-lo e validá-lo no editor antes de publicar.
         </p>
       </header>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -782,7 +782,7 @@ function DominioStep({ domain, onChange, onDomainValidated, disabled, siteSlug }
         </button>
       </div>
       <p className="vx-wizard-field-hint" style={{ marginTop: 10, fontSize: '0.8125rem', color: TOKENS.textSecondary }}>
-        Exemplo: {siteSlug || 'suaempresa'}.com.br. O domínio fica registrado no rascunho; a validação de DNS e a publicação vêm depois.
+        Exemplo: {siteSlug || 'suaempresa'}.com.br. A vinculação e a validação acontecem no editor.
       </p>
     </section>
   );
@@ -816,7 +816,7 @@ function PublicarStep({ siteTitle, siteType, domain }: PublicarStepProps) {
       <div className="vx-wizard-publicar-notice" style={{ marginTop: 16, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '1rem', background: `color-mix(in srgb, ${TOKENS.ok} 8%, transparent)`, border: `1px solid ${TOKENS.ok}`, borderRadius: TOKENS.radius }}>
         <AlertCircle size={16} style={{ color: TOKENS.ok, flexShrink: 0 }} aria-hidden="true" />
         <span style={{ fontSize: '0.875rem', color: TOKENS.text, lineHeight: 1.5 }}>
-          O site será criado como rascunho. Depois você edita as páginas no editor visual; domínio próprio e publicação entram na próxima etapa.
+          O site será criado como rascunho. No editor você ajusta as páginas, vincula o domínio e publica.
         </span>
       </div>
     </section>

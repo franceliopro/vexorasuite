@@ -20,6 +20,8 @@ type DocumentRow = { document: SiteDocument; version: number };
 type SiteEditorWindowProps = {
   siteId: string;
   title: string;
+  domain?: string | null;
+  domainStatus?: string;
   onClose: () => void;
 };
 
@@ -31,11 +33,25 @@ function isDocument(value: unknown): value is SiteDocument {
   return !!doc.root && typeof doc.root === "object" && !!doc.meta && typeof doc.meta === "object";
 }
 
-export default function SiteEditorWindow({ siteId, title, onClose }: SiteEditorWindowProps) {
+export default function SiteEditorWindow({
+  siteId,
+  title,
+  domain,
+  domainStatus,
+  onClose,
+}: SiteEditorWindowProps) {
   const [doc, setDoc] = useState<SiteDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState<{ url: string; idempotent: boolean } | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+  const [domainInput, setDomainInput] = useState(domain ?? "");
+  const [domainState, setDomainState] = useState(domainStatus ?? "NONE");
+  const [domainBusy, setDomainBusy] = useState(false);
+  const [domainMessage, setDomainMessage] = useState<string | null>(null);
+  const [domainError, setDomainError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [device, setDevice] = useState<Device>("desktop");
@@ -99,6 +115,74 @@ export default function SiteEditorWindow({ siteId, title, onClose }: SiteEditorW
     }
   }, [doc, saving, siteId]);
 
+  const bindDomain = useCallback(async (): Promise<void> => {
+    const value = domainInput.trim().toLowerCase();
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)) {
+      setDomainError("Informe um domínio válido, como www.exemplo.com.br.");
+      return;
+    }
+    setDomainBusy(true);
+    setDomainError(null);
+    setDomainMessage(null);
+    try {
+      const response = await fetch(`/api/backend/sites/${siteId}/domain`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ domain: value }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.message || "Não foi possível vincular o domínio.");
+      setDomainState("PENDING_DNS");
+      setDomainMessage(payload?.instructions || `CNAME: ${value} -> ${payload?.cnameTarget || "projeto.pages.dev"}`);
+    } catch (cause) {
+      setDomainError(cause instanceof Error ? cause.message : "Não foi possível vincular o domínio.");
+    } finally {
+      setDomainBusy(false);
+    }
+  }, [domainInput, siteId]);
+
+  const verifyDomain = useCallback(async (): Promise<void> => {
+    setDomainBusy(true);
+    setDomainError(null);
+    setDomainMessage(null);
+    try {
+      const response = await fetch(`/api/backend/sites/${siteId}/domain/verify`);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.message || "Não foi possível verificar o domínio.");
+      setDomainState(String(payload?.status || "VERIFYING"));
+      setDomainMessage(
+        payload?.verified
+          ? "Domínio ativo e SSL emitido."
+          : "Domínio ainda não ativo. Confira o CNAME no seu provedor de DNS e tente novamente.",
+      );
+    } catch (cause) {
+      setDomainError(cause instanceof Error ? cause.message : "Não foi possível verificar o domínio.");
+    } finally {
+      setDomainBusy(false);
+    }
+  }, [siteId]);
+
+  const publish = useCallback(async (): Promise<void> => {
+    setPublishing(true);
+    setPublishError(null);
+    setPublishResult(null);
+    try {
+      const response = await fetch(`/api/backend/sites/${siteId}/deploy`, { method: "POST" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.message || "Não foi possível publicar o site.");
+      }
+      setPublishResult({
+        url: String(payload?.url || ""),
+        idempotent: payload?.idempotent === true,
+      });
+    } catch (cause) {
+      setPublishError(cause instanceof Error ? cause.message : "Não foi possível publicar o site.");
+    } finally {
+      setPublishing(false);
+    }
+  }, [siteId]);
+
   const handleAIChange = useCallback(
     (prompt: string, nodeId: string) => {
       if (!doc || !prompt.trim()) return;
@@ -152,6 +236,78 @@ export default function SiteEditorWindow({ siteId, title, onClose }: SiteEditorW
       ) : null}
 
       {!loading && !error && doc ? (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 16px",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--surface)",
+          }}
+        >
+          <label htmlFor={`domain-${siteId}`} style={{ fontSize: "0.8125rem", fontWeight: 700 }}>
+            Domínio próprio
+          </label>
+          <input
+            id={`domain-${siteId}`}
+            type="text"
+            value={domainInput}
+            onChange={(event) => setDomainInput(event.target.value)}
+            placeholder="www.seusite.com.br"
+            aria-label="Domínio do site"
+            style={{
+              padding: "0.45rem 0.6rem",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)",
+              background: "var(--background)",
+              color: "var(--text)",
+              minWidth: 220,
+            }}
+          />
+          <button type="button" className="secondary-button" onClick={() => void bindDomain()} disabled={domainBusy}>
+            Vincular
+          </button>
+          <button type="button" className="secondary-button" onClick={() => void verifyDomain()} disabled={domainBusy || !domainInput}>
+            Verificar
+          </button>
+          <span style={{ fontSize: "0.75rem", opacity: 0.75 }}>Status: {domainState}</span>
+          {domainMessage ? (
+            <small role="status" style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--ok)" }}>
+              {domainMessage}
+            </small>
+          ) : null}
+          {domainError ? (
+            <small role="alert" style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--bad)" }}>
+              {domainError}
+            </small>
+          ) : null}
+        </div>
+      ) : null}
+
+      {publishError ? (
+        <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--bad)", borderRadius: "var(--r)" }} role="alert">
+          <p style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+            <AlertCircle size={16} aria-hidden="true" /> {publishError}
+          </p>
+        </div>
+      ) : null}
+
+      {publishResult ? (
+        <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--ok)", borderRadius: "var(--r)" }} role="status">
+          <p style={{ margin: 0, fontSize: "0.875rem" }}>
+            {publishResult.idempotent ? "Este conteúdo já estava publicado. " : "Publicação concluída. "}
+            {publishResult.url ? (
+              <a href={publishResult.url} target="_blank" rel="noopener noreferrer">
+                Abrir site publicado
+              </a>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+
+      {!loading && !error && doc ? (
         <EditorShell
           siteId={siteId}
           doc={doc}
@@ -160,8 +316,8 @@ export default function SiteEditorWindow({ siteId, title, onClose }: SiteEditorW
             setDirty(true);
           }}
           onSave={save}
-          onPublish={() => undefined}
-          publishDisabled
+          onPublish={() => void publish()}
+          publishDisabled={publishing}
           onMinimize={() => setMinimized(true)}
           dirty={dirty}
           onSelectNode={() => undefined}
@@ -170,7 +326,7 @@ export default function SiteEditorWindow({ siteId, title, onClose }: SiteEditorW
           aiBusy={aiBusy}
           device={device}
           onDeviceChange={setDevice}
-          disabled={saving}
+          disabled={saving || publishing}
           loading={loading}
           onClose={requestClose}
         />

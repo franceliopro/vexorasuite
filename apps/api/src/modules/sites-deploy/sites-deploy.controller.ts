@@ -23,11 +23,8 @@ export class SitesDeployController {
   }
 
   @Post(':id/deploy')
-  async deploy(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: AuthenticatedRequest,
-    @Body() body: { files: { path: string; contentBase64: string }[] },
-  ) {
-    return this.service.deploy(id, req.user.tenantId, body.files);
+  async deploy(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest) {
+    // O conteúdo publicado vem do SiteDocument salvo, nunca de arquivos enviados pelo navegador.
+    return this.service.publishFromDocument(id, req.user.tenantId);
   }
 }

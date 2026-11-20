@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { resolveEntitlements } from "../../auth/entitlements";
 import { landingDocument } from "./landing-template";
+import { promptDocument } from "./prompt-template";
 
 /**
  * Sites: registros raiz do criador de sites.
@@ -20,6 +21,8 @@ type CreateSiteInput = {
   businessArea?: unknown;
   primaryColor?: unknown;
   accentColor?: unknown;
+  prompt?: unknown;
+  logoUrl?: unknown;
 };
 
 type UpdateSiteInput = Partial<CreateSiteInput>;
@@ -51,6 +54,20 @@ function color(value: unknown, field: string, fallback: string): string {
     throw new BadRequestException(`${field} deve ser uma cor hexadecimal (#RRGGBB).`);
   }
   return value.trim().toLowerCase();
+}
+
+function logo(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") throw new BadRequestException("logoUrl deve ser texto.");
+  const candidate = value.trim();
+  if (candidate.length > 500) throw new BadRequestException("logoUrl é longa demais.");
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "https:") throw new Error("protocolo");
+    return url.toString();
+  } catch {
+    throw new BadRequestException("logoUrl deve ser uma URL https válida.");
+  }
 }
 
 function slugify(value: string): string {
@@ -177,12 +194,24 @@ export class SitesService {
   }
 
   async create(tenantId: string, role: string, input: CreateSiteInput) {
-    return this.createWithDocument(tenantId, role, input);
+    // A descrição do wizard gera um rascunho determinístico. Sem prompt, o comportamento
+    // permanece o de sempre: template de landing ou documento vazio conforme o tipo.
+    if (input.prompt === undefined || input.prompt === null || input.prompt === "") {
+      return this.createWithDocument(tenantId, role, input);
+    }
+    const prompt = text(input.prompt, "prompt", 3, 2000);
+    const name = text(input.name, "name", 2, 100);
+    const siteKind = kind(input.kind);
+    const primary = color(input.primaryColor, "primaryColor", "#0E7A5C");
+    const accent = color(input.accentColor, "accentColor", "#6258DF");
+    const document = promptDocument({ prompt, name, kind: siteKind, primary, accent, logoUrl: logo(input.logoUrl) });
+    return this.createWithDocument(tenantId, role, input, document);
   }
 
   /**
-   * Criação usada pelos adapters de importação. O documento já vem convertido e validado
-   * pelo adaptador; o endpoint público de criação continua gerando o documento padrão.
+   * Criação usada pelos adapters de importação e pelo rascunho a partir de prompt.
+   * O documento já vem convertido e validado por quem chama; o endpoint público sem
+   * prompt continua gerando o documento padrão.
    */
   async createWithDocument(tenantId: string, role: string, input: CreateSiteInput, importedDocument?: unknown) {
     this.assertManager(role);
@@ -195,17 +224,18 @@ export class SitesService {
     const businessArea = input.businessArea === undefined || input.businessArea === null
       ? ""
       : text(input.businessArea, "businessArea", 0, 80);
+    const logoUrl = logo(input.logoUrl);
     const slug = await this.uniqueSlug(slugify(name));
 
     return this.prisma.$transaction(async (tx) => {
       const site = await tx.site.create({
-        data: { tenantId, name, slug, kind: siteKind, businessArea, primaryColor: primary, accentColor: accent },
+        data: { tenantId, name, slug, kind: siteKind, businessArea, primaryColor: primary, accentColor: accent, logoUrl },
         select: { id: true, name: true, slug: true, kind: true, domain: true, domainStatus: true, published: true, createdAt: true },
       });
       // Uma landing page já nasce com o funil completo: oferta, benefícios e formulário.
       // Importações continuam usando o documento convertido pelo adaptador.
       const document = importedDocument
-        ?? (siteKind === "LANDING" ? landingDocument(name, primary, accent) : defaultDocument(name, siteKind, primary, accent));
+        ?? (siteKind === "LANDING" ? landingDocument(name, primary, accent, logoUrl) : defaultDocument(name, siteKind, primary, accent));
       await tx.siteDocument.create({
         data: { siteId: site.id, document: document as Prisma.InputJsonValue, version: 1 },
       });
@@ -217,12 +247,13 @@ export class SitesService {
     this.assertManager(role);
     await this.ownedSite(siteId, tenantId);
 
-    const data: { name?: string; kind?: string; businessArea?: string; primaryColor?: string; accentColor?: string } = {};
+    const data: { name?: string; kind?: string; businessArea?: string; primaryColor?: string; accentColor?: string; logoUrl?: string | null } = {};
     if (input.name !== undefined) data.name = text(input.name, "name", 2, 100);
     if (input.kind !== undefined) data.kind = kind(input.kind);
     if (input.businessArea !== undefined) data.businessArea = text(input.businessArea, "businessArea", 0, 80);
     if (input.primaryColor !== undefined) data.primaryColor = color(input.primaryColor, "primaryColor", "#0E7A5C");
     if (input.accentColor !== undefined) data.accentColor = color(input.accentColor, "accentColor", "#6258DF");
+    if (input.logoUrl !== undefined) data.logoUrl = logo(input.logoUrl);
     if (!Object.keys(data).length) throw new BadRequestException("Informe ao menos um campo para atualizar.");
 
     return this.prisma.site.update({

@@ -96,15 +96,46 @@ export function EditorShell({
     doc ? createHistory(doc) : createHistory(emptyDocument()),
   );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [activePageSlug, setActivePageSlug] = useState<string>('__home__');
   const [notice, setNotice] = useState('');
   const [noticeKind, setNoticeKind] = useState<'info' | 'ok' | 'bad'>('info');
 
+  const pages = useMemo(() => doc?.pages ?? [], [doc]);
+  const activePage = useMemo(
+    () => pages.find((page) => page.slug === activePageSlug) ?? null,
+    [pages, activePageSlug],
+  );
+  const activeRoot = activePage?.root ?? doc?.root ?? null;
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activePageSlug]);
+
   const selectedNode = useMemo(() => {
-    if (!doc || selectedIds.length === 0) return null;
+    if (!activeRoot || selectedIds.length === 0) return null;
     const firstId = selectedIds[0];
     if (!firstId) return null;
-    return findNodeById(doc.root, firstId);
-  }, [doc, selectedIds]);
+    return findNodeById(activeRoot, firstId);
+  }, [activeRoot, selectedIds]);
+
+  const canvasDoc = useMemo(
+    () => (doc && activeRoot ? { ...doc, root: activeRoot } : doc),
+    [doc, activeRoot],
+  );
+
+  const withActiveRoot = useCallback(
+    (nextRoot: SiteNode): SiteDocument => {
+      const current = doc!;
+      if (!activePage) return { ...current, root: nextRoot };
+      return {
+        ...current,
+        pages: (current.pages ?? []).map((page) =>
+          page.slug === activePage.slug ? { ...page, root: nextRoot } : page,
+        ),
+      };
+    },
+    [doc, activePage],
+  );
 
   const schema = useMemo(() => {
     if (!selectedNode) return [];
@@ -184,14 +215,11 @@ export function EditorShell({
   const handlePropChange = useCallback(
     (key: string, value: string | number | boolean) => {
       if (!selectedNode) return;
-      const next = {
-        ...doc!,
-        root: setNodeProp(doc!.root, selectedNode.id, key, value),
-      };
+      const next = withActiveRoot(setNodeProp(activeRoot!, selectedNode.id, key, value));
       setDoc(next);
       onPropChange(selectedNode.id, key, value);
     },
-    [doc, selectedNode, setDoc, onPropChange],
+    [activeRoot, selectedNode, setDoc, onPropChange, withActiveRoot],
   );
 
   const handleAIChange = useCallback((prompt: string) => {
@@ -199,7 +227,7 @@ export function EditorShell({
     onAIChange(prompt, selectedNode.id);
   }, [selectedNode, onAIChange]);
 
-  const nodeCount = useMemo(() => (doc ? countNodes(doc.root) : 0), [doc]);
+  const nodeCount = useMemo(() => (activeRoot ? countNodes(activeRoot) : 0), [activeRoot]);
 
   if (!doc) return null;
 
@@ -233,6 +261,31 @@ export function EditorShell({
         </div>
 
         <div className="vx-editor-topbar-center">
+          <label htmlFor="vx-editor-page" style={{ fontSize: '0.75rem', fontWeight: 600, marginRight: 6 }}>
+            Página
+          </label>
+          <select
+            id="vx-editor-page"
+            value={activePageSlug}
+            onChange={(event) => setActivePageSlug(event.target.value)}
+            disabled={disabled || loading}
+            style={{
+              background: 'var(--surface, #ffffff)',
+              border: '1px solid var(--border, #e5e8ef)',
+              borderRadius: 8,
+              color: 'var(--text, #101d33)',
+              fontSize: '0.8125rem',
+              maxWidth: 220,
+              padding: '0.35rem 0.5rem',
+            }}
+          >
+            <option value="__home__">Início (index)</option>
+            {pages.map((page) => (
+              <option key={page.slug} value={page.slug}>
+                {page.title}{page.kind === 'legal' ? ' · rascunho legal' : ''}
+              </option>
+            ))}
+          </select>
           <span className="vx-editor-node-count">{nodeCount} blocos</span>
         </div>
 
@@ -293,11 +346,8 @@ export function EditorShell({
           <Palette
             blocks={BLOCK_TYPES.map((t) => BLOCK_REGISTRY[t])}
             onAdd={(type) => {
-              if (disabled || loading) return;
-              const next = {
-                ...doc,
-                root: insertNode(doc.root, createNode(type)),
-              };
+              if (disabled || loading || !activeRoot) return;
+              const next = withActiveRoot(insertNode(activeRoot, createNode(type)));
               setDoc(next);
               setNotice(`Bloco "${BLOCK_REGISTRY[type as keyof typeof BLOCK_REGISTRY].label}" adicionado.`);
               setNoticeKind('ok');
@@ -307,7 +357,7 @@ export function EditorShell({
             loading={loading}
           />
           <LayerTree
-            nodes={[doc.root]}
+            nodes={activeRoot ? [activeRoot] : []}
             selectedIds={selectedIds}
             onSelect={handleSelect}
             disabled={disabled}
@@ -316,7 +366,7 @@ export function EditorShell({
 
         <main className="vx-editor-canvas-area">
           <Canvas
-            doc={doc}
+            doc={canvasDoc ?? doc}
             selectedId={selectedIds.length ? selectedIds[0] ?? null : null}
             hoverId={null}
             dragOverId={null}

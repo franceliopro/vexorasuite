@@ -77,6 +77,23 @@ function findFormBlock(node: unknown, blockId: string, depth = 0): FormNode | nu
   return null;
 }
 
+type LocatedForm = { block: FormNode; pageSlug: string };
+
+/** Formulários podem viver na home ou em qualquer página secundária do SiteDocument. */
+function findFormBlockInDocument(document: unknown, blockId: string): LocatedForm | null {
+  if (!isRecord(document)) return null;
+  const root = isRecord(document.root) ? document.root : document;
+  const home = findFormBlock(root, blockId);
+  if (home) return { block: home, pageSlug: "index" };
+  const pages = Array.isArray(document.pages) ? document.pages : [];
+  for (const page of pages) {
+    if (!isRecord(page) || !isRecord(page.root)) continue;
+    const block = findFormBlock(page.root, blockId);
+    if (block) return { block, pageSlug: String(page.slug ?? "index") };
+  }
+  return null;
+}
+
 function allowedFields(block: FormNode): string[] {
   const props = block.props && typeof block.props === "object" ? (block.props as AnyRecord) : {};
   const raw = Array.isArray(props.fields) ? props.fields : ["nome", "email", "mensagem"];
@@ -133,11 +150,9 @@ export class SiteFormsService {
     if (!site || !site.published) throw new NotFoundException("Site não encontrado ou ainda não publicado.");
 
     const doc = await this.prisma.siteDocument.findUnique({ where: { siteId }, select: { document: true } });
-    // O SiteDocument salvo tem a forma { version, root, meta }; o formulário vive dentro de root.
-    const stored = doc?.document;
-    const root = isRecord(stored) && "root" in stored ? stored.root : stored;
-    const block = findFormBlock(root, blockId);
-    if (!block) throw new NotFoundException("Formulário não encontrado neste site.");
+    const located = findFormBlockInDocument(doc?.document, blockId);
+    if (!located) throw new NotFoundException("Formulário não encontrado neste site.");
+    const block = located.block;
 
     // Honeypot: responde sucesso sem gravar, para não educar bots.
     if (String(input?.website ?? "").trim()) return { ok: true, message: "Mensagem enviada. Obrigado pelo contato!" };
@@ -167,7 +182,7 @@ export class SiteFormsService {
         update: { fields: fields as Prisma.InputJsonValue, isActive: true },
       });
       const row = await tx.siteFormSubmission.create({
-        data: { formId, siteId, pageSlug: "index", values: values as Prisma.InputJsonValue },
+        data: { formId, siteId, pageSlug: located.pageSlug, values: values as Prisma.InputJsonValue },
       });
       await tx.contact.create({
         data: {
@@ -220,4 +235,4 @@ export class SiteFormsService {
   }
 }
 
-export { formUuid, findFormBlock, allowedFields, cleanValues };
+export { formUuid, findFormBlock, findFormBlockInDocument, allowedFields, cleanValues };

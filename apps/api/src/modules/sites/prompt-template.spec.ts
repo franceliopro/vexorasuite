@@ -1,0 +1,209 @@
+import { SitesService } from "./sites.service";
+import { LANDING_CONTACT_ANCHOR, LANDING_FORM_BLOCK_ID } from "./landing-template";
+import { promptDocument } from "./prompt-template";
+
+const TENANT = "22222222-2222-4222-8222-222222222222";
+const SITE = "11111111-1111-4111-8111-111111111111";
+const PRIMARY = "#0e7a5c";
+const ACCENT = "#6258df";
+
+type Node = { id: string; type: string; props: Record<string, any>; children: Node[] };
+
+function nodes(document: any): Node[] {
+  const all: Node[] = [];
+  const visit = (node: Node) => {
+    all.push(node);
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(document.root);
+  for (const page of document.pages ?? []) visit(page.root);
+  return all;
+}
+
+function content(document: any, id: string): string {
+  return String(nodes(document).find((node) => node.id === id)?.props.content ?? "");
+}
+
+function label(document: any, id: string): string {
+  return String(nodes(document).find((node) => node.id === id)?.props.label ?? "");
+}
+
+function prismaMock() {
+  const created: Record<string, any> = {};
+  const prisma: any = {
+    tenant: { findUnique: jest.fn().mockResolvedValue({ kind: "COMPANY", entitlements: null }) },
+    site: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockImplementation(async ({ data }: any) => {
+        created.site = data;
+        return {
+          id: SITE,
+          name: data.name,
+          slug: data.slug,
+          kind: data.kind,
+          domain: null,
+          domainStatus: "NONE",
+          published: false,
+          createdAt: new Date(),
+        };
+      }),
+    },
+    siteDocument: {
+      create: jest.fn().mockImplementation(async ({ data }: any) => {
+        created.document = data.document;
+        return { id: "doc-1" };
+      }),
+    },
+    $transaction: jest.fn().mockImplementation(async (fn: any) => fn(prisma)),
+  };
+  return { prisma, created };
+}
+
+describe("rascunho premium a partir da descrição do wizard", () => {
+  it("usa a descrição como texto de apoio e remove marcação", () => {
+    const document = promptDocument({
+      prompt: "Clínica veterinária em Curitiba com <script>horários</script> e serviços",
+      name: "Pet Care",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+    });
+
+    expect(content(document, "landing_hero_subtitle")).toContain("Clínica veterinária em Curitiba");
+    expect(content(document, "landing_hero_title")).toBe("Cuidado veterinário com atenção em cada detalhe");
+    expect(document.root.children).toHaveLength(12);
+    expect(JSON.stringify(document)).not.toContain("<script>");
+    expect(document.meta.generatedFrom).toBe("prompt");
+    expect(document.meta.type).toBe("landing");
+  });
+
+  it("escolhe segmento, chamada e benefícios por palavra-chave, sem chamar modelo externo", () => {
+    const document = promptDocument({
+      prompt: "Clínica veterinária com agendamento de consultas",
+      name: "Pet Care",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+    });
+
+    expect(label(document, "landing_hero_cta")).toBe("Agendar horário");
+    expect(label(document, "landing_nav_cta")).toBe("Agendar horário");
+    expect(content(document, "landing_hero_eyebrow")).toContain("VETERINÁRIA");
+    expect(content(document, "landing_benefits_title")).toBe("Um cuidado que tranquiliza");
+    expect(content(document, "landing_benefit_1_text")).toContain("Espaço para ouvir");
+    expect(content(document, "landing_panel_step_1_title")).toBe("Conversa inicial");
+    expect(content(document, "landing_contact_title")).toBe("Agende seu horário");
+  });
+
+  it("entrega páginas navegáveis, formulário estável e páginas legais em rascunho", () => {
+    const document = promptDocument({
+      prompt: "Loja de produtos com orçamento",
+      name: "Minha loja",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+    });
+    const all = nodes(document);
+    const text = JSON.stringify(document);
+    const slugs = document.pages.map((page: any) => page.slug);
+
+    expect(all.some((node) => node.type === "section" && node.props.anchor === LANDING_CONTACT_ANCHOR)).toBe(true);
+    expect(all.find((node) => node.id === LANDING_FORM_BLOCK_ID)?.props.fields).toEqual(["nome", "email", "mensagem"]);
+    expect(all.find((node) => node.id === "contato_form")?.type).toBe("form");
+    expect(label(document, "landing_hero_cta")).toBe("Pedir orçamento");
+    expect(content(document, "landing_benefits_title")).toBe("Por que comprar com a gente");
+    expect(slugs).toEqual([
+      "sobre",
+      "servicos",
+      "cases",
+      "faq",
+      "contato",
+      "privacidade",
+      "termos",
+      "cookies",
+      "exclusao-de-dados",
+    ]);
+    expect(text).toMatch(/Política de Privacidade — rascunho/);
+    expect(text).toMatch(/Termos de Uso — rascunho/);
+    expect(text).toMatch(/RASCUNHO: conteúdo e dados fictícios/);
+    expect(text).toContain("00.000.000/0001-00");
+    expect(text).not.toMatch(/Substitua este texto|Apresente sua oferta/);
+  });
+
+  it("usa o logotipo informado ou cria um provisório claramente marcado", () => {
+    const withLogo = promptDocument({
+      prompt: "Clínica veterinária",
+      name: "Pet Care",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+      logoUrl: "https://exemplo.com/logo.png",
+    });
+    const withoutLogo = promptDocument({
+      prompt: "Clínica veterinária",
+      name: "Pet Care",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+    });
+
+    expect(nodes(withLogo).find((node) => node.id === "landing_logo_image")?.props.src).toBe(
+      "https://exemplo.com/logo.png",
+    );
+    expect(nodes(withLogo).find((node) => node.id === "page_servicos_logo")?.props.src).toBe(
+      "https://exemplo.com/logo.png",
+    );
+    expect(content(withoutLogo, "landing_logo_fake_mark")).toBe("PC");
+    expect(content(withoutLogo, "page_servicos_logo_fake_label")).toBe("LOGO PROVISÓRIO");
+    expect(JSON.stringify(withoutLogo)).toContain("LOGO PROVISÓRIO");
+  });
+
+  it("gera uma estrutura premium mesmo para descrição sem segmento reconhecido", () => {
+    const document = promptDocument({
+      prompt: "Quero uma página para meu novo projeto",
+      name: "Meu projeto",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+    });
+
+    expect(content(document, "landing_hero_title")).toContain("presença clara");
+    expect(content(document, "landing_benefit_1_title")).toBe("Atendimento próximo");
+    expect(content(document, "landing_form_title")).toBe("Conte o que você precisa");
+    expect(document.root.children).toHaveLength(12);
+    expect(document.pages).toHaveLength(9);
+  });
+
+  it("persiste o documento gerado quando o prompt é enviado na criação", async () => {
+    const { prisma, created } = prismaMock();
+    const service = new SitesService(prisma);
+
+    const site = await service.create(TENANT, "OWNER", {
+      name: "Pet Care",
+      kind: "LANDING",
+      prompt: "Clínica veterinária com formulário de contato",
+      logoUrl: "https://exemplo.com/logo.png",
+    });
+
+    expect(site.id).toBe(SITE);
+    expect(created.site.prompt).toBeUndefined();
+    expect(created.site.logoUrl).toBe("https://exemplo.com/logo.png");
+    expect(created.document.meta.generatedFrom).toBe("prompt");
+    expect(created.document.pages).toHaveLength(9);
+    expect(content(created.document, "landing_hero_subtitle")).toContain("Clínica veterinária");
+    expect(prisma.siteDocument.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem prompt mantém o documento padrão e rejeita descrições inválidas", async () => {
+    const { prisma, created } = prismaMock();
+    const service = new SitesService(prisma);
+
+    await service.create(TENANT, "OWNER", { name: "Site simples", kind: "STATIC" });
+    expect(created.document.root.children).toEqual([]);
+
+    await expect(service.create(TENANT, "OWNER", { name: "Site simples", prompt: "ab" })).rejects.toThrow();
+    await expect(
+      service.create(TENANT, "OWNER", { name: "Site simples", prompt: "Site novo", logoUrl: "javascript:alert(1)" }),
+    ).rejects.toThrow();
+  });
+});

@@ -52,6 +52,14 @@ export function Canvas({ doc, selectedId, onSelect, onHover }: CanvasProps) {
   );
 }
 
+function escapePreview(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function buildIframeHtml(doc: SiteDocument): string {
   // Render determinístico simples para preview.
   const renderNode = (n: SiteNode): string => {
@@ -69,6 +77,8 @@ function buildIframeHtml(doc: SiteDocument): string {
         return `<section data-node="${n.id}" style="${style}">${inner}</section>`;
       case 'video':
         return `<div data-node="${n.id}" style="${style}">video</div>`;
+      case 'faq':
+        return `<details data-node="${n.id}" style="${style}"><summary>${escapePreview(n.props.question)}</summary><p>${escapePreview(n.props.answer)}</p></details>`;
       default:
         return `<div data-node="${n.id}" style="${style}">${inner}</div>`;
     }

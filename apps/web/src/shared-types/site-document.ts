@@ -9,9 +9,10 @@ export type NodeType =
   | 'post-list'
   | 'product-grid'
   | 'video'
-  | 'container';
+  | 'container'
+  | 'faq';
 
-export type SiteKind = 'static' | 'blog' | 'real-estate' | 'ecommerce';
+export type SiteKind = 'static' | 'landing' | 'blog' | 'real-estate' | 'ecommerce';
 
 export interface ThemeTokens {
   primary: string;
@@ -40,10 +41,19 @@ export interface SiteDocumentMeta {
   theme: ThemeTokens;
 }
 
+/** Página secundária do site. `root` usa o mesmo contrato de blocos da home. */
+export interface SitePageDocument {
+  slug: string;
+  title: string;
+  kind?: 'content' | 'legal';
+  root: SiteNode;
+}
+
 export interface SiteDocument {
   version: number;
   root: SiteNode;
   meta: SiteDocumentMeta;
+  pages?: SitePageDocument[];
 }
 
 export interface BlockDescriptor {

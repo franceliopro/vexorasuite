@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, Loader2, Maximize2, X } from "lucide-react";
+import { AlertCircle, Copy, ExternalLink, Loader2, Maximize2, X } from "lucide-react";
 import type { SiteDocument, SiteNode } from "@/shared-types/site-document";
 import { EditorShell, findNodeById, replaceNodeById } from "./editor/editor-shell";
 
@@ -31,6 +31,7 @@ type SiteEditorWindowProps = {
   title: string;
   domain?: string | null;
   domainStatus?: string;
+  canEdit?: boolean;
   onClose: () => void;
 };
 
@@ -66,12 +67,16 @@ export default function SiteEditorWindow({
   title,
   domain,
   domainStatus,
+  canEdit = true,
   onClose,
 }: SiteEditorWindowProps) {
   const [doc, setDoc] = useState<SiteDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewLink, setPreviewLink] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [publishResult, setPublishResult] = useState<{ url: string; idempotent: boolean } | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -146,6 +151,47 @@ export default function SiteEditorWindow({
       setSaving(false);
     }
   }, [doc, saving, siteId]);
+
+  // O link aponta para o rascunho salvo: salvar antes evita mostrar um estado que
+  // não existe no servidor. Nada aqui publica, cria deployment ou mexe em domínio.
+  const createPreview = useCallback(async (): Promise<void> => {
+    if (previewBusy || saving) return;
+    setPreviewError(null);
+    if (dirty && !(await save())) {
+      setPreviewError("Salve as alterações antes de gerar a prévia temporária.");
+      return;
+    }
+    setPreviewBusy(true);
+    try {
+      const response = await fetch(`/api/backend/sites/${siteId}/document/preview`, { method: "POST" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.message || "Não foi possível gerar a prévia temporária.");
+      const path = String(payload?.path || "");
+      if (!path.startsWith("/api/public/sites/preview/")) throw new Error("Endereço de prévia inválido.");
+      const token = path.slice("/api/public/sites/preview/".length);
+      if (!token || /[/?#]/.test(token)) throw new Error("Endereço de prévia inválido.");
+      // O token voltou do caminho público da API; a pessoa abre a página da Véxora,
+      // que busca o HTML pelo proxy /api/backend (sem expor a URL da API).
+      setPreviewLink({
+        url: new URL(`/sites/preview/${encodeURIComponent(token)}`, window.location.origin).toString(),
+        expiresAt: String(payload?.expiresAt || ""),
+      });
+    } catch (cause) {
+      setPreviewError(cause instanceof Error ? cause.message : "Não foi possível gerar a prévia temporária.");
+    } finally {
+      setPreviewBusy(false);
+    }
+  }, [dirty, previewBusy, save, saving, siteId]);
+
+  const copyPreviewLink = useCallback(async (): Promise<void> => {
+    if (!previewLink) return;
+    try {
+      await navigator.clipboard.writeText(previewLink.url);
+      setPreviewError(null);
+    } catch {
+      setPreviewError("Não foi possível copiar o link. Selecione o endereço exibido e copie manualmente.");
+    }
+  }, [previewLink]);
 
   const bindDomain = useCallback(async (): Promise<void> => {
     const value = domainInput.trim().toLowerCase();
@@ -306,6 +352,51 @@ export default function SiteEditorWindow({
       ) : null}
 
       {!loading && !error && doc ? (
+        <>
+          <section className="vx-editor-preview-bar" aria-label="Prévia temporária">
+            <div className="vx-editor-preview-copy">
+              <strong>Ver antes de publicar</strong>
+              <small>
+                Prévia temporária do rascunho salvo · não é publicação · o link expira em 2 horas
+              </small>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void createPreview()}
+              disabled={previewBusy || saving || loading}
+            >
+              {previewBusy ? <Loader2 className="spin" size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
+              {previewBusy ? "Gerando…" : previewLink ? "Atualizar prévia" : "Ver prévia temporária"}
+            </button>
+            {previewLink ? (
+              <>
+                <a className="secondary-button" href={previewLink.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink size={14} aria-hidden="true" /> Abrir link
+                </a>
+                <button type="button" className="secondary-button" onClick={() => void copyPreviewLink()}>
+                  <Copy size={14} aria-hidden="true" /> Copiar
+                </button>
+                <small className="vx-editor-preview-expiry">
+                  Válido até {new Date(previewLink.expiresAt).toLocaleString("pt-BR")}
+                </small>
+              </>
+            ) : null}
+            {previewError ? <p role="alert" className="vx-editor-preview-error">{previewError}</p> : null}
+          </section>
+
+          {aiMessage ? (
+            <div
+              className={`vx-editor-ai-status ${aiMessage.error ? "is-error" : "is-ok"}`}
+              role={aiMessage.error ? "alert" : "status"}
+            >
+              {aiMessage.text}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {!loading && !error && doc ? (
         <details className="vx-editor-settings">
           <summary>Domínio, publicação e respostas</summary>
           <div
@@ -378,22 +469,6 @@ export default function SiteEditorWindow({
         </div>
       ) : null}
 
-      {aiMessage ? (
-        <div
-          role={aiMessage.error ? "alert" : "status"}
-          style={{
-            margin: "0 16px",
-            padding: "8px 12px",
-            fontSize: "0.8125rem",
-            borderRadius: "var(--r)",
-            border: `1px solid ${aiMessage.error ? "var(--bad)" : "var(--ok)"}`,
-            color: aiMessage.error ? "var(--bad)" : "var(--ok)",
-          }}
-        >
-          {aiMessage.text}
-        </div>
-      ) : null}
-
           <details
             className="vx-editor-responses"
           onToggle={(event) => {
@@ -445,16 +520,18 @@ export default function SiteEditorWindow({
           }}
           onSave={save}
           onPublish={() => void publish()}
-          publishDisabled={publishing}
           onMinimize={() => setMinimized(true)}
           dirty={dirty}
           onSelectNode={() => undefined}
           onPropChange={() => undefined}
           onAIChange={handleAIChange}
           aiBusy={aiBusy}
+          aiFeedback={aiMessage}
           device={device}
           onDeviceChange={setDevice}
-          disabled={saving || publishing}
+          readOnly={!canEdit}
+          saving={saving}
+          publishing={publishing}
           loading={loading}
           onClose={requestClose}
         />

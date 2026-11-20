@@ -38,7 +38,10 @@ interface LayerTreeProps {
   onSelect: (id: string, multi: boolean) => void;
   onToggleVisibility?: (id: string, visible: boolean) => void;
   onLock?: (id: string, locked: boolean) => void;
+  /** Transient busy state (save/publish). Selection must keep working. */
   disabled?: boolean;
+  /** Real permission state. Only this produces the read-only message. */
+  readOnly?: boolean;
 }
 
 export function LayerTree({
@@ -48,6 +51,7 @@ export function LayerTree({
   onToggleVisibility,
   onLock,
   disabled = false,
+  readOnly = false,
 }: LayerTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -102,16 +106,17 @@ export function LayerTree({
               onToggleExpanded={toggleExpanded}
               onKeyDown={(e) => handleKeyDown(e, node.id)}
               disabled={disabled}
+              readOnly={readOnly}
             />
           ))}
         </ul>
       </div>
-      {disabled && (
-        <div className="vx-layer-tree-empty">
-          <Lock size={16} aria-hidden="true" />
-          <span>Edição bloqueada — sem permissão.</span>
+      {readOnly ? (
+        <div className="vx-layer-tree-empty" role="status">
+          <Eye size={16} aria-hidden="true" />
+          <span>Somente leitura: selecione blocos para inspecionar.</span>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -128,6 +133,7 @@ interface LayerTreeNodeProps {
   onToggleExpanded: (id: string) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
   disabled: boolean;
+  readOnly: boolean;
 }
 
 function LayerTreeNode({
@@ -142,6 +148,7 @@ function LayerTreeNode({
   onToggleExpanded,
   onKeyDown,
   disabled,
+  readOnly,
 }: LayerTreeNodeProps) {
   const hasChildren = node.children && node.children.length > 0;
   const visible = node.props.visible !== false;
@@ -154,8 +161,8 @@ function LayerTreeNode({
       aria-expanded={hasChildren ? expanded : undefined}
       tabIndex={0}
       className={`vx-layer-tree-node ${isSelected(node.id) ? 'is-selected' : ''} ${
-        disabled ? 'is-disabled' : ''
-      }`}
+        disabled ? 'is-busy' : ''
+      } ${readOnly ? 'is-readonly' : ''}`}
       style={{ paddingLeft: 16 + depth * 18 }}
       onClick={(e) => onSelect(node.id, e, false)}
       onKeyDown={onKeyDown}
@@ -185,35 +192,35 @@ function LayerTreeNode({
           <button
             type="button"
             className="vx-layer-tree-node-visibility"
-            aria-label={visible ? 'Ocultar' : 'Mostrar'}
+            aria-label={readOnly ? 'Somente leitura: visibilidade indisponível' : visible ? 'Ocultar' : 'Mostrar'}
+            title={readOnly ? 'Somente leitura' : visible ? 'Ocultar bloco' : 'Mostrar bloco'}
+            disabled={disabled}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onVisibility(node.id, !visible);
+              if (!disabled) onVisibility(node.id, !visible);
             }}
           >
             {visible ? <Eye size={13} aria-hidden="true" /> : <EyeOff size={13} aria-hidden="true" />}
           </button>
-          {disabled ? (
-            <Lock size={13} aria-hidden="true" />
-          ) : (
-            <button
-              type="button"
-              className="vx-layer-tree-node-lock"
-              aria-label={locked ? 'Desbloquear' : 'Bloquear'}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onLock(node.id, !locked);
-              }}
-            >
-              {locked ? <Lock size={13} aria-hidden="true" /> : <Unlock size={13} aria-hidden="true" />}
-            </button>
-          )}
+          <button
+            type="button"
+            className="vx-layer-tree-node-lock"
+            aria-label={readOnly ? 'Somente leitura: bloqueio indisponível' : locked ? 'Desbloquear' : 'Bloquear'}
+            title={readOnly ? 'Somente leitura' : locked ? 'Desbloquear bloco' : 'Bloquear bloco'}
+            disabled={disabled}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!disabled) onLock(node.id, !locked);
+            }}
+          >
+            {locked ? <Lock size={13} aria-hidden="true" /> : <Unlock size={13} aria-hidden="true" />}
+          </button>
         </div>
         <span className="vx-layer-tree-node-label">{NODE_LABELS[node.type] || node.type}</span>
         <span className="vx-layer-tree-node-id">{node.id.slice(0, 6)}</span>
-        {disabled && <span className="vx-layer-tree-node-disabled-tag">bloqueado</span>}
+        {locked ? <span className="vx-layer-tree-node-disabled-tag">bloqueado</span> : null}
       </div>
       {hasChildren && expanded && (
         <ul role="group" className="vx-layer-tree-children">
@@ -231,6 +238,7 @@ function LayerTreeNode({
               onToggleExpanded={onToggleExpanded}
               onKeyDown={onKeyDown}
               disabled={disabled}
+              readOnly={readOnly}
             />
           ))}
         </ul>

@@ -3,15 +3,15 @@
 /**
  * Sites — porta de entrada do criador.
  *
- * Lista os sites da empresa e cria novos pelo wizard em tela cheia. O editor visual e a
- * publicação entram na próxima etapa; até lá, cada cartão mostra o estado real do site
- * (rascunho, domínio, publicações) sem prometer o que ainda não existe.
+ * Lista os sites da empresa e cria novos pelo wizard em tela cheia. O wizard pode criar
+ * do zero ou importar URL, HTML e ZIP (Elementor/Divi/Beaver/Crocoblock). Cada cartão mostra
+ * o estado real do site (rascunho, domínio, publicações) sem prometer o que não aconteceu.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { AlertCircle, Globe, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
-import WizardShell from "./sites/wizard/wizard-shell";
+import WizardShell, { type WizardSource } from "./sites/wizard/wizard-shell";
 
 const SiteEditorWindow = dynamic(() => import("./sites/site-editor-window"), {
   ssr: false,
@@ -101,23 +101,59 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
   }, [attempt]);
 
   const createSite = useCallback(
-    async (input: { title: string; type: string }) => {
+    async (input: { title: string; type: string; source: WizardSource }) => {
       setWizardOpen(false);
       setCreating(true);
       setActionError(null);
       setNotice(null);
       try {
-        const response = await fetch("/api/backend/sites", {
+        const kind = wizardKind(input.type);
+        let endpoint = "/api/backend/sites";
+        let body: Record<string, unknown> = { name: input.title, kind };
+        const source = input.source;
+        if (source.kind === "clone") {
+          endpoint = "/api/backend/sites/import/url";
+          body = { name: input.title, kind, url: source.url };
+        } else if (source.kind === "html") {
+          endpoint = "/api/backend/sites/import/html";
+          body = { name: input.title, kind, html: source.html };
+        } else if (source.kind === "zip") {
+          endpoint = "/api/backend/sites/import/zip";
+          body = { name: input.title, kind, fileName: source.fileName, contentBase64: source.contentBase64 };
+        }
+        const imported = source.kind === "clone" || source.kind === "html" || source.kind === "zip";
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: input.title, kind: wizardKind(input.type) }),
+          body: JSON.stringify(body),
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok) {
-          throw new Error(payload?.message || "Não foi possível criar o site.");
+          throw new Error(payload?.message || (imported ? "Não foi possível importar o site." : "Não foi possível criar o site."));
         }
-        setNotice(`Site "${payload.name}" criado. O editor visual e a publicação entram na próxima etapa.`);
+        const site = imported ? payload?.site : payload;
+        if (!site?.id) throw new Error("O servidor não retornou o site criado.");
+        const summary: SiteSummary = {
+          id: String(site.id),
+          name: String(site.name ?? input.title),
+          slug: String(site.slug ?? ""),
+          kind: String(site.kind ?? kind),
+          domain: site.domain ?? null,
+          domainStatus: String(site.domainStatus ?? "NONE"),
+          published: Boolean(site.published),
+          createdAt: String(site.createdAt ?? new Date().toISOString()),
+          updatedAt: String(site.updatedAt ?? new Date().toISOString()),
+        };
+        const warnings: string[] = Array.isArray(payload?.warnings) ? payload.warnings : [];
         setAttempt((value) => value + 1);
+        setEditingSite(summary);
+        const prefix = imported ? `Site "${summary.name}" importado.` : `Site "${summary.name}" criado como rascunho.`;
+        const detail = source.kind === "ia"
+          ? " Descreva ajustes na caixa de IA do editor."
+          : warnings.length
+            ? ` Avisos: ${warnings.slice(0, 2).join(" ")}`
+            : "";
+        setNotice(prefix + detail);
       } catch (cause) {
         setActionError(cause instanceof Error ? cause.message : "Não foi possível criar o site.");
       } finally {
@@ -192,7 +228,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         <div className="content-card" style={{ textAlign: "center", padding: "40px 24px" }}>
           <Globe size={30} aria-hidden="true" />
           <h2>Nenhum site ainda</h2>
-          <p>Comece pelo assistente: ele pergunta o tipo de site, o tema e o domínio.</p>
+          <p>Comece pelo assistente: escolha criar do zero, clonar um link ou importar um ZIP.</p>
           {canManage ? (
             <button type="button" className="primary-button" onClick={() => setWizardOpen(true)}>
               <Plus size={16} aria-hidden="true" /> Criar meu primeiro site
@@ -259,7 +295,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       <WizardShell
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        onComplete={(site) => void createSite({ title: site.title, type: site.type })}
+        onComplete={(site) => void createSite({ title: site.title, type: site.type, source: site.source })}
         disabled={creating}
       />
 

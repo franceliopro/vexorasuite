@@ -25,6 +25,7 @@ import {
   Rocket,
   Cloud,
   Link,
+  Code2,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -32,7 +33,7 @@ import {
 
 type WizardStep = 'origem' | 'tipo' | 'tema' | 'dominio' | 'publicar';
 
-type OrigemKind = 'zero' | 'clone' | 'zip' | 'ia';
+type OrigemKind = 'zero' | 'clone' | 'html' | 'zip' | 'ia';
 
 type SiteType = 'static' | 'blog' | 'real-estate' | 'ecommerce';
 
@@ -57,8 +58,26 @@ const STEP_ICONS: Record<WizardStep, React.ElementType> = {
 interface WizardShellProps {
   open: boolean;
   onClose: () => void;
-  onComplete: (site: { title: string; type: SiteType; domain?: string }) => void;
+  onComplete: (site: { title: string; type: SiteType; domain?: string; source: WizardSource }) => void;
   disabled?: boolean;
+}
+
+/** Origem informada ao chamador: ele decide qual endpoint de criação/importação usar. */
+export type WizardSource =
+  | { kind: 'zero' }
+  | { kind: 'clone'; url: string }
+  | { kind: 'html'; html: string }
+  | { kind: 'zip'; fileName: string; contentBase64: string }
+  | { kind: 'ia'; prompt: string };
+
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }
 
 const TOKENS = {
@@ -87,6 +106,10 @@ export default function WizardShell({
 
   const [origem, setOrigem] = useState<OrigemKind>('zero');
   const [cloneUrl, setCloneUrl] = useState('');
+  const [htmlInput, setHtmlInput] = useState('');
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [origemError, setOrigemError] = useState('');
   const [siteType, setSiteType] = useState<SiteType>('static');
   const [theme, setTheme] = useState('default');
   const [domain, setDomain] = useState('');
@@ -95,8 +118,15 @@ export default function WizardShell({
   const currentIndex = STEP_ORDER.indexOf(step);
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === STEP_ORDER.length - 1;
+  const cloneLooksValid = /^https?:\/\/[^\s/]+\.[^\s/]+/i.test(cloneUrl.trim());
   const canNext =
     currentIndex < STEP_ORDER.length - 1 &&
+    (step !== 'origem' ||
+      origem === 'zero' ||
+      origem === 'ia' ||
+      (origem === 'clone' && cloneLooksValid) ||
+      (origem === 'html' && htmlInput.trim().length >= 10) ||
+      (origem === 'zip' && zipFile !== null)) &&
     (step !== 'tipo' || siteTitle.trim().length >= 2) &&
     (step !== 'dominio' || domainValidated);
 
@@ -119,13 +149,23 @@ export default function WizardShell({
   const handleFinish = useCallback(async () => {
     if (siteTitle.trim().length < 2) return;
     setBusy(true);
+    setOrigemError('');
     try {
-      // O chamador persiste o site. Domínio e deploy entram na próxima fatia; não prometer aqui.
-      onComplete({ title: siteTitle.trim(), type: siteType, domain: domain || undefined });
+      let source: WizardSource = { kind: 'zero' };
+      if (origem === 'clone') source = { kind: 'clone', url: cloneUrl.trim() };
+      if (origem === 'html') source = { kind: 'html', html: htmlInput.trim() };
+      if (origem === 'ia') source = { kind: 'ia', prompt: prompt.trim() };
+      if (origem === 'zip') {
+        if (!zipFile) throw new Error('Selecione o arquivo ZIP para continuar.');
+        source = { kind: 'zip', fileName: zipFile.name, contentBase64: await fileToBase64(zipFile) };
+      }
+      onComplete({ title: siteTitle.trim(), type: siteType, domain: domain || undefined, source });
+    } catch (cause) {
+      setOrigemError(cause instanceof Error ? cause.message : 'Não foi possível preparar a importação.');
     } finally {
       setBusy(false);
     }
-  }, [siteTitle, siteType, domain, onComplete]);
+  }, [siteTitle, siteType, domain, onComplete, origem, cloneUrl, htmlInput, zipFile, prompt]);
 
   if (minimized) {
     return (
@@ -380,7 +420,20 @@ export default function WizardShell({
       </ol>
 
       <div className="vx-wizard-body" style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
-        {step === 'origem' && <OrigemStep value={origem} onChange={setOrigem} cloneUrl={cloneUrl} onCloneUrlChange={setCloneUrl} disabled={disabled} />}
+        {step === 'origem' && (
+          <OrigemStep
+            value={origem}
+            onChange={setOrigem}
+            cloneUrl={cloneUrl}
+            onCloneUrlChange={setCloneUrl}
+            htmlInput={htmlInput}
+            onHtmlInputChange={setHtmlInput}
+            onZipFileChange={setZipFile}
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            disabled={disabled}
+          />
+        )}
         {step === 'tipo' && (
           <TipoStep
             value={siteType}
@@ -403,6 +456,7 @@ export default function WizardShell({
         {step === 'publicar' && (
           <PublicarStep siteTitle={siteTitle} siteType={siteType} domain={domain} />
         )}
+        {origemError ? <p role="alert" style={{ color: TOKENS.bad, fontSize: '0.875rem', marginTop: 12 }}>{origemError}</p> : null}
       </div>
 
       <footer
@@ -454,7 +508,7 @@ export default function WizardShell({
             {busy ? (
               <>
                 <Loader2 size={15} className="vx-spin" aria-hidden="true" style={{ marginRight: 6 }} />
-                Publicando…
+                Criando…
               </>
             ) : (
               <>
@@ -467,15 +521,15 @@ export default function WizardShell({
           <button
             type="button"
             className="vx-wizard-btn-primary"
-            disabled={disabled || busy}
+            disabled={disabled || busy || !canNext}
             onClick={handleNext}
             style={{
               padding: '0.5rem 1.25rem',
               borderRadius: TOKENS.radius,
               border: 'none',
-              background: TOKENS.primary,
-              color: 'var(--on-primary, var(--surface))',
-              cursor: (disabled || busy) ? 'not-allowed' : 'pointer',
+              background: (disabled || busy || !canNext) ? TOKENS.border : TOKENS.primary,
+              color: (disabled || busy || !canNext) ? TOKENS.textSecondary : 'var(--on-primary, var(--surface))',
+              cursor: (disabled || busy || !canNext) ? 'not-allowed' : 'pointer',
               fontWeight: 600,
             }}
           >
@@ -495,16 +549,44 @@ interface OrigemStepProps {
   onChange: (v: OrigemKind) => void;
   cloneUrl: string;
   onCloneUrlChange: (v: string) => void;
+  htmlInput: string;
+  onHtmlInputChange: (v: string) => void;
+  onZipFileChange: (v: File | null) => void;
+  prompt: string;
+  onPromptChange: (v: string) => void;
   disabled: boolean;
 }
 
-function OrigemStep({ value, onChange, cloneUrl, onCloneUrlChange, disabled }: OrigemStepProps) {
+function OrigemStep({
+  value,
+  onChange,
+  cloneUrl,
+  onCloneUrlChange,
+  htmlInput,
+  onHtmlInputChange,
+  onZipFileChange,
+  prompt,
+  onPromptChange,
+  disabled,
+}: OrigemStepProps) {
   const options: Array<{ id: OrigemKind; label: string; desc: string; icon: React.ElementType }> = [
     { id: 'zero', label: 'Do zero', desc: 'Comece com uma página em branco.', icon: Palette },
-    { id: 'clone', label: 'Clonar link', desc: 'Importe a estrutura de um site existente.', icon: Link },
-    { id: 'zip', label: 'Importar ZIP', desc: 'Importe um pacote Elementor/Divi/Crocoblock.', icon: Cloud },
-    { id: 'ia', label: 'Gerar por IA', desc: 'Descreva o negócio e a IA monta o site.', icon: Rocket },
+    { id: 'clone', label: 'Clonar link', desc: 'Importe a estrutura de um site público.', icon: Link },
+    { id: 'html', label: 'Colar HTML', desc: 'Traga o código de uma página existente.', icon: Code2 },
+    { id: 'zip', label: 'Importar ZIP', desc: 'Pacote Elementor, Divi, Beaver ou Crocoblock.', icon: Cloud },
+    { id: 'ia', label: 'Descrever ideia', desc: 'Anote a ideia; a IA por elemento fica no editor.', icon: Rocket },
   ];
+  const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.875rem', fontWeight: 600, color: TOKENS.text, marginBottom: 6 };
+  const fieldStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.625rem 0.875rem',
+    borderRadius: TOKENS.radius,
+    border: `1px solid ${TOKENS.border}`,
+    background: TOKENS.surface,
+    color: TOKENS.text,
+    fontSize: '0.9375rem',
+  };
+  const hintStyle: React.CSSProperties = { marginTop: 6, fontSize: '0.8125rem', color: TOKENS.textSecondary };
 
   return (
     <section className="vx-wizard-step-panel" style={{ padding: '1rem 0' }}>
@@ -549,29 +631,74 @@ function OrigemStep({ value, onChange, cloneUrl, onCloneUrlChange, disabled }: O
           );
         })}
       </div>
-      {value === 'clone' && (
+      {value !== 'zero' && (
         <div className="vx-wizard-clone-field" style={{ marginTop: 16 }}>
-          <label className="vx-wizard-field-label" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: TOKENS.text, marginBottom: 6 }}>URL do site para clonar</label>
-          <input
-            type="text"
-            className="vx-wizard-input"
-            value={cloneUrl}
-            onChange={(e) => onCloneUrlChange(e.target.value)}
-            placeholder="https://exemplo.com"
-            disabled={disabled}
-            style={{
-              width: '100%',
-              padding: '0.625rem 0.875rem',
-              borderRadius: TOKENS.radius,
-              border: `1px solid ${TOKENS.border}`,
-              background: TOKENS.surface,
-              color: TOKENS.text,
-              fontSize: '0.9375rem',
-            }}
-          />
-          <p className="vx-wizard-field-hint" style={{ marginTop: 6, fontSize: '0.8125rem', color: TOKENS.textSecondary }}>
-            A estrutura será importada e convertida em blocos editáveis no editor.
-          </p>
+          {value === 'clone' && (
+            <>
+              <label className="vx-wizard-field-label" style={labelStyle}>URL do site para clonar</label>
+              <input
+                type="url"
+                className="vx-wizard-input"
+                value={cloneUrl}
+                onChange={(e) => onCloneUrlChange(e.target.value)}
+                placeholder="https://exemplo.com"
+                disabled={disabled}
+                style={fieldStyle}
+              />
+              <p className="vx-wizard-field-hint" style={hintStyle}>
+                Buscamos o HTML público e convertemos títulos, textos, imagens, links e vídeos em blocos editáveis.
+              </p>
+            </>
+          )}
+          {value === 'html' && (
+            <>
+              <label className="vx-wizard-field-label" style={labelStyle}>Cole o HTML da página</label>
+              <textarea
+                className="vx-wizard-input"
+                value={htmlInput}
+                onChange={(e) => onHtmlInputChange(e.target.value)}
+                placeholder={'<h1>Minha empresa</h1>\n<p>Conteúdo da página...</p>'}
+                rows={7}
+                disabled={disabled}
+                style={{ ...fieldStyle, fontFamily: 'ui-monospace, monospace', resize: 'vertical' }}
+              />
+              <p className="vx-wizard-field-hint" style={hintStyle}>
+                Scripts, eventos e links não seguros são descartados. Revise os blocos no editor depois.
+              </p>
+            </>
+          )}
+          {value === 'zip' && (
+            <>
+              <label className="vx-wizard-field-label" style={labelStyle}>Arquivo ZIP (até 15 MB)</label>
+              <input
+                type="file"
+                accept=".zip,application/zip"
+                onChange={(e) => onZipFileChange(e.target.files?.[0] ?? null)}
+                disabled={disabled}
+                style={{ ...fieldStyle, padding: '0.5rem' }}
+              />
+              <p className="vx-wizard-field-hint" style={hintStyle}>
+                Lemos HTML e JSON de Elementor, Divi, Beaver Builder e Crocoblock. CSS/JS não são executados e imagens locais precisam de URL pública.
+              </p>
+            </>
+          )}
+          {value === 'ia' && (
+            <>
+              <label className="vx-wizard-field-label" style={labelStyle}>Descreva a ideia (opcional)</label>
+              <textarea
+                className="vx-wizard-input"
+                value={prompt}
+                onChange={(e) => onPromptChange(e.target.value)}
+                placeholder="Ex.: site para uma clínica veterinária com contato e horários"
+                rows={5}
+                disabled={disabled}
+                style={{ ...fieldStyle, resize: 'vertical' }}
+              />
+              <p className="vx-wizard-field-hint" style={hintStyle}>
+                O site é criado como rascunho. A IA por elemento fica na caixa do inspetor do editor.
+              </p>
+            </>
+          )}
         </div>
       )}
     </section>

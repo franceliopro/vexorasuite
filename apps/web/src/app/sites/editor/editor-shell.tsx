@@ -40,6 +40,15 @@ import {
 import { Palette } from './palette';
 import { Inspector } from './inspector';
 import { LayerTree } from './layer-tree';
+import type { DragPayload, DragTarget } from './dnd';
+import {
+  appendNode,
+  findNodeById,
+  insertNodeAt,
+  moveNode,
+  replaceNodeById,
+  type DropPosition,
+} from './site-tree';
 import {
   Save,
   Play,
@@ -109,6 +118,9 @@ export function EditorShell({
   const [activePageSlug, setActivePageSlug] = useState<string>('__home__');
   const [notice, setNotice] = useState('');
   const [noticeKind, setNoticeKind] = useState<'info' | 'ok' | 'bad'>('info');
+  const [dragPayload, setDragPayload] = useState<DragPayload | null>(null);
+  const dragPayloadRef = useRef<DragPayload | null>(null);
+  const [dragTarget, setDragTarget] = useState<DragTarget>({ targetId: null, position: null });
 
   const pages = useMemo(() => doc?.pages ?? [], [doc]);
   const activePage = useMemo(
@@ -157,6 +169,32 @@ export function EditorShell({
     historyRef.current = pushHistory(historyRef.current, next);
     onChange(next);
   }, [onChange]);
+
+  const notify = useCallback((text: string, kind: 'info' | 'ok' | 'bad' = 'info') => {
+    setNotice(text);
+    setNoticeKind(kind);
+    setTimeout(() => setNotice(''), 1800);
+  }, []);
+
+  const setPayload = useCallback((payload: DragPayload | null) => {
+    dragPayloadRef.current = payload;
+    setDragPayload(payload);
+    if (!payload) setDragTarget({ targetId: null, position: null });
+  }, []);
+
+  const clearDrag = useCallback(() => {
+    dragPayloadRef.current = null;
+    setDragPayload(null);
+    setDragTarget({ targetId: null, position: null });
+  }, []);
+
+  const clearDragTarget = useCallback(() => {
+    setDragTarget({ targetId: null, position: null });
+  }, []);
+
+  useEffect(() => {
+    if (readOnly || interactionDisabled) clearDrag();
+  }, [clearDrag, interactionDisabled, readOnly]);
 
   // Sincroniza histórico com o doc recebido do programador
   useEffect(() => {
@@ -220,6 +258,50 @@ export function EditorShell({
       }
     },
     [selectedIds, onSelectNode],
+  );
+
+  const applyDrop = useCallback(
+    (
+      targetId: string | null,
+      position: DropPosition,
+      payloadOverride?: DragPayload | null,
+    ) => {
+      // O drop dentro do iframe carrega o payload na mensagem para não sofrer
+      // corrida com o dragend que limpa o estado transitório no painel.
+      const payload = payloadOverride !== undefined ? payloadOverride : dragPayloadRef.current;
+      if (!payload || !targetId || !activeRoot || readOnly || interactionDisabled) return;
+
+      let nextRoot: SiteNode;
+      let selectedId: string | null = null;
+      let message = '';
+
+      if (payload.kind === 'palette') {
+        const node = createNode(payload.nodeType);
+        nextRoot = insertNodeAt(activeRoot, node, targetId, position);
+        if (nextRoot === activeRoot) {
+          notify('Não foi possível adicionar o bloco nesse local.', 'bad');
+          clearDrag();
+          return;
+        }
+        selectedId = node.id;
+        message = `Bloco "${BLOCK_REGISTRY[payload.nodeType as keyof typeof BLOCK_REGISTRY].label}" adicionado.`;
+      } else {
+        nextRoot = moveNode(activeRoot, payload.nodeId, targetId, position);
+        if (nextRoot === activeRoot) {
+          notify('Não foi possível mover o bloco para esse local.', 'bad');
+          clearDrag();
+          return;
+        }
+        selectedId = payload.nodeId;
+        message = 'Bloco movido.';
+      }
+
+      setDoc(withActiveRoot(nextRoot));
+      handleSelect(selectedId, false);
+      notify(message, 'ok');
+      clearDrag();
+    },
+    [activeRoot, clearDrag, handleSelect, interactionDisabled, notify, readOnly, setDoc, withActiveRoot],
   );
 
   const handlePropChange = useCallback(
@@ -368,12 +450,13 @@ export function EditorShell({
             blocks={BLOCK_TYPES.map((t) => BLOCK_REGISTRY[t])}
             onAdd={(type) => {
               if (interactionDisabled || !activeRoot) return;
-              const next = withActiveRoot(insertNode(activeRoot, createNode(type)));
-              setDoc(next);
-              setNotice(`Bloco "${BLOCK_REGISTRY[type as keyof typeof BLOCK_REGISTRY].label}" adicionado.`);
-              setNoticeKind('ok');
-              setTimeout(() => setNotice(''), 1500);
+              const node = createNode(type);
+              setDoc(withActiveRoot(appendNode(activeRoot, node)));
+              handleSelect(node.id, false);
+              notify(`Bloco "${BLOCK_REGISTRY[type as keyof typeof BLOCK_REGISTRY].label}" adicionado.`, 'ok');
             }}
+            onDragStart={(type) => setPayload({ kind: 'palette', nodeType: type })}
+            onDragEnd={clearDrag}
             disabled={interactionDisabled}
             loading={loading}
           />
@@ -383,6 +466,13 @@ export function EditorShell({
             onSelect={handleSelect}
             onToggleVisibility={(nodeId, visible) => handleNodeProp(nodeId, 'visible', visible)}
             onLock={(nodeId, locked) => handleNodeProp(nodeId, 'locked', locked)}
+            rootId={activeRoot?.id ?? null}
+            draggingNodeId={dragPayload?.kind === 'node' ? dragPayload.nodeId : null}
+            onDragNodeStart={(nodeId) => setPayload({ kind: 'node', nodeId })}
+            onDragTarget={(targetId, position) => setDragTarget({ targetId, position })}
+            onDragTargetClear={clearDragTarget}
+            onDropNode={applyDrop}
+            onDragEnd={clearDrag}
             disabled={interactionDisabled}
             readOnly={readOnly}
           />
@@ -393,11 +483,16 @@ export function EditorShell({
             doc={canvasDoc ?? doc}
             selectedId={selectedIds.length ? selectedIds[0] ?? null : null}
             hoverId={null}
-            dragOverId={null}
-            dropTarget={null}
+            dragOverId={dragTarget.targetId}
+            dropTarget={dragTarget.position}
+            draggingNodeId={dragPayload?.kind === 'node' ? dragPayload.nodeId : null}
+            editable={!readOnly && !interactionDisabled}
             loading={loading}
             onSelectNode={(nodeId, multi) => handleSelect(nodeId, multi)}
-            onDrop={() => {}}
+            onDragOver={(targetId, position) => setDragTarget({ targetId, position })}
+            onDrop={applyDrop}
+            onNodeDragStart={(nodeId) => setPayload({ kind: 'node', nodeId })}
+            onDragEnd={clearDrag}
             device={device}
             onDeviceChange={onDeviceChange}
           />
@@ -471,24 +566,7 @@ function emptyDocument(): SiteDocument {
   };
 }
 
-export function findNodeById(root: SiteNode, id: string): SiteNode | null {
-  if (root.id === id) return root;
-  for (const child of root.children) {
-    const found = findNodeById(child, id);
-    if (found) return found;
-  }
-  return null;
-}
-
-export function replaceNodeById(root: SiteNode, id: string, next: SiteNode): SiteNode {
-  if (root.id === id) return next;
-  if (!root.children.some((child) => containsId(child, id))) return root;
-  return { ...root, children: root.children.map((child) => replaceNodeById(child, id, next)) };
-}
-
-function containsId(node: SiteNode, id: string): boolean {
-  return node.id === id || node.children.some((child) => containsId(child, id));
-}
+export { findNodeById, replaceNodeById };
 
 function setNodeProp(
   node: SiteNode,
@@ -503,10 +581,6 @@ function setNodeProp(
     ...node,
     children: node.children.map((c) => setNodeProp(c, id, key, value)),
   };
-}
-
-function insertNode(root: SiteNode, node: SiteNode): SiteNode {
-  return { ...root, children: [...root.children, node] };
 }
 
 function countNodes(node: SiteNode): number {

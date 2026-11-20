@@ -2,10 +2,9 @@
 
 /**
  * Véxora Sites — Editor Visual: árvore de camadas.
- * Mostra a árvore de nós do site com seleção simples/múltipla, visibilidade e bloqueio por nó.
- * Acessibilidade: role="tree", aria-selected, aria-expanded, navegação por teclado.
- * Consome shared-types (SiteNode). Sem tipos próprios.
- * Classes CSS em editor.css (tokens Véxora, sem hex direto).
+ * Mostra a árvore de nós do site com seleção simples/múltipla, visibilidade, bloqueio
+ * e reordenação por arraste. Acessibilidade: role="tree", aria-selected,
+ * aria-expanded, navegação por teclado. Consome shared-types (SiteNode).
  */
 
 import { useCallback, useState } from 'react';
@@ -18,6 +17,14 @@ import {
   Lock,
   Unlock,
 } from 'lucide-react';
+import { readDragPayload, writeDragPayload, type DragPayload } from './dnd';
+import {
+  canReceiveChildren,
+  isDescendantId,
+  isEffectivelyLocked,
+  isNodeLocked,
+  type DropPosition,
+} from './site-tree';
 import './editor.css';
 
 const NODE_LABELS: Record<string, string> = {
@@ -42,6 +49,18 @@ interface LayerTreeProps {
   disabled?: boolean;
   /** Real permission state. Only this produces the read-only message. */
   readOnly?: boolean;
+  rootId?: string | null;
+  draggingNodeId?: string | null;
+  onDragNodeStart?: (nodeId: string, event: React.DragEvent<HTMLLIElement>) => void;
+  onDragTarget?: (targetId: string, position: DropPosition) => void;
+  onDragTargetClear?: () => void;
+  onDropNode?: (targetId: string, position: DropPosition, payload?: DragPayload | null) => void;
+  onDragEnd?: () => void;
+}
+
+interface DropState {
+  id: string;
+  position: DropPosition;
 }
 
 export function LayerTree({
@@ -52,14 +71,100 @@ export function LayerTree({
   onLock,
   disabled = false,
   readOnly = false,
+  rootId = null,
+  draggingNodeId = null,
+  onDragNodeStart,
+  onDragTarget,
+  onDragTargetClear,
+  onDropNode,
+  onDragEnd,
 }: LayerTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [drop, setDrop] = useState<DropState | null>(null);
 
   const isSelected = useCallback((id: string) => selectedIds.includes(id), [selectedIds]);
 
   const toggleExpanded = useCallback((id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
+
+  const effectiveLocked = useCallback(
+    (id: string) => nodes.some((root) => isEffectivelyLocked(root, id)),
+    [nodes],
+  );
+
+  const canDrag = useCallback(
+    (node: SiteNode) => !readOnly && !disabled && node.id !== rootId && !effectiveLocked(node.id),
+    [disabled, effectiveLocked, readOnly, rootId],
+  );
+
+  const canDropOn = useCallback(
+    (node: SiteNode) => {
+      if (readOnly || disabled || effectiveLocked(node.id)) return false;
+      if (!draggingNodeId && !dragId) return true;
+      const sourceId = draggingNodeId ?? dragId;
+      if (!sourceId || sourceId === node.id) return false;
+      return !nodes.some((root) => isDescendantId(root, sourceId, node.id));
+    },
+    [disabled, dragId, draggingNodeId, effectiveLocked, nodes, readOnly],
+  );
+
+  const clearDrop = useCallback(() => {
+    setDrop(null);
+    onDragTargetClear?.();
+  }, [onDragTargetClear]);
+
+  const clearDrag = useCallback(() => {
+    setDragId(null);
+    clearDrop();
+    onDragEnd?.();
+  }, [clearDrop, onDragEnd]);
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLLIElement>, node: SiteNode) => {
+      if (!canDropOn(node)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const offset = event.clientY - rect.top;
+      const allowInside = canReceiveChildren(node) && !isNodeLocked(node);
+      const position: DropPosition =
+        allowInside && offset > rect.height * 0.3 && offset < rect.height * 0.7
+          ? 'inside'
+          : offset < rect.height / 2
+            ? 'before'
+            : 'after';
+      setDrop((previous) =>
+        previous?.id === node.id && previous.position === position
+          ? previous
+          : { id: node.id, position },
+      );
+      onDragTarget?.(node.id, position);
+    },
+    [canDropOn, onDragTarget],
+  );
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLLIElement>, node: SiteNode) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (canDropOn(node)) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const offset = event.clientY - rect.top;
+        const allowInside = canReceiveChildren(node) && !isNodeLocked(node);
+        const position: DropPosition =
+          allowInside && offset > rect.height * 0.3 && offset < rect.height * 0.7
+            ? 'inside'
+            : offset < rect.height / 2
+              ? 'before'
+              : 'after';
+        onDropNode?.(node.id, position, readDragPayload(event.dataTransfer));
+      }
+      clearDrag();
+    },
+    [canDropOn, clearDrag, onDropNode],
+  );
 
   const handleSelect = useCallback(
     (id: string, e: React.MouseEvent | React.KeyboardEvent, multi = false) => {
@@ -90,7 +195,9 @@ export function LayerTree({
         <h2 className="vx-layer-tree-title">Camadas</h2>
         <span className="vx-layer-tree-count">{nodes.length}</span>
       </header>
-      <div className="vx-layer-tree-scroll">
+      <div className="vx-layer-tree-scroll" onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) clearDrop();
+      }}>
         <ul role="tree" aria-multiselectable={true} className="vx-layer-tree-list">
           {nodes.map((node) => (
             <LayerTreeNode
@@ -107,6 +214,21 @@ export function LayerTree({
               onKeyDown={(e) => handleKeyDown(e, node.id)}
               disabled={disabled}
               readOnly={readOnly}
+              canDragNode={canDrag}
+              dragActiveId={draggingNodeId ?? dragId}
+              drop={drop}
+              onDragStartNode={(dragged, event) => {
+                writeDragPayload(
+                  event.dataTransfer,
+                  { kind: 'node', nodeId: dragged.id },
+                  NODE_LABELS[dragged.type] || dragged.type,
+                );
+                setDragId(dragged.id);
+                onDragNodeStart?.(dragged.id, event);
+              }}
+              onDragOverNode={handleDragOver}
+              onDropNode={handleDrop}
+              onDragEnd={clearDrag}
             />
           ))}
         </ul>
@@ -134,6 +256,16 @@ interface LayerTreeNodeProps {
   onKeyDown: (e: React.KeyboardEvent) => void;
   disabled: boolean;
   readOnly: boolean;
+  canDragNode: (node: SiteNode) => boolean;
+  dragActiveId: string | null;
+  drop: DropState | null;
+  onDragStartNode: (node: SiteNode, event: React.DragEvent<HTMLLIElement>) => void;
+  onDragOverNode: (event: React.DragEvent<HTMLLIElement>, node: SiteNode) => void;
+  onDropNode: (
+    event: React.DragEvent<HTMLLIElement>,
+    node: SiteNode,
+  ) => void;
+  onDragEnd: () => void;
 }
 
 function LayerTreeNode({
@@ -149,10 +281,21 @@ function LayerTreeNode({
   onKeyDown,
   disabled,
   readOnly,
+  canDragNode,
+  dragActiveId,
+  drop,
+  onDragStartNode,
+  onDragOverNode,
+  onDropNode,
+  onDragEnd,
 }: LayerTreeNodeProps) {
   const hasChildren = node.children && node.children.length > 0;
   const visible = node.props.visible !== false;
   const locked = node.props.locked === true;
+  const draggable = canDragNode(node);
+  const dragActive = dragActiveId === node.id;
+  const dropState = drop?.id === node.id ? drop.position : null;
+  const dropClass = dropState ? `is-drop-${dropState}` : '';
 
   return (
     <li
@@ -160,12 +303,24 @@ function LayerTreeNode({
       aria-selected={isSelected(node.id)}
       aria-expanded={hasChildren ? expanded : undefined}
       tabIndex={0}
+      draggable={draggable}
       className={`vx-layer-tree-node ${isSelected(node.id) ? 'is-selected' : ''} ${
         disabled ? 'is-busy' : ''
-      } ${readOnly ? 'is-readonly' : ''}`}
+      } ${readOnly ? 'is-readonly' : ''} ${dragActive ? 'is-dragging' : ''} ${dropClass}`}
       style={{ paddingLeft: 16 + depth * 18 }}
       onClick={(e) => onSelect(node.id, e, false)}
       onKeyDown={onKeyDown}
+      onDragStart={(event) => {
+        if (!draggable) {
+          event.preventDefault();
+          return;
+        }
+        event.stopPropagation();
+        onDragStartNode(node, event);
+      }}
+      onDragOver={(event) => onDragOverNode(event, node)}
+      onDrop={(event) => onDropNode(event, node)}
+      onDragEnd={onDragEnd}
     >
       <div className="vx-layer-tree-node-content">
         {hasChildren ? (
@@ -173,6 +328,7 @@ function LayerTreeNode({
             type="button"
             className="vx-layer-tree-expand"
             aria-label={expanded ? 'Colapsar' : 'Expandir'}
+            draggable={false}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -195,6 +351,7 @@ function LayerTreeNode({
             aria-label={readOnly ? 'Somente leitura: visibilidade indisponível' : visible ? 'Ocultar' : 'Mostrar'}
             title={readOnly ? 'Somente leitura' : visible ? 'Ocultar bloco' : 'Mostrar bloco'}
             disabled={disabled}
+            draggable={false}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -209,6 +366,7 @@ function LayerTreeNode({
             aria-label={readOnly ? 'Somente leitura: bloqueio indisponível' : locked ? 'Desbloquear' : 'Bloquear'}
             title={readOnly ? 'Somente leitura' : locked ? 'Desbloquear bloco' : 'Bloquear bloco'}
             disabled={disabled}
+            draggable={false}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -239,6 +397,13 @@ function LayerTreeNode({
               onKeyDown={onKeyDown}
               disabled={disabled}
               readOnly={readOnly}
+              canDragNode={canDragNode}
+              dragActiveId={dragActiveId}
+              drop={drop}
+              onDragStartNode={onDragStartNode}
+              onDragOverNode={onDragOverNode}
+              onDropNode={onDropNode}
+              onDragEnd={onDragEnd}
             />
           ))}
         </ul>

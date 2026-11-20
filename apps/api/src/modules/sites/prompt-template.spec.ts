@@ -1,6 +1,7 @@
 import { SitesService } from "./sites.service";
 import { LANDING_CONTACT_ANCHOR, LANDING_FORM_BLOCK_ID } from "./landing-template";
 import { promptDocument } from "./prompt-template";
+import { parseLayoutBrief } from "./layout-brief";
 
 const TENANT = "22222222-2222-4222-8222-222222222222";
 const SITE = "11111111-1111-4111-8111-111111111111";
@@ -205,6 +206,12 @@ describe("rascunho premium a partir da descrição do wizard", () => {
     await expect(
       service.create(TENANT, "OWNER", { name: "Site simples", prompt: "Site novo", logoUrl: "javascript:alert(1)" }),
     ).rejects.toThrow();
+    await expect(
+      service.create(TENANT, "OWNER", {
+        name: "Site simples",
+        layoutImage: { dataUrl: "javascript:alert(1)" },
+      }),
+    ).rejects.toThrow();
   });
 
   it("entrega imagens ilustrativas editáveis no rascunho a partir do prompt", () => {
@@ -226,5 +233,38 @@ describe("rascunho premium a partir da descrição do wizard", () => {
     expect(all.find((node) => node.id === "page_sobre_team_image")?.type).toBe("image");
     expect(all.find((node) => node.id === "page_servicos_image")?.type).toBe("image");
     expect(JSON.stringify(document)).not.toContain("FOTO REAL DA EQUIPE OU DO ESPAÇO");
+  });
+
+  it("aplica a estrutura sugerida pela imagem sem copiar conteúdo da referência", () => {
+    const brief = parseLayoutBrief(
+      JSON.stringify({
+        sections: ["depoimentos", "servicos", "sobre", "faq", "beneficios", "processo", "comparativo", "prova"],
+        emphasis: "depoimentos",
+        density: "compacta",
+        confidence: 0.82,
+        notes: "Referência com depoimentos em destaque",
+      }),
+      "gpt-5",
+    );
+    expect(brief).not.toBeNull();
+    const document = promptDocument({
+      prompt: "Clínica veterinária",
+      name: "Pet Care",
+      kind: "LANDING",
+      primary: PRIMARY,
+      accent: ACCENT,
+      layoutBrief: brief,
+    });
+    const ids = document.root.children.map((node: any) => node.id);
+
+    expect(ids[0]).toBe("landing_nav");
+    expect(ids[1]).toBe("landing_hero");
+    expect(ids.indexOf("landing_testimonials")).toBeLessThan(ids.indexOf("landing_services"));
+    expect(ids[ids.length - 2]).toBe("landing_contact");
+    expect(ids[ids.length - 1]).toBe("landing_footer");
+    expect(document.root.children.find((node: any) => node.id === "landing_hero")?.props.padding).toContain("2.5rem");
+    expect(document.meta.generatedFrom).toBe("prompt+layout");
+    expect(document.meta.layoutReference).toMatchObject({ analyzed: true, model: "gpt-5", emphasis: "depoimentos" });
+    expect(content(document, "landing_hero_title")).toBe("Cuidado veterinário com atenção em cada detalhe");
   });
 });

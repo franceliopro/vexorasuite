@@ -20,7 +20,7 @@ export class SitesController {
 
   @Post()
   create(@Req() req: AuthenticatedRequest, @Body() body: Record<string, unknown>) {
-    return this.service.create(req.user.tenantId, req.user.role, body);
+    return this.service.create(req.user.tenantId, req.user.role, body, req.user.sub);
   }
 
   @Patch(":id")

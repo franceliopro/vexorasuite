@@ -14,6 +14,7 @@ import { searxngSearch } from './local-services';
 import { normalize } from './flow-runtime';
 import {researchTopic} from './research-topic';
 import { skillInstructions } from './product-skills';
+import { buildWizardDraft, type WizardTheme } from './marketing-wizard';
 type Source={title:string;url:string;description:string};
 export type Carousel={title:string;caption:string;slides:{title:string;body:string}[]};
 const obj=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as any:{};
@@ -22,13 +23,20 @@ export function parseCarousel(text:string):Carousel|null {
 }
 export const escapeXml=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
 function lines(value:string,width:number,max:number){const output:string[]=[];for(const word of value.split(/\s+/)){const last=output.length-1;if(last>=0&&output[last]!.length+word.length+1<=width)output[last]+=' '+word;else output.push(word);}return output.slice(0,max).map((s,i)=>i===max-1&&output.length>max?s.slice(0,-1)+'…':s);}
-export function slideSvg(carousel:Carousel,index:number,brand:string,company='Véxora',referencePalette:string[]=[],format:'POST'|'CAROUSEL'|'STORIES'='CAROUSEL'):string {
- const slide=carousel.slides[index];if(!slide)throw new BadRequestException('Lâmina inexistente');const height=format==='STORIES'?1920:1440;
+export function slideSvg(carousel:Carousel,index:number,brand:string,company='Véxora',referencePalette:string[]=[],format:'POST'|'CAROUSEL'|'STORIES'='CAROUSEL',options:{theme?:WizardTheme;cta?:string;slide?:{title:string;body:string};label?:string}={}):string {
+ const slide=options.slide||carousel.slides[index];if(!slide)throw new BadRequestException('Lâmina inexistente');const height=format==='STORIES'?1920:1440;
  const color=/^#[\da-f]{6}$/i.test(brand)?brand:'#5865da';
  const secondary=referencePalette.find(c=>/^#[\da-f]{6}$/i.test(c))||color;
+ const light=options.theme==='light';
+ const background=light?'#f5f5f1':'#191D28';
+ const ink=light?'#151922':'#ffffff';
+ const muted=light?'#4b5366':'#c8cce0';
+ const divider=light?'#c8cfda':'#536078';
  const title=lines(slide.title,24,4),body=lines(slide.body,36,9);
- const text=(values:string[],x:number,y:number,size:number,weight:number)=>values.map((v,i)=>`<text x="${x}" y="${y+i*size*1.3}" font-family="DejaVu Sans, sans-serif" font-size="${size}" font-weight="${weight}" fill="#ffffff">${escapeXml(v)}</text>`).join('');
- return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${height}"><rect width="1080" height="${height}" fill="#191D28"/><circle cx="1010" cy="80" r="400" fill="${secondary}" opacity=".35"/><rect x="75" y="135" width="110" height="8" rx="4" fill="${color}"/><text x="75" y="100" font-family="sans-serif" font-size="24" fill="#c8cce0">${escapeXml(company.slice(0,40))} • ${index+1}/${carousel.slides.length}</text>${text(title,75,265,64,700)}${text(body,75,350+title.length*83,38,400)}<rect x="75" y="${height-155}" width="930" height="2" fill="#536078"/><text x="75" y="${height-95}" font-family="sans-serif" font-size="24" fill="#c8cce0">${index===carousel.slides.length-1?'CURTA · COMENTE · COMPARTILHE':'DESLIZE PARA CONTINUAR →'}</text></svg>`;
+ const text=(values:string[],x:number,y:number,size:number,weight:number)=>values.map((v,i)=>`<text x="${x}" y="${y+i*size*1.3}" font-family="DejaVu Sans, sans-serif" font-size="${size}" font-weight="${weight}" fill="${ink}">${escapeXml(v)}</text>`).join('');
+ const counter=options.label||`${index+1}/${carousel.slides.length}`;
+ const footer=options.cta||(index===carousel.slides.length-1?'CURTA · COMENTE · COMPARTILHE':'DESLIZE PARA CONTINUAR →');
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${height}"><rect width="1080" height="${height}" fill="${background}"/><circle cx="1010" cy="80" r="400" fill="${secondary}" opacity="${light?'.14':'.35'}"/><rect x="75" y="135" width="110" height="8" rx="4" fill="${color}"/><text x="75" y="100" font-family="sans-serif" font-size="24" fill="${muted}">${escapeXml(company.slice(0,40))} • ${escapeXml(counter)}</text>${text(title,75,265,64,700)}${text(body,75,350+title.length*83,38,400)}<rect x="75" y="${height-155}" width="930" height="2" fill="${divider}"/><text x="75" y="${height-95}" font-family="sans-serif" font-size="24" fill="${muted}">${escapeXml(footer.slice(0,80))}</text></svg>`;
 }
 @Injectable()
 export class AssistantAutomationService {
@@ -91,7 +99,33 @@ export class AssistantAutomationService {
 
   return {answer:'Carrossel criado com título, legenda e artes. Referências ativas orientam o briefing e a paleta analisada. A última lâmina contém o convite para curtir, comentar e compartilhar. Revise o texto e baixe as artes para publicar manualmente.',usedAi:true,tokensUsed:result.usage.totalTokens,model:result.model,automation:{id,carousel,channels:[]},sources};
  }
+ async createWizard(req:AuthenticatedRequest,question:string,options:{format?:'POST'|'CAROUSEL'|'STORIES';useBrandOnly?:boolean}={}){
+  this.authorize(req);
+  const format=options.format||'CAROUSEL';
+  const clean=String(question||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,2000);
+  if(!clean)throw new BadRequestException('Descreva o que deseja criar.');
+  const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true,name:true}});
+  const root=obj(tenant.integrations);
+  const draft=buildWizardDraft({question:clean,format,company:tenant.name});
+  const id=randomUUID();
+  const base=`/api/backend/assistant/automations/${id}/slides`;
+  const covers=draft.covers.map(cover=>({...cover,imageUrl:`${base}/${cover.index}?source=cover&theme=${cover.theme}`}));
+  const slides=draft.slides.map(slide=>({...slide,imageUrl:`${base}/${slide.index}?source=slide&theme=${slide.theme}`}));
+  const carousel={title:draft.title,caption:draft.caption,slides,covers};
+  await this.prisma.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'assistant.carousel',entityType:'automation',entityId:id,details:{status:'DRAFT',format,carousel,brand:root.brandSettings?.primaryColor||'#5865da',company:tenant.name,wizard:true,usedAi:false,question:clean} as Prisma.InputJsonValue}});
+  return {answer:'Rascunho completo criado com capas, lâminas com CTA e legenda. Revise antes de publicar.',usedAi:false,tokensUsed:0,model:null,automation:{id,carousel,covers,channels:[]},sources:[]};
+ }
  async list(req:AuthenticatedRequest){this.authorize(req);const rows=await this.prisma.auditLog.findMany({where:{tenantId:req.user.tenantId,action:'assistant.carousel',entityId:{not:null}},orderBy:{createdAt:'desc'},take:50,select:{entityId:true,details:true,createdAt:true}});return rows.map(row=>({id:row.entityId,title:obj(obj(row.details).carousel).title||'Criação',status:obj(row.details).status||'DRAFT',plannedFor:obj(obj(row.details).manualReview).plannedFor||null,createdAt:row.createdAt}));}
  async read(req:AuthenticatedRequest,id:string){this.authorize(req);const audit=await this.prisma.auditLog.findFirst({where:{tenantId:req.user.tenantId,entityId:id,action:'assistant.carousel'}});if(!audit)throw new NotFoundException('Automação não encontrada.');return audit;}
- async preview(req:AuthenticatedRequest,id:string,index:number){const record=await this.read(req,id);const data=obj(record.details);return sharp(Buffer.from(slideSvg(data.carousel,index,data.brand,data.company,data.referencePalette||[],data.format||'CAROUSEL'))).png().toBuffer();}
+ async preview(req:AuthenticatedRequest,id:string,index:number,options:{source?:string;theme?:string}={}){
+  const record=await this.read(req,id);const data=obj(record.details);const carousel=obj(data.carousel);
+  const covers=Array.isArray(carousel.covers)?carousel.covers:[];
+  const slides=Array.isArray(carousel.slides)?carousel.slides:[];
+  const isCover=options.source==='cover';
+  const selected=isCover?covers[index]:slides[index];
+  if(!selected)throw new NotFoundException('Lâmina inexistente');
+  const theme:WizardTheme=options.theme==='light'||options.theme==='dark'?options.theme:(selected.theme==='light'?'light':'dark');
+  const svg=slideSvg(carousel as Carousel,index,data.brand||'#5865da',data.company||'Véxora',data.referencePalette||[],data.format||'CAROUSEL',{theme,cta:selected.cta,slide:{title:String(selected.title||''),body:String(selected.body||'')},label:isCover?`CAPA ${index+1}/${covers.length}`:undefined});
+  return sharp(Buffer.from(svg)).png().toBuffer();
+ }
 }

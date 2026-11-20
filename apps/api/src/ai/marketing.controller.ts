@@ -28,6 +28,11 @@ function normalizeWebFields(value:unknown):WebAssetField[]{
  })).filter((item:WebAssetField)=>item.label);
 }
 function readWebAssetDetails(value:unknown):Record<string,any>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,any>:{};}
+function normalizeMarketingMedia(value:unknown){
+ const rows=Array.isArray(value)?value.slice(0,10):[];
+ return rows.filter(item=>item&&typeof item==='object').map((item:any)=>({mediaSource:item.mediaSource==='google-drive'?'google-drive':'',mediaFileId:typeof item.mediaFileId==='string'?item.mediaFileId.trim().slice(0,200):'',mediaAccountId:typeof item.mediaAccountId==='string'?item.mediaAccountId.trim().slice(0,80):'',mediaName:typeof item.mediaName==='string'?item.mediaName.trim().slice(0,180):'',thumbnailUrl:typeof item.thumbnailUrl==='string'?item.thumbnailUrl.slice(0,1000):'',mediaUrl:typeof item.mediaUrl==='string'?item.mediaUrl.slice(0,1000):''})).filter((item:any)=>item.mediaUrl||item.mediaFileId);
+}
+
 type WebAssetDraft={title:string;slug:string;summary:string;fields:WebAssetField[]};
 function readJsonObject(text:string):Record<string,any>|null{
  const raw=String(text||'').replace(/```json/gi,'').replace(/```/g,'').trim();
@@ -65,6 +70,7 @@ export class MarketingController{
  }
  @Post('drafts') draft(@Req() req:AuthenticatedRequest,@Body() input:any){
   this.automation.authorize(req);assertDraftInput(input);
+  if(input.wizard===true)return this.automation.createWizard(req,input.question,{format:input.format,useBrandOnly:input.useBrandOnly!==false});
   return this.automation.createCarousel(req,input.question,{format:input.format,draftOnly:true,useBrandOnly:input.useBrandOnly!==false});
  }
  @Get('manual-drafts') async manualList(@Req() req:AuthenticatedRequest){
@@ -82,8 +88,7 @@ export class MarketingController{
   const mediaFileId=typeof input?.mediaFileId==='string'?input.mediaFileId.trim().slice(0,200):'';
   const mediaAccountId=typeof input?.mediaAccountId==='string'?input.mediaAccountId.trim().slice(0,80):'';
   const mediaName=typeof input?.mediaName==='string'?input.mediaName.trim().slice(0,180):'';
-  const rawMediaItems=Array.isArray(input?.mediaItems)?input.mediaItems.slice(0,10):[];
-  const mediaItems=rawMediaItems.filter((item:any)=>item&&typeof item==='object').map((item:any)=>({mediaSource:item.mediaSource==='google-drive'?'google-drive':'',mediaFileId:typeof item.mediaFileId==='string'?item.mediaFileId.trim().slice(0,200):'',mediaAccountId:typeof item.mediaAccountId==='string'?item.mediaAccountId.trim().slice(0,80):'',mediaName:typeof item.mediaName==='string'?item.mediaName.trim().slice(0,180):'',thumbnailUrl:typeof item.thumbnailUrl==='string'?item.thumbnailUrl.slice(0,1000):'',mediaUrl:typeof item.mediaUrl==='string'?item.mediaUrl.slice(0,1000):''})).filter((item:any)=>item.mediaUrl||item.mediaFileId);
+  const mediaItems=normalizeMarketingMedia(input?.mediaItems);
   if(mediaItems.some((item:any)=>item.mediaSource==='google-drive'&&(!item.mediaFileId||!item.mediaAccountId)))throw new BadRequestException('Um dos arquivos do Google Drive é inválido.');
   if(!title||title.length>180||!caption||caption.length>4000||!channels.length||plannedFor&&(!/^\d{4}-\d{2}-\d{2}$/.test(plannedFor)||!Number.isFinite(Date.parse(plannedFor)))||mediaSource==='google-drive'&&(!mediaFileId||!mediaAccountId))throw new BadRequestException('Preencha título, legenda, redes e data válida.');
   const id=randomUUID();
@@ -118,12 +123,15 @@ export class MarketingController{
     if(!row)throw new BadRequestException('Rascunho n\u00e3o encontrado.');
     const current=(row.details&&typeof row.details==='object'&&!Array.isArray(row.details)?row.details:{}) as any;
     const isHistory=['PUBLISHED','SCHEDULED'].includes(String(current.status));
-    const triesContentChange=(typeof input?.title==='string')||Array.isArray(input?.channels);
+    const triesContentChange=(typeof input?.title==='string')||Array.isArray(input?.channels)||Array.isArray(input?.mediaItems);
     if(isHistory&&triesContentChange)throw new BadRequestException('Esta publica\u00e7\u00e3o j\u00e1 foi para as redes e faz parte do hist\u00f3rico.');
+    const mediaItems=Array.isArray(input?.mediaItems)?normalizeMarketingMedia(input.mediaItems):null;
+    if(mediaItems&&mediaItems.some((item:any)=>item.mediaSource==='google-drive'&&(!item.mediaFileId||!item.mediaAccountId)))throw new BadRequestException('Um dos arquivos do Google Drive é inválido.');
     const next={...current,
       ...(typeof input?.title==='string'&&input.title.trim()&&input.title.trim().length<=180?{title:input.title.trim()}:{}),
       ...(typeof input?.caption==='string'&&input.caption.trim()&&input.caption.trim().length<=4000?{caption:input.caption.trim()}:{}),
       ...(Array.isArray(input?.channels)?{channels:input.channels.filter((v:any)=>typeof v==='string'&&v.length<=40).slice(0,12)}:{}),
+      ...(mediaItems?{mediaItems,mediaUrl:mediaItems[0]?.mediaUrl||'',thumbnailUrl:mediaItems[0]?.thumbnailUrl||''}:{}),
       ...(typeof input?.plannedFor==='string'?{plannedFor:input.plannedFor}:{}),
       ...(typeof input?.status==='string'&&['DRAFT','READY'].includes(input.status)?{status:input.status}: {})};
     await this.prisma.auditLog.update({where:{id},data:{details:next}});

@@ -10,7 +10,7 @@
  * Classes CSS em editor.css (tokens Véxora, sem hex direto).
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { SiteNode, BlockPropSchema } from '@/shared-types/site-document';
 import {
   Settings,
@@ -28,7 +28,12 @@ interface InspectorProps {
   onPropChange: (key: string, value: string | number | boolean) => void;
   onAIChange?: (prompt: string, nodeId: string) => void;
   aiBusy?: boolean;
+  /** Resultado visível do patch da IA, colado ao prompt. */
+  aiFeedback?: { text: string; error: boolean } | null;
+  /** Transient busy state, sem implication de permissão. */
   disabled?: boolean;
+  /** Real permission state; only this produces the read-only notice. */
+  readOnly?: boolean;
 }
 
 export function Inspector({
@@ -37,11 +42,20 @@ export function Inspector({
   onPropChange,
   onAIChange,
   aiBusy = false,
+  aiFeedback = null,
   disabled = false,
+  readOnly = false,
 }: InspectorProps) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [values, setValues] = useState<Record<string, string | number | boolean>>({});
+  const controlsDisabled = disabled || readOnly;
+
+  // O resultado da IA precisa aparecer junto ao prompt; abrir o painel evita que
+  // a resposta fique escondida dentro de um detalhe recolhido.
+  useEffect(() => {
+    if (aiFeedback) setAiPanelOpen(true);
+  }, [aiFeedback]);
 
   const handlePropChange = useCallback(
     (key: string, value: string | number | boolean) => {
@@ -115,7 +129,7 @@ export function Inspector({
           className="vx-inspector-btn-icon"
           aria-label={aiPanelOpen ? 'Fechar assistente de IA' : 'Abrir assistente de IA'}
           onClick={() => setAiPanelOpen((p) => !p)}
-          disabled={disabled}
+          disabled={controlsDisabled}
         >
           {aiPanelOpen ? <Minimize size={15} aria-hidden="true" /> : <Sparkles size={15} aria-hidden="true" />}
         </button>
@@ -135,7 +149,7 @@ export function Inspector({
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, e.target.value)}
                       placeholder={field.placeholder ?? ''}
-                      disabled={disabled}
+                      disabled={controlsDisabled}
                     />
                   )}
                   {field.type === 'textarea' && (
@@ -145,7 +159,7 @@ export function Inspector({
                       onChange={(e) => handlePropChange(field.key, e.target.value)}
                       placeholder={field.placeholder ?? ''}
                       rows={3}
-                      disabled={disabled}
+                      disabled={controlsDisabled}
                     />
                   )}
                   {field.type === 'number' && (
@@ -154,7 +168,7 @@ export function Inspector({
                       className="vx-inspector-input"
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, Number(e.target.value) || 0)}
-                      disabled={disabled}
+                      disabled={controlsDisabled}
                     />
                   )}
                   {field.type === 'color' && (
@@ -170,7 +184,7 @@ export function Inspector({
                           )
                         }
                         onChange={(e) => handlePropChange(field.key, e.target.value)}
-                        disabled={disabled}
+                        disabled={controlsDisabled}
                       />
                     </div>
                   )}
@@ -179,7 +193,7 @@ export function Inspector({
                       className="vx-inspector-select"
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, e.target.value)}
-                      disabled={disabled}
+                      disabled={controlsDisabled}
                     >
                       {field.options?.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -194,7 +208,7 @@ export function Inspector({
                         type="checkbox"
                         checked={Boolean(values[field.key] ?? selectedNode.props[field.key])}
                         onChange={(e) => handlePropChange(field.key, e.target.checked)}
-                        disabled={disabled}
+                        disabled={controlsDisabled}
                       />
                       <span className="vx-inspector-toggle-thumb" aria-hidden="true" />
                     </label>
@@ -207,7 +221,7 @@ export function Inspector({
                         value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                         onChange={(e) => handlePropChange(field.key, e.target.value)}
                         placeholder="URL da imagem"
-                        disabled={disabled}
+                        disabled={controlsDisabled}
                       />
                     </div>
                   )}
@@ -238,16 +252,16 @@ export function Inspector({
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={handleAiKeyDown}
                 placeholder="Ex.: torne o botão vermelho, aumente o espaçamento e centralize o texto"
-                disabled={disabled || aiBusy}
+                disabled={controlsDisabled || aiBusy}
               />
               <div className="vx-inspector-ai-actions">
                 <small className="vx-inspector-ai-hint">
-                  Pressione Ctrl+Enter para aplicar. A IA altera props/estilos do bloco selecionado.
+                  Pressione Ctrl+Enter. A IA ajusta props/estilos como patch; revise e salve.
                 </small>
                 <button
                   type="submit"
                   className="vx-inspector-btn-primary"
-                  disabled={disabled || aiBusy || !aiPrompt.trim() || !selectedNode}
+                  disabled={controlsDisabled || aiBusy || !aiPrompt.trim() || !selectedNode}
                 >
                   {aiBusy ? (
                     <>
@@ -263,16 +277,25 @@ export function Inspector({
                 </button>
               </div>
             </form>
+            {aiFeedback ? (
+              <div
+                className={`vx-inspector-ai-feedback ${aiFeedback.error ? 'is-error' : 'is-ok'}`}
+                role={aiFeedback.error ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {aiFeedback.text}
+              </div>
+            ) : null}
           </div>
         )}
       </div>
 
-      {disabled && (
-        <div className="vx-inspector-disabled-banner">
+      {readOnly ? (
+        <div className="vx-inspector-readonly-banner" role="status">
           <AlertCircle size={14} aria-hidden="true" />
-          <span>Edição bloqueada — sem permissão para alterar este bloco.</span>
+          <span>Somente leitura — inspecione blocos sem alterá-los.</span>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

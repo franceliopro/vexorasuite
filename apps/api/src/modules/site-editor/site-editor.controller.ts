@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body, UseGuards, Req, ParseUUIDPipe } from '@nestjs/common';
 import { SiteEditorService } from './site-editor.service';
 import { SiteAiService } from './site-ai.service';
+import { SitePreviewService } from './site-preview.service';
 import { AuthGuard } from '../../auth/auth.guard';
 import { AuthenticatedRequest } from '../../auth/auth.types';
 
@@ -10,6 +11,7 @@ export class SiteEditorController {
   constructor(
     private readonly service: SiteEditorService,
     private readonly ai: SiteAiService,
+    private readonly preview: SitePreviewService,
   ) {}
 
   @Get()
@@ -37,6 +39,18 @@ export class SiteEditorController {
     @Body() body: { node?: unknown; prompt?: unknown },
   ) {
     return this.ai.edit(siteId, req.user.tenantId, req.user.sub, body?.node, body?.prompt);
+  }
+
+  /**
+   * Cria um endereço temporário para conferir o rascunho salvo. Não publica,
+   * não cria deployment e não altera domínio; o link expira em duas horas.
+   */
+  @Post('preview')
+  async createPreview(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.preview.create(siteId, req.user.tenantId);
   }
 
   @Get('versions')

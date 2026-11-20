@@ -12,7 +12,8 @@
  * postMessage (highlight) e emite mensagens de volta (select/hover/ready).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { SiteDocument, SiteNode } from '@/shared-types/site-document';
 import { Loader2, Eye, Maximize, Minimize } from 'lucide-react';
 import './editor.css';
@@ -45,13 +46,31 @@ export function Canvas({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // srcDoc controlado pelo React: o iframe pode ser remontado ao entrar/sair da
+  // tela cheia e precisa receber o mesmo HTML de novo, sem depender de efeito.
+  const frameHtml = useMemo(() => buildIframeHtml(doc), [doc]);
 
-  // Serializa o documento para o iframe (preview determinístico)
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-    iframe.srcdoc = buildIframeHtml(doc);
-  }, [doc]);
+    setReady(false);
+  }, [doc, isFullscreen]);
+
+  // Tela cheia real: portal em document.body, travamento do scroll e saída por Esc.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isFullscreen]);
 
   // Recebe seleções/hover do runtime do iframe
   useEffect(() => {
@@ -87,52 +106,70 @@ export function Canvas({
     );
   }
 
-  return (
-    <section
-      className={`vx-canvas ${isFullscreen ? 'vx-canvas-fullscreen' : ''}`}
-      aria-label={`Preview do site (${device})`}
-    >
-      <header className="vx-canvas-toolbar">
-        <span className="vx-canvas-device-label">{deviceLabel}</span>
-        <div className="vx-canvas-device-buttons">
-          {['desktop', 'tablet', 'mobile'].map((d) => (
-            <button
-              key={d}
-              type="button"
-              className={`vx-canvas-device-btn ${d === device ? 'is-active' : ''}`}
-              aria-label={`Visualizar em ${d === 'desktop' ? 'desktop' : d === 'tablet' ? 'tablet' : 'celular'}`}
-              onClick={() => onDeviceChange(d as 'desktop' | 'tablet' | 'mobile')}
-            >
-              <span className="vx-canvas-device-btn-icon" aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="vx-canvas-fullscreen-btn"
-          aria-label={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
-          onClick={() => setIsFullscreen((p) => !p)}
-        >
-          {isFullscreen ? <Minimize size={15} aria-hidden="true" /> : <Maximize size={15} aria-hidden="true" />}
-        </button>
-      </header>
+  const toolbar = (
+    <header className="vx-canvas-toolbar">
+      <span className="vx-canvas-device-label">{deviceLabel}</span>
+      <div className="vx-canvas-device-buttons">
+        {['desktop', 'tablet', 'mobile'].map((d) => (
+          <button
+            key={d}
+            type="button"
+            className={`vx-canvas-device-btn ${d === device ? 'is-active' : ''}`}
+            aria-label={`Visualizar em ${d === 'desktop' ? 'desktop' : d === 'tablet' ? 'tablet' : 'celular'}`}
+            onClick={() => onDeviceChange(d as 'desktop' | 'tablet' | 'mobile')}
+          >
+            <span className="vx-canvas-device-btn-icon" aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="vx-canvas-fullscreen-btn"
+        aria-label={isFullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia'}
+        title={isFullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia'}
+        onClick={() => setIsFullscreen((previous) => !previous)}
+      >
+        {isFullscreen ? <Minimize size={15} aria-hidden="true" /> : <Maximize size={15} aria-hidden="true" />}
+      </button>
+    </header>
+  );
 
+  const frame = (
+    <>
       <div className="vx-canvas-frame-wrap">
         <iframe
           ref={iframeRef}
           className="vx-canvas-frame"
+          srcDoc={frameHtml}
           sandbox="allow-same-origin allow-scripts"
           title="canvas"
+          onLoad={() => setReady(true)}
         />
         <div className="vx-canvas-selection-overlay" aria-hidden="true" />
       </div>
-
-      {(!doc || !doc.root) && (
+      {(!doc || !doc.root) ? (
         <div className="vx-canvas-empty">
           <Eye size={24} aria-hidden="true" />
           <span>Sem preview. Adicione blocos ou importe um site para começar.</span>
         </div>
-      )}
+      ) : null}
+    </>
+  );
+
+  if (isFullscreen && typeof document !== 'undefined') {
+    return createPortal(
+      <section className="vx-canvas vx-canvas-fullscreen-portal" aria-label={`Preview do site em tela cheia (${device})`}>
+        {toolbar}
+        {frame}
+      </section>,
+      document.body,
+    );
+  }
+
+  return (
+    <section className="vx-canvas" aria-label={`Preview do site (${device})`}>
+      {toolbar}
+      {frame}
     </section>
   );
 }
@@ -147,24 +184,29 @@ function escapePreview(value: unknown): string {
 
 function buildIframeHtml(doc: SiteDocument): string {
   const renderNode = (n: SiteNode): string => {
-    const style = Object.entries(n.styles).map(([k, v]) => `${camelToKebab(k)}:${v}`).join(';');
+    if (n.props?.visible === false) return '';
+    const style = Object.entries(n.styles).map(([k, v]) => `${camelToKebab(k)}:${escapePreview(v)}`).join(';');
     const inner = n.children.map(renderNode).join('');
+    const attrs = `data-node="${escapePreview(n.id)}" data-locked="${n.props?.locked === true ? 'true' : 'false'}" style="${style}"`;
     switch (n.type) {
-      case 'text':
-        return `<${(n.props as Record<string, string>)?.tag ?? 'p'} data-node="${n.id}" style="${style}">${(n.props as Record<string, unknown>).content ?? ''}</${(n.props as Record<string, string>)?.tag ?? 'p'}>`;
+      case 'text': {
+        const wanted = String((n.props as Record<string, unknown>)?.tag ?? 'p');
+        const tag = ['p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'strong', 'em'].includes(wanted) ? wanted : 'p';
+        return `<${tag} ${attrs}>${escapePreview((n.props as Record<string, unknown>).content ?? '')}</${tag}>`;
+      }
       case 'image':
-        return `<img data-node="${n.id}" src="${(n.props as Record<string, unknown>).src ?? ''}" alt="${(n.props as Record<string, unknown>).alt ?? ''}" style="${style}" />`;
+        return `<img ${attrs} src="${escapePreview((n.props as Record<string, unknown>).src ?? '')}" alt="${escapePreview((n.props as Record<string, unknown>).alt ?? '')}" />`;
       case 'button':
-        return `<a data-node="${n.id}" href="${(n.props as Record<string, unknown>).href ?? '#'}" style="${style}">${(n.props as Record<string, unknown>).label ?? ''}</a>`;
+        return `<a ${attrs} href="${escapePreview((n.props as Record<string, unknown>).href ?? '#')}">${escapePreview((n.props as Record<string, unknown>).label ?? '')}</a>`;
       case 'section':
       case 'container':
-        return `<section data-node="${n.id}" style="${style}">${inner}</section>`;
+        return `<section ${attrs}>${inner}</section>`;
       case 'video':
-        return `<div data-node="${n.id}" style="${style}">video</div>`;
+        return `<div ${attrs}>video</div>`;
       case 'faq':
-        return `<details data-node="${n.id}" style="${style}"><summary>${escapePreview((n.props as Record<string, unknown>).question)}</summary><p>${escapePreview((n.props as Record<string, unknown>).answer)}</p></details>`;
+        return `<details ${attrs}><summary>${escapePreview((n.props as Record<string, unknown>).question)}</summary><p>${escapePreview((n.props as Record<string, unknown>).answer)}</p></details>`;
       default:
-        return `<div data-node="${n.id}" style="${style}">${inner}</div>`;
+        return `<div ${attrs}>${inner}</div>`;
     }
   };
 
@@ -176,7 +218,10 @@ function buildIframeHtml(doc: SiteDocument): string {
       document.addEventListener('click', function(e){
         var t = e.target;
         while(t && t !== document.body && !t.getAttribute('data-node')) t = t.parentNode;
-        if(t && t.getAttribute('data-node')){ e.preventDefault(); e.stopPropagation(); post('select', t.getAttribute('data-node')); }
+        if(t && t.getAttribute('data-node')){
+          if(t.getAttribute('data-locked') === 'true') return;
+          e.preventDefault(); e.stopPropagation(); post('select', t.getAttribute('data-node'));
+        }
       }, true);
       document.addEventListener('mouseover', function(e){
         var t = e.target;

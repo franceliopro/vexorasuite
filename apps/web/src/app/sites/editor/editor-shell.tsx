@@ -49,6 +49,7 @@ import {
   Minimize2,
   AlertCircle,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 import './editor.css';
 
@@ -59,16 +60,21 @@ interface EditorShellProps {
   /** Retorna false quando a persistência falhou, para o aviso não mentir. */
   onSave: () => void | Promise<boolean | void>;
   onPublish: () => void;
-  publishDisabled?: boolean;
   onMinimize?: () => void;
   dirty?: boolean;
   onSelectNode: (id: string | null, multi: boolean) => void;
   onPropChange: (nodeId: string, key: string, value: string | number | boolean) => void;
   onAIChange: (prompt: string, nodeId: string) => void;
   aiBusy: boolean;
+  /** Resultado do patch da IA, exibido ao lado do prompt e na barra da janela. */
+  aiFeedback?: { text: string; error: boolean } | null;
   device: 'desktop' | 'tablet' | 'mobile';
   onDeviceChange: (device: 'desktop' | 'tablet' | 'mobile') => void;
-  disabled: boolean;
+  /** Permissão real do usuário. Não deve ser trocada por saving/publishing. */
+  readOnly: boolean;
+  /** Estados transitórios: bloqueiam alterações enquanto duram, sem alegar falta de permissão. */
+  saving?: boolean;
+  publishing?: boolean;
   loading: boolean;
   onClose: () => void;
 }
@@ -79,19 +85,23 @@ export function EditorShell({
   onChange,
   onSave,
   onPublish,
-  publishDisabled = false,
   onMinimize,
   dirty = false,
   onSelectNode,
   onPropChange,
   onAIChange,
   aiBusy,
+  aiFeedback = null,
   device,
   onDeviceChange,
-  disabled,
+  readOnly,
+  saving = false,
+  publishing = false,
   loading,
   onClose,
 }: EditorShellProps) {
+  // Saving/publishing are transient. Only readOnly means "sem permissão".
+  const interactionDisabled = readOnly || loading || saving || publishing;
   const historyRef = useRef(
     doc ? createHistory(doc) : createHistory(emptyDocument()),
   );
@@ -171,11 +181,11 @@ export function EditorShell({
   }, [onSave]);
 
   const handlePublish = useCallback(() => {
-    if (publishDisabled) return;
+    if (readOnly || loading || saving || publishing) return;
     onPublish();
     setNotice('Publicando…');
     setNoticeKind('info');
-  }, [onPublish, publishDisabled]);
+  }, [loading, onPublish, publishing, readOnly, saving]);
 
   // Undo/redo já move o ponteiro do histórico: avisar o pai sem empurrar um novo snapshot,
   // senão desfazer viraria uma entrada nova e o botão nunca esvaziaria a pilha.
@@ -222,10 +232,18 @@ export function EditorShell({
     [activeRoot, selectedNode, setDoc, onPropChange, withActiveRoot],
   );
 
+  const handleNodeProp = useCallback(
+    (nodeId: string, key: string, value: string | number | boolean) => {
+      if (readOnly || interactionDisabled || !activeRoot) return;
+      setDoc(withActiveRoot(setNodeProp(activeRoot, nodeId, key, value)));
+    },
+    [activeRoot, interactionDisabled, readOnly, setDoc, withActiveRoot],
+  );
+
   const handleAIChange = useCallback((prompt: string) => {
-    if (!selectedNode) return;
+    if (!selectedNode || readOnly || interactionDisabled) return;
     onAIChange(prompt, selectedNode.id);
-  }, [selectedNode, onAIChange]);
+  }, [interactionDisabled, onAIChange, readOnly, selectedNode]);
 
   const nodeCount = useMemo(() => (activeRoot ? countNodes(activeRoot) : 0), [activeRoot]);
 
@@ -268,7 +286,7 @@ export function EditorShell({
             id="vx-editor-page"
             value={activePageSlug}
             onChange={(event) => setActivePageSlug(event.target.value)}
-            disabled={disabled || loading}
+            disabled={loading}
             style={{
               background: 'var(--surface, #ffffff)',
               border: '1px solid var(--border, #e5e8ef)',
@@ -305,8 +323,8 @@ export function EditorShell({
           </div>
           <button
             type="button"
-            className={`vx-editor-btn-secondary ${!canUndo(historyRef.current) || disabled || loading ? 'is-disabled' : ''}`}
-            disabled={!canUndo(historyRef.current) || disabled || loading}
+            className={`vx-editor-btn-secondary ${!canUndo(historyRef.current) || interactionDisabled ? 'is-disabled' : ''}`}
+            disabled={!canUndo(historyRef.current) || interactionDisabled}
             onClick={handleUndo}
             title="Desfazer"
           >
@@ -314,8 +332,8 @@ export function EditorShell({
           </button>
           <button
             type="button"
-            className={`vx-editor-btn-secondary ${!canRedo(historyRef.current) || disabled || loading ? 'is-disabled' : ''}`}
-            disabled={!canRedo(historyRef.current) || disabled || loading}
+            className={`vx-editor-btn-secondary ${!canRedo(historyRef.current) || interactionDisabled ? 'is-disabled' : ''}`}
+            disabled={!canRedo(historyRef.current) || interactionDisabled}
             onClick={handleRedo}
             title="Refazer"
           >
@@ -324,19 +342,22 @@ export function EditorShell({
           <button
             type="button"
             className="vx-editor-btn-primary"
-            disabled={disabled || loading}
+            disabled={readOnly || loading || saving}
             onClick={() => void handleSave()}
+            title={readOnly ? 'Somente leitura' : saving ? 'Salvando…' : undefined}
           >
-            <Save size={15} aria-hidden="true" /> Salvar
+            {saving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
+            {saving ? 'Salvando…' : 'Salvar'}
           </button>
           <button
             type="button"
             className="vx-editor-btn-primary"
-            disabled={disabled || loading || publishDisabled}
+            disabled={readOnly || loading || saving || publishing}
             onClick={handlePublish}
-            title={publishDisabled ? 'Publicando…' : undefined}
+            title={readOnly ? 'Somente leitura' : publishing ? 'Publicando…' : saving ? 'Aguarde o salvamento' : undefined}
           >
-            <Play size={15} aria-hidden="true" /> Publicar
+            {publishing ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
+            {publishing ? 'Publicando…' : 'Publicar'}
           </button>
         </div>
       </header>
@@ -346,21 +367,24 @@ export function EditorShell({
           <Palette
             blocks={BLOCK_TYPES.map((t) => BLOCK_REGISTRY[t])}
             onAdd={(type) => {
-              if (disabled || loading || !activeRoot) return;
+              if (interactionDisabled || !activeRoot) return;
               const next = withActiveRoot(insertNode(activeRoot, createNode(type)));
               setDoc(next);
               setNotice(`Bloco "${BLOCK_REGISTRY[type as keyof typeof BLOCK_REGISTRY].label}" adicionado.`);
               setNoticeKind('ok');
               setTimeout(() => setNotice(''), 1500);
             }}
-            disabled={disabled}
+            disabled={interactionDisabled}
             loading={loading}
           />
           <LayerTree
             nodes={activeRoot ? [activeRoot] : []}
             selectedIds={selectedIds}
             onSelect={handleSelect}
-            disabled={disabled}
+            onToggleVisibility={(nodeId, visible) => handleNodeProp(nodeId, 'visible', visible)}
+            onLock={(nodeId, locked) => handleNodeProp(nodeId, 'locked', locked)}
+            disabled={interactionDisabled}
+            readOnly={readOnly}
           />
         </aside>
 
@@ -386,7 +410,9 @@ export function EditorShell({
             onPropChange={handlePropChange}
             onAIChange={handleAIChange}
             aiBusy={aiBusy}
-            disabled={disabled}
+            aiFeedback={aiFeedback}
+            disabled={interactionDisabled}
+            readOnly={readOnly}
           />
         </aside>
       </div>
@@ -403,12 +429,12 @@ export function EditorShell({
         </div>
       )}
 
-      {disabled && (
-        <div className="vx-editor-disabled-banner" role="alert">
+      {readOnly ? (
+        <div className="vx-editor-readonly-banner" role="status">
           <AlertCircle size={15} aria-hidden="true" />
-          <span>Edição bloqueada — sem permissão para alterar este site.</span>
+          <span>Somente leitura — você pode navegar pelo site, mas não alterar este documento.</span>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -93,6 +93,9 @@ export type RenderContext = {
   root?: HtmlNode;
   /** Título da página secundária; quando ausente, usa o título do documento. */
   pageTitle?: string;
+  /** Prévia temporária: aviso visível e formulários desativados, sem script de envio. */
+  preview?: boolean;
+  previewLabel?: string;
 };
 
 function youtubeEmbed(src: string): string | null {
@@ -116,6 +119,8 @@ function youtubeEmbed(src: string): string | null {
 
 function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContext = {}): string {
   if (!node || depth > 24) return "";
+  // O botão "ocultar" da árvore de camadas precisa valer no preview e no HTML gerado.
+  if (node.props?.visible === false) return "";
   const props = node.props ?? {};
   const style = styleAttr(node.styles);
   const children = (node.children ?? []).map((child) => renderNode(child, depth + 1, ctx)).join("");
@@ -159,12 +164,15 @@ function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContex
         .join("");
       const blockId = typeof node.id === "string" && /^[\w-]{1,80}$/.test(node.id) ? node.id : "";
       const base = String(ctx.apiBase ?? "").replace(/\/+$/, "");
-      const endpoint = base && /^https:\/\//i.test(base)
+      const preview = ctx.preview === true;
+      const endpoint = !preview && base && /^https:\/\//i.test(base)
         ? `${base}/api/public/sites/${encodeURIComponent(ctx.siteId ?? "")}/forms`
         : "";
-      const unavailable = endpoint
-        ? ""
-        : '<p class="vx-note">Formulário indisponível: a URL pública da API não foi configurada nesta instalação.</p>';
+      const unavailable = preview
+        ? '<p class="vx-note">Prévia temporária: formulários desativados.</p>'
+        : endpoint
+          ? ""
+          : '<p class="vx-note">Formulário indisponível: a URL pública da API não foi configurada nesta instalação.</p>';
       return `<form class="vx-form"${style} data-vx-form data-vx-block="${escapeHtml(blockId)}" data-vx-endpoint="${escapeHtml(endpoint)}">${inputs}<input class="vx-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit"${endpoint ? "" : " disabled"}>${escapeHtml(props.submitLabel ?? "Enviar")}</button><p class="vx-form-status" role="status" aria-live="polite"></p>${unavailable}</form>`;
     }
     case "faq":
@@ -201,6 +209,10 @@ export function renderSiteHtml(
   const text = safeColor(theme.text, "#101d33");
   const title = escapeHtml(context.pageTitle || doc.meta?.title || site.name || "Site Véxora");
   const html = renderNode(context.root ?? doc.root, 0, context);
+  const preview = context.preview === true;
+  const previewBanner = preview
+    ? `<div class="vx-preview-banner" role="status">${escapeHtml(context.previewLabel || "Prévia temporária · rascunho não publicado")}</div>`
+    : "";
   // Só injeta o script quando há ao menos um formulário realmente habilitado.
   const hasForm = /data-vx-endpoint="https/.test(html);
 
@@ -226,6 +238,7 @@ a{color:var(--primary)}
 .vx-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
 .vx-form-status{font-size:.8125rem;min-height:1em}
 .vx-note,.vx-placeholder p{font-size:.8125rem;opacity:.7}
+.vx-preview-banner{position:sticky;top:0;z-index:9999;padding:8px 12px;background:#fff7ed;color:#7c2d12;border-bottom:1px solid #fed7aa;font:700 12px/1.4 Inter,system-ui,sans-serif;text-align:center}
 details summary{cursor:pointer;font-weight:700;list-style:none;padding:.25rem 0}
 details summary::-webkit-details-marker{display:none}
 details summary:after{content:"+";float:right;font-weight:400}
@@ -234,6 +247,7 @@ details p{margin:.65rem 0 .25rem;opacity:.8}
 </style>
 </head>
 <body>
+${previewBanner}
 ${html}
 ${hasForm ? `<script>(function(){var started=Date.now();document.querySelectorAll('form[data-vx-form]').forEach(function(form){form.addEventListener('submit',function(ev){ev.preventDefault();var endpoint=form.getAttribute('data-vx-endpoint');var status=form.querySelector('.vx-form-status');var button=form.querySelector('button[type=submit]');if(!endpoint){if(status)status.textContent='Formulário indisponível no momento.';return}var values={};Array.prototype.forEach.call(form.querySelectorAll('input[name]'),function(el){if(el.name&&el.name!=='website')values[el.name]=el.value});var hp=form.querySelector('input[name=website]');var body=new URLSearchParams();Object.keys(values).forEach(function(k){body.append('values['+k+']',values[k])});body.append('website',hp?hp.value:'');body.append('startedAt',String(started));if(button)button.disabled=true;if(status)status.textContent='Enviando…';fetch(endpoint+'/'+encodeURIComponent(form.getAttribute('data-vx-block')||'')+'/submit',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json'},body:body.toString()}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){return{ok:r.ok,message:j&&j.message}})}).then(function(x){if(status)status.textContent=x.message||(x.ok?'Mensagem enviada. Obrigado pelo contato!':'Não foi possível enviar. Tente novamente.');if(x.ok)form.reset()}).catch(function(){if(status)status.textContent='Não foi possível enviar. Tente novamente.'}).finally(function(){if(button)button.disabled=false})})})})();</script>` : ""}
 </body>

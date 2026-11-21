@@ -785,6 +785,9 @@ const config: Config = {
         "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
         "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
         "channels-attach": "repeat(2,1fr)",
+        /* Grades do workspace de Equipe: identidade e lista de atendentes. */
+        "team-identity": "150px minmax(0,1fr)",
+        "team-list": "repeat(auto-fill,minmax(320px,1fr))",
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
         "ov-primary": "minmax(0, 1.58fr) minmax(0, 1fr)",
         "ov-main": "minmax(0, 1.55fr) minmax(0, 1fr)",

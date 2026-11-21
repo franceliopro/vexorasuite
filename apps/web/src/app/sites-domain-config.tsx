@@ -43,6 +43,79 @@ interface SiteDomainConfigProps {
 const DOMAIN_PLACEHOLDER = "seusite.com.br";
 const CNAME_TARGET = "static.vexorasuite.com.br";
 
+/* TW utility-first: cores e medidas vêm do preset e dos tokens de tema. */
+const rootTw = "grid min-w-0 gap-token rounded-token border border-gray-200 bg-zinc-100 p-pad shadow-token";
+const headTw = "flex flex-wrap items-start gap-3";
+const iconTw = "grid size-10 shrink-0 place-items-center rounded-token bg-blue-50 text-blue-800";
+const titleTw = "text-h3 font-bold text-slate-950";
+const subTw = "text-small text-slate-600";
+const noPermTw = "flex items-start gap-2 rounded-token-sm border border-red-600 bg-red-100 p-3 text-small text-red-600";
+const stepsTw = "grid grid-cols-2 gap-2 p-0 list-none ov-tablet:grid-cols-4";
+const stepTw = "flex items-center gap-2 text-small font-semibold text-slate-600";
+const stepBadgeTw = "grid size-6 shrink-0 place-items-center rounded-full bg-zinc-200 text-h6 font-bold text-slate-950";
+const stepLabelTw = "min-w-0";
+const stepStateTw: Record<string, string> = {
+  current: "text-blue-800",
+  done: "text-emerald-600",
+  pending: "text-slate-600 opacity-70",
+};
+const stepBadgeStateTw: Record<string, string> = {
+  current: "bg-blue-600 text-blue-50",
+  done: "bg-emerald-100 text-emerald-600",
+  pending: "bg-zinc-200 text-slate-600",
+};
+const stepClass = (state: string) => `${stepTw} ${stepStateTw[state] ?? stepStateTw.pending}`;
+const stepBadgeClass = (state: string) => `${stepBadgeTw} ${stepBadgeStateTw[state] ?? stepBadgeStateTw.pending}`;
+const errorTw = "flex items-start gap-3 rounded-token-sm border border-red-600 bg-red-100 p-3 text-slate-950";
+const fieldBlockTw = "grid gap-3";
+const fieldLabelTw = "grid gap-1";
+const fieldTagTw = "text-small font-bold text-slate-950";
+const inputGroupTw = "flex flex-wrap items-center gap-2";
+const inputTw = "min-h-control min-w-0 flex-1 rounded-token-sm border border-gray-200 bg-zinc-50 px-3 text-body text-slate-950 outline-none placeholder:text-slate-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-50";
+const inputAlertTw = "shrink-0 text-red-600";
+const inputOkTw = "shrink-0 text-emerald-600";
+const errorTextTw = "text-small text-red-600";
+const fieldHintTw = "text-small text-slate-600";
+const statusRowTw = "grid grid-cols-1 gap-3 ov-tablet:grid-cols-2";
+const statusCardTw = "grid gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3";
+const statusHeadTw = "flex flex-wrap items-center gap-2";
+const statusNameTw = "text-small font-bold text-slate-950";
+const statusPillTw = "inline-flex items-center rounded-full px-2 py-1 text-h6 font-bold";
+const statusPillVariantTw: Record<string, string> = {
+  muted: "bg-zinc-200 text-slate-600",
+  ok: "bg-emerald-100 text-emerald-600",
+  bad: "bg-red-100 text-red-600",
+};
+const statusPillClass = (variant: string) => `${statusPillTw} ${statusPillVariantTw[variant] ?? statusPillVariantTw.muted}`;
+const statusDescTw = "text-small text-slate-600";
+const recordsTw = "grid gap-2";
+const recordsTitleTw = "text-h3 font-bold text-slate-950";
+const recordsHintTw = "text-small text-slate-600";
+const recordsTableTw = "w-full border-collapse text-small text-slate-950";
+const recordsTypeTw = "font-bold text-slate-950";
+const recordsValueTw = "flex flex-wrap items-center gap-2";
+const recordsEmptyTw = "p-3 text-center text-slate-600";
+const instructionsTw = "grid gap-2";
+const instructionsTitleTw = "text-h3 font-bold text-slate-950";
+const instructionsListTw = "grid list-decimal gap-1 pl-5 text-small text-slate-600";
+const cnameBoxTw = "flex flex-wrap items-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3";
+const cnameLabelTw = "text-small font-bold text-slate-950";
+const cnameValueTw = "min-w-0 flex-1 break-all font-mono text-small";
+const progressTw = "flex flex-wrap items-center gap-3";
+const progressTrackTw = "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200";
+const progressBarTw = "block h-full rounded-full bg-blue-600 transition-all duration-300";
+const progressPctTw = "text-small font-bold tabular-nums text-slate-950";
+const doneTw = "grid place-items-center gap-2 text-center";
+const doneIconTw = "text-emerald-600";
+const doneTitleTw = "text-h2 font-bold text-slate-950";
+const doneSubTw = "text-small text-slate-600";
+const actionsTw = "flex flex-wrap items-center justify-end gap-2";
+const footerTw = "flex flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-3";
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-brand-pad font-bold text-body text-blue-950 transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-200 px-brand-pad font-bold text-body text-slate-950 shadow-token-sm transition-colors hover:border-gray-300 hover:bg-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const iconButtonTw = "grid size-control shrink-0 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-950 shadow-token-sm transition-colors hover:bg-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+
+
 export function SiteDomainConfig({
   siteId,
   siteSlug,
@@ -234,6 +307,10 @@ export function SiteDomainConfig({
   /* ---------- render ---------- */
   if (!open) return null;
 
+  const domainStepState = flowStep === "domain" ? "current" : flowStep === "done" ? "done" : "pending";
+  const dnsStepState = flowStep === "dns" || (flowStep !== "domain" && flowStep !== "done") ? "current" : "pending";
+  const deployStepState = flowStep === "deploy" ? "current" : flowStep === "done" ? "done" : "pending";
+  const doneStepState = flowStep === "done" ? "current" : "pending";
   const noPermission = !canConfigureDomain;
 
   const statusLabel = (s: DnsSslStatus) => {
@@ -255,17 +332,17 @@ export function SiteDomainConfig({
 
   return (
     <section
-      className="content-card sites-domain-config"
+      className={rootTw}
       role="region"
       aria-label="Configuração de domínio próprio"
     >
-      <header className="sites-domain-head">
-        <div className="sites-domain-icon">
+      <header className={headTw}>
+        <div className={iconTw}>
           <Globe size={20} aria-hidden="true" />
         </div>
         <div>
-          <h2 className="sites-domain-title">Conectar domínio próprio</h2>
-          <p className="sites-domain-sub">
+          <h2 className={titleTw}>Conectar domínio próprio</h2>
+          <p className={subTw}>
             Publique o site <strong>{siteSlug}</strong> no seu domínio, com deploy via
             Cloudflare. Somente usuários com permissão de domínio podem concluir esta etapa.
           </p>
@@ -273,7 +350,7 @@ export function SiteDomainConfig({
       </header>
 
       {noPermission && (
-        <div role="alert" className="sites-domain-no-perm">
+        <div role="alert" className={noPermTw}>
           <AlertCircle size={15} aria-hidden="true" />
           <span>
             Você não tem permissão para configurar domínios nesta empresa. Peça ao
@@ -283,42 +360,42 @@ export function SiteDomainConfig({
       )}
 
       {/* Etapas */}
-      <ol className="sites-domain-steps" aria-label="Etapas de configuração">
+      <ol className={stepsTw} aria-label="Etapas de configuração">
         <li
-          className={"sites-domain-step " + (flowStep === "domain" ? "is-current" : flowStep === "done" ? "is-done" : "is-pending")}
+          className={stepClass(domainStepState)}
         >
-          <span className="sites-domain-step-badge">1</span>
-          <span className="sites-domain-step-label">Domínio</span>
+          <span className={stepBadgeClass(domainStepState)}>1</span>
+          <span className={stepLabelTw}>Domínio</span>
         </li>
         <li
-          className={"sites-domain-step " + (flowStep === "dns" ? "is-current" : flowStep !== "domain" && flowStep !== "done" ? "is-current" : "is-pending")}
+          className={stepClass(dnsStepState)}
         >
-          <span className="sites-domain-step-badge">2</span>
-          <span className="sites-domain-step-label">DNS e SSL</span>
+          <span className={stepBadgeClass(dnsStepState)}>2</span>
+          <span className={stepLabelTw}>DNS e SSL</span>
         </li>
         <li
-          className={"sites-domain-step " + (flowStep === "deploy" ? "is-current" : flowStep === "done" ? "is-done" : "is-pending")}
+          className={stepClass(deployStepState)}
         >
-          <span className="sites-domain-step-badge">3</span>
-          <span className="sites-domain-step-label">Deploy</span>
+          <span className={stepBadgeClass(deployStepState)}>3</span>
+          <span className={stepLabelTw}>Deploy</span>
         </li>
         <li
-          className={"sites-domain-step " + (flowStep === "done" ? "is-current" : "is-pending")}
+          className={stepClass(doneStepState)}
         >
-          <span className="sites-domain-step-badge">4</span>
-          <span className="sites-domain-step-label">Concluído</span>
+          <span className={stepBadgeClass(doneStepState)}>4</span>
+          <span className={stepLabelTw}>Concluído</span>
         </li>
       </ol>
 
       {/* Erro global */}
       {flowStep === "error" && (
-        <div role="alert" className="sites-domain-error">
+        <div role="alert" className={errorTw}>
           <AlertCircle size={17} aria-hidden="true" />
           <div>
             <strong>Não foi possível completar a configuração.</strong>
             <p>{notice}</p>
           </div>
-          <button type="button" className="primary-button" disabled={busy} onClick={() => {
+          <button type="button" className={primaryTw} disabled={busy} onClick={() => {
             setFlowStep("domain");
             setNotice("");
           }}>
@@ -329,13 +406,14 @@ export function SiteDomainConfig({
 
       {/* Passo 1: domínio */}
       {flowStep === "domain" && (
-        <section className="sites-domain-field-block" aria-label="Passo 1 — Domínio">
-          <div className="sites-domain-field-label">
-            <span className="sites-domain-field-tag">Seu domínio</span>
+        <section className={fieldBlockTw} aria-label="Passo 1 — Domínio">
+          <div className={fieldLabelTw}>
+            <span className={fieldTagTw}>Seu domínio</span>
             <span>Endereço que os visitantes usarão para acessar o site.</span>
           </div>
-          <div className="sites-domain-input-group">
+          <div className={inputGroupTw}>
             <input
+              className={inputTw}
               type="text"
               autoComplete="off"
               spellCheck={false}
@@ -349,26 +427,26 @@ export function SiteDomainConfig({
               aria-describedby="domain-error domain-hint"
             />
             {domainError ? (
-              <AlertCircle size={15} className="sites-domain-input-alert" aria-hidden="true" />
+              <AlertCircle size={15} className={inputAlertTw} aria-hidden="true" />
             ) : (
-              <Zap size={15} className="sites-domain-input-ok" aria-hidden="true" />
+              <Zap size={15} className={inputOkTw} aria-hidden="true" />
             )}
             <button
               type="button"
-              className="primary-button"
+              className={primaryTw}
               disabled={busy || noPermission || !domain.trim()}
               onClick={checkAndSetDomain}
             >
-              {busy ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : null}
+              {busy ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
               {busy ? "Verificando…" : "Validar domínio"}
             </button>
           </div>
           {domainError && (
-            <p id="domain-error" className="sites-domain-error-text" role="alert">
+            <p id="domain-error" className={errorTextTw} role="alert">
               {domainError}
             </p>
           )}
-          <p id="domain-hint" className="sites-domain-field-hint">
+          <p id="domain-hint" className={fieldHintTw}>
             Exemplo: <code>loja.suaempresa.com.br</code>. O domínio deve ser de sua titularidade.
           </p>
         </section>
@@ -376,43 +454,43 @@ export function SiteDomainConfig({
 
       {/* Passo 2: DNS/SSL */}
       {(flowStep === "dns" || flowStep === "ssl") && (
-        <section className="sites-domain-field-block" aria-label="Passo 2 — DNS e SSL">
-          <div className="sites-domain-status-row">
-            <div className="sites-domain-status-card">
-              <div className="sites-domain-status-head">
+        <section className={fieldBlockTw} aria-label="Passo 2 — DNS e SSL">
+          <div className={statusRowTw}>
+            <div className={statusCardTw}>
+              <div className={statusHeadTw}>
                 <Shield size={16} aria-hidden="true" />
-                <span className="sites-domain-status-name">DNS</span>
-                <span className={`sites-domain-status-pill is-${statusVariant(dnsStatus)}`}>
+                <span className={statusNameTw}>DNS</span>
+                <span className={statusPillClass(statusVariant(dnsStatus))}>
                   {statusLabel(dnsStatus)}
                 </span>
               </div>
-              <p className="sites-domain-status-desc">
+              <p className={statusDescTw}>
                 Configure os registros na sua conta Cloudflare para apontar este domínio
                 para a Véxora.
               </p>
             </div>
-            <div className="sites-domain-status-card">
-              <div className="sites-domain-status-head">
+            <div className={statusCardTw}>
+              <div className={statusHeadTw}>
                 <Cloud size={16} aria-hidden="true" />
-                <span className="sites-domain-status-name">SSL / TLS</span>
-                <span className={`sites-domain-status-pill is-${statusVariant(sslStatus)}`}>
+                <span className={statusNameTw}>SSL / TLS</span>
+                <span className={statusPillClass(statusVariant(sslStatus))}>
                   {statusLabel(sslStatus)}
                 </span>
               </div>
-              <p className="sites-domain-status-desc">
+              <p className={statusDescTw}>
                 Certificado automático provisionado após a confirmação do DNS.
               </p>
             </div>
           </div>
 
-          <div className="sites-domain-records">
-            <h3 className="sites-domain-records-title">Registros a configurar na Cloudflare</h3>
-            <p className="sites-domain-records-hint">
+          <div className={recordsTw}>
+            <h3 className={recordsTitleTw}>Registros a configurar na Cloudflare</h3>
+            <p className={recordsHintTw}>
               Em seu painel da Cloudflare, crie os registros abaixo no domínio{" "}
               <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code>. Após criar, aguarde a
               verificação automática (pode levar alguns minutos).
             </p>
-            <table className="sites-domain-records-table" aria-label="Registros DNS">
+            <table className={recordsTableTw} aria-label="Registros DNS">
               <thead>
                 <tr>
                   <th>Tipo</th>
@@ -425,14 +503,14 @@ export function SiteDomainConfig({
                 {dnsRecords.length ? (
                   dnsRecords.map((rec, i) => (
                     <tr key={i}>
-                      <td className="sites-domain-records-type">{rec.type}</td>
+                      <td className={recordsTypeTw}>{rec.type}</td>
                       <td>{rec.name}</td>
                       <td>
-                        <div className="sites-domain-records-value">
+                        <div className={recordsValueTw}>
                           {rec.value}
                           <button
                             type="button"
-                            className="icon-button"
+                            className={iconButtonTw}
                             aria-label="Copiar valor do registro"
                             onClick={() => copyRecord(rec.value)}
                           >
@@ -444,7 +522,7 @@ export function SiteDomainConfig({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="sites-domain-records-empty">
+                    <td colSpan={4} className={recordsEmptyTw}>
                       Os registros aparecerão após a validação do domínio.
                     </td>
                   </tr>
@@ -453,9 +531,9 @@ export function SiteDomainConfig({
             </table>
           </div>
 
-          <div className="sites-domain-instructions">
-            <h3 className="sites-domain-instructions-title">Como criar os registros na Cloudflare</h3>
-            <ol className="sites-domain-instructions-list">
+          <div className={instructionsTw}>
+            <h3 className={instructionsTitleTw}>Como criar os registros na Cloudflare</h3>
+            <ol className={instructionsListTw}>
               <li>
                 Acesse sua conta na Cloudflare e selecione o domínio <code>{domain.trim() || "seu-domínio.com.br"}</code>.
               </li>
@@ -471,22 +549,22 @@ export function SiteDomainConfig({
                 estiver válido. Você pode clicar em <strong>Verificar agora</strong> a qualquer momento.
               </li>
             </ol>
-            <div className="sites-domain-cname-box">
-              <span className="sites-domain-cname-label">Destino (CNAME / ANAME)</span>
-              <div className="sites-domain-cname-value">{CNAME_TARGET}</div>
+            <div className={cnameBoxTw}>
+              <span className={cnameLabelTw}>Destino (CNAME / ANAME)</span>
+              <div className={cnameValueTw}>{CNAME_TARGET}</div>
               <button
                 type="button"
-                className="icon-button"
+                className={iconButtonTw}
                 aria-label="Copiar destino CNAME"
                 onClick={() => copyRecord(CNAME_TARGET)}
               >
                 <Copy size={13} aria-hidden="true" />
               </button>
             </div>
-            <div className="sites-domain-actions">
+            <div className={actionsTw}>
               <button
                 type="button"
-                className="secondary-button"
+                className={secondaryTw}
                 disabled={busy || dnsStatus === "pending" || noPermission}
                 onClick={retry}
               >
@@ -495,11 +573,11 @@ export function SiteDomainConfig({
               {dnsStatus === "verified" && sslStatus === "verified" && (
                 <button
                   type="button"
-                  className="primary-button"
+                  className={primaryTw}
                   disabled={busy || noPermission}
                   onClick={deploy}
                 >
-                  {busy ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : null}
+                  {busy ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
                   {busy ? "Publicando…" : "Publicar no domínio"}
                 </button>
               )}
@@ -510,18 +588,18 @@ export function SiteDomainConfig({
 
       {/* Passo 3: deploy */}
       {flowStep === "deploy" && (
-        <section className="sites-domain-field-block" aria-label="Passo 3 — Deploy">
-          <div className="sites-domain-field-label">
-            <span className="sites-domain-field-tag">Publicando</span>
+        <section className={fieldBlockTw} aria-label="Passo 3 — Deploy">
+          <div className={fieldLabelTw}>
+            <span className={fieldTagTw}>Publicando</span>
             <span>Seu site está sendo ativado no domínio próprio.</span>
           </div>
-          <div className="sites-domain-progress">
-            <div className="sites-domain-progress-track" role="progressbar" aria-valuenow={deployProgress} aria-valuemin={0} aria-valuemax={100}>
-              <span className="sites-domain-progress-bar" style={{ width: `${deployProgress}%` }}></span>
+          <div className={progressTw}>
+            <div className={progressTrackTw} role="progressbar" aria-valuenow={deployProgress} aria-valuemin={0} aria-valuemax={100}>
+              <span className={progressBarTw} style={{ width: `${deployProgress}%` }}></span>
             </div>
-            <span className="sites-domain-progress-pct">{deployProgress}%</span>
+            <span className={progressPctTw}>{deployProgress}%</span>
           </div>
-          <p className="sites-domain-field-hint">
+          <p className={fieldHintTw}>
             O deploy costuma levar menos de um minuto. Você será avisado quando o site estiver
             acessível em <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code>.
           </p>
@@ -530,22 +608,22 @@ export function SiteDomainConfig({
 
       {/* Passo 4: concluído */}
       {flowStep === "done" && (
-        <section className="sites-domain-field-block sites-domain-done" aria-label="Passo 4 — Concluído">
-          <div className="sites-domain-done-icon">
+        <section className={doneTw} aria-label="Passo 4 — Concluído">
+          <div className={doneIconTw}>
             <CheckCircle2 size={32} aria-hidden="true" />
           </div>
-          <h3 className="sites-domain-done-title">Domínio conectado</h3>
-          <p className="sites-domain-done-sub">
+          <h3 className={doneTitleTw}>Domínio conectado</h3>
+          <p className={doneSubTw}>
             O site <strong>{siteSlug}</strong> está publicado no domínio{" "}
             <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code> com SSL ativo.
           </p>
-          <div className="sites-domain-actions">
-            <button type="button" className="secondary-button" onClick={onClose}>
+          <div className={actionsTw}>
+            <button type="button" className={secondaryTw} onClick={onClose}>
               Fechar
             </button>
             <button
               type="button"
-              className="primary-button"
+              className={primaryTw}
               onClick={() => {
                 window.open(`https://${domain.trim() || DOMAIN_PLACEHOLDER}`, "_blank");
               }}
@@ -558,13 +636,13 @@ export function SiteDomainConfig({
 
       {/* Rodapé para os passos intermediários */}
       {flowStep === "domain" && (
-        <footer className="sites-domain-footer">
-          <button type="button" className="secondary-button" onClick={onClose}>
+        <footer className={footerTw}>
+          <button type="button" className={secondaryTw} onClick={onClose}>
             Cancelar
           </button>
           <button
             type="button"
-            className="primary-button"
+            className={primaryTw}
             disabled={busy || noPermission || !domain.trim() || !!domainError}
             onClick={checkAndSetDomain}
           >
@@ -573,12 +651,12 @@ export function SiteDomainConfig({
         </footer>
       )}
       {(flowStep === "dns" || flowStep === "ssl") && (
-        <footer className="sites-domain-footer">
-          <button type="button" className="secondary-button" onClick={() => setFlowStep("domain")}>
+        <footer className={footerTw}>
+          <button type="button" className={secondaryTw} onClick={() => setFlowStep("domain")}>
             Voltar ao domínio
           </button>
           {dnsStatus === "verified" && sslStatus === "verified" && (
-            <button type="button" className="primary-button" disabled={busy || noPermission} onClick={deploy}>
+            <button type="button" className={primaryTw} disabled={busy || noPermission} onClick={deploy}>
               Publicar no domínio
             </button>
           )}

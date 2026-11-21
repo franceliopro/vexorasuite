@@ -17,6 +17,22 @@ import { DND_MIME_BLOCK, DND_MIME_NODE, isDragPayload, type DragPayload } from '
 import type { DropPosition } from './site-tree';
 import './editor.css';
 
+const CANVAS = 'flex h-full w-full min-h-0 flex-col overflow-hidden bg-surface-2 text-ink';
+const CANVAS_EMPTY = 'flex flex-1 flex-col items-center justify-center gap-2.5 text-center text-sm text-ink-secondary';
+const CANVAS_TOOLBAR = 'flex flex-none items-center justify-between gap-2 border-b border-line bg-surface px-2.5 py-1.5 text-ink';
+const CANVAS_DEVICE_LABEL = 'text-body font-bold text-ink-secondary';
+const CANVAS_DEVICE_BUTTONS = 'flex gap-1';
+const CANVAS_DEVICE_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm bg-transparent text-ink-secondary hover:bg-hover';
+const CANVAS_DEVICE_BUTTON_ACTIVE = 'bg-blue-50 text-blue-600';
+const CANVAS_DEVICE_ICON = 'inline-block h-3.5 w-3.5';
+const CANVAS_FULLSCREEN_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm bg-transparent text-ink-secondary hover:bg-hover';
+const CANVAS_FRAME_WRAP = 'relative flex min-h-0 flex-1 justify-center overflow-auto bg-surface-2 p-3';
+const CANVAS_FRAME = 'block h-full w-full min-h-90 rounded-square border-0 bg-surface-page shadow-token';
+const CANVAS_OVERLAY = 'pointer-events-none absolute inset-0 z-10';
+const CANVAS_PORTAL = 'fixed inset-0 z-wizard h-dvh w-screen bg-surface-page text-ink';
+const CANVAS_PORTAL_FRAME_WRAP = 'relative flex min-h-0 flex-1 justify-center overflow-auto bg-surface-2';
+const CANVAS_PORTAL_FRAME = 'block h-full w-full min-h-90 border-0 bg-surface-page shadow-token';
+
 interface CanvasProps {
   doc: SiteDocument;
   selectedId: string | null;
@@ -161,8 +177,8 @@ export function Canvas({
 
   if (loading) {
     return (
-      <section className="vx-canvas vx-canvas-loading" aria-label="Preview do site">
-        <div className="vx-canvas-empty">
+      <section className={CANVAS} aria-label="Preview do site">
+        <div className={CANVAS_EMPTY}>
           <Loader2 size={24} className="animate-spin" aria-hidden="true" />
           <span>Carregando preview…</span>
         </div>
@@ -171,24 +187,24 @@ export function Canvas({
   }
 
   const toolbar = (
-    <header className="vx-canvas-toolbar">
-      <span className="vx-canvas-device-label">{deviceLabel}</span>
-      <div className="vx-canvas-device-buttons">
+    <header className={CANVAS_TOOLBAR}>
+      <span className={CANVAS_DEVICE_LABEL}>{deviceLabel}</span>
+      <div className={CANVAS_DEVICE_BUTTONS}>
         {['desktop', 'tablet', 'mobile'].map((d) => (
           <button
             key={d}
             type="button"
-            className={`vx-canvas-device-btn ${d === device ? 'is-active' : ''}`}
+            className={`${CANVAS_DEVICE_BUTTON} ${d === device ? CANVAS_DEVICE_BUTTON_ACTIVE : ''}`}
             aria-label={`Visualizar em ${d === 'desktop' ? 'desktop' : d === 'tablet' ? 'tablet' : 'celular'}`}
             onClick={() => onDeviceChange(d as 'desktop' | 'tablet' | 'mobile')}
           >
-            <span className="vx-canvas-device-btn-icon" aria-hidden="true" />
+            <span className={CANVAS_DEVICE_ICON} aria-hidden="true" />
           </button>
         ))}
       </div>
       <button
         type="button"
-        className="vx-canvas-fullscreen-btn"
+        className={CANVAS_FULLSCREEN_BUTTON}
         aria-label={isFullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia'}
         title={isFullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia'}
         onClick={() => setIsFullscreen((previous) => !previous)}
@@ -200,19 +216,19 @@ export function Canvas({
 
   const frame = (
     <>
-      <div className="vx-canvas-frame-wrap">
+      <div className={isFullscreen ? CANVAS_PORTAL_FRAME_WRAP : CANVAS_FRAME_WRAP}>
         <iframe
           ref={iframeRef}
-          className="vx-canvas-frame"
+          className={isFullscreen ? CANVAS_PORTAL_FRAME : CANVAS_FRAME}
           srcDoc={frameHtml}
           sandbox="allow-same-origin allow-scripts"
           title="canvas"
           onLoad={() => setReady(true)}
         />
-        <div className="vx-canvas-selection-overlay" aria-hidden="true" />
+        <div className={CANVAS_OVERLAY} aria-hidden="true" />
       </div>
       {(!doc || !doc.root) ? (
-        <div className="vx-canvas-empty">
+        <div className={CANVAS_EMPTY}>
           <Eye size={24} aria-hidden="true" />
           <span>Sem preview. Adicione blocos ou importe um site para começar.</span>
         </div>
@@ -222,7 +238,7 @@ export function Canvas({
 
   if (isFullscreen && typeof document !== 'undefined') {
     return createPortal(
-      <section className="vx-canvas vx-canvas-fullscreen-portal" aria-label={`Preview do site em tela cheia (${device})`}>
+      <section className={CANVAS_PORTAL} aria-label={`Preview do site em tela cheia (${device})`}>
         {toolbar}
         {frame}
       </section>,
@@ -231,7 +247,7 @@ export function Canvas({
   }
 
   return (
-    <section className="vx-canvas" aria-label={`Preview do site (${device})`}>
+    <section className={CANVAS} aria-label={`Preview do site (${device})`}>
       {toolbar}
       {frame}
     </section>

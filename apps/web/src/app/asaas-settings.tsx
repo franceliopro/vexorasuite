@@ -17,7 +17,7 @@ const secondaryButton="inline-flex min-h-control items-center justify-center gap
 const toggleTw="flex cursor-pointer items-start gap-2.5 border-b border-gray-200 py-asaas-toggle last:border-b-0";
 const checkTw="mt-0.5 h-asaas-check w-asaas-check flex-none accent-blue-600";
 const fieldTw="grid gap-1.5 text-asaas-label font-semibold text-slate-600";
-const inputTw="min-h-control w-full min-w-0 rounded-lg border border-gray-200 bg-zinc-100 px-2.5 py-1.5 text-small text-slate-950 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/25";
+const inputTw="min-h-control w-full min-w-0 rounded-lg border border-gray-200 bg-zinc-100 px-2.5 py-1.5 text-small text-slate-950 focus:border-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-600/25";
 export function AsaasSettings({canConfigureAsaas}:{canConfigureAsaas:boolean}){
   const [asaas,setAsaas]=useState<Asaas>(emptyAsaas),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState(""),[apiKey,setApiKey]=useState(""),[token,setToken]=useState(""),[editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[testing,setTesting]=useState(false),[syncing,setSyncing]=useState(false),[notice,setNotice]=useState(""),[error,setError]=useState("");
   async function loadAsaas(){setLoading(true);setLoadError("");try{setAsaas(await api<Asaas>("/api/backend/integrations/asaas"));}catch(e){setLoadError(e instanceof Error?e.message:"Não foi possível carregar a configuração do Asaas. Atualize a página; se continuar falhando, a administração precisa conferir as credenciais.");}finally{setLoading(false);}}

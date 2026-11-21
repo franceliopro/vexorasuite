@@ -27,7 +27,7 @@ type BusinessSegment = { id: string; name: string; guidance: string };
 type VoiceModelSelection={provider:string;model:string;endpoint?:string;voice?:string};
 /* TW utility-first: cores do preset, azul só por tokens blue-*. */
 const rootTw = "grid min-w-0 gap-token";
-const heroTw = "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-gradient-to-br from-blue-50 to-surface p-6 shadow-token-sm";
+const heroTw = "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface p-6 shadow-token-sm";
 const heroCopyTw = "grid min-w-0 flex-1 gap-2";
 const heroEyebrowTw = "inline-flex items-center gap-1.5 text-small font-extrabold uppercase tracking-wider text-blue-600";
 const heroSubTw = "max-w-2xl text-body leading-relaxed text-ink-secondary";
@@ -52,7 +52,7 @@ const adminFieldsTw = "grid gap-3";
 const toggleTw = "inline-flex cursor-pointer items-center gap-2 text-body";
 const agentsGridTw = "mt-3 grid grid-cols-ai-agents gap-3";
 const agentsGridEmptyTw = "mt-3 grid place-items-center gap-2.5 rounded-2xl border border-dashed border-line-strong p-6 text-center text-ink-secondary";
-const agentCardTw = "grid justify-items-center gap-3 rounded-2xl border border-line bg-gradient-to-br from-blue-50 to-surface p-4 text-center transition-transform hover:-translate-y-0.5 hover:shadow-token-lg";
+const agentCardTw = "grid justify-items-center gap-3 rounded-2xl border border-line bg-linear-to-br from-blue-50 to-surface p-4 text-center transition-transform hover:-translate-y-0.5 hover:shadow-token-lg";
 const agentCardStateTw: Record<string, string> = { selected: "border-blue-600 shadow-token-lg ring-2 ring-blue-600", idle: "" };
 const agentCardClass = (selected: boolean) => `${agentCardTw} ${agentCardStateTw[selected ? "selected" : "idle"]}`;
 const agentFaceTw = "grid size-20 place-items-center rounded-full bg-blue-50 text-blue-700 shadow-token-sm";

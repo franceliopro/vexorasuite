@@ -2,8 +2,8 @@ import type { Config } from "tailwindcss";
 
 /**
  * Preset Véxora — Tailwind é uma camada de utilities sobre os tokens já
- * existentes em vexora.css. Não há preflight: o CSS legado permanece intacto
- * enquanto migrarmos tela a tela.
+ * existentes em vexora.css. No v4 o preflight é desligado omitindo
+ * `preflight.css`: theme.css importa apenas theme/utilities em camadas.
  *
  * Todas as cores apontam para variáveis CSS, então o modo escuro
  * (`[data-theme="dark"]`) e o tema híbrido são herdados automaticamente.
@@ -11,30 +11,13 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   darkMode: ["class", '[data-theme="dark"]'],
-  corePlugins: {
-    preflight: false,
-  },
   theme: {
     extend: {
-      /* Breakpoints da Visão geral. São `raw` porque o legado usava
-         max-width; o preset passa a ser a única fonte desses cortes. */
-      screens: {
-        "ov-laptop": { raw: "(max-width: 900px)" },
-        "ov-tablet": { raw: "(max-width: 760px)" },
-        "ov-mobile": { raw: "(max-width: 520px)" },
-        /* Cortes próprios do Atendimento. */
-        "ib-narrow": { raw: "(max-width: 600px)" },
-        "ib-mobile": { raw: "(max-width: 520px)" },
-        "ib-wide": { raw: "(max-width: 1150px)" },
-        "ib-shell": { raw: "(max-width: 980px)" },
-        "ib-desktop": { raw: "(min-width: 960px)" },
-        "ib-grid": { raw: "(min-width: 981px)" },
-        "ib-grid-ficha": { raw: "(min-width: 1101px)" },
-        /* Cortes próprios dos Relatórios. */
-        "rw-wide": { raw: "(max-width: 1100px)" },
-        "rw-laptop": { raw: "(max-width: 900px)" },
-        "rw-mobile": { raw: "(max-width: 560px)" },
-      },
+      /*
+       * Breakpoints customizados vivem em `theme.css` como `@custom-variant`
+       * (v4). No v3 eram `screens` com `raw:`, que o v4 converte em uma media
+       * query inválida (`@media (width >= (max-width: ...))`).
+       */
       colors: {
         "catalog-focus": "var(--focus)",
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos

@@ -376,7 +376,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
               return (
               <div className="grid min-w-0 content-start gap-1.5" key={topic.label}>
                 <div className="flex items-center justify-between gap-2"><span className="inline-flex min-w-0 items-center gap-1.5 text-small font-semibold text-slate-950"><i className="inline-block h-2 w-2 flex-none rounded-full bg-blue-600" />{topic.label}{channel ? <small className="text-ov-micro font-bold uppercase tracking-ov-wide text-slate-400">{platformLabel(channel)}</small> : null}</span><b className="text-small font-bold tabular-nums text-slate-950">{topic.percent}%</b></div>
-                <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-300"><i className="block h-full rounded-full bg-gradient-to-r from-blue-600 to-sky-600" style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
+                <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-300"><i className="block h-full rounded-full bg-linear-to-r from-blue-600 to-sky-600" style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
                 <small className="text-ov-micro text-slate-600">{topic.count} {topic.count === 1 ? "conversa" : "conversas"}</small>
               </div>
               );

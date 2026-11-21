@@ -43,7 +43,10 @@ test("o Atendimento não usa classes componente vx-* nem ib-* no JSX", () => {
 
   // `*-ib-*` aqui são utilities do preset, não classes componente: cada uma
   // precisa ter formato de utility e usar um token ib-* realmente declarado.
-  const declared = new Set([...config.matchAll(/"(ib-[a-z-]+)"/g)].map((match) => match[1]));
+  const declared = new Set([
+    ...config.matchAll(/"(ib-[a-z-]+)"/g),
+    ...theme.matchAll(/@custom-variant (ib-[a-z-]+)/g),
+  ].map((match) => match[1]));
   const utilityShape = /^(?:(?:w|max-h|max-w|rounded|px|py|pb|pt|p|gap|my|mt|mb|font|text|grid-cols|col-span|justify-self|h|min-h)-ib-[a-z0-9-]+|ib-(?:narrow|mobile):[a-z0-9:-]+|font-ib)$/;
   for (const source of components) {
     for (const token of classValues(source).split(/\s+/).filter(Boolean)) {
@@ -80,8 +83,8 @@ test("não há CSS de tela do Atendimento nem @layer components de inbox", () =>
 
 test("o preset expõe todos os tokens ib-* usados pelo Atendimento", () => {
   for (const token of [
-    '"ib-narrow": { raw: "(max-width: 600px)" }',
-    '"ib-mobile": { raw: "(max-width: 520px)" }',
+    '@custom-variant ib-narrow (@media (max-width: 600px));',
+    '@custom-variant ib-mobile (@media (max-width: 520px));',
     '"ib-modal": "16px"',
     '"ib-entry": "9px"',
     '"ib-article": "10px"',
@@ -98,7 +101,7 @@ test("o preset expõe todos os tokens ib-* usados pelo Atendimento", () => {
     '"ib-track": "min(760px, calc(100vw - 24px))"',
     '"ib-support": "min(620px, calc(100vw - 24px))"',
   ]) {
-    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+    assert.ok(config.includes(token) || theme.includes(token), `o preset deve expor ${token}`);
   }
 });
 

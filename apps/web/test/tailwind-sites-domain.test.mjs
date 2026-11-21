@@ -6,6 +6,7 @@ const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "
 
 const domain = read("src/app/sites-domain-config.tsx");
 const config = read("tailwind.config.ts");
+const theme = read("src/app/theme.css");
 
 /** Dados, hooks e aria não são classes; removemos só o que pode gerar falso positivo. */
 const semDados = domain
@@ -113,8 +114,8 @@ test("as cores e escalas usadas pela fatia vêm do preset", () => {
     'control: "var(--ctl)"',
     'pad: "var(--pad)"',
     '"brand-pad": "18px"',
-    '"ov-tablet": { raw: "(max-width: 760px)" }',
+    '@custom-variant ov-tablet (@media (max-width: 760px));',
   ]) {
-    assert.ok(config.includes(trecho), `o preset deve expor ${trecho}`);
+    assert.ok(config.includes(trecho) || theme.includes(trecho), `o preset deve expor ${trecho}`);
   }
 });

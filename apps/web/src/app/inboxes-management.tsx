@@ -13,7 +13,7 @@ async function api<T>(path:string,init?:RequestInit):Promise<T>{const r=await fe
 async function distributionApi<T>(init?:RequestInit):Promise<T>{const r=await fetch("/api/backend/conversations/distribution-settings",{cache:"no-store",...init});const d=await r.json();if(!r.ok)throw Error(Array.isArray(d.message)?d.message.join(" "):d.message||"Não foi possível consultar a distribuição.");return d;}
 
 /* Padrão TW: botões, rótulos, controles e cartões do Atendimento. */
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const textButton = "inline-flex min-h-8 items-center px-1.5 text-xs font-bold text-blue-600 no-underline hover:underline";
 const dialogIcon = "grid h-ib-dialog-icon w-ib-dialog-icon flex-none place-items-center rounded-ib-dialog-icon border border-blue-800 bg-blue-50 text-blue-800";

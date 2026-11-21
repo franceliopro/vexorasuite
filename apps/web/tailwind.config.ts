@@ -168,6 +168,8 @@ const config: Config = {
         "calendar-event": "3px",
         /* Borda superior das colunas do Kanban. */
         "crm-stage": "3px",
+        /* Filete de destaque das notas de escopo dos Relatórios. */
+        "rw-accent": "3px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -187,12 +189,6 @@ const config: Config = {
         "ib-entry": "9px",
         "ib-article": "10px",
         "ib-panel": "12px",
-      },
-      borderWidth: {
-        /* Borda superior das colunas do Kanban. */
-        "crm-stage": "3px",
-        /* Filete de destaque das notas de escopo dos Relatórios. */
-        "rw-accent": "3px",
       },
       boxShadow: {
         token: "var(--shadow)",
@@ -329,6 +325,8 @@ const config: Config = {
         "rw-skel-chart": "190px",
         "rw-skel-chart-short": "150px",
         "rw-donut": "132px",
+        /* Prévia do local no mapa do Calendário. */
+        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       minHeight: {
         ov: "150px",
@@ -389,10 +387,6 @@ const config: Config = {
         "rw-legend": "170px",
         "calendar-event-date": "58px",
         "calendar-month": "118px",
-      },
-      height: {
-        /* Prévia do local no mapa. */
-        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       zIndex: {
         sidebar: "40",

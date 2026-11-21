@@ -90,7 +90,7 @@ try{
   const threadAvatar=await page.locator("[data-testid='thread-heading'] > span").first().boundingBox();
   assert.ok(threadAvatar && threadAvatar.width>0 && threadAvatar.width<=48,"contact avatar keeps its token size");
   assert.ok(threadAvatar && Math.abs(threadAvatar.width-threadAvatar.height)<1,"contact avatar stays square");
- await page.getByRole("button",{name:"Assumir conversa",exact:true}).click();
+ await page.getByTestId("inbox-assume-button").click();
  const mode=page.locator("[data-testid='composer-mode-button']");
  await mode.waitFor();
  assert.equal(await mode.getAttribute("aria-label"),"Responder");

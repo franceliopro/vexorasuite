@@ -119,7 +119,10 @@ test("o canvas, o shell e o inspector usam so utilities do preset, sem remendos"
 });
 
 test("os contratos de testid, ids, ARIA e roles permanecem intactos", () => {
-  const expectedTestIds = { canvas: [], shell: [], inspector: [] };
+  // O hook legado vx-inspector-ai-feedback vira data-testid: o contrato do
+  // guard de permissoes continua reconhecendo o feedback sem voltar a ser
+  // uma classe CSS componente.
+  const expectedTestIds = { canvas: [], shell: [], inspector: ["vx-inspector-ai-feedback"] };
   for (const [name, source] of Object.entries(sources)) {
     const testIds = [...source.matchAll(/data-testid=["']([^"']+)["']/g)].map((match) => match[1]);
     assert.deepEqual(testIds, expectedTestIds[name], `${name} perdeu data-testid`);
@@ -150,6 +153,7 @@ test("os contratos de testid, ids, ARIA e roles permanecem intactos", () => {
   const inspector = sources.inspector;
   for (const token of [
     'aria-label="Propriedades do bloco"', 'id="vexora-ai-prompt"',
+    'data-testid="vx-inspector-ai-feedback"',
     "role={aiFeedback.error ? 'alert' : 'status'}", 'aria-live="polite"',
     "aria-label={aiPanelOpen ? 'Fechar assistente de IA' : 'Abrir assistente de IA'}",
     "setAiPanelOpen(true)", "controlsDisabled", "readOnly", "aiBusy",

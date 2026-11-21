@@ -330,6 +330,7 @@ export function Inspector({
             </form>
             {aiFeedback ? (
               <div
+                data-testid="vx-inspector-ai-feedback"
                 className={INSPECTOR_FEEDBACK_KIND[aiFeedback.error ? 'error' : 'ok']}
                 role={aiFeedback.error ? 'alert' : 'status'}
                 aria-live="polite"

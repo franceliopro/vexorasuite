@@ -74,6 +74,14 @@ function styleAttr(styles: Record<string, string> | undefined): string {
   return declarations.length ? ` style="${escapeHtml(declarations.join(";"))}"` : "";
 }
 
+/** `anchor` gera um id seguro para links internos (CTA → formulário, por exemplo). */
+function anchorAttr(props: Record<string, unknown>): string {
+  const anchor = props.anchor;
+  return typeof anchor === "string" && /^[a-z][a-z0-9-]{0,60}$/.test(anchor)
+    ? ` id="${escapeHtml(anchor)}"`
+    : "";
+}
+
 /** Espelha a normalização do service de formulários para que chave e whitelist coincidam. */
 function formFieldName(value: unknown): string {
   return String(value ?? "")
@@ -181,16 +189,33 @@ function renderNode(node: HtmlNode | undefined, depth: number, ctx: RenderContex
       return `<section class="vx-placeholder"${style}><p>Lista de posts: será preenchida com as publicações do site.</p></section>`;
     case "product-grid":
       return `<section class="vx-placeholder"${style}><p>Vitrine de produtos: será preenchida com o catálogo do site.</p></section>`;
-    case "section": {
-      // `anchor` é um detalhe do template de landing page: permite que o botão
-      // de chamada para ação role até o formulário no HTML publicado.
-      const anchor = typeof props.anchor === "string" && /^[a-z][a-z0-9-]{0,60}$/.test(props.anchor)
-        ? ` id="${escapeHtml(props.anchor)}"`
-        : "";
-      return `<section${anchor}${style}>${children}</section>`;
-    }
+    case "section":
+      return `<section${anchorAttr(props)}${style}>${children}</section>`;
     case "container":
+    case "columns":
       return `<div${style}>${children}</div>`;
+    case "div":
+      return `<div${style}>${children}</div>`;
+    case "header":
+      return `<header${style}>${children}</header>`;
+    case "footer":
+      return `<footer${style}>${children}</footer>`;
+    case "aside":
+      return `<aside${style}>${children}</aside>`;
+    case "hero":
+      return `<section${anchorAttr(props)}${style}>${children}</section>`;
+    case "image-text": {
+      const position = String(props.imagePosition ?? "left");
+      const flexDirection = position === "right" ? "row-reverse" : position === "top" ? "column" : "row";
+      const merged = styleAttr({ ...(node.styles ?? {}), flexDirection });
+      return `<section${merged}>${children}</section>`;
+    }
+    case "heading": {
+      const allowed = ["h1", "h2", "h3", "h4"];
+      const requested = String(props.level ?? "h2");
+      const tag = allowed.includes(requested) ? requested : "h2";
+      return `<${tag}${style}>${escapeHtml(props.content ?? "")}</${tag}>`;
+    }
     default:
       return children;
   }

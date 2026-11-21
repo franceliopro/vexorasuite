@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - foundation/bootstrap-monorepo
+      # A proteção de main exige estes checks. Sem o gatilho, o PR de sync
+      # foundation -> main fica bloqueado sem nenhum check para satisfazê-la.
+      - main
   push:
     branches:
       - foundation/bootstrap-monorepo

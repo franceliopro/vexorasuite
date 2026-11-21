@@ -585,3 +585,40 @@
 .vx-editor-response header { display: flex; justify-content: space-between; gap: 12px; font-size: 0.75rem; }
 .vx-editor-response time { color: var(--text-secondary); }
 .vx-editor-response p { margin-top: 4px; overflow-wrap: anywhere; }
+
+/* Inspector de estilo — controle total do layout */
+.vx-style-inspector { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.vx-style-hint { margin: 0 0 4px; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.45; }
+.vx-style-group { border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); overflow: hidden; }
+.vx-style-group-summary {
+  display: flex; align-items: center; gap: 8px; padding: 9px 10px; cursor: pointer;
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-secondary); background: var(--surface-2); user-select: none; list-style: none;
+}
+.vx-style-group-summary::-webkit-details-marker { display: none; }
+.vx-style-group-summary::after { content: '+'; margin-left: auto; font-size: 0.9rem; color: var(--text-secondary); }
+.vx-style-group[open] > .vx-style-group-summary::after { content: '\2212'; }
+.vx-style-group-body { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+.vx-style-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.vx-style-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.vx-style-grid-4 .vx-inspector-input { padding: 6px; text-align: center; font-size: 0.75rem; }
+.vx-style-color { display: flex; align-items: center; gap: 8px; }
+.vx-style-color .vx-inspector-input { flex: 1; min-width: 0; }
+.vx-style-presets { display: flex; flex-wrap: wrap; gap: 5px; }
+.vx-style-preset {
+  width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--border);
+  cursor: pointer; padding: 0;
+}
+.vx-style-preset:hover { outline: 2px solid var(--primary); outline-offset: 1px; }
+.vx-style-preset:disabled { cursor: not-allowed; opacity: 0.5; }
+.vx-style-spacing { display: flex; flex-direction: column; gap: 8px; }
+.vx-style-align { display: flex; gap: 4px; }
+.vx-style-align-btn {
+  flex: 1; padding: 6px 0; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text-secondary); cursor: pointer; font-size: 0.75rem;
+}
+.vx-style-align-btn.is-active { background: var(--primary); color: var(--surface); border-color: var(--primary); }
+.vx-style-align-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.vx-style-range { display: flex; align-items: center; gap: 8px; }
+.vx-style-range input { flex: 1; min-width: 0; }
+.vx-style-range span { min-width: 32px; font-size: 0.75rem; color: var(--text-secondary); text-align: right; }

@@ -27,7 +27,39 @@ function renderNode(node: SiteNode): React.ReactElement {
         key: node.id,
       }, node.children.map(renderNode));
     case 'container':
-      return React.createElement('section', { style, key: node.id }, node.children.map(renderNode));
+    case 'div':
+    case 'header':
+    case 'footer':
+    case 'aside':
+    case 'hero':
+    case 'columns': {
+      const tag =
+        node.type === 'div' ? 'div'
+        : node.type === 'header' ? 'header'
+        : node.type === 'footer' ? 'footer'
+        : node.type === 'aside' ? 'aside'
+        : 'section';
+      const id =
+        typeof node.props.anchor === 'string' && /^[a-z][a-z0-9-]{0,60}$/.test(node.props.anchor)
+          ? node.props.anchor
+          : undefined;
+      const resolvedStyle = applyImagePosition(node, style);
+      return React.createElement(tag, { id, style: resolvedStyle, key: node.id }, node.children.map(renderNode));
+    }
+    case 'image-text': {
+      const styleWithPosition = applyImagePosition(node, style);
+      return React.createElement(
+        'section',
+        { style: styleWithPosition, key: node.id },
+        node.children.map(renderNode),
+      );
+    }
+    case 'heading': {
+      const allowed = ['h1', 'h2', 'h3', 'h4'];
+      const level = String(node.props.level ?? 'h2');
+      const Tag = allowed.includes(level) ? level : 'h2';
+      return React.createElement(Tag, { style, key: node.id }, String(node.props.content ?? ''));
+    }
     case 'video': {
       const src = String(node.props.src ?? '');
       if (!src) {
@@ -70,4 +102,13 @@ function renderNode(node: SiteNode): React.ReactElement {
     default:
       return React.createElement('div', { style, key: node.id }, node.children.map(renderNode));
   }
+}
+
+/** A posição da imagem em `image-text` é determinística: vira flex-direction. */
+function applyImagePosition(node: SiteNode, style: React.CSSProperties): React.CSSProperties {
+  if (node.type !== 'image-text') return style;
+  const position = String(node.props.imagePosition ?? 'left');
+  const flexDirection =
+    position === 'right' ? 'row-reverse' : position === 'top' ? 'column' : 'row';
+  return { ...style, flexDirection };
 }

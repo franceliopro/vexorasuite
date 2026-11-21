@@ -59,9 +59,11 @@ export function Palette({
     const c = block.category as (typeof categories)[number] | undefined;
     if (c) return c;
     const t = block.type;
-    if (t === 'section' || t === 'container') return 'layout';
-    if (t === 'text' || t === 'button' || t === 'form' || t === 'post-list') return 'content';
-    if (t === 'image' || t === 'video') return 'media';
+    if (t === 'section' || t === 'container' || t === 'div' || t === 'header' ||
+        t === 'footer' || t === 'aside' || t === 'hero' || t === 'columns') return 'layout';
+    if (t === 'text' || t === 'heading' || t === 'button' || t === 'form' ||
+        t === 'post-list' || t === 'faq') return 'content';
+    if (t === 'image' || t === 'video' || t === 'image-text') return 'media';
     if (t === 'product-grid') return 'commerce';
     return 'content';
   }

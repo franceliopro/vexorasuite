@@ -79,6 +79,10 @@ const config: Config = {
         },
         red: { 100: "var(--vx-bad-soft)", 600: "var(--bad)" },
         sky: { 100: "var(--vx-accent-soft)", 600: "var(--accent2)" },
+        /* Cores de estado da lista de conversas (dados, não branding). */
+        "ib-coral": "#F0645E",
+        "ib-amber": "#F2A93B",
+        "ib-read": "#25D366",
 
         /* Alias semânticos usados pelo piloto Ficha Cliente (#903), já
            mergeado. O core migra para as classes oficiais acima; os aliases
@@ -141,6 +145,7 @@ const config: Config = {
         "vx-brand-mark": "var(--vx-core-brand-mark)",
         "vx-nav-active": "var(--vx-core-nav-active)",
         "vx-control": "var(--vx-core-control-bg)",
+        "ib-avatar": "linear-gradient(150deg,color-mix(in srgb,var(--primary) 82%,#FFFFFF),color-mix(in srgb,var(--primary) 64%,#000))",
       },
       strokeWidth: {
         ov: "5.5",
@@ -163,6 +168,7 @@ const config: Config = {
         "ib-entry": "9px",
         "ib-article": "10px",
         "ib-panel": "12px",
+        "ib-channel": "5px",
       },
       borderWidth: {
         /* Borda superior das colunas do Kanban. */
@@ -177,6 +183,9 @@ const config: Config = {
         "vx-topbar": "var(--vx-core-shadow-topbar)",
         "vx-popover": "var(--vx-core-shadow-popover)",
         "vx-submenu": "var(--vx-core-shadow-submenu)",
+        /* Realces da lista de conversas. */
+        "ib-selected": "inset 3px 0 0 var(--primary),inset 0 0 0 1px color-mix(in srgb,var(--primary) 26%,transparent)",
+        "ib-newdot": "0 0 0 2px color-mix(in srgb,var(--ok) 22%,transparent)",
       },
       fontFamily: {
         inherit: "inherit",
@@ -212,6 +221,11 @@ const config: Config = {
         "ov-onboarding": ["16px", { lineHeight: "1.35" }],
         /* Títulos dos diálogos do Atendimento. */
         "ib-title": ["1.2rem", { lineHeight: "1.3" }],
+        /* Escalas da lista de conversas. */
+        "ib-time": ["10.5px", { lineHeight: "1.35" }],
+        "ib-micro": ["9px", { lineHeight: "1.35" }],
+        "ib-tick": ["10px", { lineHeight: "1" }],
+        "ib-avatar-fallback": ["15px", { lineHeight: "1" }],
       },
       fontWeight: {
         heading: "750",
@@ -256,6 +270,13 @@ const config: Config = {
         "ib-pad": "18px",
         "ib-gap": "9px",
         "ib-block": "10px",
+        /* Medidas da lista de conversas e dos avatares. */
+        "ib-avatar": "44px",
+        "ib-avatar-sm": "38px",
+        "ib-presence": "11px",
+        "ib-newdot": "7px",
+        "ib-tag": "16px",
+        "ib-mark": "18px",
         /* Estado de carregamento do Kanban. */
         "crm-loading-y": "60px",
       },

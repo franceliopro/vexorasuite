@@ -9,14 +9,22 @@ import { parseDocument } from "htmlparser2";
 
 export type ImportedNodeType =
   | "section"
+  | "container"
+  | "div"
+  | "header"
+  | "footer"
+  | "aside"
+  | "hero"
+  | "columns"
+  | "image-text"
+  | "heading"
   | "text"
   | "image"
   | "button"
   | "form"
   | "post-list"
   | "product-grid"
-  | "video"
-  | "container";
+  | "video";
 
 export type ImportedNode = {
   id: string;

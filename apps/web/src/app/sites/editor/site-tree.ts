@@ -6,7 +6,19 @@ import type { SiteNode } from '../../../shared-types/site-document';
 
 export type DropPosition = 'before' | 'after' | 'inside';
 
-const CHILD_CONTAINERS = new Set(['section', 'container']);
+// Contêineres que aceitam filhos e, portanto, permitem reordenar elementos
+// internamente (arrastar para antes/depois/dentro).
+const CHILD_CONTAINERS = new Set([
+  'section',
+  'container',
+  'div',
+  'header',
+  'footer',
+  'aside',
+  'hero',
+  'columns',
+  'image-text',
+]);
 
 export function isNodeLocked(node: SiteNode): boolean {
   return node.props?.locked === true;

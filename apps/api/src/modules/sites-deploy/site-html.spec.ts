@@ -184,4 +184,48 @@ describe("static site HTML renderer", () => {
     expect(html).not.toContain(svg);
     expect(html).toContain('src="#"');
   });
+
+  it("renders ready-made blocks (hero, columns, heading, image-text) deterministically", () => {
+    const html = renderSiteHtml(
+      {
+        root: {
+          type: "section",
+          children: [
+            { type: "hero", props: { anchor: "inicio" }, styles: { padding: "4rem 1rem" }, children: [
+              { type: "heading", props: { content: "Título principal", level: "h1" }, styles: {} },
+            ] },
+            { type: "columns", props: { columnCount: 4 }, styles: { display: "flex" }, children: [
+              { type: "div", props: {}, styles: {}, children: [] },
+            ] },
+            { type: "image-text", props: { imagePosition: "right" }, styles: { display: "flex" }, children: [] },
+            { type: "footer", props: {}, styles: {}, children: [] },
+          ],
+        },
+        meta: { title: "Blocos", theme: {} },
+      },
+      { name: "Blocos", slug: "blocos" },
+    );
+
+    expect(html).toContain('id="inicio"');
+    expect(html).toContain("<h1>Título principal</h1>");
+    expect(html).toContain("<div style=\"display:flex\">");
+    expect(html).toContain("<footer");
+    // imagePosition vira flex-direction sem duplicar o atributo style.
+    expect(html).toContain("flex-direction:row-reverse");
+    expect(html).not.toContain('" display:flex" style=');
+  });
+
+  it("falls back to a safe heading level and escapes heading content", () => {
+    const html = renderSiteHtml(
+      {
+        root: { type: "section", children: [
+          { type: "heading", props: { content: "<script>x</script>", level: "h9" }, styles: {} },
+        ] },
+        meta: { title: "Título", theme: {} },
+      },
+      { name: "Título", slug: "titulo" },
+    );
+    expect(html).toContain("<h2>&lt;script&gt;x&lt;/script&gt;</h2>");
+    expect(html).not.toContain("<script>");
+  });
 });

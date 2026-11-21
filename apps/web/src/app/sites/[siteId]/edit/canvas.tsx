@@ -74,7 +74,28 @@ function buildIframeHtml(doc: SiteDocument): string {
         return `<a data-node="${n.id}" href="${n.props.href ?? '#'}" style="${style}">${n.props.label ?? ''}</a>`;
       case 'section':
       case 'container':
+      case 'hero':
+      case 'columns':
         return `<section data-node="${n.id}" style="${style}">${inner}</section>`;
+      case 'div':
+        return `<div data-node="${n.id}" style="${style}">${inner}</div>`;
+      case 'header':
+        return `<header data-node="${n.id}" style="${style}">${inner}</header>`;
+      case 'footer':
+        return `<footer data-node="${n.id}" style="${style}">${inner}</footer>`;
+      case 'aside':
+        return `<aside data-node="${n.id}" style="${style}">${inner}</aside>`;
+      case 'image-text': {
+        const position = String(n.props.imagePosition ?? 'left');
+        const flexDirection = position === 'right' ? 'row-reverse' : position === 'top' ? 'column' : 'row';
+        return `<section data-node="${n.id}" style="${style};flex-direction:${flexDirection}">${inner}</section>`;
+      }
+      case 'heading': {
+        const allowed = ['h1', 'h2', 'h3', 'h4'];
+        const level = String(n.props.level ?? 'h2');
+        const tag = allowed.includes(level) ? level : 'h2';
+        return `<${tag} data-node="${n.id}" style="${style}">${escapePreview(n.props.content)}</${tag}>`;
+      }
       case 'video':
         return `<div data-node="${n.id}" style="${style}">video</div>`;
       case 'faq':

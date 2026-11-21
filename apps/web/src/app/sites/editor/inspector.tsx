@@ -20,12 +20,15 @@ import {
   Send,
   Minimize,
 } from 'lucide-react';
+import { StyleInspector } from './style-inspector';
 import './editor.css';
 
 interface InspectorProps {
   selectedNode: SiteNode | null;
   schema: BlockPropSchema[];
   onPropChange: (key: string, value: string | number | boolean) => void;
+  /** Edição direta de CSS do bloco selecionado. */
+  onStyleChange?: (key: string, value: string) => void;
   onAIChange?: (prompt: string, nodeId: string) => void;
   aiBusy?: boolean;
   /** Resultado visível do patch da IA, colado ao prompt. */
@@ -40,6 +43,7 @@ export function Inspector({
   selectedNode,
   schema,
   onPropChange,
+  onStyleChange,
   onAIChange,
   aiBusy = false,
   aiFeedback = null,
@@ -234,6 +238,14 @@ export function Inspector({
             </div>
           )}
         </div>
+
+        {onStyleChange ? (
+          <StyleInspector
+            selectedNode={selectedNode}
+            onStyleChange={onStyleChange}
+            disabled={controlsDisabled}
+          />
+        ) : null}
 
         {aiPanelOpen && (
           <div className="vx-inspector-ai-panel">

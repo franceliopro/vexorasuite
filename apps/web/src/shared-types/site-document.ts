@@ -2,6 +2,15 @@
 
 export type NodeType =
   | 'section'
+  | 'container'
+  | 'div'
+  | 'header'
+  | 'footer'
+  | 'aside'
+  | 'hero'
+  | 'columns'
+  | 'image-text'
+  | 'heading'
   | 'text'
   | 'image'
   | 'button'
@@ -9,7 +18,6 @@ export type NodeType =
   | 'post-list'
   | 'product-grid'
   | 'video'
-  | 'container'
   | 'faq';
 
 export type SiteKind = 'static' | 'landing' | 'blog' | 'real-estate' | 'ecommerce';
@@ -65,6 +73,8 @@ export interface BlockDescriptor {
   defaultStyles: SiteNodeStyles;
   schema: BlockPropSchema[];
   render: (node: SiteNode) => unknown; // renderer placeholder (React component on web)
+  /** Filhos iniciais gerados ao inserir o bloco (ex.: colunas de um grid). */
+  createChildren?: () => SiteNode[];
 }
 
 export interface BlockPropSchema {

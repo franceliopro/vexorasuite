@@ -736,6 +736,7 @@ const config: Config = {
         /* Alturas do canvas do fluxo. */
         "flow-shell": "clamp(640px,calc(100dvh - 190px),1000px)",
         "flow-shell-fullscreen": "calc(100% - 52px)",
+        "flow-stage-mobile": "70dvh",
         "flow-handle": "72px",
         "flow-minimap": "128px",
       },

@@ -84,6 +84,12 @@ try{
 
  assert.equal(await page.locator("[data-testid='composer-tabs-row'], [data-testid='inbox-assume-wrap'], [data-testid='ib-support-context']").count(),0);
  assert.equal(await page.locator("[data-testid='thread-heading']").evaluate(el=>getComputedStyle(el).marginBottom),"0px");
+  const headingLayout=await page.locator("[data-testid='thread-heading']").evaluate(el=>({display:getComputedStyle(el).display,align:getComputedStyle(el).alignItems}));
+  assert.equal(headingLayout.display,"flex","thread heading uses TW flex layout");
+  assert.equal(headingLayout.align,"center","avatar, identity and actions stay aligned on the same row");
+  const threadAvatar=await page.locator("[data-testid='thread-heading'] > span").first().boundingBox();
+  assert.ok(threadAvatar && threadAvatar.width>0 && threadAvatar.width<=48,"contact avatar keeps its token size");
+  assert.ok(threadAvatar && Math.abs(threadAvatar.width-threadAvatar.height)<1,"contact avatar stays square");
  await page.getByRole("button",{name:"Assumir conversa",exact:true}).click();
  const mode=page.locator("[data-testid='composer-mode-button']");
  await mode.waitFor();

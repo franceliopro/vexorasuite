@@ -45,13 +45,16 @@ export function ChannelMark({ channel, kind = "source", mode }: { channel?: stri
   return <span className={channelBaseTw + " " + channelTw.whatsapp} title="WhatsApp" aria-label="WhatsApp"><WhatsAppGlyph size={13}/></span>;
 }
 
+/** Preenchimento padrão para chamadores que não definem tamanho (ex.: lista de conversas). */
+const contactAvatarFillTw = "relative block h-full w-full overflow-hidden rounded-full";
+
 /** Avatar de contato: a forma vive nas utilities; a foto e o fallback são dados do contato. */
-export function ContactAvatar({ contact, className = "" }: { contact: Contact; className?: string }) {
+export function ContactAvatar({ contact, className = contactAvatarFillTw }: { contact: Contact; className?: string }) {
   const proxy = "/api/backend/contacts/" + contact.id + "/avatar";
   const [src, setSrc] = useState<string | null>(proxy);
   useEffect(() => setSrc(proxy), [proxy, contact.metadata?.avatarUrl]);
   return (
-    <span className={"relative block h-full w-full overflow-hidden rounded-full " + className}>
+    <span className={className}>
       {src ? <img key={src} src={src} alt={"Foto de " + contactDisplayName(contact)} loading="lazy" referrerPolicy="no-referrer" className="block h-full w-full rounded-full object-cover" onError={() => setSrc(current => current === proxy ? avatarUrl(contact) : null)}/> : null}
       {!src && <span className="grid h-full w-full place-items-center rounded-full bg-ib-avatar text-ib-avatar-fallback font-extrabold tracking-tight text-white">{contactDisplayName(contact).slice(0, 1).toUpperCase()}</span>}
     </span>

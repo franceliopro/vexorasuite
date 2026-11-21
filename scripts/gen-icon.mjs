@@ -3,7 +3,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 // Gera icones PNG simples para o app nativo.
-// Layout: fundo #2E7CF6 saturado, glyph "V" branco em negrito desenhado por poligonos.
+// Layout: fundo #1D4ED8 saturado, glyph "V" branco em negrito desenhado por poligonos.
 
 const WIDTH = 1024, HEIGHT = 1024;
 
@@ -12,7 +12,7 @@ function hex(v) {
   const n = parseInt(v.replace("#", ""), 16);
   return [ (n >> 16) & 255, (n >> 8) & 255, n & 255, 255 ];
 }
-const BG = hex("#2E7CF6");
+const BG = hex("#1D4ED8");
 const FG = [255, 255, 255, 255];
 
 // AA simples via poligonos: renderiza V em anti-aliasing

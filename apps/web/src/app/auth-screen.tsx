@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS, passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 export interface AuthSession {
   allowedModules?:string[]; departmentIds?:string[];
   user: { id: string; name: string; email: string; avatarUrl?:string|null; avatarSource?:string|null;isPlatformAdmin?:boolean;mustChangePassword?:boolean };
@@ -147,7 +148,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
           {mode === "reset" ? <label className="auth-field">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete="new-password" /></label> : null}
           {notice ? <p className="auth-notice" role="status">{notice}</p> : null}
           {error ? <p className="auth-error" role="alert">{error}</p> : null}
-          <button className="primary-button auth-submit" type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
+          <button className={primaryTw + " auth-submit"} type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
         </form>
         {mode === "login" ? <div className="auth-switch"><button type="button" onClick={() => switchMode("forgot")}>Esqueceu a senha?</button></div> : null}
         {mode === "forgot" || mode === "reset" ? <div className="auth-switch"><span>{mode === "forgot" ? "Lembrou a senha?" : "Não solicitou a troca?"}</span><button type="button" onClick={() => switchMode("login")}>Voltar para entrar</button></div> : null}

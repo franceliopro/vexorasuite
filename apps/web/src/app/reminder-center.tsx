@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, CalendarClock, CheckCircle2, X } from "lucide-react";
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const iconButtonTw = "inline-grid size-9 place-items-center rounded-token-sm border border-line bg-surface text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 type Reminder = { fireKey: string; kind: "task" | "event"; title: string; when: string; overdue: boolean; url?: string };
 type Settings = { enabled: boolean; minutesBefore: number[]; sound: boolean; push: boolean; mutedWeekdays?: number[]; maxPerDay?: number };
 type AgendaReminders = Record<string, { enabled: boolean; minutesBefore: number[] }>;
@@ -136,7 +139,7 @@ export function ReminderCenter() {
             <h2>{queue.length === 1 ? "Lembrete" : `${queue.length} lembretes`}</h2>
             <p>{settings?.minutesBefore?.length ? `Avisos: ${settings.minutesBefore.join(", ")} min antes` : "Nova tarefa ou compromisso prestes a começar"}</p>
           </div>
-          <button type="button" className="icon-button" aria-label="Fechar lembretes" onClick={dismissAll}><X size={20} aria-hidden="true" /></button>
+          <button type="button" className={iconButtonTw} aria-label="Fechar lembretes" onClick={dismissAll}><X size={20} aria-hidden="true" /></button>
         </header>
         <ul className="reminder-center-list">
           {queue.map(item => (
@@ -150,9 +153,9 @@ export function ReminderCenter() {
           ))}
         </ul>
         <footer>
-          <button type="button" className="secondary-button" onClick={snoozeAll}>Adiar 15 min</button>
-          <button type="button" className="secondary-button" onClick={() => openModule(queue[0]?.kind === "event" ? "Agenda" : "Tarefas")}>Abrir {queue[0]?.kind === "event" ? "agenda" : "tarefas"}</button>
-          <button type="button" className="primary-button" onClick={dismissAll}><CheckCircle2 size={15} aria-hidden="true" /> Entendi</button>
+          <button type="button" className={secondaryTw} onClick={snoozeAll}>Adiar 15 min</button>
+          <button type="button" className={secondaryTw} onClick={() => openModule(queue[0]?.kind === "event" ? "Agenda" : "Tarefas")}>Abrir {queue[0]?.kind === "event" ? "agenda" : "tarefas"}</button>
+          <button type="button" className={primaryTw} onClick={dismissAll}><CheckCircle2 size={15} aria-hidden="true" /> Entendi</button>
         </footer>
       </section>
     </div>

@@ -103,9 +103,9 @@ try{
  assert.equal(await mode.getAttribute("aria-label"),"Responder");
  await page.keyboard.press("Alt+p");
  assert.equal(await mode.getAttribute("aria-label"),"Nota privada");
- const profileVisible=await page.locator(".contact-profile").first().isVisible();
+ const profileVisible=await page.locator("[data-testid='contact-profile']").first().isVisible();
  assert(profileVisible,"contact card is visible next to the thread");
- const phoneText=await page.locator(".contact-profile-identity").innerText();
+ const phoneText=await page.locator("[data-testid='contact-profile-identity']").innerText();
  assert(phoneText.includes("+55"),"contact card shows the formatted phone");
 
  const thread=page.locator(".inbox-thread");

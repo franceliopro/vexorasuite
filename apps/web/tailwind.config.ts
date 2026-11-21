@@ -303,12 +303,6 @@ const config: Config = {
         /* Corpo do aparelho do simulador de celular. */
         "phone-frame": "9 / 18.6",
       },
-      gridTemplateColumns: {
-        /* Grades da página de conexões. */
-        "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
-        "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
-        "channels-attach": "repeat(2,1fr)",
-      },
       gridTemplateRows: {
         "ib-quick-dialog": "auto minmax(0,1fr)",
         "fm-picker-item": "1fr auto",
@@ -563,6 +557,10 @@ const config: Config = {
         "phone-close-right": "max(16px, env(safe-area-inset-right))",
       },
       gridTemplateColumns: {
+        /* Grades da página de conexões. */
+        "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
+        "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
+        "channels-attach": "repeat(2,1fr)",
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
         "ov-primary": "minmax(0, 1.58fr) minmax(0, 1fr)",
         "ov-main": "minmax(0, 1.55fr) minmax(0, 1fr)",

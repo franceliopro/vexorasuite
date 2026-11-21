@@ -98,7 +98,7 @@ type OriginTone = {
   badgeColor: string;
   badgeBorder: string;
 };
-const ORIGIN_TONES: Record<string, OriginTone> = {
+const ORIGIN_TONES = {
   instagram: {
     bar: "linear-gradient(90deg, hsl(43 98% 73%), hsl(0 99% 55%), hsl(283 72% 45%))",
     badgeBackground: "linear-gradient(135deg, hsl(43 98% 73%) 0%, hsl(0 99% 55%) 35%, hsl(322 71% 49%) 70%, hsl(283 72% 45%) 100%)",
@@ -141,7 +141,7 @@ const ORIGIN_TONES: Record<string, OriginTone> = {
     badgeColor: "var(--tx2)",
     badgeBorder: "var(--ln2)",
   },
-};
+} satisfies Record<string, OriginTone>;
 function originTone(value: string): OriginTone {
   const normalized = value.toLowerCase();
   if (normalized.includes("instagram")) return ORIGIN_TONES.instagram;

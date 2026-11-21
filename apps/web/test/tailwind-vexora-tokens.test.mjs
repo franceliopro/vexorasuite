@@ -9,7 +9,6 @@ const read = (file) => fs.readFileSync(path.join(rootDir, file), "utf8");
 
 const config = read("tailwind.config.ts");
 const component = read("src/app/sites/components/FichaCliente.tsx");
-const styles = read("src/app/sites/components/ficha-cliente.css");
 const core = read("src/app/theme.css");
 const postcss = read("postcss.config.js");
 
@@ -41,7 +40,7 @@ test("Tailwind usa tokens Véxora e o Preflight oficial sem sobrescrever o legad
 });
 
 test("o piloto da ficha não usa paleta padrão, hex, valores arbitrários nem remendo", () => {
-  const source = `${component}\n${styles}`;
+  const source = component;
 
   for (const forbidden of [
     /\b(?:gray|slate|zinc|indigo|blue|green|amber|red)-\d{2,3}\b/,
@@ -55,26 +54,24 @@ test("o piloto da ficha não usa paleta padrão, hex, valores arbitrários nem r
   }
 });
 
-test("a ficha usa componentes @apply e classes de token", () => {
+test("a ficha usa utilities literais e classes de token", () => {
   for (const tokenClass of [
-    "vx-ficha-card",
-    "vx-ficha-tabs",
-    "vx-ficha-btn-primary",
-    "vx-ficha-field",
-    "vx-ficha-chip-success",
     "bg-brand",
     "text-ink",
     "border-line",
     "text-2xs",
     "max-h-ficha",
     "z-wizard",
+    "bg-overlay",
+    "bg-success-soft",
+    "bg-warning-soft",
+    "rounded-token-xl",
   ]) {
-    assert.ok(component.includes(tokenClass) || styles.includes(tokenClass), `falta ${tokenClass}`);
+    assert.ok(component.includes(tokenClass), `falta ${tokenClass}`);
   }
 
-  assert.match(styles, /@layer components/);
-  assert.doesNotMatch(styles, /@tailwind base;/);
-  assert.doesNotMatch(styles, /@tailwind components;/);
-  assert.doesNotMatch(styles, /@tailwind utilities;/);
-  assert.doesNotMatch(styles, /preflight\.css/);
+  assert.doesNotMatch(component, /@apply/);
+  assert.doesNotMatch(component, /@tailwind base;/);
+  assert.doesNotMatch(component, /vx-ficha-/);
+  assert.doesNotMatch(component, /ficha-cliente\.css/);
 });

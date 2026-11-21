@@ -18,7 +18,43 @@ import {
   Settings,
   MessageSquare,
 } from "lucide-react";
-import "./ficha-cliente.css";
+
+const backdropTw = "fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6";
+const scrimTw = "absolute inset-0 bg-overlay backdrop-blur-sm transition-opacity";
+const cardTw = "relative z-10 flex max-h-ficha w-full max-w-md flex-col overflow-hidden rounded-token-xl border border-line bg-surface shadow-token-lg";
+const headerTw = "flex items-center justify-between gap-3 border-b border-line p-5";
+const tabsTw = "flex border-b border-line bg-surface-2";
+const bodyTw = "flex-1 overflow-y-auto p-4";
+const footerTw = "flex items-center justify-between gap-2 border-t border-line bg-surface-2 p-4";
+const primaryButtonTw = "inline-flex items-center justify-center gap-1.5 rounded-token-sm bg-brand px-4 py-2 text-sm font-semibold text-brand-contrast shadow-token transition-all hover:bg-brand-strong active:scale-95";
+const primaryButtonHiddenTw = "hidden inline-flex items-center justify-center gap-1.5 rounded-token-sm bg-brand px-4 py-2 text-sm font-semibold text-brand-contrast shadow-token transition-all hover:bg-brand-strong active:scale-95";
+const fieldTw = "rounded-token-lg border border-line bg-surface-2 p-4";
+const fieldRowTw = "flex items-center justify-between rounded-token-lg border border-line bg-surface-2 p-4";
+const fieldRowSurfaceTw = "flex items-center justify-between rounded-token-lg border border-line bg-surface p-4";
+const labelTw = "mb-2 text-2xs font-bold uppercase tracking-wider text-ink-muted";
+const inputTw = "w-full bg-transparent text-sm text-ink outline-hidden";
+const chipSuccessSmTw = "rounded-full border border-success-soft bg-success-soft px-2 py-1 text-2xs font-semibold text-success";
+const chipSuccessMdTw = "rounded-full border border-success-soft bg-success-soft px-2.5 py-1 text-2xs font-semibold text-success";
+const iconBoxTw = "flex h-9 w-9 items-center justify-center rounded-token-sm bg-brand-soft text-brand";
+const iconMutedTw = "flex h-9 w-9 items-center justify-center rounded-token-sm bg-surface-3 text-ink-muted";
+const statusOnlineTw = "rounded-full border border-success-soft bg-success-soft px-2 py-0.5 text-xs font-semibold text-success";
+const statusOfflineTw = "rounded-full border border-line bg-surface-3 px-2 py-0.5 text-xs font-semibold text-ink-muted";
+const tabActiveTw = "flex flex-1 flex-col items-center justify-center gap-1 border-b-2 border-brand bg-brand-soft px-3 py-3.5 text-xs font-medium text-brand transition-colors";
+const tabInactiveTw = "flex flex-1 flex-col items-center justify-center gap-1 px-3 py-3.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink-secondary";
+const editDoneTw = "rounded-token-sm bg-surface-3 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-line";
+const editStartTw = "rounded-token-sm border border-line px-4 py-2 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-2";
+const wizardTw = "fixed inset-0 z-wizard flex items-center justify-center bg-overlay-soft p-4 backdrop-blur-sm";
+const wizardCardTw = "relative flex max-h-wizard w-full max-w-sm flex-col overflow-hidden rounded-token-xl border border-line bg-surface shadow-token-lg";
+const wizardHeaderTw = "flex items-start justify-between gap-3 border-b border-line p-5";
+const wizardBodyTw = "flex-1 overflow-y-auto p-6";
+const wizardStepTw = "space-y-4";
+const wizardStepHiddenTw = "hidden space-y-4";
+const wizardDoneTw = "flex flex-col items-center justify-center py-12 text-center";
+const wizardDoneHiddenTw = "hidden flex flex-col items-center justify-center py-12 text-center";
+const wizardBackTw = "rounded-token-sm border border-line px-3 py-2 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-2";
+const wizardBackHiddenTw = "hidden rounded-token-sm border border-line px-3 py-2 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-2";
+const wizardFinishTw = "inline-flex items-center justify-center rounded-token-sm bg-ink px-3 py-2 text-sm font-semibold text-brand-contrast transition-all hover:bg-ink-secondary active:scale-95";
+const wizardFinishHiddenTw = "hidden inline-flex items-center justify-center rounded-token-sm bg-ink px-3 py-2 text-sm font-semibold text-brand-contrast transition-all hover:bg-ink-secondary active:scale-95";
 
 type ContactStatus = "ativo" | "inativo";
 
@@ -129,24 +165,24 @@ export default function FichaCliente({
     <>
       {/* Backdrop */}
       <div
-        className="vx-ficha-backdrop"
+        className={backdropTw}
         onClick={() => {
           setIsOpen(false);
           onClose?.();
         }}
       >
         <div
-          className="vx-ficha-scrim"
+          className={scrimTw}
           onClick={(e) => e.stopPropagation()}
         />
 
         {/* Card da ficha */}
         <div
-          className="vx-ficha-card"
+          className={cardTw}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Cabeçalho mínimo */}
-          <div className="vx-ficha-header">
+          <div className={headerTw}>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-token-lg bg-brand-soft">
                 <img
@@ -158,11 +194,7 @@ export default function FichaCliente({
               <div>
                 <div className="flex items-baseline gap-1.5">
                   <h2 className="text-lg font-bold tracking-tight text-ink">{c.name}</h2>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${
-                    c.status === "ativo"
-                      ? "border-success-soft bg-success-soft text-success"
-                      : "border-line bg-surface-3 text-ink-muted"
-                  }`}>
+                  <span className={c.status === "ativo" ? statusOnlineTw : statusOfflineTw}>
                     {c.status === "ativo" ? "Online" : "Offline"}
                   </span>
                 </div>
@@ -183,17 +215,13 @@ export default function FichaCliente({
           </div>
 
           {/* Tabs — menu enxuto */}
-          <div className="vx-ficha-tabs">
+          <div className={tabsTw}>
             {(["dados", "contato", "historico", "mais"] as TabId[]).map((tab) => {
               const Icon = TabIcon[tab];
               return (
                 <button
                   key={tab}
-                  className={`flex flex-1 flex-col items-center justify-center gap-1 px-3 py-3.5 text-xs font-medium transition-colors ${
-                    activeTab === tab
-                      ? "border-b-2 border-brand bg-brand-soft text-brand"
-                      : "text-ink-muted hover:bg-surface-2 hover:text-ink-secondary"
-                  }`}
+                  className={activeTab === tab ? tabActiveTw : tabInactiveTw}
                   onClick={() => {
                     setActiveTab(tab);
                     setMoreOpen(false);
@@ -207,7 +235,7 @@ export default function FichaCliente({
           </div>
 
           {/* Conteúdo da aba */}
-          <div className="vx-ficha-body">
+          <div className={bodyTw}>
             {activeTab === "dados" && <DadosTab contact={c} editing={editing} />}
             {activeTab === "contato" && <ContatoTab contact={c} editing={editing} />}
             {activeTab === "historico" && <HistoricoTab contact={c} />}
@@ -215,13 +243,9 @@ export default function FichaCliente({
           </div>
 
           {/* Rodapé com ação principal */}
-          <div className="vx-ficha-footer">
+          <div className={footerTw}>
             <button
-              className={`rounded-token-sm px-4 py-2 text-sm font-semibold transition-colors ${
-                editing
-                  ? "bg-surface-3 text-ink hover:bg-line"
-                  : "border border-line text-ink-secondary hover:bg-surface-2"
-              }`}
+              className={editing ? editDoneTw : editStartTw}
               onClick={() => {
                 setEditing(!editing);
                 if (!editing) onSave?.({ ...c });
@@ -230,7 +254,7 @@ export default function FichaCliente({
               {editing ? "Concluir edição" : "Editar"}
             </button>
             <button
-              className="vx-ficha-btn-primary"
+              className={primaryButtonTw}
               onClick={() => setWizardOpen(true)}
             >
               Concluir ficha
@@ -242,14 +266,14 @@ export default function FichaCliente({
       {/* Wizard de conclusão — só quando necessário */}
       {wizardOpen && (
         <div
-          className="fixed inset-0 z-wizard flex items-center justify-center bg-overlay-soft p-4 backdrop-blur-sm"
+          className={wizardTw}
           onClick={closeWizard}
         >
           <div
-            className="relative flex max-h-wizard w-full max-w-sm flex-col overflow-hidden rounded-token-xl border border-line bg-surface shadow-token-lg"
+            className={wizardCardTw}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-line p-5">
+            <div className={wizardHeaderTw}>
               <div>
                 <h3 className="text-lg font-bold text-ink">Concluir ficha</h3>
                 <p className="mt-1 text-xs text-ink-muted">
@@ -265,10 +289,10 @@ export default function FichaCliente({
               </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto">
+            <div className={wizardBodyTw}>
               {/* Passo 1: Revisar */}
-              <div className={`space-y-4 ${wizardStep === 1 ? "" : "hidden"}`}>
-                <div className="flex items-center gap-2 mb-2">
+              <div className={wizardStep === 1 ? wizardStepTw : wizardStepHiddenTw}>
+                <div className="mb-2 flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-2xs font-bold text-brand-contrast">
                     1
                   </span>
@@ -280,7 +304,7 @@ export default function FichaCliente({
                       <div className="font-medium text-ink">{c.name}</div>
                       <div className="text-xs text-ink-muted">{c.role}</div>
                     </div>
-                    <span className="vx-ficha-chip-success px-2 py-1">
+                    <span className={chipSuccessSmTw}>
                       Ativo
                     </span>
                   </div>
@@ -295,8 +319,8 @@ export default function FichaCliente({
               </div>
 
               {/* Passo 2: Confirmar */}
-              <div className={`space-y-4 ${wizardStep === 2 ? "" : "hidden"}`}>
-                <div className="flex items-center gap-2 mb-2">
+              <div className={wizardStep === 2 ? wizardStepTw : wizardStepHiddenTw}>
+                <div className="mb-2 flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-2xs font-bold text-brand-contrast">
                     2
                   </span>
@@ -308,7 +332,7 @@ export default function FichaCliente({
                   </p>
                 </div>
                 <label
-                  className="flex items-center gap-2.5 cursor-pointer select-none group"
+                  className="group flex cursor-pointer select-none items-center gap-2.5"
                   onClick={() => setTermsChecked(!termsChecked)}
                 >
                   <input
@@ -325,7 +349,7 @@ export default function FichaCliente({
 
               {/* Passo 3: Finalizado */}
               <div
-                className={`flex flex-col items-center justify-center py-12 text-center ${wizardStep === 3 ? "" : "hidden"}`}
+                className={wizardStep === 3 ? wizardDoneTw : wizardDoneHiddenTw}
               >
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-soft text-success">
                   <Check className="w-7 h-7" />
@@ -339,29 +363,23 @@ export default function FichaCliente({
               </div>
             </div>
 
-            <div className="vx-ficha-footer">
+            <div className={footerTw}>
               <button
-                className={`rounded-token-sm border border-line px-3 py-2 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-2 ${
-                  wizardStep === 1 ? "hidden" : ""
-                }`}
+                className={wizardStep === 1 ? wizardBackHiddenTw : wizardBackTw}
                 onClick={handleWizardBack}
               >
-                <ArrowLeft className="w-4 h-4 mr-1.5" /> Voltar
+                <ArrowLeft className="mr-1.5 w-4 h-4" /> Voltar
               </button>
               <div className="flex gap-2">
                 <button
-                  className={`vx-ficha-btn-primary ${
-                    wizardStep === 3 ? "hidden" : ""
-                  }`}
+                  className={wizardStep === 3 ? primaryButtonHiddenTw : primaryButtonTw}
                   onClick={handleWizardNext}
                   disabled={wizardStep === 2 && !termsChecked}
                 >
-                  Próximo <ArrowRight className="w-4 h-4 ml-1.5" />
+                  Próximo <ArrowRight className="ml-1.5 w-4 h-4" />
                 </button>
                 <button
-                  className={`inline-flex items-center justify-center rounded-token-sm bg-ink px-3 py-2 text-sm font-semibold text-brand-contrast transition-all hover:bg-ink-secondary active:scale-95 ${
-                    wizardStep !== 3 ? "hidden" : ""
-                  }`}
+                  className={wizardStep !== 3 ? wizardFinishHiddenTw : wizardFinishTw}
                   onClick={handleFinish}
                 >
                   Finalizar
@@ -380,39 +398,39 @@ export default function FichaCliente({
 function DadosTab({ contact, editing }: { contact: Contact; editing: boolean }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="vx-ficha-field">
-          <p className="vx-ficha-label">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className={fieldTw}>
+          <p className={labelTw}>
             Nome
           </p>
           <input
             type="text"
             defaultValue={contact.name}
             disabled={!editing}
-            className="vx-ficha-input"
+            className={inputTw}
           />
         </div>
-        <div className="vx-ficha-field">
-          <p className="vx-ficha-label">
+        <div className={fieldTw}>
+          <p className={labelTw}>
             Etapa
           </p>
           <input
             type="text"
             defaultValue={contact.stage}
             disabled={!editing}
-            className="vx-ficha-input"
+            className={inputTw}
           />
         </div>
       </div>
-      <div className="vx-ficha-field">
-        <p className="vx-ficha-label">
+      <div className={fieldTw}>
+        <p className={labelTw}>
           Endereço
         </p>
         <input
           type="text"
           defaultValue={contact.address}
           disabled={!editing}
-          className="vx-ficha-input"
+          className={inputTw}
         />
       </div>
     </div>
@@ -422,9 +440,9 @@ function DadosTab({ contact, editing }: { contact: Contact; editing: boolean }) 
 function ContatoTab({ contact, editing }: { contact: Contact; editing: boolean }) {
   return (
     <div className="space-y-4">
-      <div className="vx-ficha-field flex items-center justify-between">
+      <div className={fieldRowTw}>
         <div className="flex items-center gap-3">
-          <div className="vx-ficha-icon-box">
+          <div className={iconBoxTw}>
             <Phone className="w-5 h-5" />
           </div>
           <div>
@@ -432,13 +450,13 @@ function ContatoTab({ contact, editing }: { contact: Contact; editing: boolean }
             <p className="truncate text-xs text-ink-muted">{contact.phone}</p>
           </div>
         </div>
-        <span className="vx-ficha-chip-success px-2.5 py-1">
+        <span className={chipSuccessMdTw}>
           Ativo
         </span>
       </div>
-      <div className="vx-ficha-field flex items-center justify-between bg-surface">
+      <div className={fieldRowSurfaceTw}>
         <div className="flex items-center gap-3">
-          <div className="vx-ficha-icon-muted">
+          <div className={iconMutedTw}>
             <Mail className="w-5 h-5" />
           </div>
           <div>
@@ -453,7 +471,7 @@ function ContatoTab({ contact, editing }: { contact: Contact; editing: boolean }
           <Plus className="w-4 h-4" />
         </button>
       </div>
-      <p className="vx-ficha-label">
+      <p className={labelTw}>
         Adicione outros canais quando precisar.
       </p>
     </div>
@@ -474,7 +492,7 @@ function HistoricoTab({ contact }: { contact: Contact }) {
           <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
           <div className="flex-1">
             <p className="text-xs leading-relaxed text-ink">{item.what}</p>
-            <div className="flex justify-between mt-1">
+            <div className="mt-1 flex justify-between">
               <span className="text-2xs text-ink-muted">{item.when}</span>
               <span className="text-2xs text-ink-muted">{item.by}</span>
             </div>
@@ -488,10 +506,10 @@ function HistoricoTab({ contact }: { contact: Contact }) {
 function MaisTab({ contact, editing }: { contact: Contact; editing: boolean }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="vx-ficha-field flex items-center justify-between">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className={fieldRowTw}>
           <div className="flex items-center gap-3">
-            <div className="vx-ficha-icon-muted">
+            <div className={iconMutedTw}>
               <Folder className="w-5 h-5" />
             </div>
             <div>
@@ -501,9 +519,9 @@ function MaisTab({ contact, editing }: { contact: Contact; editing: boolean }) {
           </div>
           <ChevronRight className="h-4 w-4 text-line-strong" />
         </div>
-        <div className="vx-ficha-field flex items-center justify-between">
+        <div className={fieldRowTw}>
           <div className="flex items-center gap-3">
-            <div className="vx-ficha-icon-muted">
+            <div className={iconMutedTw}>
               <Settings className="w-5 h-5" />
             </div>
             <div>
@@ -514,10 +532,10 @@ function MaisTab({ contact, editing }: { contact: Contact; editing: boolean }) {
           <ChevronRight className="h-4 w-4 text-line-strong" />
         </div>
       </div>
-      <div className="vx-ficha-field flex items-center justify-between">
+      <div className={fieldRowTw}>
         <div>
           <p className="text-xs font-semibold text-ink">Tags</p>
-          <div className="flex flex-wrap gap-1.5 mt-1">
+          <div className="mt-1 flex flex-wrap gap-1.5">
             {(contact.tags ?? []).map((tag) => (
               <span
                 key={tag}

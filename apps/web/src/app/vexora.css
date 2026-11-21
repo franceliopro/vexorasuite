@@ -35,6 +35,11 @@
   --vx-core-line-footer:color-mix(in srgb,var(--ln) 70%,transparent);
   --vx-core-line-hover:color-mix(in srgb,var(--ln2) 70%,var(--primary));
   --vx-core-selection:color-mix(in srgb,var(--primary) 22%,transparent);
+  /* Derivados do piloto Ficha Cliente, consumidos pelo preset Tailwind. */
+  --vx-overlay:color-mix(in srgb,var(--tx) 34%,transparent);
+  --vx-overlay-soft:color-mix(in srgb,var(--tx) 20%,transparent);
+  --vx-ok-soft:color-mix(in srgb,var(--ok) 12%,var(--s1));
+  --vx-warn-soft:color-mix(in srgb,var(--warn) 12%,var(--s1));
   --vx-core-shadow-nav-active:inset 0 0 0 1px color-mix(in srgb,var(--sb-tx) 18%,transparent),inset 0 1px 0 rgb(255 255 255 / .35),inset 0 -1px 0 rgb(0 0 0 / .22),0 14px 32px -10px rgb(255 255 255 / .18),0 3px 8px rgb(255 255 255 / .12);
   --vx-core-shadow-brand:inset 0 1px 0 color-mix(in srgb,var(--primary) 55%,white),0 10px 20px -12px color-mix(in srgb,var(--primary) 85%,transparent);
   --vx-core-shadow-topbar:0 1px 0 color-mix(in srgb,var(--s1) 60%,transparent);

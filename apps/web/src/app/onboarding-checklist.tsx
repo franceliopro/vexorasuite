@@ -73,7 +73,7 @@ export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: strin
         </div>
         <button type="button" className="grid h-8 w-8 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); }}><X size={16} aria-hidden="true" /></button>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-300" aria-hidden="true"><span className="block h-full rounded-full bg-gradient-to-r from-blue-600 to-sky-600 transition-fill duration-bar ease-token" style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-300" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-sky-600 transition-fill duration-bar ease-token" style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
       <ol className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {steps.map((step) => (
           <li key={step.id} className="grid grid-cols-ov-step items-center gap-3 rounded-token-sm border border-gray-200 bg-zinc-100 p-4">

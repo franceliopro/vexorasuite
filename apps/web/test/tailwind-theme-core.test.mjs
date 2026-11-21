@@ -11,11 +11,17 @@ const config = read("tailwind.config.ts");
 const theme = read("src/app/theme.css");
 const legacy = read("src/app/vexora.css");
 const layout = read("src/app/layout.tsx");
+const postcss = read("postcss.config.js");
 
-test("o core global usa Tailwind sem preflight, arbitrários ou hex", () => {
-  assert.match(theme, /@tailwind components;/);
-  assert.match(theme, /@tailwind utilities;/);
+test("o core global usa Tailwind v4 com Preflight oficial, sem arbitrários ou hex", () => {
+  assert.match(theme, /@import "tailwindcss\/theme\.css" layer\(theme\);/);
+  assert.match(theme, /@import "tailwindcss\/preflight\.css" layer\(base\);/);
+  assert.match(theme, /@import "tailwindcss\/utilities\.css" layer\(utilities\);/);
+  assert.match(theme, /@config "\.\.\/\.\.\/tailwind\.config\.ts";/);
   assert.doesNotMatch(theme, /@tailwind base;/);
+  assert.doesNotMatch(config, /corePlugins/);
+  assert.match(postcss, /"@tailwindcss\/postcss"/);
+  assert.doesNotMatch(postcss, /tailwindcss:/);
 
   const semComentarios = theme.replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -29,10 +35,11 @@ test("o core global usa Tailwind sem preflight, arbitrários ou hex", () => {
   }
 
   assert.match(theme, /\[hidden\]\s*\{\s*@apply hidden;\s*\}/);
-  assert.ok(
-    theme.indexOf("[hidden]") > theme.indexOf("@tailwind utilities;"),
-    "[hidden] deve vir depois das utilities para vencer sem !important",
-  );
+  // Em v4 [hidden] fica fora de camada: CSS não em camada vence utilities em camada.
+  const baseBlock = theme.match(/@layer base \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  assert.doesNotMatch(baseBlock, /\[hidden\]/);
+  const componentsBlock = theme.match(/@layer components \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  assert.doesNotMatch(componentsBlock, /\[hidden\]/);
 });
 
 test("os três temas continuam sendo a fonte dos tokens", () => {
@@ -149,7 +156,7 @@ test("o preset expõe as escalas do core", () => {
   ]) {
     assert.ok(config.includes(token), `o preset deve expor ${token}`);
   }
-  assert.match(config, /preflight:\s*false/);
+  assert.doesNotMatch(config, /preflight:\s*false/);
 });
 
 test("o CSS legado não reaplica a base nem o wash do body", () => {

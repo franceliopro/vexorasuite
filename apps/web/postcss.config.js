@@ -1,7 +1,6 @@
-/** PostCSS usado pelo Next. Preflight foi desligado no tailwind.config.ts. */
+/** PostCSS used by Next. Preflight stays off: v4 imports only theme and utilities. */
 module.exports = {
   plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
+    "@tailwindcss/postcss": {},
   },
 };

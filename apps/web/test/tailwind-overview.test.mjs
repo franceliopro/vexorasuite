@@ -8,6 +8,7 @@ const rootDir = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (file) => fs.readFileSync(path.join(rootDir, file), "utf8");
 
 const config = read("tailwind.config.ts");
+const theme = read("src/app/theme.css");
 const styles = read("src/app/overview.css");
 const layout = read("src/app/layout.tsx");
 const overview = read("src/app/overview-intelligence.tsx");
@@ -64,7 +65,9 @@ test("overview.css não define componentes, apenas utilities e variáveis de tem
   assert.doesNotMatch(css, /@tailwind base;/);
   assert.doesNotMatch(css, /@layer\s+components\b/);
   assert.doesNotMatch(css, /\.[a-z][a-z0-9-]*\s*\{/);
-  assert.deepEqual(classesLegadas(styles), []);
+  // `@custom-variant ov-*` são nomes de breakpoint do v4, não classes de componente.
+  const semVariantes = styles.replace(/@custom-variant\s+[a-z-]+\s+\([^;]+;\s*/g, "");
+  assert.deepEqual(classesLegadas(semVariantes), []);
 
   for (const forbidden of [
     /\[[a-z-]+:\s*[^]\s]+\]/,
@@ -107,7 +110,7 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
 });
 
 test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () => {
-  assert.match(config, /"ov-laptop":\s*\{\s*raw:\s*"\(max-width: 900px\)"\s*\}/);
+  assert.match(theme, /@custom-variant ov-laptop \(@media \(max-width: 900px\)\);/);
 
   // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
   assert.match(overview, /<section className="grid grid-cols-2 gap-ov-section ov-laptop:grid-cols-1"/);
@@ -159,7 +162,9 @@ test("nenhuma classe da Visão geral termina em -card nem herda .content-card", 
 
 test("o preset expõe as escalas e os derivados da Visão geral", () => {
   for (const token of [
-    '"ov-laptop"', '"ov-tablet"', '"ov-mobile"',
+    '@custom-variant ov-laptop (@media (max-width: 900px));',
+    '@custom-variant ov-tablet (@media (max-width: 760px));',
+    '@custom-variant ov-mobile (@media (max-width: 520px));',
     '"ov-hero"', '"ov-hero-sm"', '"ov-kpi"', '"ov-clock"', '"ov-weather"',
     '"ov-micro"', '"ov-label"', '"ov-sub"', '"ov-onboarding"',
     '"ov-overview"', '"ov-primary"', '"ov-main"', '"ov-hero-body"',
@@ -172,7 +177,7 @@ test("o preset expõe as escalas e os derivados da Visão geral", () => {
     'stroke: "stroke-dashoffset"', 'fill: "width"',
     'ring: "600ms"', 'bar: "300ms"',
   ]) {
-    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+    assert.ok(config.includes(token) || theme.includes(token), `o preset deve expor ${token}`);
   }
 });
 

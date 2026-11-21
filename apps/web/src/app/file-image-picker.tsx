@@ -13,11 +13,11 @@ type Props = {
 };
 
 /* Utilities compartilhadas da fatia: azul vem dos tokens --primary do preset. */
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const iconButton = "grid size-control flex-none place-items-center rounded-token-sm border border-line bg-surface-2 text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const searchTw = "flex min-h-10 min-w-fm-search flex-1 items-center gap-2 rounded-fm-search border border-line bg-surface-2 px-3 text-ink-secondary";
-const searchInput = "min-w-0 flex-1 border-0 bg-transparent text-body text-ink outline-none";
+const searchInput = "min-w-0 flex-1 border-0 bg-transparent text-body text-ink outline-hidden";
 const stateTw = "grid place-items-center gap-2.5 rounded-fm-card border border-dashed border-line-strong p-10 text-center text-ink-secondary";
 const itemTw = "relative grid grid-rows-fm-picker-item overflow-hidden rounded-fm-card border-2 border-transparent bg-surface-2 p-0 text-left transition-colors hover:border-line";
 

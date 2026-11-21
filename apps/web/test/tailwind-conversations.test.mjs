@@ -9,7 +9,8 @@ const list = read("src/app/conversation-list.tsx");
 const avatars = read("src/app/inbox-avatars.tsx");
 const copilot = read("src/app/inbox-copilot.tsx");
 const inboxes = read("src/app/inboxes-management.tsx");
-const components = [list, avatars, copilot, inboxes];
+const profile = read("src/app/contact-profile-panel.tsx");
+const components = [list, avatars, copilot, inboxes, profile];
 
 /** Só literais de string dentro de className são classes — não o código da expressão. */
 function classValues(source) {
@@ -34,7 +35,7 @@ test("a Conversa não usa classes componente legadas", () => {
   assert.doesNotMatch(classes, /\b(?:content-card|primary-button|secondary-button|icon-button|dialog-close|chip|ai-toggle)\b/);
   // ib-* aparece só como sufixo de utility do preset, nunca como classe componente.
   for (const token of classes.split(/\s+/).filter((part) => /(?:^|-)ib(?:-|$)/.test(part))) {
-    assert.match(token, /^(?:font-ib|ib-(?:narrow|mobile|wide):[a-z0-9:-]+|(?:(?:bg|text|h|w|min-h|max-h|max-w|min-w|shadow|rounded|border|gap|gap-x|gap-y|px|py|p|my|mt|mb|font|grid-cols|col-span|justify-self)-ib-[a-z0-9-]+))$/, `classe ib-* não autorizada: ${token}`);
+    assert.match(token, /^(?:font-ib|ib-(?:narrow|mobile|wide):[a-z0-9:-]+|ib-(?:desktop|narrow|mobile|wide):[a-z0-9:-]+|(?:(?:bg|text|h|w|min-h|max-h|max-w|min-w|shadow|rounded|border|gap|gap-x|gap-y|px|py|p|my|mt|mb|font|grid-cols|col-span|justify-self)-ib-[a-z0-9-]+))$/, `classe ib-* não autorizada: ${token}`);
   }
 });
 
@@ -172,4 +173,54 @@ test("a gestão de inbox preserva os contratos e as integrações", () => {
   }
   assert.ok((inboxes.match(/role="alert"/g) ?? []).length >= 2);
   assert.ok((inboxes.match(/role="status"/g) ?? []).length >= 3);
+});
+
+
+test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
+  const values = classValues(profile).replace(/style=\{\{[^}]*\}\}/g, "");
+  for (const forbidden of [/\[[a-z-]+:\s*[^]\s]+\]/, /#[0-9a-fA-F]{3,8}\b/, /color-mix\(/, /!important/, /@apply/]) {
+    const match = values.match(forbidden);
+    assert.equal(match, null, `remendo visual na ficha: ${match?.[0]}`);
+  }
+  for (const token of [
+    'data-testid="contact-profile"',
+    'data-collapsed={expanded ? "false" : "true"}',
+    'data-bare={bare ? "true" : "false"}',
+    'data-testid="contact-profile-heading"',
+    'data-testid="contact-profile-identity"',
+    'role="alert"',
+    "/api/backend/contacts/",
+    "/identities/rebind",
+    "/history",
+    "/profile-config",
+    "/api/backend/tasks",
+    "tagForeground(tag.color)",
+  ]) {
+    assert.ok(profile.includes(token), `a ficha deve manter ${token}`);
+  }
+  for (const utility of [
+    "w-ib-profile-collapsed",
+    "h-ib-profile-avatar w-ib-profile-avatar",
+    "grid-cols-ib-profile-field-row",
+    "max-w-ib-profile-control",
+    "bg-ib-avatar",
+    "text-ib-instagram",
+    "ib-desktop:grid-cols-2",
+  ]) {
+    assert.ok(values.includes(utility), `falta a utility ${utility}`);
+  }
+  for (const token of [
+    '"ib-desktop": { raw: "(min-width: 960px)" }',
+    '"ib-instagram": "#E1306C"',
+    '"ib-facebook": "#1877F2"',
+    '"ib-email": "#EA4335"',
+    '"ib-profile-field-row": "minmax(0, 1fr) auto"',
+    '"ib-profile-identity": "minmax(0, 1fr) auto"',
+    '"ib-profile-control": "400px"',
+    '"ib-profile-copy": "560px"',
+    '"ib-profile-row": "460px"',
+    '"ib-profile-agenda": "320px"',
+  ]) {
+    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+  }
 });

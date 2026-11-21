@@ -178,7 +178,7 @@ try{
  await expect(page.getByText("Financeiro B",{exact:true})).toBeVisible();
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
  const thread=page.locator(".inbox-thread");
- const profile=page.locator(".contact-profile");
+ const profile=page.locator("[data-testid='contact-profile']");
  await expect(profile).toBeVisible();
  await expect(page.locator('.sidebar [aria-label="Ajuda"]')).toHaveCount(0);
  await expect(page.locator("header.thread-heading")).toHaveCSS("margin-bottom","0px");

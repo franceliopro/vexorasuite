@@ -127,8 +127,8 @@ details>summary::-webkit-details-marker{display:none}
 .vx-dialog-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .vx-dialog-footer{flex:none;margin-top:0;padding-top:12px;border-top:1px solid var(--ln)}
 .vx-dialog-body .contact-profile-footer{position:sticky;bottom:0;z-index:4;background:var(--s1);margin:0 -2px -2px;padding-top:10px;border-top:1px solid var(--ln)}
-.contact-profile-bare{display:flex;flex-direction:column}
-.contact-profile-bare .contact-profile-body{flex:none;overflow:visible;padding-top:14px}
+[data-testid='contact-profile'][data-bare='true']{display:flex;flex-direction:column}
+[data-testid='contact-profile'][data-bare='true'] .contact-profile-body{flex:none;overflow:visible;padding-top:14px}
 .profile-sticky-tail{position:static;background:transparent;border-top:0;box-shadow:none}
 .vx-dialog-heading,[class$="-dialog"]>header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-right:40px;min-width:0}
 .vx-dialog-heading h2,[class$="-dialog"]>header h2{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -322,11 +322,11 @@ details>summary::-webkit-details-marker{display:none}
 /* ===== 8. Atendimento ===== */
 .inbox-workspace{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr) minmax(300px,380px);gap:12px;height:calc(100dvh - var(--top) - 56px);min-height:520px}
 @media(max-width:980px){.inbox-workspace{grid-template-columns:minmax(0,1fr)}}
-.inbox-workspace:has(.contact-profile){grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)}
+.inbox-workspace:has([data-testid='contact-profile']){grid-template-columns:minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)}
 .inbox-workspace>*{min-height:0;padding:0;overflow:hidden}
 .inbox-thread>.thread-empty{flex:1}
 .inbox-list,.inbox-thread,.contact-profile{display:flex;flex-direction:column}
-.inbox-panel-heading,.thread-heading,.contact-profile-heading{flex:none;margin:0;padding:10px 16px;border-bottom:1px solid var(--ln)}
+.inbox-panel-heading,.thread-heading,[data-testid='contact-profile-heading']{flex:none;margin:0;padding:10px 16px;border-bottom:1px solid var(--ln)}
 .inbox-thread > header.thread-heading{margin-bottom:0}
 .inbox-queues{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--ln)}
 .inbox-queue-button{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:0 9px;border:1px solid var(--ln);border-radius:99px;font-size:10px;font-weight:700;color:var(--tx2)}
@@ -643,7 +643,7 @@ details>summary:hover{color:var(--tx)}
 @media(max-width:980px){
   .page-content{padding:26px 24px}
   .inbox-workspace{grid-template-columns:minmax(220px,280px) minmax(0,1fr)}
-  .inbox-workspace>.contact-profile{grid-column:1/-1}
+  .inbox-workspace>[data-testid='contact-profile']{grid-column:1/-1}
   .dashboard-grid,.calendar-layout,.calendar-work-area,.ai-agent-layout,.workflow-builder-grid{grid-template-columns:1fr}
   .auth-screen-split{grid-template-columns:1fr}
   .auth-brand-panel{display:none}
@@ -672,20 +672,20 @@ details>summary:hover{color:var(--tx)}
   .page-content :is(h1,h2,h3,h4,p,strong,small,label,button,a){overflow-wrap:anywhere}
   .persistent-module-tabs{padding:8px 16px 0}
   .metrics-grid,.tasks-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
-.inbox-workspace,.inbox-workspace:has(.contact-profile){grid-template-columns:1fr;height:auto;min-height:0;align-content:start}
+.inbox-workspace,.inbox-workspace:has([data-testid='contact-profile']){grid-template-columns:1fr;height:auto;min-height:0;align-content:start}
   .inbox-notes-board{max-height:140px;overflow:auto;padding:6px 10px 0}
   .thread-heading{flex-wrap:wrap;padding:10px 12px;gap:8px;justify-content:flex-start}
   .thread-contact-avatar{width:36px;height:36px;font-size:12px}
   .thread-contact h2{font-size:15px}
   .thread-contact-status{font-size:11px}
   .thread-action-button{width:30px;height:30px}
-  .inbox-workspace:not(.mobile-thread-open) :is(.inbox-thread,.contact-profile),.inbox-workspace.mobile-thread-open .inbox-list{display:none}
+  .inbox-workspace:not(.mobile-thread-open) :is(.inbox-thread,[data-testid='contact-profile']),.inbox-workspace.mobile-thread-open .inbox-list{display:none}
   .inbox-composer{display:flex;flex-direction:column;gap:8px}
   .composer-toolbar{flex-wrap:wrap}
   .composer-tools{flex-wrap:wrap}
   .composer-shell .inbox-composer .composer-tools textarea{order:1;flex:1 1 100%;width:100%;min-height:44px;font-size:16px}
   .inbox-workspace.mobile-thread-open{height:calc(100dvh - var(--top) - var(--dock) - 24px);grid-template-rows:minmax(0,1fr) auto}.inbox-workspace.mobile-thread-open .inbox-thread{height:100%}
-  .inbox-workspace.mobile-thread-open .contact-profile{max-height:230px}
+  .inbox-workspace.mobile-thread-open [data-testid='contact-profile']{max-height:230px}
   .vx-flow-shell{grid-template-columns:1fr;height:auto}
   .vx-flow-stage{height:70dvh}
   .settings-catalog-grid,.workflow-template-grid{grid-template-columns:1fr}
@@ -845,8 +845,8 @@ details>summary:hover{color:var(--tx)}
 @media(min-width:761px){
   .page-content:has(.inbox-workspace){padding-left:10px;padding-right:10px;max-width:none;gap:14px}
   .inbox-workspace{gap:12px;grid-template-columns:minmax(228px,264px) minmax(0,1fr)}
-  .inbox-workspace:has(.contact-profile:not(.profile-collapsed)){grid-template-columns:minmax(228px,264px) minmax(0,1fr) minmax(272px,320px)}
-  .inbox-workspace:has(.contact-profile.profile-collapsed){grid-template-columns:minmax(228px,264px) minmax(0,1fr) 54px}
+  .inbox-workspace:has([data-testid='contact-profile'][data-collapsed='false']){grid-template-columns:minmax(228px,264px) minmax(0,1fr) minmax(272px,320px)}
+  .inbox-workspace:has([data-testid='contact-profile'][data-collapsed='true']){grid-template-columns:minmax(228px,264px) minmax(0,1fr) 54px}
 }
 .inbox-list{border-radius:16px}
 .inbox-conversation{position:relative;transition:background .16s var(--ease),box-shadow .16s var(--ease)}
@@ -1145,9 +1145,9 @@ details>summary:hover{color:var(--tx)}
 .contact-profile-title{display:grid;gap:1px;min-width:0}
 .contact-profile-title strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .contact-profile-title small{font-size:10.5px;color:var(--tx2)}
-.contact-profile-heading{gap:10px}
-.contact-profile-identity{padding:4px 12px 6px;gap:2px}
-.contact-profile-identity p{margin:0;font-size:11.5px;line-height:1.3}
+[data-testid='contact-profile-heading']{gap:10px}
+[data-testid='contact-profile-identity']{padding:4px 12px 6px;gap:2px}
+[data-testid='contact-profile-identity'] p{margin:0;font-size:11.5px;line-height:1.3}
 .profile-status-pill.small{min-height:19px;padding:0 8px;font-size:9.5px}
 
 
@@ -1278,10 +1278,10 @@ details>summary:hover{color:var(--tx)}
 .inbox-queue-more-menu > button:hover{background:var(--s3)}
 
 /* ===== Ficha · avatar e telefone bem juntos no topo ===== */
-.contact-profile-heading{padding:12px 12px 6px}
-.contact-profile-identity{padding:4px 12px 6px;gap:2px}
-.contact-profile-identity p{margin:0;font-size:11.5px;line-height:1.3}
-.contact-profile-identity p:first-child{margin-top:0}
+[data-testid='contact-profile-heading']{padding:12px 12px 6px}
+[data-testid='contact-profile-identity']{padding:4px 12px 6px;gap:2px}
+[data-testid='contact-profile-identity'] p{margin:0;font-size:11.5px;line-height:1.3}
+[data-testid='contact-profile-identity'] p:first-child{margin-top:0}
 
 /* ===== Tag: versão compacta ===== */
 .profile-add-tag{display:flex;gap:6px;align-items:center}
@@ -2084,9 +2084,9 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .crm-contact-row-open:hover .crm-contact-main strong{color:var(--primary-ink)}
 .crm-contact-main strong{transition:color .15s}
 /* Ficha embutida em janela: sem cartão, largura total */
-.contact-profile-bare{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;max-height:none;width:100%}
-.contact-profile-bare .contact-profile-heading{padding:0 2px 8px}
-.contact-profile-bare .contact-profile-body{overflow:visible}
+[data-testid='contact-profile'][data-bare='true']{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;max-height:none;width:100%}
+[data-testid='contact-profile'][data-bare='true'] [data-testid='contact-profile-heading']{padding:0 2px 8px}
+[data-testid='contact-profile'][data-bare='true'] .contact-profile-body{overflow:visible}
 @media (max-width:1180px){.crm-pipeline-column{max-height:none}.crm-stage-cards{max-height:none;overflow:visible}}
 
 /* ===== 24. Workflows · "Seus workflows" em cartões de duas a quatro colunas ===== */
@@ -3026,9 +3026,9 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
   .page-content--fixed>*{flex:none;margin:0!important;width:100%}
   .page-content--fixed .inbox-workspace{flex:1 1 auto;min-height:0!important;height:auto!important;display:flex!important;flex-direction:column!important;gap:6px!important;overflow:hidden!important}
   .page-content--fixed .persistent-module-tabs{display:none}
-  .page-content--fixed .inbox-list,.page-content--fixed .inbox-thread,.page-content--fixed .contact-profile{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column!important;border-radius:16px!important;overflow:hidden!important}
-  .page-content--fixed .inbox-workspace:not(.mobile-thread-open) .inbox-thread,.page-content--fixed .inbox-workspace:not(.mobile-thread-open) .contact-profile,.page-content--fixed .inbox-workspace.mobile-thread-open .inbox-list,.page-content--fixed .inbox-workspace.mobile-thread-open .contact-profile{display:none!important}
-  .page-content--fixed .contact-profile{display:none!important}
+  .page-content--fixed .inbox-list,.page-content--fixed .inbox-thread,.page-content--fixed [data-testid='contact-profile']{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column!important;border-radius:16px!important;overflow:hidden!important}
+  .page-content--fixed .inbox-workspace:not(.mobile-thread-open) .inbox-thread,.page-content--fixed .inbox-workspace:not(.mobile-thread-open) [data-testid='contact-profile'],.page-content--fixed .inbox-workspace.mobile-thread-open .inbox-list,.page-content--fixed .inbox-workspace.mobile-thread-open [data-testid='contact-profile']{display:none!important}
+  .page-content--fixed [data-testid='contact-profile']{display:none!important}
   .page-content--fixed .thread-messages{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
   .page-content--fixed .thread-heading{flex:none;width:100%}
   .page-content--fixed .inbox-composer{flex:none}
@@ -3462,9 +3462,9 @@ a:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--p
 
 /* Ficha oculta fora do desktop; abre como painel deslizante */
 @media (max-width:1100px){
-  .page-content--fixed .contact-profile{display:none!important}
+  .page-content--fixed [data-testid='contact-profile']{display:none!important}
   .page-content--fixed .inbox-workspace{position:relative}
-  .page-content--fixed .inbox-workspace.ficha-open .contact-profile{display:flex!important;position:absolute;top:0;right:0;bottom:0;z-index:60;width:min(330px,88vw);max-width:88vw;border-left:1px solid var(--ln);background:var(--s1);box-shadow:-18px 0 48px rgba(2,6,20,.32);overflow-y:auto;border-radius:0}
+  .page-content--fixed .inbox-workspace.ficha-open [data-testid='contact-profile']{display:flex!important;position:absolute;top:0;right:0;bottom:0;z-index:60;width:min(330px,88vw);max-width:88vw;border-left:1px solid var(--ln);background:var(--s1);box-shadow:-18px 0 48px rgba(2,6,20,.32);overflow-y:auto;border-radius:0}
 }
 @media (min-width:1101px){.ficha-toggle{display:none!important}}
 .ficha-toggle{display:inline-grid}
@@ -3732,7 +3732,7 @@ body.inbox-fullscreen{overflow:hidden}
 body.inbox-fullscreen .main-area{padding:0!important}
 body.inbox-fullscreen .page-content{padding:0!important}
 .inbox-workspace.inbox-full-screen{position:fixed;inset:0;z-index:130;height:100dvh;grid-template-columns:1fr!important;background:var(--bg)}
-.inbox-workspace.inbox-full-screen .inbox-list,.inbox-workspace.inbox-full-screen .contact-profile{display:none!important}
+.inbox-workspace.inbox-full-screen .inbox-list,.inbox-workspace.inbox-full-screen [data-testid='contact-profile']{display:none!important}
 .inbox-workspace.inbox-full-screen .inbox-thread{border-radius:0!important;border:0!important}
 .inbox-workspace.inbox-full-screen .thread-heading{padding-top:10px;padding-bottom:10px}
 .inbox-workspace.inbox-full-screen .messages-scroll{padding:14px 16px}
@@ -3913,8 +3913,8 @@ input[type=tel]{letter-spacing:.02em}
 .contact-profile .contact-identity-form{grid-template-columns:1fr 1fr;display:grid;gap:10px;max-width:560px}
 .contact-profile .contact-identity-form button[type=submit]{grid-column:1/-1;justify-self:start}
 @media (min-width:960px){
-  .vx-dialog-wide .contact-profile-bare .profile-scroll-flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}
-  .vx-dialog-wide .contact-profile-bare .profile-section{min-width:0}
+  .vx-dialog-wide [data-testid='contact-profile'][data-bare='true'] .profile-scroll-flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}
+  .vx-dialog-wide [data-testid='contact-profile'][data-bare='true'] .profile-section{min-width:0}
 }
 @media (max-width:760px){.contact-profile .contact-identity-form{grid-template-columns:1fr}}
 
@@ -4054,7 +4054,7 @@ input[type=tel]{letter-spacing:.02em}
   /* Ícones de ação alinhados dentro da caixinha (sem padding esquerdo solto) */
   .topbar .ai-assistant-trigger,.topbar .icon-button.theme-toggle,.topbar .mobile-menu,.thread-icon-action,.ficha-toggle,.fullscreen-toggle,.profile-toggle{display:inline-grid!important;place-items:center!important;gap:0!important;padding:0!important}
   .topbar .ai-assistant-trigger svg,.topbar .icon-button.theme-toggle svg,.topbar .mobile-menu svg,.thread-icon-action svg,.ficha-toggle svg,.fullscreen-toggle svg,.profile-toggle svg{align-self:center;justify-self:center;flex:none!important}
-  .contact-profile-heading{gap:10px!important}
+  [data-testid='contact-profile-heading']{gap:10px!important}
   .contact-profile .profile-toggle{place-items:center!important;padding:0!important}
 }
 
@@ -4799,7 +4799,7 @@ input[type=tel]{letter-spacing:.02em}
   .thread-messages{padding:12px 10px}
   .message-bubble{max-width:min(88%,560px);font-size:15px;line-height:21px}
   .message-line.outgoing .message-bubble{max-width:min(88%,560px)}
-  .contact-profile-panel,.contact-profile{display:none !important}
+  .contact-profile-panel,[data-testid='contact-profile']{display:none !important}
 }
 
 /* ===== Janelas maiores: wizard de sites em etapas + grid de agentes ===== */
@@ -4923,8 +4923,8 @@ input[type=tel]{letter-spacing:.02em}
 @media (min-width:1101px){
   .inbox-workspace{grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 8px var(--inbox-ficha-w,minmax(300px,380px))!important}
   .inbox-workspace.ficha-compact:not(.inbox-full-screen){grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr) 54px!important}
-  .inbox-workspace.ficha-compact:not(.inbox-full-screen):not(:has(.contact-profile)){grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr)!important}
-  .inbox-workspace .contact-profile.profile-collapsed .contact-profile-heading{justify-content:center;padding:8px}
+  .inbox-workspace.ficha-compact:not(.inbox-full-screen):not(:has([data-testid='contact-profile'])){grid-template-columns:var(--inbox-list-w,minmax(260px,340px)) 8px minmax(0,1fr)!important}
+  .inbox-workspace [data-testid='contact-profile'][data-collapsed='true'] [data-testid='contact-profile-heading']{justify-content:center;padding:8px}
 }
 /* ===== Audit Tarefas: duas colunas (lateral com lembretes/KPIs, lista principal) ===== */
 .tasks-columns{display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:var(--gap);align-items:start}
@@ -4992,7 +4992,7 @@ input[type=tel]{letter-spacing:.02em}
 .sidebar-color-cancel{color:var(--tx2)}
 .sidebar-color-error{margin:0;font-size:11px;color:var(--bad)}
 /* ===== Audit Atendimento: ficha do cliente e composer ===== */
-.contact-profile-heading{display:flex!important;align-items:center!important;gap:10px!important}
+[data-testid='contact-profile-heading']{display:flex!important;align-items:center!important;gap:10px!important}
 .contact-profile .profile-toggle{flex:none!important;align-self:center!important;width:32px!important;height:32px!important;border:1px solid var(--ln2)!important;border-radius:10px!important;background:var(--s1)!important;color:var(--tx2)!important;display:inline-grid!important;place-items:center!important;padding:0!important;cursor:pointer;transition:background .14s,color .14s,border-color .14s}
 .contact-profile .profile-toggle:hover{background:var(--hover)!important;color:var(--tx)!important;border-color:var(--ln2)!important}
 .composer-shell .inbox-composer .composer-toolbar>textarea{padding-left:14px!important}

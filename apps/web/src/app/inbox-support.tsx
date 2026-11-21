@@ -16,6 +16,9 @@ type Pending = { id: string; conversationId: string; kind: Kind; note: string; d
 type Queue = { manager: boolean; requests: Pending[]; waiting: { id: string; name: string; team: string | null; assignee: string | null; since: string }[] };
 const kindNames = { HELP: "Pedido de ajuda", ESCALATION: "Escalonamento" };
 const states: Record<string,string> = { OPEN: "Pendente", DONE: "Concluído", CANCELLED: "Cancelado" };
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+
 
 async function supportApi<T>(path: string, body?: object): Promise<T> {
   const response = await fetch(base + path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : { cache: "no-store" });
@@ -33,9 +36,9 @@ function conversationUrl(id: string) {
 function SupportDialog({ title, icon, children, onOpen, onClose, menuItem }: { title: string; icon: ReactNode; children: ReactNode; onOpen: () => void; onClose?: () => void; menuItem?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return <>
-    <button className={menuItem ? undefined : "secondary-button inline-flex items-center gap-1.5"} role={menuItem ? "menuitem" : undefined} type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
+    <button className={menuItem ? undefined : secondaryButton} role={menuItem ? "menuitem" : undefined} type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
     <dialog ref={dialog} onClose={onClose} className="w-ib-support max-h-ib-support overflow-auto rounded-ib-modal border border-gray-200 bg-zinc-100 px-ib-pad pb-ib-pad pt-0 text-slate-950 shadow-token-lg" aria-label={title}>
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-zinc-100 py-3"><h2 className="m-0 text-base">{title}</h2><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-zinc-100 py-3"><h2 className="m-0 text-base">{title}</h2><button type="button" className={secondaryButton} onClick={() => dialog.current?.close()}>Fechar</button></header>
       {children}
     </dialog>
   </>;
@@ -86,19 +89,19 @@ export function InboxSupportContext({ conversationId, customerName, menuItem }: 
           {context.settings.fields.map(field => <label key={field.key} className="grid min-w-0 gap-1">{field.label}
             <textarea className="w-full min-w-0" rows={2} readOnly={!context.canEdit} maxLength={800} value={values[field.key] ?? ""} onChange={event => setValues({ ...values, [field.key]: event.target.value })} />
           </label>)}
-          {context.canEdit && <button className="secondary-button justify-self-start" disabled={busy}>Salvar contexto</button>}
+          {context.canEdit && <button className={secondaryButton + " justify-self-start"} disabled={busy}>Salvar contexto</button>}
         </form>}
         {context.canRequest ? <section className="mt-3 grid gap-ib-gap">
           <div className="flex flex-wrap items-center gap-2" aria-label="Tipo de encaminhamento">
-            <button type="button" className={"secondary-button" + (kind === "HELP" ? " border-blue-600 bg-blue-50 text-blue-800" : "")} aria-pressed={kind === "HELP"} onClick={() => setKind("HELP")}>Pedir ajuda</button>
-            <button type="button" className={"secondary-button" + (kind === "ESCALATION" ? " border-blue-600 bg-blue-50 text-blue-800" : "")} aria-pressed={kind === "ESCALATION"} onClick={() => setKind("ESCALATION")}>Escalar</button>
+            <button type="button" className={secondaryButton + (kind === "HELP" ? " border-blue-600 bg-blue-50 text-blue-800" : "")} aria-pressed={kind === "HELP"} onClick={() => setKind("HELP")}>Pedir ajuda</button>
+            <button type="button" className={secondaryButton + (kind === "ESCALATION" ? " border-blue-600 bg-blue-50 text-blue-800" : "")} aria-pressed={kind === "ESCALATION"} onClick={() => setKind("ESCALATION")}>Escalar</button>
           </div>
           {context.departments.length ? <form key={kind} onSubmit={create} className="mt-3 grid gap-ib-gap">
             <p>{kind === "HELP" ? "Seu time continua com o atendimento até a resposta interna." : "O especialista assume a conversa ao aceitar."}</p>
             <label className="grid min-w-0 gap-1">Equipe de destino <select className="w-full min-w-0" name="destinationId" required defaultValue=""><option value="" disabled>Selecionar equipe</option>{context.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
             <label className="grid min-w-0 gap-1">{kind === "HELP" ? "Pergunta para a equipe" : "Motivo e testes já realizados"}<textarea className="w-full min-w-0" name="note" maxLength={1800} required /></label>
             <label className="grid min-w-0 gap-1">Prazo em minutos <input className="w-full min-w-0" name="minutes" type="number" min="1" max="10080" required defaultValue={kind === "HELP" ? context.settings.helpMinutes : context.settings.escalationMinutes} /></label>
-            <button className="primary-button justify-self-start" disabled={busy}>{kind === "HELP" ? "Enviar pedido de ajuda" : "Enviar escalonamento"}</button>
+            <button className={primaryButton + " justify-self-start"} disabled={busy}>{kind === "HELP" ? "Enviar pedido de ajuda" : "Enviar escalonamento"}</button>
           </form> : <p>Nenhuma equipe disponível para as suas permissões de transferência.</p>}
         </section> : <p>O responsável pelo atendimento pode pedir ajuda ou escalonar.</p>}
         <section className="mt-3 grid gap-ib-gap">
@@ -128,10 +131,10 @@ function SupportSettingsForm({ settings, onSave, busy }: { settings: Settings; o
     {fields.map((field, index) => <div key={index} className="grid grid-cols-ib-field items-end gap-2 ib-mobile:grid-cols-2">
       <label className="grid min-w-0 gap-1">Chave <input className="w-full min-w-0" value={field.key} pattern="[a-z][a-z0-9_]{0,31}" required onChange={event => setFields(fields.map((row,i) => i === index ? { ...row, key: event.target.value } : row))} /></label>
       <label className="grid min-w-0 gap-1">Nome visível <input className="w-full min-w-0" value={field.label} maxLength={55} required onChange={event => setFields(fields.map((row,i) => i === index ? { ...row, label: event.target.value } : row))} /></label>
-      <button type="button" className="secondary-button ib-mobile:col-span-2 ib-mobile:justify-self-start" aria-label={"Remover campo " + (field.label || index + 1)} onClick={() => setFields(fields.filter((_,i) => i !== index))}>Remover</button>
+      <button type="button" className={secondaryButton + " ib-mobile:col-span-2 ib-mobile:justify-self-start"} aria-label={"Remover campo " + (field.label || index + 1)} onClick={() => setFields(fields.filter((_,i) => i !== index))}>Remover</button>
     </div>)}
-    <button type="button" className="secondary-button justify-self-start" disabled={fields.length >= 12} onClick={() => setFields([...fields, { key: "", label: "" }])}>Adicionar campo</button>
-    <button className="primary-button justify-self-start" disabled={busy}>Salvar configuração da empresa</button>
+    <button type="button" className={secondaryButton + " justify-self-start"} disabled={fields.length >= 12} onClick={() => setFields([...fields, { key: "", label: "" }])}>Adicionar campo</button>
+    <button className={primaryButton + " justify-self-start"} disabled={busy}>Salvar configuração da empresa</button>
   </form>;
 }
 
@@ -173,8 +176,8 @@ export function InboxSupportQueue({ menuItem = false }: { menuItem?: boolean }) 
   }, [open, busy]);
 
   return <SupportDialog menuItem={menuItem} title="Fila de apoio" icon={<ClipboardList size={16} aria-hidden="true" />} onOpen={() => { setOpen(true); setAcceptedConversation(undefined); void run(refresh); }} onClose={() => setOpen(false)}>
-    <div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar fila</button>
-      {queue?.manager && <button type="button" className="secondary-button" disabled={busy} onClick={() => void run(async () => setSettings(await supportApi<Settings>("support-settings")))}>Configurar campos e prazos</button>}
+    <div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" className={secondaryButton} disabled={busy} onClick={() => void run(refresh)}>Atualizar fila</button>
+      {queue?.manager && <button type="button" className={secondaryButton} disabled={busy} onClick={() => void run(async () => setSettings(await supportApi<Settings>("support-settings")))}>Configurar campos e prazos</button>}
     </div>
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
@@ -202,12 +205,12 @@ export function InboxSupportQueue({ menuItem = false }: { menuItem?: boolean }) 
         <small>{row.stale ? "Responsabilidade alterada" : now >= Date.parse(row.dueAt) ? "Atrasado" : "No prazo"} · {dateTime(row.dueAt)}</small>
         <p className="m-0 whitespace-pre-wrap">{row.note}</p>
         <div className="flex flex-wrap items-center gap-2">
-          {row.canCancel && <button type="button" className="secondary-button" disabled={busy} onClick={() => respond(row,"cancel")}>Cancelar solicitação</button>}
-          {row.canAct && row.kind === "ESCALATION" && <button type="button" className="primary-button" disabled={busy} onClick={() => respond(row,"accept")}>Aceitar e assumir</button>}
+          {row.canCancel && <button type="button" className={secondaryButton} disabled={busy} onClick={() => respond(row,"cancel")}>Cancelar solicitação</button>}
+          {row.canAct && row.kind === "ESCALATION" && <button type="button" className={primaryButton} disabled={busy} onClick={() => respond(row,"accept")}>Aceitar e assumir</button>}
         </div>
         {row.canAct && row.kind === "HELP" && <form onSubmit={event => { event.preventDefault(); respond(row,"answer",new FormData(event.currentTarget).get("answer")); }} className="mt-3 grid gap-ib-gap">
           <label className="grid min-w-0 gap-1">Resposta interna <textarea className="w-full min-w-0" name="answer" maxLength={1800} required /></label>
-          <button className="primary-button justify-self-start" disabled={busy}>Responder</button>
+          <button className={primaryButton + " justify-self-start"} disabled={busy}>Responder</button>
         </form>}
         {row.canCancel && <a href={conversationUrl(row.conversationId)}>Abrir atendimento <ArrowUpRight size={14} aria-hidden="true" /></a>}
       </article>)}

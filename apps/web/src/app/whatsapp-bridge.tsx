@@ -1,5 +1,8 @@
 "use client";
 import { useState } from "react";
+
+const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+
 export function WhatsappBridge({
   conversationId,
   view,
@@ -13,9 +16,10 @@ export function WhatsappBridge({
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
   return (
-    <details className="whatsapp-bridge">
-      <summary>Continuar no WhatsApp</summary>
+    <details data-testid="whatsapp-bridge" className="grid gap-2 rounded-token-sm border border-line bg-surface p-3 text-ib-caption text-ink">
+      <summary className="cursor-pointer font-bold text-blue-600">Continuar no WhatsApp</summary>
       <form
+        className="grid gap-2"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -48,9 +52,10 @@ export function WhatsappBridge({
           }
         }}
       >
-        <label>
+        <label className="grid min-w-0 gap-1">
           WhatsApp informado pelo cliente
           <input
+            className="w-full min-w-0 rounded-token-sm border border-line bg-surface-2 px-2.5 py-2 font-inherit text-ib-caption text-ink placeholder:text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
             type="tel"
             autoComplete="off"
             required
@@ -60,14 +65,14 @@ export function WhatsappBridge({
             onChange={(e) => setPhone(e.target.value)}
           />
         </label>
-        <button className="secondary-button" disabled={busy || !phone.trim()}>
+        <button className={secondaryButton} disabled={busy || !phone.trim()}>
           {busy ? "Abrindo…" : "Abrir conversa"}
         </button>
-        <small>
+        <small className="text-ib-caption text-ink-secondary">
           O histórico atual é preservado. Revise e envie a primeira mensagem na
           conversa do WhatsApp.
         </small>
-        {notice && <p role="status">{notice}</p>}
+        {notice && <p className="m-0 text-ib-caption text-danger" role="status">{notice}</p>}
       </form>
     </details>
   );

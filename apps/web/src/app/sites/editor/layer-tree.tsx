@@ -27,6 +27,38 @@ import {
 } from './site-tree';
 import './editor.css';
 
+/* Árvore de camadas: utilities literais sobre os tokens do preset. Indicadores
+   de drop e estados de seleção continuam sendo derivados de props/estado, não
+   de classes componente. */
+const layerTreeTw = 'flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line';
+const layerTreeHeadTw = 'flex items-baseline justify-between border-b border-line px-4 py-3';
+const layerTreeTitleTw = 'm-0 text-base font-bold text-ink';
+const layerTreeCountTw = 'text-xs text-ink-secondary';
+const layerTreeScrollTw = 'min-h-0 flex-1 overflow-y-auto';
+const layerTreeListTw = 'm-0 list-none p-0';
+const layerTreeEmptyTw = 'flex flex-col items-center gap-2 px-4 py-6 text-ink-secondary';
+const layerTreeNodeTw = 'py-1 pr-1';
+const layerTreeNodeContentTw = 'relative flex items-center gap-1.5 rounded-token-sm px-2 py-1.5';
+const layerTreeNodeContentSelectedTw = 'border border-brand/40 bg-brand-soft';
+const layerTreeNodeContentDraggingTw = 'opacity-50';
+const layerTreeNodeContentPointerTw = 'cursor-pointer';
+const layerTreeNodeContentCursorGrabbingTw = 'cursor-grabbing';
+const layerTreeNodeContentCursorDefaultTw = 'cursor-default';
+const layerTreeNodeContentCursorGrabTw = 'cursor-grab';
+const layerTreeNodeContentBusyTw = 'opacity-60';
+const layerTreeNodeContentDropInsideTw = 'bg-brand-soft outline-2 -outline-offset-2 outline-dashed outline-brand';
+const layerTreeDropLineTw = 'pointer-events-none absolute inset-x-1.5 z-10 h-0.5 rounded-full bg-brand';
+const layerTreeDropBeforeTw = '-top-px';
+const layerTreeDropAfterTw = '-bottom-px';
+const layerTreeExpandTw = 'inline-flex size-5 shrink-0 items-center justify-center border-0 bg-transparent text-ink-secondary';
+const layerTreeExpandPlaceholderTw = 'size-5 shrink-0';
+const layerTreeControlsTw = 'flex shrink-0 gap-1';
+const layerTreeControlButtonTw = 'inline-flex size-6.5 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-ink-secondary hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50';
+const layerTreeLabelTw = 'min-w-0 flex-1 truncate text-catalog-card-title text-ink';
+const layerTreeNodeIdTw = 'ml-1.5 whitespace-nowrap text-2xs text-ink-secondary';
+const layerTreeDisabledTagTw = 'ml-1.5 shrink-0 rounded-2xl bg-danger/10 px-1.5 py-px text-2xs text-danger';
+const layerTreeChildrenTw = 'ml-4.5';
+
 const NODE_LABELS: Record<string, string> = {
   section: 'Seção',
   container: 'Container',
@@ -198,15 +230,15 @@ export function LayerTree({
   );
 
   return (
-    <section className="vx-layer-tree" aria-label="Camadas do site">
-      <header className="vx-layer-tree-head">
-        <h2 className="vx-layer-tree-title">Camadas</h2>
-        <span className="vx-layer-tree-count">{nodes.length}</span>
+    <section className={layerTreeTw} aria-label="Camadas do site">
+      <header className={layerTreeHeadTw}>
+        <h2 className={layerTreeTitleTw}>Camadas</h2>
+        <span className={layerTreeCountTw}>{nodes.length}</span>
       </header>
-      <div className="vx-layer-tree-scroll" onDragLeave={(event) => {
+      <div className={layerTreeScrollTw} onDragLeave={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) clearDrop();
       }}>
-        <ul role="tree" aria-multiselectable={true} className="vx-layer-tree-list">
+        <ul role="tree" aria-multiselectable={true} className={layerTreeListTw}>
           {nodes.map((node) => (
             <LayerTreeNode
               key={node.id}
@@ -242,7 +274,7 @@ export function LayerTree({
         </ul>
       </div>
       {readOnly ? (
-        <div className="vx-layer-tree-empty" role="status">
+        <div className={layerTreeEmptyTw} role="status">
           <Eye size={16} aria-hidden="true" />
           <span>Somente leitura: selecione blocos para inspecionar.</span>
         </div>
@@ -303,7 +335,21 @@ function LayerTreeNode({
   const draggable = canDragNode(node);
   const dragActive = dragActiveId === node.id;
   const dropState = drop?.id === node.id ? drop.position : null;
-  const dropClass = dropState ? `is-drop-${dropState}` : '';
+  const cursorTw = dragActive
+    ? layerTreeNodeContentCursorGrabbingTw
+    : readOnly
+      ? layerTreeNodeContentCursorDefaultTw
+      : draggable
+        ? layerTreeNodeContentCursorGrabTw
+        : layerTreeNodeContentPointerTw;
+  const contentClass = [
+    layerTreeNodeContentTw,
+    cursorTw,
+    isSelected(node.id) ? layerTreeNodeContentSelectedTw : '',
+    dragActive ? layerTreeNodeContentDraggingTw : '',
+    disabled ? layerTreeNodeContentBusyTw : '',
+    dropState === 'inside' ? layerTreeNodeContentDropInsideTw : '',
+  ].filter(Boolean).join(' ');
 
   return (
     <li
@@ -312,9 +358,7 @@ function LayerTreeNode({
       aria-expanded={hasChildren ? expanded : undefined}
       tabIndex={0}
       draggable={draggable}
-      className={`vx-layer-tree-node ${isSelected(node.id) ? 'is-selected' : ''} ${
-        disabled ? 'is-busy' : ''
-      } ${readOnly ? 'is-readonly' : ''} ${dragActive ? 'is-dragging' : ''} ${dropClass}`}
+      className={layerTreeNodeTw}
       style={{ paddingLeft: 16 + depth * 18 }}
       onClick={(e) => onSelect(node.id, e, false)}
       onKeyDown={onKeyDown}
@@ -330,11 +374,17 @@ function LayerTreeNode({
       onDrop={(event) => onDropNode(event, node)}
       onDragEnd={onDragEnd}
     >
-      <div className="vx-layer-tree-node-content">
+      <div className={contentClass}>
+        {dropState === 'before' ? (
+          <span aria-hidden="true" className={`${layerTreeDropLineTw} ${layerTreeDropBeforeTw}`} />
+        ) : null}
+        {dropState === 'after' ? (
+          <span aria-hidden="true" className={`${layerTreeDropLineTw} ${layerTreeDropAfterTw}`} />
+        ) : null}
         {hasChildren ? (
           <button
             type="button"
-            className="vx-layer-tree-expand"
+            className={layerTreeExpandTw}
             aria-label={expanded ? 'Colapsar' : 'Expandir'}
             draggable={false}
             onClick={(e) => {
@@ -350,12 +400,12 @@ function LayerTreeNode({
             )}
           </button>
         ) : (
-          <div className="vx-layer-tree-expand-placeholder" />
+          <div className={layerTreeExpandPlaceholderTw} />
         )}
-        <div className="vx-layer-tree-node-controls">
+        <div className={layerTreeControlsTw}>
           <button
             type="button"
-            className="vx-layer-tree-node-visibility"
+            className={layerTreeControlButtonTw}
             aria-label={readOnly ? 'Somente leitura: visibilidade indisponível' : visible ? 'Ocultar' : 'Mostrar'}
             title={readOnly ? 'Somente leitura' : visible ? 'Ocultar bloco' : 'Mostrar bloco'}
             disabled={disabled}
@@ -370,7 +420,7 @@ function LayerTreeNode({
           </button>
           <button
             type="button"
-            className="vx-layer-tree-node-lock"
+            className={layerTreeControlButtonTw}
             aria-label={readOnly ? 'Somente leitura: bloqueio indisponível' : locked ? 'Desbloquear' : 'Bloquear'}
             title={readOnly ? 'Somente leitura' : locked ? 'Desbloquear bloco' : 'Bloquear bloco'}
             disabled={disabled}
@@ -384,12 +434,12 @@ function LayerTreeNode({
             {locked ? <Lock size={13} aria-hidden="true" /> : <Unlock size={13} aria-hidden="true" />}
           </button>
         </div>
-        <span className="vx-layer-tree-node-label">{NODE_LABELS[node.type] || node.type}</span>
-        <span className="vx-layer-tree-node-id">{node.id.slice(0, 6)}</span>
-        {locked ? <span className="vx-layer-tree-node-disabled-tag">bloqueado</span> : null}
+        <span className={layerTreeLabelTw}>{NODE_LABELS[node.type] || node.type}</span>
+        <span className={layerTreeNodeIdTw}>{node.id.slice(0, 6)}</span>
+        {locked ? <span className={layerTreeDisabledTagTw}>bloqueado</span> : null}
       </div>
       {hasChildren && expanded && (
-        <ul role="group" className="vx-layer-tree-children">
+        <ul role="group" className={layerTreeChildrenTw}>
           {node.children.map((child) => (
             <LayerTreeNode
               key={child.id}

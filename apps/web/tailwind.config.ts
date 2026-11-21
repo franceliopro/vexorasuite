@@ -122,6 +122,19 @@ const config: Config = {
         "provider-configured-ink": "#1E3A8A",
         "provider-alert-line": "rgba(229,72,77,.42)",
         "provider-alert-ink": "#C2494E",
+        /* Tons dos gráficos do Financeiro: dados do dashboard, não tema. */
+        "fin-chart-blue": "#1D4ED8",
+        "fin-chart-sky": "#7DD3FC",
+        "fin-chart-rose": "#FB7185",
+        "fin-chart-amber": "#FBBF24",
+        "fin-chart-pink": "#F472B6",
+        "fin-chart-slate": "#64748B",
+        "fin-chart-blue-deep": "#164E8A",
+        "fin-chart-pink-deep": "#BE185D",
+        "fin-chart-sky-deep": "#0369A1",
+        "fin-chart-rose-deep": "#E11D48",
+        "fin-chart-amber-deep": "#D97706",
+
         "ib-coral": "#F0645E",
         "ib-amber": "#F2A93B",
         "ib-read": "#25D366",
@@ -301,6 +314,18 @@ const config: Config = {
         "provider-alert": "10px",
         /* Pílula de tag do catálogo do CRM. */
         "cf-tag": "99px",
+        /* Cantos dos painéis do Financeiro. */
+        "fin-hero": "20px",
+        "fin-figure": "16px",
+        "fin-panel": "16px",
+        "fin-chip": "10px",
+        "fin-icon": "11px",
+        "fin-bar": "5px",
+        "fin-pill": "99px",
+        "fin-card": "13px",
+        "fin-row": "12px",
+        "fin-preview": "12px",
+
         /* Cantos do aparelho e dos balões do simulador. */
         "phone-frame": "48px",
         "phone-screen": "40px",
@@ -432,6 +457,13 @@ const config: Config = {
         "provider-origin": ["11.5px", { lineHeight: "1" }],
         "provider-alert": ["11.5px", { lineHeight: "1.4" }],
         "provider-alert-strong": ["11px", { lineHeight: "1" }],
+        /* Textos do Financeiro. */
+        "fin-hero-title": ["clamp(26px,2.4vw,34px)", { lineHeight: "1.06", letterSpacing: "-.03em" }],
+        "fin-hero-value": ["clamp(30px,2.6vw,42px)", { lineHeight: "1.05", letterSpacing: "-.03em" }],
+        "fin-metric": ["16.5px", { lineHeight: "1.2", letterSpacing: "-.02em" }],
+        "fin-history": "24px",
+        "fin-donut": "15px",
+
         /* Escalas da Visão geral. */
         "ov-hero": ["clamp(19px, 1.7vw, 23px)", { lineHeight: "1.25", letterSpacing: "-0.02em" }],
         "ov-hero-sm": ["19px", { lineHeight: "1.3", letterSpacing: "-0.02em" }],
@@ -532,6 +564,12 @@ const config: Config = {
         /* Rótulos de estado das conexões de IA. */
         "provider-pill": ".06em",
         "provider-alert": ".01em",
+        /* Rótulos do Financeiro. */
+        "fin-eyebrow": ".16em",
+        "fin-label": ".08em",
+        "fin-wide": ".09em",
+        "fin-wider": ".14em",
+
       },
       spacing: {
         sidebar: "var(--sb)",
@@ -554,6 +592,23 @@ const config: Config = {
         /* Tags e linhas do catálogo de campos do CRM. */
         "cf-tag-x": "9px",
         "cf-tag-h": "23px",
+        /* Medidas dos painéis do Financeiro. */
+        "fin-hero-x": "28px",
+        "fin-hero-y": "26px",
+        "fin-hero-gap": "26px",
+        "fin-icon": "40px",
+        "fin-bars": "150px",
+        "fin-columns": "190px",
+        "fin-donut": "96px",
+        "fin-donut-inner": "66px",
+        "fin-waffle-gap": "5px",
+        "fin-chip-h": "32px",
+        "fin-control-h": "36px",
+        "fin-lookup": "210px",
+        "fin-history-stat": "24px",
+        "fin-drawer": "480px",
+        "fin-textarea": "130px",
+
         "nav-gap": "11px",
         "nav-pad": "13px",
         "nav-height": "42px",
@@ -760,6 +815,23 @@ const config: Config = {
         "cf-fields": "repeat(2,minmax(0,1fr))",
         "cf-tag-row": "minmax(0,1fr) 92px auto auto auto",
         "cf-field-row": "minmax(0,1fr) auto auto",
+        /* Grades do Financeiro. */
+        "fin-hero": "1.15fr .85fr",
+        "fin-metrics": "repeat(5,minmax(0,1fr))",
+        "fin-metrics-tablet": "repeat(3,minmax(0,1fr))",
+        "fin-metrics-mobile": "repeat(2,minmax(0,1fr))",
+        "fin-grid": "repeat(2,minmax(0,1fr))",
+        "fin-donuts": "repeat(3,minmax(0,1fr))",
+        "fin-billing": "118px 1fr auto",
+        "fin-waffle": "repeat(20,1fr)",
+        "fin-waffle-legend": "repeat(auto-fill,minmax(min(100%,150px),1fr))",
+        "fin-history": "1.1fr 1.2fr 1.1fr .8fr 1.4fr",
+        "fin-history-stats": "repeat(4,minmax(0,1fr))",
+        "fin-automation": "repeat(2,minmax(0,1fr))",
+        "fin-templates": "minmax(170px,.72fr) minmax(0,1.28fr)",
+        "fin-sub-grid": "repeat(4,minmax(0,1fr))",
+        "fin-lookup": "minmax(0,1fr) auto",
+
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
@@ -826,6 +898,10 @@ const config: Config = {
         "fm-picker-grid": "420px",
         "fm-lightbox-img": "74vh",
         "phone-frame": "min(760px,92dvh)",
+        /* Alturas dos painéis do Financeiro. */
+        "fin-matches": "220px",
+        "fin-template-list": "380px",
+
       },
       maxWidth: {
         content: "1520px",
@@ -860,6 +936,11 @@ const config: Config = {
         "fm-picker-body": "min(860px,94vw)",
         "phone-bubble": "79%",
         "phone-quick": "88%",
+        /* Larguras dos painéis do Financeiro. */
+        "fin-hero-title-w": "26ch",
+        "fin-hero-copy-w": "52ch",
+        "fin-drawer": "min(100%,480px)",
+
       },
       width: {
         "profile-popover": "248px",

@@ -53,7 +53,7 @@ export class PublicDesignApprovalsController {
       caption: String(carousel.caption || ""),
       slides: Array.isArray(carousel.slides) ? carousel.slides.length : 0,
       format: String(details.format || "CAROUSEL"),
-      brand: String(details.brand || "#2E7CF6"),
+      brand: String(details.brand || "#1D4ED8"),
       company: String(details.company || ""),
       status: String(details.status || "DRAFT"),
       channels,

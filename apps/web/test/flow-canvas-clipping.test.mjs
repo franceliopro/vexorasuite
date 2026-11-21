@@ -8,7 +8,16 @@ const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspace = fs.readFileSync(path.join(root, "src/app/chatbot-workspace.tsx"), "utf8");
 
 test("Flow Canvas clips nodes inside the stage and avoids stray overflows", () => {
-  for (const marker of ["vx-flow-shell", "vx-flow-stage", "vx-flow-scroll", "vx-flow-board"]) {
+  for (const marker of [
+    "canvasShell",
+    "canvasStage",
+    "canvasScroll",
+    "canvasBoard",
+    "overflow-clip",
+    "overflow-hidden",
+    "overflow-visible",
+    'data-panning=',
+  ]) {
     assert.ok(workspace.includes(marker), `missing ${marker}`);
   }
 });

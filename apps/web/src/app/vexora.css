@@ -849,12 +849,11 @@ details>summary:hover{color:var(--tx)}
 .vx-topic-dot.tone-amber{--tone:#F59E0B}
 .vx-topic-dot.tone-coral{--tone:#EF4444}
 
-/* Atendimento: lista próxima ao menu e seleção destacada */
+/* Atendimento: lista próxima ao menu e seleção destacada.
+   A grade do workspace vive no preset TW (ib-grid / ib-grid-ficha). */
 @media(min-width:761px){
   .page-content:has([data-testid='inbox-workspace']){padding-left:10px;padding-right:10px;max-width:none;gap:14px}
-  [data-testid='inbox-workspace']{gap:12px;grid-template-columns:minmax(228px,264px) minmax(0,1fr)}
-  [data-testid='inbox-workspace']:has([data-testid='contact-profile'][data-collapsed='false']){grid-template-columns:minmax(228px,264px) minmax(0,1fr) minmax(272px,320px)}
-  [data-testid='inbox-workspace']:has([data-testid='contact-profile'][data-collapsed='true']){grid-template-columns:minmax(228px,264px) minmax(0,1fr) 54px}
+  [data-testid='inbox-workspace']{gap:12px}
 }
 [data-testid='inbox-list']{border-radius:16px}
 .inbox-conversation{position:relative;transition:background .16s var(--ease),box-shadow .16s var(--ease)}

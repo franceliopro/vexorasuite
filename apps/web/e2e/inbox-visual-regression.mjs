@@ -82,7 +82,7 @@ try{
  await page.screenshot({path:"artifacts/inbox-visual/atendimento-balao-filas.png",fullPage:false,animations:"disabled"});
  await page.keyboard.press("Escape");
 
- assert.equal(await page.locator(".composer-tabs-row, .inbox-assume-wrap, .vx-support-context").count(),0);
+ assert.equal(await page.locator(".composer-tabs-row, .inbox-assume-wrap, [data-testid='ib-support-context']").count(),0);
  assert.equal(await page.locator("header.thread-heading").evaluate(el=>getComputedStyle(el).marginBottom),"0px");
  await page.getByRole("button",{name:"Assumir conversa",exact:true}).click();
  const mode=page.locator(".composer-mode-button");

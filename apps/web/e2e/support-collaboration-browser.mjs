@@ -122,7 +122,7 @@ try{
  })).toEqual({background:"rgb(244, 103, 8)",rail:"rgb(244, 103, 8)",text:"rgb(32, 25, 9)"});
  const shadow=await activeItem.evaluate(item=>getComputedStyle(item).boxShadow);
  assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
- await expect(page.locator(".vx-support-context, .inbox-assume-wrap")).toHaveCount(0);
+ await expect(page.locator("[data-testid='ib-support-context'], .inbox-assume-wrap")).toHaveCount(0);
  const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
  const assume=page.getByRole("button",{name:"Assumir conversa",exact:true});
  await expect(composer).toHaveCount(0);

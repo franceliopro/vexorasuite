@@ -22,6 +22,9 @@ const config: Config = {
         "ov-laptop": { raw: "(max-width: 900px)" },
         "ov-tablet": { raw: "(max-width: 760px)" },
         "ov-mobile": { raw: "(max-width: 520px)" },
+        /* Cortes próprios do Atendimento. */
+        "ib-narrow": { raw: "(max-width: 600px)" },
+        "ib-mobile": { raw: "(max-width: 520px)" },
       },
       colors: {
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
@@ -44,7 +47,9 @@ const config: Config = {
         slate: {
           400: "var(--text-muted)",
           600: "var(--tx2)",
-          950: "var(--tx)",
+          /* --tx é uma cor completa: o placeholder padrão do Tailwind gera
+             o modificador de opacidade (bg-slate-950/60 do ::backdrop). */
+          950: "rgb(from var(--tx) r g b / <alpha-value>)",
         },
         gray: {
           100: "var(--vx-core-line-soft)",
@@ -153,6 +158,11 @@ const config: Config = {
         "token-xl": "var(--r-xl)",
         brand: "13px",
         square: "6px",
+        /* Medidas fixas dos diálogos do Atendimento. */
+        "ib-modal": "16px",
+        "ib-entry": "9px",
+        "ib-article": "10px",
+        "ib-panel": "12px",
       },
       boxShadow: {
         token: "var(--shadow)",
@@ -196,10 +206,13 @@ const config: Config = {
         "ov-sub": ["15px", { lineHeight: "1.5" }],
         "ov-copy": ["13.5px", { lineHeight: "1.45" }],
         "ov-onboarding": ["16px", { lineHeight: "1.35" }],
+        /* Títulos dos diálogos do Atendimento. */
+        "ib-title": ["1.2rem", { lineHeight: "1.3" }],
       },
       fontWeight: {
         heading: "750",
         ov: "650",
+        ib: "650",
       },
       letterSpacing: {
         "nav-section": ".13em",
@@ -235,6 +248,10 @@ const config: Config = {
         "ov-dock-gap": "max(24px, 8vw)",
         "ov-dock-pb": "calc(6px + env(safe-area-inset-bottom))",
         "ov-section": "20px",
+        /* Espaçamentos dos painéis do Atendimento. */
+        "ib-pad": "18px",
+        "ib-gap": "9px",
+        "ib-block": "10px",
       },
       gridTemplateColumns: {
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
@@ -250,6 +267,9 @@ const config: Config = {
         "ov-dock": "repeat(auto-fit, minmax(84px, 120px))",
         "ov-calendar": "repeat(7, minmax(0, 1fr))",
         "ov-activity-row": "auto minmax(0, 1fr) auto",
+        /* Grades dos diálogos do Atendimento. */
+        "ib-track": "minmax(0, 1fr) minmax(0, 1.4fr)",
+        "ib-field": "minmax(0, 1fr) minmax(0, 1.4fr) auto",
       },
       minHeight: {
         ov: "150px",
@@ -258,6 +278,8 @@ const config: Config = {
         ficha: "92vh",
         wizard: "80vh",
         logo: "36px",
+        "ib-track": "85dvh",
+        "ib-support": "min(82dvh, 780px)",
       },
       maxWidth: {
         content: "1520px",
@@ -269,6 +291,8 @@ const config: Config = {
       width: {
         "profile-popover": "248px",
         "submenu-compact": "220px",
+        "ib-track": "min(760px, calc(100vw - 24px))",
+        "ib-support": "min(620px, calc(100vw - 24px))",
       },
       minWidth: {
         "submenu-compact": "220px",

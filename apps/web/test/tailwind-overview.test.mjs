@@ -109,19 +109,18 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
 test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () => {
   assert.match(config, /"ov-laptop":\s*\{\s*raw:\s*"\(max-width: 900px\)"\s*\}/);
 
-  // A grade externa é de 2 colunas; hero/KPI/gráfico/tópicos ocupam as duas.
+  // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
   assert.match(overview, /<section className="grid grid-cols-2 gap-ov-section ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
   assert.match(overview, /col-span-2 grid gap-ov-section[^>]*data-testid="ov-hero"/);
+  // O CTA do alerta não estica com a coluna: largura só do conteúdo.
+  assert.match(overview, /primary-button justify-self-start" onClick=\{onOpenQueue\}>Abrir a fila/);
   assert.match(overview, /col-span-2 grid grid-cols-3 gap-ov-section ov-laptop:col-span-1 ov-mobile:grid-cols-1 xl:grid-cols-6/);
-  assert.match(overview, /col-span-2 grid content-start gap-4 rounded-token-lg[^"]*ov-laptop:col-span-1/);
 
-  // Equipe e Atividade são irmãs sem col-span: uma coluna cada, mesma largura.
-  const equipeEAtividade = overview.match(/<article className="grid content-start gap-4 rounded-token-lg[^"]*">/g) || [];
-  assert.equal(equipeEAtividade.length, 2, "Equipe e Atividade devem ser colunas irmãs equivalentes");
-
-  // Gráfico e Tópicos: largura total.
-  assert.equal((overview.match(/col-span-2 grid content-start gap-4 rounded-token-lg[^"]*ov-laptop:col-span-1/g) || []).length, 2);
+  // Equipe/Atividade e Gráfico/Tópicos são quatro colunas irmãs de 50%.
+  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-token-lg[^"]*">/g) || [];
+  assert.equal(colunasIrma.length, 4, "as quatro seções devem dividir a grade 50/50");
+  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-token-lg/);
 
   // Widgets em 3 colunas iguais; onboarding em 2 passos por linha no tablet.
   assert.match(widgets, /<section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1"/);

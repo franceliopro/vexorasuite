@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { GraduationCap, CheckCircle2, Circle, Printer, ChevronRight, Clock, PlayCircle } from "lucide-react";
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const LESSONS = [
   {
     id: "boas-vindas",
@@ -93,7 +94,7 @@ export function CourseWorkspace({ companyName = "Sua empresa" }: { companyName?:
             <strong>{completed}/{total} · {pct}%</strong>
           </div>
         </div>
-        {finished ? <button type="button" className="primary-button course-print" onClick={() => window.print()}><Printer size={16} aria-hidden="true" /> Certificado</button> : null}
+        {finished ? <button type="button" className={primaryTw + " course-print"} onClick={() => window.print()}><Printer size={16} aria-hidden="true" /> Certificado</button> : null}
       </header>
 
       <ol className="course-lessons">

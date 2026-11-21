@@ -311,6 +311,8 @@ const config: Config = {
         "token-xl": "var(--r-xl)",
         brand: "13px",
         square: "6px",
+        /* Cartões de celulares autorizados do assistente de IA. */
+        "ai-phone": "14px",
         /* Cantos dos cartões de status das conexões de IA. */
         "provider-overview": "14px",
         "provider-item": "12px",
@@ -785,9 +787,12 @@ const config: Config = {
         "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
         "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
         "channels-attach": "repeat(2,1fr)",
-        /* Grades do workspace de Equipe: identidade e lista de atendentes. */
-        "team-identity": "150px minmax(0,1fr)",
-        "team-list": "repeat(auto-fill,minmax(320px,1fr))",
+/* Grades do workspace de Equipe: identidade e lista de atendentes. */
+"team-identity": "150px minmax(0,1fr)",
+"team-list": "repeat(auto-fill,minmax(320px,1fr))",
+/* Grades do workspace de Inteligência: colunas laterais e cartões de agente. */
+"ai-layout": "minmax(250px,320px) minmax(0,1fr)",
+"ai-agents": "repeat(auto-fill,minmax(180px,1fr))",
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
         "ov-primary": "minmax(0, 1.58fr) minmax(0, 1fr)",
         "ov-main": "minmax(0, 1.55fr) minmax(0, 1fr)",
@@ -941,6 +946,8 @@ const config: Config = {
         /* Alturas dos painéis do Financeiro. */
         "fin-matches": "220px",
         "fin-template-list": "380px",
+        /* Altura do painel flutuante do assistente de IA. */
+        "ai-panel": "min(640px,calc(100dvh - 32px))",
 
       },
       maxWidth: {
@@ -1020,6 +1027,8 @@ const config: Config = {
         "flow-resizer": "16px",
         "flow-resizer-grip": "3px",
         "flow-more": "180px",
+        /* Largura do painel flutuante do assistente de IA. */
+        "ai-panel": "min(100vw - 32px,400px)",
       },
       minWidth: {
         "catalog-metric": "26px",

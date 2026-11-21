@@ -15,6 +15,7 @@ const widgets = read("src/app/dashboard-widgets.tsx");
 const onboarding = read("src/app/onboarding-checklist.tsx");
 const page = read("src/app/page.tsx");
 const visualRegression = read("e2e/inbox-visual-regression.mjs");
+const supportCollaboration = read("e2e/support-collaboration-browser.mjs");
 const components = `${overview}\n${widgets}\n${onboarding}`;
 
 /** Remove comentários e hooks estáveis antes de procurar classes legadas. */
@@ -50,7 +51,9 @@ test("os hooks estáveis substituem os seletores de classe no e2e", () => {
   assert.match(page, /data-testid=\{active === "Visão geral" \? "ov-dock" : undefined\}/);
   assert.match(visualRegression, /\[data-testid="ov-hero"\]/);
   assert.match(visualRegression, /\[data-testid="ov-dock"\]/);
+  assert.match(supportCollaboration, /\[data-testid=['"]ov-dock['"]\]/);
   assert.doesNotMatch(visualRegression, /\.ov-(?:hero|dock)\b/);
+  assert.doesNotMatch(supportCollaboration, /\.ov-(?:hero|dock)\b/);
   assert.doesNotMatch(visualRegression, /\.vx-hero\b/);
 });
 

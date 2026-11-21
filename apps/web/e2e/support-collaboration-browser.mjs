@@ -242,7 +242,7 @@ try{
  conversations[0].claimedById=null;
  await page.setViewportSize({width:390,height:844});
  await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
- const dock=page.locator(".ov-dock, .mobile-bottom-nav");
+ const dock=page.locator("[data-testid='ov-dock'], .mobile-bottom-nav");
  await expect(dock.getByRole("button")).toHaveCount(1);
  const shortcut=dock.getByRole("button",{name:"Conversa",exact:true});
  const position=await shortcut.boundingBox();

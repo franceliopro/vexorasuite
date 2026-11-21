@@ -21,6 +21,7 @@ const defaults = {
     evening: "Tenha uma ótima noite!",
   },
 };
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 export function GreetingSettings() {
   const [value, setValue] = useState(defaults),
     [notice, setNotice] = useState(""),
@@ -104,7 +105,7 @@ export function GreetingSettings() {
             </label>
           </fieldset>
         ))}
-        <button className="primary-button" disabled={busy}>
+        <button className={primaryTw} disabled={busy}>
           Salvar frases
         </button>
         {notice && <p role="status">{notice}</p>}

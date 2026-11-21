@@ -35,6 +35,8 @@ type SiteEditorWindowProps = {
   onClose: () => void;
 };
 
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+
 type Device = "desktop" | "tablet" | "mobile";
 
 function isDocument(value: unknown): value is SiteDocument {
@@ -336,7 +338,7 @@ export default function SiteEditorWindow({
     <div className="vx-editor-window" role="region" aria-label={`Editor do site ${title}`}>
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 24, color: "var(--text-secondary)" }} role="status">
-          <Loader2 className="spin" size={18} aria-hidden="true" /> Abrindo editor…
+          <Loader2 className="animate-spin" size={18} aria-hidden="true" /> Abrindo editor…
         </div>
       ) : null}
 
@@ -345,7 +347,7 @@ export default function SiteEditorWindow({
           <p style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
             <AlertCircle size={16} aria-hidden="true" /> {error}
           </p>
-          <button type="button" className="secondary-button" style={{ marginTop: 12 }} onClick={requestClose}>
+          <button type="button" className={secondaryTw} style={{ marginTop: 12 }} onClick={requestClose}>
             Voltar para Sites
           </button>
         </div>
@@ -362,19 +364,19 @@ export default function SiteEditorWindow({
             </div>
             <button
               type="button"
-              className="secondary-button"
+              className={secondaryTw}
               onClick={() => void createPreview()}
               disabled={previewBusy || saving || loading}
             >
-              {previewBusy ? <Loader2 className="spin" size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
+              {previewBusy ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />}
               {previewBusy ? "Gerando…" : previewLink ? "Atualizar prévia" : "Ver prévia temporária"}
             </button>
             {previewLink ? (
               <>
-                <a className="secondary-button" href={previewLink.url} target="_blank" rel="noopener noreferrer">
+                <a className={secondaryTw} href={previewLink.url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink size={14} aria-hidden="true" /> Abrir link
                 </a>
-                <button type="button" className="secondary-button" onClick={() => void copyPreviewLink()}>
+                <button type="button" className={secondaryTw} onClick={() => void copyPreviewLink()}>
                   <Copy size={14} aria-hidden="true" /> Copiar
                 </button>
                 <small className="vx-editor-preview-expiry">
@@ -429,10 +431,10 @@ export default function SiteEditorWindow({
               minWidth: 220,
             }}
           />
-          <button type="button" className="secondary-button" onClick={() => void bindDomain()} disabled={domainBusy}>
+          <button type="button" className={secondaryTw} onClick={() => void bindDomain()} disabled={domainBusy}>
             Vincular
           </button>
-          <button type="button" className="secondary-button" onClick={() => void verifyDomain()} disabled={domainBusy || !domainInput}>
+          <button type="button" className={secondaryTw} onClick={() => void verifyDomain()} disabled={domainBusy || !domainInput}>
             Verificar
           </button>
           <span style={{ fontSize: "0.75rem", opacity: 0.75 }}>Status: {domainState}</span>
@@ -479,7 +481,7 @@ export default function SiteEditorWindow({
           <div className="vx-editor-responses-body">
             <button
               type="button"
-              className="secondary-button"
+              className={secondaryTw}
               onClick={() => void loadSubmissions()}
               disabled={submissionsLoading}
             >

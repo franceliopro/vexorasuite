@@ -281,6 +281,8 @@ const config: Config = {
         /* Grades do Calendário. */
         "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
         "calendar-event": "auto auto minmax(0, 1fr) auto auto",
+        /* Preferências de lembretes de Tarefas. */
+        "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",

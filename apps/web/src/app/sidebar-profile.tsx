@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { ProfilePhotoEditor } from "./profile-photo-editor";
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 export function SidebarProfile({
   user,
   canManage,
@@ -54,7 +57,7 @@ export function SidebarProfile({
       <div className="sidebar-profile-popover">
         <h2>Meu perfil</h2>
         {loading && <p role="status">Carregando perfil...</p>}
-        {!loading && loadError && <div><p role="alert">{loadError}</p><button type="button" className="secondary-button" onClick={() => void loadProfile()}>Tentar novamente</button></div>}
+        {!loading && loadError && <div><p role="alert">{loadError}</p><button type="button" className={secondaryTw} onClick={() => void loadProfile()}>Tentar novamente</button></div>}
         {!loading && !loadError && profile && (
           <form
             className="ai-admin-fields"
@@ -93,13 +96,13 @@ export function SidebarProfile({
               <input value={user.email} readOnly />
             </label>
             
-            <button className="primary-button">Salvar perfil</button>
+            <button className={primaryTw}>Salvar perfil</button>
           </form>
         )}
         {canManage && (
           <button
             type="button"
-            className="text-button"
+            className={textButtonTw}
             onClick={(e) => {
               e.currentTarget.closest("details")?.removeAttribute("open");
               onTeam();

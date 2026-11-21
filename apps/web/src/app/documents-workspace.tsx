@@ -13,7 +13,7 @@ type Contact = { id: string; name: string; phone?: string | null; email?: string
 
 /* TW utility-first: cores do preset, azul só por tokens blue-*. */
 const rootTw = "grid min-w-0 content-start gap-token";
-const headingTw = "flex flex-wrap items-center justify-between gap-4 rounded-token-lg border border-line bg-gradient-to-br from-blue-50 to-surface px-5 py-4 shadow-token-sm";
+const headingTw = "flex flex-wrap items-center justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface px-5 py-4 shadow-token-sm";
 const headingActionsTw = "flex flex-none items-center gap-2.5";
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-brand-pad text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-brand-pad text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";

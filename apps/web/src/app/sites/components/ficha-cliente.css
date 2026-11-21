@@ -1,11 +1,10 @@
 /*
  * Piloto Tailwind Vexora — Ficha Cliente.
- * Preflight desligado: nada aqui altera o CSS legado do app.
+ * No v4 o preflight é omitido em theme.css: nada aqui altera o CSS legado.
  * Todas as cores vêm de tokens, então dark/hybrid funcionam sem Variants.
+ * As utilities são importadas em camada por theme.css e reemitidas no fim
+ * por overview.css, preservando a cascata sobre o legado.
  */
-
-@tailwind components;
-@tailwind utilities;
 
 :root {
   --vx-overlay: color-mix(in srgb, var(--tx) 34%, transparent);
@@ -60,7 +59,7 @@
   }
 
   .vx-ficha-input {
-    @apply w-full bg-transparent text-sm text-ink outline-none;
+    @apply w-full bg-transparent text-sm text-ink outline-hidden;
   }
 
   .vx-ficha-chip-success {

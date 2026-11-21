@@ -7,7 +7,10 @@
  * emitidas após o CSS legado (é o que garante a cascata atual da tela).
  *
  * Os dois derivados abaixo alimentam as cores `red-100` e `sky-100` do
- * preset. Nenhum valor arbitrário, hex, `!important` ou @tailwind base.
+ * preset. Nenhum valor arbitrário, hex, `!important` ou preflight.
+ *
+ * No v4, theme.css importa theme/utilities em camada; esta reemissão plain
+ * volta a colocar as utilities depois do legado, preservando a cascata.
  */
 
 @tailwind utilities;

@@ -47,7 +47,7 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
   assert.equal(hexEmClasse.length, 0, "hex direto em classe");
   for (const utility of [
     "grid min-w-0 gap-token",
-    "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-gradient-to-br from-blue-50 to-surface p-6 shadow-token-sm",
+    "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface p-6 shadow-token-sm",
     "inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-line bg-surface-2 p-1",
     "grid grid-cols-ai-layout items-start gap-token",
     "mt-3 grid grid-cols-ai-agents gap-3",

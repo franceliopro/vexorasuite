@@ -918,12 +918,10 @@ details>summary:hover{color:var(--tx)}
 .thread-contact h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .thread-contact-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .status-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px color-mix(in srgb,var(--ok) 40%,transparent)}
-[data-testid='thread-header-actions']{display:flex;align-items:center;gap:6px}
 .thread-action-button{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);font-size:13px}
 .thread-action-button:hover{background:var(--hover);color:var(--tx)}
 .thread-action-button.resolve{background:var(--primary);color:var(--primary-contrast);border-color:var(--primary)}
 [data-testid='inbox-thread'] [data-testid='thread-heading']{justify-content:flex-start}
-[data-testid='thread-header-actions']{margin-left:auto}
 [data-testid='thread-heading'] > .fullscreen-toggle,[data-testid='thread-header-actions'] .thread-icon-action{width:34px;height:34px;border-radius:9px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
 [data-testid='thread-header-actions'] .thread-icon-action:hover{background:var(--hover);color:var(--tx);transform:translateY(-1px)}
 [data-testid='thread-header-actions'] .thread-icon-action.chatbot-return{color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 30%,var(--ln));background:color-mix(in srgb,var(--accent2) 8%,var(--s1))}
@@ -1127,8 +1125,6 @@ details>summary:hover{color:var(--tx)}
 [data-testid='thread-transfer-button']::-webkit-details-marker{display:none}
 [data-testid='thread-transfer-button']:hover{background:var(--hover);border-color:color-mix(in srgb,var(--primary) 30%,var(--ln))}
 [data-testid='thread-transfer-button'][aria-expanded],[data-testid='handoff-menu'][open]>[data-testid='thread-transfer-button']{background:color-mix(in srgb,var(--primary) 12%,var(--s1));border-color:color-mix(in srgb,var(--primary) 40%,var(--ln))}
-[data-testid='thread-finalize-button']{display:inline-flex;align-items:center;justify-content:center;gap:0;line-height:1;width:34px;height:34px;min-height:34px;padding:0;border:1px solid var(--primary);border-radius:9px;background:var(--primary);color:var(--primary-contrast);font-size:12px;font-weight:800;cursor:pointer}
-[data-testid='thread-finalize-button']:hover:not(:disabled){filter:brightness(1.06)}
 
 /* Presence nos avatares da lista */
 .conversation-presence{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;border:2px solid var(--s1);background:#1D4ED8}
@@ -4926,12 +4922,8 @@ input[type=tel]{letter-spacing:.02em}
 [data-testid='thread-heading'] > .fullscreen-toggle ~ [data-testid='thread-header-actions']{margin-left:0}
 .thread-more-toggle{display:none}
 @media (max-width:760px){
-  [data-testid='thread-heading']{position:relative}
-  [data-testid='thread-heading'] .thread-more-toggle{display:grid;place-items:center;order:3;width:40px;height:40px;flex:none;border:1px solid var(--ln2);border-radius:11px;background:var(--s2);color:var(--tx);cursor:pointer}
-  [data-testid='thread-heading'] > .fullscreen-toggle{order:2;flex:none;margin-left:0}
-  [data-testid='thread-heading'] .thread-more-toggle svg{display:block}
-  [data-testid='thread-header-actions']{display:none;position:absolute;top:calc(100% + 6px);right:8px;z-index:250;gap:4px;align-items:center;padding:6px;border:1px solid var(--ln);border-radius:14px;background:var(--s1);box-shadow:var(--shadow-lg)}
-  [data-testid='thread-header-actions'][data-open='true']{display:flex}
+  /* Cabeçalho e menu vivem no preset TW; aqui só o posicionamento do popover. */
+  [data-testid='thread-header-actions']{position:absolute;top:calc(100% + 6px);right:8px;z-index:250}
   .inbox-queues{padding:8px 6px;gap:3px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
   .inbox-queues::-webkit-scrollbar{height:0}
   [data-testid='inbox-queue-button']{font-size:9px!important;padding:0 7px!important;min-height:22px!important}

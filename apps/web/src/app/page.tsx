@@ -459,10 +459,10 @@ export default function HomePage() {
             <>
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} shortcuts={
-                <article className="content-card vx-access-card">
+                <article className="ov-access-panel">
                   <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
-                  <div className="vx-access-grid">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"amber",target:"CRM"},{name:"Calendários",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Calendários"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="vx-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`vx-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="vx-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="vx-access-arrow" /></button>)}
+                  <div className="ov-access-grid">
+                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"amber",target:"CRM"},{name:"Calendários",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Calendários"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="ov-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`ov-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="ov-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="ov-access-arrow" /></button>)}
                   </div>
                 </article>
               } />
@@ -520,7 +520,7 @@ export default function HomePage() {
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <ReminderCenter />
       <AlarmCenter />
-      <nav className={"mobile-bottom-nav" + (active === "Visão geral" ? " mobile-overview-nav" : active === "Atendimento" ? " mobile-inbox-nav" : "")} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
+      <nav className={active === "Visão geral" ? "ov-dock" : "mobile-bottom-nav" + (active === "Atendimento" ? " mobile-inbox-nav" : "")} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => setMenuOpen(false)}><Icon name="messages" size={20}/><span>Conversa</span></button>

@@ -16,6 +16,13 @@ const config: Config = {
   },
   theme: {
     extend: {
+      /* Breakpoints da Visão geral. São `raw` porque o legado usava
+         max-width; o preset passa a ser a única fonte desses cortes. */
+      screens: {
+        "ov-laptop": { raw: "(max-width: 1120px)" },
+        "ov-tablet": { raw: "(max-width: 760px)" },
+        "ov-mobile": { raw: "(max-width: 520px)" },
+      },
       colors: {
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
            três temas — a classe é oficial, a cor continua vinda do tema. */
@@ -65,8 +72,8 @@ const config: Config = {
           100: "var(--vx-warn-soft)",
           600: "var(--warn)",
         },
-        red: { 600: "var(--bad)" },
-        sky: { 600: "var(--accent2)" },
+        red: { 100: "var(--vx-bad-soft)", 600: "var(--bad)" },
+        sky: { 100: "var(--vx-accent-soft)", 600: "var(--accent2)" },
 
         /* Alias semânticos usados pelo piloto Ficha Cliente (#903), já
            mergeado. O core migra para as classes oficiais acima; os aliases
@@ -130,6 +137,9 @@ const config: Config = {
         "vx-nav-active": "var(--vx-core-nav-active)",
         "vx-control": "var(--vx-core-control-bg)",
       },
+      strokeWidth: {
+        ov: "5.5",
+      },
       backdropBlur: {
         topbar: "18px",
       },
@@ -175,13 +185,28 @@ const config: Config = {
         "brand-title": ["20px", { lineHeight: "1", letterSpacing: "-.03em" }],
         "brand-mark": "17px",
         "brand-badge": "9px",
+        /* Escalas da Visão geral. */
+        "ov-hero": ["clamp(28px, 3.3vw, 40px)", { lineHeight: "1.12", letterSpacing: "-0.045em" }],
+        "ov-hero-sm": ["27px", { lineHeight: "1.15", letterSpacing: "-0.04em" }],
+        "ov-kpi": ["clamp(28px, 2.6vw, 38px)", { lineHeight: "1.1", letterSpacing: "-0.035em" }],
+        "ov-clock": ["clamp(40px, 4.2vw, 54px)", { lineHeight: "1", letterSpacing: "-0.04em" }],
+        "ov-weather": ["clamp(38px, 4vw, 52px)", { lineHeight: "1", letterSpacing: "-0.04em" }],
+        "ov-micro": "10.5px",
+        "ov-label": "11px",
+        "ov-sub": ["14.5px", { lineHeight: "1.5" }],
+        "ov-copy": ["12.5px", { lineHeight: "1.45" }],
+        "ov-onboarding": ["15.5px", { lineHeight: "1.35" }],
       },
       fontWeight: {
         heading: "750",
+        ov: "650",
       },
       letterSpacing: {
         "nav-section": ".13em",
         "brand-badge": ".22em",
+        "ov-tight": "-0.045em",
+        "ov-wide": ".08em",
+        "ov-wider": ".12em",
       },
       spacing: {
         sidebar: "var(--sb)",
@@ -199,6 +224,35 @@ const config: Config = {
         "content-pad-y": "22px",
         search: "250px",
         "tabs-pad-x": "34px",
+        /* Medidas dos componentes da Visão geral. */
+        "ov-ring": "88px",
+        "ov-ring-sm": "76px",
+        "ov-ring-photo": "66px",
+        "ov-ring-photo-sm": "58px",
+        "ov-avatar": "38px",
+        "ov-ring-tile": "118px",
+        "ov-dock-btn": "58px",
+        "ov-dock-gap": "max(24px, 8vw)",
+        "ov-dock-pb": "calc(6px + env(safe-area-inset-bottom))",
+      },
+      gridTemplateColumns: {
+        "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
+        "ov-primary": "minmax(0, 1.58fr) minmax(0, 1fr)",
+        "ov-main": "minmax(0, 1.55fr) minmax(0, 1fr)",
+        "ov-hero-body": "minmax(0, 0.78fr) minmax(0, 1.22fr)",
+        "ov-team-row": "auto minmax(0, 1fr) 64px auto",
+        "ov-kpi": "repeat(auto-fit, minmax(150px, 1fr))",
+        "ov-access": "repeat(5, minmax(0, 1fr))",
+        "ov-topics": "repeat(2, minmax(0, 1fr))",
+        "ov-widgets": "minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr)",
+        "ov-onboarding-steps": "repeat(auto-fit, minmax(220px, 1fr))",
+        "ov-dock": "repeat(auto-fit, minmax(84px, 120px))",
+        "ov-calendar": "repeat(7, minmax(0, 1fr))",
+        "ov-activity-row": "auto minmax(0, 1fr) auto",
+        "ov-access-tile": "auto minmax(0, 1fr) auto",
+      },
+      minHeight: {
+        ov: "150px",
       },
       maxHeight: {
         ficha: "92vh",
@@ -209,6 +263,8 @@ const config: Config = {
         content: "1520px",
         tabs: "1500px",
         logo: "46px",
+        "ov-heading": "22ch",
+        "ov-sub": "42ch",
       },
       width: {
         "profile-popover": "248px",
@@ -219,6 +275,7 @@ const config: Config = {
       },
       zIndex: {
         sidebar: "40",
+        dock: "45",
         topbar: "30",
         popover: "70",
         wizard: "60",
@@ -226,9 +283,13 @@ const config: Config = {
       transitionProperty: {
         shell: "width, margin-left",
         control: "background-color, border-color, transform",
+        stroke: "stroke-dashoffset",
+        fill: "width",
       },
       transitionDuration: {
         control: "160ms",
+        ring: "600ms",
+        bar: "300ms",
       },
       transitionTimingFunction: {
         token: "var(--ease)",

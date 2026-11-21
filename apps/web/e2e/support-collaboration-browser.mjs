@@ -242,11 +242,11 @@ try{
  conversations[0].claimedById=null;
  await page.setViewportSize({width:390,height:844});
  await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
- const dock=page.locator(".mobile-bottom-nav");
+ const dock=page.locator(".ov-dock, .mobile-bottom-nav");
  await expect(dock.getByRole("button")).toHaveCount(1);
  const shortcut=dock.getByRole("button",{name:"Conversa",exact:true});
  const position=await shortcut.boundingBox();
- assert(position && Math.abs(position.x+position.width/2-195)<2,"mobile conversation shortcut is centered");
+ assert(position && Math.abs(position.x+position.width/2-195)<2,"mobile conversation shortcut is centered: "+JSON.stringify(position));
  await shortcut.click();
  await page.locator(".inbox-conversation").first().click();
  await expect(composer).toHaveCount(0);

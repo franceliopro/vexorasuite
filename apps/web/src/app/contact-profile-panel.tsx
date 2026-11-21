@@ -23,6 +23,9 @@ import {
   Mail,
 } from "lucide-react";
 
+const pillTw = "inline-flex min-h-ib-profile-pill items-center gap-1 rounded-full px-2 text-ib-profile-pill font-bold tabular-nums";
+const pillSmallTw = "inline-flex min-h-ib-profile-pill items-center gap-1 rounded-full px-1.5 text-ib-profile-pill font-bold tabular-nums";
+
 function channelGlyph(channel?: string) {
   const value = (channel || "WHATSAPP").toUpperCase();
   if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} className="text-ib-instagram" aria-hidden="true" />;

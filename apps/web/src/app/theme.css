@@ -1,0 +1,442 @@
+/*
+ * Véxora Suite — core global (item 0 da migração Tailwind).
+ *
+ * Regras deste arquivo:
+ * - nenhum @tailwind base / preflight (o CSS legado permanece intacto);
+ * - nenhum valor arbitrário, hex direto ou !important novo;
+ * - tudo o que é cor, tipo e espaço vem do preset em tailwind.config.ts;
+ * - os três temas continuam sendo as variáveis em vexora.css, então
+ *   light / hybrid / dark são herdados sem variantes `dark:`.
+ *
+ * Este arquivo vem ANTES de vexora.css: as regras específicas de tela que
+ * ainda vivem no legado (mobile, topbar-dark, superfície da sidebar etc.)
+ * precisam continuar vencendo. As utilities por tela ficam no CSS do próprio
+ * componente, importado depois dos dois — é assim que o piloto Ficha Cliente
+ * funciona. Migrar uma tela = mover as suas regras para lá, sem inverter esta
+ * ordem global.
+ */
+@tailwind components;
+
+/*
+ * Tailwind sem preflight não define estilo de borda. Sem este reset mínimo,
+ * `border` / `border-t` emitiriam apenas border-width e não apareceriam.
+ * É o mesmo contrato do preflight, com a cor vinda do token --ln.
+ */
+*,
+::before,
+::after {
+  @apply border-0 border-solid border-gray-200;
+}
+
+html {
+  @apply m-0 min-h-full h-dvh overflow-hidden;
+  zoom: var(--type-scale, 1);
+}
+
+body {
+  @apply font-ui text-body text-slate-950 antialiased bg-zinc-50 bg-vx-page;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  @apply m-0;
+}
+
+h1 {
+  @apply font-display text-h1 font-extrabold;
+}
+
+h2 {
+  @apply font-display text-h2 font-heading;
+}
+
+h3 {
+  @apply font-display text-h3 font-bold;
+}
+
+h4 {
+  @apply font-display text-h4 font-bold;
+}
+
+h5 {
+  @apply font-display text-h5 font-semibold;
+}
+
+h6 {
+  @apply font-display text-h6 font-semibold;
+}
+
+small,
+.muted {
+  @apply text-small text-slate-600;
+}
+
+a {
+  @apply text-blue-600 no-underline transition-colors;
+}
+
+a:hover {
+  @apply text-blue-800;
+}
+
+button,
+input,
+select,
+textarea {
+  @apply font-inherit text-inherit;
+}
+
+button {
+  @apply cursor-pointer border-0 bg-transparent p-0 text-left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  @apply cursor-not-allowed opacity-50;
+}
+
+img,
+svg,
+video {
+  @apply max-w-full;
+}
+
+svg {
+  @apply flex-none;
+}
+
+summary {
+  @apply cursor-pointer;
+}
+
+hr {
+  @apply my-3.5 border-t border-gray-200;
+}
+
+::selection {
+  @apply bg-blue-100;
+}
+
+:focus-visible {
+  @apply outline outline-2 outline-offset-2 outline-blue-600;
+}
+
+/*
+ * Shell padrão do sistema: sidebar, menu, topo e área de conteúdo.
+ *
+ * Contrato de tema (importante): a sidebar e tudo dentro dela usam SOMENTE
+ * os tokens --sb-*. No modo híbrido esses tokens são escuros enquanto
+ * --bg/--s1/--tx permanecem claros — é isso que dá o "menu escuro, resto
+ * claro". No modo escuro todos os tokens ficam escuros.
+ */
+@layer components {
+  .suite-app {
+    @apply flex min-h-dvh;
+  }
+
+  .suite-app:has(.sidebar-compact) {
+    --sb: 76px;
+  }
+
+  .sidebar {
+    @apply fixed inset-y-0 left-0 z-sidebar flex w-sidebar flex-col border-r border-indigo-800 bg-indigo-950 text-indigo-50 transition-shell duration-200 ease-token;
+    --thumb: var(--sb-thumb);
+    --focus: var(--sb-tx);
+  }
+
+  .sidebar-brand-row {
+    @apply flex h-topbar flex-none items-center border-b border-indigo-800 px-brand-pad;
+  }
+
+  .brand {
+    @apply flex min-w-0 items-center gap-nav-gap text-inherit;
+  }
+
+  .brand-mark {
+    @apply grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand;
+  }
+
+  .brand-mark.custom-round {
+    @apply rounded-full;
+  }
+
+  .brand-mark.custom-square {
+    @apply rounded-square;
+  }
+
+  .brand-mark.has-custom-logo {
+    @apply bg-none shadow-none;
+  }
+
+  .brand-mark img,
+  .brand-full-logo {
+    @apply max-w-logo max-h-logo object-contain;
+  }
+
+  .brand-copy {
+    @apply flex min-w-0 items-baseline gap-1.5;
+  }
+
+  .brand-copy strong {
+    @apply font-display text-brand-title font-extrabold text-indigo-50;
+  }
+
+  .brand-copy small {
+    @apply text-brand-badge font-extrabold tracking-brand-badge text-indigo-400;
+  }
+
+  /* Barra fina e chapada da navegação, nas cores do tema da sidebar. */
+  .side-nav {
+    @apply grid min-h-0 flex-1 auto-cols-auto content-start gap-0.5 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2;
+    scrollbar-color: transparent transparent;
+    scrollbar-width: thin;
+  }
+
+  .side-nav::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .side-nav::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--sb-thumb) 25%, transparent);
+    border-radius: 99px;
+  }
+
+  .side-nav::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--sb-thumb) 45%, transparent);
+  }
+
+  .side-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .side-nav:hover::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--sb-thumb) 30%, transparent);
+  }
+
+  .nav-group {
+    @apply grid gap-0.5 border-b border-indigo-800 px-0 pb-2.5 pt-1.5;
+  }
+
+  .nav-group:last-child {
+    @apply border-0;
+  }
+
+  .nav-section {
+    @apply mb-1 mt-2 block px-3 text-nav-section font-extrabold uppercase tracking-nav-section text-indigo-400;
+  }
+
+  .nav-item,
+  .nav-subitem {
+    @apply flex w-full items-center gap-nav-gap rounded-token-sm text-nav font-semibold text-indigo-50 transition-colors duration-150;
+  }
+
+  .nav-item {
+    @apply min-h-nav-height justify-start px-nav-pad;
+  }
+
+  .nav-glyph {
+    @apply grid place-items-center text-current transition-transform duration-150 ease-token;
+  }
+
+  .nav-item:hover,
+  .nav-subitem:hover {
+    @apply bg-indigo-900 text-indigo-50;
+  }
+
+  .nav-item:hover .nav-glyph {
+    @apply -translate-y-px;
+  }
+
+  /* O item ativo precisa manter background-color na superfície da barra:
+     bg-vx-nav-active sozinho só aplica background-image. */
+  .nav-item.active,
+  .nav-subitem.active {
+    @apply bg-indigo-700 bg-vx-nav-active font-bold text-indigo-50 shadow-vx-nav-active;
+  }
+
+  .nav-accordion {
+    @apply relative;
+  }
+
+  .nav-accordion-chevron {
+    @apply ml-auto opacity-70 transition-transform duration-150;
+  }
+
+  .nav-accordion.expanded .nav-accordion-chevron {
+    @apply rotate-180;
+  }
+
+  .nav-submenu {
+    @apply mb-1 ml-submenu-indent mt-0.5 grid gap-0.5 border-l border-indigo-800 py-1 pl-2.5;
+  }
+
+  .nav-subitem {
+    @apply min-h-subitem-height px-2.5;
+  }
+
+  .nav-subitem-glyph {
+    @apply grid place-items-center opacity-80;
+  }
+
+  .sidebar-bottom {
+    @apply grid flex-none gap-2 border-t border-indigo-800 px-3 pb-3.5 pt-2.5;
+  }
+
+  .sidebar-collapse {
+    @apply ml-0.5 grid h-9 w-9 min-h-0 place-items-center justify-self-start rounded-token-sm border border-indigo-800 bg-none text-indigo-50;
+  }
+
+  .sidebar-collapse:hover {
+    @apply bg-indigo-900 text-indigo-50;
+  }
+
+  .sidebar-utilities {
+    @apply flex items-center gap-1;
+  }
+
+  .sidebar-icon {
+    @apply grid h-9 w-9 min-h-0 place-items-center rounded-token-sm border-0 bg-none text-indigo-50;
+  }
+
+  .sidebar-icon:hover {
+    @apply bg-indigo-900 text-indigo-50;
+  }
+
+  .sidebar-profile-menu {
+    @apply relative;
+  }
+
+  .sidebar-profile-popover {
+    @apply fixed bottom-3 z-popover grid w-profile-popover gap-2 rounded-token-sm border border-indigo-800 bg-indigo-950 p-4 text-nav text-indigo-50 shadow-vx-popover;
+    left: calc(var(--sb) + 10px);
+  }
+
+  .sidebar-profile-menu > summary {
+    @apply flex items-center gap-2.5 rounded-token-sm px-2.5 py-2;
+    list-style: none;
+  }
+
+  .sidebar-profile-menu > summary:hover {
+    @apply bg-indigo-900;
+  }
+
+  .profile-avatar {
+    @apply grid h-8 w-8 flex-none place-items-center overflow-hidden rounded-full bg-vx-brand-mark text-2xs font-extrabold text-blue-900;
+  }
+
+  .profile-avatar img {
+    @apply h-full w-full object-cover;
+  }
+
+  .profile-copy {
+    @apply grid min-w-0;
+  }
+
+  .profile-copy strong {
+    @apply truncate text-xs font-bold;
+  }
+
+  .profile-copy small {
+    @apply truncate text-2xs text-indigo-400;
+  }
+
+  /* Sidebar compacta: continua herdando --sb-* e o tema escuro do menu. */
+  .sidebar.sidebar-compact .nav-item {
+    @apply justify-center p-0;
+  }
+
+  .sidebar.sidebar-compact .nav-item > span:not(.nav-glyph),
+  .sidebar.sidebar-compact .brand-copy,
+  .sidebar.sidebar-compact .nav-section,
+  .sidebar.sidebar-compact .nav-accordion-chevron,
+  .sidebar.sidebar-compact .profile-copy {
+    @apply hidden;
+  }
+
+  .sidebar.sidebar-compact .nav-submenu {
+    @apply fixed z-popover grid min-w-submenu-compact gap-0.5 rounded-token-sm border border-indigo-800 bg-indigo-950 p-2 shadow-vx-submenu;
+    left: calc(var(--sb) + 10px);
+    margin-top: -38px;
+  }
+
+  .sidebar.sidebar-compact .sidebar-utilities {
+    @apply flex-col justify-center;
+  }
+
+  .sidebar.sidebar-compact .sidebar-profile-menu > summary {
+    @apply justify-center p-1.5;
+  }
+
+  .main-area {
+    @apply ml-sidebar flex h-dvh min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-shell duration-200 ease-token;
+  }
+
+  .topbar {
+    @apply sticky top-0 z-topbar flex h-topbar items-center gap-3 border-b border-gray-100 bg-neutral-100 px-9 shadow-vx-topbar backdrop-blur-topbar backdrop-saturate-topbar;
+  }
+
+  .breadcrumbs {
+    @apply flex items-center gap-2 text-breadcrumb font-semibold text-slate-600;
+  }
+
+  .breadcrumbs strong {
+    @apply text-slate-950;
+  }
+
+  .topbar-actions {
+    @apply ml-auto flex min-w-0 items-center gap-2;
+  }
+
+  .ai-assistant-trigger,
+  .topbar-company-button,
+  .logout-button {
+    @apply inline-flex min-h-control items-center gap-2 whitespace-nowrap rounded-token-sm border border-gray-200 bg-vx-control px-3.5 text-nav font-bold shadow-token-sm transition-control duration-control hover:-translate-y-px hover:border-gray-500 hover:bg-zinc-400;
+  }
+
+  .topbar .search-box {
+    @apply w-search;
+  }
+
+  .mobile-menu,
+  .mobile-bottom-nav,
+  .mobile-sidebar-backdrop {
+    @apply hidden;
+  }
+
+  .page-content {
+    @apply mx-auto flex min-h-0 w-full max-w-content flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-7 py-content-pad-y;
+    scrollbar-width: none;
+  }
+
+  .page-content::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-content > * {
+    @apply min-w-0;
+  }
+
+  .page-footer {
+    @apply mt-auto flex justify-between gap-3 border-t border-gray-400 pb-0 pt-5 text-xs text-slate-600;
+  }
+
+  .persistent-module-tabs {
+    @apply mx-auto flex w-full max-w-tabs gap-1.5 overflow-x-auto px-tabs-pad-x pt-2.5;
+  }
+}
+
+@tailwind utilities;
+
+/*
+ * [hidden] precisa vencer classes de display de igual especificidade. Em vez
+ * de !important, ele vem DEPOIS das utilities e usa o próprio `hidden`.
+ */
+[hidden] {
+  @apply hidden;
+}

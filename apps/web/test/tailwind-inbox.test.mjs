@@ -18,13 +18,28 @@ const e2eFiles = ["e2e/support-collaboration-browser.mjs", "e2e/inbox-visual-reg
 // Só os valores de className são classes. data-* (como o testid estável) e
 // texto de interface não entram nessa varredura.
 function classValues(source) {
-  return [...source.matchAll(/className\s*=\s*(?:"([^"]*)"|\{([^}]*)\})/g)]
-    .map((match) => match[1] ?? match[2])
-    .join("\n");
+  const values = [];
+  for (const match of source.matchAll(/className\s*=\s*(?:"([^"]*)"|\{([\s\S]*?)\})/g)) {
+    if (match[1] !== undefined) {
+      values.push(match[1]);
+      continue;
+    }
+    for (const literal of match[2].matchAll(/(["'])([^"']*)\1/g)) values.push(literal[2]);
+  }
+  return values.join("\n");
 }
 
 test("o Atendimento não usa classes componente vx-* nem ib-* no JSX", () => {
-  assert.doesNotMatch(components.join("\n"), /\bvx-[a-z0-9-]+/);
+  const values = components.map(classValues).join("\n");
+  // `shadow-vx-brand` etc. são utilities do preset: só são aceitas quando o
+  // namespace vx aparece como prefixo de utility e o token existe no preset.
+  const vxDeclared = new Set([...config.matchAll(/"(vx-[a-z0-9-]+)"/g)].map((match) => match[1]));
+  for (const token of values.split(/\s+/).filter(Boolean)) {
+    if (!token.includes("vx-")) continue;
+    assert.match(token, /^(?:bg|shadow|text|border)-vx-[a-z0-9-]+$/, `classe vx-* não autorizada: ${token}`);
+    const name = token.match(/vx-[a-z0-9-]+/)?.[0];
+    if (name) assert.ok(vxDeclared.has(name), `o preset não declara ${name}`);
+  }
 
   // `*-ib-*` aqui são utilities do preset, não classes componente: cada uma
   // precisa ter formato de utility e usar um token ib-* realmente declarado.

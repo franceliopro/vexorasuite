@@ -169,9 +169,19 @@ const config: Config = {
           "0%": { backgroundPosition: "120% 0" },
           "100%": { backgroundPosition: "-80% 0" },
         },
+        "vx-scrim-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "vx-in": {
+          from: { opacity: "0", transform: "translateY(14px) scale(.97)" },
+          to: { opacity: "1", transform: "none" },
+        },
       },
       animation: {
         "rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite",
+        "vx-scrim-in": "vx-scrim-in .18s ease both",
+        "vx-in": "vx-in .26s var(--ease) both",
       },
       strokeWidth: {
         ov: "5.5",
@@ -200,6 +210,7 @@ const config: Config = {
         /* Medidas fixas dos diálogos do Atendimento. */
         "ib-modal": "16px",
         "ib-entry": "9px",
+        "ib-quote-qty": "8px",
         "ib-article": "10px",
         "ib-panel": "12px",
         "ib-channel": "5px",
@@ -302,6 +313,9 @@ const config: Config = {
         "rw-kpi-label": "10.5px",
         "rw-donut-total": ["22px", { letterSpacing: "-.02em" }],
       },
+      lineHeight: {
+        "ib-quote-error": "1.35",
+      },
       fontWeight: {
         heading: "750",
         ov: "650",
@@ -320,6 +334,7 @@ const config: Config = {
         "sidebar-compact": "76px",
         topbar: "var(--top)",
         control: "var(--ctl)",
+        "ctl-sm": "var(--ctl-sm)",
         token: "var(--gap)",
         pad: "var(--pad)",
         "brand-pad": "18px",
@@ -366,6 +381,9 @@ const config: Config = {
         "ib-reply-action": "30px",
         "ib-empty-icon": "76px",
         "ib-lightbox-offset": "18px",
+        "ib-quote-error-y": "5px",
+        "ib-quote-qty-x": "9px",
+        "vx-dialog-pad": "18px",
         /* Estado de carregamento do Kanban. */
         "crm-loading-y": "60px",
       },
@@ -428,6 +446,8 @@ const config: Config = {
         ov: "150px",
         "ib-control": "37px",
         "ib-workspace": "520px",
+        "ib-quote": "320px",
+        "ib-quote-qty": "30px",
         /* Célula do mês e largura mínima da lista de compromissos. */
         "calendar-day": "104px",
         /* Medidas das colunas e cartões do Kanban do CRM. */
@@ -443,6 +463,8 @@ const config: Config = {
         "ib-support": "min(82dvh, 780px)",
         "ib-mention": "240px",
         "ib-note": "min(100%, 520px)",
+        "ib-quote-list": "56vh",
+        "ib-dialog": "calc(100dvh - 44px)",
         /* Popovers, menus e diálogos do shell de Atendimento. */
         "ib-context-menu": "min(340px, 62vh)",
         "ib-handoff": "min(72dvh, 560px)",
@@ -466,6 +488,7 @@ const config: Config = {
         "crm-search": "360px",
         "ib-copy": "42ch",
         "ib-bubble": "min(78%, 560px)",
+        "ib-quote-empty": "70%",
         /* Texto de apoio dos Relatórios. */
         "rw-sub": "560px",
         "rw-empty": "420px",
@@ -491,6 +514,9 @@ const config: Config = {
         "ib-context-menu": "190px",
         "ib-voice-wave": "3px",
         "ib-voice-button": "34px",
+        "ib-dialog": "min(100%, 520px)",
+        "ib-dialog-wide": "min(100%, 860px)",
+        "ib-mention": "min(100vw - 32px, 360px)",
         /* Filete redimensionável entre grade e lista. */
         "calendar-handle": "6px",
         /* Filete de tom à esquerda dos cartões do Kanban. */
@@ -523,6 +549,9 @@ const config: Config = {
         "ib-fullscreen": "130",
         "ib-handoff": "190",
         "ib-lightbox": "240",
+        "ib-dialog": "1000",
+        "ib-dialog-inner": "1",
+        "ib-mention": "65",
       },
       transitionProperty: {
         shell: "width, margin-left",

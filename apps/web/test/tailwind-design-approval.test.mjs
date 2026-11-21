@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const approval = read("src/app/design-approval/[token]/page.tsx");
+const styles = read("src/app/vexora.css");
 
 function classValues(source) {
   const constants = new Map();
@@ -40,6 +41,7 @@ test("a aprovacao publica nao usa classes componente decorativas", () => {
   }
   assert.doesNotMatch(approval, /className="design-approval-/);
   assert.doesNotMatch(approval, /" is-checked"/);
+  assert.doesNotMatch(styles, /\.design-approval-/, "o CSS legado da aprovacao publica nao pode voltar");
 });
 
 test("a aprovacao publica usa so utilities, sem remendos", () => {

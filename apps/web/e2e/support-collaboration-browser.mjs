@@ -124,7 +124,7 @@ try{
  assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
  await expect(page.locator("[data-testid='ib-support-context'], [data-testid='inbox-assume-wrap']")).toHaveCount(0);
  const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
- const assume=page.getByRole("button",{name:"Assumir conversa",exact:true});
+ const assume=page.getByTestId("inbox-assume-button");
  await expect(composer).toHaveCount(0);
  await expect(page.getByText("Em atendimento pelo chatbot.")).toBeVisible();
  await assume.click();

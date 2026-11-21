@@ -211,6 +211,13 @@ const config: Config = {
         "ib-profile-add": "8px",
         "ib-profile-card": "14px",
         "ib-profile-origin": "12px",
+        /* Workspace de Atendimento. */
+        "ib-queue": "99px",
+        "ib-bubble": "15px",
+        "ib-option": "14px",
+        "ib-popover": "16px",
+        "ib-handoff": "20px",
+        "ib-option-icon": "11px",
       },
       boxShadow: {
         token: "var(--shadow)",

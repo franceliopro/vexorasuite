@@ -284,7 +284,7 @@ export function InboxWorkspace({tenantId,userId,canManageChannels=false}:{tenant
   const statusPillRef = useRef<HTMLElement>(null);
   const handoffRef = useRef<HTMLElement>(null);
   const inviteRef = useRef<HTMLElement>(null);
-  const emojiRef = useRef<HTMLElement>(null);
+  const emojiRef = useRef<HTMLButtonElement>(null);
   const [contactProfileExpanded, setContactProfileExpanded] = useState(true);
   const toggleContactProfile = useCallback(() => {
     if (!selectedId) return;

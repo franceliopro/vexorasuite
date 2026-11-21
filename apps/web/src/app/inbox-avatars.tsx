@@ -63,7 +63,7 @@ export function InitialsAvatar({ name }: { name: string }) {
   if (!trimmed) return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-50 text-ib-tick font-ib text-blue-800">?</span>;
   const parts = trimmed.split(/\s+/).filter(Boolean);
   const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("") || "?";
-  return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-50 text-ib-tick font-ib text-blue-800">{initials}</span>;
+  return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-50 text-ib-tick font-ib text-blue-800" data-testid="mention-avatar">{initials}</span>;
 }
 
 export function contactLabels(contact: Contact): Array<{ name: string; color: string }> {

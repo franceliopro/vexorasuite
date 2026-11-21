@@ -146,7 +146,7 @@ const config: Config = {
         "vx-brand-mark": "var(--vx-core-brand-mark)",
         "vx-nav-active": "var(--vx-core-nav-active)",
         "vx-control": "var(--vx-core-control-bg)",
-        "ib-avatar": "linear-gradient(150deg,color-mix(in srgb,var(--primary) 82%,#FFFFFF),color-mix(in srgb,var(--primary) 64%,#000))",
+        "ib-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
       },
       strokeWidth: {
         ov: "5.5",
@@ -171,6 +171,7 @@ const config: Config = {
         "ib-panel": "12px",
         "ib-channel": "5px",
         "ib-dialog-icon": "11px",
+        "ib-mention-item": "7px",
       },
       borderWidth: {
         /* Borda superior das colunas do Kanban. */
@@ -186,8 +187,8 @@ const config: Config = {
         "vx-popover": "var(--vx-core-shadow-popover)",
         "vx-submenu": "var(--vx-core-shadow-submenu)",
         /* Realces da lista de conversas. */
-        "ib-selected": "inset 3px 0 0 var(--primary),inset 0 0 0 1px color-mix(in srgb,var(--primary) 26%,transparent)",
-        "ib-newdot": "0 0 0 2px color-mix(in srgb,var(--ok) 22%,transparent)",
+        "ib-selected": "inset 3px 0 0 var(--primary),inset 0 0 0 1px var(--vx-core-selection)",
+        "ib-newdot": "0 0 0 2px var(--vx-ok-soft)",
       },
       fontFamily: {
         inherit: "inherit",
@@ -231,6 +232,7 @@ const config: Config = {
         "ib-caption": ["11px", { lineHeight: "1.5" }],
         "ib-label": ["10px", { lineHeight: "1.4", letterSpacing: ".08em" }],
         "ib-input": ["12.5px", { lineHeight: "1.45" }],
+        "ib-mention-hint": ["9.5px", { lineHeight: "1.35" }],
       },
       fontWeight: {
         heading: "750",
@@ -327,6 +329,7 @@ const config: Config = {
         logo: "36px",
         "ib-track": "85dvh",
         "ib-support": "min(82dvh, 780px)",
+        "ib-mention": "240px",
         "crm-column": "calc(100dvh - var(--top) - 235px)",
       },
       maxWidth: {

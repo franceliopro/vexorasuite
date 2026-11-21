@@ -347,3 +347,41 @@ test("o avatar do cabeçalho tem tamanho próprio e o header alinha os blocos", 
   const css = read("src/app/vexora.css");
   assert.doesNotMatch(css, /\[data-testid=.thread-heading.\]\{[^}]*flex-wrap/);
 });
+
+test("a lista, a supervisão e o composer alinham os filhos em uma linha só", () => {
+  const listHeading = workspace.match(/<div className="[^"]*"><h2[^>]*>Conversas<\/h2><button[^>]*aria-label="Atualizar conversas"/)?.[0] ?? "";
+  assert.match(listHeading, /flex flex-none items-center justify-between gap-ib-gap/);
+  assert.match(listHeading, /<h2 className="text-ib-input font-extrabold">Conversas<\/h2>/);
+
+  const supervision = workspace.match(/<section className="[^"]*" aria-label="Supervisão operacional">/)?.[0] ?? "";
+  assert.match(supervision, /text-ib-caption/);
+  assert.match(supervision, /gap-1\.5/);
+  for (const metric of ["Aguardando", "Abertas", "Pausadas", "Fora do SLA"]) {
+    assert.ok(workspace.includes(`<small className="text-ib-micro text-ink-secondary">${metric}</small>`), `métrica ${metric}`);
+  }
+
+  const composerRow = workspace.match(/<div className="([^"]*)">\s*<textarea data-testid="inbox-composer-input"/)?.[1] ?? "";
+  assert.match(composerRow, /flex flex-nowrap items-center gap-ib-gap/);
+  assert.ok(workspace.includes('data-testid="composer-tools" className="order-1 flex flex-nowrap shrink-0 items-center gap-1"'));
+  assert.ok(workspace.includes('data-testid="inbox-composer-input" className="order-2 min-w-0 flex-1 resize-none'));
+  assert.ok(workspace.includes('className="order-3 flex shrink-0 items-center gap-1"'));
+  assert.doesNotMatch(composerRow, /flex-wrap/);
+
+  // O aviãozinho mantém o ícone e o rótulo lado a lado, sem grid sobreposto.
+  const sendButton = workspace.match(/<button className="([^"]*)" type="submit" aria-label=\{busy \? "Enviando mensagem"/)?.[1] ?? "";
+  assert.match(sendButton, /inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-blue-600 px-4/);
+  assert.doesNotMatch(sendButton, /grid size-10 place-items-center/);
+
+  // Contratos preservados.
+  for (const hook of [
+    'aria-label="Supervisão operacional"',
+    'aria-label="Atualizar conversas"',
+    'data-testid="composer-tools"',
+    'data-testid="inbox-composer-input"',
+    'data-testid="composer-icon-button"',
+    'aria-label={busy ? "Enviando mensagem" : "Enviar mensagem"}',
+    'aria-label="Salvar anotação"',
+  ]) {
+    assert.ok(workspace.includes(hook), `hook ausente: ${hook}`);
+  }
+});

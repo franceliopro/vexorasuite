@@ -690,7 +690,7 @@ details>summary:hover{color:var(--tx)}
   [data-testid='inbox-workspace']:not([data-mobile-thread='true']) :is([data-testid='inbox-thread'],[data-testid='contact-profile']),[data-testid='inbox-workspace'][data-mobile-thread='true'] [data-testid='inbox-list']{display:none}
   [data-testid='inbox-composer']{display:flex;flex-direction:column;gap:8px}
   .composer-toolbar{flex-wrap:wrap}
-  [data-testid='composer-tools']{flex-wrap:wrap}
+  /* TW: o composer usa flex-nowrap em utilities. */
   .composer-shell [data-testid='inbox-composer'] [data-testid='composer-tools'] textarea{order:1;flex:1 1 100%;width:100%;min-height:44px;font-size:16px}
   [data-testid='inbox-workspace'][data-mobile-thread='true']{height:calc(100dvh - var(--top) - var(--dock) - 24px);grid-template-rows:minmax(0,1fr) auto}[data-testid='inbox-workspace'][data-mobile-thread='true'] [data-testid='inbox-thread']{height:100%}
   [data-testid='inbox-workspace'][data-mobile-thread='true'] [data-testid='contact-profile']{max-height:230px}

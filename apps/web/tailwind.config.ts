@@ -28,6 +28,8 @@ const config: Config = {
         "ib-wide": { raw: "(max-width: 1150px)" },
         "ib-shell": { raw: "(max-width: 980px)" },
         "ib-desktop": { raw: "(min-width: 960px)" },
+        "ib-grid": { raw: "(min-width: 981px)" },
+        "ib-grid-ficha": { raw: "(min-width: 1101px)" },
         /* Cortes próprios dos Relatórios. */
         "rw-wide": { raw: "(max-width: 1100px)" },
         "rw-laptop": { raw: "(max-width: 900px)" },
@@ -912,6 +914,9 @@ const config: Config = {
         /* Shell do workspace de Atendimento. */
         "ib-workspace": "minmax(260px,340px) minmax(0,1fr) minmax(300px,380px)",
         "ib-workspace-profile": "minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)",
+        "ib-workspace-resize": "var(--inbox-list-w, minmax(260px,340px)) 8px minmax(0,1fr)",
+        "ib-workspace-resize-ficha": "var(--inbox-list-w, minmax(260px,340px)) 8px minmax(0,1fr) 8px var(--inbox-ficha-w, minmax(300px,380px))",
+        "ib-workspace-resize-compact": "var(--inbox-list-w, minmax(260px,340px)) 8px minmax(0,1fr) 54px",
         "ib-supervision": "repeat(4,1fr)",
         /* Grade dos interruptores do Asaas. */
         "channels-asaas-grid": "repeat(auto-fit,minmax(200px,1fr))",

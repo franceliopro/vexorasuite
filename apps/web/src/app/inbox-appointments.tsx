@@ -2,6 +2,14 @@
 import { formatDateTimeBR, formatTimeBR } from "../lib/date-format";
 import { readablePhone } from "../lib/contact-identity";
 import {useEffect,useRef,useState} from 'react';
+
+/* Padrao TW — o azul vem dos tokens --primary do preset, nunca fixado na classe. */
+const primaryButton="inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const textButton="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-token-sm px-1.5 text-xs font-bold text-blue-600 transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const fieldsTw="grid gap-3 text-xs text-ink";
+const savedCardTw="grid gap-2 rounded-token border border-line bg-surface p-pad shadow-token";
+const timesTw="grid grid-cols-2 gap-3";
+const inviteTw="flex items-center gap-2";
 type Account={id:string;email:string};
 type Calendar={id:string;summary:string;accessRole?:string};
 type Event={id:string;summary?:string;status?:string;transparency?:string;start?:{date?:string;dateTime?:string};end?:{date?:string;dateTime?:string}};
@@ -36,7 +44,7 @@ export function InboxAppointments({contact,onConfirm}:{contact:{id:string;name:s
   }catch(e){if(mounted.current)setError((e instanceof Error?e.message:'Não foi possível confirmar.')+' Confira a agenda antes de tentar novamente.');}
   finally{if(mounted.current)setBusy(false);}
  }
- return <div className="inbox-appointments ai-admin-fields">
+ return <div className={fieldsTw} data-testid="inbox-appointments">
  <p>Cliente: <strong>{contact.name}</strong></p><small>Horários em {Intl.DateTimeFormat().resolvedOptions().timeZone}.</small>
  {error&&<p role="alert">{error}</p>}
  {!loading&&!accounts.length?<p>Conecte uma conta Google Agenda em Conexões. O atendimento pode continuar normalmente.</p>:<>
@@ -44,13 +52,13 @@ export function InboxAppointments({contact,onConfirm}:{contact:{id:string;name:s
  <label>Agenda<select disabled={busy} value={calendar} onChange={e=>setCalendar(e.target.value)}>{calendars.map(c=><option key={c.id} value={c.id}>{c.summary}</option>)}</select></label>
  <label>Consultar dia<input type="date" required value={day} disabled={busy} onChange={e=>{setDay(e.target.value);setSaved(null)}}/></label>
  <h3>Compromissos do dia</h3>{loading?<p>Consultando…</p>:events.length?<ul>{events.map(e=><li key={e.id}>{display(e.start?.dateTime)}{e.end?.dateTime?' – '+display(e.end.dateTime):''} · {e.summary||'Compromisso'}</li>)}</ul>:calendar&&!error?<p>Nenhum compromisso encontrado nesta agenda neste dia.</p>:null}
- {saved?<section className="content-card"><strong>Agendamento confirmado na agenda</strong><p>{saved.title} · {formatDateTimeBR(saved.start)}</p><button type="button" className="primary-button" onClick={()=>onConfirm('Olá, '+contact.name+'! Seu agendamento de '+saved.title+' está confirmado para '+new Date(saved.start).toLocaleString('pt-BR')+' até '+formatTimeBR(saved.end)+'.')}>Preparar confirmação na conversa</button><small>Você revisa o texto e clica em Enviar.</small><button type="button" className="text-button" onClick={()=>setSaved(null)}>Novo agendamento</button></section>:<>
+ {saved?<section className={savedCardTw} data-testid="inbox-appointment-confirmed"><strong>Agendamento confirmado na agenda</strong><p>{saved.title} · {formatDateTimeBR(saved.start)}</p><button type="button" className={primaryButton} onClick={()=>onConfirm('Olá, '+contact.name+'! Seu agendamento de '+saved.title+' está confirmado para '+new Date(saved.start).toLocaleString('pt-BR')+' até '+formatTimeBR(saved.end)+'.')}>Preparar confirmação na conversa</button><small>Você revisa o texto e clica em Enviar.</small><button type="button" className={textButton} onClick={()=>setSaved(null)}>Novo agendamento</button></section>:<>
  <label>Título<input maxLength={200} value={title} disabled={busy} onChange={e=>setTitle(e.target.value)}/></label>
  <label>Descrição<textarea rows={2} maxLength={1000} value={description} disabled={busy} onChange={e=>setDescription(e.target.value)} placeholder="Detalhes do atendimento, endereço exato, combinados…"/></label>
- <div className="inbox-appointment-times"><label>Início<input type="time" value={start} disabled={busy} onChange={e=>setStart(e.target.value)}/></label><label>Término<input type="time" value={end} disabled={busy} onChange={e=>setEnd(e.target.value)}/></label></div>
+ <div className={timesTw}><label>Início<input type="time" value={start} disabled={busy} onChange={e=>setStart(e.target.value)}/></label><label>Término<input type="time" value={end} disabled={busy} onChange={e=>setEnd(e.target.value)}/></label></div>
  <label>Local<input maxLength={500} value={location} disabled={busy} onChange={e=>setLocation(e.target.value)} placeholder="Rua, número, bairro — ou cole o link do Google Maps"/></label>
- <label className="invite-check"><input type="checkbox" checked={addInvite} disabled={busy||!contact.email} onChange={e=>setAddInvite(e.target.checked)}/>Convidar o cliente por e-mail{contact.email?" · "+contact.email:" (sem e-mail cadastrado)"}</label>
- <button type="button" className="primary-button" disabled={busy||loading||!calendar||!writable} onClick={()=>void save()}>{busy?'Salvando…':'Confirmar agendamento'}</button>
+ <label className={inviteTw}><input type="checkbox" checked={addInvite} disabled={busy||!contact.email} onChange={e=>setAddInvite(e.target.checked)}/>Convidar o cliente por e-mail{contact.email?" · "+contact.email:" (sem e-mail cadastrado)"}</label>
+ <button type="button" className={primaryButton} disabled={busy||loading||!calendar||!writable} onClick={()=>void save()}>{busy?'Salvando…':'Confirmar agendamento'}</button>
  {calendar&&!writable&&<small>Esta agenda está disponível somente para consulta.</small>}
  </>}</>}
  </div>;

@@ -40,12 +40,21 @@ export type AiEditResult = {
 };
 
 const NODE_TYPES = new Set([
-  "section", "text", "image", "button", "form", "post-list", "product-grid", "video", "container", "faq",
+  "section", "container", "div", "header", "footer", "aside", "hero", "columns", "image-text", "heading",
+  "text", "image", "button", "form", "post-list", "product-grid", "video", "faq",
 ]);
 
 const PROP_KEYS: Record<string, Set<string>> = {
   section: new Set(["padding", "background"]),
   container: new Set(["padding", "background"]),
+  div: new Set(["padding", "background"]),
+  header: new Set(["padding", "background"]),
+  footer: new Set(["padding", "background"]),
+  aside: new Set(["padding", "background"]),
+  hero: new Set(["heading", "subheading", "ctaLabel", "ctaUrl", "anchor"]),
+  columns: new Set(["columnCount", "gap"]),
+  "image-text": new Set(["heading", "body", "imageSrc", "imageAlt", "imagePosition", "buttonLabel", "buttonUrl"]),
+  heading: new Set(["content", "level"]),
   text: new Set(["content", "tag"]),
   image: new Set(["src", "alt"]),
   button: new Set(["label", "href"]),

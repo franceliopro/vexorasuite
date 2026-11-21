@@ -314,6 +314,14 @@ export function EditorShell({
     [activeRoot, selectedNode, setDoc, onPropChange, withActiveRoot],
   );
 
+  const handleStyleChange = useCallback(
+    (key: string, value: string) => {
+      if (!selectedNode || !activeRoot || readOnly || interactionDisabled) return;
+      setDoc(withActiveRoot(setNodeStyle(activeRoot, selectedNode.id, key, value)));
+    },
+    [activeRoot, interactionDisabled, readOnly, selectedNode, setDoc, withActiveRoot],
+  );
+
   const handleNodeProp = useCallback(
     (nodeId: string, key: string, value: string | number | boolean) => {
       if (readOnly || interactionDisabled || !activeRoot) return;
@@ -503,6 +511,7 @@ export function EditorShell({
             selectedNode={selectedNode}
             schema={schema}
             onPropChange={handlePropChange}
+            onStyleChange={handleStyleChange}
             onAIChange={handleAIChange}
             aiBusy={aiBusy}
             aiFeedback={aiFeedback}
@@ -575,11 +584,53 @@ function setNodeProp(
   value: string | number | boolean,
 ): SiteNode {
   if (node.id === id) {
-    return { ...node, props: { ...node.props, [key]: value } };
+    const updated: SiteNode = { ...node, props: { ...node.props, [key]: value } };
+    return syncColumns(updated);
   }
   return {
     ...node,
     children: node.children.map((c) => setNodeProp(c, id, key, value)),
+  };
+}
+
+/** Mantém a quantidade de colunas filhas alinhada ao prop `columnCount`. */
+function syncColumns(node: SiteNode): SiteNode {
+  if (node.type !== 'columns') return node;
+  const requested = Number(node.props.columnCount);
+  const count = Number.isFinite(requested) ? Math.min(8, Math.max(2, Math.round(requested))) : 3;
+  if (node.children.length === count) return node;
+  const children = [...node.children];
+  while (children.length < count) {
+    const i = children.length;
+    children.push(
+      createNode('div', {
+        props: { title: `Coluna ${i + 1}`, content: 'Edite este conteúdo ou arraste blocos para dentro.' },
+        styles: {
+          flex: '1 1 0',
+          minWidth: '0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          padding: '1.25rem',
+          background: 'var(--background, #f6f7f4)',
+          borderRadius: '0.75rem',
+        },
+      }),
+    );
+  }
+  return { ...node, children: children.slice(0, count), props: { ...node.props, columnCount: count } };
+}
+
+function setNodeStyle(node: SiteNode, id: string, key: string, value: string): SiteNode {
+  if (node.id === id) {
+    const styles = { ...node.styles };
+    if (value === '') delete styles[key];
+    else styles[key] = value;
+    return { ...node, styles };
+  }
+  return {
+    ...node,
+    children: node.children.map((c) => setNodeStyle(c, id, key, value)),
   };
 }
 

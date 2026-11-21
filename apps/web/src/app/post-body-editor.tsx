@@ -8,6 +8,54 @@ import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Undo2
 
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+
+/* Utilities completas do preset para a fatia do editor de corpo de post. */
+const postBodyTw = "grid min-w-0 overflow-hidden rounded-2xl border border-line bg-surface";
+const postToolbarTw = "flex flex-wrap items-center gap-0.5 border-b border-line bg-surface-2 px-2.5 py-2";
+const postToolbarButtonTw = "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-transparent font-extrabold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const postToolbarActiveTw = "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-blue-600 font-extrabold text-blue-950 transition-colors hover:bg-blue-700";
+const postToolbarSepTw = "mx-1.5 h-5.5 w-px bg-line";
+const postToolbarSpacerTw = "flex-1";
+const postPopoverTw = "flex gap-2 border-b border-line bg-surface-2 p-2.5";
+const postPopoverInputTw = "min-h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-surface px-3 text-body text-ink";
+const postContentTw = "min-h-65 outline-none px-4.5 py-4 text-base leading-relaxed text-ink";
+const postSourceTw = "min-h-70 w-full resize-y border-0 px-4.5 py-4 font-mono text-xs leading-relaxed outline-none";
+const postNoticeTw = "m-0 bg-red-100 px-3 py-2 text-small font-semibold text-red-600";
+const postHintTw = "m-0 border-t border-line px-3.5 py-2.5 text-small text-slate-600";
+const fieldHintTw = "m-0 text-small text-slate-600";
+const galleryNodeTw = "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-line-strong bg-surface-2 p-2.5";
+const galleryNodeSelectedTw = "border-solid border-blue-600";
+const galleryHeadTw = "flex items-center gap-2.5 text-small text-slate-600";
+const galleryGridTw = "grid grid-cols-2 gap-2 sm:grid-cols-3";
+const galleryThumbTw = "relative m-0 overflow-hidden rounded-xl border border-line";
+const galleryThumbImgTw = "block aspect-square w-full object-cover";
+const galleryActionsTw = "absolute right-1 top-1 flex gap-1";
+const galleryActionButtonTw = "grid h-5.5 w-5.5 place-items-center rounded-md border border-white/40 bg-zinc-950/65 text-white transition-colors hover:bg-zinc-950";
+const youtubeNodeTw = "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-line-strong bg-surface-2 p-2.5";
+const youtubeNodeSelectedTw = "border-solid border-blue-600";
+const youtubeIframeTw = "block w-full rounded-xl";
+const galleryRenderTw = "my-4 grid grid-cols-2 gap-2 sm:grid-cols-3";
+const galleryRenderLinkTw = "block overflow-hidden rounded-xl";
+const galleryRenderImgTw = "block h-36 w-full object-cover";
+
+/**
+ * Regras descendentes do conteúdo rico (HTML produzido pelo Tiptap). O seletor
+ * é um atributo funcional do editor, não uma classe decorativa; as cores vêm
+ * dos tokens do tema e o par de cores do bloco de código é mantido em rgb para
+ * não introduzir hex em classes nem color-mix em patches visuais.
+ */
+const POST_CONTENT_CSS = `
+[data-vx-post-content] h2{font-family:var(--font-display);font-size:22px;font-weight:800;line-height:1.25;margin:20px 0 10px}
+[data-vx-post-content] h3{font-family:var(--font-display);font-size:17px;font-weight:800;line-height:1.3;margin:16px 0 8px}
+[data-vx-post-content] p{margin:0 0 12px}
+[data-vx-post-content] :is(ul,ol){margin:0 0 12px 22px}
+[data-vx-post-content] blockquote{border-left:3px solid var(--primary);margin:0 0 12px;padding:6px 14px;color:var(--tx2);font-style:italic}
+[data-vx-post-content] img{display:block;max-width:100%;margin:10px 0;border-radius:10px}
+[data-vx-post-content] pre{overflow-x:auto;margin:0;padding:12px 14px;border-radius:10px;background:rgb(15 23 42);color:rgb(226 232 240);font-size:12px}
+`;
+const codeSurfaceStyle = { backgroundColor: "rgb(15 23 42)", color: "rgb(226 232 240)" } as const;
+const popoverInputStyle = { backgroundColor: "var(--s1)", borderColor: "var(--ln2)", minHeight: 36, padding: "0 12px" } as const;
+
 /* ===== Nodes customizados ===== */
 const parseYoutubeId = (input: string): string | null => {
   try {
@@ -43,7 +91,7 @@ const Gallery = Node.create({
   parseHTML() { return [{ tag: "figure[data-vx-gallery]" }]; },
   renderHTML({ node }) {
     const items: GalleryItem[] = Array.isArray(node.attrs.items) ? node.attrs.items : [];
-    return ["figure", mergeAttributes({ "data-vx-gallery": "", class: "vx-post-gallery" }), ...items.map((item) => ["a", mergeAttributes({ href: item.url, target: "_blank", rel: "noopener noreferrer" }), ["img", { src: item.url, alt: item.alt || "Foto" }]] as any)];
+    return ["figure", mergeAttributes({ "data-vx-gallery": "", class: galleryRenderTw }), ...items.map((item) => ["a", mergeAttributes({ href: item.url, target: "_blank", rel: "noopener noreferrer", class: galleryRenderLinkTw }), ["img", { src: item.url, alt: item.alt || "Foto", class: galleryRenderImgTw }]] as any)];
   },
   addNodeView() { return ReactNodeViewRenderer(GalleryNodeView); },
 });
@@ -63,24 +111,24 @@ function GalleryNodeView(props: any) {
     updateAttributes({ items: next });
   };
   return (
-    <NodeViewWrapper className={"vx-gallery-node" + (selected ? " is-selected" : "")} data-vx-gallery="true">
-      <div className="vx-gallery-node-head"><Images size={15} aria-hidden="true" /><span>{items.length} imagem(ns) na galeria</span>
+    <NodeViewWrapper className={`${galleryNodeTw}${selected ? ` ${galleryNodeSelectedTw}` : ""}`} data-vx-gallery="true">
+      <div className={galleryHeadTw}><Images size={15} aria-hidden="true" /><span>{items.length} imagem(ns) na galeria</span>
         <button type="button" className={textButtonTw} onClick={() => setPickerOpen(true)}>+ Adicionar imagens</button>
         
       </div>
       {items.length ? (
-        <div className="vx-gallery-grid">{items.map((item, index) => (
-          <figure key={index} className="vx-gallery-thumb">
-            <img src={item.url} alt={item.alt || "Foto"} loading="lazy" />
-            <div className="vx-gallery-thumb-actions">
-              <button type="button" aria-label="Mover para a esquerda" title="Mover para a esquerda" onClick={() => move(index, -1)}><ChevronUp size={12} aria-hidden="true" /></button>
-              <button type="button" aria-label="Mover para a direita" title="Mover para a direita" onClick={() => move(index, 1)}><ChevronDown size={12} aria-hidden="true" /></button>
-              <button type="button" aria-label="Excluir da galeria" title="Excluir da galeria" onClick={() => removeAt(index)}><X size={12} aria-hidden="true" /></button>
+        <div className={galleryGridTw}>{items.map((item, index) => (
+          <figure key={index} className={galleryThumbTw}>
+            <img className={galleryThumbImgTw} src={item.url} alt={item.alt || "Foto"} loading="lazy" />
+            <div className={galleryActionsTw}>
+              <button type="button" className={galleryActionButtonTw} aria-label="Mover para a esquerda" title="Mover para a esquerda" onClick={() => move(index, -1)}><ChevronUp size={12} aria-hidden="true" /></button>
+              <button type="button" className={galleryActionButtonTw} aria-label="Mover para a direita" title="Mover para a direita" onClick={() => move(index, 1)}><ChevronDown size={12} aria-hidden="true" /></button>
+              <button type="button" className={galleryActionButtonTw} aria-label="Excluir da galeria" title="Excluir da galeria" onClick={() => removeAt(index)}><X size={12} aria-hidden="true" /></button>
             </div>
           </figure>
         ))}</div>
       ) : (
-        <p className="vx-field-hint">Nenhuma imagem ainda — clique em “Adicionar imagens”.</p>
+        <p className={fieldHintTw}>Nenhuma imagem ainda — clique em “Adicionar imagens”.</p>
       )}
     </NodeViewWrapper>
   );
@@ -90,8 +138,8 @@ function YoutubeNodeView(props: any) {
   const { node, selected } = props;
   const id = String(node.attrs.src || "");
   return (
-    <NodeViewWrapper className={"vx-youtube-node" + (selected ? " is-selected" : "")} data-vx-youtube="true">
-      {id ? <iframe src={youtubeEmbedUrl(id)} title={String(node.attrs.title || "Vídeo")} width="100%" height="360" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : <p className="vx-field-hint">Vídeo sem URL — selecione e exclua o bloco.</p>}
+    <NodeViewWrapper className={`${youtubeNodeTw}${selected ? ` ${youtubeNodeSelectedTw}` : ""}`} data-vx-youtube="true">
+      {id ? <iframe className={youtubeIframeTw} src={youtubeEmbedUrl(id)} title={String(node.attrs.title || "Vídeo")} width="100%" height="360" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : <p className={fieldHintTw}>Vídeo sem URL — selecione e exclua o bloco.</p>}
     </NodeViewWrapper>
   );
 }
@@ -111,7 +159,7 @@ export function PostBodyEditor({ value, onChange, placeholder, maxLength = 60000
     immediatelyRender: false,
     extensions: [StarterKit.configure({ heading: { levels: [2, 3, 4] }, link: { openOnClick: false, autolink: false } }), Image, YoutubeEmbed, Gallery],
     content: typeof value === "string" ? value : "",
-    editorProps: { attributes: { role: "textbox", "aria-multiline": "true", "aria-label": rest["aria-label"] || "Corpo do texto", class: "vx-post-body-content" } },
+    editorProps: { attributes: { role: "textbox", "aria-multiline": "true", "aria-label": rest["aria-label"] || "Corpo do texto", "data-vx-post-content": "", class: postContentTw } },
     onUpdate: ({ editor }) => { const html = editor.getHTML(); if (html.length > maxLength) { setNotice("O corpo do texto excedeu o limite de caracteres."); return; } lastEmitted.current = html; setNotice(""); current.current.onChange(html); },
   }, []);
 
@@ -126,39 +174,40 @@ export function PostBodyEditor({ value, onChange, placeholder, maxLength = 60000
   };
   const insertGallery = () => { editor?.chain().focus().insertContent({ type: "gallery", attrs: { items: [] } }).run(); };
   const toolbar = (
-    <div className="vx-post-toolbar" role="toolbar" aria-label="Formatação do texto">
-      <button type="button" title="Desfazer" aria-label="Desfazer" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}><Undo2 size={15} aria-hidden="true" /></button>
-      <button type="button" title="Refazer" aria-label="Refazer" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}><Redo2 size={15} aria-hidden="true" /></button>
-      <span className="vx-post-toolbar-sep" />
-      <button type="button" title="Negrito" aria-label="Negrito" aria-pressed={!!editor?.isActive("bold")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold size={15} aria-hidden="true" /></button>
-      <button type="button" title="Itálico" aria-label="Itálico" aria-pressed={!!editor?.isActive("italic")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic size={15} aria-hidden="true" /></button>
-      <button type="button" title="Sublinhado" aria-label="Sublinhado" aria-pressed={!!editor?.isActive("underline")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()}><Underline size={15} aria-hidden="true" /></button>
-      <button type="button" title="Riscado" aria-label="Riscado" aria-pressed={!!editor?.isActive("strike")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()}><Strikethrough size={15} aria-hidden="true" /></button>
-      <button type="button" title="Título 2" aria-label="Título 2" aria-pressed={!!editor?.isActive("heading", { level: 2 })} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}><b>H2</b></button>
-      <button type="button" title="Título 3" aria-label="Título 3" aria-pressed={!!editor?.isActive("heading", { level: 3 })} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}><b>H3</b></button>
-      <span className="vx-post-toolbar-sep" />
-      <button type="button" title="Lista" aria-label="Lista" aria-pressed={!!editor?.isActive("bulletList")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()}><List size={15} aria-hidden="true" /></button>
-      <button type="button" title="Lista numerada" aria-label="Lista numerada" aria-pressed={!!editor?.isActive("orderedList")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered size={15} aria-hidden="true" /></button>
-      <button type="button" title="Citação" aria-label="Citação" aria-pressed={!!editor?.isActive("blockquote")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote size={15} aria-hidden="true" /></button>
-      <button type="button" title="Bloco de código" aria-label="Bloco de código" aria-pressed={!!editor?.isActive("codeBlock")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}><Code2 size={15} aria-hidden="true" /></button>
-      <span className="vx-post-toolbar-sep" />
-      <button type="button" title="Inserir link" aria-label="Inserir link" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setLinkOpen(v => !v)}><Link2 size={15} aria-hidden="true" /></button>
-            <button type="button" title="Inserir vídeo do YouTube" aria-label="Inserir vídeo do YouTube" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setYoutubeOpen(v => !v)}><Youtube size={15} aria-hidden="true" /></button>
-      <button type="button" title="Inserir galeria de imagens" aria-label="Inserir galeria" disabled={source} onMouseDown={e => e.preventDefault()} onClick={insertGallery}><Images size={15} aria-hidden="true" /></button>
-      <span className="vx-post-toolbar-spacer" />
-      <button type="button" className={source ? "active" : ""} title={source ? "Alternar para modo Visual" : "Alternar para modo Código (HTML)"} aria-label={source ? "Modo Visual" : "Modo Código"} aria-pressed={source} onClick={() => setSource(v => { const next = !v; if (!next && editor) editor.commands.setContent(value || editor.getHTML(), { emitUpdate: false }); return next; })}>{source ? <FileText size={15} aria-hidden="true" /> : <Code2 size={15} aria-hidden="true" />}<small>{source ? "Código" : "Visual"}</small></button>
+    <div className={postToolbarTw} role="toolbar" aria-label="Formatação do texto">
+      <button type="button" className={postToolbarButtonTw} title="Desfazer" aria-label="Desfazer" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}><Undo2 size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Refazer" aria-label="Refazer" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}><Redo2 size={15} aria-hidden="true" /></button>
+      <span className={postToolbarSepTw} />
+      <button type="button" className={postToolbarButtonTw} title="Negrito" aria-label="Negrito" aria-pressed={!!editor?.isActive("bold")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Itálico" aria-label="Itálico" aria-pressed={!!editor?.isActive("italic")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Sublinhado" aria-label="Sublinhado" aria-pressed={!!editor?.isActive("underline")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()}><Underline size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Riscado" aria-label="Riscado" aria-pressed={!!editor?.isActive("strike")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()}><Strikethrough size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Título 2" aria-label="Título 2" aria-pressed={!!editor?.isActive("heading", { level: 2 })} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}><b>H2</b></button>
+      <button type="button" className={postToolbarButtonTw} title="Título 3" aria-label="Título 3" aria-pressed={!!editor?.isActive("heading", { level: 3 })} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}><b>H3</b></button>
+      <span className={postToolbarSepTw} />
+      <button type="button" className={postToolbarButtonTw} title="Lista" aria-label="Lista" aria-pressed={!!editor?.isActive("bulletList")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()}><List size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Lista numerada" aria-label="Lista numerada" aria-pressed={!!editor?.isActive("orderedList")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Citação" aria-label="Citação" aria-pressed={!!editor?.isActive("blockquote")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Bloco de código" aria-label="Bloco de código" aria-pressed={!!editor?.isActive("codeBlock")} disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}><Code2 size={15} aria-hidden="true" /></button>
+      <span className={postToolbarSepTw} />
+      <button type="button" className={postToolbarButtonTw} title="Inserir link" aria-label="Inserir link" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setLinkOpen(v => !v)}><Link2 size={15} aria-hidden="true" /></button>
+            <button type="button" className={postToolbarButtonTw} title="Inserir vídeo do YouTube" aria-label="Inserir vídeo do YouTube" disabled={source} onMouseDown={e => e.preventDefault()} onClick={() => setYoutubeOpen(v => !v)}><Youtube size={15} aria-hidden="true" /></button>
+      <button type="button" className={postToolbarButtonTw} title="Inserir galeria de imagens" aria-label="Inserir galeria" disabled={source} onMouseDown={e => e.preventDefault()} onClick={insertGallery}><Images size={15} aria-hidden="true" /></button>
+      <span className={postToolbarSpacerTw} />
+      <button type="button" className={source ? postToolbarActiveTw : postToolbarButtonTw} title={source ? "Alternar para modo Visual" : "Alternar para modo Código (HTML)"} aria-label={source ? "Modo Visual" : "Modo Código"} aria-pressed={source} onClick={() => setSource(v => { const next = !v; if (!next && editor) editor.commands.setContent(value || editor.getHTML(), { emitUpdate: false }); return next; })}>{source ? <FileText size={15} aria-hidden="true" /> : <Code2 size={15} aria-hidden="true" />}<small>{source ? "Código" : "Visual"}</small></button>
     </div>
   );
   return (
-    <div className="vx-post-body">
+    <div className={postBodyTw}>
+      <style>{POST_CONTENT_CSS}</style>
       {toolbar}
-      {linkOpen && <div className="vx-post-popover"><input aria-label="Endereço do link" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); setNotice(""); } else setNotice("Informe um endereço http(s), mailto: ou tel:."); } }} /><button type="button" className={primaryTw} onClick={() => { const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); } else setNotice("Informe um endereço http(s)."); }}>Inserir</button></div>}
-      {youtubeOpen && <div className="vx-post-popover"><input aria-label="Link do YouTube" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); insertYoutube(); } }} /><button type="button" className={primaryTw} onClick={insertYoutube}>Inserir vídeo</button></div>}
+      {linkOpen && <div className={postPopoverTw}><input className={postPopoverInputTw} aria-label="Endereço do link" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…" style={popoverInputStyle} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); setNotice(""); } else setNotice("Informe um endereço http(s), mailto: ou tel:."); } }} /><button type="button" className={primaryTw} onClick={() => { const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); } else setNotice("Informe um endereço http(s)."); }}>Inserir</button></div>}
+      {youtubeOpen && <div className={postPopoverTw}><input className={postPopoverInputTw} aria-label="Link do YouTube" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" style={popoverInputStyle} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); insertYoutube(); } }} /><button type="button" className={primaryTw} onClick={insertYoutube}>Inserir vídeo</button></div>}
       {source
-        ? <textarea className="vx-post-source" aria-label="Corpo do texto (HTML)" value={value} onChange={e => { onChange(e.target.value); lastEmitted.current = e.target.value; editor?.commands.setContent(e.target.value, { emitUpdate: false }); }} placeholder={placeholder} />
+        ? <textarea className={postSourceTw} style={codeSurfaceStyle} aria-label="Corpo do texto (HTML)" value={value} onChange={e => { onChange(e.target.value); lastEmitted.current = e.target.value; editor?.commands.setContent(e.target.value, { emitUpdate: false }); }} placeholder={placeholder} />
         : <EditorContent editor={editor} />}
-      {notice && <p className="vx-post-notice" role="alert">{notice}</p>}
-      <p className="vx-post-hint">Dica: use o File manager para enviar do PC/celular e depois inserir aqui — a galeria aceita várias imagens de uma vez.</p>
+      {notice && <p className={postNoticeTw} role="alert">{notice}</p>}
+      <p className={postHintTw}>Dica: use o File manager para enviar do PC/celular e depois inserir aqui — a galeria aceita várias imagens de uma vez.</p>
       
     </div>
   );

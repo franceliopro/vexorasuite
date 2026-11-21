@@ -163,6 +163,12 @@ const config: Config = {
       strokeWidth: {
         ov: "5.5",
       },
+      borderWidth: {
+        /* Filete dos eventos na grade do Calendário. */
+        "calendar-event": "3px",
+        /* Borda superior das colunas do Kanban. */
+        "crm-stage": "3px",
+      },
       backdropBlur: {
         topbar: "18px",
       },
@@ -308,6 +314,9 @@ const config: Config = {
         "rw-2": "minmax(0, 1.08fr) minmax(0, 1fr)",
         "rw-hbar": "minmax(88px, 180px) minmax(0, 1fr) 52px",
         "rw-compare": "minmax(0, 1fr) auto auto",
+        /* Grades do Calendário. */
+        "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
+        "calendar-event": "auto auto minmax(0, 1fr) auto auto",
         /* Preferências de lembretes de Tarefas. */
         "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
       },
@@ -323,6 +332,8 @@ const config: Config = {
       },
       minHeight: {
         ov: "150px",
+        /* Célula do mês e largura mínima da lista de compromissos. */
+        "calendar-day": "104px",
         /* Medidas das colunas e cartões do Kanban do CRM. */
         "crm-column": "280px",
         "crm-card": "152px",
@@ -334,6 +345,9 @@ const config: Config = {
         logo: "36px",
         "ib-track": "85dvh",
         "ib-support": "min(82dvh, 780px)",
+        /* Diálogos do Calendário. */
+        "calendar-modal": "90vh",
+        "calendar-event-modal": "calc(100dvh - 24px)",
         "crm-column": "calc(100dvh - var(--top) - 235px)",
       },
       maxWidth: {
@@ -349,12 +363,20 @@ const config: Config = {
         /* Texto de apoio dos Relatórios. */
         "rw-sub": "560px",
         "rw-empty": "420px",
+        /* Diálogos e controles do Calendário. */
+        "calendar-modal": "520px",
+        "calendar-event-modal": "620px",
+        "calendar-copy": "44ch",
+        "calendar-select": "148px",
+        "calendar-chip": "150px",
       },
       width: {
         "profile-popover": "248px",
         "submenu-compact": "220px",
         "ib-track": "min(760px, calc(100vw - 24px))",
         "ib-support": "min(620px, calc(100vw - 24px))",
+        /* Filete redimensionável entre grade e lista. */
+        "calendar-handle": "6px",
         /* Filete de tom à esquerda dos cartões do Kanban. */
         "crm-accent": "3px",
         /* Medidas dos gráficos dos Relatórios. */
@@ -365,6 +387,12 @@ const config: Config = {
         "submenu-compact": "220px",
         "crm-select": "220px",
         "rw-legend": "170px",
+        "calendar-event-date": "58px",
+        "calendar-month": "118px",
+      },
+      height: {
+        /* Prévia do local no mapa. */
+        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       zIndex: {
         sidebar: "40",

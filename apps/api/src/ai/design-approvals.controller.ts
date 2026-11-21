@@ -105,7 +105,7 @@ export class DesignApprovalsController {
     const visionImages = await this.toVisionImages([...(og?.imageUrl ? [og.imageUrl] : []), ...referenceImages], req.user.tenantId);
 
     // Pesquisa apenas quando o cliente autoriza a política de busca externa; a referência do Instagram é o insumo principal.
-    const brand = /^#[\da-f]{6}$/i.test(String(root.brandSettings?.primaryColor)) ? String(root.brandSettings.primaryColor) : "#2E7CF6";
+    const brand = /^#[\da-f]{6}$/i.test(String(root.brandSettings?.primaryColor)) ? String(root.brandSettings.primaryColor) : "#1D4ED8";
     const skillText = persona.trim() || skillInstructions(root, "media.instagram.redesign");
     const instructions = (skillText || "Recrie o carrossel de referência com a identidade da empresa.") + ` Formato: ${format === "STORIES" ? "Stories vertical 1080x1920" : "Post/Carrossel 1080x1440"}. Retorne SOMENTE JSON: {"title":"até 120 caracteres","caption":"legenda até 2000 caracteres","slides":[{"title":"até 75 caracteres","body":"até 420 caracteres"}]}. Use 4 a 6 lâminas de conteúdo e a última de CTA.`;
     const brief = [

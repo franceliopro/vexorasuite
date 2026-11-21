@@ -137,7 +137,7 @@ const canvasStageBar = "flex min-h-flow-stage-bar flex-wrap items-center justify
 const canvasStageBarGroup = "flex flex-wrap items-center gap-1.5";
 const canvasStageButton = "inline-flex min-h-7 items-center gap-2 rounded-flow-field-tip border border-line bg-surface-2 px-2.5 text-flow-stage font-bold text-ink-secondary transition-control hover:border-line-strong hover:bg-hover hover:text-ink";
 const canvasStageZoom = "min-w-flow-command-h text-center text-flow-zoom font-bold tabular-nums text-ink-secondary";
-const canvasScroll = "relative min-h-0 w-full flex-1 touch-none select-none overflow-clip bg-surface-page outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600";
+const canvasScroll = "relative min-h-0 w-full flex-1 touch-none select-none overflow-clip bg-surface-page outline-hidden focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600";
 const canvasScrollPanning = "cursor-grabbing";
 const canvasGrid = "bg-flow-grid bg-flow-grid-size";
 const canvasBoard = "absolute left-0 top-0 h-px w-px overflow-visible";
@@ -261,7 +261,7 @@ function PhoneSimulator({ botName, welcome, preview, chips, onReply, onClose, fu
             {preview.slice(1).map((t, i) => <div key={i} className={i % 2 === 1 ? `${phoneBubble} self-end rounded-tr-phone-tail bg-phone-sent` : `${phoneBubble} rounded-tl-phone-tail bg-phone-chrome`}>{t}{i % 2 === 1 ? <span className={phoneTicks} aria-hidden="true">✓✓</span> : null}</div>)}
             {chips && chips.length ? <div className={phoneQuickReplies} role="group" aria-label="Opções do robô">{chips.map((chip, i) => <button key={i} type="button" className={phoneChip} onClick={chip.onChoose}>{chip.label}</button>)}</div> : null}
           </div>
-          {onReply?<form className={phoneComposer} onSubmit={e=>{e.preventDefault();if(reply.trim()){onReply(reply.trim());setReply("");}}}><input className="flex min-w-0 flex-1 rounded-full bg-phone-divider px-phone-pill-x py-phone-pill-y text-phone-bubble text-phone-ink outline-none placeholder:text-phone-muted" aria-label="Resposta do cliente" placeholder="Mensagem" maxLength={500} value={reply} onChange={e=>setReply(e.target.value)}/><button className={phoneMic} type="submit" aria-label="Enviar resposta">➤</button></form>:<div className={phoneComposer} aria-hidden="true">
+          {onReply?<form className={phoneComposer} onSubmit={e=>{e.preventDefault();if(reply.trim()){onReply(reply.trim());setReply("");}}}><input className="flex min-w-0 flex-1 rounded-full bg-phone-divider px-phone-pill-x py-phone-pill-y text-phone-bubble text-phone-ink outline-hidden placeholder:text-phone-muted" aria-label="Resposta do cliente" placeholder="Mensagem" maxLength={500} value={reply} onChange={e=>setReply(e.target.value)}/><button className={phoneMic} type="submit" aria-label="Enviar resposta">➤</button></form>:<div className={phoneComposer} aria-hidden="true">
             <span className={phoneComposerPill}><Smile size={19} /><span className={phoneComposerHint}>Mensagem</span><Paperclip size={18} /><Camera size={18} /></span>
             <span className={phoneMic}><Mic size={17} /></span>
           </div>

@@ -374,7 +374,7 @@ function Donut({ segments, totalLabel }: { segments: Array<{ label: string; valu
       <ul className="grid min-w-rw-legend list-none gap-2.5 p-0" data-print="legend">
         {segments.map((segment) => (
           <li key={segment.label} className="flex items-center gap-2.5 text-xs text-slate-600" data-print="legend-item">
-            <span className="inline-block h-rw-dot w-rw-dot flex-none rounded" data-print="legend-dot" style={{ background: segment.color }} aria-hidden="true" />
+            <span className="inline-block h-rw-dot w-rw-dot flex-none rounded-sm" data-print="legend-dot" style={{ background: segment.color }} aria-hidden="true" />
             <span className="min-w-0 flex-1" data-print="legend-label">{segment.label}</span>
             <strong className="tabular-nums text-ink" data-print="legend-value">{numberBR(segment.value)}</strong>
           </li>
@@ -733,14 +733,14 @@ function ReportsWorkspaceInner() {
           <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={() => window.print()} title="Gera o PDF pela impressão do navegador">
             <Printer size={15} aria-hidden="true" /> Baixar PDF
           </button>
-          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 text-blue-900 shadow-vx-brand hover:from-blue-100 hover:via-blue-700 hover:to-blue-700" data-print="btn btn-primary" onClick={exportCsv} title="Exporta a seção ativa em CSV (Excel)">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 text-blue-900 shadow-vx-brand hover:from-blue-100 hover:via-blue-700 hover:to-blue-700" data-print="btn btn-primary" onClick={exportCsv} title="Exporta a seção ativa em CSV (Excel)">
             <FileDown size={15} aria-hidden="true" /> Exportar CSV
           </button>
         </div>
       </div>
 
       {/* Filtro de período — somente tela */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-token border border-line bg-gradient-to-b from-zinc-100 to-zinc-50 p-3.5 shadow-token-sm rw-laptop:flex-col rw-laptop:items-start print:hidden" data-print="period no-print">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-token border border-line bg-linear-to-b from-zinc-100 to-zinc-50 p-3.5 shadow-token-sm rw-laptop:flex-col rw-laptop:items-start print:hidden" data-print="period no-print">
         <div className="flex flex-wrap gap-1.5" data-print="presets" role="group" aria-label="Selecionar período">
           {PRESETS.map((option) => (
             <button

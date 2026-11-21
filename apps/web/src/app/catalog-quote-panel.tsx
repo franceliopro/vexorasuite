@@ -4,7 +4,7 @@ import { Trash2, CirclePlus } from "lucide-react";
 
 type Item = { id: string; kind: string; name: string; description: string; sku?: string | null; priceCents: number; currency: string; unit: string; imageUrl?: string | null; category?: string | null };
 
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 
 /**
  * Assistente de orçamento para a inbox: seleciona itens do catálogo,

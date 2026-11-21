@@ -314,7 +314,7 @@ export default function FichaCliente({
                   <input
                     type="checkbox"
                     checked={termsChecked}
-                    className="rounded accent-brand"
+                    className="rounded-sm accent-brand"
                     readOnly
                   />
                   <span className="text-sm text-ink-secondary transition-colors group-hover:text-brand">
@@ -471,7 +471,7 @@ function HistoricoTab({ contact }: { contact: Contact }) {
     <div className="space-y-3">
       {entries.map((item, i) => (
         <div key={i} className="flex items-start gap-3 rounded-token-sm border border-line bg-surface-2 p-3">
-          <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-brand" />
+          <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
           <div className="flex-1">
             <p className="text-xs leading-relaxed text-ink">{item.what}</p>
             <div className="flex justify-between mt-1">

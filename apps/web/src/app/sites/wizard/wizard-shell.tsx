@@ -559,7 +559,7 @@ export default function WizardShell({
           >
             {busy ? (
               <>
-                <Loader2 size={15} className="vx-spin" aria-hidden="true" style={{ marginRight: 6 }} />
+                <Loader2 size={15} className="animate-spin" aria-hidden="true" style={{ marginRight: 6 }} />
                 Criando…
               </>
             ) : (

@@ -163,7 +163,7 @@ export function Canvas({
     return (
       <section className="vx-canvas vx-canvas-loading" aria-label="Preview do site">
         <div className="vx-canvas-empty">
-          <Loader2 size={24} className="vx-spin" aria-hidden="true" />
+          <Loader2 size={24} className="animate-spin" aria-hidden="true" />
           <span>Carregando preview…</span>
         </div>
       </section>

@@ -2,6 +2,9 @@
 import { use, useEffect, useState } from "react";
 import { CheckCircle2, Loader2, Rocket, XCircle } from "lucide-react";
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryDangerTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-red-600 shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+
 type Channel = { id: string; name: string; platform: string; accountId: string; username: string };
 type Payload = { title: string; caption: string; slides: number; format: string; brand: string; company: string; status: string; channels: Channel[] };
 
@@ -52,7 +55,7 @@ export default function DesignApprovalPage({ params }: { params: Promise<{ token
   };
 
   if (!payload) {
-    return <main className="design-approval-shell"><section className="design-approval-card" role="status">{error ? <><h1>Link inválido</h1><p>{error}</p></> : <><Loader2 size={28} className="vx-spin" aria-hidden="true" /><p>Carregando o design…</p></>}</section></main>;
+    return <main className="design-approval-shell"><section className="design-approval-card" role="status">{error ? <><h1>Link inválido</h1><p>{error}</p></> : <><Loader2 size={28} className="animate-spin" aria-hidden="true" /><p>Carregando o design…</p></>}</section></main>;
   }
   const published = payload.status === "PUBLISHED";
   return (
@@ -76,7 +79,7 @@ export default function DesignApprovalPage({ params }: { params: Promise<{ token
           <div className="design-approval-done" role="status">{decision === "approve" ? <CheckCircle2 size={30} aria-hidden="true" /> : <XCircle size={30} aria-hidden="true" />}<h2>{done}</h2></div>
         ) : (
           <div className="design-approval-actions">
-            <button className="secondary-button danger-button" disabled={busy} onClick={() => void reject()}><XCircle size={16} aria-hidden="true" /> Rejeitar</button>
+            <button className={secondaryDangerTw} disabled={busy} onClick={() => void reject()}><XCircle size={16} aria-hidden="true" /> Rejeitar</button>
             <div className="design-approval-publish">
               {payload.channels.length > 0 && (<>
                 <p className="sites-field-label">Ao aprovar, publicar também em:</p>
@@ -86,7 +89,7 @@ export default function DesignApprovalPage({ params }: { params: Promise<{ token
                 <label className="design-approval-publish-toggle"><input type="checkbox" checked={publishNow} disabled={Object.values(selected).every(v => !v)} onChange={e => setPublishNow(e.target.checked)} /> Publicar agora ao aprovar</label>
               </>)}
               {payload.channels.length === 0 && <p className="design-approval-nochannel">Nenhuma rede Zernio conectada ainda — a aprovação fica salva na véxora e você publica quando quiser.</p>}
-              <button className="primary-button" disabled={busy || (publishNow && payload.channels.length > 0 && Object.values(selected).every(v => !v))} onClick={() => void approve(publishNow && payload.channels.length > 0 && Object.values(selected).some(Boolean))}>{busy ? <Loader2 size={16} className="vx-spin" aria-hidden="true" /> : <Rocket size={16} aria-hidden="true" />} {publishNow && payload.channels.length > 0 && Object.values(selected).some(Boolean) ? "Aprovar e publicar agora" : "Aprovar (publicar no sistema)"}</button>
+              <button className={primaryTw} disabled={busy || (publishNow && payload.channels.length > 0 && Object.values(selected).every(v => !v))} onClick={() => void approve(publishNow && payload.channels.length > 0 && Object.values(selected).some(Boolean))}>{busy ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Rocket size={16} aria-hidden="true" />} {publishNow && payload.channels.length > 0 && Object.values(selected).some(Boolean) ? "Aprovar e publicar agora" : "Aprovar (publicar no sistema)"}</button>
             </div>
           </div>
         )}

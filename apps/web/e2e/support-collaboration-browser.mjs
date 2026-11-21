@@ -122,14 +122,14 @@ try{
  })).toEqual({background:"rgb(244, 103, 8)",rail:"rgb(244, 103, 8)",text:"rgb(32, 25, 9)"});
  const shadow=await activeItem.evaluate(item=>getComputedStyle(item).boxShadow);
  assert.match(shadow,/rgba\(255, 255, 255, 0\.12\)/);
- await expect(page.locator("[data-testid='ib-support-context'], .inbox-assume-wrap")).toHaveCount(0);
+ await expect(page.locator("[data-testid='ib-support-context'], [data-testid='inbox-assume-wrap']")).toHaveCount(0);
  const composer=page.getByRole("textbox",{name:"Mensagem",exact:true});
  const assume=page.getByRole("button",{name:"Assumir conversa",exact:true});
  await expect(composer).toHaveCount(0);
  await expect(page.getByText("Em atendimento pelo chatbot.")).toBeVisible();
  await assume.click();
  await expect(composer).toBeVisible();
- const statusMenu=page.locator(".thread-status-pill");
+ const statusMenu=page.locator("[data-testid='thread-status-pill']");
  await expect(statusMenu.getByRole("menuitem",{name:"Contexto e apoio"})).toBeHidden();
  await statusMenu.locator("summary").click();
  await statusMenu.getByRole("menuitem",{name:"Contexto e apoio"}).click();
@@ -177,19 +177,19 @@ try{
  await expect(page.getByText("Setor duplicado como “Financeiro B”.")).toBeVisible();
  await expect(page.getByText("Financeiro B",{exact:true})).toBeVisible();
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
- const thread=page.locator(".inbox-thread");
+ const thread=page.locator("[data-testid='inbox-thread']");
  const profile=page.locator("[data-testid='contact-profile']");
  await expect(profile).toBeVisible();
  await expect(page.locator('.sidebar [aria-label="Ajuda"]')).toHaveCount(0);
- await expect(page.locator("header.thread-heading")).toHaveCSS("margin-bottom","0px");
- const composerButtons=page.locator(".composer-tools > button, .composer-tools > .composer-tool-wrap > button");
+ await expect(page.locator("[data-testid='thread-heading']")).toHaveCSS("margin-bottom","0px");
+ const composerButtons=page.locator("[data-testid='composer-tools'] > button, [data-testid='composer-tools'] > [data-composer-tool-wrap='true'] > button");
  const buttonLabels=["Ferramentas da conversa","Responder","Emojis","Anexar","Melhorar texto com IA"];
  await expect(composerButtons).toHaveCount(buttonLabels.length);
  for (const [index, label] of buttonLabels.entries()) {
   await expect(composerButtons.nth(index)).toBeVisible();
   await expect(composerButtons.nth(index)).toHaveAccessibleName(label);
  }
- await expect(page.locator(".composer-tabs-row")).toHaveCount(0);
+ await expect(page.locator("[data-testid='composer-tabs-row']")).toHaveCount(0);
  const originalWidth=(await thread.boundingBox()).width;
  await profile.getByRole("button",{name:"Recolher ficha"}).click();
  await expect.poll(async()=>Math.round((await profile.boundingBox()).width)).toBeLessThanOrEqual(54);
@@ -202,14 +202,14 @@ try{
  await expect(profile.getByRole("button",{name:"Recolher ficha"})).toBeVisible();
  await composer.focus();
  await page.keyboard.insertText("/");
- await expect(page.locator(".quick-replies-popover")).toBeVisible();
+ await expect(page.locator("[data-testid='quick-replies-popover']")).toBeVisible();
  await expect(composer).toHaveValue("");
  await page.keyboard.press("Escape");
  await page.keyboard.press("Alt+r");
- await expect(page.locator(".quick-replies-popover")).toBeHidden();
+ await expect(page.locator("[data-testid='quick-replies-popover']")).toBeHidden();
  await page.keyboard.insertText("https://example.test/pagina");
  await expect(composer).toHaveValue("https://example.test/pagina");
- await expect(page.locator(".quick-replies-popover")).toBeHidden();
+ await expect(page.locator("[data-testid='quick-replies-popover']")).toBeHidden();
  await composer.fill("");
  const tools=page.getByRole("button",{name:"Ferramentas da conversa"});
  await tools.click();
@@ -219,19 +219,19 @@ try{
  }
  await page.keyboard.press("Escape");
  await expect(menu).toBeHidden();
- const mode=page.locator(".composer-mode-button");
+ const mode=page.locator("[data-testid='composer-mode-button']");
  await expect(mode).toHaveAccessibleName("Responder");
  await page.keyboard.press("Alt+p");
  await expect(mode).toHaveAccessibleName("Nota privada");
- await expect(page.locator(".inbox-composer")).toHaveCSS("border-top-style","dashed");
+ await expect(page.locator("[data-testid='inbox-composer']")).toHaveCSS("border-top-style","dashed");
  await page.keyboard.press("Alt+p");
  await expect(mode).toHaveAccessibleName("Responder");
 
  async function checkRecording(expectedCount) {
   await page.getByRole("button",{name:"Gravar áudio",exact:true}).click();
-  await expect(page.locator(".voice-wave")).toBeVisible();
-  await expect.poll(()=>page.locator(".voice-wave span").count()).toBe(26);
-  await expect.poll(()=>page.locator(".voice-wave span").evaluateAll(bars=>bars.some(bar=>parseFloat(bar.style.height)>4))).toBe(true);
+  await expect(page.locator("[data-testid='voice-wave']")).toBeVisible();
+  await expect.poll(()=>page.locator("[data-testid='voice-wave'] span").count()).toBe(26);
+  await expect.poll(()=>page.locator("[data-testid='voice-wave'] span").evaluateAll(bars=>bars.some(bar=>parseFloat(bar.style.height)>4))).toBe(true);
   await page.getByRole("button",{name:"Enviar áudio",exact:true}).click();
   await expect.poll(()=>attachmentRequests.filter(message=>message.kind==="audio").length).toBe(expectedCount);
  }
@@ -270,7 +270,7 @@ try{
  await page.keyboard.press("Escape");
  await composer.focus();
  await page.keyboard.insertText("/");
- await expect(page.locator(".quick-replies-popover")).toBeVisible();
+ await expect(page.locator("[data-testid='quick-replies-popover']")).toBeVisible();
  await page.keyboard.press("Escape");
  await page.keyboard.press("Alt+c");
  await expect(profile).toBeVisible();
@@ -298,7 +298,7 @@ try{
  const fullscreen=page.getByRole("button",{name:"Tela cheia",exact:true});
  await expect(fullscreen).toBeVisible();
  await fullscreen.click();
- await expect(page.locator(".inbox-workspace")).toHaveClass(/inbox-full-screen/);
+ await expect(page.locator("[data-testid='inbox-workspace']")).toHaveAttribute("data-fullscreen","true");
  await expect(dock).toBeHidden();
  const exitFullscreen=page.getByRole("button",{name:"Sair de tela cheia",exact:true});
  await expect(exitFullscreen).toBeVisible();

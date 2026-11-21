@@ -260,7 +260,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
                   : "A fila acabou de começar. Os anéis mostram o tempo de espera de cada conversa."
                 : "A fila está em dia. Quando alguém precisar de uma pessoa, a conversa aparece aqui com o tempo de espera."}
             </p>
-            <button type="button" className="primary-button" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
+            <button type="button" className="primary-button justify-self-start" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
           </div>
           <div className="flex flex-wrap items-start justify-end gap-2 ov-tablet:justify-start">
             {(waiting?.items || []).slice(0, 3).map((item) => (
@@ -359,7 +359,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         ) : <p className="py-6 text-center text-small text-slate-600">Os atendimentos desta empresa aparecerão aqui.</p>}
       </article>
 
-      <article className="col-span-2 grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5 ov-laptop:col-span-1">
+      <article className="grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-h2 font-heading text-slate-950">Atendimentos por hora</h2><p className="mt-0.5 text-small text-slate-600">Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-ov-micro font-bold text-blue-800"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
@@ -367,7 +367,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         {hourly ? <HourlyChart hourly={hourly} /> : <p className="py-6 text-center text-small text-slate-600">Aguardando os primeiros atendimentos.</p>}
       </article>
 
-      <article className="col-span-2 grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5 ov-laptop:col-span-1">
+      <article className="grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5">
         <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-h2 font-heading text-slate-950">Do que as pessoas falam</h2><p className="mt-0.5 text-small text-slate-600">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-ov-micro font-bold text-slate-600">Top {topics.length || 0}</span></header>
         {topics.length ? (
           <div className="grid grid-cols-ov-topics gap-4 ov-tablet:grid-cols-1">

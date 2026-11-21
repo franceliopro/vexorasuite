@@ -310,6 +310,7 @@ const config: Config = {
         /* Cantos dos cartões de status das conexões de IA. */
         "provider-overview": "14px",
         "provider-item": "12px",
+        "crm-icon": "9px",
         "provider-pill": "6px",
         "provider-alert": "10px",
         /* Pílula de tag do catálogo do CRM. */
@@ -448,6 +449,7 @@ const config: Config = {
         "channels-meta": ["11.5px", { lineHeight: "1.5" }],
         "channels-field": ["12.5px", { lineHeight: "1.45" }],
         "asaas-label": "11px",
+        "crm-field": "11px",
         "asaas-muted": ["10.5px", { lineHeight: "1.5" }],
         /* Textos do painel de conexões de IA e pesquisa. */
         "provider-note": ["11px", { lineHeight: "1.55" }],
@@ -592,6 +594,9 @@ const config: Config = {
         /* Tags e linhas do catálogo de campos do CRM. */
         "cf-tag-x": "9px",
         "cf-tag-h": "23px",
+        "crm-icon": "34px",
+        "crm-ficha-avatar": "42px",
+        "crm-outcome": "76px",
         /* Medidas dos painéis do Financeiro. */
         "fin-hero-x": "28px",
         "fin-hero-y": "26px",
@@ -768,6 +773,7 @@ const config: Config = {
         "ov-widgets": "minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr)",
         "ov-onboarding-steps": "repeat(auto-fit, minmax(220px, 1fr))",
         "ov-dock": "repeat(auto-fit, minmax(84px, 120px))",
+        "crm-form": "repeat(auto-fit, minmax(240px, 1fr))",
         "ov-calendar": "repeat(7, minmax(0, 1fr))",
         "ov-activity-row": "auto minmax(0, 1fr) auto",
         /* Grades dos diálogos do Atendimento. */
@@ -913,6 +919,7 @@ const config: Config = {
         "crm-copy": "560px",
         "crm-select": "340px",
         "crm-search": "360px",
+        "crm-form": "920px",
         "ib-copy": "42ch",
         "ib-bubble": "min(78%, 560px)",
         "ib-quote-empty": "70%",

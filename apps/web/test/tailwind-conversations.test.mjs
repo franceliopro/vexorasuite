@@ -36,7 +36,7 @@ test("a Conversa não usa classes componente legadas", () => {
   assert.doesNotMatch(classes, /\b(?:ov|vx|conversation|channel)-[a-z][a-z0-9-]*/);
   assert.doesNotMatch(classes, /\b(?:content-card|primary-button|secondary-button|icon-button|dialog-close|chip|ai-toggle)\b/);
   // ib-* aparece só como sufixo de utility do preset, nunca como classe componente.
-  const ibUtility = /^(?:font-ib(?:-[a-z0-9-]+)?|(?:ib-(?:desktop|narrow|mobile|wide|shell):[a-z0-9:/.-]+)|(?:(?:bg|text|h|w|min-h|max-h|min-w|max-w|size|shadow|rounded|border(?:-[tblr])?|gap(?:-[xy])?|p(?:[tblrxy])?|m(?:[tblrxy])?|font|grid-cols|grid-rows|col-span|justify-self|top|right|bottom|left|z|tracking|space-[xy])-ib-[a-z0-9-]+))$/;
+  const ibUtility = /^(?:font-ib(?:-[a-z0-9-]+)?|(?:ib-(?:desktop|narrow|mobile|wide|shell|grid|grid-ficha):[a-z0-9:/.-]+)|(?:(?:bg|text|h|w|min-h|max-h|min-w|max-w|size|shadow|rounded|border(?:-[tblr])?|gap(?:-[xy])?|p(?:[tblrxy])?|m(?:[tblrxy])?|font|grid-cols|grid-rows|col-span|justify-self|top|right|bottom|left|z|tracking|space-[xy])-ib-[a-z0-9-]+))$/;
   for (const token of classes.split(/\s+/).filter((part) => /(?:^|-)ib(?:-|$)/.test(part))) {
     assert.match(token, ibUtility, `classe ib-* não autorizada: ${token}`);
   }
@@ -279,7 +279,10 @@ test("o shell do workspace usa TW e preserva os hooks de estado", () => {
   }
   assert.doesNotMatch(values, /\b(?:inbox-workspace|inbox-thread|inbox-composer|composer-shell|composer-tools|composer-icon-button|thread-heading|thread-header-actions|inbox-queue-button|handoff-option|message-line|message-bubble|quick-reply-use|emoji-category|finalization-outcome|ficha-open|ficha-compact|mobile-thread-open|inbox-full-screen|composer-is-note|more-open|is-alert|recording|active|selected|won|lost)\b/);
   for (const utility of [
-    "grid h-ib-workspace min-h-ib-workspace grid-cols-ib-workspace gap-3 ib-shell:grid-cols-1",
+    "h-ib-workspace min-h-ib-workspace grid-cols-1 gap-3 ib-grid:grid-cols-ib-workspace-resize",
+    "ib-grid-ficha:grid-cols-ib-workspace-resize-ficha",
+    "ib-grid-ficha:grid-cols-ib-workspace-resize-compact",
+    "ib-shell:grid-cols-1",
     "grid-cols-ib-supervision",
     "max-w-ib-bubble",
     "z-ib-overlay",

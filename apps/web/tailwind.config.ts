@@ -25,6 +25,10 @@ const config: Config = {
         /* Cortes próprios do Atendimento. */
         "ib-narrow": { raw: "(max-width: 600px)" },
         "ib-mobile": { raw: "(max-width: 520px)" },
+        /* Cortes próprios dos Relatórios. */
+        "rw-wide": { raw: "(max-width: 1100px)" },
+        "rw-laptop": { raw: "(max-width: 900px)" },
+        "rw-mobile": { raw: "(max-width: 560px)" },
       },
       colors: {
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
@@ -141,6 +145,20 @@ const config: Config = {
         "vx-brand-mark": "var(--vx-core-brand-mark)",
         "vx-nav-active": "var(--vx-core-nav-active)",
         "vx-control": "var(--vx-core-control-bg)",
+        /** Shimmer dos skeletons de Relatórios. */
+        "rw-shimmer": "linear-gradient(100deg,var(--s3) 20%,var(--hover) 40%,var(--s3) 60%)",
+      },
+      backgroundSize: {
+        "rw-shimmer-size": "200% 100%",
+      },
+      keyframes: {
+        "rw-shimmer": {
+          "0%": { backgroundPosition: "120% 0" },
+          "100%": { backgroundPosition: "-80% 0" },
+        },
+      },
+      animation: {
+        "rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite",
       },
       strokeWidth: {
         ov: "5.5",
@@ -150,6 +168,8 @@ const config: Config = {
         "calendar-event": "3px",
         /* Borda superior das colunas do Kanban. */
         "crm-stage": "3px",
+        /* Filete de destaque das notas de escopo dos Relatórios. */
+        "rw-accent": "3px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -214,6 +234,13 @@ const config: Config = {
         "ov-onboarding": ["16px", { lineHeight: "1.35" }],
         /* Títulos dos diálogos do Atendimento. */
         "ib-title": ["1.2rem", { lineHeight: "1.3" }],
+        /* Escalas dos Relatórios. */
+        "rw-title": ["clamp(26px, 2.4vw, 34px)", { lineHeight: "1.05", letterSpacing: "-.03em" }],
+        "rw-value": ["clamp(21px, 1.9vw, 29px)", { lineHeight: "1.15", letterSpacing: "-.03em" }],
+        "rw-card-title": ["15px", { lineHeight: "1.35", letterSpacing: "-.015em" }],
+        "rw-hint": "11.5px",
+        "rw-kpi-label": "10.5px",
+        "rw-donut-total": ["22px", { letterSpacing: "-.02em" }],
       },
       fontWeight: {
         heading: "750",
@@ -278,6 +305,11 @@ const config: Config = {
         /* Grades dos diálogos do Atendimento. */
         "ib-track": "minmax(0, 1fr) minmax(0, 1.4fr)",
         "ib-field": "minmax(0, 1fr) minmax(0, 1.4fr) auto",
+        /* Grades dos relatórios. */
+        "rw-kpi": "repeat(auto-fit, minmax(158px, 1fr))",
+        "rw-2": "minmax(0, 1.08fr) minmax(0, 1fr)",
+        "rw-hbar": "minmax(88px, 180px) minmax(0, 1fr) 52px",
+        "rw-compare": "minmax(0, 1fr) auto auto",
         /* Grades do Calendário. */
         "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
         "calendar-event": "auto auto minmax(0, 1fr) auto auto",
@@ -286,6 +318,15 @@ const config: Config = {
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
+      },
+      height: {
+        /* Skeleton dos Relatórios. */
+        "rw-skel-card": "118px",
+        "rw-skel-chart": "190px",
+        "rw-skel-chart-short": "150px",
+        "rw-donut": "132px",
+        /* Prévia do local no mapa do Calendário. */
+        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       minHeight: {
         ov: "150px",
@@ -317,6 +358,9 @@ const config: Config = {
         "crm-copy": "560px",
         "crm-select": "340px",
         "crm-search": "360px",
+        /* Texto de apoio dos Relatórios. */
+        "rw-sub": "560px",
+        "rw-empty": "420px",
         /* Diálogos e controles do Calendário. */
         "calendar-modal": "520px",
         "calendar-event-modal": "620px",
@@ -333,16 +377,16 @@ const config: Config = {
         "calendar-handle": "6px",
         /* Filete de tom à esquerda dos cartões do Kanban. */
         "crm-accent": "3px",
+        /* Medidas dos gráficos dos Relatórios. */
+        "rw-donut": "132px",
+        "rw-dot": "11px",
       },
       minWidth: {
         "submenu-compact": "220px",
         "crm-select": "220px",
+        "rw-legend": "170px",
         "calendar-event-date": "58px",
         "calendar-month": "118px",
-      },
-      height: {
-        /* Prévia do local no mapa. */
-        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       zIndex: {
         sidebar: "40",

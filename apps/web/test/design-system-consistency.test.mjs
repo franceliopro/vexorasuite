@@ -25,7 +25,7 @@ test("content reserves the dock gutter exactly once", () => {
 
 test("the inbox thread fills the remaining viewport instead of magic numbers", () => {
   assert.doesNotMatch(vexoraCss, /100dvh - 58px - 62px/);
-  assert.match(vexoraCss, /\.inbox-workspace\.mobile-thread-open \.inbox-thread\{[^}]*height:100%/);
+  assert.match(vexoraCss, /\[data-testid='inbox-workspace'\]\[data-mobile-thread='true'\] \[data-testid='inbox-thread'\]\{[^}]*height:100%/);
 });
 
 test("the app shell height uses the --top token", () => {

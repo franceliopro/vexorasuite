@@ -34,14 +34,14 @@ test("inbox separates loading states from empty states", () => {
 test("conversation load failures stop loading and expose a retry", () => {
   assert.match(source, /const \[conversationLoadError, setConversationLoadError\] = useState\(""\)/);
   assert.match(source, /setConversationLoadError\(e instanceof Error \? e\.message : "Não foi possível atualizar as conversas\./);
-  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /data-testid="inbox-list-error" role="alert"/);
   assert.match(source, /onClick=\{\(\) => void loadConversations\(\)\}/);
 });
 
 test("message selection clears stale history and exposes a retry", () => {
   assert.match(source, /const \[messageLoadError, setMessageLoadError\] = useState\(""\)/);
   assert.match(source, /setMessages\(\[\]\);\s*setHasOlderMessages\(false\);\s*setMessageLoadError\(""\);/);
-  assert.match(source, /className="inbox-list-error" role="alert"/);
+  assert.match(source, /data-testid="inbox-list-error" role="alert"/);
   assert.match(source, /Não foi possível carregar as mensagens\./);
   assert.match(source, /message\.deleted/);
 });

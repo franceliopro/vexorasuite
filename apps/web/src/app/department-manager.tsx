@@ -10,6 +10,11 @@ const categoryMeta: Record<string, { label: string; icon: typeof Landmark; tone:
   OTHER: { label: "Outro", icon: Boxes, tone: "tone-slate" },
 };
 const categoryMetaOf = (value?: string) => categoryMeta[value || "OTHER"] || categoryMeta.OTHER!;
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const dangerTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-red-600 bg-red-100 px-4 text-body font-bold text-red-600 transition-colors hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-60";
+const dangerTextTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-red-600 transition-colors hover:bg-surface hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60";
 const initialsOf = (name: string) => {
   const parts = (name || "?").trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] || "?";
@@ -213,7 +218,7 @@ export function DepartmentManager() {
           <p>Cada empresa define seus setores; nenhum setor genérico é criado automaticamente.</p>
         </div>
         <span className="department-count">{rows.length} {rows.length === 1 ? "setor" : "setores"}</span>
-        <button className="primary-button" onClick={() => edit()}>
+        <button className={primaryTw} onClick={() => edit()}>
           + Criar setor
         </button>
       </div>
@@ -228,8 +233,8 @@ export function DepartmentManager() {
         <label><input type="checkbox" checked={copy.copyMembers} onChange={event => setCopy({ ...copy, copyMembers: event.target.checked })} /> Copiar atendentes</label>
         <p>As rotinas copiadas começam desativadas. Para outra plataforma, configure a agenda no novo setor.</p>
         <div className="workspace-actions">
-          <button type="submit" className="primary-button" disabled={busy || !copy.name.trim()}>Confirmar duplicação</button>
-          <button type="button" className="text-button" disabled={busy} onClick={() => setCopy(null)}>Cancelar</button>
+          <button type="submit" className={primaryTw} disabled={busy || !copy.name.trim()}>Confirmar duplicação</button>
+          <button type="button" className={textButtonTw} disabled={busy} onClick={() => setCopy(null)}>Cancelar</button>
         </div>
       </form>}
       {editing && (
@@ -352,12 +357,12 @@ export function DepartmentManager() {
             habilitado, além da administração.
           </p>
           <div className="workspace-actions">
-            <button className="primary-button" disabled={busy}>
+            <button className={primaryTw} disabled={busy}>
               Salvar setor
             </button>
             <button
               type="button"
-              className="text-button"
+              className={textButtonTw}
               onClick={() => setEditing(false)}
             >
               Cancelar
@@ -400,14 +405,14 @@ export function DepartmentManager() {
                 <small>{assignedAgents.length} {assignedAgents.length === 1 ? "atendente" : "atendentes"} no setor</small>
               </div>
               <div className="department-card-actions">
-                <button className="secondary-button" onClick={() => edit(d)}>{d.isActive ? "Editar" : "Reativar"}</button>
+                <button className={secondaryTw} onClick={() => edit(d)}>{d.isActive ? "Editar" : "Reativar"}</button>
                 {d.isActive && (
-                  <button className="secondary-button" disabled={busy} onClick={() => prepareDuplicate(d)} title="Duplicar configuração do setor"><Copy size={13} aria-hidden="true" /> Duplicar</button>
+                  <button className={secondaryTw} disabled={busy} onClick={() => prepareDuplicate(d)} title="Duplicar configuração do setor"><Copy size={13} aria-hidden="true" /> Duplicar</button>
                 )}
                 {d.isActive && (
-                  <button className="text-button danger-text" disabled={busy} onClick={() => { if (window.confirm("Desativar " + d.name + "? O acesso do setor ser\u00e1 revogado e o hist\u00f3rico ser\u00e1 preservado.")) void save({}, "DELETE", d.id); }}>Desativar</button>
+                  <button className={dangerTextTw} disabled={busy} onClick={() => { if (window.confirm("Desativar " + d.name + "? O acesso do setor ser\u00e1 revogado e o hist\u00f3rico ser\u00e1 preservado.")) void save({}, "DELETE", d.id); }}>Desativar</button>
                 )}
-                <button className="danger-button" disabled={busy} onClick={() => void purgeDepartment(d)}>Excluir setor</button>
+                <button className={dangerTw} disabled={busy} onClick={() => void purgeDepartment(d)}>Excluir setor</button>
               </div>
               {d.isActive && (
                 <details className="department-members-details">
@@ -415,7 +420,7 @@ export function DepartmentManager() {
                   <p>Defina quem recebe e pode assumir conversas encaminhadas para este setor.</p>
                   <div className="department-member-options">
                     {agents.length ? agents.map((agent) => (
-                      <label className="ai-toggle" key={agent.id}>
+                      <label className="inline-flex items-center gap-2 text-xs text-ink-secondary" key={agent.id}>
                         <input
                           type="checkbox"
                           checked={assigned.includes(agent.id)}
@@ -430,7 +435,7 @@ export function DepartmentManager() {
                       </label>
                     )) : <small>Nenhum atendente ativo cadastrado.</small>}
                   </div>
-                  <button className="secondary-button" type="button" disabled={busy} onClick={() => void saveMembers(d.id)}>
+                  <button className={secondaryTw} type="button" disabled={busy} onClick={() => void saveMembers(d.id)}>
                     {busy ? "Salvando…" : "Salvar atendentes do setor"}
                   </button>
                 </details>

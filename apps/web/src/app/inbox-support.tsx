@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { CircleHelp, ClipboardList, ArrowUpRight } from "lucide-react";
-import "./inbox-support.css";
 
 const base = "/api/backend/conversations/";
 type Kind = "HELP" | "ESCALATION";
@@ -34,9 +33,9 @@ function conversationUrl(id: string) {
 function SupportDialog({ title, icon, children, onOpen, onClose, menuItem }: { title: string; icon: ReactNode; children: ReactNode; onOpen: () => void; onClose?: () => void; menuItem?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return <>
-    <button className={menuItem ? undefined : "secondary-button vx-support-trigger"} role={menuItem ? "menuitem" : undefined} type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
-    <dialog ref={dialog} onClose={onClose} className="vx-support-dialog" aria-label={title}>
-      <header><h2>{title}</h2><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
+    <button className={menuItem ? undefined : "secondary-button inline-flex items-center gap-1.5"} role={menuItem ? "menuitem" : undefined} type="button" onClick={() => { dialog.current?.showModal(); onOpen(); }}>{icon}{title}</button>
+    <dialog ref={dialog} onClose={onClose} className="w-ib-support max-h-ib-support overflow-auto rounded-ib-modal border border-gray-200 bg-zinc-100 px-ib-pad pb-ib-pad pt-0 text-slate-950 shadow-token-lg" aria-label={title}>
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-zinc-100 py-3"><h2 className="m-0 text-base">{title}</h2><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
       {children}
     </dialog>
   </>;
@@ -79,36 +78,36 @@ export function InboxSupportContext({ conversationId, customerName, menuItem }: 
       {notice && <p role="status">{notice}</p>}
       {busy && !context && <p role="status">Carregando contexto…</p>}
       {context && <>
-        <p className="vx-support-client"><strong>{customerName}</strong>{context.platform && <span>{context.platform}</span>}</p>
+        <p data-testid="ib-support-context" className="flex flex-wrap items-center gap-2"><strong>{customerName}</strong>{context.platform && <span>{context.platform}</span>}</p>
         {context.settings.fields.length > 0 && <form onSubmit={event => {
           event.preventDefault();
           void run(async () => { await supportApi(path + "support-context", { values }); setNotice("Contexto salvo."); });
-        }}>
-          {context.settings.fields.map(field => <label key={field.key}>{field.label}
-            <textarea rows={2} readOnly={!context.canEdit} maxLength={800} value={values[field.key] ?? ""} onChange={event => setValues({ ...values, [field.key]: event.target.value })} />
+        }} className="mt-3 grid gap-ib-gap">
+          {context.settings.fields.map(field => <label key={field.key} className="grid min-w-0 gap-1">{field.label}
+            <textarea className="w-full min-w-0" rows={2} readOnly={!context.canEdit} maxLength={800} value={values[field.key] ?? ""} onChange={event => setValues({ ...values, [field.key]: event.target.value })} />
           </label>)}
-          {context.canEdit && <button className="secondary-button" disabled={busy}>Salvar contexto</button>}
+          {context.canEdit && <button className="secondary-button justify-self-start" disabled={busy}>Salvar contexto</button>}
         </form>}
-        {context.canRequest ? <section>
-          <div className="vx-support-buttons" aria-label="Tipo de encaminhamento">
-            <button type="button" className="secondary-button" aria-pressed={kind === "HELP"} onClick={() => setKind("HELP")}>Pedir ajuda</button>
-            <button type="button" className="secondary-button" aria-pressed={kind === "ESCALATION"} onClick={() => setKind("ESCALATION")}>Escalar</button>
+        {context.canRequest ? <section className="mt-3 grid gap-ib-gap">
+          <div className="flex flex-wrap items-center gap-2" aria-label="Tipo de encaminhamento">
+            <button type="button" className={"secondary-button" + (kind === "HELP" ? " border-blue-600 bg-blue-50 text-blue-800" : "")} aria-pressed={kind === "HELP"} onClick={() => setKind("HELP")}>Pedir ajuda</button>
+            <button type="button" className={"secondary-button" + (kind === "ESCALATION" ? " border-blue-600 bg-blue-50 text-blue-800" : "")} aria-pressed={kind === "ESCALATION"} onClick={() => setKind("ESCALATION")}>Escalar</button>
           </div>
-          {context.departments.length ? <form key={kind} onSubmit={create}>
+          {context.departments.length ? <form key={kind} onSubmit={create} className="mt-3 grid gap-ib-gap">
             <p>{kind === "HELP" ? "Seu time continua com o atendimento até a resposta interna." : "O especialista assume a conversa ao aceitar."}</p>
-            <label>Equipe de destino <select name="destinationId" required defaultValue=""><option value="" disabled>Selecionar equipe</option>{context.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-            <label>{kind === "HELP" ? "Pergunta para a equipe" : "Motivo e testes já realizados"}<textarea name="note" maxLength={1800} required /></label>
-            <label>Prazo em minutos <input name="minutes" type="number" min="1" max="10080" required defaultValue={kind === "HELP" ? context.settings.helpMinutes : context.settings.escalationMinutes} /></label>
-            <button className="primary-button" disabled={busy}>{kind === "HELP" ? "Enviar pedido de ajuda" : "Enviar escalonamento"}</button>
+            <label className="grid min-w-0 gap-1">Equipe de destino <select className="w-full min-w-0" name="destinationId" required defaultValue=""><option value="" disabled>Selecionar equipe</option>{context.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+            <label className="grid min-w-0 gap-1">{kind === "HELP" ? "Pergunta para a equipe" : "Motivo e testes já realizados"}<textarea className="w-full min-w-0" name="note" maxLength={1800} required /></label>
+            <label className="grid min-w-0 gap-1">Prazo em minutos <input className="w-full min-w-0" name="minutes" type="number" min="1" max="10080" required defaultValue={kind === "HELP" ? context.settings.helpMinutes : context.settings.escalationMinutes} /></label>
+            <button className="primary-button justify-self-start" disabled={busy}>{kind === "HELP" ? "Enviar pedido de ajuda" : "Enviar escalonamento"}</button>
           </form> : <p>Nenhuma equipe disponível para as suas permissões de transferência.</p>}
         </section> : <p>O responsável pelo atendimento pode pedir ajuda ou escalonar.</p>}
-        <section>
-          <h3>Histórico interno</h3>
+        <section className="mt-3 grid gap-ib-gap">
+          <h3 className="m-0 text-base">Histórico interno</h3>
           {context.history.length === 0 && <p>Sem solicitações neste atendimento.</p>}
-          {context.history.map(row => <article key={row.id}>
+          {context.history.map(row => <article key={row.id} className="grid gap-ib-gap break-words rounded-ib-article border border-gray-200 p-2.5">
             <strong>{kindNames[row.kind]} · {row.destination.name}</strong>
             <small>{states[row.state] ?? row.state} · {dateTime(row.dueAt)}</small>
-            <p>{row.note}</p>{row.answer && <p><strong>Resposta</strong> {row.answer}</p>}
+            <p className="m-0 whitespace-pre-wrap">{row.note}</p>{row.answer && <p className="m-0 whitespace-pre-wrap"><strong>Resposta</strong> {row.answer}</p>}
           </article>)}
         </section>
       </>}
@@ -121,18 +120,18 @@ function SupportSettingsForm({ settings, onSave, busy }: { settings: Settings; o
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     onSave({ fields, helpMinutes: Number(values.get("help")), escalationMinutes: Number(values.get("escalation")), replyMinutes: Number(values.get("reply")) });
-  }}>
-    <label>Prazo padrão para ajuda (min) <input type="number" name="help" min="1" max="10080" required defaultValue={settings.helpMinutes} /></label>
-    <label>Prazo padrão para aceite (min) <input type="number" name="escalation" min="1" max="10080" required defaultValue={settings.escalationMinutes} /></label>
-    <label>Tempo para sinalizar cliente sem retorno (min) <input type="number" name="reply" min="1" max="10080" required defaultValue={settings.replyMinutes} /></label>
-    <h3>Campos do atendimento</h3>
-    {fields.map((field, index) => <div key={index} className="vx-support-field-row">
-      <label>Chave <input value={field.key} pattern="[a-z][a-z0-9_]{0,31}" required onChange={event => setFields(fields.map((row,i) => i === index ? { ...row, key: event.target.value } : row))} /></label>
-      <label>Nome visível <input value={field.label} maxLength={55} required onChange={event => setFields(fields.map((row,i) => i === index ? { ...row, label: event.target.value } : row))} /></label>
-      <button type="button" className="secondary-button" aria-label={"Remover campo " + (field.label || index + 1)} onClick={() => setFields(fields.filter((_,i) => i !== index))}>Remover</button>
+  }} className="mt-3 grid gap-ib-gap">
+    <label className="grid min-w-0 gap-1">Prazo padrão para ajuda (min) <input className="w-full min-w-0" type="number" name="help" min="1" max="10080" required defaultValue={settings.helpMinutes} /></label>
+    <label className="grid min-w-0 gap-1">Prazo padrão para aceite (min) <input className="w-full min-w-0" type="number" name="escalation" min="1" max="10080" required defaultValue={settings.escalationMinutes} /></label>
+    <label className="grid min-w-0 gap-1">Tempo para sinalizar cliente sem retorno (min) <input className="w-full min-w-0" type="number" name="reply" min="1" max="10080" required defaultValue={settings.replyMinutes} /></label>
+    <h3 className="m-0 text-base">Campos do atendimento</h3>
+    {fields.map((field, index) => <div key={index} className="grid grid-cols-ib-field items-end gap-2 ib-mobile:grid-cols-2">
+      <label className="grid min-w-0 gap-1">Chave <input className="w-full min-w-0" value={field.key} pattern="[a-z][a-z0-9_]{0,31}" required onChange={event => setFields(fields.map((row,i) => i === index ? { ...row, key: event.target.value } : row))} /></label>
+      <label className="grid min-w-0 gap-1">Nome visível <input className="w-full min-w-0" value={field.label} maxLength={55} required onChange={event => setFields(fields.map((row,i) => i === index ? { ...row, label: event.target.value } : row))} /></label>
+      <button type="button" className="secondary-button ib-mobile:col-span-2 ib-mobile:justify-self-start" aria-label={"Remover campo " + (field.label || index + 1)} onClick={() => setFields(fields.filter((_,i) => i !== index))}>Remover</button>
     </div>)}
-    <button type="button" className="secondary-button" disabled={fields.length >= 12} onClick={() => setFields([...fields, { key: "", label: "" }])}>Adicionar campo</button>
-    <button className="primary-button" disabled={busy}>Salvar configuração da empresa</button>
+    <button type="button" className="secondary-button justify-self-start" disabled={fields.length >= 12} onClick={() => setFields([...fields, { key: "", label: "" }])}>Adicionar campo</button>
+    <button className="primary-button justify-self-start" disabled={busy}>Salvar configuração da empresa</button>
   </form>;
 }
 
@@ -174,41 +173,41 @@ export function InboxSupportQueue({ menuItem = false }: { menuItem?: boolean }) 
   }, [open, busy]);
 
   return <SupportDialog menuItem={menuItem} title="Fila de apoio" icon={<ClipboardList size={16} aria-hidden="true" />} onOpen={() => { setOpen(true); setAcceptedConversation(undefined); void run(refresh); }} onClose={() => setOpen(false)}>
-    <div className="vx-support-buttons"><button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar fila</button>
+    <div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" className="secondary-button" disabled={busy} onClick={() => void run(refresh)}>Atualizar fila</button>
       {queue?.manager && <button type="button" className="secondary-button" disabled={busy} onClick={() => void run(async () => setSettings(await supportApi<Settings>("support-settings")))}>Configurar campos e prazos</button>}
     </div>
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {acceptedConversation && <a href={conversationUrl(acceptedConversation)}>Abrir atendimento assumido <ArrowUpRight size={14} aria-hidden="true" /></a>}
     {busy && !queue && <p role="status">Carregando fila…</p>}
-    {settings && <section><h3>Configuração da empresa</h3>
+    {settings && <section className="mt-3 grid gap-ib-gap"><h3 className="m-0 text-base">Configuração da empresa</h3>
       <SupportSettingsForm settings={settings} busy={busy} onSave={value => void run(async () => {
         await supportApi("support-settings", value); setSettings(undefined); await refresh(); setNotice("Configuração salva.");
       })} />
     </section>}
-    {queue?.manager && <section>
-      <h3>Clientes sem retorno no prazo</h3>
+    {queue?.manager && <section className="mt-3 grid gap-ib-gap">
+      <h3 className="m-0 text-base">Clientes sem retorno no prazo</h3>
       {!queue.waiting.length && <p>Nenhum atendimento nesta fila.</p>}
-      {queue.waiting.map(row => <article key={row.id}>
+      {queue.waiting.map(row => <article key={row.id} className="grid gap-ib-gap break-words rounded-ib-article border border-gray-200 p-2.5">
         <a href={conversationUrl(row.id)}>{row.name} <ArrowUpRight size={14} aria-hidden="true" /></a>
         <span>{row.team ?? "Sem equipe"} · {row.assignee ?? "Sem responsável"}</span>
         <small>Aguardando desde {dateTime(row.since)}</small>
       </article>)}
     </section>}
-    {queue && (["HELP","ESCALATION"] as const).map(kind => <section key={kind}>
-      <h3>{kind === "HELP" ? "Pedidos de ajuda" : "Escalonamentos sem aceite"}</h3>
+    {queue && (["HELP","ESCALATION"] as const).map(kind => <section key={kind} className="mt-3 grid gap-ib-gap">
+      <h3 className="m-0 text-base">{kind === "HELP" ? "Pedidos de ajuda" : "Escalonamentos sem aceite"}</h3>
       {!queue.requests.some(row => row.kind === kind) && <p>Nenhuma solicitação pendente.</p>}
-      {queue.requests.filter(row => row.kind === kind).map(row => <article key={row.id}>
+      {queue.requests.filter(row => row.kind === kind).map(row => <article key={row.id} className="grid gap-ib-gap break-words rounded-ib-article border border-gray-200 p-2.5">
         <strong>{row.destination}</strong>
         <small>{row.stale ? "Responsabilidade alterada" : now >= Date.parse(row.dueAt) ? "Atrasado" : "No prazo"} · {dateTime(row.dueAt)}</small>
-        <p>{row.note}</p>
-        <div className="vx-support-buttons">
+        <p className="m-0 whitespace-pre-wrap">{row.note}</p>
+        <div className="flex flex-wrap items-center gap-2">
           {row.canCancel && <button type="button" className="secondary-button" disabled={busy} onClick={() => respond(row,"cancel")}>Cancelar solicitação</button>}
           {row.canAct && row.kind === "ESCALATION" && <button type="button" className="primary-button" disabled={busy} onClick={() => respond(row,"accept")}>Aceitar e assumir</button>}
         </div>
-        {row.canAct && row.kind === "HELP" && <form onSubmit={event => { event.preventDefault(); respond(row,"answer",new FormData(event.currentTarget).get("answer")); }}>
-          <label>Resposta interna <textarea name="answer" maxLength={1800} required /></label>
-          <button className="primary-button" disabled={busy}>Responder</button>
+        {row.canAct && row.kind === "HELP" && <form onSubmit={event => { event.preventDefault(); respond(row,"answer",new FormData(event.currentTarget).get("answer")); }} className="mt-3 grid gap-ib-gap">
+          <label className="grid min-w-0 gap-1">Resposta interna <textarea className="w-full min-w-0" name="answer" maxLength={1800} required /></label>
+          <button className="primary-button justify-self-start" disabled={busy}>Responder</button>
         </form>}
         {row.canCancel && <a href={conversationUrl(row.conversationId)}>Abrir atendimento <ArrowUpRight size={14} aria-hidden="true" /></a>}
       </article>)}

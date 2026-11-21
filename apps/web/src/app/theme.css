@@ -541,6 +541,14 @@ output {
 @tailwind utilities;
 
 /*
+ * `::backdrop` não tem utility core. Única exceção em CSS global: os diálogos
+ * do Atendimento herdamos o mesmo véu dos três temas via token --tx.
+ */
+dialog::backdrop {
+  @apply bg-slate-950/60;
+}
+
+/*
  * [hidden] precisa vencer classes de display de igual especificidade. Em vez
  * de !important, ele vem DEPOIS das utilities e usa o próprio `hidden`.
  */

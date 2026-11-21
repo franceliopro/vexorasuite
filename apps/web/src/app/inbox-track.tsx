@@ -2,7 +2,6 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { MapPin } from "lucide-react";
-import "./inbox-track.css";
 
 type Position = { id?: string; latitude: number; longitude: number; battery: number | null; speedKph: number | null; recordedAt: string; receivedAt: string };
 type Device = { id: string; name: string; reference: string; isSimulation: boolean; isActive: boolean; lastSeenAt: string | null; position: Position | null; department: { name: string } | null };
@@ -85,66 +84,66 @@ export function InboxTrack({ menuItem = false }: { menuItem?: boolean }) {
   }
 
   return <>
-    <button type="button" role={menuItem ? "menuitem" : undefined} className={menuItem ? undefined : "secondary-button vx-track-trigger"} onClick={() => { dialog.current?.showModal(); void run(() => refresh()); }}>
+    <button type="button" role={menuItem ? "menuitem" : undefined} className={menuItem ? undefined : "secondary-button inline-flex items-center gap-1.5"} onClick={() => { dialog.current?.showModal(); void run(() => refresh()); }}>
       <MapPin size={16} aria-hidden="true" /> Véxora Track
     </button>
-    <dialog ref={dialog} className="vx-track" aria-label="Véxora Track" onClose={() => setToken("")}>
-      <header><div><h2>Véxora Track</h2><span>Dispositivos e posições</span></div><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
+    <dialog ref={dialog} className="w-ib-track max-h-ib-track overflow-auto rounded-ib-modal border border-gray-200 bg-zinc-100 px-ib-pad pb-ib-pad pt-0 text-slate-950" aria-label="Véxora Track" onClose={() => setToken("")}>
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2.5 border-b border-gray-200 bg-zinc-100 py-3"><div><h2 className="m-0 text-ib-title font-bold">Véxora Track</h2><span>Dispositivos e posições</span></div><button type="button" className="secondary-button" onClick={() => dialog.current?.close()}>Fechar</button></header>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {!catalog && saving && <p role="status">Carregando dispositivos…</p>}
-      {token && <aside>
+      {token && <aside className="my-3 rounded-ib-panel border border-gray-200 p-3">
         <strong>Chave de ingestão</strong>
         <p>Copie esta chave agora para o dispositivo ou integrador. Ela será exibida uma única vez.</p>
-        <input aria-label="Chave de ingestão" value={token} readOnly onFocus={event => event.currentTarget.select()} />
+        <input aria-label="Chave de ingestão" className="w-full min-w-0" value={token} readOnly onFocus={event => event.currentTarget.select()} />
       </aside>}
-      {catalog?.manager && <details><summary>Cadastrar dispositivo</summary>
-        <form onSubmit={create}>
-          <label>Nome <input name="name" required maxLength={100} placeholder="Ex. Equipamento da unidade 01" /></label>
-          <label>Referência <input name="reference" required maxLength={80} placeholder="Ex. TRK-01" /></label>
-          <label>Modo <select name="mode"><option value="simulation">Simulado</option><option value="real">Integração real</option></select></label>
-          <label>Equipe com acesso <select name="team"><option value="">Administradores</option>{catalog.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-          <button className="primary-button" disabled={saving}>Cadastrar</button>
+      {catalog?.manager && <details className="my-3 rounded-ib-panel border border-gray-200 p-3"><summary className="cursor-pointer font-ib">Cadastrar dispositivo</summary>
+        <form onSubmit={create} className="my-ib-block grid min-w-0 content-start gap-ib-gap">
+          <label className="grid min-w-0 content-start gap-ib-gap">Nome <input className="w-full min-w-0" name="name" required maxLength={100} placeholder="Ex. Equipamento da unidade 01" /></label>
+          <label className="grid min-w-0 content-start gap-ib-gap">Referência <input className="w-full min-w-0" name="reference" required maxLength={80} placeholder="Ex. TRK-01" /></label>
+          <label className="grid min-w-0 content-start gap-ib-gap">Modo <select className="w-full min-w-0" name="mode"><option value="simulation">Simulado</option><option value="real">Integração real</option></select></label>
+          <label className="grid min-w-0 content-start gap-ib-gap">Equipe com acesso <select className="w-full min-w-0" name="team"><option value="">Administradores</option>{catalog.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+          <button className="primary-button justify-self-start" disabled={saving}>Cadastrar</button>
         </form>
       </details>}
       {catalog && <>
-        <div className="vx-track-actions">
-          <label>Filtrar nesta página <input type="search" value={filter} onChange={event => setFilter(event.target.value)} /></label>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="grid min-w-0 content-start gap-ib-gap">Filtrar nesta página <input className="w-full min-w-0" type="search" value={filter} onChange={event => setFilter(event.target.value)} /></label>
           <button type="button" className="secondary-button" disabled={saving} onClick={() => void run(async () => {
             await refresh();
             if (selected) setHistory(await api<Position[]>("devices/" + selected + "/history"));
           })}>Atualizar</button>
         </div>
-        <div className="vx-track-grid">
-          <nav aria-label="Dispositivos">
+        <div className="mt-3 grid grid-cols-ib-track gap-3.5 ib-narrow:grid-cols-1">
+          <nav aria-label="Dispositivos" className="grid min-w-0 content-start gap-ib-gap">
             {!catalog.devices.length && <p>Nenhum dispositivo disponível.</p>}
-            {catalog.devices.filter(device => (device.name + " " + device.reference).toLowerCase().includes(filter.trim().toLowerCase())).map(device => <button type="button" key={device.id} disabled={saving} aria-pressed={selected === device.id} onClick={() => void run(async () => {
+            {catalog.devices.filter(device => (device.name + " " + device.reference).toLowerCase().includes(filter.trim().toLowerCase())).map(device => <button type="button" key={device.id} disabled={saving} aria-pressed={selected === device.id} className={"grid gap-1 break-words rounded-ib-entry border border-gray-200 bg-zinc-200 p-2.5 text-start text-slate-950" + (selected === device.id ? " border-blue-600" : "")} onClick={() => void run(async () => {
               setSelected(device.id); setToken(""); setHistory([]);
               setHistory(await api<Position[]>("devices/" + device.id + "/history"));
             })}><strong>{device.name}</strong><small>{device.reference} · {device.isSimulation ? "Simulado" : "Real"}{device.isActive ? "" : " · Pausado"}</small></button>)}
-            {(page > 1 || catalog.hasNext) && <div className="vx-track-actions">
+            {(page > 1 || catalog.hasNext) && <div className="flex flex-wrap items-end gap-2">
               <button type="button" className="secondary-button" disabled={saving || page <= 1} onClick={() => void run(() => refresh(page - 1))}>Anterior</button>
               <button type="button" className="secondary-button" disabled={saving || !catalog.hasNext} onClick={() => void run(() => refresh(page + 1))}>Próxima</button>
             </div>}
           </nav>
-          {current && <section>
-            <h3>{current.name}</h3>
-            <dl>
-              <div><dt>Equipe</dt><dd>{current.department?.name ?? "Administradores"}</dd></div>
-              <div><dt>Última comunicação recebida</dt><dd>{current.lastSeenAt ? date(current.lastSeenAt) : "Aguardando dados"}</dd></div>
-              <div><dt>Última posição registrada</dt><dd>{current.position ? date(current.position.recordedAt) : "Sem posição"}</dd></div>
+          {current && <section className="my-ib-block grid min-w-0 content-start gap-ib-gap">
+            <h3 className="m-0 text-base font-bold">{current.name}</h3>
+            <dl className="my-ib-block grid min-w-0 content-start gap-ib-gap">
+              <div><dt>Equipe</dt><dd className="m-0">{current.department?.name ?? "Administradores"}</dd></div>
+              <div><dt>Última comunicação recebida</dt><dd className="m-0">{current.lastSeenAt ? date(current.lastSeenAt) : "Aguardando dados"}</dd></div>
+              <div><dt>Última posição registrada</dt><dd className="m-0">{current.position ? date(current.position.recordedAt) : "Sem posição"}</dd></div>
             </dl>
             {current.position && <a href={location(current.position)} target="_blank" rel="noreferrer">Abrir última posição no mapa</a>}
-            {catalog.manager && <div className="vx-track-actions">
+            {catalog.manager && <div className="flex flex-wrap items-end gap-2">
               <button type="button" className="secondary-button" disabled={saving} onClick={() => change(current, current.isActive ? "pause" : "resume")}>{current.isActive ? "Pausar recebimento" : "Retomar recebimento"}</button>
               {!current.isSimulation && <button type="button" className="secondary-button" disabled={saving} onClick={() => change(current, "rotate")}>Gerar nova chave</button>}
             </div>}
-            {catalog.manager && current.isActive && current.isSimulation && <form onSubmit={event => simulate(event, current)}>
-              <label>Latitude <input name="latitude" type="number" min="-90" max="90" step="any" required /></label>
-              <label>Longitude <input name="longitude" type="number" min="-180" max="180" step="any" required /></label>
-              <button className="primary-button" disabled={saving}>Registrar posição simulada</button>
+            {catalog.manager && current.isActive && current.isSimulation && <form onSubmit={event => simulate(event, current)} className="my-ib-block grid min-w-0 content-start gap-ib-gap">
+              <label className="grid min-w-0 content-start gap-ib-gap">Latitude <input className="w-full min-w-0" name="latitude" type="number" min="-90" max="90" step="any" required /></label>
+              <label className="grid min-w-0 content-start gap-ib-gap">Longitude <input className="w-full min-w-0" name="longitude" type="number" min="-180" max="180" step="any" required /></label>
+              <button className="primary-button justify-self-start" disabled={saving}>Registrar posição simulada</button>
             </form>}
-            {history.length > 0 && <details><summary>Histórico de posições</summary>
+            {history.length > 0 && <details className="my-3 rounded-ib-panel border border-gray-200 p-3"><summary className="cursor-pointer font-ib">Histórico de posições</summary>
               <ul>{history.map(point => <li key={point.id}><a href={location(point)} target="_blank" rel="noreferrer">{date(point.recordedAt)}</a> · {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</li>)}</ul>
             </details>}
           </section>}

@@ -809,6 +809,9 @@ const config: Config = {
 "docs-grid": "minmax(300px,420px) 1fr",
 "docs-generate": "minmax(320px,460px) 1fr",
 "docs-variable": "minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr) auto auto",
+/* Grades do workspace de Equipe: identidade e lista de atendentes. */
+"team-identity": "150px minmax(0,1fr)",
+"team-list": "repeat(auto-fill,minmax(320px,1fr))",
 /* Grades do workspace de Inteligência: colunas laterais e cartões de agente. */
 "ai-layout": "minmax(250px,320px) minmax(0,1fr)",
 "ai-agents": "repeat(auto-fill,minmax(180px,1fr))",

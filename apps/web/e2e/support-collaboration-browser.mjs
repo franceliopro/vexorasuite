@@ -248,7 +248,7 @@ try{
  const position=await shortcut.boundingBox();
  assert(position && Math.abs(position.x+position.width/2-195)<2,"mobile conversation shortcut is centered: "+JSON.stringify(position));
  await shortcut.click();
- await page.locator(".inbox-conversation").first().click();
+ await page.locator("[data-testid='conversation-list'] > button").first().click();
  await expect(composer).toHaveCount(0);
  await expect(assume).toBeVisible();
  await dock.getByRole("button",{name:"Assumir",exact:true}).click();

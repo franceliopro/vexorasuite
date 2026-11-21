@@ -101,40 +101,70 @@ const palette=[{group:"Mensagens",items:[["text","Texto"],["image","Imagem"],["v
 const emptyFlow:Flow={name:"Meu chatbot",welcome:"Olá! Como podemos ajudar?",steps:[],channelIds:[],triggers:[{kind:"message"}]};
 const executable=new Set(["text","buttons","input.text","input.cpf","agent","condition","variable","asaas.payment.lookup","contact.lookup","assignment","human.handoff","department.route","tag","crm.stage.move","crm.finalize"]);
 type PhoneSimulatorProps = { botName: string; welcome: string; preview: string[]; chips: {label:string;onChoose:()=>void}[] | null; onReply?: (text:string) => void; onClose?: () => void; fullscreen?: boolean };
+
+/* Simulador de celular: utilities TW com tokens do preset. O azul de marca vem
+   de --primary; as demais cores são dados do mockup do dispositivo. */
+const phoneFrame = "relative aspect-phone-frame rounded-phone-frame bg-phone-frame p-phone-frame-pad shadow-phone-frame transition-all duration-300";
+const phoneSide = "absolute w-phone-side-w rounded-phone-side bg-phone-side shadow-phone-side";
+const phoneVolume = "-left-phone-side right-auto";
+const phoneScreen = "relative isolate flex h-full w-full flex-col overflow-hidden rounded-phone-screen bg-phone-screen";
+const phoneIsland = "absolute left-1/2 top-phone-island z-phone-island h-phone-island-h w-phone-island -translate-x-1/2 rounded-full bg-black after:absolute after:right-phone-lens-right after:top-1/2 after:h-phone-lens-size after:w-phone-lens-size after:-translate-y-1/2 after:rounded-full after:bg-phone-lens-glow";
+const phoneStatusbar = "relative z-phone-status flex items-center justify-between px-phone-status-x pb-phone-status-b pt-phone-status-t text-phone-ink";
+const phoneClock = "font-display text-phone-clock font-bold leading-none tracking-phone-clock";
+const phoneSignal = "inline-flex items-center gap-phone-signal-gap";
+const phoneHeader = "relative z-phone-header flex items-center gap-phone-header-gap bg-phone-chrome px-phone-header-x py-phone-header-y text-phone-ink";
+const phoneAvatar = "grid h-phone-avatar w-phone-avatar shrink-0 place-items-center rounded-full bg-phone-avatar text-phone-on-accent shadow-phone-avatar";
+const phonePeer = "grid min-w-0";
+const phonePeerName = "block max-w-phone-peer-name truncate text-phone-peer font-bold";
+const phonePeerSub = "flex items-center gap-phone-peer-gap text-phone-peer-sub font-semibold text-phone-muted";
+const phoneDot = "inline-block h-phone-dot w-phone-dot animate-phone-pulse rounded-full bg-phone-accent shadow-phone-online";
+const phoneCallIcons = "ml-auto inline-flex items-center gap-phone-call-gap text-phone-icons";
+const phoneWallpaper = "relative flex min-h-0 flex-1 flex-col gap-phone-wall-gap overflow-y-auto bg-phone-wallpaper bg-phone-wallpaper-size px-phone-wall-x pb-phone-wall-b pt-phone-wall-t text-phone-ink";
+const phoneDayPill = "mb-phone-day-bottom self-center rounded-phone-pill bg-phone-pill px-phone-day-x py-phone-day-y text-phone-day font-semibold tracking-phone-day text-phone-muted shadow-phone-pill";
+const phoneBubble = "w-fit max-w-phone-bubble whitespace-pre-wrap break-words rounded-phone-bubble px-phone-bubble-x pb-phone-bubble-b pt-phone-bubble-y text-phone-bubble text-phone-ink shadow-phone-bubble";
+const phoneTicks = "float-right relative top-phone-ticks-top ml-phone-ticks-x text-phone-tick tracking-phone-ticks";
+const phoneQuickReplies = "mt-phone-quick-top flex flex-col gap-phone-quick-gap";
+const phoneChip = "block w-fit max-w-phone-quick rounded-full border border-phone-tick-soft bg-phone-chrome px-phone-chip-x py-phone-chip-y text-left font-display text-phone-chip font-bold text-phone-tick transition-all hover:-translate-y-px hover:border-phone-tick hover:bg-phone-quick-hover";
+const phoneComposer = "flex items-center gap-phone-composer-gap bg-phone-chrome px-phone-composer-p pb-phone-composer-b pt-phone-composer-p";
+const phoneComposerPill = "flex min-w-0 flex-1 items-center gap-phone-pill-gap rounded-full bg-phone-divider px-phone-pill-x py-phone-pill-y text-phone-muted";
+const phoneComposerHint = "min-w-0 flex-1 text-phone-hint leading-none";
+const phoneMic = "grid h-phone-mic w-phone-mic shrink-0 place-items-center rounded-full bg-phone-accent text-phone-on-accent shadow-phone-mic";
+const phoneHomeIndicator = "absolute bottom-phone-home-bottom left-1/2 z-phone-island h-phone-home-h w-phone-home-w -translate-x-1/2 rounded-full bg-phone-indicator";
+const phoneClose = "absolute right-phone-close-right top-phone-close-top z-phone-close grid h-phone-close w-phone-close place-items-center rounded-full border border-phone-close-border bg-phone-close-bg text-phone-ink transition-all hover:scale-105 hover:bg-phone-close-hover";
 /** Moldura de celular realista (estilo WhatsApp escuro) para testar o robô como no uso real. */
 function PhoneSimulator({ botName, welcome, preview, chips, onReply, onClose, fullscreen }: PhoneSimulatorProps) {
   const [reply,setReply]=useState("");
   const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return (
-    <div className={"phone-simulator" + (fullscreen ? " is-fullscreen" : "")}>
-      {onClose ? <button type="button" className="chatbot-simulator-close" onClick={onClose} aria-label="Fechar simulação"><X size={18} aria-hidden="true" /></button> : null}
-      <div className="phone-frame" aria-label={"Celular com o robô " + botName}>
-        <span className="phone-side-button phone-side-volume-up" aria-hidden="true" />
-        <span className="phone-side-button phone-side-volume-down" aria-hidden="true" />
-        <span className="phone-side-button phone-side-power" aria-hidden="true" />
-        <div className="phone-screen">
-          <div className="phone-island" aria-hidden="true" />
-          <div className="phone-statusbar" aria-hidden="true">
-            <span className="phone-clock">{time}</span>
-            <span className="phone-signal"><svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M1.5 4.5a10 10 0 0 1 13 0"/><path d="M4 7.2a6.4 6.4 0 0 1 8 0"/><circle cx="8" cy="10" r="1.15" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.6" y="0.6" width="20" height="10.8" rx="3.1" stroke="currentColor" strokeWidth="1.1" opacity=".55"/><rect x="2.2" y="2.2" width="13.5" height="7.6" rx="1.6" fill="currentColor"/><path d="M23.2 4.2v3.6a2.2 2.2 0 0 0 0-3.6z" fill="currentColor" opacity=".55"/></svg></span>
+    <div className="grid place-items-center" data-fullscreen={fullscreen ? "true" : undefined}>
+      {onClose ? <button type="button" className={phoneClose} onClick={onClose} aria-label="Fechar simulação"><X size={18} aria-hidden="true" /></button> : null}
+      <div className={fullscreen ? `${phoneFrame} w-phone-frame-overlay max-h-phone-frame` : `${phoneFrame} w-phone-frame`} aria-label={"Celular com o robô " + botName}>
+        <span className={`${phoneSide} ${phoneVolume} h-phone-side-short top-phone-side-up-top`} aria-hidden="true" />
+        <span className={`${phoneSide} ${phoneVolume} h-phone-side-long top-phone-side-down-top`} aria-hidden="true" />
+        <span className={`${phoneSide} -right-phone-side h-phone-side-long top-phone-power`} aria-hidden="true" />
+        <div className={phoneScreen}>
+          <div className={phoneIsland} aria-hidden="true" />
+          <div className={phoneStatusbar} aria-hidden="true">
+            <span className={phoneClock}>{time}</span>
+            <span className={phoneSignal}><svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M1.5 4.5a10 10 0 0 1 13 0"/><path d="M4 7.2a6.4 6.4 0 0 1 8 0"/><circle cx="8" cy="10" r="1.15" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.6" y="0.6" width="20" height="10.8" rx="3.1" stroke="currentColor" strokeWidth="1.1" opacity=".55"/><rect x="2.2" y="2.2" width="13.5" height="7.6" rx="1.6" fill="currentColor"/><path d="M23.2 4.2v3.6a2.2 2.2 0 0 0 0-3.6z" fill="currentColor" opacity=".55"/></svg></span>
           </div>
-          <header className="phone-chat-header">
-            <span className="phone-avatar" aria-hidden="true"><Bot size={18} /></span>
-            <span className="phone-peer"><strong>{botName}</strong><small><i className="phone-online-dot" />online · via Véxora</small></span>
-            <span className="phone-call-icons" aria-hidden="true"><Video size={17} /><Phone size={15} /><Search size={16} /></span>
+          <header className={phoneHeader}>
+            <span className={phoneAvatar} aria-hidden="true"><Bot size={18} /></span>
+            <span className={phonePeer}><strong className={phonePeerName}>{botName}</strong><small className={phonePeerSub}><i className={phoneDot} />online · via Véxora</small></span>
+            <span className={phoneCallIcons} aria-hidden="true"><Video size={17} /><Phone size={15} /><Search size={16} /></span>
           </header>
-          <div className="phone-wallpaper" role="log" aria-label="Conversa simulada com o robô">
-            <div className="phone-day-pill">Hoje</div>
-            <div className="phone-bubble bot">{welcome}</div>
-            {preview.slice(1).map((t, i) => <div key={i} className={"phone-bubble " + (i % 2 === 1 ? "user" : "bot")}>{t}{i % 2 === 1 ? <span className="phone-ticks" aria-hidden="true">✓✓</span> : null}</div>)}
-            {chips && chips.length ? <div className="phone-quick-replies" role="group" aria-label="Opções do robô">{chips.map((chip, i) => <button key={i} type="button" onClick={chip.onChoose}>{chip.label}</button>)}</div> : null}
+          <div className={phoneWallpaper} role="log" aria-label="Conversa simulada com o robô">
+            <div className={phoneDayPill}>Hoje</div>
+            <div className={`${phoneBubble} rounded-tl-phone-tail bg-phone-chrome`}>{welcome}</div>
+            {preview.slice(1).map((t, i) => <div key={i} className={i % 2 === 1 ? `${phoneBubble} self-end rounded-tr-phone-tail bg-phone-sent` : `${phoneBubble} rounded-tl-phone-tail bg-phone-chrome`}>{t}{i % 2 === 1 ? <span className={phoneTicks} aria-hidden="true">✓✓</span> : null}</div>)}
+            {chips && chips.length ? <div className={phoneQuickReplies} role="group" aria-label="Opções do robô">{chips.map((chip, i) => <button key={i} type="button" className={phoneChip} onClick={chip.onChoose}>{chip.label}</button>)}</div> : null}
           </div>
-          {onReply?<form className="phone-composer" onSubmit={e=>{e.preventDefault();if(reply.trim()){onReply(reply.trim());setReply("");}}}><input className="phone-composer-pill" aria-label="Resposta do cliente" placeholder="Mensagem" maxLength={500} value={reply} onChange={e=>setReply(e.target.value)}/><button className="phone-composer-mic" type="submit" aria-label="Enviar resposta">➤</button></form>:<div className="phone-composer" aria-hidden="true">
-            <span className="phone-composer-pill"><Smile size={19} /><span className="phone-composer-hint">Mensagem</span><Paperclip size={18} /><Camera size={18} /></span>
-            <span className="phone-composer-mic"><Mic size={17} /></span>
+          {onReply?<form className={phoneComposer} onSubmit={e=>{e.preventDefault();if(reply.trim()){onReply(reply.trim());setReply("");}}}><input className="flex min-w-0 flex-1 rounded-full bg-phone-divider px-phone-pill-x py-phone-pill-y text-phone-bubble text-phone-ink outline-none placeholder:text-phone-muted" aria-label="Resposta do cliente" placeholder="Mensagem" maxLength={500} value={reply} onChange={e=>setReply(e.target.value)}/><button className={phoneMic} type="submit" aria-label="Enviar resposta">➤</button></form>:<div className={phoneComposer} aria-hidden="true">
+            <span className={phoneComposerPill}><Smile size={19} /><span className={phoneComposerHint}>Mensagem</span><Paperclip size={18} /><Camera size={18} /></span>
+            <span className={phoneMic}><Mic size={17} /></span>
           </div>
           }
-          <div className="phone-home-indicator" aria-hidden="true" />
+          <div className={phoneHomeIndicator} aria-hidden="true" />
         </div>
       </div>
     </div>

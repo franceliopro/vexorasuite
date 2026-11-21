@@ -47,6 +47,7 @@ const displayName = (item: Lead): string => {
   return name;
 };
 const day = 86400000;
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 function dateValue(value: Date) {
   return (
     value.getFullYear() +
@@ -142,7 +143,7 @@ export function LeadOriginsWorkspace() {
             onChange={(e) => setTo(e.target.value)}
           />
         </label>
-        <button className="primary-button" onClick={apply} disabled={loading}>
+        <button className={primaryTw} onClick={apply} disabled={loading}>
           Aplicar período
         </button>
       </section>

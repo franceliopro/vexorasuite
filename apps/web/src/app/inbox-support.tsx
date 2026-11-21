@@ -16,7 +16,7 @@ type Pending = { id: string; conversationId: string; kind: Kind; note: string; d
 type Queue = { manager: boolean; requests: Pending[]; waiting: { id: string; name: string; team: string | null; assignee: string | null; since: string }[] };
 const kindNames = { HELP: "Pedido de ajuda", ESCALATION: "Escalonamento" };
 const states: Record<string,string> = { OPEN: "Pendente", DONE: "Concluído", CANCELLED: "Cancelado" };
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 
 

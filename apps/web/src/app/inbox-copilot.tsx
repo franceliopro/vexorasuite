@@ -6,7 +6,7 @@ type Result={text:string;action:string;language:string;model:string;tokensUsed:n
 const languages:Record<string,string>={"pt-BR":"Português do Brasil",en:"Inglês",es:"Espanhol",fr:"Francês",de:"Alemão",it:"Italiano",ja:"Japonês",zh:"Chinês",ar:"Árabe"};
 
 /* Botões do padrão TW — o azul vem dos tokens --primary do preset. */
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const selectTw = "min-h-ib-control rounded-token-sm border border-line bg-surface px-2.5 text-xs text-ink";
 const eyebrowTw = "inline-flex items-center gap-1.5 text-ib-time font-extrabold uppercase tracking-wider text-blue-800";

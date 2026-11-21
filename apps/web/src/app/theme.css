@@ -2,7 +2,7 @@
  * Véxora Suite — core global (item 0 da migração Tailwind).
  *
  * Regras deste arquivo:
- * - nenhum @tailwind base / preflight (o CSS legado permanece intacto);
+ * - Preflight oficial do Tailwind v4 (layer base), sem @tailwind base legado;
  * - nenhum valor arbitrário, hex direto ou !important novo;
  * - tudo o que é cor, tipo e espaço vem do preset em tailwind.config.ts;
  * - os três temas continuam sendo as variáveis em vexora.css, então
@@ -15,21 +15,42 @@
  * funciona. Migrar uma tela = mover as suas regras para lá, sem inverter esta
  * ordem global.
  */
-@tailwind components;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+@config "../../tailwind.config.ts";
 
 /*
- * Tailwind sem preflight não define estilo de borda. Sem este reset mínimo,
- * `border` / `border-t` emitiriam apenas border-width e não apareceriam.
- * É o mesmo contrato do preflight, com a cor vinda do token --ln.
+ * Breakpoints customizados — v4.
+ *
+ * No v3 viviam em `theme.extend.screens` com `raw: "(max-width: ...)"`. No v4
+ * o `@config` converte `raw` em `@media (width >= (max-width: ...))`, sintaxe
+ * inválida que o compilador aceita mas o navegador descarta. `@custom-variant`
+ * é a forma oficial e gera exatamente as mesmas variantes usadas no JSX
+ * (`ov-laptop:`, `ib-narrow:`, `rw-mobile:` etc.) com media queries válidas.
  */
-*,
-::before,
-::after {
-  @apply border-0 border-solid border-gray-200;
-}
+@custom-variant ov-laptop (@media (max-width: 900px));
+@custom-variant ov-tablet (@media (max-width: 760px));
+@custom-variant ov-mobile (@media (max-width: 520px));
+@custom-variant ib-narrow (@media (max-width: 600px));
+@custom-variant ib-mobile (@media (max-width: 520px));
+@custom-variant ib-wide (@media (max-width: 1150px));
+@custom-variant ib-shell (@media (max-width: 980px));
+@custom-variant ib-desktop (@media (min-width: 960px));
+@custom-variant ib-grid (@media (min-width: 981px));
+@custom-variant ib-grid-ficha (@media (min-width: 1101px));
+@custom-variant rw-wide (@media (max-width: 1100px));
+@custom-variant rw-laptop (@media (max-width: 900px));
+@custom-variant rw-mobile (@media (max-width: 560px));
+
+/* Base global na camada `base`: o Preflight oficial (importado acima) já zera
+   margens/paddings, aplica box-sizing e normaliza bordas. Aqui ficam apenas as
+   extensões do produto; utilities continuam vencendo por camada e o CSS legado
+   (importado depois) segue vencendo por ordem de origem. */
+@layer base {
 
 html {
-  @apply m-0 min-h-full h-dvh overflow-hidden;
+  @apply min-h-full h-dvh overflow-hidden;
   zoom: var(--type-scale, 1);
 }
 
@@ -242,6 +263,8 @@ output {
  * --bg/--s1/--tx permanecem claros — é isso que dá o "menu escuro, resto
  * claro". No modo escuro todos os tokens ficam escuros.
  */
+}
+
 @layer components {
   .suite-app {
     @apply flex min-h-dvh;
@@ -537,8 +560,6 @@ output {
     @apply mx-auto flex w-full max-w-tabs gap-1.5 overflow-x-auto px-tabs-pad-x pt-2.5;
   }
 }
-
-@tailwind utilities;
 
 /*
  * `::backdrop` não tem utility core. Única exceção em CSS global: os diálogos

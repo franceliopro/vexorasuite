@@ -6,6 +6,7 @@ const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "
 
 const reports = read("src/app/reports-workspace.tsx");
 const config = read("tailwind.config.ts");
+const theme = read("src/app/theme.css");
 
 /** Cores de gráficos, gradiente SVG e estilos dinâmicos são dados, não remendos visuais. */
 const semDados = reports
@@ -70,9 +71,9 @@ test("Relatórios usa só utilities do preset, sem remendos", () => {
     assert.ok(reports.includes(utility), `falta a utility ${utility}`);
   }
   for (const token of [
-    '"rw-wide": { raw: "(max-width: 1100px)" }',
-    '"rw-laptop": { raw: "(max-width: 900px)" }',
-    '"rw-mobile": { raw: "(max-width: 560px)" }',
+    '@custom-variant rw-wide (@media (max-width: 1100px));',
+    '@custom-variant rw-laptop (@media (max-width: 900px));',
+    '@custom-variant rw-mobile (@media (max-width: 560px));',
     '"rw-shimmer": "linear-gradient(100deg,var(--s3) 20%,var(--hover) 40%,var(--s3) 60%)"',
     '"rw-shimmer-size": "200% 100%"',
     '"rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite"',
@@ -92,7 +93,7 @@ test("Relatórios usa só utilities do preset, sem remendos", () => {
     '"rw-dot": "11px"',
     '"rw-legend": "170px"',
   ]) {
-    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+    assert.ok(config.includes(token) || theme.includes(token), `o preset deve expor ${token}`);
   }
 });
 

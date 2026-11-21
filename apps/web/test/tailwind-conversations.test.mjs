@@ -5,6 +5,7 @@ import fs from "node:fs";
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
 const config = read("tailwind.config.ts");
+const theme = read("src/app/theme.css");
 const list = read("src/app/conversation-list.tsx");
 const avatars = read("src/app/inbox-avatars.tsx");
 const copilot = read("src/app/inbox-copilot.tsx");
@@ -92,14 +93,14 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     '"ib-caption": ["11px"',
     '"ib-label": ["10px"',
     '"ib-input": ["12.5px"',
-    '"ib-wide": { raw: "(max-width: 1150px)" }',
+    '@custom-variant ib-wide (@media (max-width: 1150px));',
     '"ib-control": "37px"',
     '"ib-inboxes": "repeat(2, minmax(0, 1fr))"',
     '"ib-compact-meta": "repeat(3, minmax(0, 1fr))"',
     '"ib-details": "repeat(auto-fit, minmax(170px, 1fr))"',
     '"ib-detail-row": "96px minmax(0, 1fr)"',
     '"ib-copy": "42ch"',
-    '"ib-shell": { raw: "(max-width: 980px)" }',
+    '@custom-variant ib-shell (@media (max-width: 980px));',
     '"ib-workspace": "minmax(260px,340px) minmax(0,1fr) minmax(300px,380px)"',
     '"ib-workspace-profile": "minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)"',
     '"ib-supervision": "repeat(4,1fr)"',
@@ -113,7 +114,7 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     '"ib-overlay": "120"',
     '"ib-lightbox": "240"',
   ]) {
-    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+    assert.ok(config.includes(token) || theme.includes(token), `o preset deve expor ${token}`);
   }
 });
 
@@ -226,7 +227,7 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     assert.ok(values.includes(utility), `falta a utility ${utility}`);
   }
   for (const token of [
-    '"ib-desktop": { raw: "(min-width: 960px)" }',
+    '@custom-variant ib-desktop (@media (min-width: 960px));',
     '"ib-instagram": "#E1306C"',
     '"ib-facebook": "#1877F2"',
     '"ib-email": "#EA4335"',
@@ -237,7 +238,7 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     '"ib-profile-row": "460px"',
     '"ib-profile-agenda": "320px"',
   ]) {
-    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+    assert.ok(config.includes(token) || theme.includes(token), `o preset deve expor ${token}`);
   }
 });
 

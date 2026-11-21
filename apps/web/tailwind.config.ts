@@ -111,6 +111,17 @@ const config: Config = {
         "flow-minimap-bg": "var(--s2)",
         "flow-minimap-node": "var(--tx2)",
         "flow-minimap-viewport": "var(--primary-soft)",
+        /* Cores de estado das conexões de IA: dados do diagnóstico, não tema. */
+        "provider-connected-bg": "#DCFCE7",
+        "provider-connected-ink": "#14532D",
+        "provider-rejected-bg": "#FEE2E2",
+        "provider-rejected-ink": "#7F1D1D",
+        "provider-offline-bg": "#FEF3C7",
+        "provider-offline-ink": "#713F12",
+        "provider-configured-bg": "#DBEAFE",
+        "provider-configured-ink": "#1E3A8A",
+        "provider-alert-line": "rgba(229,72,77,.42)",
+        "provider-alert-ink": "#C2494E",
         "ib-coral": "#F0645E",
         "ib-amber": "#F2A93B",
         "ib-read": "#25D366",
@@ -267,6 +278,8 @@ const config: Config = {
         "rw-accent": "3px",
         /* Filete de tom à esquerda dos blocos do canvas. */
         "flow-node-edge": "3px",
+        /* Alerta de cota baixa das conexões de IA. */
+        "provider-alert": "1.5px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -281,6 +294,11 @@ const config: Config = {
         "token-xl": "var(--r-xl)",
         brand: "13px",
         square: "6px",
+        /* Cantos dos cartões de status das conexões de IA. */
+        "provider-overview": "14px",
+        "provider-item": "12px",
+        "provider-pill": "6px",
+        "provider-alert": "10px",
         /* Cantos do aparelho e dos balões do simulador. */
         "phone-frame": "48px",
         "phone-screen": "40px",
@@ -404,6 +422,14 @@ const config: Config = {
         "channels-field": ["12.5px", { lineHeight: "1.45" }],
         "asaas-label": "11px",
         "asaas-muted": ["10.5px", { lineHeight: "1.5" }],
+        /* Textos do painel de conexões de IA e pesquisa. */
+        "provider-note": ["11px", { lineHeight: "1.55" }],
+        "provider-heading": ["14px", { lineHeight: "1.2" }],
+        "provider-pill": ["10px", { lineHeight: "1" }],
+        "provider-detail": ["12.5px", { lineHeight: "1" }],
+        "provider-origin": ["11.5px", { lineHeight: "1" }],
+        "provider-alert": ["11.5px", { lineHeight: "1.4" }],
+        "provider-alert-strong": ["11px", { lineHeight: "1" }],
         /* Escalas da Visão geral. */
         "ov-hero": ["clamp(19px, 1.7vw, 23px)", { lineHeight: "1.25", letterSpacing: "-0.02em" }],
         "ov-hero-sm": ["19px", { lineHeight: "1.3", letterSpacing: "-0.02em" }],
@@ -501,6 +527,9 @@ const config: Config = {
         "flow-tight": "-.01em",
         "flow-wide": ".09em",
         "flow-section": ".14em",
+        /* Rótulos de estado das conexões de IA. */
+        "provider-pill": ".06em",
+        "provider-alert": ".01em",
       },
       spacing: {
         sidebar: "var(--sb)",
@@ -512,6 +541,14 @@ const config: Config = {
         pad: "var(--pad)",
         "brand-pad": "18px",
         "asaas-toggle": "9px",
+        /* Espaçamentos do painel de conexões de IA. */
+        "provider-pad": "14px",
+        "provider-gap": "10px",
+        "provider-pill-x": "9px",
+        "provider-pill-y": "3px",
+        "provider-alert-x": "12px",
+        "provider-alert-y": "9px",
+        "provider-title-gap": "9px",
         "nav-gap": "11px",
         "nav-pad": "13px",
         "nav-height": "42px",
@@ -712,6 +749,8 @@ const config: Config = {
         "flow-shell-both": "44px minmax(0,1fr) 44px",
         "flow-inspector-actions": "repeat(3,1fr)",
         "flow-more-actions": "minmax(180px,1fr)",
+        /* Linhas de status das conexões: rótulo, detalhe e ação. */
+        "provider-status": "minmax(0,1.4fr) 1fr auto",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",

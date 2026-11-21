@@ -10,7 +10,8 @@ const avatars = read("src/app/inbox-avatars.tsx");
 const copilot = read("src/app/inbox-copilot.tsx");
 const inboxes = read("src/app/inboxes-management.tsx");
 const profile = read("src/app/contact-profile-panel.tsx");
-const components = [list, avatars, copilot, inboxes, profile];
+const appointments = read("src/app/inbox-appointments.tsx");
+const components = [list, avatars, copilot, inboxes, profile, appointments];
 
 /** Só literais de string dentro de className são classes — não o código da expressão. */
 function classValues(source) {
@@ -222,5 +223,34 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     '"ib-profile-agenda": "320px"',
   ]) {
     assert.ok(config.includes(token), `o preset deve expor ${token}`);
+  }
+});
+
+test("os agendamentos usam TW e preservam o contrato da agenda do Google", () => {
+  const values = classValues(appointments);
+  const source = appointments.replace(/style=\{\{[^}]*\}\}/g, "");
+  for (const forbidden of [/\[[a-z-]+:\s*[^]\s]+\]/, /#[0-9a-fA-F]{3,8}\b/, /color-mix\(/, /!important/, /@apply/]) {
+    const match = source.match(forbidden);
+    assert.equal(match, null, `remendo visual nos agendamentos: ${match?.[0]}`);
+  }
+  assert.doesNotMatch(values, /\b(?:inbox-appointments|ai-admin-fields|inbox-appointment-times|invite-check|content-card|primary-button|text-button)\b/);
+  for (const utility of [
+    "grid gap-3 text-xs text-ink",
+    "grid gap-2 rounded-token border border-line bg-surface p-pad shadow-token",
+    "grid grid-cols-2 gap-3",
+    "flex items-center gap-2",
+  ]) {
+    assert.ok(source.includes(utility), `falta a utility ${utility}`);
+  }
+  for (const token of [
+    'data-testid="inbox-appointments"',
+    'data-testid="inbox-appointment-confirmed"',
+    'role="alert"',
+    "/api/backend/integrations/google/calendar/",
+    "if(!event.id)throw Error",
+    "onConfirm(",
+    "attendees:(addInvite&&contact.email?",
+  ]) {
+    assert.ok(appointments.includes(token), `os agendamentos devem manter ${token}`);
   }
 });

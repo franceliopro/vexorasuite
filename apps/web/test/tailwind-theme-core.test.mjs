@@ -18,7 +18,6 @@ test("o core global usa Tailwind sem preflight, arbitrários ou hex", () => {
   assert.doesNotMatch(theme, /@tailwind base;/);
 
   const semComentarios = theme.replace(/\/\*[\s\S]*?\*\//g, "");
-  const semContratoHidden = semComentarios.replace(/\[hidden\]\s*\{[^}]*\}/g, "");
 
   for (const forbidden of [
     /\b(?:gray|slate|zinc|indigo|blue|green|amber|red)-\d{2,3}\b/,
@@ -27,9 +26,15 @@ test("o core global usa Tailwind sem preflight, arbitrários ou hex", () => {
     /#[0-9a-fA-F]{3,8}\b/,
     /!important/,
   ]) {
-    const match = semContratoHidden.match(forbidden);
+    const match = semComentarios.match(forbidden);
     assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
   }
+
+  assert.match(theme, /\[hidden\]\s*\{\s*@apply hidden;\s*\}/);
+  assert.ok(
+    theme.indexOf("[hidden]") > theme.indexOf("@tailwind utilities;"),
+    "[hidden] deve vir depois das utilities para vencer sem !important",
+  );
 });
 
 test("os três temas continuam sendo a fonte dos tokens", () => {

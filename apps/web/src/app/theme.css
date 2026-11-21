@@ -21,9 +21,7 @@
 *,
 ::before,
 ::after {
-  border-width: 0;
-  border-style: solid;
-  border-color: var(--ln);
+  @apply border-0 border-solid border-line;
 }
 
 html {
@@ -125,9 +123,12 @@ hr {
   @apply outline outline-2 outline-offset-2 outline-focus;
 }
 
-/* Contrato nativo do [hidden]: o preflight faria isto, mas ele está desligado. */
-[hidden] {
-  display: none !important;
-}
-
 @tailwind utilities;
+
+/*
+ * [hidden] precisa vencer classes de display de igual especificidade. Em vez
+ * de !important, ele vem DEPOIS das utilities e usa o próprio `hidden`.
+ */
+[hidden] {
+  @apply hidden;
+}

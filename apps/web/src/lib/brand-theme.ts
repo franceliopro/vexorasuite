@@ -46,9 +46,9 @@ export function sanitizeHex(value: unknown): string {
 
 /** Hybrid sidebar defaults (kept in sync with the `:root[data-theme=hybrid]` stylesheet). */
 export const HYBRID_SIDEBAR_DEFAULTS = {
-  background: "#060F26",
-  foreground: "#FAFCFF",
-  hover: "#0E1936",
+  background: "#020617",
+  foreground: "#F8FAFC",
+  hover: "#0F172A",
 } as const;
 
 const SIDEBAR_PROPS = ["--sb-bg", "--sb-tx", "--sb-on", "--sb-ln", "--sb-mut", "--sb-thumb", "--sb-active-tx", "--sb-active"] as const;

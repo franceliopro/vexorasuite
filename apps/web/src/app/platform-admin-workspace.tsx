@@ -6,6 +6,10 @@ import { createPortal } from "react-dom";
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isActive: boolean; isPublic: boolean; sortOrder: number };
 type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; aiMonth?: number; monthlyPriceCents: number };
 const PRICE = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const dangerTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-red-600 bg-red-100 px-4 text-body font-bold text-red-600 transition-colors hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-60";
+const iconButtonTw = "inline-grid size-9 place-items-center rounded-token-sm border border-line bg-surface text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const MODULE_LABELS: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", CALENDAR: "Calendários", TASKS: "Tarefas", AUTOMATION: "Automação / Chatbot", MARKETING: "Marketing", SITES: "Sites, landing pages e formulários", FINANCE: "Financeiro", CHANNELS: "Canais e redes", SETTINGS: "Configurações"};
 const LIMIT_FIELDS: Array<{ key: string; label: string; kind: "number" | "bool" | "text" | "modules"; placeholder?: string; hint?: string }> = [
   { key: "attendants", label: "Atendentes (usuários)", kind: "number", placeholder: "5" },
@@ -92,9 +96,9 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
       {error && <p className="platform-admin-error" role="alert">{error}</p>}
       <div className="platform-admin-tabs" role="tablist"><button type="button" role="tab" aria-selected={tab === "plans"} className={tab === "plans" ? "active" : ""} onClick={() => setTab("plans")}><Boxes size={15} aria-hidden="true" /> Planos e pacotes</button><button type="button" role="tab" aria-selected={tab === "customers"} className={tab === "customers" ? "active" : ""} onClick={() => setTab("customers")}><Building2 size={15} aria-hidden="true" /> Clientes ({customers.length})</button></div>
 
-      {loading ? <div className="platform-admin-loading"><Loader2 size={20} className="vx-spin" aria-hidden="true" /> Carregando…</div> : tab === "plans" ? (
+      {loading ? <div className="platform-admin-loading"><Loader2 size={20} className="animate-spin" aria-hidden="true" /> Carregando…</div> : tab === "plans" ? (
         <>
-          <div className="platform-admin-actions"><button type="button" className="primary-button" onClick={openNew}><Plus size={15} aria-hidden="true" /> Novo plano</button><p className="platform-admin-hint">Arquivar (em vez de excluir) preserva empresas que já usam o plano.</p></div>
+          <div className="platform-admin-actions"><button type="button" className={primaryTw} onClick={openNew}><Plus size={15} aria-hidden="true" /> Novo plano</button><p className="platform-admin-hint">Arquivar (em vez de excluir) preserva empresas que já usam o plano.</p></div>
           <div className="platform-admin-plans">
             {plans.map(p => (
               <article key={p.id} className={"platform-admin-plan " + (p.isActive ? "" : "is-archived")}>
@@ -103,7 +107,7 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
                 <h2>{p.name}</h2><p className="platform-admin-tagline">{p.tagline || p.audience || "—"}</p>
                 <ul className="platform-admin-limits">{LIMIT_FIELDS.filter(f => f.kind !== "modules").map(f => <li key={f.key}><span>{f.label}</span><b>{renderLimit(p, f.key)}</b></li>)}</ul>
                 <p className="platform-admin-modules">{strArr(p.limits?.modules).map(m => MODULE_LABELS[m] || m).join(" · ") || "Sem módulos listados"}</p>
-                <footer><button type="button" className="secondary-button" onClick={() => openEdit(p)}>Editar</button>{p.isActive && <button type="button" className="icon-button" title="Arquivar" aria-label="Arquivar plano" onClick={() => setConfirmArchive(p.id)}><Trash2 size={15} aria-hidden="true" /></button>}</footer>
+                <footer><button type="button" className={secondaryTw} onClick={() => openEdit(p)}>Editar</button>{p.isActive && <button type="button" className={iconButtonTw} title="Arquivar" aria-label="Arquivar plano" onClick={() => setConfirmArchive(p.id)}><Trash2 size={15} aria-hidden="true" /></button>}</footer>
               </article>
             ))}
           </div>
@@ -118,13 +122,13 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
                 <td><div className="platform-admin-customer"><span className="platform-admin-customer-mark" aria-hidden="true">{c.name.trim().slice(0, 1).toUpperCase()}</span><span><b>{c.name}</b><small>{c.slug}</small></span></div></td>
                 <td><select value={c.plan?.id || ""} onChange={e => void assignPlan(c.id, e.target.value || null)} aria-label={"Plano de " + c.name}><option value="">Sem plano</option>{plans.filter(p => p.isActive).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
                 <td><span className={"platform-admin-pill " + (c.status === "ACTIVE" ? "is-live" : "is-off")}>{c.status === "ACTIVE" ? "Ativa" : c.status}</span></td>
-                <td>{c.seats}</td><td>{c.channels}</td><td>{c.conversations}</td><td title={"Execuções de IA neste mês: " + (c.aiMonth ?? 0)}>{c.aiMonth ?? 0}</td><td>{PRICE(c.monthlyPriceCents)}</td><td><a href={"/?module=Configurações"} className="icon-button" title="Abrir empresa" aria-label="Abrir empresa"><ExternalLink size={14} aria-hidden="true" /></a></td>
+                <td>{c.seats}</td><td>{c.channels}</td><td>{c.conversations}</td><td title={"Execuções de IA neste mês: " + (c.aiMonth ?? 0)}>{c.aiMonth ?? 0}</td><td>{PRICE(c.monthlyPriceCents)}</td><td><a href={"/?module=Configurações"} className={iconButtonTw} title="Abrir empresa" aria-label="Abrir empresa"><ExternalLink size={14} aria-hidden="true" /></a></td>
               </tr>
             ))}
           </tbody></table></div>
         </div>
       )}
-      {confirmArchive && <div className="vx-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmArchive(null); }}><section className="vx-dialog" role="dialog" aria-modal="true" aria-label="Arquivar plano"><header className="vx-dialog-heading"><div><h2>Arquivar plano</h2><p>Empresas vinculadas continuam no plano arquivado; novos não poderão ser contratados.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={() => setConfirmArchive(null)}><X size={16} aria-hidden="true" /></button></header><footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={() => setConfirmArchive(null)}>Voltar</button><button type="button" className="danger-button" onClick={() => { void archive(confirmArchive); }}>Arquivar</button></footer></section></div>}
+      {confirmArchive && <div className="vx-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmArchive(null); }}><section className="vx-dialog" role="dialog" aria-modal="true" aria-label="Arquivar plano"><header className="vx-dialog-heading"><div><h2>Arquivar plano</h2><p>Empresas vinculadas continuam no plano arquivado; novos não poderão ser contratados.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={() => setConfirmArchive(null)}><X size={16} aria-hidden="true" /></button></header><footer className="vx-dialog-footer"><button type="button" className={secondaryTw} onClick={() => setConfirmArchive(null)}>Voltar</button><button type="button" className={dangerTw} onClick={() => { void archive(confirmArchive); }}>Arquivar</button></footer></section></div>}
     </section>
   );
 }
@@ -156,7 +160,7 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
           </div>
           <fieldset className="platform-admin-limits-fieldset"><legend>Limites e recursos</legend><div className="platform-admin-limits-grid">{LIMIT_FIELDS.map(f => f.kind === "bool" ? (<label key={f.key} className="platform-admin-check"><input type="checkbox" checked={!!draft.limits?.[f.key]} onChange={e => upd({ limits: { ...draft.limits, [f.key]: e.target.checked } })} /> <span>{f.label}</span></label>) : (<label key={f.key} className="platform-admin-field"><span>{f.label}</span><input type={f.kind === "number" ? "number" : "text"} min={0} value={draft.limits?.[f.key] ?? ""} onChange={e => setLimit(f.key, f.kind === "number" ? Number(e.target.value) || 0 : e.target.value)} placeholder={f.placeholder} /></label>))}</div>
             <div className="platform-admin-modules-block">
-              <div className="platform-admin-modules-head"><span className="platform-admin-field-wide"><strong>Módulos liberados</strong><small>Landing Pages e Formulários entram no pacote <em>Sites</em>. Publicação social fica só com <em>Marketing</em>.</small></span><div className="platform-admin-presets">{PLAN_PRESETS.map(preset => <button key={preset.label} type="button" className="secondary-button" onClick={() => upd({ limits: { ...draft.limits, modules: [...preset.modules, "SETTINGS"] } })} title={"Preencher com " + preset.label}>{preset.label}</button>)}</div></div>
+              <div className="platform-admin-modules-head"><span className="platform-admin-field-wide"><strong>Módulos liberados</strong><small>Landing Pages e Formulários entram no pacote <em>Sites</em>. Publicação social fica só com <em>Marketing</em>.</small></span><div className="platform-admin-presets">{PLAN_PRESETS.map(preset => <button key={preset.label} type="button" className={secondaryTw} onClick={() => upd({ limits: { ...draft.limits, modules: [...preset.modules, "SETTINGS"] } })} title={"Preencher com " + preset.label}>{preset.label}</button>)}</div></div>
               <div className="platform-admin-modules-grid" role="group" aria-label="Módulos liberados">
                 {MODULE_ORDER.filter(m => m !== "SETTINGS").map(m => {
                   const checked = strArr(draft.limits?.modules).includes(m);
@@ -172,7 +176,7 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
           </fieldset>
           <div className="platform-admin-flags"><label className="platform-admin-check"><input type="checkbox" checked={draft.isActive} onChange={e => upd({ isActive: e.target.checked })} /> <span>Plano ativo</span></label><label className="platform-admin-check"><input type="checkbox" checked={draft.isPublic} onChange={e => upd({ isPublic: e.target.checked })} /> <span>Visível no catálogo público</span></label></div>
         </div>
-        <footer className="vx-dialog-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button type="button" className="primary-button" disabled={saving || !draft.name.trim() || !draft.code.trim()} onClick={() => void onSave()}>{saving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />} Salvar</button></footer>
+        <footer className="vx-dialog-footer"><button type="button" className={secondaryTw} onClick={onClose}>Cancelar</button><button type="button" className={primaryTw} disabled={saving || !draft.name.trim() || !draft.code.trim()} onClick={() => void onSave()}>{saving ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />} Salvar</button></footer>
       </section>
     </div>,
     document.body,

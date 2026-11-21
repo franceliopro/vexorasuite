@@ -160,7 +160,7 @@ test("o contrato híbrido permanece: menu escuro, restante claro", () => {
   assert.match(hybrid, /--sb-tx:#FAFCFF/);
   assert.doesNotMatch(hybrid, /--bg:/);
 
-  const sidebarBlock = theme.match(/\.sidebar \{[\s\S]*?\n  \}/)?.[0] ?? "";
+  const sidebarBlock = theme.match(/\.sidebar \{[\s\S]*?\n\s{2}\}/)?.[0] ?? "";
   assert.match(sidebarBlock, /bg-indigo-950/);
   assert.match(sidebarBlock, /text-indigo-50/);
   assert.match(sidebarBlock, /border-indigo-800/);

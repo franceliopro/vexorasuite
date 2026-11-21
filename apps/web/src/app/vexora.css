@@ -119,20 +119,30 @@ details>summary{list-style:none}
 details>summary::-webkit-details-marker{display:none}
 [class$="-backdrop"],[class$="-overlay"]{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(9,13,11,.10);backdrop-filter:blur(2px) saturate(1.01);-webkit-backdrop-filter:blur(2px) saturate(1.01);animation:vx-scrim-in .18s ease both}
 @keyframes vx-scrim-in{from{opacity:0}to{opacity:1}}
-.vx-dialog,[class$="-dialog"],[class$="-modal"]{position:relative;width:min(100%,520px);max-height:calc(100dvh - 44px);overflow:auto;padding:var(--pad);border:1px solid color-mix(in srgb,var(--ln) 60%,#FFFFFF);border-radius:var(--r-lg);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 95%,var(--bg)));color:var(--tx);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 32px 72px -18px rgba(9,15,12,.42),0 4px 14px -6px rgba(9,15,12,.18);animation:vx-in .26s var(--ease) both;z-index:1}
+.vx-dialog,[class$="-dialog"],[class$="-modal"],
+[data-testid='vexora-dialog'],[class$="-dialog"],[class$="-modal"]{position:relative;width:min(100%,520px);max-height:calc(100dvh - 44px);overflow:auto;padding:var(--pad);border:1px solid color-mix(in srgb,var(--ln) 60%,#FFFFFF);border-radius:var(--r-lg);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 95%,var(--bg)));color:var(--tx);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 32px 72px -18px rgba(9,15,12,.42),0 4px 14px -6px rgba(9,15,12,.18);animation:vx-in .26s var(--ease) both;z-index:1}
 @keyframes vx-in{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
-.vx-dialog-wide{width:min(100%,860px)}
-.vx-dialog{display:flex;flex-direction:column;overflow:hidden}
-.vx-dialog>.vx-dialog-heading{flex:none}
-.vx-dialog-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
-.vx-dialog-footer{flex:none;margin-top:0;padding-top:12px;border-top:1px solid var(--ln)}
-.vx-dialog-body .contact-profile-footer{position:sticky;bottom:0;z-index:4;background:var(--s1);margin:0 -2px -2px;padding-top:10px;border-top:1px solid var(--ln)}
+.vx-dialog-wide,
+[data-testid='vexora-dialog'][data-wide='true']{width:min(100%,860px)}
+.vx-dialog,
+[data-testid='vexora-dialog']{display:flex;flex-direction:column;overflow:hidden}
+.vx-dialog>.vx-dialog-heading,
+[data-testid='vexora-dialog']>[data-testid='vexora-dialog-heading']{flex:none}
+.vx-dialog-body,
+[data-testid='vexora-dialog-body']{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.vx-dialog-footer,
+[data-testid='vexora-dialog-footer']{flex:none;margin-top:0;padding-top:12px;border-top:1px solid var(--ln)}
+.vx-dialog-body .contact-profile-footer,
+[data-testid='vexora-dialog-body'] .contact-profile-footer{position:sticky;bottom:0;z-index:4;background:var(--s1);margin:0 -2px -2px;padding-top:10px;border-top:1px solid var(--ln)}
 [data-testid='contact-profile'][data-bare='true']{display:flex;flex-direction:column}
 [data-testid='contact-profile'][data-bare='true'] .contact-profile-body{flex:none;overflow:visible;padding-top:14px}
 .profile-sticky-tail{position:static;background:transparent;border-top:0;box-shadow:none}
-.vx-dialog-heading,[class$="-dialog"]>header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-right:40px;min-width:0}
-.vx-dialog-heading h2,[class$="-dialog"]>header h2{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vx-dialog-footer,.finalization-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.vx-dialog-heading,[class$="-dialog"]>header,
+[data-testid='vexora-dialog-heading'],[class$="-dialog"]>header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-right:40px;min-width:0}
+.vx-dialog-heading h2,[class$="-dialog"]>header h2,
+[data-testid='vexora-dialog-heading'] h2,[class$="-dialog"]>header h2{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vx-dialog-footer,.finalization-actions,
+[data-testid='vexora-dialog-footer'],.finalization-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 [class$="-close"]{position:absolute;top:12px;right:12px;z-index:5;display:grid;place-items:center;width:34px;height:34px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:11px;background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
 [class$="-close"]:hover{background:var(--hover);color:var(--tx);border-color:var(--ln2);transform:scale(1.06)}
 [class$="-popover"],[class$="-menu"]:not(.nav-submenu,.nav-submenu-panel,.sidebar-profile-menu,.mobile-menu,.vx-flow-command-menu,[data-testid='handoff-menu'],.invite-menu,.inbox-more-queues-menu),[data-testid='handoff-menu']{position:absolute;z-index:50;background:var(--s1);box-shadow:var(--shadow)}
@@ -1880,7 +1890,8 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .vx-inboxes-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .vx-inboxes-heading h2{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:800}
 .vx-inboxes-heading p{font-size:11px;color:var(--tx2);margin-top:2px;max-width:64ch}
-.vx-dialog-icon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:color-mix(in srgb,var(--primary) 9%,var(--s1));color:var(--primary-ink);border:1px solid color-mix(in srgb,var(--primary) 20%,var(--ln))}
+.vx-dialog-icon,
+[data-testid='vexora-dialog-icon']{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:color-mix(in srgb,var(--primary) 9%,var(--s1));color:var(--primary-ink);border:1px solid color-mix(in srgb,var(--primary) 20%,var(--ln))}
 .vx-inboxes-heading>div{display:grid;gap:2px;min-width:0}
 .vx-inboxes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}
 @media(max-width:1150px){.vx-inboxes-grid{grid-template-columns:1fr}}
@@ -1962,7 +1973,9 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 
 .channels-configuration-shell .channels-section-heading{justify-content:flex-start}
 
-:is(.calendar-modal,.finalization-dialog,.vx-dialog){position:relative;border:1px solid color-mix(in srgb,var(--ln) 55%,#FFFFFF);box-shadow:0 28px 80px -20px rgba(15,23,42,.5)}
+:is(.calendar-modal,.finalization-dialog,.vx-dialog),
+
+:is(.calendar-modal,.finalization-dialog,[data-testid='vexora-dialog']){position:relative;border:1px solid color-mix(in srgb,var(--ln) 55%,#FFFFFF);box-shadow:0 28px 80px -20px rgba(15,23,42,.5)}
 .dialog-close{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:11px;background:var(--s2);color:var(--tx2);cursor:pointer;transition:background .15s,color .15s;z-index:2}
 .dialog-close:hover{background:var(--hover);color:var(--tx)}
 .dialog-close:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -3179,16 +3192,24 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .sites-studio-skills{display:flex;flex-wrap:wrap;gap:6px}
 .sites-studio-skills button{min-height:26px;padding:0 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s2);color:var(--tx);font-size:10px;font-weight:700;cursor:pointer;transition:all .13s}
 .sites-studio-skills button:hover{border-color:var(--primary);color:var(--primary-ink)}
-@media(max-width:1180px){.sites-studio-body{grid-template-columns:minmax(0,1fr);min-height:auto}.sites-studio-blocks{flex-direction:row;overflow-x:auto;gap:6px;max-height:none}.sites-studio-block{min-width:130px;flex:none}.sites-studio-frame,.sites-studio-frame.is-phone{width:100%;max-width:100%;min-height:480px;max-height:60vh}}
+@media(max-width:1180px){.sites-studio-body{grid-template-columns:minmax(0,1fr);min-height:auto}.sites-studio-blocks{flex-direction:row;overflow-x:auto;gap:6px;max-height:none}.sites-studio-block{min-width:130px;flex:none}.sites-studio-frame,.sites-studio-frame.is-phone{width:100%;max-width:100%;min-height:480px;max-height:60vh}}/* ===== 70. Scroll único em diálogo/tela — remove barras duplas ===== */
 
-/* ===== 70. Scroll único em diálogo/tela — remove barras duplas ===== */
-.vx-dialog,[class$="-dialog"],[class$="-modal"]{overflow:hidden}
-.vx-dialog-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}
-.vx-dialog-body{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tx) 45%,transparent) transparent}
-.vx-dialog-body::-webkit-scrollbar{width:8px}
-.vx-dialog-body::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--tx) 45%,transparent);border-radius:99px;min-height:48px}
-.vx-dialog-body::-webkit-scrollbar-track{background:transparent}
-.vx-dialog-body::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--tx) 65%,transparent)}
+
+.vx-dialog,[class$="-dialog"],[class$="-modal"],
+
+[data-testid='vexora-dialog'],[class$="-dialog"],[class$="-modal"]{overflow:hidden}
+.vx-dialog-body,
+[data-testid='vexora-dialog-body']{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}
+.vx-dialog-body,
+[data-testid='vexora-dialog-body']{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--tx) 45%,transparent) transparent}
+.vx-dialog-body::-webkit-scrollbar,
+[data-testid='vexora-dialog-body']::-webkit-scrollbar{width:8px}
+.vx-dialog-body::-webkit-scrollbar-thumb,
+[data-testid='vexora-dialog-body']::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--tx) 45%,transparent);border-radius:99px;min-height:48px}
+.vx-dialog-body::-webkit-scrollbar-track,
+[data-testid='vexora-dialog-body']::-webkit-scrollbar-track{background:transparent}
+.vx-dialog-body::-webkit-scrollbar-thumb:hover,
+[data-testid='vexora-dialog-body']::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--tx) 65%,transparent)}
 /* Corpos internos não criam suas próprias barras — a rolagem acontece num único lugar: o diálogo */
 .sites-wizard-body{overflow-y:auto!important;max-height:none}.platform-admin-editor-body,.sites-studio-panel,.sites-studio-blocks,.sites-items-grid,.sites-forms-grid,.sites-items-list,.sites-item-form{overflow-y:auto;max-height:none}
 .calendar-modal{overflow:visible}
@@ -3231,8 +3252,10 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .sites-wizard-body .sites-sub-divider::after{content:"";flex:1;height:1px;background:var(--ln)}
 .sites-wizard-body .sites-row .sites-remove-link{align-self:center}
 .sites-wizard-body input[type="color"]{min-height:36px}
-.sites-wizard .vx-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--ln);background:var(--s2)}
-.sites-wizard .vx-dialog-footer .footer-note{font-size:10px;color:var(--tx2)}
+.sites-wizard .vx-dialog-footer,
+.sites-wizard [data-testid='vexora-dialog-footer']{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--ln);background:var(--s2)}
+.sites-wizard .vx-dialog-footer .footer-note,
+.sites-wizard [data-testid='vexora-dialog-footer'] .footer-note{font-size:10px;color:var(--tx2)}
 
 /* ===== 73. Acabamento da sidebar ===== */
 :root[data-theme=hybrid] .sidebar,:root[data-theme=dark] .sidebar{box-shadow:none!important}
@@ -3354,8 +3377,10 @@ legend{padding:0 7px;font:800 9.5px/1 var(--font-display);letter-spacing:.09em;t
 /* Distância entre blocos (header/section/aside/footer/div) em superfícies de trabalho */
 .content-card>header:first-child,.workspace-surface>header:first-child{margin-top:0}
 .workspace-surface,.content-card{row-gap:0}
-.vx-dialog-footer,.sites-wizard .vx-dialog-footer{margin:0;border-radius:0 0 var(--r-xl) var(--r-xl)}
-.vx-dialog-body{scroll-padding-block:12px}
+.vx-dialog-footer,.sites-wizard .vx-dialog-footer,
+[data-testid='vexora-dialog-footer'],.sites-wizard [data-testid='vexora-dialog-footer']{margin:0;border-radius:0 0 var(--r-xl) var(--r-xl)}
+.vx-dialog-body,
+[data-testid='vexora-dialog-body']{scroll-padding-block:12px}
 /* Checkboxes e switches: alvo consistente */
 input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px;cursor:pointer}
 input[type=radio]{accent-color:var(--primary)}
@@ -3913,8 +3938,10 @@ input[type=tel]{letter-spacing:.02em}
 .contact-profile .contact-identity-form{grid-template-columns:1fr 1fr;display:grid;gap:10px;max-width:560px}
 .contact-profile .contact-identity-form button[type=submit]{grid-column:1/-1;justify-self:start}
 @media (min-width:960px){
-  .vx-dialog-wide [data-testid='contact-profile'][data-bare='true'] .profile-scroll-flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}
-  .vx-dialog-wide [data-testid='contact-profile'][data-bare='true'] .profile-section{min-width:0}
+  .vx-dialog-wide [data-testid='contact-profile'][data-bare='true'] .profile-scroll-flow,
+  [data-testid='vexora-dialog'][data-wide='true'] [data-testid='contact-profile'][data-bare='true'] .profile-scroll-flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}
+  .vx-dialog-wide [data-testid='contact-profile'][data-bare='true'] .profile-section,
+  [data-testid='vexora-dialog'][data-wide='true'] [data-testid='contact-profile'][data-bare='true'] .profile-section{min-width:0}
 }
 @media (max-width:760px){.contact-profile .contact-identity-form{grid-template-columns:1fr}}
 
@@ -3975,10 +4002,12 @@ input[type=tel]{letter-spacing:.02em}
 .crm-stage-pill select{min-height:27px!important;border:0!important;background:transparent!important;color:var(--tx)!important;font-size:10.5px!important;font-weight:800!important;padding:0 16px 0 2px!important;box-shadow:none!important}
 :root[data-theme=dark] .crm-pipeline-column .crm-stage-heading h2{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)}
 :root[data-theme=dark] .crm-stage-pill{background:color-mix(in srgb,var(--tone) 18%,var(--s1));border-color:color-mix(in srgb,var(--tone) 34%,transparent)}
-:root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}
+:root[data-theme=dark] .crm-stage-pill>span{color:color-mix(in srgb,var(--tone) 70%,#FFFFFF)!important}/* ===== 99. Nova assinatura Asaas + catálogo de serviços ===== */
 
-/* ===== 99. Nova assinatura Asaas + catálogo de serviços ===== */
-.vx-dialog-backdrop.finance-subscription-backdrop,.finance-subscription-dialog{display:flex}
+
+.vx-dialog-backdrop.finance-subscription-backdrop,.finance-subscription-dialog,
+
+[data-testid='vexora-dialog-backdrop'].finance-subscription-backdrop,.finance-subscription-dialog{display:flex}
 .finance-subscription-dialog{flex-direction:column}
 .finance-subscription-form{display:grid;gap:18px}
 .finance-subscription-form section{display:grid;gap:10px}
@@ -3995,7 +4024,8 @@ input[type=tel]{letter-spacing:.02em}
 @media (max-width:1080px){.finance-subscription-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.finance-subscription-grid{grid-template-columns:1fr}}
 .finance-subscription-error{margin:0;color:var(--bad);font-size:12.5px;font-weight:650}
-.vx-dialog-footer.finance-subscription-footer{display:flex;justify-content:flex-end;gap:10px}
+.vx-dialog-footer.finance-subscription-footer,
+[data-testid='vexora-dialog-footer'].finance-subscription-footer{display:flex;justify-content:flex-end;gap:10px}
 .finance-subscription-notice{display:flex;align-items:center;gap:10px;border:1px solid color-mix(in srgb,#16A34A 38%,var(--ln));background:color-mix(in srgb,#16A34A 9%,var(--s1));color:var(--tx);border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:650}
 .finance-subscription-notice button{margin-left:auto;display:inline-grid;place-items:center;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--tx2);cursor:pointer}
 .finance-asaas-listing-heading-actions{display:flex;align-items:center;gap:8px;flex:none}
@@ -4092,7 +4122,8 @@ input[type=tel]{letter-spacing:.02em}
 .layout-element-ai{display:flex;gap:6px}
 .layout-element-ai input{flex:1;min-height:32px;padding:0 10px;border:1px solid var(--ln);border-radius:8px;background:var(--s2);color:var(--tx);font-size:12px}
 .layout-columns-head{display:flex;align-items:center;justify-content:space-between}
-.sites-relayout .vx-dialog-body{display:grid;gap:12px}
+.sites-relayout .vx-dialog-body,
+.sites-relayout [data-testid='vexora-dialog-body']{display:grid;gap:12px}
 .sites-relayout-image{display:grid;gap:8px}
 .sites-relayout-image img{max-width:240px;max-height:150px;border-radius:10px;object-fit:cover;border:1px solid var(--ln)}
 .sites-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--tx)}
@@ -4147,7 +4178,8 @@ input[type=tel]{letter-spacing:.02em}
 .file-manager-item-body small{color:var(--tx2);font-size:10.5px}
 .file-manager-item-actions{display:flex;gap:6px;justify-content:flex-end;padding:6px 10px;border-top:1px solid var(--ln);background:var(--s2)}
 .file-manager-hint{margin:0;color:var(--tx2);font-size:11px}
-.file-image-picker .vx-dialog-body{display:grid;gap:12px;min-width:min(860px,94vw)}
+.file-image-picker .vx-dialog-body,
+.file-image-picker [data-testid='vexora-dialog-body']{display:grid;gap:12px;min-width:min(860px,94vw)}
 .file-image-picker-toolbar{display:flex;gap:10px;align-items:center}
 .file-image-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:420px;overflow:auto;padding-right:4px}
 .file-image-picker-item{position:relative;border:2px solid transparent;border-radius:12px;overflow:hidden;background:var(--s2);cursor:pointer;padding:0;display:grid;grid-template-rows:1fr auto}

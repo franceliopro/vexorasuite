@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Trash2, PackageSearch, Send, CirclePlus } from "lucide-react";
+import { Trash2, CirclePlus } from "lucide-react";
 
 type Item = { id: string; kind: string; name: string; description: string; sku?: string | null; priceCents: number; currency: string; unit: string; imageUrl?: string | null; category?: string | null };
+
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 
 /**
  * Assistente de orçamento para a inbox: seleciona itens do catálogo,
@@ -52,28 +54,28 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
     } finally { setBusy(false); }
   }
 
-  return <div className="catalog-quote-panel">
-    {error ? <p className="composer-ai-error" role="alert">{error}</p> : null}
-    {notice ? <p className="catalog-quote-notice" role="status">{notice}</p> : null}
-    <label className="catalog-quote-search"><input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar produto/serviço…" aria-label="Buscar produto ou serviço" /></label>
-    <div className="catalog-quote-list">
-      {loading ? <p className="catalog-quote-empty">Carregando…</p> : items.length === 0 ? <p className="catalog-quote-empty">Nenhum item no catálogo. Cadastre em Configurações → Catálogo ou peça para a administração cadastrar.</p> : items.map(item => {
+  return <div data-testid="catalog-quote-panel" className="grid min-h-ib-quote content-start gap-2.5 px-3.5 py-3">
+    {error ? <p data-testid="catalog-quote-error" className="mx-3.5 mt-ib-quote-error-y text-ib-time leading-ib-quote-error text-danger" role="alert">{error}</p> : null}
+    {notice ? <p data-testid="catalog-quote-notice" className="m-0 rounded-ib-quote-qty border border-emerald-600 bg-emerald-100 p-2 px-2.5 text-ib-profile-copy text-emerald-600" role="status">{notice}</p> : null}
+    <label className="grid min-w-0"><input className="w-full min-h-9 rounded-ib-entry border border-line bg-surface-2 px-2.5 py-2 font-inherit text-ink placeholder:text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar produto/serviço…" aria-label="Buscar produto ou serviço" /></label>
+    <div data-testid="catalog-quote-list" className="grid content-start gap-1.5 overflow-auto max-h-ib-quote-list">
+      {loading ? <p className="max-w-ib-quote-empty text-small leading-normal text-ink-secondary">Carregando…</p> : items.length === 0 ? <p className="max-w-ib-quote-empty text-small leading-normal text-ink-secondary">Nenhum item no catálogo. Cadastre em Configurações → Catálogo ou peça para a administração cadastrar.</p> : items.map(item => {
         const qty = saved[item.id] ?? 0;
-        return <div key={item.id} className="catalog-quote-item">
-          <div className="catalog-quote-item-info">
-            <strong>{item.name}</strong>
-            <small>{item.sku ? item.sku + " · " : ""}{item.unit} · {money(item.priceCents, item.currency)}</small>
+        return <div key={item.id} data-testid="catalog-quote-item" className="flex items-center justify-between gap-2.5 rounded-ib-panel border border-line bg-surface-2 px-2.5 py-2">
+          <div className="grid min-w-0 gap-0.5">
+            <strong className="truncate text-ib-input text-ink">{item.name}</strong>
+            <small className="text-ib-caption text-ink-secondary">{item.sku ? item.sku + " · " : ""}{item.unit} · {money(item.priceCents, item.currency)}</small>
           </div>
-          <button type="button" className="catalog-quote-qty-btn" aria-label={qty > 0 ? "Diminuir" : "Adicionar"} onClick={() => setSaved(s => ({ ...s, [item.id]: Math.max(0, qty + (qty > 0 ? -1 : 1)) }))}>
+          <button type="button" data-testid="catalog-quote-qty-btn" className="inline-flex min-h-ib-quote-qty items-center gap-1.5 rounded-ib-quote-qty border border-line bg-surface px-ib-quote-qty-x text-ib-caption font-bold text-ink transition-colors hover:border-blue-600 hover:text-blue-600" aria-label={qty > 0 ? "Diminuir" : "Adicionar"} onClick={() => setSaved(s => ({ ...s, [item.id]: Math.max(0, qty + (qty > 0 ? -1 : 1)) }))}>
             {qty > 0 ? <Trash2 size={14} aria-hidden="true" /> : <CirclePlus size={14} aria-hidden="true" />}
             <span>{qty > 0 ? qty : "Adicionar"}</span>
           </button>
         </div>;
       })}
     </div>
-    <footer className="catalog-quote-footer">
-      <div><span>Total</span><strong>{money(total)}</strong></div>
-      <button type="button" className="primary-button" disabled={!selectedItems.length || busy} onClick={() => void sendQuote()}>{busy ? "Enviando…" : "Gerar e enviar orçamento"}</button>
+    <footer className="flex items-center justify-between gap-3 border-t border-line pt-2.5">
+      <div className="flex items-center gap-2"><span>Total</span><strong className="text-body">{money(total)}</strong></div>
+      <button type="button" className={primaryButton} disabled={!selectedItems.length || busy} onClick={() => void sendQuote()}>{busy ? "Enviando…" : "Gerar e enviar orçamento"}</button>
     </footer>
   </div>;
 }

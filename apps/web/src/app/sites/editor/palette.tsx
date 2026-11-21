@@ -102,7 +102,7 @@ export function Palette({
           <span className="vx-palette-count">0</span>
         </div>
         <div className="vx-palette-empty">
-          <Loader2 size={18} className="vx-spin" aria-hidden="true" />
+          <Loader2 size={18} className="animate-spin" aria-hidden="true" />
           <span>Carregando blocos…</span>
         </div>
       </aside>

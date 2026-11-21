@@ -7,7 +7,9 @@ const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "
 const config = read("tailwind.config.ts");
 const list = read("src/app/conversation-list.tsx");
 const avatars = read("src/app/inbox-avatars.tsx");
-const components = [list, avatars];
+const copilot = read("src/app/inbox-copilot.tsx");
+const inboxes = read("src/app/inboxes-management.tsx");
+const components = [list, avatars, copilot, inboxes];
 
 /** Só literais de string dentro de className são classes — não o código da expressão. */
 function classValues(source) {
@@ -32,7 +34,7 @@ test("a Conversa não usa classes componente legadas", () => {
   assert.doesNotMatch(classes, /\b(?:content-card|primary-button|secondary-button|icon-button|dialog-close|chip|ai-toggle)\b/);
   // ib-* aparece só como sufixo de utility do preset, nunca como classe componente.
   for (const token of classes.split(/\s+/).filter((part) => /(?:^|-)ib(?:-|$)/.test(part))) {
-    assert.match(token, /^(?:font-ib|(?:(?:bg|text|h|w|min-h|max-h|max-w|min-w|shadow|rounded|border|gap|gap-x|gap-y|px|py|p|my|mt|mb|font|grid-cols|col-span|justify-self)-ib-[a-z0-9-]+))$/, `classe ib-* não autorizada: ${token}`);
+    assert.match(token, /^(?:font-ib|ib-(?:narrow|mobile|wide):[a-z0-9:-]+|(?:(?:bg|text|h|w|min-h|max-h|max-w|min-w|shadow|rounded|border|gap|gap-x|gap-y|px|py|p|my|mt|mb|font|grid-cols|col-span|justify-self)-ib-[a-z0-9-]+))$/, `classe ib-* não autorizada: ${token}`);
   }
 });
 
@@ -82,6 +84,17 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     '"ib-channel": "5px"',
     '"ib-selected": "inset 3px 0 0 var(--primary)',
     '"ib-newdot": "0 0 0 2px',
+    '"ib-dialog-icon": "11px"',
+    '"ib-caption": ["11px"',
+    '"ib-label": ["10px"',
+    '"ib-input": ["12.5px"',
+    '"ib-wide": { raw: "(max-width: 1150px)" }',
+    '"ib-control": "37px"',
+    '"ib-inboxes": "repeat(2, minmax(0, 1fr))"',
+    '"ib-compact-meta": "repeat(3, minmax(0, 1fr))"',
+    '"ib-details": "repeat(auto-fit, minmax(170px, 1fr))"',
+    '"ib-detail-row": "96px minmax(0, 1fr)"',
+    '"ib-copy": "42ch"',
   ]) {
     assert.ok(config.includes(token), `o preset deve expor ${token}`);
   }
@@ -114,4 +127,49 @@ test("os marcadores de canal preservam títulos, rótulos e detecção", () => {
   assert.ok(avatars.includes("/api/backend/contacts/"));
   assert.ok(avatars.includes("avatarUrl(contact)"));
   assert.ok(avatars.includes("contact.metadata?.tags"));
+});
+
+test("o copiloto preserva os contratos de acessibilidade e as integrações", () => {
+  for (const token of [
+    'role="tablist"',
+    'aria-label="Ações da assistente"',
+    'role="tab"',
+    "aria-selected={action===item.id}",
+    'role="status"',
+    'role="alert"',
+    "/api/backend/conversations/",
+    "/copilot",
+    "/internal-notes?view=",
+    'dir="auto"',
+    "<VexoraDialog",
+    "onUse(result.text)",
+    "onSend(result.text)",
+    "onNote()",
+    "onClose()",
+  ]) {
+    assert.ok(copilot.includes(token), `o copiloto deve manter ${token}`);
+  }
+  assert.equal((copilot.match(/role="tab"/g) ?? []).length, 1);
+});
+
+test("a gestão de inbox preserva os contratos e as integrações", () => {
+  for (const token of [
+    'aria-label="Gestão das inbox"',
+    'aria-label="Distribuição automática de conversas"',
+    'aria-label="Atualizar inbox"',
+    'role="alert"',
+    'role="status"',
+    "/api/backend/channels/",
+    "zernio/sync",
+    '"inboxes"',
+    "/api/backend/conversations/distribution-settings",
+    'href="/?module=Chatbots"',
+    'href={"/?module=Atendimento&conversation="',
+    "expectedRevision:selected.routing.revision",
+    "<VexoraDialog",
+  ]) {
+    assert.ok(inboxes.includes(token), `a gestão de inbox deve manter ${token}`);
+  }
+  assert.ok((inboxes.match(/role="alert"/g) ?? []).length >= 2);
+  assert.ok((inboxes.match(/role="status"/g) ?? []).length >= 3);
 });

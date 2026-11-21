@@ -25,6 +25,7 @@ const config: Config = {
         /* Cortes próprios do Atendimento. */
         "ib-narrow": { raw: "(max-width: 600px)" },
         "ib-mobile": { raw: "(max-width: 520px)" },
+        "ib-wide": { raw: "(max-width: 1150px)" },
       },
       colors: {
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
@@ -169,6 +170,7 @@ const config: Config = {
         "ib-article": "10px",
         "ib-panel": "12px",
         "ib-channel": "5px",
+        "ib-dialog-icon": "11px",
       },
       borderWidth: {
         /* Borda superior das colunas do Kanban. */
@@ -226,6 +228,9 @@ const config: Config = {
         "ib-micro": ["9px", { lineHeight: "1.35" }],
         "ib-tick": ["10px", { lineHeight: "1" }],
         "ib-avatar-fallback": ["15px", { lineHeight: "1" }],
+        "ib-caption": ["11px", { lineHeight: "1.5" }],
+        "ib-label": ["10px", { lineHeight: "1.4", letterSpacing: ".08em" }],
+        "ib-input": ["12.5px", { lineHeight: "1.45" }],
       },
       fontWeight: {
         heading: "750",
@@ -299,12 +304,18 @@ const config: Config = {
         "ib-field": "minmax(0, 1fr) minmax(0, 1.4fr) auto",
         /* Preferências de lembretes de Tarefas. */
         "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
+        /* Grades da gestão de inbox do Atendimento. */
+        "ib-inboxes": "repeat(2, minmax(0, 1fr))",
+        "ib-compact-meta": "repeat(3, minmax(0, 1fr))",
+        "ib-details": "repeat(auto-fit, minmax(170px, 1fr))",
+        "ib-detail-row": "96px minmax(0, 1fr)",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
       },
       minHeight: {
         ov: "150px",
+        "ib-control": "37px",
         /* Medidas das colunas e cartões do Kanban do CRM. */
         "crm-column": "280px",
         "crm-card": "152px",
@@ -328,6 +339,7 @@ const config: Config = {
         "crm-copy": "560px",
         "crm-select": "340px",
         "crm-search": "360px",
+        "ib-copy": "42ch",
       },
       width: {
         "profile-popover": "248px",

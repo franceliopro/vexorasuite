@@ -136,7 +136,7 @@ test("o ::backdrop é a única exceção de CSS dos diálogos e vive no core", (
   const backdropRules = theme.match(/dialog::backdrop\s*\{[^}]*\}/g) ?? [];
   assert.equal(backdropRules.length, 1);
   assert.match(backdropRules[0], /@apply bg-slate-950\/60;/);
-  // --tx é uma cor completa: o preset precisa aceitar o modificador /60.
-  assert.match(config, /950:\s*\(\{ opacityValue \}\)/);
+  // --tx é uma cor completa: o placeholder padrão gera o modificador /60.
+  assert.match(config, /950:\s*"rgb\(from var\(--tx\) r g b \/ <alpha-value>\)"/);
   for (const source of components) assert.doesNotMatch(source, /::backdrop/);
 });

@@ -47,11 +47,9 @@ const config: Config = {
         slate: {
           400: "var(--text-muted)",
           600: "var(--tx2)",
-          /* --tx é uma cor completa: sem esta função o modificador de
-             opacidade (bg-slate-950/60 do ::backdrop) não é gerado. */
-          950: ({ opacityValue }) => opacityValue && !opacityValue.includes("var(")
-            ? `rgb(from var(--tx) r g b / ${Number(opacityValue) * 100}%)`
-            : "var(--tx)",
+          /* --tx é uma cor completa: o placeholder padrão do Tailwind gera
+             o modificador de opacidade (bg-slate-950/60 do ::backdrop). */
+          950: "rgb(from var(--tx) r g b / <alpha-value>)",
         },
         gray: {
           100: "var(--vx-core-line-soft)",

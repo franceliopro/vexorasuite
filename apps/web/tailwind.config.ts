@@ -168,6 +168,10 @@ const config: Config = {
         "ib-article": "10px",
         "ib-panel": "12px",
       },
+      borderWidth: {
+        /* Borda superior das colunas do Kanban. */
+        "crm-stage": "3px",
+      },
       boxShadow: {
         token: "var(--shadow)",
         "token-sm": "var(--shadow-sm)",
@@ -256,6 +260,8 @@ const config: Config = {
         "ib-pad": "18px",
         "ib-gap": "9px",
         "ib-block": "10px",
+        /* Estado de carregamento do Kanban. */
+        "crm-loading-y": "60px",
       },
       gridTemplateColumns: {
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
@@ -278,10 +284,17 @@ const config: Config = {
         "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
         "calendar-event": "auto auto minmax(0, 1fr) auto auto",
       },
+      gridAutoColumns: {
+        "crm-stage": "minmax(272px, 1fr)",
+      },
       minHeight: {
         ov: "150px",
         /* Célula do mês e largura mínima da lista de compromissos. */
         "calendar-day": "104px",
+        /* Medidas das colunas e cartões do Kanban do CRM. */
+        "crm-column": "280px",
+        "crm-card": "152px",
+        "crm-heading": "62px",
       },
       maxHeight: {
         ficha: "92vh",
@@ -292,6 +305,7 @@ const config: Config = {
         /* Diálogos do Calendário. */
         "calendar-modal": "90vh",
         "calendar-event-modal": "calc(100dvh - 24px)",
+        "crm-column": "calc(100dvh - var(--top) - 235px)",
       },
       maxWidth: {
         content: "1520px",
@@ -317,6 +331,8 @@ const config: Config = {
         "ib-support": "min(620px, calc(100vw - 24px))",
         /* Filete redimensionável entre grade e lista. */
         "calendar-handle": "6px",
+        /* Filete de tom à esquerda dos cartões do Kanban. */
+        "crm-accent": "3px",
       },
       minWidth: {
         "submenu-compact": "220px",

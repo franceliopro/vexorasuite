@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlarmClock, Check, TimerReset } from "lucide-react";
 
 type Alarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const FIRED_KEY = "vx:alarms:fired";
 const SNOOZED_KEY = "vx:alarms:snoozed";
 const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -169,8 +171,8 @@ export function AlarmCenter() {
               <h1>{alarm.title}</h1>
               <p>{describe(alarm)}</p>
               <div className="alarm-actions">
-                <button type="button" className="secondary-button alarm-snooze" onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>
-                <button type="button" className="primary-button alarm-stop" onClick={() => dismiss(alarm)}><Check size={18} aria-hidden="true" /> Parar</button>
+                <button type="button" className={secondaryTw + " alarm-snooze"} onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>
+                <button type="button" className={primaryTw + " alarm-stop"} onClick={() => dismiss(alarm)}><Check size={18} aria-hidden="true" /> Parar</button>
               </div>
             </li>
           ))}

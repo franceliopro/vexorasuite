@@ -6,6 +6,9 @@ type Plan = { id: string; code: string; kind: string; name: string; tagline: str
 const PRICE = (cents: number, cycle = "MONTH") => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + (cycle === "YEAR" ? "/ano" : cycle === "MONTH" ? "/mês" : "");
 const BENEFIT_KEYS: Array<[string, string]> = [ ["attendants","Atendentes"],["bots","Robôs com IA"],["ia","Crédito de IA / mês"],["sites","Sites incluídos"],["dynamic","Site dinâmico (posts/imóveis)"],["forms","Formulários de captura"],["socialAccounts","Redes vinculadas"],["whatsapp","WhatsApp vinculado"],["crm","CRM completo"],["finance","Financeiro Asaas"],["followups","Follow-ups / cobrança"],["marketingPublishing","Publicação automática"] ];
 const MODULE_LABEL: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", AUTOMATION: "Chatbot / IA", MARKETING: "Marketing", SITES: "Sites", FINANCE: "Financeiro", CHANNELS: "Canais", CALENDAR: "Agenda", TASKS: "Tarefas", SETTINGS: "Configurações" };
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 
 export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { currentPlanCode?: string | null; currentPlanName?: string | null }) {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -43,12 +46,12 @@ export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { cur
     return () => { mounted = false; };
   }, []);
   const featured = useMemo(() => plans.find(p => p.kind === "PLAN" && p.priceCents >= 30000 && p.priceCents <= 40000) || plans.find(p => p.kind === "PLAN" && p.isPublic) || plans[0], [plans]);
-  if (loading) return <div className="client-plans-loading"><Loader2 size={20} className="vx-spin" aria-hidden="true" /> Carregando planos…</div>;
+  if (loading) return <div className="client-plans-loading"><Loader2 size={20} className="animate-spin" aria-hidden="true" /> Carregando planos…</div>;
   return (
     <section className="client-plans">
       <header className="client-plans-hero">
         <div><span className="client-plans-eyebrow"><Sparkles size={13} aria-hidden="true" /> Planos e preços</span><h1>Escolha o próximo passo</h1><p>Sua empresa já está no plano <strong>{currentPlanName || "atual"}</strong>. Você pode mudar de plano a qualquer momento — a Véxora aplica tudo na hora.</p></div>
-        <a className="primary-button" href="https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20na%20V%C3%A9xora" target="_blank" rel="noopener noreferrer"><MessageCircle size={16} aria-hidden="true" /> Falar com a Véxora</a>
+        <a className={primaryTw} href="https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20na%20V%C3%A9xora" target="_blank" rel="noopener noreferrer"><MessageCircle size={16} aria-hidden="true" /> Falar com a Véxora</a>
       </header>
       {error && <p className="client-plans-error" role="alert">{error}</p>}
       {activateNotice ? <p role="status" className="client-plans-notice">{activateNotice}</p> : null}
@@ -64,11 +67,11 @@ export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { cur
             <p className="client-plan-modules">{Array.isArray(p.limits?.modules) ? p.limits.modules.map((m: string) => MODULE_LABEL[m] || m).join(" · ") : ""}</p>
             <footer>
               {currentPlanCode === p.code ? (
-                <a className="secondary-button" href={"https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Revisar plano</a>
+                <a className={secondaryTw} href={"https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Revisar plano</a>
               ) : (
                 <div className="client-plan-actions">
-                  <button type="button" className="primary-button" disabled={activating === p.code} onClick={() => void activate(p.code, p.name)}>{activating === p.code ? "Gerando cobrança…" : "Ativar agora"}</button>
-                  <a className="text-button" href={"https://wa.me/5562999990000?text=Quero%20ativar%20o%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Fale com a Véxora</a>
+                  <button type="button" className={primaryTw} disabled={activating === p.code} onClick={() => void activate(p.code, p.name)}>{activating === p.code ? "Gerando cobrança…" : "Ativar agora"}</button>
+                  <a className={textButtonTw} href={"https://wa.me/5562999990000?text=Quero%20ativar%20o%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Fale com a Véxora</a>
                 </div>
               )}
             </footer>

@@ -6,6 +6,8 @@ import Image from "@tiptap/extension-image";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Undo2, Redo2, Link2, ImagePlus, Youtube, Images, Code2, FileText, X, ChevronUp, ChevronDown } from "lucide-react";
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 /* ===== Nodes customizados ===== */
 const parseYoutubeId = (input: string): string | null => {
   try {
@@ -63,7 +65,7 @@ function GalleryNodeView(props: any) {
   return (
     <NodeViewWrapper className={"vx-gallery-node" + (selected ? " is-selected" : "")} data-vx-gallery="true">
       <div className="vx-gallery-node-head"><Images size={15} aria-hidden="true" /><span>{items.length} imagem(ns) na galeria</span>
-        <button type="button" className="text-button" onClick={() => setPickerOpen(true)}>+ Adicionar imagens</button>
+        <button type="button" className={textButtonTw} onClick={() => setPickerOpen(true)}>+ Adicionar imagens</button>
         
       </div>
       {items.length ? (
@@ -150,8 +152,8 @@ export function PostBodyEditor({ value, onChange, placeholder, maxLength = 60000
   return (
     <div className="vx-post-body">
       {toolbar}
-      {linkOpen && <div className="vx-post-popover"><input aria-label="Endereço do link" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); setNotice(""); } else setNotice("Informe um endereço http(s), mailto: ou tel:."); } }} /><button type="button" className="primary-button" onClick={() => { const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); } else setNotice("Informe um endereço http(s)."); }}>Inserir</button></div>}
-      {youtubeOpen && <div className="vx-post-popover"><input aria-label="Link do YouTube" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); insertYoutube(); } }} /><button type="button" className="primary-button" onClick={insertYoutube}>Inserir vídeo</button></div>}
+      {linkOpen && <div className="vx-post-popover"><input aria-label="Endereço do link" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); setNotice(""); } else setNotice("Informe um endereço http(s), mailto: ou tel:."); } }} /><button type="button" className={primaryTw} onClick={() => { const parsed = url.trim(); if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) { editor?.chain().focus().setLink({ href: parsed }).run(); setLinkOpen(false); setUrl(""); } else setNotice("Informe um endereço http(s)."); }}>Inserir</button></div>}
+      {youtubeOpen && <div className="vx-post-popover"><input aria-label="Link do YouTube" autoFocus value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); insertYoutube(); } }} /><button type="button" className={primaryTw} onClick={insertYoutube}>Inserir vídeo</button></div>}
       {source
         ? <textarea className="vx-post-source" aria-label="Corpo do texto (HTML)" value={value} onChange={e => { onChange(e.target.value); lastEmitted.current = e.target.value; editor?.commands.setContent(e.target.value, { emitUpdate: false }); }} placeholder={placeholder} />
         : <EditorContent editor={editor} />}

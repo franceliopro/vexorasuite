@@ -18,6 +18,9 @@ const SiteEditorWindow = dynamic(() => import("./sites/site-editor-window"), {
   loading: () => <p role="status">Carregando editor…</p>,
 });
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+
 type SiteSummary = {
   id: string;
   name: string;
@@ -207,12 +210,12 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
           <p className="page-subtitle">Crie a presença digital da sua empresa: site institucional, landing page, blog, imobiliária ou loja.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button type="button" className="secondary-button" onClick={() => setAttempt((value) => value + 1)} disabled={loading}>
+          <button type="button" className={secondaryTw} onClick={() => setAttempt((value) => value + 1)} disabled={loading}>
             <RefreshCw size={16} aria-hidden="true" /> Atualizar
           </button>
           {canManage ? (
-            <button type="button" className="primary-button" onClick={() => setWizardOpen(true)} disabled={creating}>
-              {creating ? <Loader2 className="spin" size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+            <button type="button" className={primaryTw} onClick={() => setWizardOpen(true)} disabled={creating}>
+              {creating ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
               Novo site
             </button>
           ) : null}
@@ -228,7 +231,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       {error ? (
         <div role="alert" className="content-card">
           <p>{error}</p>
-          <button type="button" className="secondary-button" onClick={() => setAttempt((value) => value + 1)}>
+          <button type="button" className={secondaryTw} onClick={() => setAttempt((value) => value + 1)}>
             Tentar novamente
           </button>
         </div>
@@ -236,7 +239,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
 
       {loading ? (
         <p role="status">
-          <Loader2 className="spin" size={16} aria-hidden="true" /> Carregando sites…
+          <Loader2 className="animate-spin" size={16} aria-hidden="true" /> Carregando sites…
         </p>
       ) : null}
 
@@ -246,7 +249,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
           <h2>Nenhum site ainda</h2>
           <p>Comece pelo assistente: escolha criar do zero, clonar um link ou importar um ZIP.</p>
           {canManage ? (
-            <button type="button" className="primary-button" onClick={() => setWizardOpen(true)}>
+            <button type="button" className={primaryTw} onClick={() => setWizardOpen(true)}>
               <Plus size={16} aria-hidden="true" /> Criar meu primeiro site
             </button>
           ) : (
@@ -276,7 +279,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
               </p>
               <div style={{ marginTop: "auto", paddingTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {canManage ? (
-                  <button type="button" className="primary-button" onClick={() => setEditingSite(site)}>
+                  <button type="button" className={primaryTw} onClick={() => setEditingSite(site)}>
                     <Pencil size={15} aria-hidden="true" /> Abrir editor
                   </button>
                 ) : null}
@@ -285,19 +288,19 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
                     <>
                       <button
                         type="button"
-                        className="secondary-button"
+                        className={secondaryTw}
                         onClick={() => void removeSite(site)}
                         disabled={removingId === site.id}
                       >
-                        {removingId === site.id ? <Loader2 className="spin" size={15} aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
+                        {removingId === site.id ? <Loader2 className="animate-spin" size={15} aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
                         Confirmar exclusão
                       </button>
-                      <button type="button" className="secondary-button" onClick={() => setConfirmingId(null)} disabled={removingId === site.id}>
+                      <button type="button" className={secondaryTw} onClick={() => setConfirmingId(null)} disabled={removingId === site.id}>
                         Cancelar
                       </button>
                     </>
                   ) : (
-                    <button type="button" className="secondary-button" onClick={() => setConfirmingId(site.id)}>
+                    <button type="button" className={secondaryTw} onClick={() => setConfirmingId(site.id)}>
                       <Trash2 size={15} aria-hidden="true" /> Excluir
                     </button>
                   )

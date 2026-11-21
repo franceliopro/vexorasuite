@@ -308,6 +308,8 @@ const config: Config = {
         "rw-2": "minmax(0, 1.08fr) minmax(0, 1fr)",
         "rw-hbar": "minmax(88px, 180px) minmax(0, 1fr) 52px",
         "rw-compare": "minmax(0, 1fr) auto auto",
+        /* Preferências de lembretes de Tarefas. */
+        "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",

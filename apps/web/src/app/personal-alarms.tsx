@@ -4,6 +4,8 @@ import { AlarmClock, BellRing, Plus, Trash2 } from "lucide-react";
 
 type Alarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const iconButtonTw = "inline-grid size-9 place-items-center rounded-token-sm border border-line bg-surface text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36);
 const ymd = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -132,7 +134,7 @@ export function PersonalAlarms() {
             </fieldset>
           )}
         </div>
-        <button className="primary-button" disabled={busy || !loaded}>
+        <button className={primaryTw} disabled={busy || !loaded}>
           <Plus size={15} aria-hidden="true" /> Criar alarme
         </button>
       </form>
@@ -159,7 +161,7 @@ export function PersonalAlarms() {
               </div>
               <button
                 type="button"
-                className="icon-button alarms-remove"
+                className={iconButtonTw + " alarms-remove"}
                 aria-label={"Excluir o alarme " + alarm.title}
                 onClick={() => void save(alarms.filter((item) => item.id !== alarm.id))}
               >

@@ -260,7 +260,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
                   : "A fila acabou de começar. Os anéis mostram o tempo de espera de cada conversa."
                 : "A fila está em dia. Quando alguém precisar de uma pessoa, a conversa aparece aqui com o tempo de espera."}
             </p>
-            <button type="button" className="primary-button" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
+            <button type="button" className="primary-button justify-self-start" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
           </div>
           <div className="flex flex-wrap items-start justify-end gap-2 ov-tablet:justify-start">
             {(waiting?.items || []).slice(0, 3).map((item) => (

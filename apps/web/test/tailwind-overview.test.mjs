@@ -113,6 +113,8 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(overview, /<section className="grid grid-cols-2 gap-ov-section ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
   assert.match(overview, /col-span-2 grid gap-ov-section[^>]*data-testid="ov-hero"/);
+  // O CTA do alerta não estica com a coluna: largura só do conteúdo.
+  assert.match(overview, /primary-button justify-self-start" onClick=\{onOpenQueue\}>Abrir a fila/);
   assert.match(overview, /col-span-2 grid grid-cols-3 gap-ov-section ov-laptop:col-span-1 ov-mobile:grid-cols-1 xl:grid-cols-6/);
   assert.match(overview, /col-span-2 grid content-start gap-4 rounded-token-lg[^"]*ov-laptop:col-span-1/);
 

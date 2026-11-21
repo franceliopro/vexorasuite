@@ -11,7 +11,7 @@ test("MentionPopover exports the component used by the workspace", () => {
 
 test("InitialsAvatar lives in inbox-avatars and renders initials", () => {
   assert.match(avatars, /export function InitialsAvatar\b/);
-  assert.match(avatars, /className="mention-avatar"/);
+  assert.match(avatars, /data-testid="mention-avatar"/);
   assert.match(avatars, /parts\.slice\(0, 2\)/);
 });
 
@@ -35,7 +35,7 @@ test("MentionPopover uses onMouseDown (not onClick) so the composer keeps focus"
 
 test("MentionPopover renders the empty-state copy for no matches", () => {
   assert.match(source, /Nenhum atendente com esse nome/);
-  assert.match(source, /className="mention-empty"/);
+  assert.match(source, /data-testid="mention-empty"/);
 });
 
 test("MentionPopover stays hidden when mentionQuery is null", () => {

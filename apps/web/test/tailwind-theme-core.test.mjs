@@ -70,6 +70,49 @@ test("h1 a h6, p e hr são definidos na camada tokenizada", () => {
   }
 });
 
+test("formulários, controles e estados ARIA têm base tokenizada", () => {
+  for (const selector of [
+    "form",
+    "fieldset",
+    "legend",
+    "label",
+    "input,",
+    "select",
+    "textarea",
+    "select option,",
+    "optgroup",
+    'input[type="checkbox"]',
+    'input[type="radio"]',
+    'input[type="range"]',
+    'input[type="file"]',
+    'input[type="color"]',
+    "progress",
+    "meter",
+    "output",
+    '[role="button"]',
+    '[role="tab"]',
+    '[role="option"]',
+    '[role="menuitem"]',
+    '[role="switch"]',
+    '[aria-invalid="true"]',
+    '[aria-disabled="true"]',
+    '[aria-busy="true"]',
+  ]) {
+    assert.ok(theme.includes(selector), `falta a base de ${selector}`);
+  }
+  for (const token of [
+    "placeholder:text-slate-400",
+    "focus:border-blue-600",
+    "accent-blue-600",
+    "disabled:cursor-not-allowed",
+    "border-red-600",
+    "bg-zinc-100",
+    "border-gray-200",
+  ]) {
+    assert.ok(theme.includes(token), `o formulário deve usar ${token}`);
+  }
+});
+
 test("o preset expõe as escalas do core", () => {
   for (const token of [
     "--font-ui",

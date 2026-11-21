@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Sparkles, Users } from "lucide-react";
-import { platformColor, platformLabel } from "./platform-icon";
+import { platformLabel } from "./platform-icon";
 
 /** Telefone formatado sem o prefixo "+", no padrão pedido: 55 (66) 99999-9999 */
 function phoneBR(phone?: string | null): string {
@@ -140,12 +140,12 @@ function chartGeometry(values: number[], average: number[]) {
   return { x, y, maxValue, line, area, averageLine: smooth(average) };
 }
 
-function ClientAvatar({ id, name, className = "vx-avatar" }: { id?: string | null; name: string; className?: string }) {
+function ClientAvatar({ id, name, className = "ov-avatar" }: { id?: string | null; name: string; className?: string }) {
   const [src, setSrc] = useState<string | null>(id ? `/api/backend/contacts/${id}/avatar` : null);
   useEffect(() => { setSrc(id ? `/api/backend/contacts/${id}/avatar` : null); }, [id]);
   return (
     <span className={className} aria-hidden="true">
-      {src ? <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setSrc(null)} /> : <span className="vx-avatar-fallback">{initialsOf(name)}</span>}
+      {src ? <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setSrc(null)} /> : <span className="ov-avatar-fallback">{initialsOf(name)}</span>}
     </span>
   );
 }
@@ -156,12 +156,12 @@ function WaitRing({ minutes, id, name }: { minutes: number; id: string | null; n
   const circumference = 2 * Math.PI * radius;
   const progress = Math.min(1, Math.max(0.05, minutes / 10));
   return (
-    <span className={`vx-ring tone-${tone}`} aria-hidden="true">
+    <span className={`ov-ring tone-${tone}`} aria-hidden="true">
       <svg viewBox="0 0 84 84">
-        <circle className="vx-ring-track" cx="42" cy="42" r={radius} />
-        <circle className="vx-ring-progress" cx="42" cy="42" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} />
+        <circle className="ov-ring-track" cx="42" cy="42" r={radius} />
+        <circle className="ov-ring-progress" cx="42" cy="42" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} />
       </svg>
-      <ClientAvatar id={id} name={name} className="vx-ring-photo" />
+      <ClientAvatar id={id} name={name} className="ov-ring-photo" />
     </span>
   );
 }
@@ -174,8 +174,8 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
   const total = values.reduce((sum, value) => sum + value, 0);
   const ticks = [0, 0.5, 1];
   return (
-    <div className="vx-chart-wrap">
-      <svg className="vx-chart-svg" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label={`Atendimentos por hora nas últimas 24 horas${peak !== null ? `, pico às ${hourly.labels[peak]} com ${hourly.peakValue} atendimentos` : ""}`}>
+    <div className="ov-chart-wrap">
+      <svg className="ov-chart-svg" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label={`Atendimentos por hora nas últimas 24 horas${peak !== null ? `, pico às ${hourly.labels[peak]} com ${hourly.peakValue} atendimentos` : ""}`}>
         <defs>
           <linearGradient id="vxHourlyFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--primary)" stopOpacity=".32" />
@@ -189,27 +189,27 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
         </defs>
         {ticks.map((tick) => {
           const value = geometry.maxValue * tick;
-          return <line key={tick} x1={CHART_PAD} x2={CHART_WIDTH - CHART_PAD} y1={geometry.y(value)} y2={geometry.y(value)} className="vx-chart-grid" />;
+          return <line key={tick} x1={CHART_PAD} x2={CHART_WIDTH - CHART_PAD} y1={geometry.y(value)} y2={geometry.y(value)} className="ov-chart-grid" />;
         })}
         <path d={geometry.area} fill="url(#vxHourlyFill)" />
-        <path d={geometry.averageLine} className="vx-chart-average" />
-        <path d={geometry.line} className="vx-chart-line" stroke="url(#vxHourlyStroke)" />
+        <path d={geometry.averageLine} className="ov-chart-average" />
+        <path d={geometry.line} className="ov-chart-line" stroke="url(#vxHourlyStroke)" />
         {peak !== null ? (
-          <g className="vx-chart-peak">
+          <g className="ov-chart-peak">
             <line x1={geometry.x(peak)} x2={geometry.x(peak)} y1={geometry.y(values[peak]) + 8} y2={geometry.y(0)} />
             <circle cx={geometry.x(peak)} cy={geometry.y(values[peak])} r="6.5" />
           </g>
         ) : null}
         {[0, 6, 12, 18, 23].map((index) => (
-          <text key={index} x={geometry.x(index)} y={CHART_HEIGHT - 8} textAnchor={index === 0 ? "start" : index === 23 ? "end" : "middle"} className="vx-chart-label">
+          <text key={index} x={geometry.x(index)} y={CHART_HEIGHT - 8} textAnchor={index === 0 ? "start" : index === 23 ? "end" : "middle"} className="ov-chart-label">
             {hourly.labels[index]}
           </text>
         ))}
       </svg>
-      <div className="vx-chart-meta">
-        <span><i className="vx-legend-line primary" />Últimas 24 h · {total} {total === 1 ? "atendimento" : "atendimentos"}</span>
-        <span><i className="vx-legend-line dashed" />Média dos 7 dias anteriores</span>
-        {peak !== null ? <span className="vx-chart-peak-chip"><Sparkles size={13} aria-hidden="true" />Pico às {hourly.labels[peak]}: {hourly.peakValue}</span> : null}
+      <div className="ov-chart-meta">
+        <span><i className="ov-legend-line primary" />Últimas 24 h · {total} {total === 1 ? "atendimento" : "atendimentos"}</span>
+        <span><i className="ov-legend-line dashed" />Média dos 7 dias anteriores</span>
+        {peak !== null ? <span className="ov-chart-peak-chip"><Sparkles size={13} aria-hidden="true" />Pico às {hourly.labels[peak]}: {hourly.peakValue}</span> : null}
       </div>
     </div>
   );
@@ -238,13 +238,13 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
   const outOfSlaNote = outOfSla || staleWaiting;
 
   return (
-    <section className="vx-overview" aria-label="Inteligência da operação">
-      <div className="vx-primary-row">
-        <article className={`vx-hero${waitingTotal ? "" : " is-clear"}`}>
-          <div className="vx-hero-body">
-            <div className="vx-hero-copy">
+    <section className="ov-overview" aria-label="Inteligência da operação">
+      <div className="ov-primary-row">
+        <article className={`ov-hero${waitingTotal ? "" : " is-clear"}`}>
+          <div className="ov-hero-body">
+            <div className="ov-hero-copy">
               <h2>{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
-              <p className="vx-hero-sub">
+              <p className="ov-hero-sub">
                 {waitingTotal
                   ? oldest !== null && oldest > 0
                     ? `A mais antiga espera há ${waitText(oldest)}. O anel fecha quando o SLA de 15 minutos termina.`
@@ -253,131 +253,130 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
               </p>
               <button type="button" className="primary-button" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
             </div>
-            <div className="vx-rings">
+            <div className="ov-rings">
               {(waiting?.items || []).slice(0, 3).map((item) => (
-                <button type="button" className="vx-ring-card" key={item.id} onClick={onOpenQueue} title={`${item.contactName} · espera ${waitText(item.waitingMinutes)}`}>
+                <button type="button" className="ov-ring-tile" key={item.id} onClick={onOpenQueue} title={`${item.contactName} · espera ${waitText(item.waitingMinutes)}`}>
                   <WaitRing minutes={item.waitingMinutes} id={item.contactId} name={item.contactName} />
                   <b>{item.contactName}</b>
-                  <small className="vx-ring-contact">{contactLine(item.contactPhone, item.contactHandle) || (item.channel ? platformLabel(item.channel) : "Sem telefone")}</small>
-                  <span className={`vx-ring-time tone-${waitTone(item.waitingMinutes)}`}>{waitText(item.waitingMinutes)}</span>
+                  <small className="ov-ring-contact">{contactLine(item.contactPhone, item.contactHandle) || (item.channel ? platformLabel(item.channel) : "Sem telefone")}</small>
+                  <span className={`ov-ring-time tone-${waitTone(item.waitingMinutes)}`}>{waitText(item.waitingMinutes)}</span>
                 </button>
               ))}
               {!waitingTotal ? (
-                <div className="vx-hero-clear">
-                  <span className="vx-hero-clear-icon"><Sparkles size={22} aria-hidden="true" /></span>
+                <div className="ov-hero-clear">
+                  <span className="ov-hero-clear-icon"><Sparkles size={22} aria-hidden="true" /></span>
                   <strong>Tudo atendido</strong>
                   <small>Sem conversas aguardando uma pessoa.</small>
                 </div>
               ) : null}
             </div>
           </div>
-          <div className="vx-hero-legend">
-            <span><i className="vx-dot mint" />Até 2 min</span>
-            <span><i className="vx-dot amber" />De 2 a 5 min</span>
-            <span><i className="vx-dot coral" />Acima de 5 min</span>
-            <span className="vx-hero-legend-end">Anel cheio: 10 min</span>
+          <div className="ov-hero-legend">
+            <span><i className="ov-dot mint" />Até 2 min</span>
+            <span><i className="ov-dot amber" />De 2 a 5 min</span>
+            <span><i className="ov-dot coral" />Acima de 5 min</span>
+            <span className="ov-hero-legend-end">Anel cheio: 10 min</span>
           </div>
         </article>
 
-        <article className="content-card vx-team-card">
-          <header className="vx-card-head"><div><h2>Equipe agora</h2><p>Quem está atendendo neste momento</p></div><span className="vx-card-badge neutral"><Users size={13} aria-hidden="true" />{team.length}</span></header>
+        <article className="ov-team-panel">
+          <header className="ov-card-head"><div><h2>Equipe agora</h2><p>Quem está atendendo neste momento</p></div><span className="ov-card-badge neutral"><Users size={13} aria-hidden="true" />{team.length}</span></header>
           {team.length ? (
-            <ul className="vx-team-list">
+            <ul className="ov-team-list">
               {team.map((member) => (
-                <li key={member.id} className="vx-team-row">
-                  <span className="vx-team-avatar">
+                <li key={member.id} className="ov-team-row">
+                  <span className="ov-team-avatar">
                     {member.initials || initialsOf(member.name)}
-                    <i className={`vx-presence ${member.presence}`} aria-hidden="true" />
+                    <i className={`ov-presence ${member.presence}`} aria-hidden="true" />
                   </span>
-                  <span className="vx-team-copy"><b>{member.name}</b><small>{member.departmentName || (member.presence === "paused" ? "Em pausa" : "Atendimento")}</small></span>
-                  <span className="vx-team-load" aria-hidden="true"><i style={{ width: `${Math.max(6, Math.min(100, member.loadPercent))}%` }} /></span>
-                  <span className="vx-team-count">{member.openCount}</span>
+                  <span className="ov-team-copy"><b>{member.name}</b><small>{member.departmentName || (member.presence === "paused" ? "Em pausa" : "Atendimento")}</small></span>
+                  <span className="ov-team-load" aria-hidden="true"><i style={{ width: `${Math.max(6, Math.min(100, member.loadPercent))}%` }} /></span>
+                  <span className="ov-team-count">{member.openCount}</span>
                 </li>
               ))}
             </ul>
-          ) : <p className="vx-card-empty">Nenhum atendente com conversa aberta agora.</p>}
-          <p className="vx-team-foot">Véxora Intelligence Engine · IA · {kpis ? `${kpis.resolvedByAi} ${kpis.resolvedByAi === 1 ? "conversa resolvida" : "conversas resolvidas"} pela IA` : "sem dados ainda"}</p>
+          ) : <p className="ov-card-empty">Nenhum atendente com conversa aberta agora.</p>}
+          <p className="ov-team-foot">Véxora Intelligence Engine · IA · {kpis ? `${kpis.resolvedByAi} ${kpis.resolvedByAi === 1 ? "conversa resolvida" : "conversas resolvidas"} pela IA` : "sem dados ainda"}</p>
         </article>
       </div>
 
-      <div className="vx-kpi-strip" role="group" aria-label="Resumo da operação">
-        <article className="vx-kpi-cell">
-          <span className="vx-kpi-cell-label">Conversas abertas</span>
-          <strong className="vx-kpi-cell-value">{data?.openConversations ?? "—"}</strong>
-          <em className={`vx-kpi-cell-note${outOfSlaNote ? " is-warn" : ""}`}>{outOfSlaNote ? <><span className="vx-kpi-dot alert" aria-hidden="true" />{outOfSlaNote} fora do SLA</> : <><span className="vx-kpi-dot ok" aria-hidden="true" />Nenhuma fora do SLA</>}</em>
+      <div className="ov-kpi-strip" role="group" aria-label="Resumo da operação">
+        <article className="ov-kpi-cell">
+          <span className="ov-kpi-cell-label">Conversas abertas</span>
+          <strong className="ov-kpi-cell-value">{data?.openConversations ?? "—"}</strong>
+          <em className={`ov-kpi-cell-note${outOfSlaNote ? " is-warn" : ""}`}>{outOfSlaNote ? <><span className="ov-kpi-dot alert" aria-hidden="true" />{outOfSlaNote} fora do SLA</> : <><span className="ov-kpi-dot ok" aria-hidden="true" />Nenhuma fora do SLA</>}</em>
         </article>
-        <article className="vx-kpi-cell">
-          <span className="vx-kpi-cell-label">Contatos</span>
-          <strong className="vx-kpi-cell-value">{data?.contacts ?? "—"}</strong>
-          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot ok" aria-hidden="true" />{data?.contactsNewWeek ? `${data.contactsNewWeek} novos esta semana` : "Cadastros desta empresa"}</em>
+        <article className="ov-kpi-cell">
+          <span className="ov-kpi-cell-label">Contatos</span>
+          <strong className="ov-kpi-cell-value">{data?.contacts ?? "—"}</strong>
+          <em className="ov-kpi-cell-note"><span className="ov-kpi-dot ok" aria-hidden="true" />{data?.contactsNewWeek ? `${data.contactsNewWeek} novos esta semana` : "Cadastros desta empresa"}</em>
         </article>
-        <article className="vx-kpi-cell">
-          <span className="vx-kpi-cell-label">Agentes ativos</span>
-          <strong className="vx-kpi-cell-value">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
-          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot muted" aria-hidden="true" />{agentsPaused === 1 ? "1 em pausa" : agentsPaused > 1 ? `${agentsPaused} em pausa` : "Todos ativos"}</em>
+        <article className="ov-kpi-cell">
+          <span className="ov-kpi-cell-label">Agentes ativos</span>
+          <strong className="ov-kpi-cell-value">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
+          <em className="ov-kpi-cell-note"><span className="ov-kpi-dot muted" aria-hidden="true" />{agentsPaused === 1 ? "1 em pausa" : agentsPaused > 1 ? `${agentsPaused} em pausa` : "Todos ativos"}</em>
         </article>
-        <article className="vx-kpi-cell">
-          <span className="vx-kpi-cell-label">Atendimentos finalizados</span>
-          <strong className="vx-kpi-cell-value">{data?.completedConversations ?? "-"}</strong>
-          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
+        <article className="ov-kpi-cell">
+          <span className="ov-kpi-cell-label">Atendimentos finalizados</span>
+          <strong className="ov-kpi-cell-value">{data?.completedConversations ?? "-"}</strong>
+          <em className="ov-kpi-cell-note"><span className="ov-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
         </article>
-        <article className="vx-kpi-cell">
-          <span className="vx-kpi-cell-label">Receita do mês</span>
-          <strong className="vx-kpi-cell-value">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
-          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
+        <article className="ov-kpi-cell">
+          <span className="ov-kpi-cell-label">Receita do mês</span>
+          <strong className="ov-kpi-cell-value">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
+          <em className="ov-kpi-cell-note"><span className="ov-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
         </article>
-        <article className="vx-kpi-cell">
-          <span className="vx-kpi-cell-label">1ª resposta</span>
-          <strong className="vx-kpi-cell-value">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
-          <em className="vx-kpi-cell-note"><span className="vx-kpi-dot muted" aria-hidden="true" />Média dos últimos 30 dias</em>
+        <article className="ov-kpi-cell">
+          <span className="ov-kpi-cell-label">1ª resposta</span>
+          <strong className="ov-kpi-cell-value">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
+          <em className="ov-kpi-cell-note"><span className="ov-kpi-dot muted" aria-hidden="true" />Média dos últimos 30 dias</em>
         </article>
       </div>
 
-      <div className="vx-main-row">
-        <article className="content-card vx-chart-card">
-          <header className="vx-card-head">
+      <div className="ov-main-row">
+        <article className="ov-chart-panel">
+          <header className="ov-card-head">
             <div><h2>Atendimentos por hora</h2><p>Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
-            <span className="vx-card-badge"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
+            <span className="ov-card-badge"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
           </header>
-          {hourly ? <HourlyChart hourly={hourly} /> : <p className="vx-card-empty">Aguardando os primeiros atendimentos.</p>}
+          {hourly ? <HourlyChart hourly={hourly} /> : <p className="ov-card-empty">Aguardando os primeiros atendimentos.</p>}
         </article>
 
-        <article className="content-card vx-activity-card">
-          <header className="vx-card-head">
+        <article className="ov-activity-panel">
+          <header className="ov-card-head">
             <div><h2>Atividade recente</h2><p>Movimentações da sua operação</p></div>
             <button type="button" className="text-button" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
           </header>
           {recent.length ? (
-            <ul className="vx-activity-list">
+            <ul className="ov-activity-list">
               {recent.slice(0, 6).map((item) => (
                 <li key={item.id}>
-                  <ClientAvatar id={item.contact.id ?? null} name={item.contact.name} className="vx-activity-avatar" />
-                  <span className="vx-activity-copy"><b>{item.contact.name}</b><small className="vx-activity-contact">{contactLine(item.contact.phone, item.contact.handle) || (item.channel ? platformLabel(item.channel) : "")}{contactLine(item.contact.phone, item.contact.handle) ? " · " : ""}{recentLabel(item)}</small></span>
-                  <time className="vx-activity-time">{clock(item.updatedAt)}</time>
+                  <ClientAvatar id={item.contact.id ?? null} name={item.contact.name} className="ov-activity-avatar" />
+                  <span className="ov-activity-copy"><b>{item.contact.name}</b><small className="ov-activity-contact">{contactLine(item.contact.phone, item.contact.handle) || (item.channel ? platformLabel(item.channel) : "")}{contactLine(item.contact.phone, item.contact.handle) ? " · " : ""}{recentLabel(item)}</small></span>
+                  <time className="ov-activity-time">{clock(item.updatedAt)}</time>
                 </li>
               ))}
             </ul>
-          ) : <p className="vx-card-empty">Os atendimentos desta empresa aparecerão aqui.</p>}
+          ) : <p className="ov-card-empty">Os atendimentos desta empresa aparecerão aqui.</p>}
         </article>
       </div>
 
-      <article className="content-card vx-topics-card">
-        <header className="vx-card-head"><div><h2>Do que as pessoas falam</h2><p>Assuntos dos últimos 30 dias</p></div><span className="vx-card-badge neutral">Top {topics.length || 0}</span></header>
+      <article className="ov-topics-panel">
+        <header className="ov-card-head"><div><h2>Do que as pessoas falam</h2><p>Assuntos dos últimos 30 dias</p></div><span className="ov-card-badge neutral">Top {topics.length || 0}</span></header>
         {topics.length ? (
-          <div className="vx-topics">
+          <div className="ov-topics">
             {topics.map((topic) => {
               const channel = topic.channel || "";
-              const color = channel ? platformColor(channel) : "var(--primary)";
               return (
-              <div className="vx-topic" key={topic.label}>
-                <div className="vx-topic-top"><span><i className="vx-topic-dot" style={{ background: color }} />{topic.label}{channel ? <small className="vx-topic-channel">{platformLabel(channel)}</small> : null}</span><b>{topic.percent}%</b></div>
-                <span className="vx-topic-bar"><i style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%`, background: `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 55%, transparent))` }} /></span>
+              <div className="ov-topic" key={topic.label}>
+                <div className="ov-topic-top"><span><i className="ov-topic-dot" />{topic.label}{channel ? <small className="ov-topic-channel">{platformLabel(channel)}</small> : null}</span><b>{topic.percent}%</b></div>
+                <span className="ov-topic-bar"><i style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
                 <small>{topic.count} {topic.count === 1 ? "conversa" : "conversas"}</small>
               </div>
               );
             })}
           </div>
-        ) : <p className="vx-card-empty">Os assuntos aparecem aqui conforme as conversas chegam.</p>}
+        ) : <p className="ov-card-empty">Os assuntos aparecem aqui conforme as conversas chegam.</p>}
       </article>
 
       {shortcuts}

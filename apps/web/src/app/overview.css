@@ -1,0 +1,688 @@
+/*
+ * Véxora Suite — Visão geral (item 1 da migração Tailwind).
+ *
+ * Este arquivo é importado DEPOIS de theme.css e vexora.css. As classes `ov-*`
+ * formam um namespace novo: o CSS legado continua servindo as outras telas,
+ * mas deixa de interferir nesta. Nenhuma regra aqui usa valor arbitrário, hex,
+ * `!important` ou cor fora da paleta documentada mapeada no preset.
+ *
+ * Os três temas são herdados das variáveis de fundo, superfície, texto,
+ * borda e primary do preset.
+ * A sidebar (inclusive no híbrido) continua usando os tokens --sb-* via
+ * indigo-* do preset.
+ */
+
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Derivados de tema — mesma disciplina do piloto Ficha Cliente. */
+  --vx-bad-soft: color-mix(in srgb, var(--bad) 12%, var(--s1));
+  --vx-accent-soft: color-mix(in srgb, var(--accent2) 12%, var(--s1));
+  --vx-ov-chart-dash: 5 5;
+}
+
+@layer components {
+  /* ---------------------------------------------------------------- layout */
+  .ov-overview {
+    @apply grid grid-cols-ov-overview gap-token ov-laptop:grid-cols-1;
+  }
+
+  .ov-primary-row {
+    @apply grid grid-cols-ov-primary gap-token ov-laptop:grid-cols-1;
+  }
+
+  .ov-main-row {
+    @apply grid grid-cols-ov-main gap-token ov-laptop:grid-cols-1;
+  }
+
+  /* ------------------------------------------------------------------ hero */
+  .ov-hero {
+    @apply relative grid gap-token overflow-hidden rounded-token-lg border border-gray-200 bg-transparent p-pad text-slate-950 ov-tablet:p-5;
+  }
+
+  .ov-hero-body {
+    @apply grid grid-cols-ov-hero-body items-start gap-token ov-tablet:grid-cols-1;
+  }
+
+  .ov-hero-copy {
+    @apply grid min-w-0 content-start gap-3;
+  }
+
+  .ov-hero-copy h2 {
+    @apply max-w-ov-heading text-ov-hero font-heading text-slate-950 ov-mobile:text-ov-hero-sm;
+  }
+
+  .ov-hero-sub {
+    @apply max-w-ov-sub text-ov-sub text-slate-600;
+  }
+
+  .ov-rings {
+    @apply flex flex-wrap items-start justify-end gap-2 ov-tablet:justify-start;
+  }
+
+  .ov-ring-tile {
+    @apply grid w-ov-ring-tile flex-none justify-items-center gap-1 rounded-token-lg border border-gray-200 bg-zinc-200 px-2 py-3.5 text-center transition-control duration-control hover:-translate-y-px hover:bg-zinc-300;
+  }
+
+  .ov-ring-tile b {
+    @apply w-full truncate text-body font-bold text-slate-950;
+  }
+
+  .ov-ring-tile small {
+    @apply w-full truncate text-ov-micro text-slate-600;
+  }
+
+  .ov-ring-contact {
+    @apply block w-full truncate text-ov-micro font-semibold text-slate-600;
+  }
+
+  .ov-ring-time {
+    @apply mt-0.5 rounded-full px-2 py-0.5 text-ov-micro font-bold tabular-nums;
+  }
+
+  .ov-ring-time.tone-mint,
+  .ov-dot.mint {
+    @apply bg-emerald-100 text-emerald-600;
+  }
+
+  .ov-ring-time.tone-amber,
+  .ov-dot.amber {
+    @apply bg-amber-100 text-amber-600;
+  }
+
+  .ov-ring-time.tone-coral,
+  .ov-dot.coral {
+    @apply bg-red-100 text-red-600;
+  }
+
+  .ov-ring {
+    @apply relative grid h-ov-ring w-ov-ring flex-none place-items-center ov-tablet:h-ov-ring-sm ov-tablet:w-ov-ring-sm;
+  }
+
+  .ov-ring svg {
+    @apply absolute inset-0 h-full w-full -rotate-90;
+  }
+
+  .ov-ring-track {
+    @apply fill-none stroke-blue-100 stroke-ov;
+  }
+
+  .ov-ring-progress {
+    @apply fill-none stroke-blue-600 stroke-ov transition-stroke duration-ring ease-token;
+  }
+
+  .ov-ring-photo {
+    @apply grid h-ov-ring-photo w-ov-ring-photo place-items-center overflow-hidden rounded-full bg-blue-50 text-2xs font-extrabold text-blue-800 ov-tablet:h-ov-ring-photo-sm ov-tablet:w-ov-ring-photo-sm;
+  }
+
+  .ov-avatar-fallback {
+    @apply grid h-full w-full place-items-center;
+  }
+
+  .ov-hero-clear {
+    @apply grid justify-items-center gap-1 rounded-token-lg border border-dashed border-gray-200 bg-zinc-200 p-4 text-center;
+  }
+
+  .ov-hero-clear-icon {
+    @apply grid h-11 w-11 place-items-center rounded-full bg-blue-50 text-blue-800;
+  }
+
+  .ov-hero-clear strong {
+    @apply text-body font-bold text-slate-950;
+  }
+
+  .ov-hero-clear small {
+    @apply text-small text-slate-600;
+  }
+
+  .ov-hero-legend {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 pt-3 text-small text-slate-600;
+  }
+
+  .ov-hero-legend > span {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .ov-dot {
+    @apply inline-block h-2.5 w-2.5 rounded-full;
+  }
+
+  .ov-hero-legend-end {
+    @apply ml-auto text-slate-400;
+  }
+
+  /* -------------------------------------------------------- card primitives */
+  .ov-card-head {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .ov-card-head h2 {
+    @apply text-h2 font-heading text-slate-950;
+  }
+
+  .ov-card-head p {
+    @apply mt-0.5 text-small text-slate-600;
+  }
+
+  .ov-card-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-ov-micro font-bold text-blue-800;
+  }
+
+  .ov-card-badge.neutral {
+    @apply bg-zinc-300 text-slate-600;
+  }
+
+  .ov-card-empty {
+    @apply py-6 text-center text-small text-slate-600;
+  }
+
+  /* ------------------------------------------------------------- team card */
+  .ov-team-panel {
+    @apply grid content-start gap-3 p-pad;
+  }
+
+  .ov-team-list {
+    @apply grid gap-2.5;
+  }
+
+  .ov-team-row {
+    @apply grid grid-cols-ov-team-row items-center gap-2.5;
+  }
+
+  .ov-team-avatar {
+    @apply relative grid h-ov-avatar w-ov-avatar flex-none place-items-center rounded-full bg-blue-50 text-small font-bold text-blue-800;
+  }
+
+  .ov-presence {
+    @apply absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-200 bg-emerald-600;
+  }
+
+  .ov-presence.paused {
+    @apply bg-amber-600;
+  }
+
+  .ov-team-copy {
+    @apply grid min-w-0;
+  }
+
+  .ov-team-copy b {
+    @apply truncate text-small font-bold text-slate-950;
+  }
+
+  .ov-team-copy small {
+    @apply truncate text-ov-micro text-slate-600;
+  }
+
+  .ov-team-load {
+    @apply h-1.5 w-16 overflow-hidden rounded-full bg-zinc-300;
+  }
+
+  .ov-team-load i {
+    @apply block h-full rounded-full bg-blue-600;
+  }
+
+  .ov-team-count {
+    @apply text-right text-small font-bold tabular-nums text-slate-950;
+  }
+
+  .ov-team-foot {
+    @apply border-t border-gray-200 pt-2.5 text-ov-micro text-slate-600;
+  }
+
+  /* ------------------------------------------------------------------- KPIs */
+  .ov-kpi-strip {
+    @apply grid grid-cols-ov-kpi gap-token;
+  }
+
+  .ov-kpi-cell {
+    @apply grid min-w-0 content-start gap-1 rounded-token-lg border border-gray-200 bg-zinc-200 p-4;
+  }
+
+  .ov-kpi-cell-label {
+    @apply text-small font-semibold text-slate-600;
+  }
+
+  .ov-kpi-cell-value {
+    @apply text-ov-kpi font-heading tabular-nums text-slate-950;
+  }
+
+  .ov-kpi-cell-value small {
+    @apply text-body font-semibold text-slate-600;
+  }
+
+  .ov-kpi-cell-note {
+    @apply inline-flex items-center gap-1.5 text-ov-micro font-semibold text-slate-600;
+  }
+
+  .ov-kpi-cell-note.is-warn {
+    @apply text-red-600;
+  }
+
+  .ov-kpi-dot {
+    @apply inline-block h-2 w-2 rounded-full bg-slate-400;
+  }
+
+  .ov-kpi-dot.ok {
+    @apply bg-emerald-600;
+  }
+
+  .ov-kpi-dot.alert {
+    @apply bg-red-600;
+  }
+
+  .ov-kpi-dot.muted {
+    @apply bg-slate-400;
+  }
+
+  /* ------------------------------------------------------------------ chart */
+  .ov-chart-panel {
+    @apply grid content-start gap-3 p-pad;
+  }
+
+  .ov-chart-wrap {
+    @apply grid min-w-0 gap-3;
+  }
+
+  .ov-chart-svg {
+    @apply h-auto w-full;
+  }
+
+  .ov-chart-grid {
+    @apply fill-none stroke-gray-200 stroke-1;
+  }
+
+  .ov-chart-average {
+    @apply fill-none stroke-slate-400 stroke-2;
+    /* Tracejado não tem utility no core; o valor vive no token de tema. */
+    stroke-dasharray: var(--vx-ov-chart-dash);
+  }
+
+  .ov-chart-line {
+    @apply fill-none stroke-blue-600 stroke-2;
+  }
+
+  .ov-chart-peak line {
+    @apply stroke-blue-600 stroke-1;
+  }
+
+  .ov-chart-peak circle {
+    @apply fill-blue-600 stroke-none;
+  }
+
+  .ov-chart-label {
+    @apply fill-slate-400 text-ov-micro;
+  }
+
+  .ov-chart-meta {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-ov-micro text-slate-600;
+  }
+
+  .ov-chart-meta > span {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .ov-legend-line {
+    @apply inline-block h-0 w-4 border-t-2 border-blue-600;
+  }
+
+  .ov-legend-line.dashed {
+    @apply border-dashed border-slate-400;
+  }
+
+  .ov-chart-peak-chip {
+    @apply ml-auto inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 font-bold text-blue-800;
+  }
+
+  /* ---------------------------------------------------------------- activity */
+  .ov-activity-panel {
+    @apply grid content-start gap-3 p-pad;
+  }
+
+  .ov-activity-list {
+    @apply grid gap-2.5;
+  }
+
+  .ov-activity-list li {
+    @apply grid grid-cols-ov-activity-row items-center gap-2.5;
+  }
+
+  .ov-activity-avatar {
+    @apply grid h-ov-avatar w-ov-avatar flex-none place-items-center overflow-hidden rounded-full bg-blue-50 text-ov-micro font-bold text-blue-800;
+  }
+
+  .ov-activity-copy {
+    @apply grid min-w-0;
+  }
+
+  .ov-activity-copy b {
+    @apply truncate text-small font-bold text-slate-950;
+  }
+
+  .ov-activity-contact {
+    @apply block truncate text-ov-micro text-slate-600;
+  }
+
+  .ov-activity-time {
+    @apply text-ov-micro tabular-nums text-slate-400;
+  }
+
+  /* ------------------------------------------------------------------ topics */
+  .ov-topics-panel {
+    @apply grid content-start gap-3 p-pad;
+  }
+
+  .ov-topics {
+    @apply grid grid-cols-ov-topics gap-4 ov-tablet:grid-cols-1;
+  }
+
+  .ov-topic {
+    @apply grid min-w-0 content-start gap-1.5;
+  }
+
+  .ov-topic-top {
+    @apply flex items-center justify-between gap-2;
+  }
+
+  .ov-topic-top > span {
+    @apply inline-flex min-w-0 items-center gap-1.5 text-small font-semibold text-slate-950;
+  }
+
+  .ov-topic-dot {
+    @apply inline-block h-2 w-2 flex-none rounded-full bg-blue-600;
+  }
+
+  .ov-topic-channel {
+    @apply text-ov-micro font-bold uppercase tracking-ov-wide text-slate-400;
+  }
+
+  .ov-topic-top b {
+    @apply text-small font-bold tabular-nums text-slate-950;
+  }
+
+  .ov-topic-bar {
+    @apply block h-1.5 overflow-hidden rounded-full bg-zinc-300;
+  }
+
+  .ov-topic-bar i {
+    @apply block h-full rounded-full bg-gradient-to-r from-blue-600 to-sky-600;
+  }
+
+  .ov-topic > small {
+    @apply text-ov-micro text-slate-600;
+  }
+
+  /* ------------------------------------------------------------ quick access */
+  .ov-access-panel {
+    @apply grid content-start gap-3 p-pad;
+  }
+
+  .ov-access-grid {
+    @apply grid grid-cols-ov-access gap-2.5 ov-laptop:grid-cols-3 ov-tablet:grid-cols-2 ov-mobile:grid-cols-1;
+  }
+
+  .ov-access-tile {
+    @apply grid grid-cols-ov-access-tile items-center gap-2.5 rounded-token-lg border border-gray-200 bg-zinc-200 p-3.5 text-left transition-control duration-control hover:-translate-y-px hover:bg-zinc-300;
+  }
+
+  .ov-access-icon {
+    @apply grid h-12 w-12 flex-none place-items-center rounded-token-sm bg-blue-50 text-blue-600;
+  }
+
+  .ov-access-icon.tone-teal {
+    @apply bg-emerald-100 text-emerald-600;
+  }
+
+  .ov-access-icon.tone-amber {
+    @apply bg-amber-100 text-amber-600;
+  }
+
+  .ov-access-icon.tone-blue {
+    @apply bg-blue-50 text-blue-600;
+  }
+
+  .ov-access-icon.tone-violet {
+    @apply bg-sky-100 text-sky-600;
+  }
+
+  .ov-access-icon.tone-pink {
+    @apply bg-red-100 text-red-600;
+  }
+
+  .ov-access-copy {
+    @apply grid min-w-0;
+  }
+
+  .ov-access-copy strong {
+    @apply truncate text-small font-bold text-slate-950;
+  }
+
+  .ov-access-copy small {
+    @apply truncate text-ov-micro text-slate-600;
+  }
+
+  .ov-access-arrow {
+    @apply h-4 w-4 flex-none text-slate-400 transition-control duration-control;
+  }
+
+  .ov-access-tile:hover .ov-access-arrow {
+    @apply text-blue-600;
+  }
+
+  /* ------------------------------------------------------------------ widgets */
+  .ov-widgets {
+    @apply grid grid-cols-ov-widgets gap-token ov-tablet:grid-cols-2 ov-mobile:grid-cols-1;
+  }
+
+  .ov-widget {
+    @apply grid min-h-ov content-start gap-3 rounded-token-xl border border-gray-200 bg-zinc-200 p-pad;
+  }
+
+  .ov-widget-label {
+    @apply text-ov-label font-bold uppercase tracking-ov-wider text-slate-600;
+  }
+
+  .ov-widget-clock {
+    @apply bg-blue-50;
+  }
+
+  .ov-widget-clock-inner {
+    @apply grid h-full content-center justify-items-center gap-1 text-center;
+  }
+
+  .ov-widget-clock-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-ov-micro font-bold text-blue-800;
+  }
+
+  .ov-widget-clock-time {
+    @apply text-ov-clock font-heading tabular-nums text-blue-800;
+  }
+
+  .ov-widget-clock-date {
+    @apply text-small text-slate-600;
+  }
+
+  .ov-widget-weather.is-night {
+    @apply bg-zinc-300;
+  }
+
+  .ov-widget-weather-head {
+    @apply flex flex-wrap items-start justify-between gap-2;
+  }
+
+  .ov-widget-weather-head-actions {
+    @apply inline-flex items-center gap-1.5 text-amber-600;
+  }
+
+  .ov-widget-weather-config {
+    @apply grid h-7 w-7 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300;
+  }
+
+  .ov-widget-weather-config-form {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .ov-widget-weather-config-save {
+    @apply inline-flex min-h-control items-center rounded-token-sm bg-blue-600 px-3 text-small font-bold text-blue-900 transition-control duration-control hover:bg-blue-700;
+  }
+
+  .ov-widget-weather-loading,
+  .ov-widget-weather-fallback {
+    @apply text-small text-slate-600;
+  }
+
+  .ov-widget-weather-main {
+    @apply flex items-center gap-3;
+  }
+
+  .ov-widget-weather-icon {
+    @apply h-14 w-14 flex-none text-amber-600;
+  }
+
+  .ov-widget-weather-temp {
+    @apply grid;
+  }
+
+  .ov-widget-weather-temp b {
+    @apply text-ov-weather font-heading tabular-nums text-slate-950;
+  }
+
+  .ov-widget-weather-temp span {
+    @apply text-small text-slate-600;
+  }
+
+  .ov-widget-weather-meta {
+    @apply flex flex-wrap gap-x-3 gap-y-1 text-ov-micro text-slate-600;
+  }
+
+  .ov-widget-weather-meta span {
+    @apply inline-flex items-center gap-1;
+  }
+
+  .ov-widget-calendar-head {
+    @apply flex items-center justify-between gap-2;
+  }
+
+  .ov-widget-calendar-head strong {
+    @apply text-small font-bold text-slate-950;
+  }
+
+  .ov-widget-calendar-nav {
+    @apply inline-flex items-center gap-1;
+  }
+
+  .ov-widget-calendar-nav button {
+    @apply grid h-7 w-7 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300;
+  }
+
+  .ov-widget-calendar-grid {
+    @apply grid grid-cols-ov-calendar gap-0.5 text-center;
+  }
+
+  .ov-widget-calendar-wd {
+    @apply text-ov-micro font-bold uppercase text-slate-400;
+  }
+
+  .ov-widget-calendar-wd.is-weekend,
+  .ov-widget-calendar-day.is-weekend {
+    @apply text-emerald-600;
+  }
+
+  .ov-widget-calendar-day {
+    @apply grid h-7 place-items-center rounded-token-sm text-ov-micro tabular-nums text-slate-950;
+  }
+
+  .ov-widget-calendar-day.is-empty {
+    @apply invisible;
+  }
+
+  .ov-widget-calendar-day.is-today {
+    @apply bg-blue-600 font-bold text-blue-900;
+  }
+
+  .ov-widget-calendar-today {
+    @apply text-ov-micro text-slate-600;
+  }
+
+  /* --------------------------------------------------------------- onboarding */
+  .ov-onboarding {
+    @apply grid content-start gap-3 rounded-token-lg border border-gray-200 bg-zinc-200 p-pad;
+  }
+
+  .ov-onboarding-head {
+    @apply flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .ov-onboarding-title {
+    @apply flex items-start gap-2.5 text-blue-600;
+  }
+
+  .ov-onboarding-title h2 {
+    @apply text-ov-onboarding font-heading text-slate-950;
+  }
+
+  .ov-onboarding-title p {
+    @apply text-small text-slate-600;
+  }
+
+  .ov-onboarding-dismiss {
+    @apply grid h-8 w-8 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300;
+  }
+
+  .ov-onboarding-bar {
+    @apply h-1.5 overflow-hidden rounded-full bg-zinc-300;
+  }
+
+  .ov-onboarding-bar > span {
+    @apply block h-full rounded-full bg-gradient-to-r from-blue-600 to-sky-600 transition-fill duration-bar ease-token;
+  }
+
+  .ov-onboarding-steps {
+    @apply grid grid-cols-ov-onboarding-steps gap-2.5 ov-tablet:grid-cols-1;
+  }
+
+  .ov-onboarding-step {
+    @apply grid grid-cols-ov-access-tile items-center gap-2.5 rounded-token-sm border border-gray-200 bg-zinc-100 p-3;
+  }
+
+  .ov-onboarding-check {
+    @apply grid h-7 w-7 place-items-center rounded-full bg-zinc-300 text-slate-600;
+  }
+
+  .ov-onboarding-step.is-done .ov-onboarding-check {
+    @apply bg-emerald-100 text-emerald-600;
+  }
+
+  .ov-onboarding-copy {
+    @apply grid min-w-0;
+  }
+
+  .ov-onboarding-copy strong {
+    @apply truncate text-small font-bold text-slate-950;
+  }
+
+  .ov-onboarding-copy small {
+    @apply truncate text-ov-micro text-slate-600;
+  }
+
+  .ov-onboarding-go {
+    @apply inline-flex min-h-8 items-center gap-1 rounded-token-sm border border-gray-200 bg-zinc-100 px-2.5 text-ov-micro font-bold text-slate-600 transition-control duration-control hover:border-blue-600 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* -------------------------------------------------------------- mobile dock */
+  .ov-dock {
+    @apply fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock ov-tablet:justify-center ov-tablet:gap-x-ov-dock-gap ov-tablet:border-t ov-tablet:border-indigo-800 ov-tablet:bg-indigo-950 ov-tablet:px-3 ov-tablet:pb-ov-dock-pb ov-tablet:pt-1;
+  }
+
+  .ov-dock button {
+    @apply grid min-h-ov-dock-btn place-items-center gap-0.5 rounded-token-sm px-3.5 py-0.5 text-ov-micro font-semibold text-indigo-400 transition-control duration-control hover:bg-indigo-900 hover:text-indigo-50;
+  }
+
+  .ov-dock button.active {
+    @apply bg-blue-600 text-blue-900 shadow-vx-brand;
+  }
+
+  .ov-dock button.active svg {
+    @apply text-blue-900;
+  }
+}

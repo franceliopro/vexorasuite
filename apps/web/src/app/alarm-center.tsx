@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlarmClock, Check, TimerReset } from "lucide-react";
 
 type Alarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
-const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
-const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const alarmSnoozeTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure border border-slate-600 bg-slate-700/50 px-4.5 text-body font-bold text-slate-100 shadow-token-sm transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 alarm-snooze";
+const alarmStopTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure bg-blue-600 px-6.5 text-sm font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 alarm-stop";
 const FIRED_KEY = "vx:alarms:fired";
 const SNOOZED_KEY = "vx:alarms:snoozed";
 const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -161,18 +161,24 @@ export function AlarmCenter() {
 
   if (!ringing.length) return null;
   return (
-    <div className="alarm-overlay" role="alertdialog" aria-modal="true" aria-label={ringing.length === 1 ? "Alarme tocando" : "Alarmes tocando"}>
-      <section className="alarm-card">
-        <span className="alarm-card-icon" aria-hidden="true"><AlarmClock size={56} strokeWidth={1.9} /></span>
-        <p className="alarm-eyebrow">{ringing.length === 1 ? "Alarme" : `${ringing.length} alarmes`} · {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
-        <ul className="alarm-firing-list">
+    <div
+      className="alarm-overlay fixed inset-0 grid animate-vx-in place-items-center p-5 backdrop-blur-md"
+      style={{ background: "radial-gradient(90rem 60rem at 50% -20%, rgba(29,78,216,.22), transparent 60%),rgba(4,8,20,.84)" }}
+      role="alertdialog"
+      aria-modal="true"
+      aria-label={ringing.length === 1 ? "Alarme tocando" : "Alarmes tocando"}
+    >
+      <section className="grid max-h-phone-frame w-full max-w-calendar-event-modal justify-items-center gap-4 overflow-auto rounded-token-xl border border-slate-700 bg-linear-to-br from-slate-800 to-slate-900 px-7 pb-6 pt-8 text-center text-slate-50 shadow-token-lg">
+        <span className="grid size-26 animate-pulse place-items-center rounded-full bg-sky-500/15 text-sky-300" aria-hidden="true"><AlarmClock size={56} strokeWidth={1.9} /></span>
+        <p className="text-xs font-heading uppercase tracking-fin-eyebrow text-sky-300">{ringing.length === 1 ? "Alarme" : `${ringing.length} alarmes`} · {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
+        <ul className="grid w-full gap-4.5">
           {ringing.map((alarm) => (
-            <li key={alarm.id} className="alarm-firing-item">
-              <h1>{alarm.title}</h1>
-              <p>{describe(alarm)}</p>
-              <div className="alarm-actions">
-                <button type="button" className={secondaryTw + " alarm-snooze"} onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>
-                <button type="button" className={primaryTw + " alarm-stop"} onClick={() => dismiss(alarm)}><Check size={18} aria-hidden="true" /> Parar</button>
+            <li key={alarm.id} className="grid justify-items-center">
+              <h1 className="font-display font-extrabold text-white" style={{ fontSize: "clamp(26px,4.6vw,42px)", lineHeight: 1.14, letterSpacing: "-0.02em" }}>{alarm.title}</h1>
+              <p className="mt-1.5 text-body text-slate-300">{describe(alarm)}</p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5">
+                <button type="button" className={alarmSnoozeTw} onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>
+                <button type="button" className={alarmStopTw} onClick={() => dismiss(alarm)}><Check size={18} aria-hidden="true" /> Parar</button>
               </div>
             </li>
           ))}

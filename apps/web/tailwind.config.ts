@@ -297,6 +297,8 @@ const config: Config = {
         /* Grades dos diálogos do Atendimento. */
         "ib-track": "minmax(0, 1fr) minmax(0, 1.4fr)",
         "ib-field": "minmax(0, 1fr) minmax(0, 1.4fr) auto",
+        /* Preferências de lembretes de Tarefas. */
+        "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",

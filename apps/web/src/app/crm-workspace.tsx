@@ -108,6 +108,45 @@ const defaultStages: { id: CrmStage; label: string; hint: string; tone: string }
   { id: "finalization", label: "Finalização", hint: "Registrar o resultado", tone: "green" },
 ];
 
+/** Tons das etapas em utilities TW. A marca continua vinda de --primary. */
+const stageTones = {
+  violet: {
+    dot: "bg-violet-500",
+    halo: "ring-4 ring-violet-500/20",
+    count: "bg-violet-500/15 text-violet-700 ring-1 ring-inset ring-violet-500/25 dark:text-violet-300",
+    title: "text-violet-700 dark:text-violet-300",
+    empty: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+  },
+  rose: {
+    dot: "bg-rose-500",
+    halo: "ring-4 ring-rose-500/20",
+    count: "bg-rose-500/15 text-rose-700 ring-1 ring-inset ring-rose-500/25 dark:text-rose-300",
+    title: "text-rose-700 dark:text-rose-300",
+    empty: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+  },
+  amber: {
+    dot: "bg-amber-500",
+    halo: "ring-4 ring-amber-500/20",
+    count: "bg-amber-500/15 text-amber-700 ring-1 ring-inset ring-amber-500/25 dark:text-amber-300",
+    title: "text-amber-700 dark:text-amber-300",
+    empty: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  },
+  green: {
+    dot: "bg-green-500",
+    halo: "ring-4 ring-green-500/20",
+    count: "bg-green-500/15 text-green-700 ring-1 ring-inset ring-green-500/25 dark:text-green-300",
+    title: "text-green-700 dark:text-green-300",
+    empty: "bg-green-500/15 text-green-700 dark:text-green-300",
+  },
+  blue: {
+    dot: "bg-blue-600",
+    halo: "ring-4 ring-blue-600/20",
+    count: "bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-600/25",
+    title: "text-blue-800",
+    empty: "bg-blue-50 text-blue-800",
+  },
+} as const;
+
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
@@ -305,36 +344,54 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
       </form> : null}
 
       <div id="crm-tabpanel" role="tabpanel" aria-labelledby={`crm-tab-${view}`}>
-      {loading ? <section className="content-card crm-loading"><span className="crm-loading-orbit"/><strong>Preparando seu pipeline</strong><p>Carregando os contatos da empresa…</p></section> : view === "pipeline" ? (
-        <section className="crm-pipeline" aria-label="Pipeline comercial">
+      {loading ? <section data-testid="crm-loading" className="flex flex-col items-center gap-3 px-5 py-crm-loading-y text-center text-slate-600">
+        <span aria-hidden="true" className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+        <strong className="text-h4 text-slate-950">Preparando seu pipeline</strong>
+        <p className="text-small">Carregando os contatos da empresa…</p>
+      </section> : view === "pipeline" ? (
+        <section data-testid="crm-pipeline" aria-label="Pipeline comercial" className="grid snap-x snap-proximity grid-flow-col auto-cols-crm-stage items-start gap-3.5 overflow-x-auto p-1 pb-3.5">
           {stages.map((stage) => {
             const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (!contact.metadata?.crmRemoved || !!contact.pipelineId) && (contact.crmStage || "new") === stage.id);
             const activeDrop = dropTarget === stage.id;
-            return <div key={stage.id} className={"crm-pipeline-column tone-" + stage.tone + (activeDrop ? " drop-active" : "")}
+            const tone = stageTones[stage.tone as keyof typeof stageTones] ?? stageTones.blue;
+            return <div key={stage.id}
+              className={"flex min-h-crm-column max-h-crm-column snap-start flex-col gap-2.5 rounded-token-lg border border-transparent border-t-crm-stage bg-gradient-to-b from-blue-50 to-zinc-200 p-3.5 shadow-token transition-shadow duration-control " + (activeDrop ? "border-blue-600 border-t-blue-600 shadow-token-lg ring-4 ring-blue-600/30" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}
               onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(""); }}
               onDrop={(event) => dropOnStage(event, stage.id)}>
-              <header className="crm-stage-heading"><span className="crm-stage-indicator"/><div><h2>{stage.label}</h2><p>{stage.hint}</p></div><span className="crm-stage-count">{columnContacts.length}</span><button type="button" className="crm-stage-add" onClick={()=>openNewContact(stage.id as CrmStage)} aria-label={"Adicionar contato em "+stage.label} title={"Adicionar contato em "+stage.label}><Plus size={15} aria-hidden="true"/></button></header>
-              <div className="crm-stage-cards">
-                {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"crm-pipeline-card" + (draggingId === contact.id ? " is-dragging" : "")}>
-                  <button type="button" className="crm-card-open" onClick={()=>setFichaContact(contact)} aria-label={"Abrir ficha de " + contactName(contact)}>
-                    <ContactPhoto id={contact.id} name={contactName(contact)} version={contact.metadata?.avatarUrl} className="crm-contact-avatar"/>
-                    <span className="crm-card-identity"><strong className="crm-card-name">{socialPlatformOfContact(contact) ? <PlatformIcon platform={socialPlatformOfContact(contact)} size={13} /> : null}{contactName(contact)}</strong><span className="crm-card-source">{contact.source || "Contato"}</span></span>
+              <header className="flex min-h-crm-heading items-start gap-2 border-b border-dashed border-gray-200 pb-2.5 text-left">
+                <span aria-hidden="true" className={"mt-1 h-2.5 w-2.5 flex-none rounded-full " + tone.dot + " " + tone.halo} />
+                <div className="min-w-0 flex-1">
+                  <h2 className={"truncate text-h4 font-extrabold tracking-tight " + tone.title}>{stage.label}</h2>
+                  <p className="mt-0.5 truncate text-small text-slate-600">{stage.hint}</p>
+                </div>
+                <span className={"inline-grid h-6 min-w-6 flex-none place-items-center rounded-full px-2 text-2xs font-extrabold " + tone.count}>{columnContacts.length}</span>
+                <button type="button" className="grid h-7 w-7 flex-none place-items-center rounded-full border border-gray-200 bg-zinc-100 text-slate-600 transition-transform duration-control hover:rotate-90 hover:border-blue-600 hover:bg-blue-600 hover:text-blue-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" onClick={()=>openNewContact(stage.id as CrmStage)} aria-label={"Adicionar contato em "+stage.label} title={"Adicionar contato em "+stage.label}><Plus size={15} aria-hidden="true"/></button>
+              </header>
+              <div className="grid min-h-0 flex-1 content-start gap-2.5 overflow-y-auto p-0.5">
+                {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"group relative grid min-h-crm-card min-w-0 gap-2 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-100 p-3 shadow-token-sm transition-all duration-control hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-token-lg " + (draggingId === contact.id ? "scale-105 cursor-grabbing opacity-60" : "cursor-grab")}>
+                  <span aria-hidden="true" className={"pointer-events-none absolute inset-y-0 left-0 w-crm-accent bg-gradient-to-b to-transparent opacity-0 transition-opacity group-hover:opacity-100 " + tone.dot} />
+                  <button type="button" className="flex w-full min-w-0 items-center gap-2.5 rounded-xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" onClick={()=>setFichaContact(contact)} aria-label={"Abrir ficha de " + contactName(contact)}>
+                    <ContactPhoto id={contact.id} name={contactName(contact)} version={contact.metadata?.avatarUrl} className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-full bg-blue-600 text-body font-extrabold text-white shadow-token-sm ring-2 ring-zinc-100" />
+                    <span className="grid min-w-0 gap-0.5">
+                      <strong className="truncate text-h4 font-extrabold tracking-tight text-slate-950 group-hover:text-blue-800">{socialPlatformOfContact(contact) ? <PlatformIcon platform={socialPlatformOfContact(contact)} size={13} /> : null}{contactName(contact)}</strong>
+                      <span className="mt-0.5 block max-w-full truncate text-2xs font-extrabold uppercase tracking-wide text-slate-600">{contact.source || "Contato"}</span>
+                    </span>
                   </button>
-                  {contactTags(contact).length?<span className="crm-contact-tags">{contactTags(contact).map((tag,index)=>{const color=tag.color||"#eeecff";return <span key={tag.name+index} style={{backgroundColor:color,borderColor:color,color:tagForeground(color)}}>{tag.name}</span>})}</span>:null}
-                  {contactFieldSummary(contact,fieldDefinitions).length?<span className="crm-custom-field-summary">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b>{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
-                  {(contact.updatedAt||contactLeadOrigin(contact))?<span className="crm-card-meta"><Clock3 size={11} aria-hidden="true"/>Atualizado {relativeTime(contact.updatedAt)}{contactLeadOrigin(contact)?" · "+contactLeadOrigin(contact):""}</span>:null}
-                  {(()=>{const order=stages.filter(s=>s.id!=="finalization");const index=Math.max(0,order.findIndex(s=>s.id===(contact.crmStage||"new")));return <div className="crm-card-progress" role="img" aria-label={"Progresso no pipeline — etapa "+(index+1)+" de "+order.length}>{order.map((s,i)=><i key={s.id} className={i<=index?"filled":""}/>)}</div>;})()}
-                  {(()=>{const s=contactSecondaryLine(contact);return <span className="crm-card-detail">{s.social ? <PlatformIcon platform={s.platform} size={11}/> : <Phone size={11} aria-hidden="true"/>}{s.text}</span>})()}
-                  {contact.phone && contact.email ? <span className="crm-card-detail"><Mail size={11} aria-hidden="true"/>{contact.email}</span> : null}
-                  <div className="crm-card-footer"><div className="crm-card-quick" role="group" aria-label={"Ações rápidas para " + contact.name}>
-                    {contact.phone?<a className="crm-quick-action is-whatsapp" href={waLink(contact.phone)} target="_blank" rel="noopener noreferrer" title="Conversar no WhatsApp" aria-label={"Chamar " + contact.name + " no WhatsApp"}><WhatsAppGlyph size={14}/></a>:null}
-                    {contact.phone?<a className="crm-quick-action" href={"tel:" + contact.phone} title="Ligar" aria-label={"Ligar para " + contact.name}><Phone size={12} aria-hidden="true"/></a>:null}
-                    {contact.email?<a className="crm-quick-action" href={"mailto:" + contact.email} title="Enviar e-mail" aria-label={"Enviar e-mail para " + contact.name}><Mail size={12} aria-hidden="true"/></a>:null}
-                    <button type="button" className="crm-quick-action" onClick={()=>setFichaContact(contact)} title="Abrir ficha" aria-label={"Abrir ficha de " + contactName(contact)}><UserRound size={12} aria-hidden="true"/></button>
-                  </div><label className="crm-move-label"><select aria-label={"Mover " + contactName(contact) + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)}>{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>{pipelineId?<button type="button" className="crm-remove-button" disabled={!!movingId} onClick={()=>void removeFromPipeline(contact)} aria-label={"Retirar "+contact.name+" do pipeline"} title="Retirar do pipeline"><X size={14} aria-hidden="true" /></button>:null}</div>
+                  {contactTags(contact).length?<span className="flex flex-wrap gap-1">{contactTags(contact).map((tag,index)=>{const color=tag.color||"#eeecff";return <span key={tag.name+index} style={{backgroundColor:color,borderColor:color,color:tagForeground(color)}} className="rounded-full border px-2 py-0.5 text-2xs font-extrabold uppercase">{tag.name}</span>})}</span>:null}
+                  {contactFieldSummary(contact,fieldDefinitions).length?<span className="flex flex-wrap gap-3 text-small text-slate-600">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b className="font-extrabold text-slate-950">{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
+                  {(contact.updatedAt||contactLeadOrigin(contact))?<span className="flex min-w-0 items-center gap-1.5 truncate text-2xs tabular-nums text-slate-600"><Clock3 size={11} aria-hidden="true" className="flex-none"/>Atualizado {relativeTime(contact.updatedAt)}{contactLeadOrigin(contact)?" · "+contactLeadOrigin(contact):""}</span>:null}
+                  {(()=>{const order=stages.filter(s=>s.id!=="finalization");const index=Math.max(0,order.findIndex(s=>s.id===(contact.crmStage||"new")));return <div className="mt-px flex gap-1" role="img" aria-label={"Progresso no pipeline — etapa "+(index+1)+" de "+order.length}>{order.map((s,i)=><i key={s.id} className={"h-0.5 flex-1 rounded-full " + (i<=index ? tone.dot : "bg-gray-300")}/>)}</div>;})()}
+                  {(()=>{const s=contactSecondaryLine(contact);return <span className="flex items-center gap-1.5 text-small tabular-nums text-slate-600"><span aria-hidden="true" className="h-1 w-1 flex-none rounded-full bg-emerald-600 opacity-90"/>{s.social ? <PlatformIcon platform={s.platform} size={11}/> : <Phone size={11} aria-hidden="true" className="flex-none"/>}{s.text}</span>})()}
+                  {contact.phone && contact.email ? <span className="flex items-center gap-1.5 text-small tabular-nums text-slate-600"><span aria-hidden="true" className="h-1 w-1 flex-none rounded-full bg-emerald-600 opacity-90"/><Mail size={11} aria-hidden="true" className="flex-none"/>{contact.email}</span> : null}
+                  <div className="mt-0.5 flex items-center justify-between gap-2 border-t border-dashed border-gray-200 pt-2.5"><div className="flex flex-none items-center gap-1.5" role="group" aria-label={"Ações rápidas para " + contact.name}>
+                    {contact.phone?<a className="grid h-7 w-7 place-items-center rounded-full border border-blue-600/40 bg-blue-50 text-blue-800 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-100 hover:shadow-token-sm" href={waLink(contact.phone)} target="_blank" rel="noopener noreferrer" title="Conversar no WhatsApp" aria-label={"Chamar " + contact.name + " no WhatsApp"}><WhatsAppGlyph size={14}/></a>:null}
+                    {contact.phone?<a className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm" href={"tel:" + contact.phone} title="Ligar" aria-label={"Ligar para " + contact.name}><Phone size={12} aria-hidden="true"/></a>:null}
+                    {contact.email?<a className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm" href={"mailto:" + contact.email} title="Enviar e-mail" aria-label={"Enviar e-mail para " + contact.name}><Mail size={12} aria-hidden="true"/></a>:null}
+                    <button type="button" className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm" onClick={()=>setFichaContact(contact)} title="Abrir ficha" aria-label={"Abrir ficha de " + contactName(contact)}><UserRound size={12} aria-hidden="true"/></button>
+                  </div><label className="min-w-0 flex-1"><select aria-label={"Mover " + contactName(contact) + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)} className="min-h-8 w-full min-w-0 appearance-none rounded-lg border border-gray-200 bg-zinc-200 px-2.5 text-small font-bold text-slate-950">{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>{pipelineId?<button type="button" className="grid h-8 w-8 flex-none place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60" disabled={!!movingId} onClick={()=>void removeFromPipeline(contact)} aria-label={"Retirar "+contact.name+" do pipeline"} title="Retirar do pipeline"><X size={14} aria-hidden="true" /></button>:null}</div>
                 </article>)}
-                {!columnContacts.length ? <button type="button" className={"crm-stage-empty" + (activeDrop ? " is-lit" : "")} onClick={()=>openNewContact(stage.id as CrmStage)} aria-label={"Adicionar contato em " + stage.label}><span>{activeDrop ? <Check size={17}/> : <Plus size={17}/>}</span><strong>{activeDrop ? "Solte para mover" : "Sem contatos nesta etapa"}</strong><small>{activeDrop ? (stage.id === "finalization" ? "Escolha ganho ou perda" : "O pipeline será atualizado") : (stage.id === "finalization" ? "Arraste um contato para registrar o resultado" : "Clique em + para cadastrar ou arraste um cartão para cá")}</small></button> : null}
+                {!columnContacts.length ? <button type="button" className={"group/empty flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-gray-300 px-3.5 py-6 text-center text-slate-600 transition-all hover:-translate-y-px hover:border-blue-600/40 hover:bg-blue-50 " + (activeDrop ? "border-solid border-blue-600 bg-blue-50" : "")} onClick={()=>openNewContact(stage.id as CrmStage)} aria-label={"Adicionar contato em " + stage.label}><span className={"grid h-10 w-10 place-items-center rounded-full ring-1 ring-inset ring-gray-200 transition-transform group-hover/empty:rotate-90 " + tone.empty}>{activeDrop ? <Check size={17}/> : <Plus size={17}/>}</span><strong className="text-h4 text-slate-950">{activeDrop ? "Solte para mover" : "Sem contatos nesta etapa"}</strong><small className="text-2xs leading-relaxed text-slate-600">{activeDrop ? (stage.id === "finalization" ? "Escolha ganho ou perda" : "O pipeline será atualizado") : (stage.id === "finalization" ? "Arraste um contato para registrar o resultado" : "Clique em + para cadastrar ou arraste um cartão para cá")}</small></button> : null}
               </div>
             </div>;
           })}

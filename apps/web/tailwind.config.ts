@@ -164,6 +164,10 @@ const config: Config = {
         "ib-article": "10px",
         "ib-panel": "12px",
       },
+      borderWidth: {
+        /* Borda superior das colunas do Kanban. */
+        "crm-stage": "3px",
+      },
       boxShadow: {
         token: "var(--shadow)",
         "token-sm": "var(--shadow-sm)",
@@ -252,6 +256,8 @@ const config: Config = {
         "ib-pad": "18px",
         "ib-gap": "9px",
         "ib-block": "10px",
+        /* Estado de carregamento do Kanban. */
+        "crm-loading-y": "60px",
       },
       gridTemplateColumns: {
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
@@ -273,8 +279,15 @@ const config: Config = {
         /* Preferências de lembretes de Tarefas. */
         "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
       },
+      gridAutoColumns: {
+        "crm-stage": "minmax(272px, 1fr)",
+      },
       minHeight: {
         ov: "150px",
+        /* Medidas das colunas e cartões do Kanban do CRM. */
+        "crm-column": "280px",
+        "crm-card": "152px",
+        "crm-heading": "62px",
       },
       maxHeight: {
         ficha: "92vh",
@@ -282,6 +295,7 @@ const config: Config = {
         logo: "36px",
         "ib-track": "85dvh",
         "ib-support": "min(82dvh, 780px)",
+        "crm-column": "calc(100dvh - var(--top) - 235px)",
       },
       maxWidth: {
         content: "1520px",
@@ -299,6 +313,8 @@ const config: Config = {
         "submenu-compact": "220px",
         "ib-track": "min(760px, calc(100vw - 24px))",
         "ib-support": "min(620px, calc(100vw - 24px))",
+        /* Filete de tom à esquerda dos cartões do Kanban. */
+        "crm-accent": "3px",
       },
       minWidth: {
         "submenu-compact": "220px",

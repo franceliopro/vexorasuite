@@ -311,12 +311,14 @@ const config: Config = {
         "token-xl": "var(--r-xl)",
         brand: "13px",
         square: "6px",
+        /* Cartões de celulares autorizados do assistente de IA. */
+        "ai-phone": "14px",
         /* Cantos dos cartões de status das conexões de IA. */
         "provider-overview": "14px",
         "provider-item": "12px",
-"crm-icon": "9px",
 "settings-icon": "9px",
 "settings-swatch": "10px",
+"crm-icon": "9px",
         "provider-pill": "6px",
         "provider-alert": "10px",
         /* Pílula de tag do catálogo do CRM. */
@@ -391,6 +393,11 @@ const config: Config = {
         "flow-group-icon": "11px",
         "flow-field-tip": "99px",
         "flow-tip": "10px",
+        /* Cantos dos cartões, campos e alertas do workspace de Documentos. */
+        "docs-card": "14px",
+        "docs-empty": "12px",
+        "docs-field": "9px",
+        "docs-alert": "10px",
       },
       aspectRatio: {
         /* Prévia quadrada dos arquivos e das imagens do site. */
@@ -401,6 +408,8 @@ const config: Config = {
       gridTemplateRows: {
         "ib-quick-dialog": "auto minmax(0,1fr)",
         "fm-picker-item": "1fr auto",
+        /* Corpo do editor de modelos de Documentos. */
+        "docs-editor": "auto minmax(0,1fr) auto",
       },
       boxShadow: {
         ring: "var(--ring)",
@@ -441,6 +450,11 @@ const config: Config = {
         "catalog-metric": ["10.5px", { lineHeight: "1.4" }],
         "catalog-card-title": ["14px", { lineHeight: "1.3" }],
         "catalog-clear-title": ["12px", { lineHeight: "1.3", letterSpacing: "-.005em" }],
+        /* Textos do workspace de Documentos. */
+        "docs-name": "13.5px",
+        "docs-meta": "11.5px",
+        "docs-hint": "12.5px",
+        "docs-document": ["13.5px", { lineHeight: "1.6" }],
         "2xs": "10px",
         body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
         h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
@@ -612,12 +626,12 @@ const config: Config = {
         /* Tags e linhas do catálogo de campos do CRM. */
         "cf-tag-x": "9px",
         "cf-tag-h": "23px",
-"crm-icon": "34px",
-"crm-ficha-avatar": "42px",
-"crm-outcome": "76px",
 "settings-icon": "34px",
 "settings-logo": "76px",
 "settings-stage": "132px",
+"crm-icon": "34px",
+"crm-ficha-avatar": "42px",
+"crm-outcome": "76px",
         /* Medidas dos painéis do Financeiro. */
         "fin-hero-x": "28px",
         "fin-hero-y": "26px",
@@ -630,6 +644,12 @@ const config: Config = {
         "fin-waffle-gap": "5px",
         "fin-chip-h": "32px",
         "fin-control-h": "36px",
+        /* Medidas do editor de modelos de Documentos. */
+        "docs-icon": "30px",
+        "docs-editor-x": "clamp(16px,4vw,56px)",
+        "docs-pad": "18px",
+        "docs-safe-top": "max(12px, env(safe-area-inset-top))",
+        "docs-safe-bottom": "max(12px, env(safe-area-inset-bottom))",
         "fin-lookup": "210px",
         "fin-history-stat": "24px",
         "fin-drawer": "480px",
@@ -785,6 +805,16 @@ const config: Config = {
         "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
         "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
         "channels-attach": "repeat(2,1fr)",
+/* Grades do workspace de Documentos. */
+"docs-grid": "minmax(300px,420px) 1fr",
+"docs-generate": "minmax(320px,460px) 1fr",
+"docs-variable": "minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr) auto auto",
+/* Grades do workspace de Equipe: identidade e lista de atendentes. */
+"team-identity": "150px minmax(0,1fr)",
+"team-list": "repeat(auto-fill,minmax(320px,1fr))",
+/* Grades do workspace de Inteligência: colunas laterais e cartões de agente. */
+"ai-layout": "minmax(250px,320px) minmax(0,1fr)",
+"ai-agents": "repeat(auto-fill,minmax(180px,1fr))",
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
         "ov-primary": "minmax(0, 1.58fr) minmax(0, 1fr)",
         "ov-main": "minmax(0, 1.55fr) minmax(0, 1fr)",
@@ -796,11 +826,11 @@ const config: Config = {
         "ov-widgets": "minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr)",
         "ov-onboarding-steps": "repeat(auto-fit, minmax(220px, 1fr))",
         "ov-dock": "repeat(auto-fit, minmax(84px, 120px))",
-"crm-form": "repeat(auto-fit, minmax(240px, 1fr))",
 "settings": "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
 "org-form": "repeat(auto-fit, minmax(220px, 1fr))",
 "settings-upload": "repeat(3, minmax(0, 1fr))",
 "settings-sidebar": "repeat(auto-fit, minmax(220px, 1fr))",
+"crm-form": "repeat(auto-fit, minmax(240px, 1fr))",
         "ov-calendar": "repeat(7, minmax(0, 1fr))",
         "ov-activity-row": "auto minmax(0, 1fr) auto",
         /* Grades dos diálogos do Atendimento. */
@@ -894,6 +924,8 @@ const config: Config = {
         "flow-stage-mobile": "70dvh",
         "flow-handle": "72px",
         "flow-minimap": "128px",
+        /* Janela do editor de modelos de Documentos. */
+        "docs-frame": "100dvh",
       },
       minHeight: {
         "catalog-card": "78px",
@@ -938,6 +970,10 @@ const config: Config = {
         /* Alturas dos painéis do Financeiro. */
         "fin-matches": "220px",
         "fin-template-list": "380px",
+/* Prévia dos documentos gerados. */
+"docs-document": "60vh",
+/* Altura do painel flutuante do assistente de IA. */
+"ai-panel": "min(640px,calc(100dvh - 32px))",
 
       },
       maxWidth: {
@@ -951,9 +987,9 @@ const config: Config = {
         "crm-copy": "560px",
         "crm-select": "340px",
         "crm-search": "360px",
-"crm-form": "920px",
 "settings-name": "180px",
 "group-list": "300px",
+"crm-form": "920px",
         "ib-copy": "42ch",
         "ib-bubble": "min(78%, 560px)",
         "ib-quote-empty": "70%",
@@ -975,6 +1011,9 @@ const config: Config = {
         "fm-move": "108px",
         "fm-lightbox": "min(960px,94vw)",
         "fm-picker-body": "min(860px,94vw)",
+        /* Largura do campo de envio de Documentos. */
+        "docs-send": "220px",
+        "docs-frame": "100dvw",
         "phone-bubble": "79%",
         "phone-quick": "88%",
         /* Larguras dos painéis do Financeiro. */
@@ -1017,6 +1056,8 @@ const config: Config = {
         "flow-resizer": "16px",
         "flow-resizer-grip": "3px",
         "flow-more": "180px",
+        /* Largura do painel flutuante do assistente de IA. */
+        "ai-panel": "min(100vw - 32px,400px)",
       },
       minWidth: {
         "catalog-metric": "26px",
@@ -1047,6 +1088,8 @@ const config: Config = {
         "ib-fullscreen": "130",
         "ib-handoff": "190",
         "ib-lightbox": "240",
+        /* Janela modal do editor de modelos de Documentos. */
+        "docs-editor": "400",
         "ib-dialog": "1000",
         "ib-dialog-inner": "1",
         "ib-mention": "65",

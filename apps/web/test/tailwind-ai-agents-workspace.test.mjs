@@ -1,0 +1,90 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+const ai = read("src/app/ai-agents-workspace.tsx");
+const config = read("tailwind.config.ts");
+
+/** Só os usos em className entram na varredura; dados, hooks e aria ficam de fora. */
+const classes = [...ai.matchAll(/className=(?:"([^"]*)"|\{([^}]*)\})/g)]
+  .map((m) => m[1] ?? m[2] ?? "")
+  .join("\n");
+
+const legadas = [
+  "module-workspace", "ai-agents-workspace", "ai-agents-hero", "ai-agents-hero-copy",
+  "ai-agents-hero-eyebrow", "ai-agents-hero-sub", "ai-agents-hero-badge",
+  "ai-agent-status-pill", "ai-workspace-tabs", "ai-workspace-actions", "ai-notice",
+  "ai-admin-grid", "ai-agent-layout", "content-card", "ai-admin-card", "ai-admin-heading",
+  "ai-agent-list-heading", "ai-admin-note", "ai-toggle-note", "ai-admin-fields", "ai-toggle",
+  "ai-agents-grid", "ai-agents-grid-empty", "ai-agent-card", "ai-agent-card-face",
+  "ai-agent-card-body", "ai-agent-card-foot", "ai-agent-status", "ai-agent-tier",
+  "ai-agent-tabs", "ai-routing-card", "ai-routing-list", "ai-routing-list-single",
+  "ai-routing-item", "ai-flow-glyph", "ai-checkbox-group", "ai-field-hint",
+  "ai-module-grid", "ai-module-option", "ai-admin-actions", "ai-prohibitions-block",
+  "ai-prohibitions-actions", "ai-free-preset", "ai-free-preset-text", "ai-subtle-card",
+  "ai-model-group", "ai-model-presets", "ai-assistant-panel", "ai-assistant-head",
+  "ai-assistant-content", "ai-assistant-message", "ai-assistant-form", "workspace-disclosure",
+  "creative-slide-list", "primary-button", "secondary-button", "workspace-surface",
+  "ai-phone-card", "ai-phone-head", "ai-phone-list", "ai-phone-number", "ai-phone-remove",
+  "ai-phone-rule", "is-on", "is-off",
+];
+
+test("o workspace de IA não usa classes componente legadas", () => {
+  for (const classe of legadas) {
+    const re = new RegExp(`(?<![\\w-])${classe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`);
+    assert.equal(re.test(classes), false, `classe componente ${classe} permaneceu`);
+  }
+  assert.equal(/className="[^"]+"/.test(ai), false, "className literal de componente permaneceu");
+});
+
+test("a fatia usa só utilities do preset, sem remendos", () => {
+  for (const forbidden of [/\[[a-z-]+:\s*[^]\s]+\]/, /!important/, /@apply/, /color-mix\(/]) {
+    const match = ai.match(forbidden);
+    assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
+  }
+  const hexEmClasse = [...ai.matchAll(/className="[^"]*#[0-9a-fA-F]{3,8}/g)];
+  assert.equal(hexEmClasse.length, 0, "hex direto em classe");
+  for (const utility of [
+    "grid min-w-0 gap-token",
+    "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-gradient-to-br from-blue-50 to-surface p-6 shadow-token-sm",
+    "inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-line bg-surface-2 p-1",
+    "grid grid-cols-ai-layout items-start gap-token",
+    "mt-3 grid grid-cols-ai-agents gap-3",
+    "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg",
+    "grid gap-2 rounded-ai-phone border border-line bg-surface-2 p-3",
+    "bg-blue-600 px-brand-pad text-body font-bold text-blue-50",
+  ]) {
+    assert.ok(ai.includes(utility), `falta a utility ${utility}`);
+  }
+});
+
+test("os contratos de acessibilidade do workspace permanecem intactos", () => {
+  for (const contrato of [
+    'role="tablist"',
+    'aria-label="Áreas de configuração da inteligência"',
+    'aria-label="Configurações do agente"',
+    'aria-controls="ai-workspace-tabpanel"',
+    'aria-controls="ai-agent-tabpanel"',
+    'id="ai-workspace-tabpanel"',
+    'id="ai-agent-tabpanel"',
+    'role="tabpanel"',
+    'role="listbox"',
+    'aria-label="Agentes de IA"',
+    'role="option"',
+    'aria-selected={selected === a.id}',
+    'aria-label="Tipo de agente"',
+    'role="status"',
+    'role="alert"',
+  ]) {
+    assert.ok(ai.includes(contrato), `contrato ausente: ${contrato}`);
+  }
+});
+
+test("os tokens de IA do preset preservam as medidas migradas", () => {
+  for (const token of ['"ai-layout"', '"ai-agents"', '"ai-panel"', '"ai-phone"']) {
+    assert.ok(config.includes(token), `token ausente no preset: ${token}`);
+  }
+  assert.equal(config.includes("color-mix("), false, "color-mix não pode voltar ao preset");
+  assert.equal(/#2E7CF6/i.test(ai), false, "azul fixo não pode reaparecer na fatia");
+});

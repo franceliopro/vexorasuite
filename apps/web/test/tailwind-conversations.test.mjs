@@ -340,12 +340,30 @@ test("o avatar do cabeçalho tem tamanho próprio e o header alinha os blocos", 
   }
   assert.doesNotMatch(heading, /h-full|w-full|size-ib-avatar|flex-wrap/);
   for (const utility of ["flex-nowrap", "gap-ib-gap", "ib-narrow:px-3"]) assert.ok(hasUtility(utility), `o header deve manter ${utility}`);
-  assert.match(workspace, /id="thread-header-actions" className="ml-auto flex shrink-0 items-center gap-ib-gap"/);
-  for (const hook of ['data-testid="thread-heading"', 'aria-controls="thread-header-actions"', 'id="thread-header-actions"', 'data-testid="thread-header-actions"']) {
+  const primaryActions = workspace.match(/<div data-testid="thread-primary-actions" className="([^"]*)">/)?.[1] ?? "";
+  for (const utility of ["ml-auto", "flex", "shrink-0", "flex-nowrap", "items-center", "gap-ib-gap"]) {
+    assert.ok(primaryActions.includes(utility), `as ações primárias devem manter ${utility}: ${primaryActions}`);
+  }
+  assert.ok(workspace.includes('data-testid="thread-header-actions" data-open={moreActionsOpen ? "true" : "false"} id="thread-header-actions" className={moreActionsOpen ? "flex shrink-0 items-center gap-ib-gap rounded-ib-panel border border-line bg-surface p-2 shadow-token-lg" : "hidden"}'));
+  assert.ok(workspace.includes('data-testid="thread-mobile-actions" className="hidden items-center gap-ib-gap ib-narrow:flex"'));
+  assert.ok(workspace.includes('bg-white text-blue-800'), "badge ativo das filas com bolinha branca");
+  assert.ok(workspace.includes('bg-blue-100 text-blue-800 ring-1 ring-blue-600'), "badge inativo das filas mantém o contraste");
+  assert.ok(workspace.includes('data-testid="thread-finalize-button" aria-label="Finalizar atendimento" className="grid size-8 place-items-center rounded-ib-entry bg-blue-600 text-blue-900'), "Finalizar com ícone claro sobre azul");
+  for (const hook of ['data-testid="thread-heading"', 'aria-controls="thread-header-actions"', 'id="thread-header-actions"', 'data-testid="thread-primary-actions"', 'data-testid="thread-header-actions"', 'data-testid="thread-mobile-actions"']) {
     assert.ok(workspace.includes(hook), `o cabeçalho deve manter ${hook}`);
   }
   const css = read("src/app/vexora.css");
   assert.doesNotMatch(css, /\[data-testid=.thread-heading.\]\{[^}]*flex-wrap/);
+});
+
+test("o contexto interno da conversa mantém ícone e selo com contraste", () => {
+  const noteStart = workspace.indexOf('message.direction === "INTERNAL"');
+  const noteEnd = workspace.indexOf(' : <div data-testid="message-line"', noteStart);
+  const note = workspace.slice(noteStart, noteEnd);
+  assert.ok(note.includes('border border-dashed border-blue-600 bg-blue-50 p-3 shadow-token-sm'));
+  assert.ok(note.includes('rounded-ib-mention-item bg-blue-600 text-blue-900" aria-hidden="true"'));
+  assert.ok(note.includes('text-ib-micro font-extrabold uppercase tracking-ib-wide text-blue-900">Só a equipe vê</small>'));
+  assert.doesNotMatch(note, /bg-warning(?:-soft)?\b/);
 });
 
 test("a lista, a supervisão e o composer alinham os filhos em uma linha só", () => {

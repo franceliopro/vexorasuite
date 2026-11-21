@@ -34,6 +34,15 @@ test("o dark não mantém realces fixos de blue-dark", () => {
   }
 });
 
+test("o editor e o preview de site não repintam com blue-dark", () => {
+  for (const tone of ["#0B1020", "#DDE6FF"]) {
+    assert.doesNotMatch(legacy, new RegExp(tone, "i"), `ainda usa ${tone}`);
+  }
+  for (const tone of ["#0F172A", "#E2E8F0"]) {
+    assert.match(legacy, new RegExp(tone, "i"), `falta o slate ${tone}`);
+  }
+});
+
 test("as superfícies escuras e de conversa usam tokens slate", () => {
   for (const token of [
     "--bg:#0F172A",

@@ -92,7 +92,6 @@ import {
   Search,
   Plus,
   ArrowRight,
-  ArrowUpRight,
   ArrowRightLeft,
   UserRoundPlus,
   CheckCircle2,
@@ -458,14 +457,7 @@ export default function HomePage() {
           {!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className="secondary-button" onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}
-              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} shortcuts={
-                <article className="ov-access-panel">
-                  <div className="card-heading"><div><h2>Acesso rápido</h2><p>Vá direto ao que precisa</p></div></div>
-                  <div className="ov-access-grid">
-                    {[{name:"Central de atendimento",desc:"Conversas e equipes",icon:"messages",tone:"teal",target:"Atendimento"},{name:"CRM",desc:"Contatos e oportunidades",icon:"users",tone:"amber",target:"CRM"},{name:"Calendários",desc:"Atendimentos e reuniões",icon:"calendar",tone:"blue",target:"Calendários"},{name:"Automação",desc:"IA, bots e regras",icon:"workflow",tone:"violet",target:"Automação"},{name:"Marketing",desc:"Conteúdos e referências",icon:"megaphone",tone:"pink",target:"Marketing"}].map((item) => <button className="ov-access-tile" key={item.name} onPointerEnter={()=>preloadWorkspace(item.target)} onFocus={()=>preloadWorkspace(item.target)} onClick={() => {preloadWorkspace(item.target);setActive(item.target)}}><span className={`ov-access-icon tone-${item.tone}`}><Icon name={item.icon as keyof typeof iconMap} size={22} /></span><span className="ov-access-copy"><strong>{item.name}</strong><small>{item.desc}</small></span><ArrowUpRight size={16} aria-hidden="true" className="ov-access-arrow" /></button>)}
-                  </div>
-                </article>
-              } />
+              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
             </>
           ) : active === "Sites" ? (
             canConfigure ? <SitesWorkspace canManage={canConfigure} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>

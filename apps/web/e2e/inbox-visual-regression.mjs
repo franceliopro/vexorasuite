@@ -54,8 +54,8 @@ try{
  const page=await browser.newPage({viewport:{width:1600,height:900}});await fixtures(page);
 
  await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
- await page.waitForSelector(".ov-hero",{timeout:20000});
- const heroText=await page.locator(".ov-hero").innerText();
+ await page.waitForSelector('[data-testid="ov-hero"]',{timeout:20000});
+ const heroText=await page.locator('[data-testid="ov-hero"]').innerText();
  assert(/5 conversas esperam/.test(heroText),"hero must show the fixture's waiting count");
  const sidebarBg=await page.locator(".sidebar").evaluate(el=>{
   const probe=document.createElement("span");probe.style.color="var(--sb-bg)";document.body.appendChild(probe);
@@ -117,7 +117,7 @@ try{
 
  await page.setViewportSize({width:390,height:844});
  await page.goto("http://127.0.0.1:3101/?module=Vis%C3%A3o+geral");
- const dock=page.locator(".ov-dock, .mobile-bottom-nav");
+ const dock=page.locator('[data-testid="ov-dock"], .mobile-bottom-nav');
  await dock.getByRole("button",{name:"Conversa"}).waitFor();
  assert.equal(await dock.getByRole("button").count(),1);
  const dockButton=await dock.getByRole("button",{name:"Conversa"}).boundingBox();

@@ -37,11 +37,11 @@ function ClockWidget() {
   }, []);
   const isNight = now.getHours() < 6 || now.getHours() >= 18;
   return (
-    <article className="ov-widget ov-widget-clock" aria-label="Relógio e data de hoje">
-      <div className="ov-widget-clock-inner">
-        <span className="ov-widget-clock-chip">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
-        <time className="ov-widget-clock-time" dateTime={now.toISOString()}>{hhmmss()}</time>
-        <p className="ov-widget-clock-date">{fullDate()}</p>
+    <article className="grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-blue-50 p-5" aria-label="Relógio e data de hoje">
+      <div className="grid h-full content-center justify-items-center gap-1 text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-ov-micro font-bold text-blue-800">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
+        <time className="text-ov-clock font-heading tabular-nums text-blue-800" dateTime={now.toISOString()}>{hhmmss()}</time>
+        <p className="text-small text-slate-600">{fullDate()}</p>
       </div>
     </article>
   );
@@ -116,35 +116,35 @@ function WeatherWidget() {
   const Icon = info?.Icon ?? CloudSun;
   const night = state.isDay === false;
   return (
-    <article className={"ov-widget ov-widget-weather" + (night ? " is-night" : "")} aria-label="Clima agora">
-      <div className="ov-widget-weather-head">
-        <span className="ov-widget-label">Clima{state.city ? ` · ${state.city}` : ""}</span>
-        <span className="ov-widget-weather-head-actions">
-          <button type="button" className="ov-widget-weather-config" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
+    <article className={`grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 p-5 ${night ? "bg-zinc-300" : "bg-zinc-200"}`} aria-label="Clima agora">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <span className="text-ov-label font-bold uppercase tracking-ov-wider text-slate-600">Clima{state.city ? ` · ${state.city}` : ""}</span>
+        <span className="inline-flex items-center gap-1.5 text-amber-600">
+          <button type="button" className="grid h-7 w-7 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
           {night ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
         </span>
       </div>
       {editing ? (
-        <form className="ov-widget-weather-config-form" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
+        <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
           <input autoFocus value={draftCity} onChange={(event) => setDraftCity(event.target.value)} aria-label="Cidade para o clima" placeholder="Ex.: Rondonópolis, MT" />
-          <button type="submit" className="ov-widget-weather-config-save">Salvar</button>
+          <button type="submit" className="inline-flex min-h-control items-center rounded-token-sm bg-blue-600 px-3 text-small font-bold text-blue-900 transition-control duration-control hover:bg-blue-700">Salvar</button>
         </form>
       ) : null}
-      {state.status === "loading" ? <p className="ov-widget-weather-loading">Buscando o tempo…</p> : null}
+      {state.status === "loading" ? <p className="text-small text-slate-600">Buscando o tempo…</p> : null}
       {state.status === "error" ? (
-        <p className="ov-widget-weather-fallback">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
+        <p className="text-small text-slate-600">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
       ) : null}
       {state.status === "ready" ? (
         <>
-          <div className="ov-widget-weather-main">
-            <Icon size={58} strokeWidth={1.7} aria-hidden="true" className="ov-widget-weather-icon" />
-            <div className="ov-widget-weather-temp"><b>{state.temp}°</b><span>{info?.label}</span></div>
+          <div className="flex items-center gap-3">
+            <Icon size={58} strokeWidth={1.7} aria-hidden="true" className="h-14 w-14 flex-none text-amber-600" />
+            <div className="grid"><b className="text-ov-weather font-heading tabular-nums text-slate-950">{state.temp}°</b><span className="text-small text-slate-600">{info?.label}</span></div>
           </div>
-          <div className="ov-widget-weather-meta">
-            <span><Sunrise size={13} aria-hidden="true" /> Máx. {state.max}°</span>
-            <span><Sunset size={13} aria-hidden="true" /> Mín. {state.min}°</span>
-            <span><Droplets size={13} aria-hidden="true" /> {state.humidity}%</span>
-            <span><Wind size={13} aria-hidden="true" /> brisa</span>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-ov-micro text-slate-600">
+            <span className="inline-flex items-center gap-1"><Sunrise size={13} aria-hidden="true" /> Máx. {state.max}°</span>
+            <span className="inline-flex items-center gap-1"><Sunset size={13} aria-hidden="true" /> Mín. {state.min}°</span>
+            <span className="inline-flex items-center gap-1"><Droplets size={13} aria-hidden="true" /> {state.humidity}%</span>
+            <span className="inline-flex items-center gap-1"><Wind size={13} aria-hidden="true" /> brisa</span>
           </div>
         </>
       ) : null}
@@ -164,28 +164,36 @@ function CalendarWidget() {
   for (let day = 1; day <= daysInMonth; day++) cells.push(day);
   const isToday = (day: number | null) => day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
   const isWeekend = (index: number) => index % 7 === 0 || index % 7 === 6;
+  const navButton = "grid h-7 w-7 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300";
   return (
-    <article className="ov-widget ov-widget-calendar" aria-label="Calendário">
-      <div className="ov-widget-calendar-head">
-        <strong>{monthLabel(year, month)}</strong>
-        <div className="ov-widget-calendar-nav">
-          <button type="button" aria-label="Mês anterior" onClick={() => setCursor(new Date(year, month - 1, 1))}><ChevronLeft size={16} aria-hidden="true" /></button>
-          <button type="button" aria-label="Próximo mês" onClick={() => setCursor(new Date(year, month + 1, 1))}><ChevronRight size={16} aria-hidden="true" /></button>
+    <article className="grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-200 p-5" aria-label="Calendário">
+      <div className="flex items-center justify-between gap-2">
+        <strong className="text-small font-bold text-slate-950">{monthLabel(year, month)}</strong>
+        <div className="inline-flex items-center gap-1">
+          <button type="button" aria-label="Mês anterior" onClick={() => setCursor(new Date(year, month - 1, 1))} className={navButton}><ChevronLeft size={16} aria-hidden="true" /></button>
+          <button type="button" aria-label="Próximo mês" onClick={() => setCursor(new Date(year, month + 1, 1))} className={navButton}><ChevronRight size={16} aria-hidden="true" /></button>
         </div>
       </div>
-      <div className="ov-widget-calendar-grid" role="grid" aria-label={monthLabel(year, month)}>
-        {WEEKDAYS.map((label, index) => <span key={label} className={"ov-widget-calendar-wd" + (isWeekend(index) ? " is-weekend" : "")} role="columnheader">{label}</span>)}
-        {cells.map((day, index) => (
-          <span
-            key={index}
-            role="gridcell"
-            className={"ov-widget-calendar-day" + (day === null ? " is-empty" : "") + (isToday(day) ? " is-today" : "") + (day !== null && isWeekend(index) ? " is-weekend" : "")}
-          >
-            {day ?? ""}
-          </span>
-        ))}
+      <div className="grid grid-cols-ov-calendar gap-0.5 text-center" role="grid" aria-label={monthLabel(year, month)}>
+        {WEEKDAYS.map((label, index) => <span key={label} className={`text-ov-micro font-bold uppercase ${isWeekend(index) ? "text-emerald-600" : "text-slate-400"}`} role="columnheader">{label}</span>)}
+        {cells.map((day, index) => {
+          const classes = ["grid h-7 place-items-center rounded-token-sm text-ov-micro tabular-nums"];
+          if (day === null) classes.push("invisible");
+          if (isToday(day)) classes.push("bg-blue-600 font-bold text-blue-900");
+          else if (day !== null && isWeekend(index)) classes.push("text-emerald-600");
+          else classes.push("text-slate-950");
+          return (
+            <span
+              key={index}
+              role="gridcell"
+              className={classes.join(" ")}
+            >
+              {day ?? ""}
+            </span>
+          );
+        })}
       </div>
-      <p className="ov-widget-calendar-today">Hoje é {today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+      <p className="text-ov-micro text-slate-600">Hoje é {today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
     </article>
   );
 }
@@ -193,7 +201,7 @@ function CalendarWidget() {
 /** Widgets coloridos da tela inicial: relógio, clima e calendário. */
 export function DashboardWidgets() {
   return (
-    <section className="ov-widgets" aria-label="Seu dia agora">
+    <section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1" aria-label="Seu dia agora">
       <ClockWidget />
       <WeatherWidget />
       <CalendarWidget />

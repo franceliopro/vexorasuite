@@ -20,8 +20,6 @@ test("o core global usa Tailwind sem preflight, arbitrários ou hex", () => {
   const semComentarios = theme.replace(/\/\*[\s\S]*?\*\//g, "");
 
   for (const forbidden of [
-    /\b(?:gray|slate|zinc|indigo|blue|green|amber|red)-\d{2,3}\b/,
-    /\b(?:bg|text|border)-(?:white|black)\b/,
     /\[[a-z-]+:\s*[^]\s]+\]/,
     /#[0-9a-fA-F]{3,8}\b/,
     /!important/,
@@ -59,10 +57,10 @@ test("h1 a h6, p e hr são definidos na camada tokenizada", () => {
     "text-h5",
     "text-h6",
     "bg-vx-page",
-    "bg-surface-page",
-    "text-ink",
-    "border-line",
-    "outline-focus",
+    "bg-zinc-50",
+    "text-slate-950",
+    "border-gray-200",
+    "outline-blue-600",
     "font-ui",
   ]) {
     assert.ok(
@@ -96,8 +94,93 @@ test("o CSS legado não reaplica a base nem o wash do body", () => {
   assert.match(legacy, /wash do body foi para o token `bg-vx-page`/);
 });
 
-test("theme.css é carregado depois do CSS legado", () => {
+test("o core Tailwind é carregado antes do legado", () => {
   const legado = layout.indexOf('import "./vexora.css"');
   const tailwind = layout.indexOf('import "./theme.css"');
-  assert.ok(legado >= 0 && tailwind > legado, "utilities precisam vir depois do legado");
+  assert.ok(
+    tailwind >= 0 && legado > tailwind,
+    "as regras específicas de tela do legado precisam continuar vencendo",
+  );
+});
+
+test("o shell padrão (sidebar, menu, topo) vive no core tokenizado", () => {
+  assert.match(theme, /@layer components/);
+  for (const selector of [
+    ".suite-app",
+    ".sidebar",
+    ".sidebar-brand-row",
+    ".side-nav",
+    ".nav-item",
+    ".nav-submenu",
+    ".sidebar-bottom",
+    ".main-area",
+    ".topbar",
+    ".breadcrumbs",
+    ".page-content",
+    ".page-footer",
+    ".persistent-module-tabs",
+  ]) {
+    assert.ok(theme.includes(selector), `falta ${selector} no core do shell`);
+  }
+  for (const token of [
+    "bg-indigo-950",
+    "text-indigo-50",
+    "text-indigo-400",
+    "border-indigo-800",
+    "bg-indigo-900",
+    "z-sidebar",
+    "w-sidebar",
+    "ml-sidebar",
+    "bg-neutral-100",
+    "shadow-vx-nav-active",
+  ]) {
+    assert.ok(theme.includes(token), `o shell deve usar ${token}`);
+  }
+  const semanticColors =
+    /(?:bg|border)-(?:sidebar|surface|ink|brand|line|topbar)\b|(?:^|\s)text-(?:sidebar|surface|ink(?:-secondary|-muted)?|brand|line|topbar)(?=\s|;|$)/m;
+  assert.doesNotMatch(theme, semanticColors);
+  assert.doesNotMatch(legacy, /^\.sidebar\{position:fixed/m);
+  assert.match(legacy, /Migrado para `@layer components` em theme\.css/);
+});
+
+test("o contrato híbrido permanece: menu escuro, restante claro", () => {
+  for (const token of [
+    "--sb-bg",
+    "--sb-on",
+    "--sb-ln",
+    "--sb-mut",
+    "--sb-tx",
+    "--sb-thumb",
+  ]) {
+    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+    assert.ok(legacy.includes(token), `os temas devem definir ${token}`);
+  }
+  const hybrid = legacy.match(/:root\[data-theme=hybrid\]\{[^}]*\}/)?.[0] ?? "";
+  assert.match(hybrid, /--sb-bg:#060F26/);
+  assert.match(hybrid, /--sb-tx:#FAFCFF/);
+  assert.doesNotMatch(hybrid, /--bg:/);
+
+  const sidebarBlock = theme.match(/\.sidebar \{[\s\S]*?\n  \}/)?.[0] ?? "";
+  assert.match(sidebarBlock, /bg-indigo-950/);
+  assert.match(sidebarBlock, /text-indigo-50/);
+  assert.match(sidebarBlock, /border-indigo-800/);
+  assert.doesNotMatch(sidebarBlock, /bg-zinc-|text-slate-|border-gray-/);
+});
+
+test("as cores do preset vêm da paleta documentada e dos tokens de tema", () => {
+  assert.doesNotMatch(config, /color-mix\(/);
+  for (const family of ["blue", "zinc", "slate", "gray", "indigo", "neutral", "emerald", "amber", "red", "sky"]) {
+    assert.match(config, new RegExp(`\\n\\s+${family}: \\{`), `falta a paleta ${family}`);
+  }
+  assert.match(config, /700:\s*"var\(--primary-strong\)"/);
+  assert.match(config, /950:\s*"var\(--sb-bg\)"/);
+  for (const derived of [
+    "--vx-core-page-wash",
+    "--vx-core-topbar-bg",
+    "--vx-core-selection",
+    "--vx-core-line-soft",
+    "--vx-core-shadow-nav-active",
+  ]) {
+    assert.ok(legacy.includes(derived), `${derived} precisa viver no tema`);
+  }
 });

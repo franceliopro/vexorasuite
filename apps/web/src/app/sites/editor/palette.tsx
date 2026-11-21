@@ -12,6 +12,27 @@ import { Layout, AlertCircle, Loader2 } from 'lucide-react';
 import { writeDragPayload } from './dnd';
 import './editor.css';
 
+/* Paleta do editor: utilities TW sobre tokens do preset. Os estados de
+   carregamento, arraste e permissão continuam sendo props/hooks, não classes
+   componente. */
+const paletteTw = 'min-h-0 flex-1 overflow-x-hidden overflow-y-auto';
+const paletteHeaderTw = 'flex items-baseline justify-between border-b border-line px-4 py-3.5';
+const paletteTitleTw = 'm-0 text-base font-bold text-ink';
+const paletteCountTw = 'text-2xs text-ink-secondary';
+const paletteSearchWrapTw = 'border-b border-line px-4 py-2.5';
+const paletteSearchTw = 'w-full rounded-token-sm border border-line bg-surface-2 px-3.5 py-2 text-catalog-card-title text-ink disabled:cursor-not-allowed disabled:opacity-50';
+const paletteCategoriesTw = 'flex min-h-0 flex-col gap-2.5 overflow-y-auto px-4 py-3';
+const paletteCategoryTw = 'grid gap-2';
+const paletteCategoryTitleTw = 'm-0 mb-2 text-2xs font-extrabold uppercase tracking-wider text-ink-secondary';
+const paletteGridTw = 'grid grid-cols-fm-picker gap-2';
+const paletteItemTw = 'flex cursor-grab select-none items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 py-2.5 text-catalog-card-title text-ink transition-colors hover:border-blue-600 hover:bg-brand-soft active:cursor-grabbing';
+const paletteItemDraggingTw = 'border-blue-600 bg-brand-soft shadow-token-lg';
+const paletteItemDisabledTw = 'pointer-events-none cursor-not-allowed opacity-50';
+const paletteItemIconTw = 'inline-flex size-7 shrink-0 items-center justify-center rounded-square border border-line bg-surface-2';
+const paletteItemLabelTw = 'min-w-0 truncate';
+const paletteEmptyTw = 'flex flex-col items-center gap-2.5 px-4 py-10 text-ink-secondary';
+const paletteDisabledTw = 'pointer-events-none';
+
 const ICONS: Record<string, React.ElementType> = {
   layout: Layout,
   type: Layout,
@@ -96,12 +117,12 @@ export function Palette({
 
   if (loading) {
     return (
-      <aside className="vx-palette vx-palette-loading" aria-label="Paleta de blocos">
-        <div className="vx-palette-header">
-          <h2 className="vx-palette-title">Blocos</h2>
-          <span className="vx-palette-count">0</span>
+      <aside className={paletteTw} aria-label="Paleta de blocos">
+        <div className={paletteHeaderTw}>
+          <h2 className={paletteTitleTw}>Blocos</h2>
+          <span className={paletteCountTw}>0</span>
         </div>
-        <div className="vx-palette-empty">
+        <div className={paletteEmptyTw}>
           <Loader2 size={18} className="animate-spin" aria-hidden="true" />
           <span>Carregando blocos…</span>
         </div>
@@ -111,12 +132,12 @@ export function Palette({
 
   if (!blocks.length) {
     return (
-      <aside className="vx-palette vx-palette-empty-state" aria-label="Paleta de blocos">
-        <div className="vx-palette-header">
-          <h2 className="vx-palette-title">Blocos</h2>
-          <span className="vx-palette-count">0</span>
+      <aside className={paletteTw} aria-label="Paleta de blocos">
+        <div className={paletteHeaderTw}>
+          <h2 className={paletteTitleTw}>Blocos</h2>
+          <span className={paletteCountTw}>0</span>
         </div>
-        <div className="vx-palette-empty">
+        <div className={paletteEmptyTw}>
           <AlertCircle size={16} aria-hidden="true" />
           <span>Nenhum bloco disponível.</span>
         </div>
@@ -125,33 +146,33 @@ export function Palette({
   }
 
   return (
-    <aside className="vx-palette" aria-label="Paleta de blocos">
-      <div className="vx-palette-header">
-        <h2 className="vx-palette-title">Blocos</h2>
-        <span className="vx-palette-count">{blocks.length}</span>
+    <aside className={paletteTw} aria-label="Paleta de blocos">
+      <div className={paletteHeaderTw}>
+        <h2 className={paletteTitleTw}>Blocos</h2>
+        <span className={paletteCountTw}>{blocks.length}</span>
       </div>
-      <div className="vx-palette-search-wrap">
+      <div className={paletteSearchWrapTw}>
         <input
           type="text"
-          className="vx-palette-search"
+          className={paletteSearchTw}
           placeholder="Buscar bloco…"
           disabled={disabled}
           autoComplete="off"
         />
       </div>
-      <div className="vx-palette-categories">
+      <div className={paletteCategoriesTw}>
         {categories.map((cat) => {
           const catBlocks = blocks.filter((b) => categoryOf(b) === cat);
           if (!catBlocks.length) return null;
           return (
-            <div key={cat} className="vx-palette-category">
-              <h3 className="vx-palette-category-title">{categoryLabels[cat]}</h3>
-              <div className="vx-palette-grid">
+            <div key={cat} className={paletteCategoryTw}>
+              <h3 className={paletteCategoryTitleTw}>{categoryLabels[cat]}</h3>
+              <div className={paletteGridTw}>
                 {catBlocks.map((block) => (
                   <div
                     key={block.type}
-                    className={`vx-palette-item ${disabled ? 'vx-palette-item-disabled' : ''} ${
-                      draggingType === block.type ? 'vx-palette-item-dragging' : ''
+                    className={`${paletteItemTw} ${disabled ? paletteItemDisabledTw : ''} ${
+                      draggingType === block.type ? paletteItemDraggingTw : ''
                     }`}
                     draggable={!disabled}
                     onDragStart={(event) => handleDragStart(block.type as NodeType, event)}
@@ -159,8 +180,8 @@ export function Palette({
                     onClick={() => handleAdd(block.type as NodeType)}
                     title={block.label}
                   >
-                    <div className="vx-palette-item-icon">{blockIcon(block.icon)}</div>
-                    <span className="vx-palette-item-label">{block.label}</span>
+                    <div className={paletteItemIconTw}>{blockIcon(block.icon)}</div>
+                    <span className={paletteItemLabelTw}>{block.label}</span>
                   </div>
                 ))}
               </div>
@@ -169,7 +190,7 @@ export function Palette({
         })}
       </div>
       {disabled && (
-        <div className="vx-palette-empty vx-palette-disabled">
+        <div className={`${paletteEmptyTw} ${paletteDisabledTw}`}>
           <AlertCircle size={16} aria-hidden="true" />
           <span>Você não tem permissão para adicionar blocos.</span>
         </div>

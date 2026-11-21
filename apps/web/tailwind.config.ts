@@ -34,6 +34,7 @@ const config: Config = {
         "rw-mobile": { raw: "(max-width: 560px)" },
       },
       colors: {
+        "catalog-focus": "var(--focus)",
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
            três temas — a classe é oficial, a cor continua vinda do tema. */
         blue: {
@@ -231,6 +232,7 @@ const config: Config = {
         },
       },
       backgroundImage: {
+        "catalog-icon": "linear-gradient(150deg,var(--primary-soft),var(--s1))",
         /** Wash da página: o ajuste "mais frio e sutil" vive no tema, não no JSX. */
         "vx-page": "var(--vx-core-page-wash)",
         "vx-brand-mark": "var(--vx-core-brand-mark)",
@@ -301,6 +303,8 @@ const config: Config = {
         topbar: "1.12",
       },
       borderRadius: {
+        "catalog-icon": "12px",
+        "catalog-metric": "8px",
         token: "var(--r)",
         "token-sm": "var(--r-sm)",
         "token-lg": "var(--r-lg)",
@@ -397,6 +401,9 @@ const config: Config = {
         "fm-picker-item": "1fr auto",
       },
       boxShadow: {
+        ring: "var(--ring)",
+        "catalog-sheen": "inset 0 1px 0 var(--sheen)",
+        "catalog-icon": "inset 0 0 0 1px var(--vx-core-line-soft)",
         token: "var(--shadow)",
         "token-sm": "var(--shadow-sm)",
         "token-lg": "var(--shadow-lg)",
@@ -428,6 +435,10 @@ const config: Config = {
         display: "var(--font-display)",
       },
       fontSize: {
+        "catalog-eyebrow": ["10px", { lineHeight: "1.4", letterSpacing: ".16em" }],
+        "catalog-metric": ["10.5px", { lineHeight: "1.4" }],
+        "catalog-card-title": ["14px", { lineHeight: "1.3" }],
+        "catalog-clear-title": ["12px", { lineHeight: "1.3", letterSpacing: "-.005em" }],
         "2xs": "10px",
         body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
         h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
@@ -574,6 +585,11 @@ const config: Config = {
 
       },
       spacing: {
+        "catalog-eyebrow-rule": "18px",
+        "catalog-search-basis": "320px",
+        "catalog-card-y": "14px",
+        "catalog-card-x": "16px",
+        "catalog-metric-x": "9px",
         sidebar: "var(--sb)",
         "sidebar-compact": "76px",
         topbar: "var(--top)",
@@ -758,6 +774,8 @@ const config: Config = {
         "flow-field-tip-top": "calc(100% + 8px)",
       },
       gridTemplateColumns: {
+        "catalog-grid": "repeat(auto-fill,minmax(min(100%,300px),1fr))",
+        "catalog-card": "auto minmax(0,1fr) auto auto",
         /* Grades da página de conexões. */
         "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
         "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
@@ -843,6 +861,8 @@ const config: Config = {
         "crm-stage": "minmax(272px, 1fr)",
       },
       height: {
+        "catalog-icon": "42px",
+        "catalog-metric": "24px",
         /* Shell do workspace de Atendimento. */
         "ib-workspace": "calc(100dvh - var(--top) - 56px)",
         /* Dimensões dos controles do Asaas. */
@@ -867,6 +887,8 @@ const config: Config = {
         "flow-minimap": "128px",
       },
       minHeight: {
+        "catalog-card": "78px",
+        "catalog-clear": "54px",
         ov: "150px",
         "ib-control": "37px",
         "ib-workspace": "520px",
@@ -910,6 +932,7 @@ const config: Config = {
 
       },
       maxWidth: {
+        "catalog-search": "420px",
         content: "1520px",
         tabs: "1500px",
         logo: "46px",
@@ -950,6 +973,7 @@ const config: Config = {
 
       },
       width: {
+        "catalog-icon": "42px",
         "profile-popover": "248px",
         "submenu-compact": "220px",
         "ib-track": "min(760px, calc(100vw - 24px))",
@@ -984,6 +1008,7 @@ const config: Config = {
         "flow-more": "180px",
       },
       minWidth: {
+        "catalog-metric": "26px",
         "channels-metric": "26px",
         "submenu-compact": "220px",
         "crm-select": "220px",

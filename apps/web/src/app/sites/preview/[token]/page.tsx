@@ -11,6 +11,8 @@ import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ExternalLink, RotateCcw } from "lucide-react";
 
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+
 export default function SitePreviewPage({
   params,
 }: {
@@ -48,7 +50,7 @@ export default function SitePreviewPage({
       >
         <button
           type="button"
-          className="secondary-button"
+          className={secondaryTw}
           onClick={() => router.back()}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
@@ -61,7 +63,7 @@ export default function SitePreviewPage({
           </small>
         </div>
         <a
-          className="secondary-button"
+          className={secondaryTw}
           href={previewPath}
           target="_blank"
           rel="noopener noreferrer"

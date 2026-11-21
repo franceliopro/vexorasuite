@@ -277,7 +277,7 @@ export function Inspector({
                 >
                   {aiBusy ? (
                     <>
-                      <Loader2 size={15} className="vx-spin" aria-hidden="true" />
+                      <Loader2 size={15} className="animate-spin" aria-hidden="true" />
                       Aplicando…
                     </>
                   ) : (

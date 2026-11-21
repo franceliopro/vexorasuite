@@ -436,7 +436,7 @@ export function EditorShell({
             onClick={() => void handleSave()}
             title={readOnly ? 'Somente leitura' : saving ? 'Salvando…' : undefined}
           >
-            {saving ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
+            {saving ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />}
             {saving ? 'Salvando…' : 'Salvar'}
           </button>
           <button
@@ -446,7 +446,7 @@ export function EditorShell({
             onClick={handlePublish}
             title={readOnly ? 'Somente leitura' : publishing ? 'Publicando…' : saving ? 'Aguarde o salvamento' : undefined}
           >
-            {publishing ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
+            {publishing ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
             {publishing ? 'Publicando…' : 'Publicar'}
           </button>
         </div>

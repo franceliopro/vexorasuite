@@ -4,7 +4,7 @@ export type ThemeMode = "hybrid" | "light" | "dark";
 export const THEME_BAR_COLORS: Record<ThemeMode, string> = {
   light: "#f6f7fb",
   hybrid: "#f7f8fc",
-  dark: "#10131b",
+  dark: "#020617",
 };
 
 /** Keeps <meta name="theme-color"> in sync with the active theme. */

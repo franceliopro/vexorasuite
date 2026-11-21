@@ -210,7 +210,7 @@ const networkColor = (label: string): string | null => {
   if (v.includes("form") || v.includes("formul")) return "#E9A13B";
   return null;
 };
-const barColor = (label: string, index: number): string => networkColor(label) ?? CHART_PALETTE[index % CHART_PALETTE.length] ?? "#2E7CF6";
+const barColor = (label: string, index: number): string => networkColor(label) ?? CHART_PALETTE[index % CHART_PALETTE.length] ?? "#1D4ED8";
 
 /* ================================================================== */
 /* Blocos visuais                                                      */

@@ -44,6 +44,27 @@ test("os três temas continuam sendo a fonte dos tokens", () => {
   assert.match(layout, /localStorage\.getItem\("vexora:theme"\)/);
 });
 
+test("a marca padrão é blue-700 e o escuro usa slate", () => {
+  for (const file of [
+    "src/app/vexora.css",
+    "src/app/page.tsx",
+    "src/app/operations-settings.tsx",
+    "../api/src/ai/design-approvals.controller.ts",
+    "../api/src/ai/public-design-approvals.controller.ts",
+  ]) {
+    const source = read(file);
+    assert.match(source, /#1D4ED8/, `${file} deve usar blue-700 como padrão`);
+    assert.doesNotMatch(source, /#2E7CF6/i, `${file} ainda usa a cor antiga`);
+  }
+
+  const dark = legacy.match(/:root\[data-theme=dark\][\s\S]*?\n\}/)?.[0] ?? "";
+  for (const token of ["--bg:#0F172A", "--s1:#1E293B", "--s2:#334155", "--tx:#F8FAFC", "--ln:#334155", "--sb-bg:#020617"]) {
+    assert.ok(dark.includes(token), `o tema escuro deve mapear ${token} (slate)`);
+  }
+  assert.match(legacy, /--primary:#1D4ED8/);
+  assert.match(legacy, /--sb-active:var\(--primary\)/);
+});
+
 test("h1 a h6, p e hr são definidos na camada tokenizada", () => {
   for (const tag of ["h1", "h2", "h3", "h4", "h5", "h6", "p", "hr"]) {
     assert.match(theme, new RegExp(`(^|\\n)${tag}\\s*\\{`, "m"), `falta ${tag} no core`);
@@ -199,8 +220,9 @@ test("o contrato híbrido permanece: menu escuro, restante claro", () => {
     assert.ok(legacy.includes(token), `os temas devem definir ${token}`);
   }
   const hybrid = legacy.match(/:root\[data-theme=hybrid\]\{[^}]*\}/)?.[0] ?? "";
-  assert.match(hybrid, /--sb-bg:#060F26/);
-  assert.match(hybrid, /--sb-tx:#FAFCFF/);
+  assert.match(hybrid, /--sb-bg:#020617/);
+  assert.match(hybrid, /--sb-tx:#F8FAFC/);
+  assert.match(hybrid, /--sb-active:var\(--primary\)/);
   assert.doesNotMatch(hybrid, /--bg:/);
 
   const sidebarBlock = theme.match(/\.sidebar \{[\s\S]*?\n\s{2}\}/)?.[0] ?? "";

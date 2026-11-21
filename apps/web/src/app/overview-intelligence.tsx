@@ -260,7 +260,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
                   : "A fila acabou de começar. Os anéis mostram o tempo de espera de cada conversa."
                 : "A fila está em dia. Quando alguém precisar de uma pessoa, a conversa aparece aqui com o tempo de espera."}
             </p>
-            <button type="button" className="primary-button justify-self-start" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
+            <button type="button" className="inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-token-sm transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60 justify-self-start" onClick={onOpenQueue}>Abrir a fila <ArrowRight size={15} aria-hidden="true" /></button>
           </div>
           <div className="flex flex-wrap items-start justify-end gap-2 ov-tablet:justify-start">
             {(waiting?.items || []).slice(0, 3).map((item) => (
@@ -344,7 +344,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
       <article className="grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-h2 font-heading text-slate-950">Atividade recente</h2><p className="mt-0.5 text-small text-slate-600">Movimentações da sua operação</p></div>
-          <button type="button" className="text-button" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
+          <button type="button" className="inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
         </header>
         {recent.length ? (
           <ul className="grid gap-3">

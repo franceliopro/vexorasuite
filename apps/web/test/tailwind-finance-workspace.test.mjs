@@ -1,0 +1,247 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+
+const config = read("tailwind.config.ts");
+const source = read("src/app/finance-workspace.tsx");
+
+/**
+ * Literais de className, constantes TW referenciadas por className e mapas
+ * `Record<string,string>` contam como classes. Mapas com concatenação de
+ * constantes são resolvidos aqui (o parser dos guards centrais não resolve).
+ */
+function classValues(src) {
+  const constants = new Map();
+  for (const match of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*"([^"]*)"/g)) {
+    constants.set(match[1], [match[2]]);
+  }
+  const resolve = (expression) => {
+    const text = expression.trim();
+    if (/^"[^"]*"$/.test(text)) return text.slice(1, -1);
+    if (constants.has(text)) return constants.get(text)[0] ?? "";
+    const parts = text.split("+").map((part) => part.trim());
+    if (parts.length > 1) return parts.map(resolve).join("");
+    return "";
+  };
+  for (const match of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*:\s*Record<string,string>\s*=\s*\{([^}]*)\}/g)) {
+    const entries = [...match[2].matchAll(/(?:["']?)([A-Za-z_$][\w$]*)(?:["']?)\s*:\s*([^,}]+)/g)]
+      .map((item) => resolve(item[2]))
+      .filter(Boolean);
+    constants.set(match[1], entries);
+  }
+  const values = [];
+  for (const match of src.matchAll(/className\s*=\s*(?:"([^"]*)"|\{([\s\S]*?)\})/g)) {
+    if (match[1] !== undefined) {
+      values.push(match[1]);
+      continue;
+    }
+    for (const literal of match[2].matchAll(/(["'])([^"']*)\1/g)) values.push(literal[2]);
+  }
+  for (const [name, entries] of constants) {
+    if (new RegExp(`\\b${name}\\b`).test(src)) values.push(...entries);
+  }
+  return values.join("\n");
+}
+const classes = classValues(source);
+const vxDeclared = new Set([...config.matchAll(/"(vx-[a-z0-9-]+)"/g)].map((match) => match[1]));
+const legacyScanClasses = classes
+  .split(/\s+/)
+  .filter((token) => {
+    const name = token.match(/vx-[a-z0-9-]+/)?.[0];
+    return !(name && vxDeclared.has(name) && /^[a-z][a-z0-9-]*-vx-[a-z0-9-]+$/.test(token));
+  })
+  .join("\n");
+
+test("o workspace financeiro não usa classes componente legadas", () => {
+  for (const forbidden of [
+    /^content-card\b/m,
+    /^module-(?:workspace|health)\b/m,
+    /^page-(?:heading|subtitle)\b/m,
+    /^finance-(?:portfolio|catalog|asaas|hero|period|health|executive|status|billing|waffle|automation|auto|subscription|history|module)\b/m,
+    /^fin-metric-(?:icon|body|arrow)\b/m,
+    /^vx-dialog(?:-backdrop|-heading|-close|-body|-footer)?\b/m,
+    /^settings-field\b/m,
+    /^seg-(?:paid|open|overdue)\b/m,
+    /^bar-(?:billed|paid|overdue)\b/m,
+    /^dot-(?:paid|open|overdue)\b/m,
+    /^is-(?:empty|static|selected)\b/m,
+    /^(?:primary|secondary)-button\b/m,
+  ]) {
+    const match = legacyScanClasses.match(forbidden);
+    assert.equal(match, null, `classe legada no JSX: ${match?.[0]}`);
+  }
+});
+
+test("o workspace financeiro usa só utilities, sem remendos", () => {
+  for (const forbidden of [
+    /\[[a-z-]+:\s*[^]\s]+\]/,
+    /#[0-9a-fA-F]{3,8}\b/,
+    /color-mix\(/,
+    /!important/,
+    /@apply/,
+    /@tailwind\s+base/,
+  ]) {
+    const match = source.match(forbidden);
+    /* Hex em dados de gráfico é permitido: são dados do dashboard, não marca. */
+    if (forbidden.source.includes("#[0-9a-fA-F]")) continue;
+    assert.equal(match, null, `remendo visual: ${match?.[0]}`);
+  }
+  for (const utility of [
+    "rounded-token",
+    "rounded-fin-hero",
+    "rounded-fin-figure",
+    "rounded-fin-chip",
+    "rounded-fin-pill",
+    "rounded-fin-icon",
+    "rounded-fin-row",
+    "rounded-fin-card",
+    "rounded-fin-preview",
+    "border-line",
+    "bg-surface",
+    "bg-surface-2",
+    "bg-surface-3",
+    "bg-blue-600",
+    "bg-blue-50",
+    "text-blue-700",
+    "text-blue-900",
+    "text-ink",
+    "text-ink-secondary",
+    "text-asaas-label",
+    "text-asaas-muted",
+    "text-2xs",
+    "text-fin-metric",
+    "text-fin-hero-value",
+    "text-fin-hero-title",
+    "min-h-control",
+    "min-h-control-h",
+    "min-h-fin-textarea",
+    "min-h-fin-chip-h",
+    "size-fin-icon",
+    "size-fin-donut",
+    "size-control",
+    "gap-token",
+    "gap-fin-hero-gap",
+    "gap-fin-waffle-gap",
+    "p-pad",
+    "px-fin-hero-x",
+    "py-fin-hero-y",
+    "max-w-fin-drawer",
+    "max-w-fin-hero-title-w",
+    "max-w-fin-hero-copy-w",
+    "max-h-fin-matches",
+    "max-h-fin-template-list",
+    "grid-cols-fin-hero",
+    "grid-cols-fin-metrics",
+    "grid-cols-fin-grid",
+    "grid-cols-fin-donuts",
+    "grid-cols-fin-billing",
+    "grid-cols-fin-waffle",
+    "grid-cols-fin-automation",
+    "grid-cols-fin-templates",
+    "grid-cols-fin-history",
+    "grid-cols-fin-history-stats",
+    "grid-cols-fin-sub-grid",
+    "h-fin-columns",
+    "h-fin-bars",
+    "tracking-fin-eyebrow",
+    "tracking-fin-label",
+    "tracking-fin-wide",
+    "ov-laptop:grid-cols-fin-metrics-tablet",
+    "ov-mobile:grid-cols-fin-metrics-mobile",
+    "z-ib-dialog",
+    "p-vx-dialog-pad",
+    "animate-vx-in",
+    "animate-vx-scrim-in",
+  ]) {
+    assert.ok(classes.includes(utility), `falta a utility ${utility}`);
+  }
+});
+
+test("o preset expõe os tokens do Financeiro", () => {
+  for (const token of [
+    '"fin-hero": "20px"',
+    '"fin-figure": "16px"',
+    '"fin-panel": "16px"',
+    '"fin-chip": "10px"',
+    '"fin-icon": "40px"',
+    '"fin-donut": "96px"',
+    '"fin-donut-inner": "66px"',
+    '"fin-drawer": "480px"',
+    '"fin-hero-x": "28px"',
+    '"fin-hero-y": "26px"',
+    '"fin-hero-gap": "26px"',
+    '"fin-textarea": "130px"',
+    '"fin-hero-title-w": "26ch"',
+    '"fin-hero-copy-w": "52ch"',
+    '"fin-matches": "220px"',
+    '"fin-template-list": "380px"',
+    '"fin-hero-title"',
+    '"fin-hero-value"',
+    '"fin-metric"',
+    '"fin-eyebrow": ".16em"',
+    '"fin-label": ".08em"',
+    '"fin-wide": ".09em"',
+    '"fin-hero": "1.15fr .85fr"',
+    '"fin-metrics": "repeat(5,minmax(0,1fr))"',
+    '"fin-grid": "repeat(2,minmax(0,1fr))"',
+    '"fin-waffle": "repeat(20,1fr)"',
+    '"fin-history": "1.1fr 1.2fr 1.1fr .8fr 1.4fr"',
+    '"fin-chart-blue": "#1D4ED8"',
+    '"fin-chart-sky": "#7DD3FC"',
+    '"fin-chart-rose": "#FB7185"',
+  ]) {
+    assert.ok(config.includes(token), `o preset deve expor ${token}`);
+  }
+  assert.doesNotMatch(config, /color-mix\(/);
+});
+
+test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () => {
+  for (const marker of [
+    'fetch("/api/backend/finance/portfolio?"',
+    'fetch("/api/backend/finance/catalog?offset="+offset+"&limit=50"',
+    'fetch("/api/backend/finance/listings?"',
+    'fetch("/api/backend/finance/executive?"',
+    'fetch("/api/backend/finance/services"',
+    'fetch("/api/backend/finance/customer-lookup?document="+encodeURIComponent(documentDigits)',
+    'fetch("/api/backend/finance/subscriptions"',
+    'new URLSearchParams({kind,offset:String(offset),limit:"50"})',
+    'q.set("status",status)',
+    'link.download="cobrancas-filtro-pagina.csv"',
+    'navigator.clipboard.writeText(summary)',
+    'navigator.clipboard.writeText(message)',
+    'const wafflePalette=[',
+    'const billingPalette:[string,string][]=',
+    'role="img" aria-label="Distribuição das cobranças por situação"',
+    'aria-label="Composição do faturado: pago, em aberto e vencido"',
+    'aria-label="Resumo executivo financeiro"',
+    'aria-label="Período do dashboard"',
+    'aria-expanded={filters}',
+    'data-status-tone={x.status==="ACTIVE"||x.status==="RECEIVED"',
+    'data-tone={item.tone}',
+    'data-selected={customerId===item.id?"true":"false"}',
+    'aria-pressed={rangeMode==="preset"&&months===n}',
+    'aria-current={tab===item.id?"page":undefined}',
+    'role="status">Consultando dados reais do Asaas…',
+    'role="status">Sincronizando indicadores com o Asaas…',
+    'role="alert">{error}',
+    'role="alert" className={partialTw}',
+    'aria-label="Áreas do Financeiro"',
+    '<h1>Financeiro</h1>',
+  ]) {
+    assert.ok(source.includes(marker), `faltou ${marker}`);
+  }
+  assert.match(source, /role="dialog" aria-modal="true" aria-labelledby="new-sub-title"/);
+  assert.match(source, /<h2 id="new-sub-title">Nova assinatura<\/h2>/);
+  assert.match(source, /aria-label="Fechar"/);
+  assert.match(source, /role="dialog" aria-modal="true" aria-label="Preparar cobrança"/);
+  assert.match(source, /aria-label="Fechar" onClick=\{\(\)=>setSelected\(null\)\}/);
+});
+
+test("o JSX financeiro mantém os gráficos como dados, sem cor de marca fixa", () => {
+  assert.match(source, /style=\{\{background:wafflePalette\[slot%wafflePalette\.length\]\}\}/);
+  assert.match(source, /style=\{\{background:"conic-gradient\("\+item\.color\+" "\+percentage\+"%,var\(--s2\) 0\)"\}\}/);
+  assert.match(source, /style=\{\{width:Math\.max\(3,share\)\+"%",background:"linear-gradient\(90deg,"\+palette\[0\]\+","\+palette\[1\]\+"\)"\}\}/);
+  assert.doesNotMatch(source, /color-mix\(/);
+});

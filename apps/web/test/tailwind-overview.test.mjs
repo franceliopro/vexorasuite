@@ -65,7 +65,9 @@ test("overview.css não define componentes, apenas utilities e variáveis de tem
   assert.doesNotMatch(css, /@tailwind base;/);
   assert.doesNotMatch(css, /@layer\s+components\b/);
   assert.doesNotMatch(css, /\.[a-z][a-z0-9-]*\s*\{/);
-  assert.deepEqual(classesLegadas(styles), []);
+  // `@custom-variant ov-*` são nomes de breakpoint do v4, não classes de componente.
+  const semVariantes = styles.replace(/@custom-variant\s+[a-z-]+\s+\([^;]+;\s*/g, "");
+  assert.deepEqual(classesLegadas(semVariantes), []);
 
   for (const forbidden of [
     /\[[a-z-]+:\s*[^]\s]+\]/,

@@ -145,6 +145,10 @@ const config: Config = {
       strokeWidth: {
         ov: "5.5",
       },
+      borderWidth: {
+        /* Filete dos eventos na grade do Calendário. */
+        "calendar-event": "3px",
+      },
       backdropBlur: {
         topbar: "18px",
       },
@@ -270,9 +274,14 @@ const config: Config = {
         /* Grades dos diálogos do Atendimento. */
         "ib-track": "minmax(0, 1fr) minmax(0, 1.4fr)",
         "ib-field": "minmax(0, 1fr) minmax(0, 1.4fr) auto",
+        /* Grades do Calendário. */
+        "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
+        "calendar-event": "auto auto minmax(0, 1fr) auto auto",
       },
       minHeight: {
         ov: "150px",
+        /* Célula do mês e largura mínima da lista de compromissos. */
+        "calendar-day": "104px",
       },
       maxHeight: {
         ficha: "92vh",
@@ -280,6 +289,9 @@ const config: Config = {
         logo: "36px",
         "ib-track": "85dvh",
         "ib-support": "min(82dvh, 780px)",
+        /* Diálogos do Calendário. */
+        "calendar-modal": "90vh",
+        "calendar-event-modal": "calc(100dvh - 24px)",
       },
       maxWidth: {
         content: "1520px",
@@ -291,16 +303,30 @@ const config: Config = {
         "crm-copy": "560px",
         "crm-select": "340px",
         "crm-search": "360px",
+        /* Diálogos e controles do Calendário. */
+        "calendar-modal": "520px",
+        "calendar-event-modal": "620px",
+        "calendar-copy": "44ch",
+        "calendar-select": "148px",
+        "calendar-chip": "150px",
       },
       width: {
         "profile-popover": "248px",
         "submenu-compact": "220px",
         "ib-track": "min(760px, calc(100vw - 24px))",
         "ib-support": "min(620px, calc(100vw - 24px))",
+        /* Filete redimensionável entre grade e lista. */
+        "calendar-handle": "6px",
       },
       minWidth: {
         "submenu-compact": "220px",
         "crm-select": "220px",
+        "calendar-event-date": "58px",
+        "calendar-month": "118px",
+      },
+      height: {
+        /* Prévia do local no mapa. */
+        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       zIndex: {
         sidebar: "40",

@@ -11,6 +11,20 @@ type Listing = { folder: string; parent: string; folders: FolderRow[]; assets: A
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 const fmtSize = (a: Asset) => a.kind === "image" ? `${a.width}×${a.height}` : "PDF";
 
+/* Utilities compartilhadas da fatia: azul vem dos tokens --primary do preset. */
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const iconButton = "grid size-control flex-none place-items-center rounded-token-sm border border-line bg-surface-2 text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const searchTw = "flex min-h-10 min-w-fm-search flex-1 items-center gap-2 rounded-fm-search border border-line bg-surface-2 px-3 text-ink-secondary";
+const searchInput = "min-w-0 flex-1 border-0 bg-transparent text-body text-ink outline-none";
+const filterButton = "min-h-fm-filter rounded-fm-pill px-4 font-display text-fm-meta font-extrabold text-ink-secondary transition-colors";
+const filterActive = "bg-blue-600 text-blue-900";
+const stateTw = "grid place-items-center gap-2.5 rounded-fm-card border border-dashed border-line-strong p-10 text-center text-ink-secondary";
+const itemTw = "flex flex-col overflow-hidden rounded-fm-card border border-line bg-surface";
+const bodyTw = "grid min-w-0 gap-0.5 px-3 py-2.5";
+const actionsTw = "flex flex-wrap items-center justify-end gap-1.5 border-t border-line bg-surface-2 px-2.5 py-1.5";
+const renameInputTw = "w-full min-h-8 rounded-token-sm border border-line bg-surface-2 px-2 py-1.5 text-xs text-ink";
+
 /** Gerenciador de arquivos dos sites: criar/navegar/renomear/mover/excluir pastas e arquivos, com preview visual. */
 export function FileManager({ onNotice, onSelect, selectable }: { onNotice?: (v: string) => void; onSelect?: (url: string, name: string) => void; selectable?: boolean }) {
   const [listing, setListing] = useState<Listing | null>(null);
@@ -126,51 +140,51 @@ export function FileManager({ onNotice, onSelect, selectable }: { onNotice?: (v:
   const empty = !visibleFolders.length && !visibleAssets.length;
 
   return (
-    <div className="file-manager">
-      <header className="file-manager-toolbar">
-        <nav className="file-manager-breadcrumb" aria-label="Navegação de pastas">{crumbs.map((crumb, index) => <span key={crumb.path}>{index > 0 ? <ChevronRight size={14} aria-hidden="true" className="file-manager-crumb-sep" /> : null}<button type="button" className="file-manager-crumb" onClick={() => navigate(crumb.path)}>{crumb.label}</button></span>)}</nav>
-        <div className="file-manager-search"><Search size={16} aria-hidden="true" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar nesta pasta…" aria-label="Pesquisar nesta pasta" /></div>
-        <div className="file-manager-filters" role="group" aria-label="Filtrar por tipo">{([["all", "Todos"], ["image", "Imagens"], ["file", "Arquivos"]] as [Filter, string][]).map(([value, label]) => <button key={value} type="button" className={filter === value ? "active" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div>
-        <button type="button" className="secondary-button" onClick={() => { setNewFolderOpen(v => !v); setNewFolderName(""); }}><FolderPlus size={15} aria-hidden="true" /> Nova pasta</button>
-        <button type="button" className="primary-button" onClick={() => inputRef.current?.click()} disabled={uploading > 0 || !listing}>{uploading > 0 ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Upload size={15} aria-hidden="true" />} {uploading > 0 ? "Enviando…" : "Enviar arquivos"}</button>
+    <div className="grid gap-3.5" data-testid="file-manager">
+      <header className="flex flex-wrap items-center gap-2.5">
+        <nav className="flex min-h-10 flex-wrap items-center gap-1 text-body" aria-label="Navegação de pastas">{crumbs.map((crumb, index) => <span key={crumb.path}>{index > 0 ? <ChevronRight size={14} aria-hidden="true" className="text-ink-secondary" /> : null}<button type="button" className="rounded-token-sm px-2 py-1.5 font-bold text-blue-800 transition-colors hover:bg-blue-50" onClick={() => navigate(crumb.path)}>{crumb.label}</button></span>)}</nav>
+        <div className={searchTw}><Search size={16} aria-hidden="true" /><input className={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar nesta pasta…" aria-label="Pesquisar nesta pasta" /></div>
+        <div className="inline-flex gap-1 rounded-fm-pill border border-line bg-surface p-1" role="group" aria-label="Filtrar por tipo">{([["all", "Todos"], ["image", "Imagens"], ["file", "Arquivos"]] as [Filter, string][]).map(([value, label]) => <button key={value} type="button" className={filter === value ? filterButton + " " + filterActive : filterButton} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div>
+        <button type="button" className={secondaryButton} onClick={() => { setNewFolderOpen(v => !v); setNewFolderName(""); }}><FolderPlus size={15} aria-hidden="true" /> Nova pasta</button>
+        <button type="button" className={primaryButton} onClick={() => inputRef.current?.click()} disabled={uploading > 0 || !listing}>{uploading > 0 ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Upload size={15} aria-hidden="true" />} {uploading > 0 ? "Enviando…" : "Enviar arquivos"}</button>
         <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" multiple hidden onChange={e => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ""; }} />
       </header>
-      {notice && <p className="file-manager-notice" role="status">{notice}</p>}
-      {newFolderOpen && <div className="file-manager-new-folder"><Folder size={16} aria-hidden="true" /><input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Nome da pasta" aria-label="Nome da nova pasta" onKeyDown={e => { if (e.key === "Enter") void createFolder(); if (e.key === "Escape") setNewFolderOpen(false); }} /><button type="button" className="primary-button" disabled={busyId === "__new_folder__" || !newFolderName.trim()} onClick={() => void createFolder()}>{busyId === "__new_folder__" ? <Loader2 size={14} className="vx-spin" aria-hidden="true" /> : "Criar"}</button><button type="button" className="icon-button" aria-label="Cancelar" onClick={() => setNewFolderOpen(false)}><X size={15} aria-hidden="true" /></button></div>}
-      {listing === null ? <div className="file-manager-loading"><Loader2 size={22} className="vx-spin" aria-hidden="true" /> Carregando arquivos…</div>
-        : empty ? <div className="file-manager-empty"><ImageIcon size={30} aria-hidden="true" /><p>{assets.length || folders.length ? "Nenhum item corresponde à busca." : "Pasta vazia. Envie arquivos ou crie uma pasta."}</p></div>
-        : <div className="file-manager-grid">
+      {notice && <p className="m-0 text-small text-blue-700" role="status">{notice}</p>}
+      {newFolderOpen && <div className="my-2.5 flex flex-wrap items-center gap-2 rounded-fm-search border border-dashed border-line-strong bg-surface-2 px-3 py-2.5"><Folder size={16} aria-hidden="true" /><input autoFocus className="min-h-9 min-w-fm-new-folder flex-1 rounded-token-sm border border-line bg-surface px-2.5 py-1.5 text-body text-ink" value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Nome da pasta" aria-label="Nome da nova pasta" onKeyDown={e => { if (e.key === "Enter") void createFolder(); if (e.key === "Escape") setNewFolderOpen(false); }} /><button type="button" className={primaryButton} disabled={busyId === "__new_folder__" || !newFolderName.trim()} onClick={() => void createFolder()}>{busyId === "__new_folder__" ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : "Criar"}</button><button type="button" className={iconButton} aria-label="Cancelar" onClick={() => setNewFolderOpen(false)}><X size={15} aria-hidden="true" /></button></div>}
+      {listing === null ? <div className={stateTw} role="status"><Loader2 size={22} className="animate-spin" aria-hidden="true" /> Carregando arquivos…</div>
+        : empty ? <div className={stateTw}><ImageIcon size={30} aria-hidden="true" /><p>{assets.length || folders.length ? "Nenhum item corresponde à busca." : "Pasta vazia. Envie arquivos ou crie uma pasta."}</p></div>
+        : <div className="grid grid-cols-fm-items gap-3">
             {visibleFolders.map(f => (
-              <article key={"folder:" + f.path} className="file-manager-item file-manager-folder">
-                <button type="button" className="file-manager-folder-open" onClick={() => navigate(f.path)} aria-label={"Abrir pasta " + f.name}>
-                  <Folder size={46} aria-hidden="true" />
+              <article key={"folder:" + f.path} className={itemTw + " items-stretch"}>
+                <button type="button" className="grid place-items-center rounded-fm-card bg-transparent px-2.5 pb-2.5 pt-4 text-blue-600 transition-colors hover:bg-surface-2" onClick={() => navigate(f.path)} aria-label={"Abrir pasta " + f.name}>
+                  <Folder size={46} className="size-16" aria-hidden="true" />
                 </button>
-                <div className="file-manager-item-body">
-                  {folderRename === f.path ? <input autoFocus value={folderRenameValue} onChange={e => setFolderRenameValue(e.target.value)} onBlur={() => void renameFolder(f.path)} onKeyDown={e => { if (e.key === "Enter") void renameFolder(f.path); if (e.key === "Escape") setFolderRename(""); }} aria-label="Renomear pasta" /> : <strong title={f.name}>{f.name}</strong>}
+                <div className={bodyTw}>
+                  {folderRename === f.path ? <input autoFocus className={renameInputTw} value={folderRenameValue} onChange={e => setFolderRenameValue(e.target.value)} onBlur={() => void renameFolder(f.path)} onKeyDown={e => { if (e.key === "Enter") void renameFolder(f.path); if (e.key === "Escape") setFolderRename(""); }} aria-label="Renomear pasta" /> : <strong className="truncate text-xs text-ink" title={f.name}>{f.name}</strong>}
                 </div>
-                <div className="file-manager-item-actions">
-                  <button type="button" className="icon-button" title="Renomear pasta" aria-label="Renomear pasta" onClick={() => { setFolderRename(f.path); setFolderRenameValue(f.name); }}><Pencil size={15} aria-hidden="true" /></button>
-                  <button type="button" className="icon-button" title="Excluir pasta e conteúdo" aria-label="Excluir pasta" disabled={busyId === f.path} onClick={() => void deleteFolder(f.path, f.name)}>{busyId === f.path ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}</button>
+                <div className={actionsTw}>
+                  <button type="button" className={iconButton} title="Renomear pasta" aria-label="Renomear pasta" onClick={() => { setFolderRename(f.path); setFolderRenameValue(f.name); }}><Pencil size={15} aria-hidden="true" /></button>
+                  <button type="button" className={iconButton} title="Excluir pasta e conteúdo" aria-label="Excluir pasta" disabled={busyId === f.path} onClick={() => void deleteFolder(f.path, f.name)}>{busyId === f.path ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}</button>
                 </div>
               </article>
             ))}
             {visibleAssets.map(asset => (
-              <article key={asset.id} className="file-manager-item">
-                <button type="button" className="file-manager-preview" onClick={() => { if (selectable && asset.kind === "image" && onSelect) { onSelect(asset.url, asset.name); return; } asset.kind === "image" ? setPreview(asset) : copy(asset); }} aria-label={selectable && asset.kind === "image" ? "Selecionar imagem " + asset.name : (asset.kind === "image" ? "Ampliar imagem " + asset.name : "Copiar URL de " + asset.name)}>{asset.kind === "image" ? <img src={asset.url} alt={asset.name || "Arquivo"} loading="lazy" /> : <span className="file-manager-pdf"><FileIcon size={34} aria-hidden="true" /><small>PDF</small></span>}</button>
-                <div className="file-manager-item-body">
-                  {renameId === asset.id ? <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onBlur={() => void rename(asset)} onKeyDown={e => { if (e.key === "Enter") void rename(asset); if (e.key === "Escape") setRenameId(""); }} aria-label="Renomear arquivo" /> : <strong title={asset.name}>{asset.name || "Arquivo"}</strong>}
-                  <small>{fmtDate(asset.createdAt)} · {fmtSize(asset)}</small>
+              <article key={asset.id} className={itemTw}>
+                <button type="button" className="grid aspect-fm-preview place-items-center overflow-hidden border-b border-line bg-surface-2" onClick={() => { if (selectable && asset.kind === "image" && onSelect) { onSelect(asset.url, asset.name); return; } asset.kind === "image" ? setPreview(asset) : copy(asset); }} aria-label={selectable && asset.kind === "image" ? "Selecionar imagem " + asset.name : (asset.kind === "image" ? "Ampliar imagem " + asset.name : "Copiar URL de " + asset.name)}>{asset.kind === "image" ? <img className="block size-full object-cover" src={asset.url} alt={asset.name || "Arquivo"} loading="lazy" /> : <span className="grid place-items-center gap-1 text-danger"><FileIcon size={34} aria-hidden="true" /><small className="text-fm-pdf font-extrabold tracking-widest">PDF</small></span>}</button>
+                <div className={bodyTw}>
+                  {renameId === asset.id ? <input autoFocus className={renameInputTw} value={renameValue} onChange={e => setRenameValue(e.target.value)} onBlur={() => void rename(asset)} onKeyDown={e => { if (e.key === "Enter") void rename(asset); if (e.key === "Escape") setRenameId(""); }} aria-label="Renomear arquivo" /> : <strong className="truncate text-xs text-ink" title={asset.name}>{asset.name || "Arquivo"}</strong>}
+                  <small className="text-fm-meta text-ink-secondary">{fmtDate(asset.createdAt)} · {fmtSize(asset)}</small>
                 </div>
-                <div className="file-manager-item-actions">
-                  <button type="button" className="icon-button" title="Copiar URL" aria-label="Copiar URL" onClick={() => void copy(asset)}><Copy size={15} aria-hidden="true" /></button>
-                  <button type="button" className="icon-button" title="Renomear arquivo" aria-label="Renomear arquivo" onClick={() => { setRenameId(asset.id); setRenameValue(asset.name.replace(/\.[a-z0-9]{2,6}$/i, "")); }}><Pencil size={15} aria-hidden="true" /></button>
-                  <select className="file-manager-move" aria-label="Mover para pasta" defaultValue="" disabled={busyId === asset.id} onChange={e => { const target = e.target.value; if (target) void moveAsset(asset, target); e.target.value = ""; }}><option value="">Mover para…</option>{allFolders.filter(f => f.path !== asset.folder).map(f => <option key={f.path} value={f.path}>{f.path === "/" ? "(Raiz)" : f.path}</option>)}</select>
-                  <button type="button" className="icon-button" title="Excluir do servidor" aria-label="Excluir" disabled={busyId === asset.id} onClick={() => void remove(asset)}>{busyId === asset.id ? <Loader2 size={15} className="vx-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}</button>
+                <div className={actionsTw}>
+                  <button type="button" className={iconButton} title="Copiar URL" aria-label="Copiar URL" onClick={() => void copy(asset)}><Copy size={15} aria-hidden="true" /></button>
+                  <button type="button" className={iconButton} title="Renomear arquivo" aria-label="Renomear arquivo" onClick={() => { setRenameId(asset.id); setRenameValue(asset.name.replace(/\.[a-z0-9]{2,6}$/i, "")); }}><Pencil size={15} aria-hidden="true" /></button>
+                  <select className="min-h-8 max-w-fm-move rounded-token-sm border border-line bg-surface-2 px-1.5 text-fm-meta text-ink" aria-label="Mover para pasta" defaultValue="" disabled={busyId === asset.id} onChange={e => { const target = e.target.value; if (target) void moveAsset(asset, target); e.target.value = ""; }}><option value="">Mover para…</option>{allFolders.filter(f => f.path !== asset.folder).map(f => <option key={f.path} value={f.path}>{f.path === "/" ? "(Raiz)" : f.path}</option>)}</select>
+                  <button type="button" className={iconButton} title="Excluir do servidor" aria-label="Excluir" disabled={busyId === asset.id} onClick={() => void remove(asset)}>{busyId === asset.id ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}</button>
                 </div>
               </article>
             ))}
           </div>}
-      {preview && <div className="file-manager-lightbox" role="dialog" aria-modal="true" aria-label={"Visualizar " + preview.name} onClick={() => setPreview(null)}><figure onClick={e => e.stopPropagation()}><img src={preview.url} alt={preview.name || "Arquivo"} /><figcaption><span>{preview.name}</span><a className="secondary-button" href={preview.url} download={preview.name}>Baixar</a><button type="button" className="icon-button" aria-label="Fechar" onClick={() => setPreview(null)}><X size={18} aria-hidden="true" /></button></figcaption></figure></div>}
+      {preview && <div className="fixed inset-0 z-fm-lightbox grid animate-vx-scrim-in place-items-center bg-overlay p-5" role="dialog" aria-modal="true" aria-label={"Visualizar " + preview.name} onClick={() => setPreview(null)}><figure className="m-0 max-w-fm-lightbox overflow-hidden rounded-fm-lightbox border border-line bg-surface" onClick={e => e.stopPropagation()}><img className="block max-h-fm-lightbox-img max-w-full bg-surface-page object-contain" src={preview.url} alt={preview.name || "Arquivo"} /><figcaption className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-fm-caption text-ink"><span className="truncate">{preview.name}</span><a className={secondaryButton} href={preview.url} download={preview.name}>Baixar</a><button type="button" className={iconButton} aria-label="Fechar" onClick={() => setPreview(null)}><X size={18} aria-hidden="true" /></button></figcaption></figure></div>}
     </div>
   );
 }

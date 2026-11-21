@@ -230,9 +230,19 @@ const config: Config = {
         "ib-popover": "16px",
         "ib-handoff": "20px",
         "ib-option-icon": "11px",
+        /* Raios do gerenciador de arquivos e do seletor de imagens. */
+        "fm-card": "14px",
+        "fm-search": "10px",
+        "fm-pill": "99px",
+        "fm-lightbox": "16px",
+      },
+      aspectRatio: {
+        /* Prévia quadrada dos arquivos e das imagens do site. */
+        "fm-preview": "4 / 3",
       },
       gridTemplateRows: {
         "ib-quick-dialog": "auto minmax(0,1fr)",
+        "fm-picker-item": "1fr auto",
       },
       boxShadow: {
         token: "var(--shadow)",
@@ -312,6 +322,10 @@ const config: Config = {
         "rw-hint": "11.5px",
         "rw-kpi-label": "10.5px",
         "rw-donut-total": ["22px", { letterSpacing: "-.02em" }],
+        /* Tipografia do gerenciador de arquivos e do seletor de imagens. */
+        "fm-meta": "10.5px",
+        "fm-pdf": "10px",
+        "fm-caption": "12.5px",
       },
       lineHeight: {
         "ib-quote-error": "1.35",
@@ -384,6 +398,12 @@ const config: Config = {
         "ib-quote-error-y": "5px",
         "ib-quote-qty-x": "9px",
         "vx-dialog-pad": "18px",
+        /* Medidas do gerenciador de arquivos e do seletor de imagens. */
+        "fm-search": "220px",
+        "fm-new-folder": "120px",
+        "fm-move": "108px",
+        "fm-check": "26px",
+        "fm-filter": "30px",
         /* Estado de carregamento do Kanban. */
         "crm-loading-y": "60px",
       },
@@ -427,6 +447,9 @@ const config: Config = {
         "ib-workspace": "minmax(260px,340px) minmax(0,1fr) minmax(300px,380px)",
         "ib-workspace-profile": "minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)",
         "ib-supervision": "repeat(4,1fr)",
+        /* Grades do gerenciador de arquivos e do seletor de imagens. */
+        "fm-items": "repeat(auto-fill,minmax(180px,1fr))",
+        "fm-picker": "repeat(auto-fill,minmax(150px,1fr))",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
@@ -448,6 +471,7 @@ const config: Config = {
         "ib-workspace": "520px",
         "ib-quote": "320px",
         "ib-quote-qty": "30px",
+        "fm-filter": "30px",
         /* Célula do mês e largura mínima da lista de compromissos. */
         "calendar-day": "104px",
         /* Medidas das colunas e cartões do Kanban do CRM. */
@@ -475,6 +499,9 @@ const config: Config = {
         "calendar-modal": "90vh",
         "calendar-event-modal": "calc(100dvh - 24px)",
         "crm-column": "calc(100dvh - var(--top) - 235px)",
+        /* Alturas do seletor de imagens e do lightbox do gerenciador. */
+        "fm-picker-grid": "420px",
+        "fm-lightbox-img": "74vh",
       },
       maxWidth: {
         content: "1520px",
@@ -503,6 +530,10 @@ const config: Config = {
         "ib-profile-copy": "560px",
         "ib-profile-row": "460px",
         "ib-profile-agenda": "320px",
+        /* Larguras do gerenciador de arquivos e do lightbox de imagens. */
+        "fm-move": "108px",
+        "fm-lightbox": "min(960px,94vw)",
+        "fm-picker-body": "min(860px,94vw)",
       },
       width: {
         "profile-popover": "248px",
@@ -534,6 +565,9 @@ const config: Config = {
         "ib-queue-menu": "180px",
         "ib-status-menu": "210px",
         "ib-context-menu": "190px",
+        "fm-search": "220px",
+        "fm-new-folder": "120px",
+        "fm-picker-body": "min(860px,94vw)",
       },
       zIndex: {
         sidebar: "40",
@@ -552,6 +586,7 @@ const config: Config = {
         "ib-dialog": "1000",
         "ib-dialog-inner": "1",
         "ib-mention": "65",
+        "fm-lightbox": "60",
       },
       transitionProperty: {
         shell: "width, margin-left",

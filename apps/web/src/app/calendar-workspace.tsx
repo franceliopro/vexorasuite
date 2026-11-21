@@ -40,7 +40,7 @@ export function CalendarWorkspace(){
   const refreshCalendars=useCallback(async()=>{if(!account)return;const x=await request<{items:Calendar[]}>(encodeURIComponent(account)+"/calendars");setCalendars(x.items||[]);setVisibleCalendars((x.items||[]).filter(a=>a.selected!==false).map(a=>a.id));},[account]);
   const agendaKey=account+":"+calendar;
   const agendaCfg=agendaReminders[agendaKey]??{enabled:true,minutesBefore:[15,60]};
-  const saveAgendaReminder=async(patch:Partial<{enabled:boolean;minutesBefore:number[]>})=>{
+  const saveAgendaReminder=async(patch:Partial<{enabled:boolean;minutesBefore:number[]}>)=>{
    if(!account||!calendar)return;
    const next={...agendaCfg,...patch};
    if(next.minutesBefore.length===0)return;

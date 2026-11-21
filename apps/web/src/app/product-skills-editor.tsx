@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 type Skill = { id: string; name: string; description: string; instructions: string; status?: string };
 type Capability = { id: string; name: string; category?: string; cost?: string; implemented?: boolean; permission?: string };
 
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const dangerTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-red-600 bg-red-100 px-4 text-body font-bold text-red-600 transition-colors hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-60";
+
 function slug(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "").slice(0, 70);
 }
@@ -73,13 +77,13 @@ export function ProductSkillsEditor() {
   return <section className="workspace-surface product-skills-editor">
     <div className="workspace-section-heading">
       <div><h2>Skills e capacidades</h2><p>Consulte o que cada Skill faz e ajuste as orientações usadas pela IA e pelas criações.</p></div>
-      {canEdit && <button type="button" className="secondary-button" disabled={busy} onClick={() => setCreating(value => !value)}>+ Criar Skill</button>}
+      {canEdit && <button type="button" className={secondaryTw} disabled={busy} onClick={() => setCreating(value => !value)}>+ Criar Skill</button>}
     </div>
     {creating && <div className="workspace-surface">
       <label>Nome da Skill<input value={draft.name} onChange={e => setDraft(value => ({ ...value, name: e.target.value }))} placeholder="Ex.: Qualificação de leads" /></label>
       <label>Descrição<textarea rows={2} value={draft.description} onChange={e => setDraft(value => ({ ...value, description: e.target.value }))} /></label>
       <label>Capacidades e instruções<textarea rows={6} maxLength={12000} value={draft.instructions} onChange={e => setDraft(value => ({ ...value, instructions: e.target.value }))} /></label>
-      <button type="button" className="primary-button" disabled={busy} onClick={addSkill}>Criar e salvar</button>
+      <button type="button" className={primaryTw} disabled={busy} onClick={addSkill}>Criar e salvar</button>
     </div>}
     {skills.map(skill => {
       const capability = capabilities.find(item => item.id === skill.id);
@@ -90,7 +94,7 @@ export function ProductSkillsEditor() {
         <p>{skill.description}</p>
         {capability && <p><strong>Capacidade do sistema:</strong> {capability.implemented ? "disponível" : "ainda não implementada"}{capability.permission ? " · permissão " + capability.permission : ""}</p>}
         <label>Orientações da Skill<textarea rows={8} maxLength={12000} disabled={!canEdit || busy} value={skill.instructions} onChange={e => setSkills(rows => rows.map(item => item.id === skill.id ? { ...item, instructions: e.target.value } : item))} /></label>
-        {canEdit && <div className="workspace-actions"><button type="button" className="primary-button" disabled={busy} onClick={() => void save()}>Salvar</button>{!native && <button type="button" className="danger-button" disabled={busy} onClick={() => removeSkill(skill)}>Excluir</button>}</div>}
+        {canEdit && <div className="workspace-actions"><button type="button" className={primaryTw} disabled={busy} onClick={() => void save()}>Salvar</button>{!native && <button type="button" className={dangerTw} disabled={busy} onClick={() => removeSkill(skill)}>Excluir</button>}</div>}
       </details>;
     })}
     {notice && <p role="status">{notice}</p>}

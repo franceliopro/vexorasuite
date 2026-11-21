@@ -17,6 +17,60 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
+           três temas — a classe é oficial, a cor continua vinda do tema. */
+        blue: {
+          50: "var(--primary-soft)",
+          100: "var(--vx-core-selection)",
+          600: "var(--primary)",
+          700: "var(--primary-strong)",
+          800: "var(--primary-ink)",
+          900: "var(--primary-contrast)",
+        },
+        zinc: {
+          50: "var(--bg)",
+          100: "var(--s1)",
+          200: "var(--s2)",
+          300: "var(--s3)",
+          400: "var(--hover)",
+        },
+        slate: {
+          400: "var(--text-muted)",
+          600: "var(--tx2)",
+          950: "var(--tx)",
+        },
+        gray: {
+          100: "var(--vx-core-line-soft)",
+          200: "var(--ln)",
+          300: "var(--ln2)",
+          400: "var(--vx-core-line-footer)",
+          500: "var(--vx-core-line-hover)",
+        },
+        indigo: {
+          50: "var(--sb-tx)",
+          400: "var(--sb-mut)",
+          700: "var(--sb-surface, var(--sb-bg))",
+          800: "var(--sb-ln)",
+          900: "var(--sb-on)",
+          950: "var(--sb-bg)",
+        },
+        neutral: {
+          100: "var(--vx-core-topbar-bg)",
+        },
+        emerald: {
+          100: "var(--vx-ok-soft)",
+          600: "var(--ok)",
+        },
+        amber: {
+          100: "var(--vx-warn-soft)",
+          600: "var(--warn)",
+        },
+        red: { 600: "var(--bad)" },
+        sky: { 600: "var(--accent2)" },
+
+        /* Alias semânticos usados pelo piloto Ficha Cliente (#903), já
+           mergeado. O core migra para as classes oficiais acima; os aliases
+           serão removidos quando aquela tela entrar na migração. */
         brand: {
           DEFAULT: "var(--primary)",
           soft: "var(--primary-soft)",
@@ -38,7 +92,12 @@ const config: Config = {
         line: {
           DEFAULT: "var(--ln)",
           strong: "var(--ln2)",
+          soft: "var(--vx-core-line-soft)",
+          footer: "var(--vx-core-line-footer)",
+          hover: "var(--vx-core-line-hover)",
         },
+        topbar: "var(--vx-core-topbar-bg)",
+        hover: "var(--hover)",
         success: {
           DEFAULT: "var(--ok)",
           soft: "var(--vx-ok-soft)",
@@ -47,36 +106,129 @@ const config: Config = {
           DEFAULT: "var(--warn)",
           soft: "var(--vx-warn-soft)",
         },
+        sidebar: {
+          DEFAULT: "var(--sb-bg)",
+          on: "var(--sb-on)",
+          line: "var(--sb-ln)",
+          muted: "var(--sb-mut)",
+          text: "var(--sb-tx)",
+          thumb: "var(--sb-thumb)",
+        },
         danger: "var(--bad)",
+        accent: "var(--accent2)",
+        focus: "var(--focus)",
+        selection: "var(--vx-core-selection)",
         overlay: {
           DEFAULT: "var(--vx-overlay)",
           soft: "var(--vx-overlay-soft)",
         },
+      },
+      backgroundImage: {
+        /** Wash da página: o ajuste "mais frio e sutil" vive no tema, não no JSX. */
+        "vx-page": "var(--vx-core-page-wash)",
+        "vx-brand-mark": "var(--vx-core-brand-mark)",
+        "vx-nav-active": "var(--vx-core-nav-active)",
+        "vx-control": "var(--vx-core-control-bg)",
+      },
+      backdropBlur: {
+        topbar: "18px",
+      },
+      backdropSaturate: {
+        topbar: "1.12",
       },
       borderRadius: {
         token: "var(--r)",
         "token-sm": "var(--r-sm)",
         "token-lg": "var(--r-lg)",
         "token-xl": "var(--r-xl)",
+        brand: "13px",
+        square: "6px",
       },
       boxShadow: {
         token: "var(--shadow)",
         "token-sm": "var(--shadow-sm)",
         "token-lg": "var(--shadow-lg)",
+        "vx-nav-active": "var(--vx-core-shadow-nav-active)",
+        "vx-brand": "var(--vx-core-shadow-brand)",
+        "vx-topbar": "var(--vx-core-shadow-topbar)",
+        "vx-popover": "var(--vx-core-shadow-popover)",
+        "vx-submenu": "var(--vx-core-shadow-submenu)",
       },
       fontFamily: {
-        ui: "var(--font-ui)",
+        inherit: "inherit",
+        ui: 'var(--font-ui),"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",system-ui,sans-serif',
         display: "var(--font-display)",
       },
       fontSize: {
         "2xs": "10px",
+        body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
+        h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
+        h2: ["17px", { lineHeight: "1.3", letterSpacing: "-0.015em" }],
+        h3: ["14.5px", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
+        h4: ["14px", { lineHeight: "1.4", letterSpacing: "-0.01em" }],
+        h5: ["13px", { lineHeight: "1.45", letterSpacing: "-0.005em" }],
+        h6: ["12px", { lineHeight: "1.5", letterSpacing: "0" }],
+        small: ["12px", { lineHeight: "1.5" }],
+        nav: "13px",
+        "nav-section": "10px",
+        breadcrumb: "12px",
+        "brand-title": ["20px", { lineHeight: "1", letterSpacing: "-.03em" }],
+        "brand-mark": "17px",
+        "brand-badge": "9px",
+      },
+      fontWeight: {
+        heading: "750",
+      },
+      letterSpacing: {
+        "nav-section": ".13em",
+        "brand-badge": ".22em",
+      },
+      spacing: {
+        sidebar: "var(--sb)",
+        "sidebar-compact": "76px",
+        topbar: "var(--top)",
+        control: "var(--ctl)",
+        token: "var(--gap)",
+        pad: "var(--pad)",
+        "brand-pad": "18px",
+        "nav-gap": "11px",
+        "nav-pad": "13px",
+        "nav-height": "42px",
+        "subitem-height": "34px",
+        "submenu-indent": "26px",
+        "content-pad-y": "22px",
+        search: "250px",
+        "tabs-pad-x": "34px",
       },
       maxHeight: {
         ficha: "92vh",
         wizard: "80vh",
+        logo: "36px",
+      },
+      maxWidth: {
+        content: "1520px",
+        tabs: "1500px",
+        logo: "46px",
+      },
+      width: {
+        "profile-popover": "248px",
+        "submenu-compact": "220px",
+      },
+      minWidth: {
+        "submenu-compact": "220px",
       },
       zIndex: {
+        sidebar: "40",
+        topbar: "30",
+        popover: "70",
         wizard: "60",
+      },
+      transitionProperty: {
+        shell: "width, margin-left",
+        control: "background-color, border-color, transform",
+      },
+      transitionDuration: {
+        control: "160ms",
       },
       transitionTimingFunction: {
         token: "var(--ease)",

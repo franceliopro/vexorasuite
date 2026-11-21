@@ -62,6 +62,36 @@ import {
 } from 'lucide-react';
 import './editor.css';
 
+const SHELL = 'flex h-dvh min-h-0 flex-col bg-surface-page font-ui text-ink';
+const SHELL_TOPBAR = 'flex h-14 flex-none items-center justify-between gap-2.5 border-b border-line bg-surface px-4';
+const SHELL_TOPBAR_SECTION = 'flex min-w-0 items-center gap-2.5';
+const SHELL_SITE_INFO = 'flex min-w-0 flex-col';
+const SHELL_SITE_ID = 'truncate text-xs text-ink-secondary';
+const SHELL_SITE_TITLE = 'truncate text-sm font-bold text-ink';
+const SHELL_NODE_COUNT = 'px-2.5 text-sm text-ink-secondary';
+const SHELL_ICON_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm bg-transparent text-ink-secondary hover:bg-hover';
+const SHELL_DEVICE_GROUP = 'flex gap-1.5 rounded-token-sm border border-line bg-surface';
+const SHELL_DEVICE_BUTTON = 'inline-flex h-8 w-8 items-center justify-center bg-transparent text-ink-secondary hover:bg-hover';
+const SHELL_DEVICE_BUTTON_ACTIVE = 'bg-blue-50 text-blue-600';
+const SHELL_DEVICE_ICON = 'inline-block h-3.5 w-3.5';
+const SHELL_SECONDARY_BUTTON = 'inline-flex h-9 w-9 items-center justify-center rounded-token-sm border border-line bg-surface text-ink hover:bg-hover';
+const SHELL_SECONDARY_DISABLED = 'cursor-not-allowed opacity-50';
+const SHELL_PRIMARY_BUTTON = 'inline-flex h-control items-center gap-2 rounded-token-sm border-0 bg-brand px-4 text-sm font-bold text-brand-contrast hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50';
+const SHELL_MAIN = 'flex min-h-0 flex-1 overflow-hidden';
+const SHELL_SIDEBAR_LEFT = 'flex w-80 flex-none flex-col overflow-hidden border-r border-line bg-surface';
+const SHELL_CANVAS_AREA = 'relative min-w-0 flex-1 overflow-hidden bg-surface-2';
+const SHELL_SIDEBAR_RIGHT = 'flex w-85 flex-none flex-col overflow-hidden border-l border-line bg-surface';
+const SHELL_NOTICE = 'mx-3 my-2 inline-flex items-center gap-2 rounded-token-sm border border-line bg-surface-3 px-3 py-1.5 text-sm text-ink';
+const SHELL_READONLY_BANNER = 'mx-3 my-2 inline-flex items-center gap-2 rounded-token-sm border border-amber-600/45 bg-amber-100 px-3 py-2 text-sm text-amber-600';
+const SHELL_PAGE_LABEL = 'mr-1.5 text-xs font-semibold';
+const SHELL_PAGE_SELECT = 'max-w-55 rounded-token-sm border border-line bg-surface px-2 py-1 text-body text-ink';
+
+const SHELL_NOTICE_KIND: Record<'info' | 'ok' | 'bad', string> = {
+  info: '',
+  ok: 'border-emerald-600/40 bg-emerald-100 text-emerald-600',
+  bad: 'border-red-600/40 bg-red-100 text-red-600',
+};
+
 interface EditorShellProps {
   siteId: string;
   doc: SiteDocument | null;
@@ -340,12 +370,12 @@ export function EditorShell({
   if (!doc) return null;
 
   return (
-    <div className="vx-editor-shell" role="application" aria-label="Editor de sites Véxora">
-      <header className="vx-editor-topbar">
-        <div className="vx-editor-topbar-left">
+    <div className={SHELL} role="application" aria-label="Editor de sites Véxora">
+      <header className={SHELL_TOPBAR}>
+        <div className={SHELL_TOPBAR_SECTION}>
           <button
             type="button"
-            className="vx-editor-btn-icon"
+            className={SHELL_ICON_BUTTON}
             aria-label="Fechar editor"
             onClick={onClose}
           >
@@ -354,7 +384,7 @@ export function EditorShell({
           {onMinimize ? (
             <button
               type="button"
-              className="vx-editor-btn-icon"
+              className={SHELL_ICON_BUTTON}
               aria-label="Minimizar editor"
               title="Minimizar para a interface da Véxora"
               onClick={onMinimize}
@@ -362,30 +392,22 @@ export function EditorShell({
               <Minimize2 size={16} aria-hidden="true" />
             </button>
           ) : null}
-          <div className="vx-editor-site-info">
-            <span className="vx-editor-site-id">v{doc.version}{dirty ? ' • não salvo' : ''}</span>
-            <span className="vx-editor-site-title" title={siteId}>{doc.meta.title}</span>
+          <div className={SHELL_SITE_INFO}>
+            <span className={SHELL_SITE_ID}>v{doc.version}{dirty ? ' • não salvo' : ''}</span>
+            <span className={SHELL_SITE_TITLE} title={siteId}>{doc.meta.title}</span>
           </div>
         </div>
 
-        <div className="vx-editor-topbar-center">
-          <label htmlFor="vx-editor-page" style={{ fontSize: '0.75rem', fontWeight: 600, marginRight: 6 }}>
+        <div className={SHELL_TOPBAR_SECTION}>
+          <label htmlFor="vx-editor-page" className={SHELL_PAGE_LABEL}>
             Página
           </label>
           <select
             id="vx-editor-page"
+            className={SHELL_PAGE_SELECT}
             value={activePageSlug}
             onChange={(event) => setActivePageSlug(event.target.value)}
             disabled={loading}
-            style={{
-              background: 'var(--surface, #ffffff)',
-              border: '1px solid var(--border, #e5e8ef)',
-              borderRadius: 8,
-              color: 'var(--text, #101d33)',
-              fontSize: '0.8125rem',
-              maxWidth: 220,
-              padding: '0.35rem 0.5rem',
-            }}
           >
             <option value="__home__">Início (index)</option>
             {pages.map((page) => (
@@ -394,26 +416,26 @@ export function EditorShell({
               </option>
             ))}
           </select>
-          <span className="vx-editor-node-count">{nodeCount} blocos</span>
+          <span className={SHELL_NODE_COUNT}>{nodeCount} blocos</span>
         </div>
 
-        <div className="vx-editor-topbar-right">
-          <div className="vx-editor-device-group" role="group" aria-label="Dispositivo de preview">
+        <div className={SHELL_TOPBAR_SECTION}>
+          <div className={SHELL_DEVICE_GROUP} role="group" aria-label="Dispositivo de preview">
             {(['desktop', 'tablet', 'mobile'] as const).map((d) => (
               <button
                 key={d}
                 type="button"
-                className={`vx-editor-device-btn ${d === device ? 'is-active' : ''}`}
+                className={`${SHELL_DEVICE_BUTTON} ${d === device ? SHELL_DEVICE_BUTTON_ACTIVE : ''}`}
                 aria-label={`Preview ${d}`}
                 onClick={() => onDeviceChange(d)}
               >
-                <span className="vx-editor-device-icon" aria-hidden="true" />
+                <span className={SHELL_DEVICE_ICON} aria-hidden="true" />
               </button>
             ))}
           </div>
           <button
             type="button"
-            className={`vx-editor-btn-secondary ${!canUndo(historyRef.current) || interactionDisabled ? 'is-disabled' : ''}`}
+            className={`${SHELL_SECONDARY_BUTTON} ${!canUndo(historyRef.current) || interactionDisabled ? SHELL_SECONDARY_DISABLED : ''}`}
             disabled={!canUndo(historyRef.current) || interactionDisabled}
             onClick={handleUndo}
             title="Desfazer"
@@ -422,7 +444,7 @@ export function EditorShell({
           </button>
           <button
             type="button"
-            className={`vx-editor-btn-secondary ${!canRedo(historyRef.current) || interactionDisabled ? 'is-disabled' : ''}`}
+            className={`${SHELL_SECONDARY_BUTTON} ${!canRedo(historyRef.current) || interactionDisabled ? SHELL_SECONDARY_DISABLED : ''}`}
             disabled={!canRedo(historyRef.current) || interactionDisabled}
             onClick={handleRedo}
             title="Refazer"
@@ -431,7 +453,7 @@ export function EditorShell({
           </button>
           <button
             type="button"
-            className="vx-editor-btn-primary"
+            className={SHELL_PRIMARY_BUTTON}
             disabled={readOnly || loading || saving}
             onClick={() => void handleSave()}
             title={readOnly ? 'Somente leitura' : saving ? 'Salvando…' : undefined}
@@ -441,7 +463,7 @@ export function EditorShell({
           </button>
           <button
             type="button"
-            className="vx-editor-btn-primary"
+            className={SHELL_PRIMARY_BUTTON}
             disabled={readOnly || loading || saving || publishing}
             onClick={handlePublish}
             title={readOnly ? 'Somente leitura' : publishing ? 'Publicando…' : saving ? 'Aguarde o salvamento' : undefined}
@@ -452,8 +474,8 @@ export function EditorShell({
         </div>
       </header>
 
-      <div className="vx-editor-main">
-        <aside className="vx-editor-sidebar-left">
+      <div className={SHELL_MAIN}>
+        <aside className={SHELL_SIDEBAR_LEFT}>
           <Palette
             blocks={BLOCK_TYPES.map((t) => BLOCK_REGISTRY[t])}
             onAdd={(type) => {
@@ -486,7 +508,7 @@ export function EditorShell({
           />
         </aside>
 
-        <main className="vx-editor-canvas-area">
+        <main className={SHELL_CANVAS_AREA}>
           <Canvas
             doc={canvasDoc ?? doc}
             selectedId={selectedIds.length ? selectedIds[0] ?? null : null}
@@ -506,7 +528,7 @@ export function EditorShell({
           />
         </main>
 
-        <aside className="vx-editor-sidebar-right">
+        <aside className={SHELL_SIDEBAR_RIGHT}>
           <Inspector
             selectedNode={selectedNode}
             schema={schema}
@@ -523,7 +545,7 @@ export function EditorShell({
 
       {notice && (
         <div
-          className={`vx-editor-notice is-${noticeKind}`}
+          className={`${SHELL_NOTICE} ${SHELL_NOTICE_KIND[noticeKind]}`}
           role="status"
           aria-live="polite"
         >
@@ -534,7 +556,7 @@ export function EditorShell({
       )}
 
       {readOnly ? (
-        <div className="vx-editor-readonly-banner" role="status">
+        <div className={SHELL_READONLY_BANNER} role="status">
           <AlertCircle size={15} aria-hidden="true" />
           <span>Somente leitura — você pode navegar pelo site, mas não alterar este documento.</span>
         </div>

@@ -37,11 +37,11 @@ function ClockWidget() {
   }, []);
   const isNight = now.getHours() < 6 || now.getHours() >= 18;
   return (
-    <article className="vx-widget vx-widget-clock" aria-label="Relógio e data de hoje">
-      <div className="vx-widget-clock-inner">
-        <span className="vx-widget-clock-chip">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
-        <time className="vx-widget-clock-time" dateTime={now.toISOString()}>{hhmmss()}</time>
-        <p className="vx-widget-clock-date">{fullDate()}</p>
+    <article className="ov-widget ov-widget-clock" aria-label="Relógio e data de hoje">
+      <div className="ov-widget-clock-inner">
+        <span className="ov-widget-clock-chip">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
+        <time className="ov-widget-clock-time" dateTime={now.toISOString()}>{hhmmss()}</time>
+        <p className="ov-widget-clock-date">{fullDate()}</p>
       </div>
     </article>
   );
@@ -116,31 +116,31 @@ function WeatherWidget() {
   const Icon = info?.Icon ?? CloudSun;
   const night = state.isDay === false;
   return (
-    <article className={"vx-widget vx-widget-weather" + (night ? " is-night" : "")} aria-label="Clima agora">
-      <div className="vx-widget-weather-head">
-        <span className="vx-widget-label">Clima{state.city ? ` · ${state.city}` : ""}</span>
-        <span className="vx-widget-weather-head-actions">
-          <button type="button" className="vx-widget-weather-config" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
+    <article className={"ov-widget ov-widget-weather" + (night ? " is-night" : "")} aria-label="Clima agora">
+      <div className="ov-widget-weather-head">
+        <span className="ov-widget-label">Clima{state.city ? ` · ${state.city}` : ""}</span>
+        <span className="ov-widget-weather-head-actions">
+          <button type="button" className="ov-widget-weather-config" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
           {night ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
         </span>
       </div>
       {editing ? (
-        <form className="vx-widget-weather-config-form" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
+        <form className="ov-widget-weather-config-form" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
           <input autoFocus value={draftCity} onChange={(event) => setDraftCity(event.target.value)} aria-label="Cidade para o clima" placeholder="Ex.: Rondonópolis, MT" />
-          <button type="submit" className="vx-widget-weather-config-save">Salvar</button>
+          <button type="submit" className="ov-widget-weather-config-save">Salvar</button>
         </form>
       ) : null}
-      {state.status === "loading" ? <p className="vx-widget-weather-loading">Buscando o tempo…</p> : null}
+      {state.status === "loading" ? <p className="ov-widget-weather-loading">Buscando o tempo…</p> : null}
       {state.status === "error" ? (
-        <p className="vx-widget-weather-fallback">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
+        <p className="ov-widget-weather-fallback">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
       ) : null}
       {state.status === "ready" ? (
         <>
-          <div className="vx-widget-weather-main">
-            <Icon size={58} strokeWidth={1.7} aria-hidden="true" className="vx-widget-weather-icon" />
-            <div className="vx-widget-weather-temp"><b>{state.temp}°</b><span>{info?.label}</span></div>
+          <div className="ov-widget-weather-main">
+            <Icon size={58} strokeWidth={1.7} aria-hidden="true" className="ov-widget-weather-icon" />
+            <div className="ov-widget-weather-temp"><b>{state.temp}°</b><span>{info?.label}</span></div>
           </div>
-          <div className="vx-widget-weather-meta">
+          <div className="ov-widget-weather-meta">
             <span><Sunrise size={13} aria-hidden="true" /> Máx. {state.max}°</span>
             <span><Sunset size={13} aria-hidden="true" /> Mín. {state.min}°</span>
             <span><Droplets size={13} aria-hidden="true" /> {state.humidity}%</span>
@@ -165,27 +165,27 @@ function CalendarWidget() {
   const isToday = (day: number | null) => day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
   const isWeekend = (index: number) => index % 7 === 0 || index % 7 === 6;
   return (
-    <article className="vx-widget vx-widget-calendar" aria-label="Calendário">
-      <div className="vx-widget-calendar-head">
+    <article className="ov-widget ov-widget-calendar" aria-label="Calendário">
+      <div className="ov-widget-calendar-head">
         <strong>{monthLabel(year, month)}</strong>
-        <div className="vx-widget-calendar-nav">
+        <div className="ov-widget-calendar-nav">
           <button type="button" aria-label="Mês anterior" onClick={() => setCursor(new Date(year, month - 1, 1))}><ChevronLeft size={16} aria-hidden="true" /></button>
           <button type="button" aria-label="Próximo mês" onClick={() => setCursor(new Date(year, month + 1, 1))}><ChevronRight size={16} aria-hidden="true" /></button>
         </div>
       </div>
-      <div className="vx-widget-calendar-grid" role="grid" aria-label={monthLabel(year, month)}>
-        {WEEKDAYS.map((label, index) => <span key={label} className={"vx-widget-calendar-wd" + (isWeekend(index) ? " is-weekend" : "")} role="columnheader">{label}</span>)}
+      <div className="ov-widget-calendar-grid" role="grid" aria-label={monthLabel(year, month)}>
+        {WEEKDAYS.map((label, index) => <span key={label} className={"ov-widget-calendar-wd" + (isWeekend(index) ? " is-weekend" : "")} role="columnheader">{label}</span>)}
         {cells.map((day, index) => (
           <span
             key={index}
             role="gridcell"
-            className={"vx-widget-calendar-day" + (day === null ? " is-empty" : "") + (isToday(day) ? " is-today" : "") + (day !== null && isWeekend(index) ? " is-weekend" : "")}
+            className={"ov-widget-calendar-day" + (day === null ? " is-empty" : "") + (isToday(day) ? " is-today" : "") + (day !== null && isWeekend(index) ? " is-weekend" : "")}
           >
             {day ?? ""}
           </span>
         ))}
       </div>
-      <p className="vx-widget-calendar-today">Hoje é {today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+      <p className="ov-widget-calendar-today">Hoje é {today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
     </article>
   );
 }
@@ -193,7 +193,7 @@ function CalendarWidget() {
 /** Widgets coloridos da tela inicial: relógio, clima e calendário. */
 export function DashboardWidgets() {
   return (
-    <section className="vx-widgets" aria-label="Seu dia agora">
+    <section className="ov-widgets" aria-label="Seu dia agora">
       <ClockWidget />
       <WeatherWidget />
       <CalendarWidget />

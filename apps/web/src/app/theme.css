@@ -119,6 +119,113 @@ hr {
   @apply my-3.5 border-t border-gray-200;
 }
 
+/*
+ * Formulários e controles interativos — base global de todos os temas.
+ * Nenhuma cor literal: a paleta documentada no preset aponta para os tokens
+ * de fundo, superfície, texto, borda e primary, então claro, híbrido e escuro
+ * são herdados sem variantes.
+ */
+form {
+  @apply m-0;
+}
+
+fieldset {
+  @apply m-0 min-w-0 border-0 p-0;
+}
+
+legend {
+  @apply mb-1 p-0 font-display text-h5 font-bold text-slate-950;
+}
+
+label {
+  @apply text-small font-semibold text-slate-600;
+}
+
+input,
+select,
+textarea {
+  @apply m-0 rounded-token-sm border border-gray-200 bg-zinc-100 px-3 py-2 text-body text-slate-950 transition-control duration-control placeholder:text-slate-400 focus:border-blue-600 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+textarea {
+  @apply min-h-20 resize-y align-middle;
+}
+
+select {
+  @apply appearance-none pr-8;
+}
+
+select option,
+optgroup {
+  @apply bg-zinc-100 text-slate-950;
+}
+
+input::placeholder,
+textarea::placeholder {
+  @apply text-slate-400 opacity-100;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  @apply h-4 w-4 flex-none cursor-pointer rounded-token-sm border-gray-300 bg-zinc-100 accent-blue-600;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  @apply border-blue-600;
+}
+
+input[type="range"] {
+  @apply h-1.5 w-full cursor-pointer accent-blue-600;
+}
+
+input[type="file"] {
+  @apply cursor-pointer border-0 bg-transparent p-0 text-small;
+}
+
+input[type="color"] {
+  @apply h-control w-control cursor-pointer overflow-hidden rounded-token-sm border border-gray-200 bg-zinc-100 p-1;
+}
+
+progress,
+meter {
+  @apply h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 align-middle;
+}
+
+progress::-webkit-progress-bar {
+  @apply bg-zinc-200;
+}
+
+progress::-webkit-progress-value {
+  @apply rounded-full bg-blue-600;
+}
+
+output {
+  @apply text-body text-slate-950;
+}
+
+[role="button"],
+[role="tab"],
+[role="option"],
+[role="menuitem"],
+[role="switch"],
+[role="checkbox"],
+[role="radio"] {
+  @apply cursor-pointer;
+}
+
+[aria-invalid="true"] {
+  @apply border-red-600;
+}
+
+[aria-disabled="true"] {
+  @apply cursor-not-allowed opacity-50;
+}
+
+[aria-busy="true"] {
+  @apply cursor-progress;
+}
+
 ::selection {
   @apply bg-blue-100;
 }

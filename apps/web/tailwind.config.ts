@@ -25,6 +25,11 @@ const config: Config = {
         /* Cortes próprios do Atendimento. */
         "ib-narrow": { raw: "(max-width: 600px)" },
         "ib-mobile": { raw: "(max-width: 520px)" },
+        "ib-wide": { raw: "(max-width: 1150px)" },
+        /* Cortes próprios dos Relatórios. */
+        "rw-wide": { raw: "(max-width: 1100px)" },
+        "rw-laptop": { raw: "(max-width: 900px)" },
+        "rw-mobile": { raw: "(max-width: 560px)" },
       },
       colors: {
         /* Paleta documentada do Tailwind. Cada tom aponta para um token dos
@@ -79,6 +84,10 @@ const config: Config = {
         },
         red: { 100: "var(--vx-bad-soft)", 600: "var(--bad)" },
         sky: { 100: "var(--vx-accent-soft)", 600: "var(--accent2)" },
+        /* Cores de estado da lista de conversas (dados, não branding). */
+        "ib-coral": "#F0645E",
+        "ib-amber": "#F2A93B",
+        "ib-read": "#25D366",
 
         /* Alias semânticos usados pelo piloto Ficha Cliente (#903), já
            mergeado. O core migra para as classes oficiais acima; os aliases
@@ -141,9 +150,32 @@ const config: Config = {
         "vx-brand-mark": "var(--vx-core-brand-mark)",
         "vx-nav-active": "var(--vx-core-nav-active)",
         "vx-control": "var(--vx-core-control-bg)",
+        "ib-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
+        /** Shimmer dos skeletons de Relatórios. */
+        "rw-shimmer": "linear-gradient(100deg,var(--s3) 20%,var(--hover) 40%,var(--s3) 60%)",
+      },
+      backgroundSize: {
+        "rw-shimmer-size": "200% 100%",
+      },
+      keyframes: {
+        "rw-shimmer": {
+          "0%": { backgroundPosition: "120% 0" },
+          "100%": { backgroundPosition: "-80% 0" },
+        },
+      },
+      animation: {
+        "rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite",
       },
       strokeWidth: {
         ov: "5.5",
+      },
+      borderWidth: {
+        /* Filete dos eventos na grade do Calendário. */
+        "calendar-event": "3px",
+        /* Borda superior das colunas do Kanban. */
+        "crm-stage": "3px",
+        /* Filete de destaque das notas de escopo dos Relatórios. */
+        "rw-accent": "3px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -163,6 +195,16 @@ const config: Config = {
         "ib-entry": "9px",
         "ib-article": "10px",
         "ib-panel": "12px",
+        "ib-channel": "5px",
+        "ib-dialog-icon": "11px",
+        "ib-mention-item": "7px",
+        /* Ficha do contato. */
+        "ib-profile-field": "7px",
+        "ib-profile-tag": "6px",
+        "ib-profile-toggle": "10px",
+        "ib-profile-add": "8px",
+        "ib-profile-card": "14px",
+        "ib-profile-origin": "12px",
       },
       boxShadow: {
         token: "var(--shadow)",
@@ -173,6 +215,9 @@ const config: Config = {
         "vx-topbar": "var(--vx-core-shadow-topbar)",
         "vx-popover": "var(--vx-core-shadow-popover)",
         "vx-submenu": "var(--vx-core-shadow-submenu)",
+        /* Realces da lista de conversas. */
+        "ib-selected": "inset 3px 0 0 var(--primary),inset 0 0 0 1px var(--vx-core-selection)",
+        "ib-newdot": "0 0 0 2px var(--vx-ok-soft)",
       },
       fontFamily: {
         inherit: "inherit",
@@ -208,6 +253,37 @@ const config: Config = {
         "ov-onboarding": ["16px", { lineHeight: "1.35" }],
         /* Títulos dos diálogos do Atendimento. */
         "ib-title": ["1.2rem", { lineHeight: "1.3" }],
+        /* Escalas da lista de conversas. */
+        "ib-time": ["10.5px", { lineHeight: "1.35" }],
+        "ib-micro": ["9px", { lineHeight: "1.35" }],
+        "ib-tick": ["10px", { lineHeight: "1" }],
+        "ib-avatar-fallback": ["15px", { lineHeight: "1" }],
+        "ib-caption": ["11px", { lineHeight: "1.5" }],
+        "ib-label": ["10px", { lineHeight: "1.4", letterSpacing: ".08em" }],
+        "ib-input": ["12.5px", { lineHeight: "1.45" }],
+        "ib-mention-hint": ["9.5px", { lineHeight: "1.35" }],
+        /* Escalas da ficha do contato. */
+        "ib-profile-name": ["13px", { lineHeight: "1.25" }],
+        "ib-profile-sub": ["10.5px", { lineHeight: "1.3" }],
+        "ib-profile-copy": ["11.5px", { lineHeight: "1.3" }],
+        "ib-profile-field": ["11.5px", { lineHeight: "1.45" }],
+        "ib-profile-pill": ["9px", { lineHeight: "1.2" }],
+        "ib-profile-pill-sm": ["9.5px", { lineHeight: "1.2" }],
+        "ib-profile-tag": ["10px", { lineHeight: "1.4" }],
+        "ib-profile-tab": ["10.5px", { lineHeight: "1.4" }],
+        "ib-profile-action": ["11px", { lineHeight: "1.4" }],
+        "ib-profile-section": ["11px", { lineHeight: "1.4" }],
+        "ib-profile-label": ["10px", { lineHeight: "1.4" }],
+        "ib-profile-body": ["13px", { lineHeight: "1.4" }],
+        "ib-profile-icon": ["13px", { lineHeight: "1.4" }],
+        "ib-profile-note": ["11px", { lineHeight: "1.4" }],
+        /* Escalas dos Relatórios. */
+        "rw-title": ["clamp(26px, 2.4vw, 34px)", { lineHeight: "1.05", letterSpacing: "-.03em" }],
+        "rw-value": ["clamp(21px, 1.9vw, 29px)", { lineHeight: "1.15", letterSpacing: "-.03em" }],
+        "rw-card-title": ["15px", { lineHeight: "1.35", letterSpacing: "-.015em" }],
+        "rw-hint": "11.5px",
+        "rw-kpi-label": "10.5px",
+        "rw-donut-total": ["22px", { letterSpacing: "-.02em" }],
       },
       fontWeight: {
         heading: "750",
@@ -252,6 +328,18 @@ const config: Config = {
         "ib-pad": "18px",
         "ib-gap": "9px",
         "ib-block": "10px",
+        /* Medidas da lista de conversas e dos avatares. */
+        "ib-avatar": "44px",
+        "ib-avatar-sm": "38px",
+        "ib-presence": "11px",
+        "ib-newdot": "7px",
+        "ib-tag": "16px",
+        "ib-mark": "18px",
+        "ib-profile-avatar": "46px",
+        "ib-profile-icon": "36px",
+        "ib-profile-collapsed": "54px",
+        /* Estado de carregamento do Kanban. */
+        "crm-loading-y": "60px",
       },
       gridTemplateColumns: {
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
@@ -270,9 +358,43 @@ const config: Config = {
         /* Grades dos diálogos do Atendimento. */
         "ib-track": "minmax(0, 1fr) minmax(0, 1.4fr)",
         "ib-field": "minmax(0, 1fr) minmax(0, 1.4fr) auto",
+        /* Grades dos relatórios. */
+        "rw-kpi": "repeat(auto-fit, minmax(158px, 1fr))",
+        "rw-2": "minmax(0, 1.08fr) minmax(0, 1fr)",
+        "rw-hbar": "minmax(88px, 180px) minmax(0, 1fr) 52px",
+        "rw-compare": "minmax(0, 1fr) auto auto",
+        /* Grades do Calendário. */
+        "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
+        "calendar-event": "auto auto minmax(0, 1fr) auto auto",
+        /* Preferências de lembretes de Tarefas. */
+        "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
+        /* Grades da gestão de inbox do Atendimento. */
+        "ib-inboxes": "repeat(2, minmax(0, 1fr))",
+        "ib-compact-meta": "repeat(3, minmax(0, 1fr))",
+        "ib-details": "repeat(auto-fit, minmax(170px, 1fr))",
+        "ib-detail-row": "96px minmax(0, 1fr)",
+      },
+      gridAutoColumns: {
+        "crm-stage": "minmax(272px, 1fr)",
+      },
+      height: {
+        /* Skeleton dos Relatórios. */
+        "rw-skel-card": "118px",
+        "rw-skel-chart": "190px",
+        "rw-skel-chart-short": "150px",
+        "rw-donut": "132px",
+        /* Prévia do local no mapa do Calendário. */
+        "calendar-map": "clamp(180px, 38dvh, 320px)",
       },
       minHeight: {
         ov: "150px",
+        "ib-control": "37px",
+        /* Célula do mês e largura mínima da lista de compromissos. */
+        "calendar-day": "104px",
+        /* Medidas das colunas e cartões do Kanban do CRM. */
+        "crm-column": "280px",
+        "crm-card": "152px",
+        "crm-heading": "62px",
       },
       maxHeight: {
         ficha: "92vh",
@@ -280,6 +402,11 @@ const config: Config = {
         logo: "36px",
         "ib-track": "85dvh",
         "ib-support": "min(82dvh, 780px)",
+        "ib-mention": "240px",
+        /* Diálogos do Calendário. */
+        "calendar-modal": "90vh",
+        "calendar-event-modal": "calc(100dvh - 24px)",
+        "crm-column": "calc(100dvh - var(--top) - 235px)",
       },
       maxWidth: {
         content: "1520px",
@@ -291,16 +418,36 @@ const config: Config = {
         "crm-copy": "560px",
         "crm-select": "340px",
         "crm-search": "360px",
+        "ib-copy": "42ch",
+        /* Texto de apoio dos Relatórios. */
+        "rw-sub": "560px",
+        "rw-empty": "420px",
+        /* Diálogos e controles do Calendário. */
+        "calendar-modal": "520px",
+        "calendar-event-modal": "620px",
+        "calendar-copy": "44ch",
+        "calendar-select": "148px",
+        "calendar-chip": "150px",
       },
       width: {
         "profile-popover": "248px",
         "submenu-compact": "220px",
         "ib-track": "min(760px, calc(100vw - 24px))",
         "ib-support": "min(620px, calc(100vw - 24px))",
+        /* Filete redimensionável entre grade e lista. */
+        "calendar-handle": "6px",
+        /* Filete de tom à esquerda dos cartões do Kanban. */
+        "crm-accent": "3px",
+        /* Medidas dos gráficos dos Relatórios. */
+        "rw-donut": "132px",
+        "rw-dot": "11px",
       },
       minWidth: {
         "submenu-compact": "220px",
         "crm-select": "220px",
+        "rw-legend": "170px",
+        "calendar-event-date": "58px",
+        "calendar-month": "118px",
       },
       zIndex: {
         sidebar: "40",

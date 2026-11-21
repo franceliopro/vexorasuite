@@ -211,6 +211,16 @@ const networkColor = (label: string): string | null => {
   return null;
 };
 const barColor = (label: string, index: number): string => networkColor(label) ?? CHART_PALETTE[index % CHART_PALETTE.length] ?? "#1D4ED8";
+const deltaTw: Record<"up" | "down" | "flat", string> = {
+  up: "bg-emerald-100 text-emerald-600",
+  down: "bg-red-100 text-red-600",
+  flat: "bg-surface-3 text-slate-600",
+};
+const chipTw = "min-h-8 rounded-full border border-line bg-surface-2 px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+const chipActive = "border-blue-600 bg-blue-600 text-blue-900";
+const tabTw = "inline-flex min-h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+const tabActive = "bg-blue-600 text-blue-900 shadow-token-sm";
+
 
 /* ================================================================== */
 /* Blocos visuais                                                      */
@@ -219,43 +229,43 @@ function Delta({ value, invert = false, suffix = "%" }: { value: number | null; 
   const tone = deltaTone(value, invert);
   const arrow = value === null || value === 0 ? "–" : value > 0 ? "▲" : "▼";
   return (
-    <span className={"rw-delta " + tone} title={value === null ? "Sem base de comparação" : "Variação vs. período anterior"}>
+    <span className={deltaTw[tone]} data-print={"delta " + tone} title={value === null ? "Sem base de comparação" : "Variação vs. período anterior"}>
       <span aria-hidden="true">{arrow}</span> {deltaLabel(value, suffix)}
     </span>
   );
 }
 function Kpi({ label, value, note, delta, invert, suffix }: { label: string; value: ReactNode; note?: string; delta?: number | null; invert?: boolean; suffix?: string }) {
   return (
-    <div className="rw-card rw-kpi">
-      <span className="rw-kpi-label">{label}</span>
-      <strong className="rw-kpi-value">{value}</strong>
-      <div className="rw-kpi-foot">
+    <div className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm gap-0.5" data-print="card kpi">
+      <span className="text-rw-kpi-label font-bold uppercase tracking-wider text-slate-600" data-print="kpi-label">{label}</span>
+      <strong className="m-1 mb-1.5 truncate text-rw-value font-extrabold tabular-nums text-ink rw-mobile:whitespace-normal" data-print="kpi-value">{value}</strong>
+      <div className="mt-auto flex flex-col gap-1.5" data-print="kpi-foot">
         {delta !== undefined ? <Delta value={delta} invert={invert} suffix={suffix} /> : null}
-        {note ? <small className="rw-kpi-note">{note}</small> : null}
+        {note ? <small className="text-xs text-slate-600" data-print="kpi-note">{note}</small> : null}
       </div>
     </div>
   );
 }
 function PanelSkeleton() {
   return (
-    <div className="rw-skeleton" aria-busy="true" role="status" aria-label="Carregando indicadores">
-      <div className="rw-skel-grid">
-        {Array.from({ length: 6 }, (_, index) => <div key={index} className="rw-skel rw-skel-card" />)}
+    <div className="flex flex-col gap-3.5" data-print="skeleton" aria-busy="true" role="status" aria-label="Carregando indicadores">
+      <div className="grid grid-cols-rw-kpi gap-3" data-print="skel-grid">
+        {Array.from({ length: 6 }, (_, index) => <div key={index} className="rounded-token bg-rw-shimmer bg-rw-shimmer-size animate-rw-shimmer h-rw-skel-card" data-print="skel skel-card" />)}
       </div>
-      <div className="rw-skel rw-skel-chart" />
-      <div className="rw-skel rw-skel-chart rw-skel-chart-short" />
+      <div className="rounded-token bg-rw-shimmer bg-rw-shimmer-size animate-rw-shimmer h-rw-skel-chart" data-print="skel skel-chart" />
+      <div className="rounded-token bg-rw-shimmer bg-rw-shimmer-size animate-rw-shimmer h-rw-skel-chart-short" data-print="skel skel-chart-short" />
     </div>
   );
 }
 function SectionError({ title, message, onRetry }: { title: string; message: string; onRetry: () => void }) {
   return (
-    <div className="rw-error" role="alert">
-      <CircleAlert size={26} strokeWidth={1.6} aria-hidden="true" />
-      <div className="rw-error-body">
-        <strong>{title}</strong>
-        <p>{message}</p>
+    <div className="flex items-center gap-3.5 rounded-token border border-red-600/30 bg-red-100 p-4 text-ink" data-print="error" role="alert">
+      <CircleAlert size={26} strokeWidth={1.6} className="flex-none text-red-600" aria-hidden="true" />
+      <div className="min-w-0 flex-1" data-print="error-body">
+        <strong className="text-sm text-ink">{title}</strong>
+        <p className="m-0 mt-1 break-words text-xs text-slate-600">{message}</p>
       </div>
-      <button type="button" className="rw-btn rw-btn-ghost" onClick={onRetry}>
+      <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={onRetry}>
         <RefreshCw size={14} aria-hidden="true" /> Tentar novamente
       </button>
     </div>
@@ -263,37 +273,37 @@ function SectionError({ title, message, onRetry }: { title: string; message: str
 }
 function EmptyBlock({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rw-empty">
+    <div className="flex flex-col items-center gap-1.5 rounded-token-sm border border-dashed border-line-strong px-4 py-6 text-center text-slate-600" data-print="empty">
       <CircleAlert size={22} strokeWidth={1.6} aria-hidden="true" />
-      <strong>{title}</strong>
-      {hint ? <p>{hint}</p> : null}
+      <strong className="text-sm text-ink">{title}</strong>
+      {hint ? <p className="max-w-rw-empty text-xs">{hint}</p> : null}
     </div>
   );
 }
 function CardHead({ title, hint, aside }: { title: string; hint?: string; aside?: ReactNode }) {
   return (
-    <div className="rw-card-head">
+    <div className="mb-3 flex items-start justify-between gap-3" data-print="card-head">
       <div>
-        <h3 className="rw-card-title">{title}</h3>
-        {hint ? <p className="rw-card-hint">{hint}</p> : null}
+        <h3 className="m-0 text-rw-card-title font-heading text-ink" data-print="card-title">{title}</h3>
+        {hint ? <p className="m-0 mt-1 text-rw-hint text-slate-600" data-print="card-hint">{hint}</p> : null}
       </div>
-      {aside ? <div className="rw-card-aside">{aside}</div> : null}
+      {aside ? <div className="flex-none" data-print="card-aside">{aside}</div> : null}
     </div>
   );
 }
 function DataTable({ caption, columns, rows }: { caption: string; columns: string[]; rows: Array<Array<string | number>> }) {
   return (
-    <div className="rw-table-wrap">
-      <table className="rw-table">
-        <caption className="rw-visually-hidden">{caption}</caption>
+    <div className="-mx-1.5 overflow-x-auto" data-print="table-wrap">
+      <table className="w-full border-collapse text-xs" data-print="table">
+        <caption className="sr-only" data-print="visually-hidden">{caption}</caption>
         <thead>
-          <tr>{columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr>
+          <tr>{columns.map((column) => <th key={column} scope="col" className="border-b border-line-strong px-2.5 py-2 text-left text-2xs font-bold uppercase tracking-wider text-slate-600">{column}</th>)}</tr>
         </thead>
         <tbody>
           {rows.length ? rows.map((row, index) => (
-            <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>
+            <tr key={index} className="transition-colors hover:bg-surface-2/80">{row.map((cell, cellIndex) => <td key={cellIndex} className="border-t border-line px-2.5 py-2.5 tabular-nums text-ink">{cell}</td>)}</tr>
           )) : (
-            <tr><td colSpan={columns.length} className="rw-table-empty">Sem registros para este período.</td></tr>
+            <tr><td colSpan={columns.length} className="px-2.5 py-4 text-center text-slate-600" data-print="table-empty">Sem registros para este período.</td></tr>
           )}
         </tbody>
       </table>
@@ -306,17 +316,17 @@ function HorizontalBars({ rows, format }: { rows: Array<{ label: string; value: 
   const render = format ?? numberBR;
   if (!visible.length) return <EmptyBlock title="Sem dados para exibir" hint="Nenhum registro encontrado no período selecionado." />;
   return (
-    <div className="rw-hbars">
+    <div className="flex flex-col gap-2.5" data-print="hbars">
       {visible.map((row, index) => {
         const width = Math.max(row.value > 0 ? 3 : 0, (row.value / max) * 100);
         const fill = row.fill ?? barColor(row.label, index);
         return (
-          <div className="rw-hbar-row" key={row.label}>
-            <span className="rw-hbar-label" title={row.label}>{row.label}</span>
-            <div className="rw-hbar-track" role="img" aria-label={row.label + ": " + render(row.value)}>
-              {row.value > 0 ? <i className="rw-hbar-fill" style={{ width: width + "%", background: fill }} /> : null}
+          <div className="grid grid-cols-rw-hbar min-w-0 items-center gap-2.5" data-print="hbar-row" key={row.label}>
+            <span className="truncate text-xs font-semibold text-ink" data-print="hbar-label" title={row.label}>{row.label}</span>
+            <div className="relative h-2.5 overflow-hidden rounded-full bg-surface-3" data-print="hbar-track" role="img" aria-label={row.label + ": " + render(row.value)}>
+              {row.value > 0 ? <i className="block h-full rounded-full bg-blue-600 transition-all duration-bar ease-token" data-print="hbar-fill" style={{ width: width + "%", background: fill }} /> : null}
             </div>
-            <span className="rw-hbar-value">{render(row.value)}</span>
+            <span className="text-right text-xs font-bold tabular-nums text-slate-600" data-print="hbar-value">{render(row.value)}</span>
           </div>
         );
       })}
@@ -332,9 +342,9 @@ function Donut({ segments, totalLabel }: { segments: Array<{ label: string; valu
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   let offset = 0;
   return (
-    <div className="rw-donut-wrap">
-      <svg className="rw-donut" viewBox={"0 0 " + size + " " + size} role="img" aria-label={"Distribuição: " + segments.map((segment) => segment.label + " " + segment.value).join(", ")}>
-        <circle cx={center} cy={center} r={radius} fill="none" strokeWidth={thickness} className="rw-donut-track" />
+    <div className="flex flex-wrap items-center gap-4" data-print="donut-wrap">
+      <svg className="h-rw-donut w-rw-donut flex-none" data-print="donut" viewBox={"0 0 " + size + " " + size} role="img" aria-label={"Distribuição: " + segments.map((segment) => segment.label + " " + segment.value).join(", ")}>
+        <circle cx={center} cy={center} r={radius} fill="none" strokeWidth={thickness} className="stroke-surface-3" data-print="donut-track" />
         {total > 0 && segments.map((segment) => {
           if (segment.value <= 0) return null;
           const fraction = segment.value / total;
@@ -358,15 +368,15 @@ function Donut({ segments, totalLabel }: { segments: Array<{ label: string; valu
           offset += dash;
           return element;
         })}
-        <text x={center} y={center - 1} textAnchor="middle" className="rw-donut-total">{numberBR(total)}</text>
-        <text x={center} y={center + 14} textAnchor="middle" className="rw-donut-caption">{totalLabel}</text>
+        <text x={center} y={center - 1} textAnchor="middle" className="fill-ink text-rw-donut-total font-extrabold" data-print="donut-total">{numberBR(total)}</text>
+        <text x={center} y={center + 14} textAnchor="middle" className="fill-slate-600 text-2xs font-semibold uppercase tracking-wider" data-print="donut-caption">{totalLabel}</text>
       </svg>
-      <ul className="rw-legend">
+      <ul className="grid min-w-rw-legend list-none gap-2.5 p-0" data-print="legend">
         {segments.map((segment) => (
-          <li key={segment.label} className="rw-legend-item">
-            <span className="rw-legend-dot" style={{ background: segment.color }} aria-hidden="true" />
-            <span className="rw-legend-label">{segment.label}</span>
-            <strong className="rw-legend-value">{numberBR(segment.value)}</strong>
+          <li key={segment.label} className="flex items-center gap-2.5 text-xs text-slate-600" data-print="legend-item">
+            <span className="inline-block h-rw-dot w-rw-dot flex-none rounded" data-print="legend-dot" style={{ background: segment.color }} aria-hidden="true" />
+            <span className="min-w-0 flex-1" data-print="legend-label">{segment.label}</span>
+            <strong className="tabular-nums text-ink" data-print="legend-value">{numberBR(segment.value)}</strong>
           </li>
         ))}
       </ul>
@@ -395,31 +405,31 @@ function FinanceLine({ series }: { series: ExecutiveSeriesPoint[] }) {
   const gridFractions = [0, 1 / 3, 2 / 3, 1];
   if (!series.length) return <EmptyBlock title="Sem série mensal" hint="Nenhuma cobrança encontrada para o período." />;
   return (
-    <div className="rw-linechart">
-      <svg viewBox={"0 0 " + width + " " + height} role="img" aria-label="Evolução mensal de faturado e recebido">
+    <div className="flex flex-col gap-2" data-print="linechart">
+      <svg className="block h-auto w-full" data-print="line-svg" viewBox={"0 0 " + width + " " + height} role="img" aria-label="Evolução mensal de faturado e recebido">
         {gridFractions.map((fraction) => {
           const gy = y(max * fraction);
           return (
             <g key={fraction}>
-              <line x1={padLeft} y1={gy} x2={width - padRight} y2={gy} className="rw-gridline" />
-              <text x={padLeft - 8} y={gy + 3} textAnchor="end" className="rw-ylabel">{compactBRL(max * fraction)}</text>
+              <line x1={padLeft} y1={gy} x2={width - padRight} y2={gy} className="stroke-line" data-print="gridline" />
+              <text x={padLeft - 8} y={gy + 3} textAnchor="end" className="fill-slate-600 text-2xs font-semibold tabular-nums" data-print="ylabel">{compactBRL(max * fraction)}</text>
             </g>
           );
         })}
-        {areaPath ? <path d={areaPath} className="rw-line-area" /> : null}
-        {paidPath ? <path d={paidPath} className="rw-line-paid" fill="none" /> : null}
-        {billedPath ? <path d={billedPath} className="rw-line-billed" fill="none" /> : null}
+        {areaPath ? <path d={areaPath} className="fill-blue-50" data-print="line-area" /> : null}
+        {paidPath ? <path d={paidPath} className="stroke-2 stroke-amber-400" data-print="line-paid" fill="none" /> : null}
+        {billedPath ? <path d={billedPath} className="stroke-2 stroke-blue-600" data-print="line-billed" fill="none" /> : null}
         {series.map((point, index) => (
           <g key={point.month}>
-            <circle cx={x(index)} cy={y(point.billed)} r={3} className="rw-dot-billed"><title>{shortMonth(point.month) + " · Faturado: " + currencyBRL(point.billed)}</title></circle>
-            <circle cx={x(index)} cy={y(point.paid)} r={3} className="rw-dot-paid"><title>{shortMonth(point.month) + " · Recebido: " + currencyBRL(point.paid)}</title></circle>
-            <text x={x(index)} y={height - 10} textAnchor="middle" className="rw-xlabel">{shortMonth(point.month)}</text>
+            <circle cx={x(index)} cy={y(point.billed)} r={3} className="rounded-full bg-blue-600 fill-blue-600" data-print="dot-billed"><title>{shortMonth(point.month) + " · Faturado: " + currencyBRL(point.billed)}</title></circle>
+            <circle cx={x(index)} cy={y(point.paid)} r={3} className="rounded-full bg-amber-400 fill-amber-400" data-print="dot-paid"><title>{shortMonth(point.month) + " · Recebido: " + currencyBRL(point.paid)}</title></circle>
+            <text x={x(index)} y={height - 10} textAnchor="middle" className="fill-slate-600 text-2xs font-semibold" data-print="xlabel">{shortMonth(point.month)}</text>
           </g>
         ))}
       </svg>
-      <div className="rw-linechart-legend">
-        <span><i className="rw-legend-dot rw-dot-billed" aria-hidden="true" /> Faturado</span>
-        <span><i className="rw-legend-dot rw-dot-paid" aria-hidden="true" /> Recebido</span>
+      <div className="flex gap-4 text-rw-hint text-slate-600" data-print="linechart-legend">
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-rw-dot w-rw-dot flex-none rounded-full bg-blue-600 fill-blue-600" data-print="legend-dot dot-billed" aria-hidden="true" /> Faturado</span>
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-rw-dot w-rw-dot flex-none rounded-full bg-amber-400 fill-amber-400" data-print="legend-dot dot-paid" aria-hidden="true" /> Recebido</span>
       </div>
     </div>
   );
@@ -431,7 +441,7 @@ function HourlyBars({ labels, values, peakIndex }: { labels: string[]; values: n
   const max = Math.max(1, ...values);
   const slot = width / Math.max(1, values.length);
   return (
-    <svg className="rw-hourly" viewBox={"0 0 " + width + " " + height} role="img" aria-label="Volume de conversas por hora nas últimas 24 horas">
+    <svg className="block h-auto w-full" data-print="hourly" viewBox={"0 0 " + width + " " + height} role="img" aria-label="Volume de conversas por hora nas últimas 24 horas">
       {values.map((value, index) => {
         const barHeight = (value / max) * 78;
         const isPeak = peakIndex === index && value > 0;
@@ -443,15 +453,15 @@ function HourlyBars({ labels, values, peakIndex }: { labels: string[]; values: n
             width={Math.max(2, slot * 0.64)}
             height={barHeight}
             rx={1.6}
-            className={isPeak ? "rw-hour-peak" : "rw-hour-bar"}
+            className={isPeak ? "fill-blue-600" : "fill-line-strong"} data-print={isPeak ? "hour-peak" : "hour-bar"}
           >
             <title>{(labels[index] ?? String(index) + "h") + ": " + value + " conversas"}</title>
           </rect>
         );
       })}
-      <line x1={0} y1={baseline} x2={width} y2={baseline} className="rw-gridline" />
+      <line x1={0} y1={baseline} x2={width} y2={baseline} className="stroke-line" data-print="gridline" />
       {[0, 6, 12, 18].map((hour) => (
-        <text key={hour} x={hour * slot + slot / 2} y={height - 2} textAnchor="middle" className="rw-xlabel">{String(hour).padStart(2, "0") + "h"}</text>
+        <text key={hour} x={hour * slot + slot / 2} y={height - 2} textAnchor="middle" className="fill-slate-600 text-2xs font-semibold" data-print="xlabel">{String(hour).padStart(2, "0") + "h"}</text>
       ))}
     </svg>
   );
@@ -697,46 +707,46 @@ function ReportsWorkspaceInner() {
   const topAgent = service?.byAgent?.[0] ?? null;
 
   return (
-    <div className="reports-print-root">
+    <div className="flex min-w-0 flex-col gap-4 text-ink tabular-nums" data-print="print-root">
       <style>{REPORTS_CSS}</style>
 
       {/* Capa institucional — somente impressão */}
-      <div className="rw-print-cover reports-print-only" aria-hidden="true">
-        <span className="rw-print-mark">V</span>
-        <span className="rw-print-text">
+      <div className="items-center gap-3 hidden print:flex" data-print="print-cover print-only" aria-hidden="true">
+        <span className="grid h-9 w-9 place-items-center rounded-lg bg-blue-800 text-base font-extrabold text-blue-900" data-print="print-mark">V</span>
+        <span className="flex flex-col gap-0.5" data-print="print-text">
           <strong>{"Véxora Suite · Relatórios · " + periodLabel}</strong>
           <small>{"Emitido em " + generatedLabel + " · " + comparisonLabel}</small>
         </span>
       </div>
 
       {/* Barra superior — somente tela */}
-      <div className="rw-top reports-no-print">
-        <div className="rw-head-left">
-          <span className="rw-badge">Véxora Suite</span>
-          <h1>Relatórios</h1>
-          <p className="rw-sub">Indicadores executivos de atendimento, equipe, vendas, financeiro e automação.</p>
+      <div className="flex flex-wrap items-end justify-between gap-5 rw-laptop:items-start print:hidden" data-print="top no-print">
+        <div className="grid" data-print="head-left">
+          <span className="inline-flex items-center rounded-full border border-blue-600/30 bg-blue-50 px-3 py-0.5 text-2xs font-bold uppercase tracking-widest text-blue-800" data-print="badge">Véxora Suite</span>
+          <h1 className="mb-1.5 mt-2.5 text-rw-title font-extrabold tracking-tight text-ink" data-print="top-title">Relatórios</h1>
+          <p className="max-w-rw-sub text-body text-slate-600" data-print="sub">Indicadores executivos de atendimento, equipe, vendas, financeiro e automação.</p>
         </div>
-        <div className="rw-actions">
-          <button type="button" className="rw-btn rw-btn-ghost" onClick={refreshAll} title="Recarregar todos os indicadores">
+        <div className="flex flex-wrap items-center gap-2 rw-laptop:w-full" data-print="actions">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={refreshAll} title="Recarregar todos os indicadores">
             <RefreshCw size={15} aria-hidden="true" /> Atualizar
           </button>
-          <button type="button" className="rw-btn rw-btn-ghost" onClick={() => window.print()} title="Gera o PDF pela impressão do navegador">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={() => window.print()} title="Gera o PDF pela impressão do navegador">
             <Printer size={15} aria-hidden="true" /> Baixar PDF
           </button>
-          <button type="button" className="rw-btn rw-btn-primary" onClick={exportCsv} title="Exporta a seção ativa em CSV (Excel)">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center border-transparent bg-gradient-to-br from-blue-50 via-blue-600 to-blue-700 text-blue-900 shadow-vx-brand hover:from-blue-100 hover:via-blue-700 hover:to-blue-700" data-print="btn btn-primary" onClick={exportCsv} title="Exporta a seção ativa em CSV (Excel)">
             <FileDown size={15} aria-hidden="true" /> Exportar CSV
           </button>
         </div>
       </div>
 
       {/* Filtro de período — somente tela */}
-      <div className="rw-period reports-no-print">
-        <div className="rw-presets" role="group" aria-label="Selecionar período">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-token border border-line bg-gradient-to-b from-zinc-100 to-zinc-50 p-3.5 shadow-token-sm rw-laptop:flex-col rw-laptop:items-start print:hidden" data-print="period no-print">
+        <div className="flex flex-wrap gap-1.5" data-print="presets" role="group" aria-label="Selecionar período">
           {PRESETS.map((option) => (
             <button
               key={option.id}
               type="button"
-              className={"rw-chip" + (preset === option.id ? " active" : "")}
+              className={chipTw + (preset === option.id ? " " + chipActive : "")} data-print={"chip" + (preset === option.id ? " active" : "")}
               aria-pressed={preset === option.id}
               onClick={() => selectPreset(option.id)}
             >
@@ -745,22 +755,22 @@ function ReportsWorkspaceInner() {
           ))}
         </div>
         {preset === "custom" ? (
-          <div className="rw-custom">
-            <label>De<input type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} /></label>
-            <label>Até<input type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label>
-            <button type="button" className="rw-btn rw-btn-ghost" onClick={applyCustomRange}>Aplicar</button>
-            {customError ? <small className="rw-custom-error" role="alert">{customError}</small> : null}
+          <div className="flex flex-wrap items-center gap-2.5" data-print="custom">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">De<input type="date" className="min-h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-xs font-medium text-ink" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} /></label>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">Até<input type="date" className="min-h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-xs font-medium text-ink" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label>
+            <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={applyCustomRange}>Aplicar</button>
+            {customError ? <small className="basis-full text-rw-hint font-semibold text-red-600" data-print="custom-error" role="alert">{customError}</small> : null}
           </div>
         ) : null}
-        <div className="rw-range">
+        <div className="flex items-center gap-2 text-xs text-slate-600 rw-laptop:w-full rw-laptop:border-t rw-laptop:border-line rw-laptop:pt-2.5" data-print="range">
           <CalendarDays size={14} aria-hidden="true" />
-          <strong>{periodLabel}</strong>
-          <span className="rw-range-vs">{comparisonLabel}</span>
+          <strong className="font-bold tabular-nums text-ink">{periodLabel}</strong>
+          <span className="border-l border-line-strong pl-2.5 text-rw-hint" data-print="range-vs">{comparisonLabel}</span>
         </div>
       </div>
 
       {/* Abas da URL — somente tela */}
-      <div className="rw-tabs reports-no-print" role="tablist" aria-label="Seções de relatórios">
+      <div className="flex gap-1 overflow-x-auto rounded-token-sm border border-line bg-surface-2 p-1 print:hidden" data-print="tabs no-print" role="tablist" aria-label="Seções de relatórios">
         {TABS.map((item) => {
           const Icon: LucideIcon = item.icon;
           const selected = tab === item.id;
@@ -770,7 +780,7 @@ function ReportsWorkspaceInner() {
               type="button"
               role="tab"
               aria-selected={selected}
-              className={"rw-tab" + (selected ? " active" : "")}
+              className={tabTw + (selected ? " " + tabActive : "")} data-print={"tab" + (selected ? " active" : "")}
               onClick={() => setTab(item.id)}
             >
               <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
@@ -781,14 +791,14 @@ function ReportsWorkspaceInner() {
       </div>
 
       {/* ============ Painéis ============ */}
-      <div className="rw-panels">
+      <div className="min-w-0" data-print="panels">
 
         {tab === "overview" ? (
           serviceSection.loading && !service ? <PanelSkeleton /> :
           serviceSection.error ? <SectionError title="Não foi possível carregar a visão geral" message={serviceSection.error} onRetry={serviceSection.retry} /> :
           service && summary ? (
-            <div className="rw-panel" role="tabpanel" aria-label="Visão geral">
-              <div className="rw-kpi-grid">
+            <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Visão geral">
+              <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
                 <Kpi label="Conversas" value={numberBR(summary.total)} delta={deltaPercent(summary.total, comparison?.total)} note="Criadas no período" />
                 <Kpi label="Finalizadas" value={numberBR(summary.finished)} delta={deltaPercent(summary.finished, comparison?.finished)} note="Resolvidas ou encerradas" />
                 <Kpi label="Em aberto" value={numberBR(summary.open)} delta={deltaPercent(summary.open, comparison?.open)} note="Aguardando atendimento" />
@@ -796,14 +806,14 @@ function ReportsWorkspaceInner() {
                 <Kpi label="Contatos únicos" value={numberBR(summary.contacts)} delta={deltaPercent(summary.contacts, comparison?.contacts)} note="Pessoas distintas" />
                 <Kpi label="Primeira resposta" value={durationFromSeconds(summary.firstMessageSeconds)} delta={deltaPercent(summary.firstMessageSeconds, comparison?.firstMessageSeconds)} invert note={summary.firstMessageSample + " conversas com resposta"} />
               </div>
-              <div className="rw-grid-2">
-                <section className="rw-card">
+              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Composição do atendimento" hint="Quem conduziu as conversas do período" />
                   <Donut segments={composition} totalLabel="conversas" />
                 </section>
-                <section className="rw-card">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Comparativo de períodos" hint={comparisonLabel} />
-                  <div className="rw-compare">
+                  <div className="flex flex-col" data-print="compare">
                     {([
                       ["Conversas", summary.total, comparison?.total],
                       ["Finalizadas", summary.finished, comparison?.finished],
@@ -812,26 +822,26 @@ function ReportsWorkspaceInner() {
                       ["Atendidas pela IA", summary.bot, comparison?.bot],
                       ["Atendidas por humano", summary.human, comparison?.human],
                     ] as Array<[string, number, number | undefined]>).map(([label, current, previous]) => (
-                      <div className="rw-compare-row" key={label}>
-                        <span className="rw-compare-label">{label}</span>
-                        <span className="rw-compare-current">{numberBR(current)}</span>
+                      <div className="grid grid-cols-rw-compare items-center gap-3 border-t border-line px-0.5 py-2.5 first:border-t-0 first:pt-0.5" data-print="compare-row" key={label}>
+                        <span className="text-xs text-slate-600" data-print="compare-label">{label}</span>
+                        <span className="text-base font-extrabold tracking-tight text-ink" data-print="compare-current">{numberBR(current)}</span>
                         <Delta value={deltaPercent(current, previous ?? null)} />
                       </div>
                     ))}
                   </div>
                 </section>
               </div>
-              <div className="rw-grid-2">
-                <section className="rw-card">
+              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Volume por canal" hint="Conversas criadas por canal no período" />
                   <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total, fill: networkColor(row.name) ?? undefined }))} />
                 </section>
-                <section className="rw-card">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Top atendentes" hint="Maior volume de conversas no período" />
                   <HorizontalBars rows={(service.byAgent ?? []).slice(0, 6).map((row) => ({ label: row.name, value: row.total }))} />
                 </section>
               </div>
-              {service.basis ? <p className="rw-footnote">{service.basis}</p> : null}
+              {service.basis ? <p className="m-0 border-t border-dashed border-line-strong pt-2.5 text-xs leading-relaxed text-slate-600" data-print="footnote">{service.basis}</p> : null}
             </div>
           ) : null
         ) : null}
@@ -840,8 +850,8 @@ function ReportsWorkspaceInner() {
           serviceSection.loading && !service ? <PanelSkeleton /> :
           serviceSection.error ? <SectionError title="Não foi possível carregar o atendimento" message={serviceSection.error} onRetry={serviceSection.retry} /> :
           service && summary ? (
-            <div className="rw-panel" role="tabpanel" aria-label="Atendimento">
-              <div className="rw-kpi-grid">
+            <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Atendimento">
+              <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
                 <Kpi label="Taxa de finalização" value={finishRate === null ? "Sem base" : finishRate.toFixed(1).replace(".", ",") + "%"} delta={finishRateDelta} suffix=" p.p." note="Finalizadas sobre o total" />
                 <Kpi label="Primeira resposta" value={durationFromSeconds(summary.firstMessageSeconds)} delta={deltaPercent(summary.firstMessageSeconds, comparison?.firstMessageSeconds)} invert note={summary.firstMessageSample + " conversas com resposta"} />
                 <Kpi label="Mensagens" value={numberBR(summary.messages)} delta={deltaPercent(summary.messages, comparison?.messages)} note="Todas as direções" />
@@ -849,17 +859,17 @@ function ReportsWorkspaceInner() {
                 <Kpi label="Atendidas por humano" value={numberBR(summary.human)} delta={deltaPercent(summary.human, comparison?.human)} note="Modo de atendimento registrado" />
                 <Kpi label="Pendentes" value={numberBR(summary.pending)} delta={deltaPercent(summary.pending, comparison?.pending)} note="Aguardando continuidade" />
               </div>
-              <div className="rw-grid-2">
-                <section className="rw-card">
+              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Composição do atendimento" hint="Distribuição por modo de condução" />
                   <Donut segments={composition} totalLabel="conversas" />
                 </section>
-                <section className="rw-card">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Volume por canal" hint="Em que canais as conversas nasceram" />
                   <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total, fill: networkColor(row.name) ?? undefined }))} />
                 </section>
               </div>
-              <section className="rw-card">
+              <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                 <CardHead title="Desempenho por canal" hint="Volume, abertura e finalização por canal" />
                 <DataTable
                   caption="Desempenho por canal"
@@ -867,7 +877,7 @@ function ReportsWorkspaceInner() {
                   rows={(service.byChannel ?? []).map((row) => [row.name, row.total, row.open, row.pending, row.finished, row.bot, row.human])}
                 />
               </section>
-              {service.basis ? <p className="rw-footnote">{service.basis}</p> : null}
+              {service.basis ? <p className="m-0 border-t border-dashed border-line-strong pt-2.5 text-xs leading-relaxed text-slate-600" data-print="footnote">{service.basis}</p> : null}
             </div>
           ) : null
         ) : null}
@@ -876,24 +886,24 @@ function ReportsWorkspaceInner() {
           serviceSection.loading && !service ? <PanelSkeleton /> :
           serviceSection.error ? <SectionError title="Não foi possível carregar a equipe" message={serviceSection.error} onRetry={serviceSection.retry} /> :
           service ? (
-            <div className="rw-panel" role="tabpanel" aria-label="Equipe">
-              <div className="rw-kpi-grid">
+            <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Equipe">
+              <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
                 <Kpi label="Atendentes" value={numberBR(service.byAgent.length)} note="Com conversas no período" />
                 <Kpi label="Setores" value={numberBR(service.byDepartment.length)} note="Com conversas no período" />
                 <Kpi label="Maior volume" value={topAgent ? numberBR(topAgent.total) : "0"} note={topAgent ? "Conversas com " + topAgent.name : "Sem registros"} />
                 <Kpi label="Média por atendente" value={service.byAgent.length ? (summary ? (summary.total / service.byAgent.length).toFixed(1).replace(".", ",") : "0") : "0"} note="Conversas por atendente" />
               </div>
-              <div className="rw-grid-2">
-                <section className="rw-card">
+              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Conversas por atendente" hint="Top 8 no período" />
                   <HorizontalBars rows={service.byAgent.map((row) => ({ label: row.name, value: row.total }))} />
                 </section>
-                <section className="rw-card">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Conversas por setor" hint="Top 8 no período" />
                   <HorizontalBars rows={service.byDepartment.map((row) => ({ label: row.name, value: row.total }))} />
                 </section>
               </div>
-              <section className="rw-card">
+              <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                 <CardHead title="Desempenho por atendente" hint={service.byAgent.length + " atendentes com atividade"} />
                 <DataTable
                   caption="Desempenho por atendente"
@@ -901,7 +911,7 @@ function ReportsWorkspaceInner() {
                   rows={service.byAgent.map((row) => [row.name, row.total, row.open, row.pending, row.finished, row.bot, row.human])}
                 />
               </section>
-              <section className="rw-card">
+              <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                 <CardHead title="Desempenho por setor" hint={service.byDepartment.length + " setores com atividade"} />
                 <DataTable
                   caption="Desempenho por setor"
@@ -914,7 +924,7 @@ function ReportsWorkspaceInner() {
         ) : null}
 
         {tab === "crm" ? (
-          <div className="rw-panel" role="tabpanel" aria-label="CRM e Vendas">
+          <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="CRM e Vendas">
             {originsSection.loading && !originsSection.data ? <PanelSkeleton /> : originsSection.error ? (
               <SectionError title="Não foi possível carregar as origens de leads" message={originsSection.error} onRetry={originsSection.retry} />
             ) : originsSection.data ? (() => {
@@ -926,30 +936,30 @@ function ReportsWorkspaceInner() {
               const identifiedPct = origins.total > 0 ? (origins.identified / origins.total) * 100 : null;
               return (
                 <>
-                  <div className="rw-kpi-grid">
+                  <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
                     <Kpi label="Leads no período" value={numberBR(origins.total)} note="Contatos captados" />
                     <Kpi label="Identificados" value={identifiedPct === null ? "Sem base" : identifiedPct.toFixed(0) + "%"} note={origins.identified + " de " + origins.total + " com origem conhecida"} />
                     <Kpi label="Ganhos" value={numberBR(won)} note="Finalizados como ganho" />
                     <Kpi label="Perdas" value={numberBR(lost)} note="Finalizados como perda" />
                     <Kpi label="Em aberto" value={numberBR(open)} note="Ainda em negociação" />
                   </div>
-                  <div className="rw-grid-2">
-                    <section className="rw-card">
+                  <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                       <CardHead title="Leads por origem" hint="Canais que trouxeram oportunidades" />
                       <HorizontalBars rows={byOrigin.map((origin) => ({ label: origin.name, value: origin.total, fill: networkColor(origin.name) ?? undefined }))} />
                     </section>
-                    <section className="rw-card">
+                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                       <CardHead title="Leads por etapa" hint="Distribuição no funil" />
                       {origins.stages?.length ? (
-                        <div className="rw-stage-chips">
+                        <div className="flex flex-wrap gap-2" data-print="stage-chips">
                           {origins.stages.map((stage) => (
-                            <span className="rw-stage-chip" key={stage.name}>{stage.name}<strong>{numberBR(stage.count)}</strong></span>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-slate-600" data-print="stage-chip" key={stage.name}>{stage.name}<strong className="tabular-nums text-ink">{numberBR(stage.count)}</strong></span>
                           ))}
                         </div>
                       ) : <EmptyBlock title="Funil sem dados" hint="Nenhum lead com etapa registrada no período." />}
                     </section>
                   </div>
-                  <section className="rw-card">
+                  <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                     <CardHead title="Desempenho por origem" hint={byOrigin.length + " origens com leads no período"} />
                     <DataTable
                       caption="Desempenho por origem de lead"
@@ -966,39 +976,39 @@ function ReportsWorkspaceInner() {
             ) : pipelinesSection.data ? (() => {
               const pipelines = pipelinesSection.data?.pipelines ?? [];
               return (
-                <section className="rw-card">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead
                     title="Pipelines e etapas"
                     hint="Estrutura comercial ativa · cards por etapa, ganhos e perdas"
-                    aside={<span className="rw-count-pill">{pipelines.length} {pipelines.length === 1 ? "pipeline" : "pipelines"}</span>}
+                    aside={<span className="inline-flex items-center rounded-full border border-line bg-surface-3 px-2.5 py-0.5 text-xs font-bold text-slate-600" data-print="count-pill">{pipelines.length} {pipelines.length === 1 ? "pipeline" : "pipelines"}</span>}
                   />
                   {pipelines.length ? (
-                    <div className="rw-pipeline-list">
+                    <div className="flex flex-col gap-3" data-print="pipeline-list">
                       {pipelines.map((pipeline) => {
                         const stages = Array.isArray(pipeline.stages) ? (pipeline.stages as PipelineStage[]) : [];
                         return (
-                          <div className="rw-pipeline" key={pipeline.id}>
-                            <div className="rw-pipeline-head">
-                              <strong>{pipeline.name}</strong>
-                              <span>{pipeline.department?.name ?? "Sem setor vinculado"}{pipeline.template ? " · " + pipeline.template : ""}</span>
+                          <div className="grid gap-2 rounded-token-sm border border-line bg-surface-2 p-3.5" data-print="pipeline" key={pipeline.id}>
+                            <div className="flex flex-wrap items-baseline justify-between gap-2.5" data-print="pipeline-head">
+                              <strong className="text-sm font-heading text-ink">{pipeline.name}</strong>
+                              <span className="text-rw-hint text-slate-600">{pipeline.department?.name ?? "Sem setor vinculado"}{pipeline.template ? " · " + pipeline.template : ""}</span>
                               {(typeof pipeline.won === "number" || typeof pipeline.lost === "number") ? (
-                                <span className="rw-pipeline-outcome">
-                                  <span className="rw-outcome-won">{"Ganhos "}<strong>{numberBR(pipeline.won ?? 0)}</strong></span>
-                                  <span className="rw-outcome-lost">{"Perdas "}<strong>{numberBR(pipeline.lost ?? 0)}</strong></span>
+                                <span className="ml-auto inline-flex gap-2" data-print="pipeline-outcome">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 bg-emerald-100 px-2.5 py-0.5 text-2xs font-bold text-emerald-600" data-print="outcome-won">{"Ganhos "}<strong>{numberBR(pipeline.won ?? 0)}</strong></span>
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-red-600/30 bg-red-100 px-2.5 py-0.5 text-2xs font-bold text-red-600" data-print="outcome-lost">{"Perdas "}<strong>{numberBR(pipeline.lost ?? 0)}</strong></span>
                                 </span>
                               ) : null}
                             </div>
-                            <div className="rw-stage-chips">
+                            <div className="flex flex-wrap gap-2" data-print="stage-chips">
                               {stages.length ? stages.map((stage, index) => {
                                 const count = typeof stage.count === "number" ? stage.count : typeof stage.cards === "number" ? stage.cards : null;
                                 return (
-                                  <span className="rw-stage-chip" key={(stage.id ?? "stage") + "-" + index}>
-                                    <i className="rw-stage-dot" style={{ background: TONE_COLOR[String(stage.tone ?? "")] ?? STAGE_FALLBACK[index % STAGE_FALLBACK.length] }} aria-hidden="true" />
+                                  <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-slate-600" data-print="stage-chip" key={(stage.id ?? "stage") + "-" + index}>
+                                    <i className="inline-block h-2.5 w-2.5 rounded-full" data-print="stage-dot" style={{ background: TONE_COLOR[String(stage.tone ?? "")] ?? STAGE_FALLBACK[index % STAGE_FALLBACK.length] }} aria-hidden="true" />
                                     {stage.label ?? stage.id ?? "Etapa " + (index + 1)}
-                                    {count !== null ? <strong>{numberBR(count)}</strong> : null}
+                                    {count !== null ? <strong className="tabular-nums text-ink">{numberBR(count)}</strong> : null}
                                   </span>
                                 );
-                              }) : <span className="rw-pipeline-empty">Pipeline sem etapas configuradas.</span>}
+                              }) : <span className="text-xs text-slate-600" data-print="pipeline-empty">Pipeline sem etapas configuradas.</span>}
                             </div>
                           </div>
                         );
@@ -1023,8 +1033,8 @@ function ReportsWorkspaceInner() {
             const finance = financeSection.data;
             const totals = finance.totals;
             return (
-              <div className="rw-panel" role="tabpanel" aria-label="Financeiro">
-                <div className="rw-kpi-grid">
+              <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Financeiro">
+                <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
                   <Kpi label="Faturado" value={currencyBRL(totals.billed)} note="Cobranças válidas no período" />
                   <Kpi label="Recebido" value={currencyBRL(totals.paid)} note={totals.customers + " clientes"} />
                   <Kpi label="Em aberto" value={currencyBRL(totals.open)} note="Aguardando pagamento" />
@@ -1032,12 +1042,12 @@ function ReportsWorkspaceInner() {
                   <Kpi label="Taxa de recebimento" value={finance.collectionRate === null ? "Sem base" : finance.collectionRate.toFixed(1).replace(".", ",") + "%"} note="Recebido sobre o faturado" />
                   <Kpi label="Cobranças" value={numberBR(totals.count)} note="Excluindo canceladas e reembolsadas" />
                 </div>
-                <section className="rw-card">
+                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                   <CardHead title="Faturado × Recebido por mês" hint="Evolução da régua de cobrança" />
                   <FinanceLine series={finance.series ?? []} />
                 </section>
-                <div className="rw-grid-2">
-                  <section className="rw-card">
+                <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                  <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                     <CardHead title="Por situação" hint="Status das cobranças" />
                     <DataTable
                       caption="Cobranças por situação"
@@ -1045,7 +1055,7 @@ function ReportsWorkspaceInner() {
                       rows={(finance.byStatus ?? []).map((row) => [STATUS_BR[row.status] ?? row.status, row.count, currencyBRL(row.amount)])}
                     />
                   </section>
-                  <section className="rw-card">
+                  <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                     <CardHead title="Por forma de pagamento" hint="Mix de meios de recebimento" />
                     <DataTable
                       caption="Cobranças por forma de pagamento"
@@ -1060,8 +1070,8 @@ function ReportsWorkspaceInner() {
         ) : null}
 
         {tab === "ai" ? (
-          <div className="rw-panel" role="tabpanel" aria-label="IA e Automação">
-            <p className="rw-scope-note">Indicadores do painel Véxora — visão atual, não filtrada pelo período selecionado.</p>
+          <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="IA e Automação">
+            <p className="m-0 rounded-token-sm border border-line border-l-rw-accent bg-surface-2 px-3.5 py-2.5 text-xs text-slate-600" data-print="scope-note">Indicadores do painel Véxora — visão atual, não filtrada pelo período selecionado.</p>
             {overviewSection.loading && !overviewSection.data ? <PanelSkeleton /> :
             overviewSection.error ? (
               <SectionError title="Não foi possível carregar os indicadores de IA" message={overviewSection.error} onRetry={overviewSection.retry} />
@@ -1076,7 +1086,7 @@ function ReportsWorkspaceInner() {
               ];
               return (
                 <>
-                  <div className="rw-kpi-grid">
+                  <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
                     <Kpi label="Resolvidas pela IA" value={numberBR(resolvedByAi)} note="Conversas concluídas sem humano" />
                     <Kpi label="Taxa de resolução IA" value={(kpis.resolvedByAiPercent ?? 0).toFixed(0) + "%"} note="Sobre conversas concluídas" />
                     <Kpi label="Conversas concluídas" value={numberBR(completed)} note="No período de referência do painel" />
@@ -1084,12 +1094,12 @@ function ReportsWorkspaceInner() {
                     <Kpi label="Primeira resposta" value={durationFromSeconds(kpis.firstResponseSeconds)} note="Média das conversas recentes" />
                     <Kpi label="Agentes ativos" value={numberBR(overview.activeAgents ?? 0) + " / " + numberBR(overview.agentsTotal ?? 0)} note="Agentes de IA habilitados" />
                   </div>
-                  <div className="rw-grid-2">
-                    <section className="rw-card">
+                  <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
+                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                       <CardHead title="IA × Humano" hint="Quem resolveu as conversas concluídas" />
                       <Donut segments={aiSegments} totalLabel="concluídas" />
                     </section>
-                    <section className="rw-card">
+                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                       <CardHead title="Demanda por hora" hint="Conversas criadas por hora nas últimas 24h" />
                       {overview.hourly && overview.hourly.values.length ? (
                         <HourlyBars labels={overview.hourly.labels} values={overview.hourly.values} peakIndex={overview.hourly.peakIndex} />
@@ -1097,7 +1107,7 @@ function ReportsWorkspaceInner() {
                     </section>
                   </div>
                   {overview.topics?.length ? (
-                    <section className="rw-card">
+                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
                       <CardHead title="Temas mais frequentes" hint="Baseado em assunto e departamento" />
                       <HorizontalBars rows={overview.topics.map((topic, index) => ({ label: topic.label, value: topic.count, fill: networkColor(topic.label) ?? CHART_PALETTE[index % CHART_PALETTE.length] }))} />
                     </section>
@@ -1117,7 +1127,7 @@ function ReportsWorkspaceInner() {
 /* Fallback de carregamento do Suspense (pré-render do Next) */
 function ReportsWorkspaceFallback() {
   return (
-    <div className="reports-print-root">
+    <div className="flex min-w-0 flex-col gap-4 text-ink tabular-nums" data-print="print-root">
       <style>{REPORTS_CSS}</style>
       <PanelSkeleton />
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true"><defs><linearGradient id="rw-instagram" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FEDA77" /><stop offset=".25" stopColor="#FD1D1D" /><stop offset=".6" stopColor="#D6249F" /><stop offset="1" stopColor="#833AB4" /></linearGradient></defs></svg>
@@ -1138,205 +1148,18 @@ export default ReportsWorkspace;
 /* Estilos com escopo · auto-contidos (não alteram vexora.css)         */
 /* ================================================================== */
 const REPORTS_CSS = `
-.reports-print-root{--rw-gap:14px;display:flex;flex-direction:column;gap:16px;min-width:0;color:var(--tx);font-variant-numeric:tabular-nums}
-.rw-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-
-/* ---------- Barra superior ---------- */
-.rw-top{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap}
-.rw-badge{display:inline-flex;align-items:center;padding:3px 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--primary) 26%,var(--ln));background:var(--primary-soft);color:var(--primary-ink);font:700 10px/1.7 var(--font-ui);letter-spacing:.09em;text-transform:uppercase}
-.rw-top h1{font:800 clamp(26px,2.4vw,34px)/1.05 var(--font-display);letter-spacing:-.03em;color:var(--tx);margin:10px 0 6px}
-.rw-sub{color:var(--tx2);font-size:13px;max-width:560px}
-.rw-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.rw-btn{display:inline-flex;align-items:center;gap:7px;padding:0 13px;min-height:36px;border-radius:var(--r-sm);border:1px solid var(--ln);background:var(--s1);color:var(--tx);font:700 12.5px var(--font-ui);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,transform .15s}
-.rw-btn:hover{background:var(--hover);border-color:var(--ln2)}
-.rw-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.rw-btn-primary{background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 82%,#FFFFFF),var(--primary) 60%,color-mix(in srgb,var(--primary) 86%,#000));border-color:transparent;color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 22px -14px color-mix(in srgb,var(--primary) 78%,transparent)}
-.rw-btn-primary:hover{background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 88%,#FFFFFF),var(--primary) 62%);color:var(--primary-contrast)}
-.rw-btn-ghost{background:var(--s1)}
-
-/* ---------- Filtro de período ---------- */
-.rw-period{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--ln);border-radius:var(--r);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 94%,var(--bg)));box-shadow:var(--shadow-sm)}
-.rw-presets{display:flex;gap:6px;flex-wrap:wrap}
-.rw-chip{padding:0 13px;min-height:32px;border-radius:99px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);font:600 12px var(--font-ui);cursor:pointer;transition:background .14s,color .14s,border-color .14s}
-.rw-chip:hover{background:var(--s3);color:var(--tx)}
-.rw-chip.active{background:var(--primary);border-color:var(--primary);color:var(--primary-contrast)}
-.rw-chip:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.rw-custom{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.rw-custom label{display:flex;align-items:center;gap:6px;font:600 12px var(--font-ui);color:var(--tx2)}
-.rw-custom input[type="date"]{min-height:34px;padding:0 10px;border:1px solid var(--ln2);border-radius:9px;background:var(--s1);color:var(--tx);font:500 12px var(--font-ui)}
-.rw-custom input[type="date"]:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
-.rw-custom-error{color:var(--bad);font-size:11.5px;font-weight:600;flex-basis:100%}
-.rw-range{display:flex;align-items:center;gap:9px;color:var(--tx2);font-size:12.5px}
-.rw-range strong{color:var(--tx);font-variant-numeric:tabular-nums}
-.rw-range-vs{border-left:1px solid var(--ln2);padding-left:9px;font-size:11.5px}
-
-/* ---------- Abas ---------- */
-.rw-tabs{display:flex;gap:4px;padding:5px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s2);overflow-x:auto;scrollbar-width:none}
-.rw-tabs::-webkit-scrollbar{display:none}
-.rw-tab{display:inline-flex;align-items:center;gap:7px;padding:0 14px;min-height:36px;border:0;border-radius:9px;background:transparent;color:var(--tx2);font:600 12.5px var(--font-ui);white-space:nowrap;cursor:pointer;transition:background .14s,color .14s}
-.rw-tab:hover{background:var(--s3);color:var(--tx)}
-.rw-tab.active,.rw-tab[aria-selected="true"]{background:linear-gradient(150deg,color-mix(in srgb,var(--primary) 84%,#FFFFFF),var(--primary));color:var(--primary-contrast);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
-.rw-tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-
-/* ---------- Painéis e cartões ---------- */
-.rw-panels{min-width:0}
-.rw-panel{display:flex;flex-direction:column;gap:14px;min-width:0}
-.rw-scope-note{margin:0;padding:9px 13px;border:1px solid var(--ln);border-left:3px solid var(--primary);border-radius:var(--r-sm);background:var(--s2);color:var(--tx2);font-size:12px}
-.rw-card{min-width:0;padding:16px 18px;border:1px solid var(--ln);border-radius:var(--r);background:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 94%,var(--bg)));box-shadow:var(--shadow-sm)}
-.rw-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-.rw-card-title{font:750 15px/1.35 var(--font-display);letter-spacing:-.015em;color:var(--tx);margin:0}
-.rw-card-hint{margin:3px 0 0;font-size:11.5px;color:var(--tx2)}
-.rw-card-aside{flex:none}
-.rw-count-pill{display:inline-flex;align-items:center;padding:2px 10px;border-radius:99px;background:var(--s3);border:1px solid var(--ln);color:var(--tx2);font:700 11px var(--font-ui)}
-.rw-footnote{margin:0;font-size:11px;line-height:1.55;color:var(--tx2);border-top:1px dashed var(--ln2);padding-top:10px}
-
-/* ---------- KPIs ---------- */
-.rw-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
-.rw-kpi{display:flex;flex-direction:column;gap:2px}
-.rw-kpi-label{font:700 10.5px var(--font-ui);letter-spacing:.07em;text-transform:uppercase;color:var(--tx2)}
-.rw-kpi-value{font:800 clamp(21px,1.9vw,29px)/1.15 var(--font-display);letter-spacing:-.03em;color:var(--tx);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 6px}
-.rw-kpi-foot{display:flex;flex-direction:column;gap:5px;margin-top:auto}
-.rw-kpi-note{font-size:11px;color:var(--tx2)}
-.rw-delta{display:inline-flex;align-items:center;gap:5px;width:max-content;padding:2px 9px;border-radius:99px;font:700 11px var(--font-ui);font-variant-numeric:tabular-nums}
-.rw-delta.up{color:var(--ok);background:color-mix(in srgb,var(--ok) 11%,var(--s1))}
-.rw-delta.down{color:var(--bad);background:color-mix(in srgb,var(--bad) 11%,var(--s1))}
-.rw-delta.flat{color:var(--tx2);background:var(--s3)}
-
-/* ---------- Grade de duas colunas ---------- */
-.rw-grid-2{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:14px;align-items:stretch}
-.rw-grid-2>.rw-card{display:flex;flex-direction:column}
-
-/* ---------- Barras horizontais (estilo Meios de pagamento) ---------- */
-.rw-hbars{display:flex;flex-direction:column;gap:9px}
-.rw-hbar-row{display:grid;grid-template-columns:minmax(88px,180px) minmax(0,1fr) 52px;align-items:center;gap:10px;min-width:0}
-.rw-hbar-label{font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rw-hbar-track{position:relative;height:10px;border-radius:99px;background:var(--s3);overflow:hidden}
-.rw-hbar-fill{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .35s var(--ease)}
-.rw-hbar-value{text-align:right;font:700 12px var(--font-ui);color:var(--tx2);font-variant-numeric:tabular-nums}
-
-/* ---------- Rosca SVG ---------- */
-.rw-donut-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.rw-donut{width:132px;height:132px;flex:none}
-.rw-donut-track{stroke:var(--s3)}
-.rw-donut-total{fill:var(--tx);font:800 22px var(--font-display);letter-spacing:-.02em}
-.rw-donut-caption{fill:var(--tx2);font:600 9px var(--font-ui);text-transform:uppercase;letter-spacing:.08em}
-.rw-legend{list-style:none;margin:0;padding:0;display:grid;gap:9px;min-width:170px}
-.rw-legend-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--tx2)}
-.rw-legend-dot{width:11px;height:11px;border-radius:3.5px;flex:none;display:inline-block}
-.rw-legend-dot.rw-dot-billed{background:var(--primary);border-radius:99px}
-.rw-legend-dot.rw-dot-paid{background:#FBBF24;border-radius:99px}
-.rw-legend-label{flex:1;min-width:0}
-.rw-legend-value{color:var(--tx);font-variant-numeric:tabular-nums}
-
-/* ---------- Comparativo ---------- */
-.rw-compare{display:flex;flex-direction:column}
-.rw-compare-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:9px 2px;border-top:1px solid var(--ln)}
-.rw-compare-row:first-child{border-top:0;padding-top:2px}
-.rw-compare-label{font-size:12.5px;color:var(--tx2)}
-.rw-compare-current{font:800 15px var(--font-display);color:var(--tx);letter-spacing:-.02em}
-
-/* ---------- Série financeira (linha SVG) ---------- */
-.rw-linechart{display:flex;flex-direction:column;gap:8px}
-.rw-linechart svg{width:100%;height:auto;display:block}
-.rw-gridline{stroke:var(--ln);stroke-width:1}
-.rw-ylabel{fill:var(--tx2);font:600 9px var(--font-ui);font-variant-numeric:tabular-nums}
-.rw-xlabel{fill:var(--tx2);font:600 9px var(--font-ui)}
-.rw-line-billed{stroke:var(--primary);stroke-width:2.4;stroke-linecap:butt;stroke-linejoin:miter}
-.rw-line-paid{stroke:#FBBF24;stroke-width:2.2;stroke-linecap:butt;stroke-linejoin:miter}
-.rw-line-area{fill:color-mix(in srgb,var(--primary) 8%,transparent)}
-.rw-dot-billed{fill:var(--primary)}
-.rw-dot-paid{fill:#FBBF24}
-.rw-linechart-legend{display:flex;gap:16px;font-size:11.5px;color:var(--tx2)}
-.rw-linechart-legend span{display:inline-flex;align-items:center;gap:7px}
-
-/* ---------- Demanda por hora ---------- */
-.rw-hourly{width:100%;height:auto;display:block}
-.rw-hour-bar{fill:var(--ln2)}
-.rw-hour-peak{fill:var(--primary)}
-
-/* ---------- Tabelas ---------- */
-.rw-table-wrap{overflow-x:auto;margin:0 -6px}
-.rw-table{width:100%;border-collapse:collapse;font-size:12.5px}
-.rw-table caption{text-align:left}
-.rw-table th{padding:8px 10px;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);text-align:left;border-bottom:1px solid var(--ln2)}
-.rw-table td{padding:9px 10px;border-top:1px solid var(--ln);color:var(--tx);font-variant-numeric:tabular-nums}
-.rw-table tbody tr:hover{background:color-mix(in srgb,var(--s2) 80%,transparent)}
-.rw-table-empty{color:var(--tx2);text-align:center;padding:18px 10px}
-
-/* ---------- Chips de etapa / pipelines ---------- */
-.rw-stage-chips{display:flex;flex-wrap:wrap;gap:8px}
-.rw-stage-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;border:1px solid var(--ln);background:var(--s2);color:var(--tx2);font:600 12px var(--font-ui)}
-.rw-stage-chip strong{color:var(--tx);font-variant-numeric:tabular-nums}
-.rw-stage-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-.rw-pipeline-list{display:flex;flex-direction:column;gap:12px}
-.rw-pipeline{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s2)}
-.rw-pipeline-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.rw-pipeline-head strong{font:750 13.5px var(--font-display);color:var(--tx)}
-.rw-pipeline-head span{font-size:11.5px;color:var(--tx2)}
-.rw-pipeline-outcome{display:inline-flex;gap:8px;margin-left:auto}
-.rw-outcome-won,.rw-outcome-lost{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:750}
-.rw-outcome-won{background:color-mix(in srgb,var(--ok) 12%,var(--s1));color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 34%,var(--ln))}
-.rw-outcome-lost{background:color-mix(in srgb,var(--bad) 10%,var(--s1));color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 30%,var(--ln))}
-.rw-pipeline-empty{font-size:12px;color:var(--tx2)}
-
-/* ---------- Vazio / erro ---------- */
-.rw-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 16px;border:1px dashed var(--ln2);border-radius:var(--r-sm);color:var(--tx2)}
-.rw-empty strong{color:var(--tx);font-size:13px}
-.rw-empty p{font-size:12px;max-width:420px}
-.rw-error{display:flex;align-items:center;gap:14px;padding:18px 18px;border:1px solid color-mix(in srgb,var(--bad) 32%,var(--ln));border-radius:var(--r);background:color-mix(in srgb,var(--bad) 6%,var(--s1));color:var(--tx)}
-.rw-error>svg{color:var(--bad);flex:none}
-.rw-error-body{flex:1;min-width:0}
-.rw-error-body strong{font-size:13px}
-.rw-error-body p{margin:3px 0 0;font-size:12px;color:var(--tx2);overflow-wrap:anywhere}
-
-/* ---------- Skeletons ---------- */
-.rw-skeleton{display:flex;flex-direction:column;gap:14px}
-.rw-skel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
-.rw-skel{border-radius:var(--r);background:linear-gradient(100deg,var(--s3) 20%,var(--hover) 40%,var(--s3) 60%);background-size:200% 100%;animation:rw-shimmer 1.4s ease-in-out infinite}
-.rw-skel-card{height:118px}
-.rw-skel-chart{height:190px}
-.rw-skel-chart-short{height:150px}
-@keyframes rw-shimmer{0%{background-position:120% 0}100%{background-position:-80% 0}}
-
-/* ---------- Capa institucional (somente impressão) ---------- */
-.reports-print-only{display:none}
-.rw-print-cover{align-items:center;gap:12pt}
-.rw-print-mark{display:grid;place-items:center;width:34pt;height:34pt;border-radius:9pt;background:#164E8A;color:#fff;font:800 17pt var(--font-display)}
-.rw-print-text{display:flex;flex-direction:column;gap:2pt}
-.rw-print-text strong{font:800 13pt var(--font-display);color:#14171a;letter-spacing:-.01em}
-.rw-print-text small{font-size:8pt;color:#454f47}
-
-/* ---------- Responsivo ---------- */
-@media (max-width:1100px){
-  .rw-grid-2{grid-template-columns:1fr}
-}
-@media (max-width:900px){
-  .rw-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .rw-top{align-items:flex-start}
-  .rw-actions{width:100%}
-  .rw-actions .rw-btn{flex:1;justify-content:center}
-  .rw-period{align-items:flex-start;flex-direction:column}
-  .rw-range{border-top:1px solid var(--ln);padding-top:10px;width:100%}
-}
-@media (max-width:560px){
-  .rw-kpi-grid{grid-template-columns:1fr}
-  .rw-kpi-value{white-space:normal}
-}
-
-/* ================================================================== */
-/* IMPRESSÃO · @media print                                            */
-/* Só .reports-print-root sobrevive: chrome da aplicação some.         */
-/* ================================================================== */
+/* Relatórios · contrato de impressão. O visual de tela vive nas utilities TW;
+   aqui só permanecem as regras de papel, com seletores data-print. */
 @media print{
   @page{size:A4;margin:13mm 12mm}
   html,body{height:auto !important;overflow:visible !important;background:#fff !important}
-  aside,header,nav,.mobile-sidebar-backdrop,.operation-notices,.workspace-alerts,.sidebar,.topbar,.persistent-module-tabs,.side-nav,.ai-assistant-panel,.ai-assistant-trigger,.crm-workspace > .crm-heading,.crm-workspace > .crm-command-bar,.crm-workspace > .settings-feedback,.crm-workspace > .crm-form,.reports-no-print{display:none !important}
+  aside,header,nav,.mobile-sidebar-backdrop,.operation-notices,.workspace-alerts,.sidebar,.topbar,.persistent-module-tabs,.side-nav,.ai-assistant-panel,.ai-assistant-trigger,.crm-workspace > .crm-heading,.crm-workspace > .crm-command-bar,.crm-workspace > .settings-feedback,.crm-workspace > .crm-form,[data-print~="no-print"]{display:none !important}
   .suite-app{display:block !important;min-height:0 !important;height:auto !important}
   .main-area{display:block !important;height:auto !important;overflow:visible !important;margin:0 !important;padding:0 !important}
   .page-content{display:block !important;overflow:visible !important;padding:0 !important;max-width:none !important;margin:0 !important}
   .settings-workspace,.reports-workspace,.crm-workspace{display:block !important;padding:0 !important;margin:0 !important;gap:0 !important}
-  .reports-print-only{display:flex !important}
-  .reports-print-root{
+  [data-print~="print-only"]{display:flex !important}
+  [data-print~="print-root"]{
     display:block;
     --s1:#ffffff;--s2:#f6f7f5;--s3:#eaece7;--hover:#eaece7;
     --tx:#14171a;--tx2:#454f47;--ln:#D8DEE9;--ln2:#c3c8bd;
@@ -1346,39 +1169,39 @@ const REPORTS_CSS = `
     font-size:10.5pt;gap:8pt !important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
   }
-  .rw-print-cover{display:flex !important;align-items:center;gap:12pt;padding-bottom:10pt;margin-bottom:12pt;border-bottom:2.5pt solid #164E8A;break-after:avoid}
-  .rw-panel,.rw-panels{display:block !important}
-  .rw-panel > * + *{margin-top:8pt}
-  .rw-card{box-shadow:none !important;border:1pt solid #D8DEE9 !important;background:#fff !important;break-inside:avoid;page-break-inside:avoid;padding:9pt 11pt !important}
-  .rw-card-head{margin-bottom:6pt}
-  .rw-card-title{font-size:10.5pt}
-  .rw-card-hint{display:none}
-  .rw-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:6pt !important}
-  .rw-kpi-value{font-size:15pt !important;white-space:normal !important}
-  .rw-kpi-label{font-size:7pt !important}
-  .rw-grid-2{grid-template-columns:1fr 1fr !important;gap:6pt !important}
-  .rw-footnote{border-top:0.5pt solid #c3c8bd;font-size:7.5pt}
-  .rw-scope-note{border:0.5pt solid #D8DEE9;font-size:8pt}
-  .rw-table{font-size:8pt}
-  .rw-table thead{display:table-header-group}
-  .rw-table tr{break-inside:avoid;page-break-inside:avoid}
-  .rw-table th{background:#f2f3ef !important}
-  .rw-delta{border:0.5pt solid currentColor;background:transparent !important}
-  .rw-hbar-fill{background:#164E8A !important}
-  .rw-hbar-track{background:#eaece7 !important}
-  .rw-donut-track{stroke:#eaece7 !important}
-  .rw-legend-dot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .rw-legend-dot.rw-dot-billed{background:#164E8A !important}
-  .rw-legend-dot.rw-dot-paid{background:#FBBF24 !important}
-  .rw-line-billed{stroke:#164E8A !important}
-  .rw-line-paid{stroke:#FBBF24 !important}
-  .rw-dot-billed{fill:#164E8A !important}
-  .rw-dot-paid{fill:#FBBF24 !important}
-  .rw-line-area{fill:#eef4f0 !important}
-  .rw-gridline,.rw-hour-bar{stroke:#D8DEE9}
-  .rw-hour-bar{fill:#c3c8bd !important}
-  .rw-hour-peak{fill:#164E8A !important}
-  .rw-hour-peak,.rw-dot-billed,.rw-dot-paid,.rw-stage-dot,.rw-print-mark{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  [data-print~="print-cover"]{display:flex !important;align-items:center;gap:12pt;padding-bottom:10pt;margin-bottom:12pt;border-bottom:2.5pt solid #164E8A;break-after:avoid}
+  [data-print~="panel"],[data-print~="panels"]{display:block !important}
+  [data-print~="panel"] > * + *{margin-top:8pt}
+  [data-print~="card"]{box-shadow:none !important;border:1pt solid #D8DEE9 !important;background:#fff !important;break-inside:avoid;page-break-inside:avoid;padding:9pt 11pt !important}
+  [data-print~="card-head"]{margin-bottom:6pt}
+  [data-print~="card-title"]{font-size:10.5pt}
+  [data-print~="card-hint"]{display:none}
+  [data-print~="kpi-grid"]{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:6pt !important}
+  [data-print~="kpi-value"]{font-size:15pt !important;white-space:normal !important}
+  [data-print~="kpi-label"]{font-size:7pt !important}
+  [data-print~="grid-2"]{grid-template-columns:1fr 1fr !important;gap:6pt !important}
+  [data-print~="footnote"]{border-top:0.5pt solid #c3c8bd;font-size:7.5pt}
+  [data-print~="scope-note"]{border:0.5pt solid #D8DEE9;font-size:8pt}
+  [data-print~="table"]{font-size:8pt}
+  [data-print~="table"] thead{display:table-header-group}
+  [data-print~="table"] tr{break-inside:avoid;page-break-inside:avoid}
+  [data-print~="table"] th{background:#f2f3ef !important}
+  [data-print~="delta"]{border:0.5pt solid currentColor;background:transparent !important}
+  [data-print~="hbar-fill"]{background:#164E8A !important}
+  [data-print~="hbar-track"]{background:#eaece7 !important}
+  [data-print~="donut-track"]{stroke:#eaece7 !important}
+  [data-print~="legend-dot"]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  [data-print~="legend-dot"][data-print~="dot-billed"]{background:#164E8A !important}
+  [data-print~="legend-dot"][data-print~="dot-paid"]{background:#FBBF24 !important}
+  [data-print~="line-billed"]{stroke:#164E8A !important}
+  [data-print~="line-paid"]{stroke:#FBBF24 !important}
+  [data-print~="dot-billed"]{fill:#164E8A !important}
+  [data-print~="dot-paid"]{fill:#FBBF24 !important}
+  [data-print~="line-area"]{fill:#eef4f0 !important}
+  [data-print~="gridline"],[data-print~="hour-bar"]{stroke:#D8DEE9}
+  [data-print~="hour-bar"]{fill:#c3c8bd !important}
+  [data-print~="hour-peak"]{fill:#164E8A !important}
+  [data-print~="hour-peak"],[data-print~="dot-billed"],[data-print~="dot-paid"],[data-print~="stage-dot"],[data-print~="print-mark"]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   h1,h2,h3{page-break-after:avoid;break-after:avoid}
 }
 `;

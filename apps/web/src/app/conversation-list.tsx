@@ -20,17 +20,35 @@ function timeShortLabel(value: string | undefined, now = new Date()): string {
   return formatDateBR(date);
 }
 
-function presenceTone(conversation: Conversation): string | null {
-  if (conversation.isOverdue) return "conversation-presence presence-dot-coral";
+/** Tons de presença: utilities do preset, escolhidas pelos dados da conversa. */
+const presenceToneTw = {
+  overdue: "bg-ib-coral",
+  live: "bg-blue-600",
+  idle: "bg-ib-amber",
+} as const;
+
+type PresenceTone = keyof typeof presenceToneTw;
+
+function presenceTone(conversation: Conversation): PresenceTone | null {
+  if (conversation.isOverdue) return "overdue";
   const basis = conversation.updatedAt || conversation.createdAt;
   const age = basis ? Date.now() - new Date(basis).getTime() : Number.POSITIVE_INFINITY;
   const minutes = age / 60000;
-  if (minutes <= 5) return "conversation-presence";
-  if (minutes <= 20) return "conversation-presence presence-dot-amber";
+  if (minutes <= 5) return "live";
+  if (minutes <= 20) return "idle";
   return null;
 }
 
 type OutboundMark = { glyph: string; tone: "queued" | "failed" | "sent" | "delivered" | "read"; label: string };
+
+/** Tons do comprovante de envio, também vindos do preset. */
+const tickToneTw: Record<OutboundMark["tone"], string> = {
+  queued: "text-amber-600",
+  failed: "font-extrabold text-red-600",
+  sent: "text-slate-600",
+  delivered: "text-slate-950",
+  read: "text-ib-read",
+};
 
 function outboundMark(status: string | undefined): OutboundMark | null {
   const normalized = String(status || "SENT").toUpperCase();
@@ -52,7 +70,7 @@ export interface ConversationListProps {
 /** Lista lateral de conversas do Atendimento (avatar, presença, canal, tags, destaque de novas). */
 export function ConversationList({ conversations, conversationsLoading, selectedId, queueView, onSelect }: ConversationListProps) {
   return (
-    <div className="inbox-conversation-list">
+    <div className="grid min-h-0 flex-1 content-start overflow-y-auto" data-testid="conversation-list">
       {conversations.map((item) => {
         const last = item.messages?.[0];
         const outbound = last?.direction === "OUTBOUND";
@@ -60,20 +78,44 @@ export function ConversationList({ conversations, conversationsLoading, selected
         const preview = last?.content || "Sem mensagens";
         const previewText = preview.length > 30 ? preview.slice(0, 30) + "…" : preview;
         const tags = contactLabels(item.contact);
+        const selected = selectedId === item.id;
+        const presence = presenceTone(item);
         return (
-          <button key={item.id} className={"inbox-conversation " + (selectedId === item.id ? "selected" : "")} onClick={() => onSelect(item)}>
-            <span className="conversation-avatar-wrap"><ContactAvatar contact={item.contact} />{presenceTone(item) ? <span className={presenceTone(item) as string} aria-hidden="true" /> : null}</span>
-            <span className="conversation-summary">
-              <span className="conversation-title-row"><strong>{contactDisplayName(item.contact, item.botState)}</strong><span className="conversation-channel-marks"><ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"} /><ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))} /></span><span className="conversation-time">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span></span>
-              <small className="conversation-preview">{mark ? <span className={"conversation-tick tick-" + mark.tone} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}<span className="conversation-preview-text">{previewText}</span></small>
-              {item.isOverdue ? <span className="conversation-overdue"><AlarmClock size={11} /> Atrasado · sem assistência</span> : (!item.assignee && item.status === "OPEN" ? <span className="conversation-new"><span className="conversation-new-dot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span> : null)}
+          <button
+            key={item.id}
+            className={"relative flex w-full flex-wrap content-start items-start gap-x-ib-gap gap-y-1 border-b border-l-2 border-line px-3.5 py-2.5 text-left transition-colors duration-control ease-token hover:bg-zinc-200" + (selected ? " border-l-blue-600 bg-blue-50 shadow-ib-selected" : " border-l-transparent")}
+            onClick={() => onSelect(item)}
+            aria-pressed={selected}
+          >
+            <span className="relative mt-0.5 inline-grid h-ib-avatar w-ib-avatar flex-none self-start">
+              <ContactAvatar contact={item.contact} />
+              {presence ? <span className={"absolute -bottom-0.5 -right-0.5 h-ib-presence w-ib-presence rounded-full border-2 border-zinc-100 " + presenceToneTw[presence]} aria-hidden="true" /> : null}
             </span>
-            {tags.length ? <span className="conversation-tags">{tags.map((tag, index) => <span key={tag.name + index} className="conversation-tag" style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)" }}>{tag.name}</span>)}</span> : null}
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="flex min-w-0 items-center">
+                <strong>{contactDisplayName(item.contact, item.botState)}</strong>
+                <span className="ml-0.5 inline-flex items-center gap-1">
+                  <ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"} />
+                  <ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))} />
+                </span>
+                <span className="ml-auto flex-none text-ib-time tabular-nums text-slate-400">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
+              </span>
+              <small className="flex min-w-0 items-center gap-1 text-ib-micro text-slate-600">
+                {mark ? <span className={"flex-none text-ib-tick tabular-nums " + tickToneTw[mark.tone]} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}
+                <span className="block min-w-0 truncate">{previewText}</span>
+              </small>
+              {item.isOverdue ? (
+                <span className="inline-flex items-center gap-1 text-ib-time font-ib text-red-600"><AlarmClock size={11} /> Atrasado · sem assistência</span>
+              ) : (!item.assignee && item.status === "OPEN" ? (
+                <span className="mt-0.5 inline-flex w-max items-center gap-1.5 text-ib-time font-ib text-emerald-600"><span className="h-ib-newdot w-ib-newdot rounded-full bg-emerald-600 shadow-ib-newdot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
+              ) : null)}
+            </span>
+            {tags.length ? <span className="m-0 flex w-full flex-none flex-wrap gap-1">{tags.map((tag, index) => <span key={tag.name + index} className="inline-flex min-h-ib-tag items-center gap-0.5 rounded-ib-entry bg-blue-50 px-1.5 text-ib-micro font-bold text-blue-800" style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)" }}>{tag.name}</span>)}</span> : null}
           </button>
         );
       })}
-      {conversationsLoading && conversations.length === 0 ? <div className="inbox-empty" role="status"><strong>Carregando conversas…</strong><p>Buscando as conversas desta fila.</p></div> : null}
-      {!conversationsLoading && !conversations.length ? <div className="inbox-empty"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
+      {conversationsLoading && conversations.length === 0 ? <div className="px-3.5 py-5 text-center" role="status"><strong>Carregando conversas…</strong><p>Buscando as conversas desta fila.</p></div> : null}
+      {!conversationsLoading && !conversations.length ? <div className="px-3.5 py-5 text-center"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
     </div>
   );
 }

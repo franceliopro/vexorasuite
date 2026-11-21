@@ -131,7 +131,39 @@ function Icon({ name, size = 18, className }: { name: keyof typeof iconMap; size
   return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} className={className} />;
 }
 
-/** Utilities do dock da Visão geral (antes, as classes ov-dock do CSS isolado). */
+/** Utilities da home: classes que existiam apenas no vexora.css legado. */
+const primaryButton="inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-900 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton="inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const authScreenTw="grid min-h-dvh place-items-center bg-vx-page p-5";
+const authPanelTw="mx-auto grid w-full max-w-md content-center gap-4 p-8";
+const contrastOkTw="inline-flex self-start rounded-full border border-success bg-success-soft px-3 py-1.5 text-2xs font-bold tracking-normal text-success";
+const contrastWarnTw="inline-flex self-start rounded-full border border-warning bg-warning-soft px-3 py-1.5 text-2xs font-bold tracking-normal text-warning";
+const colorPickerTw="flex flex-wrap items-center gap-2.5";
+const colorInputTw="size-8 w-12 flex-none cursor-pointer rounded-token-sm border border-line bg-surface-2 p-0.5";
+const colorHexTw="min-w-0 flex-1";
+const crumbSlashTw="hidden text-ink-secondary";
+const themeToggleTw="grid size-11 min-h-11 place-items-center rounded-token-sm border-0 bg-none text-indigo-50 hover:bg-indigo-900 hover:text-indigo-50";
+const textButtonTw="inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap px-1.5 text-nav font-bold text-blue-700";
+const textButtonMutedTw="inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap px-1.5 text-nav font-bold text-ink-secondary";
+const settingsFieldTw="grid gap-1.5 text-2xs font-bold text-ink-secondary";
+const settingsHintTw="mt-1 block text-2xs leading-normal text-ink-secondary";
+const settingsBackLinkTw="inline-flex items-center gap-2 text-nav font-bold text-blue-700";
+const cardTw="min-w-0 rounded-token-lg border border-line bg-surface-2 p-pad shadow-token";
+const placeholderTw="grid min-w-0 content-start gap-3 rounded-token-lg border border-line bg-surface-2 p-pad shadow-token";
+const placeholderIconTw="grid size-20 place-items-center rounded-token-xl bg-blue-100 text-blue-700";
+const eyebrowTw="inline-flex items-center gap-2 text-2xs font-extrabold uppercase tracking-fin-eyebrow text-blue-700";
+const placeholderStatusTw="flex items-center gap-2 text-2xs text-ink-secondary";
+const pageHeadingTw="flex flex-wrap items-start justify-between gap-4";
+const colorPopoverTw="fixed z-popover grid max-h-screen w-80 gap-3 overflow-auto rounded-token-lg border border-line bg-surface-2 p-3.5 text-ink shadow-vx-popover";
+const colorPopoverHeaderTw="flex items-start justify-between gap-2.5";
+const colorPopoverTitleTw="m-0 font-display text-sm font-extrabold tracking-normal";
+const colorPopoverCopyTw="mb-0 mt-0.5 text-2xs leading-relaxed text-ink-secondary";
+const colorCloseTw="grid size-8 flex-none place-items-center rounded-token-sm border border-line bg-none text-ink-secondary hover:bg-hover hover:text-ink";
+const colorWarningTw="m-0 rounded-token border border-warning bg-warning-soft p-2 text-2xs leading-relaxed text-warning";
+const colorFooterTw="flex items-center justify-between gap-2.5 border-t border-line pt-2.5";
+const colorActionsTw="flex items-center gap-2";
+const colorErrorTw="m-0 text-2xs text-danger";
+
 const DOCK_BUTTON = "grid min-h-ov-dock-btn place-items-center gap-0.5 rounded-token-sm px-3.5 py-0.5 text-ov-micro font-semibold transition-control duration-control";
 const DOCK_BUTTON_IDLE = "text-indigo-400 hover:bg-indigo-900 hover:text-indigo-50";
 const DOCK_BUTTON_ACTIVE = "bg-blue-600 text-blue-900 shadow-vx-brand";
@@ -308,7 +340,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!sidebarColorMenu) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeSidebarColorMenu(true); };
-    const onDown = (event: MouseEvent) => { const target = event.target as Element | null; if (target?.closest(".sidebar-color-popover")) return; closeSidebarColorMenu(true); };
+    const onDown = (event: MouseEvent) => { const target = event.target as Element | null; if (target?.closest('[data-testid="sidebar-color-popover"]')) return; closeSidebarColorMenu(true); };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onDown);
     return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("mousedown", onDown); };
@@ -345,7 +377,7 @@ export default function HomePage() {
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
 
   if (authStatus === "checking") {
-    return <div className="auth-screen"><div className="auth-panel"><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
+    return <div className={authScreenTw}><div className={authPanelTw}><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
   }
   if (authStatus === "anonymous") {
     return <AuthScreen onAuthenticated={(value) => { setSession(value); setAuthStatus("authenticated");void refreshProfile(); }} />;
@@ -372,7 +404,7 @@ export default function HomePage() {
                 const childActive = item.children?.some((child) => child.label === active) || false;
                 const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Marketing" && workspaceTabKey(active) === "marketing") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
                 return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label}>
-                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive || familyActive) ? "active" : "") + (item.children ? " nav-parent" : "")}
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive || familyActive) ? "active" : "")}
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
@@ -383,7 +415,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu nav-submenu-panel" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -395,12 +427,12 @@ export default function HomePage() {
         </div>
       </aside>
       {sidebarColorMenu && sidebarDraft ? (
-        <div className="sidebar-color-popover" role="dialog" aria-labelledby="sidebar-color-title" style={{ left: sidebarColorMenu.x, top: sidebarColorMenu.y }}>
-          <header className="sidebar-color-popover-header">
-            <div><h3 id="sidebar-color-title">Cor Modo Híbrido</h3><p>Fundo, texto e ícones e hover da sidebar. Vale no tema Híbrido; o item ativo segue a cor da marca.</p></div>
-            <button type="button" className="sidebar-color-close" onClick={() => closeSidebarColorMenu(true)} aria-label="Fechar"><X size={16} aria-hidden="true" /></button>
+        <div className={colorPopoverTw} data-testid="sidebar-color-popover" role="dialog" aria-labelledby="sidebar-color-title" style={{ left: sidebarColorMenu.x, top: sidebarColorMenu.y }}>
+          <header className={colorPopoverHeaderTw}>
+            <div><h3 id="sidebar-color-title" className={colorPopoverTitleTw}>Cor Modo Híbrido</h3><p className={colorPopoverCopyTw}>Fundo, texto e ícones e hover da sidebar. Vale no tema Híbrido; o item ativo segue a cor da marca.</p></div>
+            <button type="button" className={colorCloseTw} onClick={() => closeSidebarColorMenu(true)} aria-label="Fechar"><X size={16} aria-hidden="true" /></button>
           </header>
-          {theme !== "hybrid" ? <p className="sidebar-color-warning">Você está no tema {theme === "light" ? "Claro" : "Escuro"} — as cores valem para o Modo Híbrido (a prévia só aparece nele).</p> : null}
+          {theme !== "hybrid" ? <p className={colorWarningTw}>Você está no tema {theme === "light" ? "Claro" : "Escuro"} — as cores valem para o Modo Híbrido (a prévia só aparece nele).</p> : null}
           {([
             { key: "sidebarBackground", label: "Fundo da sidebar", hint: "Cor da coluna de navegação" },
             { key: "sidebarForeground", label: "Texto e ícones", hint: "Letras, ícones e divisores" },
@@ -408,11 +440,11 @@ export default function HomePage() {
           ] as const).map(item => {
             const value = sidebarDraft[item.key];
             return (
-              <label key={item.key} className="settings-field sidebar-color-field">
-                <span>{item.label}<small className="settings-hint">{item.hint}</small></span>
-                <span className="brand-color-picker sidebar-color-picker">
-                  <input type="color" value={value || "#000000"} aria-label={"Escolher " + item.label.toLowerCase()} onChange={event => setSidebarField(item.key, event.target.value)} />
-                  <input aria-label={item.label + " (HEX)"} value={value} maxLength={7} placeholder="#HEXADECIMAL" onChange={event => setSidebarField(item.key, event.target.value)} />
+              <label key={item.key} className={settingsFieldTw}>
+                <span>{item.label}<small className={settingsHintTw}>{item.hint}</small></span>
+                <span className={colorPickerTw}>
+                  <input type="color" className={colorInputTw} value={value || "#000000"} aria-label={"Escolher " + item.label.toLowerCase()} onChange={event => setSidebarField(item.key, event.target.value)} />
+                  <input className={colorHexTw} aria-label={item.label + " (HEX)"} value={value} maxLength={7} placeholder="#HEXADECIMAL" onChange={event => setSidebarField(item.key, event.target.value)} />
                 </span>
               </label>
             );
@@ -420,16 +452,16 @@ export default function HomePage() {
           {(() => {
             const ratio = wcagRatio(sanitizeHex(sidebarDraft.sidebarBackground) || HYBRID_SIDEBAR_DEFAULTS.background, sanitizeHex(sidebarDraft.sidebarForeground) || HYBRID_SIDEBAR_DEFAULTS.foreground);
             const ok = ratio >= 4.5;
-            return <p className={"brand-contrast-badge " + (ok ? "is-ok" : "is-warn")}>Contraste {ratio.toFixed(2)}:1 · {ok ? "excelente para leitura" : "abaixo de 4,5:1 — recomendamos ajustar"}</p>;
+            return <p className={ok ? contrastOkTw : contrastWarnTw}>Contraste {ratio.toFixed(2)}:1 · {ok ? "excelente para leitura" : "abaixo de 4,5:1 — recomendamos ajustar"}</p>;
           })()}
-          <footer className="sidebar-color-popover-footer">
-            <button type="button" className="text-button" onClick={() => { setSidebarDraft({ sidebarBackground: "", sidebarForeground: "", sidebarHover: "" }); applyBrandAll({ ...brandAssets, sidebarBackground: "", sidebarForeground: "", sidebarHover: "" }, currentTheme()); }}>Restaurar padrão</button>
-            <span className="sidebar-color-actions">
-              <button type="button" className="text-button sidebar-color-cancel" onClick={() => closeSidebarColorMenu(true)}>Cancelar</button>
-              <button type="button" className="primary-button" onClick={saveSidebarColors} disabled={sidebarColorSaving}>{sidebarColorSaving ? "Salvando…" : "Salvar"}</button>
+          <footer className={colorFooterTw}>
+            <button type="button" className={textButtonTw} onClick={() => { setSidebarDraft({ sidebarBackground: "", sidebarForeground: "", sidebarHover: "" }); applyBrandAll({ ...brandAssets, sidebarBackground: "", sidebarForeground: "", sidebarHover: "" }, currentTheme()); }}>Restaurar padrão</button>
+            <span className={colorActionsTw}>
+              <button type="button" className={textButtonMutedTw} onClick={() => closeSidebarColorMenu(true)}>Cancelar</button>
+              <button type="button" className={primaryButton} onClick={saveSidebarColors} disabled={sidebarColorSaving}>{sidebarColorSaving ? "Salvando…" : "Salvar"}</button>
             </span>
           </footer>
-          {sidebarColorError ? <p className="sidebar-color-error" role="alert">{sidebarColorError}</p> : null}
+          {sidebarColorError ? <p className={colorErrorTw} role="alert">{sidebarColorError}</p> : null}
         </div>
       ) : null}
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
@@ -437,7 +469,7 @@ export default function HomePage() {
       <main className="main-area">
         <header className="topbar">
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
-          <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className="crumb-slash">/</span><strong>{active}</strong></>}</div>
+          <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className={crumbSlashTw}>/</span><strong>{active}</strong></>}</div>
           <div className="topbar-actions">
             {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>
@@ -445,7 +477,7 @@ export default function HomePage() {
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
             <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
-            <button className="icon-button theme-toggle" onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
+            <button className={themeToggleTw} onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
             <button className="logout-button" onClick={async () => { await disableDeviceNotifications().catch(()=>{}); await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
           </div>
@@ -453,20 +485,20 @@ export default function HomePage() {
 
         {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={"page-content" + (active === "Atendimento" ? " page-content--fixed" : "")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
-          {isOverview ? <section className="page-heading">
+          {isOverview ? <section className={pageHeadingTw}>
             <div><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
-            <button className="primary-button" onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
+            <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
           {isOverview ? <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} /> : null}
 
-          {!moduleVisible(active)?<section className="content-card"><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className="secondary-button" onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
+          {!moduleVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
             </>
           ) : active === "Sites" ? (
-            canConfigure ? <SitesWorkspace canManage={canConfigure} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>
+            canConfigure ? <SitesWorkspace canManage={canConfigure} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
           ) : active === "Calendários" || active === "Agenda" ? (
@@ -474,42 +506,42 @@ export default function HomePage() {
           ) : active === "CRM" ? (
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />
           ) : active === "Financeiro" || active === "Gestão" ? (
-            canManage ? <FinanceWorkspace /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
+            canManage ? <FinanceWorkspace /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
           ) : active === "Documentos" ? (
             <DocumentsWorkspace />
           ) : active === "Curso" ? (
             <CourseWorkspace companyName={session?.tenant?.name || "Sua empresa"} />
           ) : active === "Agentes de IA" ? (
-            canConfigure ? <AiAgentsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canConfigure ? <AiAgentsWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "Chatbots" ? (
-            canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
-            canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+            canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
           ) : active === "Relatórios" ? (
-            canManage ? <ReportsWorkspace /> : <section className="content-card"><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
+            canManage ? <ReportsWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
           ) : active === "Planos e pacotes" || active === "Clientes" ? (
-            platformPanel ? <PlatformAdminWorkspace initialTab="plans" /> : <section className="content-card"><h2>Acesso restrito</h2><p>Este painel pertence à administração da Véxora.</p></section>
+            platformPanel ? <PlatformAdminWorkspace initialTab="plans" /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Este painel pertence à administração da Véxora.</p></section>
           ) : active === "Planos e preços" ? (
-            !platformPanel ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className="content-card"><h2>Este painel é para clientes</h2></section>
+            !platformPanel ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className={cardTw}><h2>Este painel é para clientes</h2></section>
           ) : active === "Atendentes" ? (
-            canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true} canManageAdmin={session?.user.isPlatformAdmin===true||session?.role==="OWNER"}/> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true} canManageAdmin={session?.user.isPlatformAdmin===true||session?.role==="OWNER"}/> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (
-            <section className="content-card"><h2>Recurso fora do escopo atual</h2></section>
+            <section className={cardTw}><h2>Recurso fora do escopo atual</h2></section>
           ) : active === "Workflows" ? (
-            canManage ? <WorkflowsWorkspace/> : <section className="content-card"><h2>Acesso restrito</h2></section>
+            canManage ? <WorkflowsWorkspace/> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "Atendimento" ? (
             <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} userId={session?.user.id||""} canManageChannels={canConfigure} />
           ) : active === "Conexões" || active === "Canais e integrações" ? (
-            canConfigure ? <ChannelsIntegrations /> : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
+            canConfigure ? <ChannelsIntegrations /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (
-            canConfigure ? (settingsAdvanced ? <><button type="button" className="settings-back-link" onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></> : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} />) : <section className="module-placeholder content-card"><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
+            canConfigure ? (settingsAdvanced ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></> : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} />) : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
-            <section className="module-placeholder content-card">
-              <span className="module-placeholder-icon"><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>
-              <p className="eyebrow">MÓDULO DA PLATAFORMA</p><h2>{active}</h2>
+            <section className={placeholderTw}>
+              <span className={placeholderIconTw}><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>
+              <p className={eyebrowTw}>MÓDULO DA PLATAFORMA</p><h2>{active}</h2>
               <p>O espaço de trabalho de <strong>{active}</strong> será conectado aos serviços operacionais na próxima etapa. Nenhuma ação ou dado da Véxora antiga é alterado por esta versão.</p>
-              <div className="placeholder-status"><span /> Interface em preparação</div>
-              <button className="secondary-button" onClick={() => setActive("Visão geral")}>← Voltar à visão geral</button>
+              <div className={placeholderStatusTw}><span /> Interface em preparação</div>
+              <button className={secondaryButton} onClick={() => setActive("Visão geral")}>← Voltar à visão geral</button>
             </section>
           )}
           {active !== "Atendimento" ? <footer className="page-footer"><span>© 2026 Véxora Suite</span><span>Uma plataforma. Vários módulos.</span></footer> : null}
@@ -518,7 +550,7 @@ export default function HomePage() {
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <ReminderCenter />
       <AlarmCenter />
-      <nav className={active === "Visão geral" ? "fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock ov-tablet:justify-center ov-tablet:gap-x-ov-dock-gap ov-tablet:border-t ov-tablet:border-indigo-800 ov-tablet:bg-indigo-950 ov-tablet:px-3 ov-tablet:pb-ov-dock-pb ov-tablet:pt-1" : "mobile-bottom-nav" + (active === "Atendimento" ? " mobile-inbox-nav" : "")} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
+      <nav className={active === "Visão geral" ? "fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock ov-tablet:justify-center ov-tablet:gap-x-ov-dock-gap ov-tablet:border-t ov-tablet:border-indigo-800 ov-tablet:bg-indigo-950 ov-tablet:px-3 ov-tablet:pb-ov-dock-pb ov-tablet:pt-1" : "mobile-bottom-nav"} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => setMenuOpen(false)}><Icon name="messages" size={20}/><span>Conversa</span></button>

@@ -5051,8 +5051,8 @@ input[type=tel]{letter-spacing:.02em}
 @media (max-width:760px){
   [data-testid='inbox-composer'] [data-testid='composer-tools'] .composer-popover{left:0;right:auto;max-width:calc(100vw - 24px)}
   [data-testid='inbox-composer'] [data-testid='composer-tools'] [data-testid='composer-icon-button']{width:30px!important;height:34px!important;min-height:34px}
-  .mobile-bottom-nav.mobile-inbox-nav{grid-auto-columns:minmax(0,1fr)!important;column-gap:clamp(4px,2vw,12px)!important;padding-left:max(12px,env(safe-area-inset-left))!important;padding-right:max(12px,env(safe-area-inset-right))!important}
-  .mobile-bottom-nav.mobile-inbox-nav button{padding-inline:4px!important}
+  .mobile-bottom-nav[aria-label="Ações da conversa"]{grid-auto-columns:minmax(0,1fr)!important;column-gap:clamp(4px,2vw,12px)!important;padding-left:max(12px,env(safe-area-inset-left))!important;padding-right:max(12px,env(safe-area-inset-right))!important}
+  .mobile-bottom-nav[aria-label="Ações da conversa"] button{padding-inline:4px!important}
   .mobile-bottom-nav.mobile-overview-nav{justify-content:center!important;grid-auto-columns:minmax(84px,120px)!important}
 }
 /* ===== Módulo Documentos ===== */

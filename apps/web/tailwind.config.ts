@@ -95,6 +95,38 @@ const config: Config = {
         "ib-instagram": "#E1306C",
         "ib-facebook": "#1877F2",
         "ib-email": "#EA4335",
+        /* Simulador de celular: mockup de um app de mensagens com paleta
+           própria. São dados do dispositivo simulado, não temas da aplicação.
+           O azul de marca vem dos tokens --primary. */
+        phone: {
+          frame: "#454b54",
+          "frame-mid": "#22262d",
+          "frame-deep": "#101318",
+          "frame-edge": "#05070a",
+          screen: "#0b141a",
+          chrome: "#202c33",
+          ink: "#e9edef",
+          muted: "#8696a0",
+          icons: "#aebac1",
+          divider: "#2a3942",
+          pill: "#182229",
+          sent: "#123E63",
+          tick: "#53bdeb",
+          "tick-soft": "rgba(83,189,235,.35)",
+          "quick-hover": "#243b45",
+          "side-start": "#6b7280",
+          "side-end": "#1f242c",
+          lens: "#3a4a5a",
+          "lens-edge": "#0c0f13",
+          indicator: "rgba(233,237,239,.5)",
+          "on-accent": "#04120d",
+          "close-border": "rgba(255,255,255,.16)",
+          "close-bg": "rgba(255,255,255,.08)",
+          "close-hover": "rgba(255,255,255,.17)",
+          accent: "var(--primary)",
+          "accent-soft": "var(--primary-soft)",
+          "accent-strong": "var(--primary-strong)",
+        },
 
         /* Alias semânticos usados pelo piloto Ficha Cliente (#903), já
            mergeado. O core migra para as classes oficiais acima; os aliases
@@ -160,9 +192,16 @@ const config: Config = {
         "ib-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
         /** Shimmer dos skeletons de Relatórios. */
         "rw-shimmer": "linear-gradient(100deg,var(--s3) 20%,var(--hover) 40%,var(--s3) 60%)",
+        /* Moldura e detalhes do simulador de celular. */
+        "phone-frame": "linear-gradient(165deg,#454b54 0%,#22262d 8%,#101318 32%,#05070a 90%)",
+        "phone-side": "linear-gradient(180deg,#6b7280,#1f242c)",
+        "phone-lens-glow": "radial-gradient(circle at 35% 35%,#3a4a5a 0%,#0c0f13 70%)",
+        "phone-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
+        "phone-wallpaper": "radial-gradient(circle at 20% 15%,rgba(31,95,208,.14),transparent 45%),radial-gradient(circle at 85% 80%,rgba(31,95,208,.1),transparent 40%),radial-gradient(circle,rgba(255,255,255,.045) 1px,transparent 1.4px)",
       },
       backgroundSize: {
         "rw-shimmer-size": "200% 100%",
+        "phone-wallpaper": "auto, auto, 17px 17px",
       },
       keyframes: {
         "rw-shimmer": {
@@ -177,11 +216,16 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(14px) scale(.97)" },
           to: { opacity: "1", transform: "none" },
         },
+        "phone-pulse": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: ".45" },
+        },
       },
       animation: {
         "rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite",
         "vx-scrim-in": "vx-scrim-in .18s ease both",
         "vx-in": "vx-in .26s var(--ease) both",
+        "phone-pulse": "phone-pulse 2.4s ease-in-out infinite",
       },
       strokeWidth: {
         ov: "5.5",
@@ -207,6 +251,12 @@ const config: Config = {
         "token-xl": "var(--r-xl)",
         brand: "13px",
         square: "6px",
+        /* Cantos do aparelho e dos balões do simulador. */
+        "phone-frame": "48px",
+        "phone-screen": "40px",
+        "phone-bubble": "11px",
+        "phone-tail": "3px",
+        "phone-pill": "9px",
         /* Medidas fixas dos diálogos do Atendimento. */
         "ib-modal": "16px",
         "ib-entry": "9px",
@@ -239,6 +289,8 @@ const config: Config = {
       aspectRatio: {
         /* Prévia quadrada dos arquivos e das imagens do site. */
         "fm-preview": "4 / 3",
+        /* Corpo do aparelho do simulador de celular. */
+        "phone-frame": "9 / 18.6",
       },
       gridTemplateRows: {
         "ib-quick-dialog": "auto minmax(0,1fr)",
@@ -256,6 +308,14 @@ const config: Config = {
         /* Realces da lista de conversas. */
         "ib-selected": "inset 3px 0 0 var(--primary),inset 0 0 0 1px var(--vx-core-selection)",
         "ib-newdot": "0 0 0 2px var(--vx-ok-soft)",
+        /* Relevo do aparelho, dos botões e dos balões simulados. */
+        "phone-frame": "inset 0 0 0 1.6px rgba(255,255,255,.22),inset 0 0 0 4.5px #05070a,0 32px 64px -22px rgba(0,0,0,.85),0 0 0 .5px rgba(255,255,255,.08)",
+        "phone-side": "inset 0 0 1px rgba(255,255,255,.35)",
+        "phone-avatar": "0 0 0 2px rgba(29,78,216,.35)",
+        "phone-online": "0 0 5px var(--primary)",
+        "phone-bubble": "0 1px 1px rgba(0,0,0,.32)",
+        "phone-pill": "0 1px 2px rgba(0,0,0,.3)",
+        "phone-mic": "0 2px 6px rgba(29,78,216,.4)",
       },
       fontFamily: {
         inherit: "inherit",
@@ -326,6 +386,15 @@ const config: Config = {
         "fm-meta": "10.5px",
         "fm-pdf": "10px",
         "fm-caption": "12.5px",
+        /* Tipografia do aparelho simulado. */
+        "phone-clock": "13px",
+        "phone-peer": ["13.5px", { lineHeight: "1.25", letterSpacing: "-.01em" }],
+        "phone-peer-sub": "9.5px",
+        "phone-day": "10px",
+        "phone-bubble": ["12px", { lineHeight: "1.42" }],
+        "phone-chip": ["11.5px", { lineHeight: "1.3" }],
+        "phone-hint": "12.5px",
+        "phone-ticks": "10px",
       },
       lineHeight: {
         "ib-quote-error": "1.35",
@@ -342,6 +411,9 @@ const config: Config = {
         "ov-wide": ".08em",
         "ov-wider": ".12em",
         "ib-wide": ".14em",
+        "phone-clock": ".02em",
+        "phone-day": ".03em",
+        "phone-tick": "-1px",
       },
       spacing: {
         sidebar: "var(--sb)",
@@ -406,6 +478,64 @@ const config: Config = {
         "fm-filter": "30px",
         /* Estado de carregamento do Kanban. */
         "crm-loading-y": "60px",
+        /* Medidas do aparelho simulado (compartilhadas por largura, altura,
+           inset, gap e padding — todas derivam da escala `spacing`). */
+        "phone-frame": "min(300px,84vw)",
+        "phone-frame-overlay": "min(360px,88vw)",
+        "phone-frame-pad": "9px",
+        "phone-side": "2.6px",
+        "phone-side-w": "3.4px",
+        "phone-side-short": "44px",
+        "phone-side-long": "64px",
+        "phone-side-up-top": "150px",
+        "phone-side-down-top": "204px",
+        "phone-power-top": "190px",
+        "phone-island-top": "11px",
+        "phone-island": "104px",
+        "phone-island-h": "27px",
+        "phone-lens-size": "8.5px",
+        "phone-lens-right": "12px",
+        "phone-status-x": "27px",
+        "phone-status-t": "11px",
+        "phone-status-b": "5px",
+        "phone-signal-gap": "6px",
+        "phone-header-x": "10px",
+        "phone-header-y": "8px",
+        "phone-header-gap": "9px",
+        "phone-avatar": "37px",
+        "phone-peer-name": "150px",
+        "phone-peer-gap": "5px",
+        "phone-dot": "6px",
+        "phone-call-gap": "14px",
+        "phone-wall-x": "12px",
+        "phone-wall-t": "14px",
+        "phone-wall-b": "10px",
+        "phone-wall-gap": "5px",
+        "phone-day-x": "13px",
+        "phone-day-y": "4px",
+        "phone-day-bottom": "8px",
+        "phone-bubble-x": "9px",
+        "phone-bubble-y": "6px",
+        "phone-bubble-b": "7px",
+        "phone-ticks-top": "3px",
+        "phone-ticks-x": "6px",
+        "phone-quick-gap": "6px",
+        "phone-quick-top": "3px",
+        "phone-chip-x": "15px",
+        "phone-chip-y": "6px",
+        "phone-composer-gap": "7px",
+        "phone-composer-p": "8px",
+        "phone-composer-b": "calc(8px + env(safe-area-inset-bottom))",
+        "phone-pill-gap": "12px",
+        "phone-pill-x": "13px",
+        "phone-pill-y": "8px",
+        "phone-mic": "38px",
+        "phone-home-w": "96px",
+        "phone-home-h": "4px",
+        "phone-home-bottom": "4px",
+        "phone-close": "40px",
+        "phone-close-top": "max(14px, env(safe-area-inset-top))",
+        "phone-close-right": "max(16px, env(safe-area-inset-right))",
       },
       gridTemplateColumns: {
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
@@ -502,6 +632,7 @@ const config: Config = {
         /* Alturas do seletor de imagens e do lightbox do gerenciador. */
         "fm-picker-grid": "420px",
         "fm-lightbox-img": "74vh",
+        "phone-frame": "min(760px,92dvh)",
       },
       maxWidth: {
         content: "1520px",
@@ -534,6 +665,8 @@ const config: Config = {
         "fm-move": "108px",
         "fm-lightbox": "min(960px,94vw)",
         "fm-picker-body": "min(860px,94vw)",
+        "phone-bubble": "79%",
+        "phone-quick": "88%",
       },
       width: {
         "profile-popover": "248px",
@@ -587,6 +720,10 @@ const config: Config = {
         "ib-dialog-inner": "1",
         "ib-mention": "65",
         "fm-lightbox": "60",
+        "phone-close": "2",
+        "phone-header": "4",
+        "phone-status": "5",
+        "phone-island": "6",
       },
       transitionProperty: {
         shell: "width, margin-left",

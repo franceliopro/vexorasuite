@@ -299,6 +299,8 @@ const config: Config = {
         "provider-item": "12px",
         "provider-pill": "6px",
         "provider-alert": "10px",
+        /* Pílula de tag do catálogo do CRM. */
+        "cf-tag": "99px",
         /* Cantos do aparelho e dos balões do simulador. */
         "phone-frame": "48px",
         "phone-screen": "40px",
@@ -549,6 +551,9 @@ const config: Config = {
         "provider-alert-x": "12px",
         "provider-alert-y": "9px",
         "provider-title-gap": "9px",
+        /* Tags e linhas do catálogo de campos do CRM. */
+        "cf-tag-x": "9px",
+        "cf-tag-h": "23px",
         "nav-gap": "11px",
         "nav-pad": "13px",
         "nav-height": "42px",
@@ -751,6 +756,10 @@ const config: Config = {
         "flow-more-actions": "minmax(180px,1fr)",
         /* Linhas de status das conexões: rótulo, detalhe e ação. */
         "provider-status": "minmax(0,1.4fr) 1fr auto",
+        /* Grade de campos e linhas do catálogo de campos do CRM. */
+        "cf-fields": "repeat(2,minmax(0,1fr))",
+        "cf-tag-row": "minmax(0,1fr) 92px auto auto auto",
+        "cf-field-row": "minmax(0,1fr) auto auto",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",

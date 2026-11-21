@@ -366,6 +366,14 @@ test("o contexto interno da conversa mantém ícone e selo com contraste", () =>
   assert.doesNotMatch(note, /bg-warning(?:-soft)?\b/);
 });
 
+test("as bolhas OUTBOUND e INBOUND usam TW com fundos leves e visíveis", () => {
+  assert.ok(workspace.includes('data-testid="message-line" data-direction={message.direction} className={message.direction === "OUTBOUND" ? "flex justify-end" : "flex justify-start"}'));
+  assert.ok(workspace.includes('className={"max-w-ib-bubble break-words rounded-ib-bubble border p-2.5 font-ui text-body text-ink shadow-token-sm " + (message.direction === "OUTBOUND" ? "border-blue-100 bg-blue-50" : "border-line bg-surface")}'));
+  const css = read("src/app/vexora.css");
+  assert.doesNotMatch(css, /\[data-testid='message-bubble'\]\{[^}]*(?:background|border-radius|padding|font-family|font-size|max-width)/);
+  assert.doesNotMatch(css, /\[data-testid='message-line'\]\[data-direction='(?:OUTBOUND|INTERNAL)'\] \[data-testid='message-bubble'\]/);
+});
+
 test("a lista, a supervisão e o composer alinham os filhos em uma linha só", () => {
   const listHeading = workspace.match(/<div className="[^"]*"><h2[^>]*>Conversas<\/h2><button[^>]*aria-label="Atualizar conversas"/)?.[0] ?? "";
   assert.match(listHeading, /flex flex-none items-center justify-between gap-ib-gap/);

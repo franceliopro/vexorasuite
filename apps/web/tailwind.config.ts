@@ -287,6 +287,10 @@ const config: Config = {
         logo: "46px",
         "ov-heading": "22ch",
         "ov-sub": "42ch",
+        /* Medidas do cabeçalho do CRM, migradas do legado para o preset. */
+        "crm-copy": "560px",
+        "crm-select": "340px",
+        "crm-search": "360px",
       },
       width: {
         "profile-popover": "248px",
@@ -296,6 +300,7 @@ const config: Config = {
       },
       minWidth: {
         "submenu-compact": "220px",
+        "crm-select": "220px",
       },
       zIndex: {
         sidebar: "40",

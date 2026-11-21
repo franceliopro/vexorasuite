@@ -14,7 +14,17 @@ test("Flow Studio exposes the fullscreen toggle without browser fullscreen", () 
 });
 
 test("Flow Studio keeps the studio sections and exported state", () => {
-  for (const marker of ["toggleFullScreen", "vx-flow-shell", "vx-flow-library", "vx-flow-stage", "vx-flow-board"]) {
+  for (const marker of [
+    "toggleFullScreen",
+    "canvasShell",
+    "canvasLibrary",
+    "canvasStage",
+    "canvasBoard",
+    'data-flow-command-menu',
+    'data-left-collapsed=',
+    'data-right-collapsed=',
+    'data-inspector-empty=',
+  ]) {
     assert.ok(workspace.includes(marker), `missing ${marker}`);
   }
 });

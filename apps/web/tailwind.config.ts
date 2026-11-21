@@ -88,6 +88,8 @@ const config: Config = {
         red: { 100: "var(--vx-bad-soft)", 600: "var(--bad)" },
         sky: { 100: "var(--vx-accent-soft)", 600: "var(--accent2)" },
         /* Cores de estado da lista de conversas (dados, não branding). */
+        /* Fundo do QR Code do WhatsApp: papel do dispositivo, não tema. */
+        "channels-qr": "#FFFFFF",
         "ib-coral": "#F0645E",
         "ib-amber": "#F2A93B",
         "ib-read": "#25D366",
@@ -283,6 +285,12 @@ const config: Config = {
         /* Cartão e ícone da configuração do Asaas. */
         "asaas-card": "14px",
         "asaas-icon": "9px",
+        /* Superfícies da página de conexões. */
+        "channels-card": "16px",
+        "channels-alert": "12px",
+        "channels-help": "12px",
+        "channels-attach": "10px",
+        "channels-account": "11px",
         /* Raios do gerenciador de arquivos e do seletor de imagens. */
         "fm-card": "14px",
         "fm-search": "10px",
@@ -343,6 +351,9 @@ const config: Config = {
         "brand-badge": "9px",
         /* Textos do cartão de configuração do Asaas. */
         "asaas-title": "15px",
+        "channels-name": "13.5px",
+        "channels-meta": ["11.5px", { lineHeight: "1.5" }],
+        "channels-field": ["12.5px", { lineHeight: "1.45" }],
         "asaas-label": "11px",
         "asaas-muted": ["10.5px", { lineHeight: "1.5" }],
         /* Escalas da Visão geral. */
@@ -546,6 +557,10 @@ const config: Config = {
         "phone-close-right": "max(16px, env(safe-area-inset-right))",
       },
       gridTemplateColumns: {
+        /* Grades da página de conexões. */
+        "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
+        "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
+        "channels-attach": "repeat(2,1fr)",
         "ov-overview": "minmax(0, 1.62fr) minmax(0, 1fr)",
         "ov-primary": "minmax(0, 1.58fr) minmax(0, 1fr)",
         "ov-main": "minmax(0, 1.55fr) minmax(0, 1fr)",
@@ -600,6 +615,10 @@ const config: Config = {
         /* Dimensões dos controles do Asaas. */
         "asaas-icon": "34px",
         "asaas-check": "17px",
+        /* Ícones de plataforma das conexões. */
+        "channels-icon": "38px",
+        "channels-icon-lg": "46px",
+        "channels-metric": "23px",
         /* Skeleton dos Relatórios. */
         "rw-skel-card": "118px",
         "rw-skel-chart": "190px",
@@ -693,6 +712,9 @@ const config: Config = {
         "ib-voice-button": "34px",
         "asaas-icon": "34px",
         "asaas-check": "17px",
+        "channels-icon": "38px",
+        "channels-icon-lg": "46px",
+        "channels-metric": "26px",
         "ib-dialog": "min(100%, 520px)",
         "ib-dialog-wide": "min(100%, 860px)",
         "ib-mention": "min(100vw - 32px, 360px)",
@@ -705,6 +727,7 @@ const config: Config = {
         "rw-dot": "11px",
       },
       minWidth: {
+        "channels-metric": "26px",
         "submenu-compact": "220px",
         "crm-select": "220px",
         "rw-legend": "170px",

@@ -62,24 +62,24 @@ export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: strin
   if (dismissed || (allDone && ready)) return null;
 
   return (
-    <section className="vx-onboarding" aria-label="Primeiros passos na Véxora">
-      <div className="vx-onboarding-head">
-        <div className="vx-onboarding-title">
+    <section className="ov-onboarding" aria-label="Primeiros passos na Véxora">
+      <div className="ov-onboarding-head">
+        <div className="ov-onboarding-title">
           <Sparkles size={18} aria-hidden="true" />
           <div>
             <h2>Bem-vindo à Véxora — primeiros passos</h2>
             <p>{allDone ? "Tudo pronto! Sua operação está calibrada." : `${doneCount} de ${steps.length} concluídos`}</p>
           </div>
         </div>
-        <button type="button" className="vx-onboarding-dismiss" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); }}><X size={16} aria-hidden="true" /></button>
+        <button type="button" className="ov-onboarding-dismiss" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); }}><X size={16} aria-hidden="true" /></button>
       </div>
-      <div className="vx-onboarding-bar" aria-hidden="true"><span style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
-      <ol className="vx-onboarding-steps">
+      <div className="ov-onboarding-bar" aria-hidden="true"><span style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
+      <ol className="ov-onboarding-steps">
         {steps.map((step) => (
-          <li key={step.id} className={"vx-onboarding-step" + (step.done ? " is-done" : "")}>
-            <span className="vx-onboarding-check" aria-hidden="true">{step.done ? <Check size={14} strokeWidth={3} /> : <ClipboardList size={14} />}</span>
-            <span className="vx-onboarding-copy"><strong>{step.title}</strong><small>{step.hint}</small></span>
-            <button type="button" className="vx-onboarding-go" onClick={() => onNavigate(step.target)} disabled={step.loading}>Configurar <ChevronRight size={14} aria-hidden="true" /></button>
+          <li key={step.id} className={"ov-onboarding-step" + (step.done ? " is-done" : "")}>
+            <span className="ov-onboarding-check" aria-hidden="true">{step.done ? <Check size={14} strokeWidth={3} /> : <ClipboardList size={14} />}</span>
+            <span className="ov-onboarding-copy"><strong>{step.title}</strong><small>{step.hint}</small></span>
+            <button type="button" className="ov-onboarding-go" onClick={() => onNavigate(step.target)} disabled={step.loading}>Configurar <ChevronRight size={14} aria-hidden="true" /></button>
           </li>
         ))}
       </ol>

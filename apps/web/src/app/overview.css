@@ -25,32 +25,28 @@
 @layer components {
   /* ---------------------------------------------------------------- layout */
   .ov-overview {
-    @apply grid grid-cols-ov-overview gap-token ov-laptop:grid-cols-1;
+    @apply grid grid-cols-ov-overview gap-ov-section ov-laptop:grid-cols-1;
   }
 
   .ov-primary-row {
-    @apply grid grid-cols-ov-primary gap-token ov-laptop:grid-cols-1;
+    @apply grid grid-cols-ov-primary gap-ov-section ov-laptop:grid-cols-1;
   }
 
   .ov-main-row {
-    @apply grid grid-cols-ov-main gap-token ov-laptop:grid-cols-1;
+    @apply grid grid-cols-ov-main gap-ov-section ov-laptop:grid-cols-1;
   }
 
   /* ------------------------------------------------------------------ hero */
   .ov-hero {
-    @apply relative grid gap-token overflow-hidden rounded-token-lg border border-gray-200 bg-transparent p-pad text-slate-950 ov-tablet:p-5;
+    @apply relative grid gap-ov-section overflow-hidden rounded-token-lg border border-gray-200 bg-zinc-100 p-5 text-slate-950;
   }
 
   .ov-hero-body {
-    @apply grid grid-cols-ov-hero-body items-start gap-token ov-tablet:grid-cols-1;
+    @apply grid grid-cols-ov-hero-body items-start gap-ov-section ov-tablet:grid-cols-1;
   }
 
   .ov-hero-copy {
-    @apply grid min-w-0 content-start gap-3;
-  }
-
-  .ov-hero-copy h2 {
-    @apply max-w-ov-heading text-ov-hero font-heading text-slate-950 ov-mobile:text-ov-hero-sm;
+    @apply grid min-w-0 content-start gap-4;
   }
 
   .ov-hero-sub {
@@ -179,11 +175,11 @@
 
   /* ------------------------------------------------------------- team card */
   .ov-team-panel {
-    @apply grid content-start gap-3 p-pad;
+    @apply grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5;
   }
 
   .ov-team-list {
-    @apply grid gap-2.5;
+    @apply grid gap-3;
   }
 
   .ov-team-row {
@@ -232,23 +228,15 @@
 
   /* ------------------------------------------------------------------- KPIs */
   .ov-kpi-strip {
-    @apply grid grid-cols-ov-kpi gap-token;
+    @apply grid grid-cols-ov-kpi gap-ov-section;
   }
 
   .ov-kpi-cell {
-    @apply grid min-w-0 content-start gap-1 rounded-token-lg border border-gray-200 bg-zinc-200 p-4;
+    @apply grid min-w-0 content-start gap-2 rounded-token-lg border border-gray-200 bg-zinc-200 p-5;
   }
 
   .ov-kpi-cell-label {
     @apply text-small font-semibold text-slate-600;
-  }
-
-  .ov-kpi-cell-value {
-    @apply text-ov-kpi font-heading tabular-nums text-slate-950;
-  }
-
-  .ov-kpi-cell-value small {
-    @apply text-body font-semibold text-slate-600;
   }
 
   .ov-kpi-cell-note {
@@ -277,7 +265,7 @@
 
   /* ------------------------------------------------------------------ chart */
   .ov-chart-panel {
-    @apply grid content-start gap-3 p-pad;
+    @apply grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5;
   }
 
   .ov-chart-wrap {
@@ -336,11 +324,11 @@
 
   /* ---------------------------------------------------------------- activity */
   .ov-activity-panel {
-    @apply grid content-start gap-3 p-pad;
+    @apply grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5;
   }
 
   .ov-activity-list {
-    @apply grid gap-2.5;
+    @apply grid gap-3;
   }
 
   .ov-activity-list li {
@@ -369,7 +357,7 @@
 
   /* ------------------------------------------------------------------ topics */
   .ov-topics-panel {
-    @apply grid content-start gap-3 p-pad;
+    @apply grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-100 p-5;
   }
 
   .ov-topics {
@@ -412,70 +400,13 @@
     @apply text-ov-micro text-slate-600;
   }
 
-  /* ------------------------------------------------------------ quick access */
-  .ov-access-panel {
-    @apply grid content-start gap-3 p-pad;
-  }
-
-  .ov-access-grid {
-    @apply grid grid-cols-ov-access gap-2.5 ov-laptop:grid-cols-3 ov-tablet:grid-cols-2 ov-mobile:grid-cols-1;
-  }
-
-  .ov-access-tile {
-    @apply grid grid-cols-ov-access-tile items-center gap-2.5 rounded-token-lg border border-gray-200 bg-zinc-200 p-3.5 text-left transition-control duration-control hover:-translate-y-px hover:bg-zinc-300;
-  }
-
-  .ov-access-icon {
-    @apply grid h-12 w-12 flex-none place-items-center rounded-token-sm bg-blue-50 text-blue-600;
-  }
-
-  .ov-access-icon.tone-teal {
-    @apply bg-emerald-100 text-emerald-600;
-  }
-
-  .ov-access-icon.tone-amber {
-    @apply bg-amber-100 text-amber-600;
-  }
-
-  .ov-access-icon.tone-blue {
-    @apply bg-blue-50 text-blue-600;
-  }
-
-  .ov-access-icon.tone-violet {
-    @apply bg-sky-100 text-sky-600;
-  }
-
-  .ov-access-icon.tone-pink {
-    @apply bg-red-100 text-red-600;
-  }
-
-  .ov-access-copy {
-    @apply grid min-w-0;
-  }
-
-  .ov-access-copy strong {
-    @apply truncate text-small font-bold text-slate-950;
-  }
-
-  .ov-access-copy small {
-    @apply truncate text-ov-micro text-slate-600;
-  }
-
-  .ov-access-arrow {
-    @apply h-4 w-4 flex-none text-slate-400 transition-control duration-control;
-  }
-
-  .ov-access-tile:hover .ov-access-arrow {
-    @apply text-blue-600;
-  }
-
   /* ------------------------------------------------------------------ widgets */
   .ov-widgets {
-    @apply grid grid-cols-ov-widgets gap-token ov-tablet:grid-cols-2 ov-mobile:grid-cols-1;
+    @apply grid grid-cols-ov-widgets gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1;
   }
 
   .ov-widget {
-    @apply grid min-h-ov content-start gap-3 rounded-token-xl border border-gray-200 bg-zinc-200 p-pad;
+    @apply grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-200 p-5;
   }
 
   .ov-widget-label {
@@ -606,7 +537,7 @@
 
   /* --------------------------------------------------------------- onboarding */
   .ov-onboarding {
-    @apply grid content-start gap-3 rounded-token-lg border border-gray-200 bg-zinc-200 p-pad;
+    @apply grid content-start gap-4 rounded-token-lg border border-gray-200 bg-zinc-200 p-5;
   }
 
   .ov-onboarding-head {
@@ -642,7 +573,7 @@
   }
 
   .ov-onboarding-step {
-    @apply grid grid-cols-ov-access-tile items-center gap-2.5 rounded-token-sm border border-gray-200 bg-zinc-100 p-3;
+    @apply grid grid-cols-ov-step items-center gap-3 rounded-token-sm border border-gray-200 bg-zinc-100 p-4;
   }
 
   .ov-onboarding-check {

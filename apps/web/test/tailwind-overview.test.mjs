@@ -30,7 +30,7 @@ test("o namespace ov-* substitui vx-* nos componentes da Visão geral", () => {
   assert.match(components, /\bov-kpi-cell\b/);
   assert.match(components, /\bov-widget\b/);
   assert.match(components, /\bov-onboarding\b/);
-  assert.match(page, /\bov-access-panel\b/);
+  assert.doesNotMatch(page, /Acesso rápido|\bov-access-[a-z-]+\b/);
   assert.match(page, /\bov-dock\b/);
   assert.doesNotMatch(page, /\bvx-access-[a-z-]+|mobile-overview-nav/);
   assert.match(visualRegression, /\.ov-hero/);
@@ -75,7 +75,6 @@ test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
     "bg-emerald-600",
     "bg-amber-600",
     "bg-red-100",
-    "bg-sky-100",
   ]) {
     assert.ok(styles.includes(token), `a Visão geral deve usar ${token}`);
   }
@@ -108,7 +107,7 @@ test("o preset expõe as escalas e os derivados da Visão geral", () => {
     '"ov-hero-body"',
     '"ov-team-row"',
     '"ov-kpi"',
-    '"ov-access"',
+    '"ov-step"',
     '"ov-topics"',
     '"ov-widgets"',
     '"ov-onboarding-steps"',
@@ -120,6 +119,7 @@ test("o preset expõe as escalas e os derivados da Visão geral", () => {
     '"ov-dock-btn"',
     '"ov-dock-gap"',
     '"ov-dock-pb"',
+    '"ov-section"',
     '"ov-heading"',
     'dock: "45"',
     'ov: "5.5"',

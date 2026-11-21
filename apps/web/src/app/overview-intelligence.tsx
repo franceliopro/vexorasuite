@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Sparkles, Users } from "lucide-react";
 import { platformLabel } from "./platform-icon";
 
@@ -221,7 +221,7 @@ function recentLabel(item: OverviewRecentItem): string {
   return `Nova ${relativeTime(item.createdAt || item.updatedAt)}`;
 }
 
-export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: OverviewSnapshot | null; onOpenQueue: () => void; shortcuts?: ReactNode }) {
+export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnapshot | null; onOpenQueue: () => void }) {
   const waiting = data?.waiting;
   const team = data?.team || [];
   const recent = data?.recent || [];
@@ -243,7 +243,7 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
         <article className={`ov-hero${waitingTotal ? "" : " is-clear"}`}>
           <div className="ov-hero-body">
             <div className="ov-hero-copy">
-              <h2>{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
+              <h2 className="max-w-ov-heading text-ov-hero font-heading text-slate-950 ov-mobile:text-ov-hero-sm">{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
               <p className="ov-hero-sub">
                 {waitingTotal
                   ? oldest !== null && oldest > 0
@@ -303,32 +303,32 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
       <div className="ov-kpi-strip" role="group" aria-label="Resumo da operação">
         <article className="ov-kpi-cell">
           <span className="ov-kpi-cell-label">Conversas abertas</span>
-          <strong className="ov-kpi-cell-value">{data?.openConversations ?? "—"}</strong>
+          <strong className="text-ov-kpi font-heading tabular-nums text-slate-950">{data?.openConversations ?? "—"}</strong>
           <em className={`ov-kpi-cell-note${outOfSlaNote ? " is-warn" : ""}`}>{outOfSlaNote ? <><span className="ov-kpi-dot alert" aria-hidden="true" />{outOfSlaNote} fora do SLA</> : <><span className="ov-kpi-dot ok" aria-hidden="true" />Nenhuma fora do SLA</>}</em>
         </article>
         <article className="ov-kpi-cell">
           <span className="ov-kpi-cell-label">Contatos</span>
-          <strong className="ov-kpi-cell-value">{data?.contacts ?? "—"}</strong>
+          <strong className="text-ov-kpi font-heading tabular-nums text-slate-950">{data?.contacts ?? "—"}</strong>
           <em className="ov-kpi-cell-note"><span className="ov-kpi-dot ok" aria-hidden="true" />{data?.contactsNewWeek ? `${data.contactsNewWeek} novos esta semana` : "Cadastros desta empresa"}</em>
         </article>
         <article className="ov-kpi-cell">
           <span className="ov-kpi-cell-label">Agentes ativos</span>
-          <strong className="ov-kpi-cell-value">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
+          <strong className="text-ov-kpi font-heading tabular-nums text-slate-950">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small className="text-small font-semibold text-slate-600"> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
           <em className="ov-kpi-cell-note"><span className="ov-kpi-dot muted" aria-hidden="true" />{agentsPaused === 1 ? "1 em pausa" : agentsPaused > 1 ? `${agentsPaused} em pausa` : "Todos ativos"}</em>
         </article>
         <article className="ov-kpi-cell">
           <span className="ov-kpi-cell-label">Atendimentos finalizados</span>
-          <strong className="ov-kpi-cell-value">{data?.completedConversations ?? "-"}</strong>
+          <strong className="text-ov-kpi font-heading tabular-nums text-slate-950">{data?.completedConversations ?? "-"}</strong>
           <em className="ov-kpi-cell-note"><span className="ov-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
         </article>
         <article className="ov-kpi-cell">
           <span className="ov-kpi-cell-label">Receita do mês</span>
-          <strong className="ov-kpi-cell-value">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
+          <strong className="text-ov-kpi font-heading tabular-nums text-slate-950">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
           <em className="ov-kpi-cell-note"><span className="ov-kpi-dot ok" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
         </article>
         <article className="ov-kpi-cell">
           <span className="ov-kpi-cell-label">1ª resposta</span>
-          <strong className="ov-kpi-cell-value">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
+          <strong className="text-ov-kpi font-heading tabular-nums text-slate-950">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
           <em className="ov-kpi-cell-note"><span className="ov-kpi-dot muted" aria-hidden="true" />Média dos últimos 30 dias</em>
         </article>
       </div>
@@ -379,7 +379,6 @@ export function OverviewIntelligence({ data, onOpenQueue, shortcuts }: { data: O
         ) : <p className="ov-card-empty">Os assuntos aparecem aqui conforme as conversas chegam.</p>}
       </article>
 
-      {shortcuts}
     </section>
   );
 }

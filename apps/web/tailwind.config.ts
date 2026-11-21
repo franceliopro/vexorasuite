@@ -19,7 +19,7 @@ const config: Config = {
       /* Breakpoints da Visão geral. São `raw` porque o legado usava
          max-width; o preset passa a ser a única fonte desses cortes. */
       screens: {
-        "ov-laptop": { raw: "(max-width: 1120px)" },
+        "ov-laptop": { raw: "(max-width: 900px)" },
         "ov-tablet": { raw: "(max-width: 760px)" },
         "ov-mobile": { raw: "(max-width: 520px)" },
       },

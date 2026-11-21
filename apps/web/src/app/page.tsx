@@ -126,10 +126,16 @@ const iconMap = {
   "graduation-cap": GraduationCap,
 };
 
-function Icon({ name, size = 18 }: { name: keyof typeof iconMap; size?: number }) {
+function Icon({ name, size = 18, className }: { name: keyof typeof iconMap; size?: number; className?: string }) {
   const IconComponent = iconMap[name] ?? MessagesSquare;
-  return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} />;
+  return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} className={className} />;
 }
+
+/** Utilities do dock da Visão geral (antes, as classes ov-dock do CSS isolado). */
+const DOCK_BUTTON = "grid min-h-ov-dock-btn place-items-center gap-0.5 rounded-token-sm px-3.5 py-0.5 text-ov-micro font-semibold transition-control duration-control";
+const DOCK_BUTTON_IDLE = "text-indigo-400 hover:bg-indigo-900 hover:text-indigo-50";
+const DOCK_BUTTON_ACTIVE = "bg-blue-600 text-blue-900 shadow-vx-brand";
+const DOCK_ICON_ACTIVE = "text-blue-900";
 
 type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
@@ -512,7 +518,7 @@ export default function HomePage() {
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <ReminderCenter />
       <AlarmCenter />
-      <nav className={active === "Visão geral" ? "ov-dock" : "mobile-bottom-nav" + (active === "Atendimento" ? " mobile-inbox-nav" : "")} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
+      <nav className={active === "Visão geral" ? "fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock ov-tablet:justify-center ov-tablet:gap-x-ov-dock-gap ov-tablet:border-t ov-tablet:border-indigo-800 ov-tablet:bg-indigo-950 ov-tablet:px-3 ov-tablet:pb-ov-dock-pb ov-tablet:pt-1" : "mobile-bottom-nav" + (active === "Atendimento" ? " mobile-inbox-nav" : "")} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => setMenuOpen(false)}><Icon name="messages" size={20}/><span>Conversa</span></button>
@@ -522,10 +528,10 @@ export default function HomePage() {
           </>
         ) : (
           <>
-            <button type="button" className={active === "Atendimento" ? "active" : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
+            <button type="button" className={active === "Visão geral" ? `${DOCK_BUTTON} ${DOCK_BUTTON_IDLE}` : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
             {active !== "Visão geral" && <>
-            <button type="button" onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
-            <button type="button" className={menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20}/><span>Mais</span></button>
+            <button type="button" className={active === "Visão geral" ? `${DOCK_BUTTON} ${DOCK_BUTTON_IDLE}` : ""} onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
+            <button type="button" className={active === "Visão geral" ? `${DOCK_BUTTON} ${menuOpen ? DOCK_BUTTON_ACTIVE : DOCK_BUTTON_IDLE}` : menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20} className={active === "Visão geral" && menuOpen ? DOCK_ICON_ACTIVE : undefined}/><span>Mais</span></button>
             </>}
           </>
         )}

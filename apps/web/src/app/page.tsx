@@ -164,6 +164,26 @@ const colorFooterTw="flex items-center justify-between gap-2.5 border-t border-l
 const colorActionsTw="flex items-center gap-2";
 const colorErrorTw="m-0 text-2xs text-danger";
 
+const BRAND_MARK_TW:Record<string,string>={
+  default:"grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
+  round:"grid h-control w-control flex-none place-items-center rounded-brand rounded-full bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
+  square:"grid h-control w-control flex-none place-items-center rounded-brand rounded-square bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
+  logo:"grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
+  logoRound:"grid h-control w-control flex-none place-items-center rounded-brand rounded-full bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
+  logoSquare:"grid h-control w-control flex-none place-items-center rounded-brand rounded-square bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
+};
+const BRAND_LOGO_IMG_TW="max-w-logo max-h-logo object-contain";
+function brandMarkClass(hasLogo:boolean,shape:string){
+  if(hasLogo){
+    if(shape==="round")return BRAND_MARK_TW.logoRound;
+    if(shape==="square")return BRAND_MARK_TW.logoSquare;
+    return BRAND_MARK_TW.logo;
+  }
+  if(shape==="round")return BRAND_MARK_TW.round;
+  if(shape==="square")return BRAND_MARK_TW.square;
+  return BRAND_MARK_TW.default;
+}
+
 const DOCK_BUTTON = "grid min-h-ov-dock-btn place-items-center gap-0.5 rounded-token-sm px-3.5 py-0.5 text-ov-micro font-semibold transition-control duration-control";
 const DOCK_BUTTON_IDLE = "text-indigo-400 hover:bg-indigo-900 hover:text-indigo-50";
 const DOCK_BUTTON_ACTIVE = "bg-blue-600 text-blue-900 shadow-vx-brand";
@@ -377,7 +397,7 @@ export default function HomePage() {
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
 
   if (authStatus === "checking") {
-    return <div className={authScreenTw}><div className={authPanelTw}><span className="brand-mark">V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
+    return <div className={authScreenTw}><div className={authPanelTw}><span className={BRAND_MARK_TW.default}>V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
   }
   if (authStatus === "anonymous") {
     return <AuthScreen onAuthenticated={(value) => { setSession(value); setAuthStatus("authenticated");void refreshProfile(); }} />;
@@ -388,7 +408,7 @@ export default function HomePage() {
     <div className="suite-app">
       <aside id="mobile-navigation-menu" className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`} onContextMenu={(event) => { const target = event.target as Element; if (target.closest("button,a,summary,input,select,textarea,img,details,[role=\"menuitem\"]")) return; event.preventDefault(); const padding = 300; openSidebarColorMenu(Math.max(8, Math.min(event.clientX, window.innerWidth - padding)), Math.max(8, Math.min(event.clientY, window.innerHeight - 340))); }}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("Visão geral");setMenuOpen(false); }}>
-          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className="brand-full-logo" src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={"brand-mark "+((theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?"has-custom-logo ":"")+(brandAssets.logoShape==="round"?"custom-round":brandAssets.logoShape==="square"?"custom-square":"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
+          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {

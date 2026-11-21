@@ -280,6 +280,9 @@ const config: Config = {
         "ib-popover": "16px",
         "ib-handoff": "20px",
         "ib-option-icon": "11px",
+        /* Cartão e ícone da configuração do Asaas. */
+        "asaas-card": "14px",
+        "asaas-icon": "9px",
         /* Raios do gerenciador de arquivos e do seletor de imagens. */
         "fm-card": "14px",
         "fm-search": "10px",
@@ -338,6 +341,10 @@ const config: Config = {
         "brand-title": ["20px", { lineHeight: "1", letterSpacing: "-.03em" }],
         "brand-mark": "17px",
         "brand-badge": "9px",
+        /* Textos do cartão de configuração do Asaas. */
+        "asaas-title": "15px",
+        "asaas-label": "11px",
+        "asaas-muted": ["10.5px", { lineHeight: "1.5" }],
         /* Escalas da Visão geral. */
         "ov-hero": ["clamp(19px, 1.7vw, 23px)", { lineHeight: "1.25", letterSpacing: "-0.02em" }],
         "ov-hero-sm": ["19px", { lineHeight: "1.3", letterSpacing: "-0.02em" }],
@@ -424,6 +431,7 @@ const config: Config = {
         token: "var(--gap)",
         pad: "var(--pad)",
         "brand-pad": "18px",
+        "asaas-toggle": "9px",
         "nav-gap": "11px",
         "nav-pad": "13px",
         "nav-height": "42px",
@@ -577,6 +585,8 @@ const config: Config = {
         "ib-workspace": "minmax(260px,340px) minmax(0,1fr) minmax(300px,380px)",
         "ib-workspace-profile": "minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)",
         "ib-supervision": "repeat(4,1fr)",
+        /* Grade dos interruptores do Asaas. */
+        "channels-asaas-grid": "repeat(auto-fit,minmax(200px,1fr))",
         /* Grades do gerenciador de arquivos e do seletor de imagens. */
         "fm-items": "repeat(auto-fill,minmax(180px,1fr))",
         "fm-picker": "repeat(auto-fill,minmax(150px,1fr))",
@@ -587,6 +597,9 @@ const config: Config = {
       height: {
         /* Shell do workspace de Atendimento. */
         "ib-workspace": "calc(100dvh - var(--top) - 56px)",
+        /* Dimensões dos controles do Asaas. */
+        "asaas-icon": "34px",
+        "asaas-check": "17px",
         /* Skeleton dos Relatórios. */
         "rw-skel-card": "118px",
         "rw-skel-chart": "190px",
@@ -678,6 +691,8 @@ const config: Config = {
         "ib-context-menu": "190px",
         "ib-voice-wave": "3px",
         "ib-voice-button": "34px",
+        "asaas-icon": "34px",
+        "asaas-check": "17px",
         "ib-dialog": "min(100%, 520px)",
         "ib-dialog-wide": "min(100%, 860px)",
         "ib-mention": "min(100vw - 32px, 360px)",

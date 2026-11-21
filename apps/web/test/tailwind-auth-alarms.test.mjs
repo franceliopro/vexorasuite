@@ -68,7 +68,7 @@ test("auth e alarmes usam só utilities do preset, sem remendos", () => {
     "absolute right-1 top-1 grid size-8 place-items-center text-ink-secondary",
     "rounded-token-sm bg-blue-50 px-3.5 py-3 text-body text-blue-800",
     "grid gap-3.5", "grid gap-1.5", "pr-12", "min-h-0 p-0 font-bold text-blue-600",
-    "alarm-overlay fixed inset-0 grid", "backdrop-blur-md", "max-h-phone-frame",
+    "fixed inset-0 grid animate-vx-in place-items-center bg-overlay p-5 backdrop-blur-md", "max-h-phone-frame",
     "max-w-calendar-event-modal", "bg-linear-to-br from-slate-800 to-slate-900",
     "size-26", "text-xs font-heading uppercase tracking-fin-eyebrow text-sky-300",
     "grid w-full gap-4.5", "mt-1.5 text-body text-slate-300",
@@ -93,7 +93,7 @@ test("contratos de auth e alarmes permanecem intactos", () => {
   for (const token of [
     'role="alertdialog"', 'aria-modal="true"',
     'aria-label={ringing.length === 1 ? "Alarme tocando" : "Alarmes tocando"}',
-    "alarm-overlay", "alarm-snooze", "alarm-stop", "Adiar 5 min", "Parar",
+    'zIndex: "var(--z-reminder, 9500)"', "alarm-snooze", "alarm-stop", "Adiar 5 min", "Parar",
     'onClick={() => snooze(alarm)}', 'onClick={() => dismiss(alarm)}',
     'aria-hidden="true"', "key={alarm.id}", "if (!ringing.length) return null;",
     'fetch("/api/backend/reminders/alarms", { cache: "no-store" })',

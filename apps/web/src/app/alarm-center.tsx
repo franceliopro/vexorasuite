@@ -162,8 +162,8 @@ export function AlarmCenter() {
   if (!ringing.length) return null;
   return (
     <div
-      className="alarm-overlay fixed inset-0 grid animate-vx-in place-items-center p-5 backdrop-blur-md"
-      style={{ background: "radial-gradient(90rem 60rem at 50% -20%, rgba(29,78,216,.22), transparent 60%),rgba(4,8,20,.84)" }}
+      className="fixed inset-0 grid animate-vx-in place-items-center bg-overlay p-5 backdrop-blur-md"
+      style={{ zIndex: "var(--z-reminder, 9500)", background: "radial-gradient(90rem 60rem at 50% -20%, rgba(29,78,216,.22), transparent 60%),rgba(4,8,20,.84)" }}
       role="alertdialog"
       aria-modal="true"
       aria-label={ringing.length === 1 ? "Alarme tocando" : "Alarmes tocando"}

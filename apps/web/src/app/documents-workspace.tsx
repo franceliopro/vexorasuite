@@ -11,6 +11,61 @@ type Template = { id: string; kind: string; name: string; description: string; v
 type Generated = { id: string; name: string; kind: string; contactName?: string | null; sentAt?: string | null; sentTo?: string | null; createdAt: string; content?: string };
 type Contact = { id: string; name: string; phone?: string | null; email?: string | null };
 
+/* TW utility-first: cores do preset, azul só por tokens blue-*. */
+const rootTw = "grid min-w-0 content-start gap-token";
+const headingTw = "flex flex-wrap items-center justify-between gap-4 rounded-token-lg border border-line bg-gradient-to-br from-blue-50 to-surface px-5 py-4 shadow-token-sm";
+const headingActionsTw = "flex flex-none items-center gap-2.5";
+const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-brand-pad text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-brand-pad text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryIconTw = "inline-grid size-docs-icon place-items-center rounded-xl border border-line bg-surface-2 text-ink shadow-token-sm transition-colors hover:bg-hover";
+const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const errorTw = "m-0 rounded-docs-alert border border-red-600 bg-red-100 px-3 py-2.5 text-docs-hint text-red-600";
+const noticeTw = "m-0 rounded-docs-alert border border-emerald-600 bg-emerald-100 px-3 py-2.5 text-docs-hint text-emerald-600";
+const tabsTw = "flex flex-wrap gap-1.5 print:hidden";
+const tabTw = "rounded-full border border-line bg-surface px-4 py-2 text-body font-semibold text-ink-secondary transition-colors";
+const tabStateTw: Record<string, string> = { on: "border-blue-600 bg-blue-600 text-blue-50", off: "border-line bg-surface text-ink-secondary" };
+const tabClass = (active: boolean) => `${tabTw} ${tabStateTw[active ? "on" : "off"]}`;
+const gridTw = "grid grid-cols-docs-grid items-start gap-4 rw-wide:grid-cols-1";
+const listTw = "grid content-start gap-2.5";
+const listHeadTw = "flex items-center justify-between gap-2.5 px-0.5 py-1";
+const listHeadTitleTw = "font-display text-body font-extrabold tracking-wide text-ink-secondary";
+const templateItemTw = "flex w-full items-center gap-3 rounded-docs-card border border-line bg-surface px-3.5 py-3 text-left text-ink transition-colors hover:border-blue-600 hover:shadow-token-sm";
+const templateCopyTw = "grid min-w-0 gap-0.5";
+const templateNameTw = "text-docs-name font-bold";
+const templateDescTw = "block max-w-full truncate text-docs-meta text-ink-secondary";
+const templateActionsTw = "ml-auto flex flex-none items-center gap-1.5";
+const iconBtnTw = "inline-grid size-docs-icon place-items-center rounded-lg border border-line bg-transparent text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
+const iconBtnDangerTw = "inline-grid size-docs-icon place-items-center rounded-lg border border-line bg-transparent text-red-600 transition-colors hover:bg-red-100 hover:text-red-600";
+const emptyTw = "rounded-docs-empty border border-dashed border-line-strong px-3.5 py-3.5 text-docs-hint text-ink-secondary";
+const detailTw = "rounded-docs-card border border-dashed border-line-strong p-docs-pad text-body leading-normal text-ink-secondary";
+const hintTw = "text-docs-hint leading-normal text-ink-secondary";
+const generateTw = "grid grid-cols-docs-generate items-start gap-4 rw-wide:grid-cols-1";
+const formTw = "grid gap-3 rounded-docs-card border border-line bg-surface p-4";
+const formHeadTw = "flex items-center gap-3 border-b border-line pb-2";
+const requiredTw = "text-red-600";
+const labelTw = "grid gap-1.5 text-small font-bold text-ink-secondary";
+const controlTw = "min-h-9 rounded-docs-field border border-line bg-surface-2 px-2.5 py-2 font-inherit text-ink transition-colors focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600";
+const editorControlTw = `${controlTw} w-full min-w-0`;
+const actionsTw = "flex justify-end gap-2.5 border-t border-line pt-3";
+const previewTw = "grid content-start gap-3";
+const previewActionsTw = "flex flex-wrap gap-2.5 print:hidden";
+const documentTw = "m-0 max-h-docs-document overflow-auto whitespace-pre-wrap rounded-docs-card border border-line bg-surface p-docs-pad font-ui text-docs-document text-ink print:max-h-none print:border-0 print:shadow-none";
+const sendTw = "flex flex-wrap items-end gap-2.5 print:hidden";
+const sendLabelTw = "grid min-w-docs-send flex-1 gap-1.5 text-small font-bold text-ink-secondary";
+const historyTw = "grid gap-2";
+const historyItemTw = "flex items-center gap-3 rounded-docs-empty border border-line bg-surface px-3.5 py-3";
+const historyMetaTw = "block text-2xs text-ink-secondary";
+const editorWindowTw = "fixed inset-0 z-docs-editor bg-surface";
+const editorFrameTw = "h-docs-frame w-docs-frame min-w-0";
+const editorTw = "grid h-full w-full grid-rows-docs-editor bg-surface";
+const editorHeadTw = "flex items-center justify-between gap-2.5 border-b border-line bg-surface px-docs-editor-x pb-3 pt-docs-safe-top";
+const editorTitleTw = "m-0";
+const editorScrollTw = "grid min-h-0 min-w-0 content-start gap-4 overflow-auto overscroll-contain bg-surface px-docs-editor-x pb-7 pt-4";
+const editorActionsTw = "flex justify-end gap-2.5 border-t border-line bg-surface px-docs-editor-x pb-docs-safe-bottom pt-3";
+const variablesTw = "grid gap-2 rounded-docs-empty border border-line p-3";
+const variablesLegendTw = "px-1.5 text-2xs font-extrabold uppercase tracking-wider text-ink-secondary";
+const variableRowTw = "grid grid-cols-docs-variable items-center gap-1.5 ov-tablet:grid-cols-2";
+const requiredToggleTw = "inline-flex items-center gap-1.5 text-2xs font-semibold text-ink-secondary";
 const KINDS = [
   { id: "QUOTE", label: "Orçamentos" },
   { id: "CONTRACT", label: "Contratos" },
@@ -146,106 +201,106 @@ export function DocumentsWorkspace() {
   const kindLabel = KINDS.find((k) => k.id === kind)?.label ?? "Documentos";
 
   return (
-    <section className="documents-workspace">
-      <header className="creative-heading">
+    <section className={rootTw}>
+      <header className={headingTw}>
         <div>
           <h1>Documentos</h1>
           <p>Orçamentos, contratos e ordens de serviço gerados a partir dos dados do cliente e enviados em um clique.</p>
         </div>
-        <div className="workspace-actions">
-          <button type="button" className="secondary-button" onClick={() => void load()} aria-label="Atualizar"><RefreshCw size={16} /></button>
-          <button type="button" className="primary-button" onClick={() => setEditing("new")}><Plus size={16} /> Novo modelo</button>
+        <div className={headingActionsTw}>
+          <button type="button" className={secondaryIconTw} onClick={() => void load()} aria-label="Atualizar"><RefreshCw size={16} /></button>
+          <button type="button" className={primaryTw} onClick={() => setEditing("new")}><Plus size={16} /> Novo modelo</button>
         </div>
       </header>
-      {error ? <p role="alert" className="docs-error">{error}</p> : null}
-      {notice ? <p role="status" className="docs-notice">{notice}</p> : null}
-      {loadErrors.length > 0 && <div className="docs-error" role="alert">
-        Não foi possível carregar {loadErrors.join(", ")}. <button type="button" className="text-button" onClick={() => void load()}>Tentar novamente</button>
+      {error ? <p role="alert" className={errorTw}>{error}</p> : null}
+      {notice ? <p role="status" className={noticeTw}>{notice}</p> : null}
+      {loadErrors.length > 0 && <div className={errorTw} role="alert">
+        Não foi possível carregar {loadErrors.join(", ")}. <button type="button" className={textButtonTw} onClick={() => void load()}>Tentar novamente</button>
       </div>}
 
-      <div className="docs-tabs" role="tablist" aria-label="Tipo de documento">
+      <div className={tabsTw} role="tablist" aria-label="Tipo de documento">
         {KINDS.map((item) => (
-          <button key={item.id} role="tab" aria-selected={kind === item.id} className={kind === item.id ? "active" : ""} onClick={() => { setKind(item.id); setView("templates"); setGenerated(null); }}>
+          <button key={item.id} role="tab" aria-selected={kind === item.id} className={tabClass(kind === item.id)} onClick={() => { setKind(item.id); setView("templates"); setGenerated(null); }}>
             {item.label}
           </button>
         ))}
-        <button role="tab" aria-selected={view === "history"} className={view === "history" ? "active" : ""} onClick={() => setView("history")}>Gerados recentemente</button>
+        <button role="tab" aria-selected={view === "history"} className={tabClass(view === "history")} onClick={() => setView("history")}>Gerados recentemente</button>
       </div>
 
       {view === "templates" ? (
-        <div className="docs-grid">
-          <div className="docs-list">
-            <div className="docs-list-head">
-              <strong>Modelos de {kindLabel.toLowerCase()}</strong>
-              {!filtered.length && !loadErrors.includes("modelos") ? <button type="button" className="primary-button" disabled={busy} onClick={() => void seed()}><Sparkles size={16} /> Criar modelos iniciais</button> : null}
+        <div className={gridTw}>
+          <div className={listTw}>
+            <div className={listHeadTw}>
+              <strong className={listHeadTitleTw}>Modelos de {kindLabel.toLowerCase()}</strong>
+              {!filtered.length && !loadErrors.includes("modelos") ? <button type="button" className={primaryTw} disabled={busy} onClick={() => void seed()}><Sparkles size={16} /> Criar modelos iniciais</button> : null}
             </div>
             {filtered.map((template) => (
-              <div key={template.id} role="button" tabIndex={0} className="docs-template-item" onClick={() => startGenerate(template)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startGenerate(template); } }}>
+              <div key={template.id} role="button" tabIndex={0} className={templateItemTw} onClick={() => startGenerate(template)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startGenerate(template); } }}>
                 <FileText size={18} aria-hidden="true" />
-                <span><strong>{template.name}</strong><small>{template.description || "Modelo personalizado"}</small></span>
-                <span className="docs-template-actions">
-                  <button type="button" className="docs-icon-btn" aria-label="Editar modelo" onClick={(e) => { e.stopPropagation(); setEditing(template); }}><Pencil size={15} /></button>
-                  <button type="button" className="docs-icon-btn danger" aria-label="Excluir modelo" onClick={(e) => { e.stopPropagation(); void removeTemplate(template); }}><Trash2 size={15} /></button>
+                <span className={templateCopyTw}><strong className={templateNameTw}>{template.name}</strong><small className={templateDescTw}>{template.description || "Modelo personalizado"}</small></span>
+                <span className={templateActionsTw}>
+                  <button type="button" className={iconBtnTw} aria-label="Editar modelo" onClick={(e) => { e.stopPropagation(); setEditing(template); }}><Pencil size={15} /></button>
+                  <button type="button" className={iconBtnDangerTw} aria-label="Excluir modelo" onClick={(e) => { e.stopPropagation(); void removeTemplate(template); }}><Trash2 size={15} /></button>
                 </span>
               </div>
             ))}
-            {!filtered.length ? <p className="docs-empty">Nenhum modelo ainda. Use “Criar modelos iniciais” para partir de orçamentos, contratos e OS prontos.</p> : null}
+            {!filtered.length ? <p className={emptyTw}>Nenhum modelo ainda. Use “Criar modelos iniciais” para partir de orçamentos, contratos e OS prontos.</p> : null}
           </div>
-          <div className="docs-detail">
-            <p className="docs-hint">Selecione um modelo para gerar o documento com os dados do cliente (nome, telefone, e-mail, CPF/CNPJ, endereço e documento sincronizados do Asaas).</p>
+          <div className={detailTw}>
+            <p className={hintTw}>Selecione um modelo para gerar o documento com os dados do cliente (nome, telefone, e-mail, CPF/CNPJ, endereço e documento sincronizados do Asaas).</p>
           </div>
         </div>
       ) : null}
 
       {view === "generate" && selected ? (
-        <div className="docs-generate">
-          <div className="docs-form">
-            <header className="docs-form-head"><FileText size={18} aria-hidden="true" /><div><strong>{selected.name}</strong><small>{selected.description}</small></div></header>
-            <label>Contato (opcional)<select value={contactId} onChange={(e) => setContactId(e.target.value)}><option value="">Sem contato (preencher manualmente)</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? " · " + c.phone : ""}</option>)}</select></label>
+        <div className={generateTw}>
+          <div className={formTw}>
+            <header className={formHeadTw}><FileText size={18} aria-hidden="true" /><div className={templateCopyTw}><strong className={templateNameTw}>{selected.name}</strong><small className={templateDescTw}>{selected.description}</small></div></header>
+            <label className={labelTw}>Contato (opcional)<select className={controlTw} value={contactId} onChange={(e) => setContactId(e.target.value)}><option value="">Sem contato (preencher manualmente)</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? " · " + c.phone : ""}</option>)}</select></label>
             {selected.variables.map((variable) => (
-              <label key={variable.key}>{variable.label}{variable.required ? <b className="docs-required"> *</b> : null}
+              <label key={variable.key} className={labelTw}>{variable.label}{variable.required ? <b className={requiredTw}> *</b> : null}
                 {variable.type === "longtext"
-                  ? <textarea rows={3} maxLength={4000} value={values[variable.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [variable.key]: e.target.value }))} />
-                  : <input type={variable.type === "date" ? "date" : "text"} maxLength={4000} value={values[variable.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [variable.key]: e.target.value }))} placeholder={variable.type === "money" ? "Ex.: R$ 1.500,00" : ""} />}
+                  ? <textarea className={controlTw} rows={3} maxLength={4000} value={values[variable.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [variable.key]: e.target.value }))} />
+                  : <input className={controlTw} type={variable.type === "date" ? "date" : "text"} maxLength={4000} value={values[variable.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [variable.key]: e.target.value }))} placeholder={variable.type === "money" ? "Ex.: R$ 1.500,00" : ""} />}
               </label>
             ))}
-            <div className="docs-actions">
-              <button type="button" className="secondary-button" onClick={() => setView("templates")}>Voltar</button>
-              <button type="button" className="primary-button" disabled={busy} onClick={() => void generate()}>{busy ? "Gerando…" : "Gerar documento"}</button>
+            <div className={actionsTw}>
+              <button type="button" className={secondaryTw} onClick={() => setView("templates")}>Voltar</button>
+              <button type="button" className={primaryTw} disabled={busy} onClick={() => void generate()}>{busy ? "Gerando…" : "Gerar documento"}</button>
             </div>
           </div>
-          <div className="docs-preview">
+          <div className={previewTw}>
             {generated ? (
               <>
-                <div className="docs-preview-actions">
-                  <a className="primary-button" href={`/api/backend/documents/${generated.id}/pdf`} download>Baixar PDF</a>
-                  <button type="button" className="secondary-button" onClick={() => window.print()}><Printer size={15} /> Imprimir</button>
+                <div className={previewActionsTw}>
+                  <a className={primaryTw} href={`/api/backend/documents/${generated.id}/pdf`} download>Baixar PDF</a>
+                  <button type="button" className={secondaryTw} onClick={() => window.print()}><Printer size={15} /> Imprimir</button>
                 </div>
-                <pre className="docs-document">{generated.content}</pre>
-                <div className="docs-send">
-                  <label>Enviar por e-mail<input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="e-mail do cliente" /></label>
-                  <button type="button" className="secondary-button" disabled={busy} onClick={() => void sendEmail()}><Mail size={15} /> Enviar</button>
+                <pre className={documentTw}>{generated.content}</pre>
+                <div className={sendTw}>
+                  <label className={sendLabelTw}>Enviar por e-mail<input className={controlTw} type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="e-mail do cliente" /></label>
+                  <button type="button" className={secondaryTw} disabled={busy} onClick={() => void sendEmail()}><Mail size={15} /> Enviar</button>
                 </div>
-                <div className="docs-send">
-                  <label>Enviar pelo WhatsApp<input value={conversationTo} onChange={(e) => setConversationTo(e.target.value)} placeholder="ID da conversa (ou abra com ?conversationId=...)" /></label>
-                  <button type="button" className="secondary-button" disabled={busy} onClick={() => void sendWhatsapp()}><Mail size={15} /> Enviar</button>
+                <div className={sendTw}>
+                  <label className={sendLabelTw}>Enviar pelo WhatsApp<input className={controlTw} value={conversationTo} onChange={(e) => setConversationTo(e.target.value)} placeholder="ID da conversa (ou abra com ?conversationId=...)" /></label>
+                  <button type="button" className={secondaryTw} disabled={busy} onClick={() => void sendWhatsapp()}><Mail size={15} /> Enviar</button>
                 </div>
               </>
-            ) : <p className="docs-hint">O documento gerado aparece aqui. Preencha os campos e clique em “Gerar documento”.</p>}
+            ) : <p className={hintTw}>O documento gerado aparece aqui. Preencha os campos e clique em “Gerar documento”.</p>}
           </div>
         </div>
       ) : null}
 
       {view === "history" ? (
-        <div className="docs-history">
-          <strong>Documentos gerados recentemente</strong>
+        <div className={historyTw}>
+          <strong className={listHeadTitleTw}>Documentos gerados recentemente</strong>
           {recent.length ? recent.map((doc) => (
-            <div key={doc.id} className="docs-history-item">
+            <div key={doc.id} className={historyItemTw}>
               <FileText size={16} aria-hidden="true" />
-              <span><strong>{doc.name}</strong><small>{doc.contactName ?? "Sem contato"} · {new Date(doc.createdAt).toLocaleDateString("pt-BR")}{doc.sentAt ? " · enviado para " + doc.sentTo : ""}</small></span>
-              <a className="text-button" href={`/api/backend/documents/${doc.id}/pdf`} download>PDF</a>
+              <span className={templateCopyTw}><strong className={templateNameTw}>{doc.name}</strong><small className={historyMetaTw}>{doc.contactName ?? "Sem contato"} · {new Date(doc.createdAt).toLocaleDateString("pt-BR")}{doc.sentAt ? " · enviado para " + doc.sentTo : ""}</small></span>
+              <a className={textButtonTw} href={`/api/backend/documents/${doc.id}/pdf`} download>PDF</a>
             </div>
-          )) : <p className="docs-empty">Nenhum documento gerado ainda para este tipo.</p>}
+          )) : <p className={emptyTw}>Nenhum documento gerado ainda para este tipo.</p>}
         </div>
       ) : null}
 
@@ -309,36 +364,36 @@ function TemplateEditor({ kind, template, onClose, onSaved }: { kind: string; te
   }
 
   return createPortal(
-    <div className="docs-editor-window">
-      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="docs-template-title" className="docs-editor-frame">
-      <form className="docs-editor" onSubmit={submit}>
-        <header className="docs-editor-head"><h2 id="docs-template-title">{template ? "Editar modelo" : "Novo modelo"}</h2><button type="button" className="text-button" onClick={onClose} disabled={busy}>Fechar</button></header>
-        <div className="docs-editor-scroll" role="region" aria-label="Campos do modelo" tabIndex={0}>
-        {error ? <p role="alert" className="docs-error">{error}</p> : null}
+    <div className={editorWindowTw}>
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="docs-template-title" className={editorFrameTw}>
+      <form className={editorTw} onSubmit={submit}>
+        <header className={editorHeadTw}><h2 id="docs-template-title" className={editorTitleTw}>{template ? "Editar modelo" : "Novo modelo"}</h2><button type="button" className={textButtonTw} onClick={onClose} disabled={busy}>Fechar</button></header>
+        <div className={editorScrollTw} role="region" aria-label="Campos do modelo" tabIndex={0}>
+        {error ? <p role="alert" className={errorTw}>{error}</p> : null}
         {loadingBody && <p role="status">Carregando modelo…</p>}
-        <label>Nome<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Orçamento de manutenção" /></label>
-        <label>Descrição<textarea rows={2} maxLength={240} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
-        <fieldset className="docs-variables">
-          <legend>{"Variáveis (use {{chave}} no texto)"}</legend>
+        <label className={labelTw}>Nome<input className={editorControlTw} required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Orçamento de manutenção" /></label>
+        <label className={labelTw}>Descrição<textarea className={editorControlTw} rows={2} maxLength={240} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
+        <fieldset className={variablesTw}>
+          <legend className={variablesLegendTw}>{"Variáveis (use {{chave}} no texto)"}</legend>
           {variables.map((variable, index) => (
-            <div key={index} className="docs-variable-row">
-              <input value={variable.label} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, label: e.target.value } : item)))} placeholder="Rótulo (ex.: Valor)" aria-label="Rótulo da variável" />
-              <input value={variable.key} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, key: e.target.value } : item)))} placeholder="chave_ex: valor" aria-label="Chave da variável" />
-              <select value={variable.type} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, type: e.target.value as Variable["type"] } : item)))} aria-label="Tipo">
+            <div key={index} className={variableRowTw}>
+              <input className={editorControlTw} value={variable.label} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, label: e.target.value } : item)))} placeholder="Rótulo (ex.: Valor)" aria-label="Rótulo da variável" />
+              <input className={editorControlTw} value={variable.key} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, key: e.target.value } : item)))} placeholder="chave_ex: valor" aria-label="Chave da variável" />
+              <select className={editorControlTw} value={variable.type} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, type: e.target.value as Variable["type"] } : item)))} aria-label="Tipo">
                 <option value="text">Texto</option>
                 <option value="longtext">Texto longo</option>
                 <option value="date">Data</option>
                 <option value="money">Dinheiro</option>
               </select>
-              <label className="docs-required-toggle"><input type="checkbox" checked={variable.required === true} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, required: e.target.checked } : item)))} /> Obrigatória</label>
-              <button type="button" className="docs-icon-btn" aria-label="Remover variável" onClick={() => setVariables((v) => v.filter((_, i) => i !== index))}><Trash2 size={14} /></button>
+              <label className={requiredToggleTw}><input type="checkbox" checked={variable.required === true} onChange={(e) => setVariables((v) => v.map((item, i) => (i === index ? { ...item, required: e.target.checked } : item)))} /> Obrigatória</label>
+              <button type="button" className={iconBtnTw} aria-label="Remover variável" onClick={() => setVariables((v) => v.filter((_, i) => i !== index))}><Trash2 size={14} /></button>
             </div>
           ))}
-          <button type="button" className="secondary-button" onClick={() => setVariables((v) => [...v, emptyVariable()])}><Plus size={14} /> Adicionar variável</button>
+          <button type="button" className={secondaryTw} onClick={() => setVariables((v) => [...v, emptyVariable()])}><Plus size={14} /> Adicionar variável</button>
         </fieldset>
-        <label>Conteúdo do modelo<textarea required rows={10} value={body} onChange={(e) => setBody(e.target.value)} spellCheck={false} placeholder={"CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nContratante: {{nome_cliente}}\nObjeto: {{objetivo}}\nValor: {{valor}}"} /></label>
+        <label className={labelTw}>Conteúdo do modelo<textarea className={editorControlTw} required rows={10} value={body} onChange={(e) => setBody(e.target.value)} spellCheck={false} placeholder={"CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nContratante: {{nome_cliente}}\nObjeto: {{objetivo}}\nValor: {{valor}}"} /></label>
         </div>
-        <div className="docs-actions"><button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Cancelar</button><button type="submit" className="primary-button" disabled={busy || loadingBody}>{busy ? "Salvando…" : "Salvar modelo"}</button></div>
+        <div className={actionsTw}><button type="button" className={secondaryTw} onClick={onClose} disabled={busy}>Cancelar</button><button type="submit" className={primaryTw} disabled={busy || loadingBody}>{busy ? "Salvando…" : "Salvar modelo"}</button></div>
       </form>
       </div>
     </div>,

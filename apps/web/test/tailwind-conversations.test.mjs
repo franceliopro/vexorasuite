@@ -11,7 +11,8 @@ const copilot = read("src/app/inbox-copilot.tsx");
 const inboxes = read("src/app/inboxes-management.tsx");
 const profile = read("src/app/contact-profile-panel.tsx");
 const appointments = read("src/app/inbox-appointments.tsx");
-const components = [list, avatars, copilot, inboxes, profile, appointments];
+const workspace = read("src/app/inbox-workspace.tsx");
+const components = [list, avatars, copilot, inboxes, profile, appointments, workspace];
 
 /** Só literais de string dentro de className são classes — não o código da expressão. */
 function classValues(source) {
@@ -35,8 +36,9 @@ test("a Conversa não usa classes componente legadas", () => {
   assert.doesNotMatch(classes, /\b(?:ov|vx|conversation|channel)-[a-z][a-z0-9-]*/);
   assert.doesNotMatch(classes, /\b(?:content-card|primary-button|secondary-button|icon-button|dialog-close|chip|ai-toggle)\b/);
   // ib-* aparece só como sufixo de utility do preset, nunca como classe componente.
+  const ibUtility = /^(?:font-ib(?:-[a-z0-9-]+)?|(?:ib-(?:desktop|narrow|mobile|wide|shell):[a-z0-9:/.-]+)|(?:(?:bg|text|h|w|min-h|max-h|min-w|max-w|size|shadow|rounded|border(?:-[tblr])?|gap(?:-[xy])?|p(?:[tblrxy])?|m(?:[tblrxy])?|font|grid-cols|grid-rows|col-span|justify-self|top|right|bottom|left|z|tracking|space-[xy])-ib-[a-z0-9-]+))$/;
   for (const token of classes.split(/\s+/).filter((part) => /(?:^|-)ib(?:-|$)/.test(part))) {
-    assert.match(token, /^(?:font-ib|ib-(?:narrow|mobile|wide):[a-z0-9:-]+|ib-(?:desktop|narrow|mobile|wide):[a-z0-9:-]+|(?:(?:bg|text|h|w|min-h|max-h|max-w|min-w|shadow|rounded|border|gap|gap-x|gap-y|px|py|p|my|mt|mb|font|grid-cols|col-span|justify-self)-ib-[a-z0-9-]+))$/, `classe ib-* não autorizada: ${token}`);
+    assert.match(token, ibUtility, `classe ib-* não autorizada: ${token}`);
   }
 });
 
@@ -97,6 +99,19 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     '"ib-details": "repeat(auto-fit, minmax(170px, 1fr))"',
     '"ib-detail-row": "96px minmax(0, 1fr)"',
     '"ib-copy": "42ch"',
+    '"ib-shell": { raw: "(max-width: 980px)" }',
+    '"ib-workspace": "minmax(260px,340px) minmax(0,1fr) minmax(300px,380px)"',
+    '"ib-workspace-profile": "minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)"',
+    '"ib-supervision": "repeat(4,1fr)"',
+    '"ib-workspace": "calc(100dvh - var(--top) - 56px)"',
+    '"ib-quick-dialog": "auto minmax(0,1fr)"',
+    '"ib-emoji": "repeat(auto-fill, minmax(34px, 1fr))"',
+    '"ib-bubble": "min(78%, 560px)"',
+    '"ib-queue-menu": "180px"',
+    '"ib-status-menu": "210px"',
+    '"ib-context-menu": "190px"',
+    '"ib-overlay": "120"',
+    '"ib-lightbox": "240"',
   ]) {
     assert.ok(config.includes(token), `o preset deve expor ${token}`);
   }
@@ -252,5 +267,57 @@ test("os agendamentos usam TW e preservam o contrato da agenda do Google", () =>
     "attendees:(addInvite&&contact.email?",
   ]) {
     assert.ok(appointments.includes(token), `os agendamentos devem manter ${token}`);
+  }
+});
+
+test("o shell do workspace usa TW e preserva os hooks de estado", () => {
+  const values = classValues(workspace).replace(/style=\{\{[^}]*\}\}/g, "");
+  const source = workspace.replace(/style=\{\{[^}]*\}\}/g, "");
+  for (const forbidden of [/\[[a-z-]+:\s*[^]\s]+\]/, /#[0-9a-fA-F]{3,8}\b/, /color-mix\(/, /!important/, /@apply/, /@tailwind\s+base/]) {
+    const match = source.match(forbidden);
+    assert.equal(match, null, `remendo visual no shell: ${match?.[0]}`);
+  }
+  assert.doesNotMatch(values, /\b(?:inbox-workspace|inbox-thread|inbox-composer|composer-shell|composer-tools|composer-icon-button|thread-heading|thread-header-actions|inbox-queue-button|handoff-option|message-line|message-bubble|quick-reply-use|emoji-category|finalization-outcome|ficha-open|ficha-compact|mobile-thread-open|inbox-full-screen|composer-is-note|more-open|is-alert|recording|active|selected|won|lost)\b/);
+  for (const utility of [
+    "grid h-ib-workspace min-h-ib-workspace grid-cols-ib-workspace gap-3 ib-shell:grid-cols-1",
+    "grid-cols-ib-supervision",
+    "max-w-ib-bubble",
+    "z-ib-overlay",
+    "grid-rows-ib-quick-dialog",
+  ]) {
+    assert.ok(values.includes(utility), `falta a utility ${utility}`);
+  }
+  for (const token of [
+    'data-testid="inbox-workspace"',
+    'data-fullscreen={fullScreen ? "true" : "false"}',
+    'data-mobile-thread={mobileThreadOpen ? "true" : "false"}',
+    'data-ficha-open={fichaOpen ? "true" : "false"}',
+    'data-ficha-compact={!selected || !contactProfileExpanded ? "true" : "false"}',
+    'data-testid="inbox-thread"',
+    'data-testid="thread-heading"',
+    'data-testid="thread-header-actions"',
+    'data-testid="inbox-queue-button"',
+    'data-testid="handoff-option"',
+    'data-testid="message-line"',
+    'data-testid="message-bubble"',
+    'data-testid="inbox-composer"',
+    'data-note={composerTab === "note" ? "true" : "false"}',
+    'data-testid="composer-tools"',
+    'data-testid="composer-mode-button"',
+    'data-recording={listening ? "true" : "false"}',
+    'data-testid="quick-reply-use"',
+    'data-testid="emoji-category"',
+    'data-testid="finalization-outcome"',
+    "data-status=",
+    'data-testid="audio-player"',
+    'data-testid="link-preview"',
+    'role="alert"',
+    'role="status"',
+    'aria-pressed={queueView === item.id}',
+    'aria-current={queueView === item.id ? "page" : undefined}',
+    "/api/backend/conversations/",
+    "/api/backend/channels/",
+  ]) {
+    assert.ok(workspace.includes(token), `o shell deve manter ${token}`);
   }
 });

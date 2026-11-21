@@ -9,12 +9,12 @@ const vexoraCss = fs.readFileSync(new URL("vexora.css", appDir), "utf8");
 test("inbox queues expose the selected state to assistive technology", () => {
   assert.match(inbox, /aria-current=\{queueView === item\.id \? "page" : undefined\}/);
   assert.match(inbox, /aria-pressed=\{queueView === item\.id\}/);
-  assert.match(inbox, /className=\{"inbox-queue-button " \+ \(queueView === item\.id \? "active" : ""\)\}/);
+  assert.match(inbox, /data-testid="inbox-queue-button" data-active=\{queueView === item\.id \? "true" : "false"\}/);
 });
 
 test("handoff controls have explicit accessible names", () => {
-  assert.match(inbox, /className="handoff-invite-trigger handoff-direct-trigger[^"]*" aria-label="Direcionar conversa"/);
-  assert.match(inbox, /className="handoff-invite-trigger" aria-label="Convidar atendente"/);
+  assert.match(inbox, /<summary data-testid="thread-transfer-button"[^>]*aria-label="Direcionar conversa"/);
+  assert.match(inbox, /<summary data-testid="inbox-invite-trigger"[^>]*aria-label="Convidar atendente"/);
 });
 
 test("human conversations expose the return-to-chatbot action", () => {
@@ -24,8 +24,8 @@ test("human conversations expose the return-to-chatbot action", () => {
 });
 
 test("mobile thread leaves room for the dock and the scrollable thread", () => {
-  assert.match(vexoraCss, /\.inbox-workspace\.mobile-thread-open\{[^}]*height:calc\(100dvh - var\(--top\) - var\(--dock\) - 24px\)/);
-  assert.match(vexoraCss, /\.inbox-workspace\.mobile-thread-open \.inbox-thread\{[^}]*height:100%/);
+  assert.match(vexoraCss, /\[data-testid='inbox-workspace'\]\[data-mobile-thread='true'\]\{[^}]*height:calc\(100dvh - var\(--top\) - var\(--dock\) - 24px\)/);
+  assert.match(vexoraCss, /\[data-testid='inbox-workspace'\]\[data-mobile-thread='true'\] \[data-testid='inbox-thread'\]\{[^}]*height:100%/);
 });
 
 test("page content wraps long text and prevents overflow on narrow viewports", () => {
@@ -37,11 +37,11 @@ test("message history groups dates and exposes delivery status", () => {
   assert.match(inbox, /if \(days === 1\) return "Ontem";/);
   assert.match(inbox, /message-date-separator/);
   assert.match(inbox, /const marks = failed \? "!" : queued \? "◷" : delivered \? "✓✓" : "✓";/);
-  assert.match(inbox, /className=\{"message-status " \+/);
+  assert.match(inbox, /className=\{messageStatusTw \+ " " \+ tone\}/);
 });
 
 test("message links are safe and remain readable inside bubbles", () => {
   assert.ok(inbox.includes("const MESSAGE_URL_PATTERN = /"));
-  assert.match(inbox, /className="message-link" href=\{href\} target="_blank" rel="noopener noreferrer"/);
-  assert.match(vexoraCss, /\.message-link\{[^}]*overflow-wrap:anywhere/);
+  assert.match(inbox, /className=\{messageLinkTw\} href=\{href\} target="_blank" rel="noopener noreferrer"/);
+  assert.match(inbox, /const messageLinkTw="break-words [^"]+"/);
 });

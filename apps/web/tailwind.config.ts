@@ -26,6 +26,7 @@ const config: Config = {
         "ib-narrow": { raw: "(max-width: 600px)" },
         "ib-mobile": { raw: "(max-width: 520px)" },
         "ib-wide": { raw: "(max-width: 1150px)" },
+        "ib-shell": { raw: "(max-width: 980px)" },
         "ib-desktop": { raw: "(min-width: 960px)" },
         /* Cortes próprios dos Relatórios. */
         "rw-wide": { raw: "(max-width: 1100px)" },
@@ -219,6 +220,9 @@ const config: Config = {
         "ib-handoff": "20px",
         "ib-option-icon": "11px",
       },
+      gridTemplateRows: {
+        "ib-quick-dialog": "auto minmax(0,1fr)",
+      },
       boxShadow: {
         token: "var(--shadow)",
         "token-sm": "var(--shadow-sm)",
@@ -309,6 +313,7 @@ const config: Config = {
         "ov-tight": "-0.045em",
         "ov-wide": ".08em",
         "ov-wider": ".12em",
+        "ib-wide": ".14em",
       },
       spacing: {
         sidebar: "var(--sb)",
@@ -358,6 +363,9 @@ const config: Config = {
         "ib-profile-tag": "18px",
         "ib-profile-field": "28px",
         "ib-profile-tab": "26px",
+        "ib-reply-action": "30px",
+        "ib-empty-icon": "76px",
+        "ib-lightbox-offset": "18px",
         /* Estado de carregamento do Kanban. */
         "crm-loading-y": "60px",
       },
@@ -393,14 +401,21 @@ const config: Config = {
         "ib-compact-meta": "repeat(3, minmax(0, 1fr))",
         "ib-details": "repeat(auto-fit, minmax(170px, 1fr))",
         "ib-detail-row": "96px minmax(0, 1fr)",
+        "ib-emoji": "repeat(auto-fill, minmax(34px, 1fr))",
         /* Grades internas da ficha do contato. */
         "ib-profile-field-row": "minmax(0, 1fr) auto",
         "ib-profile-identity": "minmax(0, 1fr) auto",
+        /* Shell do workspace de Atendimento. */
+        "ib-workspace": "minmax(260px,340px) minmax(0,1fr) minmax(300px,380px)",
+        "ib-workspace-profile": "minmax(240px,280px) minmax(0,1fr) minmax(300px,380px)",
+        "ib-supervision": "repeat(4,1fr)",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
       },
       height: {
+        /* Shell do workspace de Atendimento. */
+        "ib-workspace": "calc(100dvh - var(--top) - 56px)",
         /* Skeleton dos Relatórios. */
         "rw-skel-card": "118px",
         "rw-skel-chart": "190px",
@@ -412,6 +427,7 @@ const config: Config = {
       minHeight: {
         ov: "150px",
         "ib-control": "37px",
+        "ib-workspace": "520px",
         /* Célula do mês e largura mínima da lista de compromissos. */
         "calendar-day": "104px",
         /* Medidas das colunas e cartões do Kanban do CRM. */
@@ -426,6 +442,13 @@ const config: Config = {
         "ib-track": "85dvh",
         "ib-support": "min(82dvh, 780px)",
         "ib-mention": "240px",
+        "ib-note": "min(100%, 520px)",
+        /* Popovers, menus e diálogos do shell de Atendimento. */
+        "ib-context-menu": "min(340px, 62vh)",
+        "ib-handoff": "min(72dvh, 560px)",
+        "ib-emoji-grid": "260px",
+        "ib-quick-settings": "380px",
+        "ib-quick": "min(640px, 72dvh)",
         /* Diálogos do Calendário. */
         "calendar-modal": "90vh",
         "calendar-event-modal": "calc(100dvh - 24px)",
@@ -442,6 +465,7 @@ const config: Config = {
         "crm-select": "340px",
         "crm-search": "360px",
         "ib-copy": "42ch",
+        "ib-bubble": "min(78%, 560px)",
         /* Texto de apoio dos Relatórios. */
         "rw-sub": "560px",
         "rw-empty": "420px",
@@ -462,6 +486,11 @@ const config: Config = {
         "submenu-compact": "220px",
         "ib-track": "min(760px, calc(100vw - 24px))",
         "ib-support": "min(620px, calc(100vw - 24px))",
+        "ib-queue-menu": "180px",
+        "ib-status-menu": "210px",
+        "ib-context-menu": "190px",
+        "ib-voice-wave": "3px",
+        "ib-voice-button": "34px",
         /* Filete redimensionável entre grade e lista. */
         "calendar-handle": "6px",
         /* Filete de tom à esquerda dos cartões do Kanban. */
@@ -476,6 +505,9 @@ const config: Config = {
         "rw-legend": "170px",
         "calendar-event-date": "58px",
         "calendar-month": "118px",
+        "ib-queue-menu": "180px",
+        "ib-status-menu": "210px",
+        "ib-context-menu": "190px",
       },
       zIndex: {
         sidebar: "40",
@@ -483,6 +515,14 @@ const config: Config = {
         topbar: "30",
         popover: "70",
         wizard: "60",
+        /* Camadas do shell de Atendimento. */
+        "ib-queue-menu": "50",
+        "ib-status-menu": "60",
+        "ib-context-menu": "80",
+        "ib-overlay": "120",
+        "ib-fullscreen": "130",
+        "ib-handoff": "190",
+        "ib-lightbox": "240",
       },
       transitionProperty: {
         shell: "width, margin-left",

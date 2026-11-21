@@ -66,26 +66,26 @@ try{
  await page.screenshot({path:"artifacts/inbox-visual/visao-geral.png",fullPage:false,animations:"disabled"});
 
  await page.goto("http://127.0.0.1:3101/?module=Atendimento");
- await page.waitForSelector(".inbox-conversation",{timeout:20000});
- const item=page.locator(".inbox-conversation").first();
+ await page.waitForSelector("[data-testid='conversation-list'] > button",{timeout:20000});
+ const item=page.locator("[data-testid='conversation-list'] > button").first();
  await item.waitFor();
  const itemText=await item.innerText();
  assert(itemText.includes("Francélio"),"conversation list shows the contact name");
  assert(/Nova há/.test(itemText),"unassigned open conversation exposes the 'Nova há' pill");
- const moreTrigger=page.locator(".inbox-queue-more-trigger");
+ const moreTrigger=page.locator("[data-testid='inbox-queue-more-trigger']");
  await moreTrigger.waitFor();
  assert((await moreTrigger.getAttribute("data-tip"))==="Todas · Concluídos · Arquivados · Lixeira","balloon trigger communicates every queue type");
  await moreTrigger.click();
- await page.waitForSelector(".inbox-queue-more-menu",{timeout:5000});
- const menuText=await page.locator(".inbox-queue-more-menu").innerText();
+ await page.waitForSelector("[data-testid='inbox-queue-more-menu']",{timeout:5000});
+ const menuText=await page.locator("[data-testid='inbox-queue-more-menu']").innerText();
  for(const label of ["Concluídos","Arquivados","Lixeira"])assert(menuText.includes(label),"balloon menu includes "+label);
  await page.screenshot({path:"artifacts/inbox-visual/atendimento-balao-filas.png",fullPage:false,animations:"disabled"});
  await page.keyboard.press("Escape");
 
- assert.equal(await page.locator(".composer-tabs-row, .inbox-assume-wrap, [data-testid='ib-support-context']").count(),0);
- assert.equal(await page.locator("header.thread-heading").evaluate(el=>getComputedStyle(el).marginBottom),"0px");
+ assert.equal(await page.locator("[data-testid='composer-tabs-row'], [data-testid='inbox-assume-wrap'], [data-testid='ib-support-context']").count(),0);
+ assert.equal(await page.locator("[data-testid='thread-heading']").evaluate(el=>getComputedStyle(el).marginBottom),"0px");
  await page.getByRole("button",{name:"Assumir conversa",exact:true}).click();
- const mode=page.locator(".composer-mode-button");
+ const mode=page.locator("[data-testid='composer-mode-button']");
  await mode.waitFor();
  assert.equal(await mode.getAttribute("aria-label"),"Responder");
  await page.getByRole("button",{name:"Ferramentas da conversa"}).click();
@@ -93,9 +93,9 @@ try{
  for(const label of ["Atalhos","Cobranças","Agendamentos","Respostas rápidas"])assert(await tools.getByRole("menuitem",{name:new RegExp(label)}).isVisible());
  await page.keyboard.press("Escape");
  await mode.click();
- await page.waitForSelector(".inbox-composer.composer-is-note",{timeout:5000});
- const noteStyle=await page.locator(".inbox-composer").evaluate(el=>({borderStyle:getComputedStyle(el).borderTopStyle,cls:el.className,color:getComputedStyle(el).backgroundColor}));
- assert(noteStyle.cls.includes("composer-is-note"),"composer switches to note mode");
+ await page.waitForSelector("[data-testid='inbox-composer'][data-note='true']",{timeout:5000});
+ const noteStyle=await page.locator("[data-testid='inbox-composer']").evaluate(el=>({borderStyle:getComputedStyle(el).borderTopStyle,cls:el.className,color:getComputedStyle(el).backgroundColor}));
+ assert.equal(await page.locator("[data-testid='inbox-composer']").getAttribute("data-note"),"true","composer switches to note mode");
  assert(noteStyle.borderStyle==="dashed","note composer keeps the dashed amber border");
  await page.screenshot({path:"artifacts/inbox-visual/atendimento-nota-privada.png",fullPage:false,animations:"disabled"});
 
@@ -108,7 +108,7 @@ try{
  const phoneText=await page.locator("[data-testid='contact-profile-identity']").innerText();
  assert(phoneText.includes("+55"),"contact card shows the formatted phone");
 
- const thread=page.locator(".inbox-thread");
+ const thread=page.locator("[data-testid='inbox-thread']");
  const widthBefore=(await thread.boundingBox()).width;
  await page.getByRole("button",{name:"Recolher ficha"}).click();
  assert((await thread.boundingBox()).width>widthBefore+100,"collapsed client card releases space");
@@ -123,7 +123,7 @@ try{
  const dockButton=await dock.getByRole("button",{name:"Conversa"}).boundingBox();
  assert(Math.abs(dockButton.x+dockButton.width/2-195)<2,"conversation button is centered");
  await dock.getByRole("button",{name:"Conversa"}).click();
- await page.locator(".inbox-conversation").first().click();
+ await page.locator("[data-testid='conversation-list'] > button").first().click();
  await page.getByRole("button",{name:"Responder",exact:true}).waitFor();
  await page.getByRole("button",{name:"Melhorar texto com IA"}).waitFor();
  await page.getByRole("button",{name:"Emojis",exact:true}).waitFor();

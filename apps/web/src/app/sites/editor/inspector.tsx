@@ -23,6 +23,44 @@ import {
 import { StyleInspector } from './style-inspector';
 import './editor.css';
 
+const INSPECTOR = 'flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line';
+const INSPECTOR_HEAD = 'flex items-center justify-between gap-2 border-b border-line px-4 py-3.5';
+const INSPECTOR_ICON = 'inline-flex h-7.5 w-7.5 flex-none items-center justify-center rounded-token-sm border border-line bg-surface-2 text-ink-secondary';
+const INSPECTOR_HEAD_TEXT = 'min-w-0';
+const INSPECTOR_TITLE = 'm-0 truncate text-sm font-bold text-ink';
+const INSPECTOR_SUB = 'm-0 truncate text-xs text-ink-secondary';
+const INSPECTOR_ICON_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm border border-line bg-surface text-ink-secondary hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50';
+const INSPECTOR_BODY = 'overflow-y-auto p-4';
+const INSPECTOR_PROPERTIES = 'flex flex-col gap-3';
+const INSPECTOR_FIELD = 'flex flex-col gap-1.5';
+const INSPECTOR_FIELD_LABEL = 'text-xs font-bold text-ink-secondary';
+const INSPECTOR_FIELD_CONTROL = 'flex flex-col gap-1';
+const INSPECTOR_INPUT = 'w-full rounded-token-sm border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder:text-ink-muted disabled:cursor-not-allowed disabled:bg-surface-2 disabled:opacity-50';
+const INSPECTOR_TEXTAREA = 'w-full min-h-15 resize-y rounded-token-sm border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder:text-ink-muted disabled:cursor-not-allowed disabled:bg-surface-2 disabled:opacity-50';
+const INSPECTOR_COLOR_WRAP = 'flex items-center gap-2';
+const INSPECTOR_COLOR = 'h-7 w-7 cursor-pointer rounded-square border border-line bg-surface disabled:cursor-not-allowed disabled:opacity-50';
+const INSPECTOR_TOGGLE = 'inline-flex cursor-pointer items-center gap-2';
+const INSPECTOR_TOGGLE_INPUT = 'peer hidden';
+const INSPECTOR_TOGGLE_THUMB = 'relative h-5 w-10 rounded-full border border-line bg-line transition-control duration-control peer-checked:border-brand peer-checked:bg-brand';
+const INSPECTOR_EMPTY_STATE = 'flex flex-col items-center gap-2.5 p-10 text-center text-sm text-ink-secondary';
+const INSPECTOR_AI_PANEL = 'border-t border-line bg-surface-2';
+const INSPECTOR_AI_HEAD = 'flex items-center gap-2 border-b border-line px-4 py-2.5';
+const INSPECTOR_AI_ICON = 'text-brand';
+const INSPECTOR_AI_TITLE = 'text-sm font-bold text-ink';
+const INSPECTOR_AI_FORM = 'flex flex-col gap-2 p-4';
+const INSPECTOR_AI_INPUT = 'w-full min-h-18 resize-y rounded-token-sm border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder:text-ink-muted disabled:cursor-not-allowed disabled:bg-surface-2 disabled:opacity-50';
+const INSPECTOR_AI_ACTIONS = 'flex items-center justify-between gap-2';
+const INSPECTOR_AI_HINT = 'm-0 text-xs text-ink-secondary';
+const INSPECTOR_PRIMARY_BUTTON = 'inline-flex items-center gap-1.5 rounded-token-sm bg-brand px-4 py-2 text-sm font-bold text-brand-contrast disabled:cursor-not-allowed disabled:opacity-50';
+const INSPECTOR_FEEDBACK_OK = 'mx-4 mb-3 rounded-token-sm border border-emerald-600 bg-emerald-100 p-2 text-xs leading-relaxed text-emerald-600';
+const INSPECTOR_FEEDBACK_ERROR = 'mx-4 mb-3 rounded-token-sm border border-red-600 bg-red-100 p-2 text-xs leading-relaxed text-red-600';
+const INSPECTOR_READONLY_BANNER = 'mx-3 my-2 inline-flex items-center gap-2 rounded-token-sm border border-amber-600/45 bg-amber-100 px-3 py-2 text-xs text-amber-600';
+
+const INSPECTOR_FEEDBACK_KIND: Record<'ok' | 'error', string> = {
+  ok: INSPECTOR_FEEDBACK_OK,
+  error: INSPECTOR_FEEDBACK_ERROR,
+};
+
 interface InspectorProps {
   selectedNode: SiteNode | null;
   schema: BlockPropSchema[];
@@ -94,19 +132,19 @@ export function Inspector({
 
   if (!selectedNode) {
     return (
-      <section className="vx-inspector vx-inspector-empty" aria-label="Propriedades do bloco">
-        <header className="vx-inspector-head">
-          <span className="vx-inspector-icon">
+      <section className={INSPECTOR} aria-label="Propriedades do bloco">
+        <header className={INSPECTOR_HEAD}>
+          <span className={INSPECTOR_ICON}>
             <Settings size={18} aria-hidden="true" />
           </span>
-          <div>
-            <h2 className="vx-inspector-title">Propriedades do bloco</h2>
-            <p className="vx-inspector-sub">
+          <div className={INSPECTOR_HEAD_TEXT}>
+            <h2 className={INSPECTOR_TITLE}>Propriedades do bloco</h2>
+            <p className={INSPECTOR_SUB}>
               Selecione um elemento no canvas para editar suas propriedades.
             </p>
           </div>
         </header>
-        <div className="vx-inspector-empty-state">
+        <div className={INSPECTOR_EMPTY_STATE}>
           <AlertCircle size={20} aria-hidden="true" />
           <span>Nenhum bloco selecionado</span>
         </div>
@@ -115,22 +153,22 @@ export function Inspector({
   }
 
   return (
-    <section className="vx-inspector" aria-label="Propriedades do bloco">
-      <header className="vx-inspector-head">
-        <span className="vx-inspector-icon">
+    <section className={INSPECTOR} aria-label="Propriedades do bloco">
+      <header className={INSPECTOR_HEAD}>
+        <span className={INSPECTOR_ICON}>
           <Settings size={18} aria-hidden="true" />
         </span>
-        <div>
-          <h2 className="vx-inspector-title">
+        <div className={INSPECTOR_HEAD_TEXT}>
+          <h2 className={INSPECTOR_TITLE}>
             {(selectedNode.props as Record<string, string>)?.label || selectedNode.type}
           </h2>
-          <p className="vx-inspector-sub">
+          <p className={INSPECTOR_SUB}>
             Bloco selecionado · ID {selectedNode.id.slice(0, 8)}
           </p>
         </div>
         <button
           type="button"
-          className="vx-inspector-btn-icon"
+          className={INSPECTOR_ICON_BUTTON}
           aria-label={aiPanelOpen ? 'Fechar assistente de IA' : 'Abrir assistente de IA'}
           onClick={() => setAiPanelOpen((p) => !p)}
           disabled={controlsDisabled}
@@ -139,17 +177,17 @@ export function Inspector({
         </button>
       </header>
 
-      <div className="vx-inspector-body">
-        <div className="vx-inspector-properties">
+      <div className={INSPECTOR_BODY}>
+        <div className={INSPECTOR_PROPERTIES}>
           {schema.length ? (
             schema.map((field) => (
-              <div key={field.key} className="vx-inspector-field">
-                <label className="vx-inspector-field-label">{field.label}</label>
-                <div className="vx-inspector-field-control">
+              <div key={field.key} className={INSPECTOR_FIELD}>
+                <label className={INSPECTOR_FIELD_LABEL}>{field.label}</label>
+                <div className={INSPECTOR_FIELD_CONTROL}>
                   {field.type === 'text' && (
                     <input
                       type="text"
-                      className="vx-inspector-input"
+                      className={INSPECTOR_INPUT}
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, e.target.value)}
                       placeholder={field.placeholder ?? ''}
@@ -158,7 +196,7 @@ export function Inspector({
                   )}
                   {field.type === 'textarea' && (
                     <textarea
-                      className="vx-inspector-textarea"
+                      className={INSPECTOR_TEXTAREA}
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, e.target.value)}
                       placeholder={field.placeholder ?? ''}
@@ -169,17 +207,17 @@ export function Inspector({
                   {field.type === 'number' && (
                     <input
                       type="number"
-                      className="vx-inspector-input"
+                      className={INSPECTOR_INPUT}
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, Number(e.target.value) || 0)}
                       disabled={controlsDisabled}
                     />
                   )}
                   {field.type === 'color' && (
-                    <div className="vx-inspector-color-wrap">
+                    <div className={INSPECTOR_COLOR_WRAP}>
                       <input
                         type="color"
-                        className="vx-inspector-color"
+                        className={INSPECTOR_COLOR}
                         value={
                           String(
                             values[field.key] ??
@@ -194,7 +232,7 @@ export function Inspector({
                   )}
                   {field.type === 'select' && (
                     <select
-                      className="vx-inspector-select"
+                      className={INSPECTOR_INPUT}
                       value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                       onChange={(e) => handlePropChange(field.key, e.target.value)}
                       disabled={controlsDisabled}
@@ -207,21 +245,22 @@ export function Inspector({
                     </select>
                   )}
                   {field.type === 'boolean' && (
-                    <label className="vx-inspector-toggle">
+                    <label className={INSPECTOR_TOGGLE}>
                       <input
                         type="checkbox"
+                        className={INSPECTOR_TOGGLE_INPUT}
                         checked={Boolean(values[field.key] ?? selectedNode.props[field.key])}
                         onChange={(e) => handlePropChange(field.key, e.target.checked)}
                         disabled={controlsDisabled}
                       />
-                      <span className="vx-inspector-toggle-thumb" aria-hidden="true" />
+                      <span className={INSPECTOR_TOGGLE_THUMB} aria-hidden="true" />
                     </label>
                   )}
                   {field.type === 'image' && (
-                    <div className="vx-inspector-image-wrap">
+                    <div className={INSPECTOR_COLOR_WRAP}>
                       <input
                         type="text"
-                        className="vx-inspector-input"
+                        className={INSPECTOR_INPUT}
                         value={String(values[field.key] ?? selectedNode.props[field.key] ?? '')}
                         onChange={(e) => handlePropChange(field.key, e.target.value)}
                         placeholder="URL da imagem"
@@ -233,7 +272,7 @@ export function Inspector({
               </div>
             ))
           ) : (
-            <div className="vx-inspector-empty-state">
+            <div className={INSPECTOR_EMPTY_STATE}>
               <span>Este bloco não tem propriedades editáveis.</span>
             </div>
           )}
@@ -248,17 +287,17 @@ export function Inspector({
         ) : null}
 
         {aiPanelOpen && (
-          <div className="vx-inspector-ai-panel">
-            <header className="vx-inspector-ai-head">
-              <span className="vx-inspector-ai-icon">
+          <div className={INSPECTOR_AI_PANEL}>
+            <header className={INSPECTOR_AI_HEAD}>
+              <span className={INSPECTOR_AI_ICON}>
                 <Sparkles size={16} aria-hidden="true" />
               </span>
-              <span className="vx-inspector-ai-title">Assistente de IA</span>
+              <span className={INSPECTOR_AI_TITLE}>Assistente de IA</span>
             </header>
-            <form onSubmit={handleAiSubmit} className="vx-inspector-ai-form">
+            <form onSubmit={handleAiSubmit} className={INSPECTOR_AI_FORM}>
               <textarea
                 id="vexora-ai-prompt"
-                className="vx-inspector-ai-input"
+                className={INSPECTOR_AI_INPUT}
                 rows={3}
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
@@ -266,13 +305,13 @@ export function Inspector({
                 placeholder="Ex.: torne o botão vermelho, aumente o espaçamento e centralize o texto"
                 disabled={controlsDisabled || aiBusy}
               />
-              <div className="vx-inspector-ai-actions">
-                <small className="vx-inspector-ai-hint">
+              <div className={INSPECTOR_AI_ACTIONS}>
+                <small className={INSPECTOR_AI_HINT}>
                   Pressione Ctrl+Enter. A IA ajusta props/estilos como patch; revise e salve.
                 </small>
                 <button
                   type="submit"
-                  className="vx-inspector-btn-primary"
+                  className={INSPECTOR_PRIMARY_BUTTON}
                   disabled={controlsDisabled || aiBusy || !aiPrompt.trim() || !selectedNode}
                 >
                   {aiBusy ? (
@@ -291,7 +330,8 @@ export function Inspector({
             </form>
             {aiFeedback ? (
               <div
-                className={`vx-inspector-ai-feedback ${aiFeedback.error ? 'is-error' : 'is-ok'}`}
+                data-testid="vx-inspector-ai-feedback"
+                className={INSPECTOR_FEEDBACK_KIND[aiFeedback.error ? 'error' : 'ok']}
                 role={aiFeedback.error ? 'alert' : 'status'}
                 aria-live="polite"
               >
@@ -303,7 +343,7 @@ export function Inspector({
       </div>
 
       {readOnly ? (
-        <div className="vx-inspector-readonly-banner" role="status">
+        <div className={INSPECTOR_READONLY_BANNER} role="status">
           <AlertCircle size={14} aria-hidden="true" />
           <span>Somente leitura — inspecione blocos sem alterá-los.</span>
         </div>

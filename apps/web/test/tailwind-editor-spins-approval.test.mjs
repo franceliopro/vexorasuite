@@ -67,7 +67,7 @@ test("os contratos de editor, wizard, aprovacao e preview permanecem intactos", 
   for (const token of ["Salvando…", "Publicando…", "readOnly", "saving", "publishing"]) {
     assert.ok(shell.includes(token), `shell perdeu ${token}`);
   }
-  for (const token of ["vx-inspector-ai-feedback", "Somente leitura", "setAiPanelOpen(true)"]) {
+  for (const token of ["aria-live=\"polite\"", "Somente leitura", "setAiPanelOpen(true)"]) {
     assert.ok(inspector.includes(token), `inspector perdeu ${token}`);
   }
   for (const token of ["draggable={!disabled}", "writeDragPayload", "onDragEnd={handleDragEnd}"]) {

@@ -1857,7 +1857,6 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .ai-agent-row>span:last-child{flex:none;display:inline-flex;align-items:center;min-height:21px;padding:0 9px;border-radius:99px;background:var(--s3);font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--tx2)}
 .ai-agent-row.selected{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 26%,transparent)}
 .ai-admin-card>h2{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800}
-.ai-admin-note{font-size:11px;color:var(--tx2);line-height:1.55}
 .ai-admin-fields{display:grid;gap:12px}
 .ai-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}
 .ai-toggle input[type="checkbox"]{accent-color:var(--primary);width:16px;height:16px}
@@ -2389,27 +2388,6 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 @media (max-width:720px){.pf-shell{padding:0}.pf-card{width:100vw;height:100dvh;border-radius:0;border:0}.pf-device-toggle{display:none}}
 
 /* ===== 34. Flow Studio · página pública e criação com IA ===== */
-.public-page-settings{display:grid;gap:10px;padding:12px;border:1px solid var(--ln);border-radius:14px;background:var(--s2)}
-.public-page-settings h3{font-size:12px;font-weight:800;letter-spacing:-.01em}
-.public-page-toggle{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border:1px solid var(--ln);border-radius:99px;background:var(--s1);font-size:12px;font-weight:700;color:var(--tx);cursor:pointer;width:max-content}
-.public-page-toggle input{width:17px!important;min-height:17px!important;height:17px!important;accent-color:var(--primary)}
-.public-page-link{display:grid;gap:6px}
-.public-page-link code{display:block;padding:9px 12px;border:1px solid var(--ln);border-radius:10px;background:var(--s1);font-size:11px;color:var(--tx2);word-break:break-all;user-select:all}
-.public-page-actions{display:flex;gap:8px;flex-wrap:wrap}
-.public-page-actions .primary-button,.public-page-actions .secondary-button{display:inline-flex;align-items:center;gap:7px;min-height:34px;text-decoration:none}
-.public-page-theme{border:1px solid var(--ln);border-radius:12px;padding:10px 12px;display:grid;gap:9px}
-.public-page-theme legend{font-size:11px;font-weight:800;color:var(--tx2);padding:0 6px}
-.public-page-theme-grid{display:flex;gap:8px;flex-wrap:wrap}
-.public-page-swatch{min-width:64px;min-height:38px;border:1px solid var(--ln);border-radius:12px;font-size:10.5px;font-weight:700;color:#fff;cursor:pointer;transition:transform .14s,box-shadow .14s}
-.public-page-swatch:hover{transform:translateY(-1px)}
-.public-page-swatch.swatch-default{background:#0B0E11}
-.public-page-swatch.swatch-solid{background:#101317}
-.public-page-swatch.swatch-gradient{background:linear-gradient(120deg,#1D4ED8,#101317)}
-.public-page-swatch.swatch-image{background:linear-gradient(120deg,#3E5C76,#101317)}
-.public-page-swatch.active{box-shadow:var(--ring);border-color:var(--primary)}
-.public-page-theme-row{display:flex;gap:12px;flex-wrap:wrap}
-.public-page-theme-row label,.public-page-theme label{display:grid;gap:4px;font-size:10.5px;font-weight:700;color:var(--tx2)}
-.public-page-theme input[type=color]{width:64px;min-height:36px;padding:2px}
 .chatbot-ai-dialog{width:min(100%,560px)}
 .chatbot-ai-request{display:grid;gap:6px;font-size:12px;font-weight:700;color:var(--tx)}
 .chatbot-ai-request textarea{font-size:13px}
@@ -2546,16 +2524,6 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 .chatbot-ai-dictate[aria-pressed='true']{background:color-mix(in srgb,#E5484D 12%,var(--s2));border-color:#E5484D;color:#D64545;animation:phone-pulse 1.6s ease-in-out infinite}
 .chatbot-ai-dictate-status{margin:0;font-size:11px;color:var(--tx2)}
 
-/* ===== 44. Robô · endereço reservado (bot-*.vexorasuite.com.br) ===== */
-.public-page-reserved{display:grid;gap:9px;margin-top:14px;padding:13px 14px;border:1px dashed color-mix(in srgb,var(--primary) 34%,var(--ln));border-radius:15px;background:color-mix(in srgb,var(--primary) 4%,var(--s1))}
-.public-page-reserved-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.public-page-reserved-tag{flex:none;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--warn) 18%,var(--s2));border:1px solid color-mix(in srgb,var(--warn) 45%,var(--ln));color:#8a6d1f;font:800 9px/1.2 var(--font-display);letter-spacing:.09em;text-transform:uppercase}
-.public-page-reserved-code{word-break:break-all;padding:9px 12px;border:1px solid var(--ln);border-radius:11px;background:var(--s2);font-size:12.5px;color:var(--primary-ink)}
-.public-page-reserved-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
-.public-page-reserved-foot small{flex:1;font-size:10.5px;line-height:1.5;color:var(--tx2)}
-.public-page-reserved-foot code{padding:1px 4px;border:1px solid var(--ln);border-radius:4px;background:var(--s2);font-size:9.5px}
-.public-page-reserved-foot button{flex:none}
-@media(max-width:760px){.public-page-reserved-foot{flex-direction:column;align-items:flex-start}}
 
 /* ===== 45. Véxora Sites · editor (sidebar, mago, editor, publicação) ===== */
 .sites-workspace{display:grid;gap:16px}
@@ -4475,18 +4443,11 @@ input[type=tel]{letter-spacing:.02em}
 .sites-page-new,.sites-page-rename{display:grid;gap:10px;padding:10px;border:1px solid var(--ln);border-radius:var(--r-m);background:var(--s2)}
 .sites-page-new-actions{display:flex;gap:8px;justify-content:flex-end}
 
-/* Pagina publica do chatbot - widget e snippet de embed */
-.public-page-widget{display:grid;gap:8px;padding:10px 12px;border:1px dashed var(--ln2);border-radius:12px;background:var(--s2)}
-.public-page-widget-code{display:block;padding:8px 10px;border:1px solid var(--ln);border-radius:8px;background:#0B1220;color:#DDE8FF;font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-x:auto;white-space:nowrap}
 
 /* Fotos do site no wizard e no Studio */
 .sites-photos-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:4px 0 10px}
 .sites-photo-dest{width:100%;min-height:30px;border:1px solid var(--ln);border-radius:8px;background:var(--s2);color:var(--tx);font-size:11px;padding:0 6px}
 
-/* Swatches dos temas do bot */
-.swatch-cream{background:#F4EEE2;border:2px solid #E2D9C8}
-.swatch-dark{background:#141019;border:2px solid #2C2635}
-.swatch-whatsapp{background:linear-gradient(160deg,#075E54 0 40%,#ECE5DD 40% 100%);border:2px solid #128C7E}
 
 /* Toggles do canal (Atendimento/IA/Chatbot/Site) */
 .channels-attach-fieldset{border:1px solid var(--ln);border-radius:12px;padding:10px 12px 12px;margin:0 0 4px;display:grid;gap:8px}

@@ -141,6 +141,25 @@ const config: Config = {
         "ib-read": "#25D366",
         /* Tons dos canais na ficha: dados do contato, não branding. */
         "ib-instagram": "#E1306C",
+        /* Cores das origens de leads: dados do relatório, não temas da aplicação. */
+        "origin-fb": "#1877F2",
+        "origin-fb-line": "#0F5BD4",
+        "origin-whatsapp": "#25D366",
+        "origin-whatsapp-ink": "#06351A",
+        "origin-whatsapp-line": "#1DA851",
+        "origin-google": "#FFFFFF",
+        "origin-google-ink": "#3C4043",
+        "origin-google-line": "#DADCE0",
+        "origin-form": "#FEF3C7",
+        "origin-form-ink": "#92400E",
+        "origin-form-line": "#FDE68A",
+        "origin-landing": "#F3E8FF",
+        "origin-landing-ink": "#6D28D9",
+        "origin-landing-line": "#E9D5FF",
+        "origin-bar-google": "#4285F4",
+        "origin-bar-form": "#E9A13B",
+        "origin-bar-landing": "#8B5CF6",
+        "origin-bar-neutral": "#8A99A6",
         "ib-facebook": "#1877F2",
         "ib-email": "#EA4335",
         /* Simulador de celular: mockup de um app de mensagens com paleta
@@ -247,6 +266,10 @@ const config: Config = {
         "phone-lens-glow": "radial-gradient(circle at 35% 35%,#3a4a5a 0%,#0c0f13 70%)",
         "phone-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
         "phone-wallpaper": "radial-gradient(circle at 20% 15%,rgba(31,95,208,.14),transparent 45%),radial-gradient(circle at 85% 80%,rgba(31,95,208,.1),transparent 40%),radial-gradient(circle,rgba(255,255,255,.045) 1px,transparent 1.4px)",
+        /* Cores e faixas das origens de leads: dados, não branding. */
+        "origin-instagram": "linear-gradient(135deg,#FEDA77 0%,#FD1D1D 35%,#D6249F 70%,#833AB4 100%)",
+        "origin-bar-instagram": "linear-gradient(90deg,#FEDA77,#FD1D1D,#833AB4)",
+        "origin-kpi-rule": "linear-gradient(90deg,var(--primary),var(--primary-soft) 70%,transparent)",
         /* Pontos do canvas do fluxo. A cor vem do token de linha do tema. */
         "flow-grid": "radial-gradient(circle, var(--ln2) 0.75px, transparent 1px)",
         "flow-grid-legacy": "radial-gradient(var(--ln2) 1px, transparent 1px)",
@@ -340,6 +363,13 @@ const config: Config = {
         "phone-screen": "40px",
         "phone-bubble": "11px",
         "phone-tail": "3px",
+        /* Cantos das origens, KPIs e tabelas do relatório de aquisição. */
+        "origin-bar": "13px",
+        "origin-track": "99px",
+        "origin-stage": "11px",
+        "origin-tip": "12px",
+        "origin-open": "8px",
+        "origin-kpi": "16px",
         "phone-pill": "9px",
         /* Medidas fixas dos diálogos do Atendimento. */
         "ib-modal": "16px",
@@ -403,6 +433,8 @@ const config: Config = {
       gridTemplateRows: {
         "ib-quick-dialog": "auto minmax(0,1fr)",
         "fm-picker-item": "1fr auto",
+        /* Corpo das barras do relatório de origens. */
+        "origin-bar": "1fr",
       },
       boxShadow: {
         ring: "var(--ring)",
@@ -443,6 +475,17 @@ const config: Config = {
         "catalog-metric": ["10.5px", { lineHeight: "1.4" }],
         "catalog-card-title": ["14px", { lineHeight: "1.3" }],
         "catalog-clear-title": ["12px", { lineHeight: "1.3", letterSpacing: "-.005em" }],
+        /* Textos do relatório de aquisição de leads. */
+        "origin-label": ["9.5px", { lineHeight: "1.4", letterSpacing: ".09em" }],
+        "origin-value": ["25px", { lineHeight: "1.15", letterSpacing: "-.02em" }],
+        "origin-meta": "10.5px",
+        "origin-heading": ["13px", { lineHeight: "1.3" }],
+        "origin-bar-label": "12.5px",
+        "origin-stage": "12px",
+        "origin-tip": ["11.5px", { lineHeight: "1.5" }],
+        "origin-tip-title": ["10.5px", { lineHeight: "1.4", letterSpacing: ".05em" }],
+        "origin-table": ["12px", { lineHeight: "1.45" }],
+        "origin-method": ["10.5px", { lineHeight: "1.55" }],
         "2xs": "10px",
         body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
         h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
@@ -632,6 +675,13 @@ const config: Config = {
         "fin-waffle-gap": "5px",
         "fin-chip-h": "32px",
         "fin-control-h": "36px",
+        /* Medidas do relatório de origens de leads. */
+        "origin-date": "37px",
+        "origin-open-size": "29px",
+        "origin-meta-gap": "16px",
+        "origin-kpi-gap": "11px",
+        "origin-row-gap": "7px",
+        "origin-stage-gap": "9px",
         "fin-lookup": "210px",
         "fin-history-stat": "24px",
         "fin-drawer": "480px",
@@ -787,6 +837,10 @@ const config: Config = {
         "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
         "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
         "channels-attach": "repeat(2,1fr)",
+        /* Grades do relatório de aquisição de leads. */
+        "origin-kpi": "repeat(auto-fit,minmax(150px,1fr))",
+        "origin-tables": "repeat(auto-fit,minmax(300px,1fr))",
+        "origin-main": "minmax(0,1.15fr) minmax(0,1fr)",
 /* Grades do workspace de Equipe: identidade e lista de atendentes. */
 "team-identity": "150px minmax(0,1fr)",
 "team-list": "repeat(auto-fill,minmax(320px,1fr))",
@@ -902,6 +956,9 @@ const config: Config = {
         "flow-stage-mobile": "70dvh",
         "flow-handle": "72px",
         "flow-minimap": "128px",
+        /* Faixas e barras do relatório de origens. */
+        "origin-kpi-rule": "3px",
+        "origin-track": "9px",
       },
       minHeight: {
         "catalog-card": "78px",
@@ -985,6 +1042,7 @@ const config: Config = {
         "fm-move": "108px",
         "fm-lightbox": "min(960px,94vw)",
         "fm-picker-body": "min(860px,94vw)",
+        "origin-method": "880px",
         "phone-bubble": "79%",
         "phone-quick": "88%",
         /* Larguras dos painéis do Financeiro. */

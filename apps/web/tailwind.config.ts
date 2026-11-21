@@ -148,6 +148,8 @@ const config: Config = {
       borderWidth: {
         /* Filete dos eventos na grade do Calendário. */
         "calendar-event": "3px",
+        /* Borda superior das colunas do Kanban. */
+        "crm-stage": "3px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -167,10 +169,6 @@ const config: Config = {
         "ib-entry": "9px",
         "ib-article": "10px",
         "ib-panel": "12px",
-      },
-      borderWidth: {
-        /* Borda superior das colunas do Kanban. */
-        "crm-stage": "3px",
       },
       boxShadow: {
         token: "var(--shadow)",

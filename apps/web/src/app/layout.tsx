@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./vexora.css";
+import "./theme.css";
 
 export const metadata: Metadata = {
   title: "Véxora Suite",

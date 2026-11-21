@@ -1,0 +1,133 @@
+/*
+ * Véxora Suite — core global (item 0 da migração Tailwind).
+ *
+ * Regras deste arquivo:
+ * - nenhum @tailwind base / preflight (o CSS legado permanece intacto);
+ * - nenhum valor arbitrário, hex direto ou !important novo;
+ * - tudo o que é cor, tipo e espaço vem do preset em tailwind.config.ts;
+ * - os três temas continuam sendo as variáveis em vexora.css, então
+ *   light / hybrid / dark são herdados sem variantes `dark:`.
+ *
+ * Este arquivo vem DEPOIS de vexora.css para que as utilities emitidas no
+ * final possam sobrescrever regras legadas de igual especificidade.
+ */
+@tailwind components;
+
+/*
+ * Tailwind sem preflight não define estilo de borda. Sem este reset mínimo,
+ * `border` / `border-t` emitiriam apenas border-width e não apareceriam.
+ * É o mesmo contrato do preflight, com a cor vinda do token --ln.
+ */
+*,
+::before,
+::after {
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--ln);
+}
+
+html {
+  @apply m-0 min-h-full h-dvh overflow-hidden;
+  zoom: var(--type-scale, 1);
+}
+
+body {
+  @apply font-ui text-body text-ink antialiased bg-surface-page bg-vx-page;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  @apply m-0;
+}
+
+h1 {
+  @apply font-display text-h1 font-extrabold;
+}
+
+h2 {
+  @apply font-display text-h2 font-heading;
+}
+
+h3 {
+  @apply font-display text-h3 font-bold;
+}
+
+h4 {
+  @apply font-display text-h4 font-bold;
+}
+
+h5 {
+  @apply font-display text-h5 font-semibold;
+}
+
+h6 {
+  @apply font-display text-h6 font-semibold;
+}
+
+small,
+.muted {
+  @apply text-small text-ink-secondary;
+}
+
+a {
+  @apply text-brand no-underline transition-colors;
+}
+
+a:hover {
+  @apply text-brand-ink;
+}
+
+button,
+input,
+select,
+textarea {
+  @apply font-inherit text-inherit;
+}
+
+button {
+  @apply cursor-pointer border-0 bg-transparent p-0 text-left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  @apply cursor-not-allowed opacity-50;
+}
+
+img,
+svg,
+video {
+  @apply max-w-full;
+}
+
+svg {
+  @apply flex-none;
+}
+
+summary {
+  @apply cursor-pointer;
+}
+
+hr {
+  @apply my-3.5 border-t border-line;
+}
+
+::selection {
+  @apply bg-selection;
+}
+
+:focus-visible {
+  @apply outline outline-2 outline-offset-2 outline-focus;
+}
+
+/* Contrato nativo do [hidden]: o preflight faria isto, mas ele está desligado. */
+[hidden] {
+  display: none !important;
+}
+
+@tailwind utilities;

@@ -946,7 +946,9 @@ details>summary:hover{color:var(--tx)}
 [data-testid='thread-header-actions'] [data-testid='handoff-menu']{position:relative;min-width:0;padding:0;border:0;background:none;box-shadow:none;display:inline-flex;align-items:center}
 [data-testid='thread-header-actions'] [data-testid='handoff-menu'] > summary{list-style:none}
 [data-testid='thread-header-actions'] [data-testid='handoff-menu'] > summary::-webkit-details-marker{display:none}
-[data-testid='thread-header-actions'] [data-testid='handoff-menu'] [data-testid='handoff-popover']{position:fixed;z-index:190;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);width:min(340px,calc(100vw - 28px));max-height:min(72dvh,560px);overflow:auto}
+/* Painel de transferência ancorado ao ícone via AnchoredPopover (TW utilities).
+   A regra legada que centralizava o painel foi removida: transform/z-index
+   próprios faziam o popover aparecer longe do controle e atrás de janelas. */
 
 /* ===== 18. Visão geral — proposta v3 (hero com fotos, KPI strip, acesso rápido) ===== */
 .vx-overview{grid-template-columns:1fr}
@@ -1077,7 +1079,7 @@ details>summary:hover{color:var(--tx)}
 [data-testid='thread-status-pill']{position:relative;display:inline-flex}
 [data-testid='thread-status-pill'] summary{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0 9px;border:1px solid var(--ln);border-radius:99px;background:var(--s2);font-size:11px;font-weight:800;color:var(--primary-ink);cursor:pointer;list-style:none;white-space:nowrap}
 [data-testid='thread-status-pill'] summary::-webkit-details-marker{display:none}
-[data-testid='thread-status-pill-menu']{position:absolute;top:calc(100% + 6px);left:0;z-index:60;display:grid;gap:4px;min-width:210px;padding:8px;border:1px solid var(--ln);border-radius:12px;background:var(--s1);box-shadow:var(--shadow-lg)}
+/* Menu de status ancorado via AnchoredPopover; posicionamento/camada vêm das TW utilities. */
 [data-testid='thread-status-pill-menu'] button{display:flex;align-items:center;gap:8px;min-height:32px;padding:0 10px;border:0;border-radius:9px;background:transparent;font-size:12.5px;font-weight:600;color:var(--tx);text-align:left}
 [data-testid='thread-status-pill-menu'] button:hover{background:var(--s2)}
 
@@ -1271,7 +1273,7 @@ details>summary:hover{color:var(--tx)}
 .inbox-queue-more>summary::-webkit-details-marker{display:none}
 .inbox-queue-more[open]>[data-testid='inbox-queue-more-trigger']{background:var(--s3);border-color:var(--ln2);color:var(--tx)}
 .inbox-queue-more[open] [data-testid='inbox-queue-more-trigger']::after { display: none; }
-[data-testid='inbox-queue-more-menu']{position:absolute;top:calc(100% + 6px);right:0;z-index:50;display:grid;gap:2px;min-width:180px;padding:6px;border:1px solid var(--ln);border-radius:var(--r-sm);background:var(--s1);box-shadow:var(--shadow-lg)}
+/* Menu "Mais filas" ancorado via AnchoredPopover; posicionamento/camada vêm das TW utilities. */
 [data-testid='inbox-queue-more-menu'] > button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--tx);font-size:11.5px;text-align:left;cursor:pointer}
 [data-testid='inbox-queue-more-menu'] > button:hover{background:var(--s3)}
 

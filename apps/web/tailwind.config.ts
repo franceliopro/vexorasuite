@@ -997,6 +997,7 @@ const config: Config = {
 "crm-form": "920px",
         "ib-copy": "42ch",
         "ib-bubble": "min(78%, 560px)",
+        "ib-handoff": "340px",
         "ib-quote-empty": "70%",
         /* Texto de apoio dos Relatórios. */
         "rw-sub": "560px",
@@ -1092,6 +1093,7 @@ const config: Config = {
         "ib-overlay": "120",
         "ib-fullscreen": "130",
         "ib-handoff": "190",
+        "ib-anchored": "260",
         "ib-lightbox": "240",
         /* Janela modal do editor de modelos de Documentos. */
         "docs-editor": "400",

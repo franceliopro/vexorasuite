@@ -1,0 +1,77 @@
+/*
+ * Piloto Tailwind Vexora — Ficha Cliente.
+ * Preflight desligado: nada aqui altera o CSS legado do app.
+ * Todas as cores vêm de tokens, então dark/hybrid funcionam sem Variants.
+ */
+
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vx-overlay: color-mix(in srgb, var(--tx) 34%, transparent);
+  --vx-overlay-soft: color-mix(in srgb, var(--tx) 20%, transparent);
+  --vx-ok-soft: color-mix(in srgb, var(--ok) 12%, var(--s1));
+  --vx-warn-soft: color-mix(in srgb, var(--warn) 12%, var(--s1));
+}
+
+@layer components {
+  .vx-ficha-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6;
+  }
+
+  .vx-ficha-scrim {
+    @apply absolute inset-0 bg-overlay backdrop-blur-sm transition-opacity;
+  }
+
+  .vx-ficha-card {
+    @apply relative z-10 flex max-h-ficha w-full max-w-md flex-col overflow-hidden rounded-token-xl border border-line bg-surface shadow-token-lg;
+  }
+
+  .vx-ficha-header {
+    @apply flex items-center justify-between gap-3 border-b border-line p-5;
+  }
+
+  .vx-ficha-tabs {
+    @apply flex border-b border-line bg-surface-2;
+  }
+
+  .vx-ficha-body {
+    @apply flex-1 overflow-y-auto p-4;
+  }
+
+  .vx-ficha-footer {
+    @apply flex items-center justify-between gap-2 border-t border-line bg-surface-2 p-4;
+  }
+
+  .vx-ficha-btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-token-sm bg-brand px-4 py-2 text-sm font-semibold text-brand-contrast shadow-token transition-all hover:bg-brand-strong active:scale-95;
+  }
+
+  .vx-ficha-btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-token-sm border border-line px-3 py-2 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-3;
+  }
+
+  .vx-ficha-field {
+    @apply rounded-token-lg border border-line bg-surface-2 p-4;
+  }
+
+  .vx-ficha-label {
+    @apply mb-2 text-2xs font-bold uppercase tracking-wider text-ink-muted;
+  }
+
+  .vx-ficha-input {
+    @apply w-full bg-transparent text-sm text-ink outline-none;
+  }
+
+  .vx-ficha-chip-success {
+    @apply rounded-full border border-success-soft bg-success-soft text-2xs font-semibold text-success;
+  }
+
+  .vx-ficha-icon-box {
+    @apply flex h-9 w-9 items-center justify-center rounded-token-sm bg-brand-soft text-brand;
+  }
+
+  .vx-ficha-icon-muted {
+    @apply flex h-9 w-9 items-center justify-center rounded-token-sm bg-surface-3 text-ink-muted;
+  }
+}

@@ -26,6 +26,7 @@ const config: Config = {
         "ib-narrow": { raw: "(max-width: 600px)" },
         "ib-mobile": { raw: "(max-width: 520px)" },
         "ib-wide": { raw: "(max-width: 1150px)" },
+        "ib-desktop": { raw: "(min-width: 960px)" },
         /* Cortes próprios dos Relatórios. */
         "rw-wide": { raw: "(max-width: 1100px)" },
         "rw-laptop": { raw: "(max-width: 900px)" },
@@ -41,6 +42,7 @@ const config: Config = {
           700: "var(--primary-strong)",
           800: "var(--primary-ink)",
           900: "var(--primary-contrast)",
+          950: "var(--primary-contrast)",
         },
         zinc: {
           50: "var(--bg)",
@@ -88,6 +90,10 @@ const config: Config = {
         "ib-coral": "#F0645E",
         "ib-amber": "#F2A93B",
         "ib-read": "#25D366",
+        /* Tons dos canais na ficha: dados do contato, não branding. */
+        "ib-instagram": "#E1306C",
+        "ib-facebook": "#1877F2",
+        "ib-email": "#EA4335",
 
         /* Alias semânticos usados pelo piloto Ficha Cliente (#903), já
            mergeado. O core migra para as classes oficiais acima; os aliases
@@ -338,6 +344,13 @@ const config: Config = {
         "ib-profile-avatar": "46px",
         "ib-profile-icon": "36px",
         "ib-profile-collapsed": "54px",
+        "ib-profile-toggle": "30px",
+        "ib-profile-add": "26px",
+        "ib-profile-pill": "16px",
+        "ib-profile-pill-sm": "19px",
+        "ib-profile-tag": "18px",
+        "ib-profile-field": "28px",
+        "ib-profile-tab": "26px",
         /* Estado de carregamento do Kanban. */
         "crm-loading-y": "60px",
       },
@@ -373,6 +386,9 @@ const config: Config = {
         "ib-compact-meta": "repeat(3, minmax(0, 1fr))",
         "ib-details": "repeat(auto-fit, minmax(170px, 1fr))",
         "ib-detail-row": "96px minmax(0, 1fr)",
+        /* Grades internas da ficha do contato. */
+        "ib-profile-field-row": "minmax(0, 1fr) auto",
+        "ib-profile-identity": "minmax(0, 1fr) auto",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
@@ -428,6 +444,11 @@ const config: Config = {
         "calendar-copy": "44ch",
         "calendar-select": "148px",
         "calendar-chip": "150px",
+        /* Larguras dos controles e textos da ficha do contato. */
+        "ib-profile-control": "400px",
+        "ib-profile-copy": "560px",
+        "ib-profile-row": "460px",
+        "ib-profile-agenda": "320px",
       },
       width: {
         "profile-popover": "248px",

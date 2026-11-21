@@ -165,6 +165,13 @@ test("o contrato híbrido permanece: menu escuro, restante claro", () => {
   assert.match(sidebarBlock, /text-indigo-50/);
   assert.match(sidebarBlock, /border-indigo-800/);
   assert.doesNotMatch(sidebarBlock, /bg-zinc-|text-slate-|border-gray-/);
+
+  /* O item ativo precisa manter background-color na superfície da barra:
+     bg-vx-nav-active sozinho só aplica background-image e deixa o item
+     transparente quando a sidebar recebe uma cor customizada. */
+  const activeItem = theme.match(/\.nav-item\.active,[\s\S]*?\n\s{2}\}/)?.[0] ?? "";
+  assert.match(activeItem, /bg-indigo-700/);
+  assert.match(activeItem, /bg-vx-nav-active/);
 });
 
 test("as cores do preset vêm da paleta documentada e dos tokens de tema", () => {
@@ -174,6 +181,7 @@ test("as cores do preset vêm da paleta documentada e dos tokens de tema", () =>
   }
   assert.match(config, /700:\s*"var\(--primary-strong\)"/);
   assert.match(config, /950:\s*"var\(--sb-bg\)"/);
+  assert.match(config, /700:\s*"var\(--sb-surface, var\(--sb-bg\)\)"/);
   for (const derived of [
     "--vx-core-page-wash",
     "--vx-core-topbar-bg",

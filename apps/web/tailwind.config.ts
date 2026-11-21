@@ -49,6 +49,7 @@ const config: Config = {
         indigo: {
           50: "var(--sb-tx)",
           400: "var(--sb-mut)",
+          700: "var(--sb-surface, var(--sb-bg))",
           800: "var(--sb-ln)",
           900: "var(--sb-on)",
           950: "var(--sb-bg)",

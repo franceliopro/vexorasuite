@@ -253,9 +253,11 @@ hr {
     @apply -translate-y-px;
   }
 
+  /* O item ativo precisa manter background-color na superfície da barra:
+     bg-vx-nav-active sozinho só aplica background-image. */
   .nav-item.active,
   .nav-subitem.active {
-    @apply bg-vx-nav-active font-bold text-indigo-50 shadow-vx-nav-active;
+    @apply bg-indigo-700 bg-vx-nav-active font-bold text-indigo-50 shadow-vx-nav-active;
   }
 
   .nav-accordion {

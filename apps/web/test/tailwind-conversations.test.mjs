@@ -324,3 +324,26 @@ test("o shell do workspace usa TW e preserva os hooks de estado", () => {
     assert.ok(workspace.includes(token), `o shell deve manter ${token}`);
   }
 });
+
+test("o avatar do cabeçalho tem tamanho próprio e o header alinha os blocos", () => {
+  assert.ok(avatars.includes('const contactAvatarFillTw = "relative block h-full w-full overflow-hidden rounded-full";'));
+  assert.match(avatars, /export function ContactAvatar\(\{ contact, className = contactAvatarFillTw \}/);
+  assert.ok(avatars.includes("<span className={className}>"));
+  // A lista continua preenchendo o wrapper; só o chamador do cabeçalho define o tamanho.
+  assert.ok(list.includes("<ContactAvatar contact={item.contact} />"));
+  assert.ok(workspace.includes('className="relative grid size-ib-avatar shrink-0 place-items-center overflow-hidden rounded-full bg-ib-avatar text-base font-extrabold text-white"'));
+
+  const heading = workspace.match(/<header data-testid="thread-heading"[^>]*>/)?.[0] ?? "";
+  const hasUtility = (utility) => heading.includes(` ${utility} `) || heading.includes(` ${utility}"`);
+  for (const utility of ["flex", "flex-none", "flex-nowrap", "items-center", "gap-ib-gap"]) {
+    assert.ok(hasUtility(utility), `o header deve manter ${utility}: ${heading}`);
+  }
+  assert.doesNotMatch(heading, /h-full|w-full|size-ib-avatar|flex-wrap/);
+  for (const utility of ["flex-nowrap", "gap-ib-gap", "ib-narrow:px-3"]) assert.ok(hasUtility(utility), `o header deve manter ${utility}`);
+  assert.match(workspace, /id="thread-header-actions" className="ml-auto flex shrink-0 items-center gap-ib-gap"/);
+  for (const hook of ['data-testid="thread-heading"', 'aria-controls="thread-header-actions"', 'id="thread-header-actions"', 'data-testid="thread-header-actions"']) {
+    assert.ok(workspace.includes(hook), `o cabeçalho deve manter ${hook}`);
+  }
+  const css = read("src/app/vexora.css");
+  assert.doesNotMatch(css, /\[data-testid=.thread-heading.\]\{[^}]*flex-wrap/);
+});

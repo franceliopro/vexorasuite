@@ -3,7 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS, passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
 
-const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const submitTw = "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 auth-submit";
+const brandMarkTw = "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand";
 export interface AuthSession {
   allowedModules?:string[]; departmentIds?:string[];
   user: { id: string; name: string; email: string; avatarUrl?:string|null; avatarSource?:string|null;isPlatformAdmin?:boolean;mustChangePassword?:boolean };
@@ -14,7 +15,7 @@ export interface AuthSession {
 type Mode = "login" | "register" | "forgot" | "reset";
 
 function EyeToggle({visible,onToggle}:{visible:boolean;onToggle:()=>void}) {
-  return <button className="auth-password-toggle" type="button" onClick={onToggle} aria-label={visible ? "Ocultar senha" : "Mostrar senha"} aria-pressed={visible} title={visible ? "Ocultar senha" : "Mostrar senha"}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{visible ? <><path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" /><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1.1-1.1 2.3-2.2 3.3" /><path d="M6.2 6.2C4.4 7.4 3.3 9.2 3 12c.7 2.5 4 7 9 7 1.2 0 2.3-.3 3.3-.8" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}</svg></button>;
+  return <button className="absolute right-1 top-1 grid size-8 place-items-center text-ink-secondary" type="button" onClick={onToggle} aria-label={visible ? "Ocultar senha" : "Mostrar senha"} aria-pressed={visible} title={visible ? "Ocultar senha" : "Mostrar senha"}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{visible ? <><path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" /><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1.1-1.1 2.3-2.2 3.3" /><path d="M6.2 6.2C4.4 7.4 3.3 9.2 3 12c.7 2.5 4 7 9 7 1.2 0 2.3-.3 3.3-.8" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}</svg></button>;
 }
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: AuthSession) => void }) {
@@ -116,45 +117,53 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
 
 
   return (
-    <main className="auth-screen auth-screen-split">
-      <aside className="auth-brand-panel">
-        <div className="auth-brand-lockup"><span className="brand-mark">V</span><span className="auth-brand-name">véxora<small>SUITE</small></span></div>
-        <div className="auth-brand-copy">
-          <p className="eyebrow">INTELIGÊNCIA OPERACIONAL</p>
-          <h2>Uma operação inteira, em um só lugar.</h2>
-          <p>Atendimento, CRM, automação e resultados conectados com a identidade da sua empresa — sem ruído e sem retrabalho.</p>
+    <main
+      className="grid min-h-dvh grid-cols-rw-2 bg-zinc-50 bg-vx-page ib-shell:grid-cols-1"
+      style={{ backgroundImage: "radial-gradient(60rem 36rem at 100% -10%, rgb(from var(--primary) r g b / .12), transparent 60%),radial-gradient(48rem 30rem at -10% 110%, rgb(from var(--accent2) r g b / .06), transparent 58%)" }}
+    >
+      <aside
+        className="relative isolate flex flex-col justify-between gap-9 overflow-hidden p-8 text-slate-50 ib-shell:hidden lg:p-12 xl:p-16"
+        style={{ background: "linear-gradient(155deg, rgb(8 19 16) 0%, rgb(12 35 26) 44%, rgb(15 58 42) 100%)" }}
+      >
+        <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ backgroundImage: "linear-gradient(rgba(156,208,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(156,208,255,.05) 1px,transparent 1px)", backgroundSize: "34px 34px", maskImage: "radial-gradient(70% 60% at 50% 30%, black, transparent 78%)", WebkitMaskImage: "radial-gradient(70% 60% at 50% 30%, black, transparent 78%)" }} />
+        <span aria-hidden="true" className="pointer-events-none absolute -z-10 aspect-square rounded-full opacity-60" style={{ right: "-18%", top: "-18%", width: "74%", background: "radial-gradient(circle, rgb(from var(--primary) r g b / .58), transparent 68%)" }} />
+        <div className="relative flex items-center gap-3"><span className={brandMarkTw}>V</span><span className="font-display text-brand-title font-extrabold">véxora<small className="mt-1 block text-brand-badge font-extrabold tracking-brand-badge" style={{ color: "rgb(159 199 184)" }}>SUITE</small></span></div>
+        <div className="relative grid max-w-catalog-search gap-4">
+          <p className="text-nav-section font-extrabold uppercase tracking-fin-eyebrow" style={{ color: "rgb(156 208 255)" }}>INTELIGÊNCIA OPERACIONAL</p>
+          <h2 className="font-display text-h1 font-extrabold" style={{ color: "rgb(242 250 246)", lineHeight: 1.1 }}>Uma operação inteira, em um só lugar.</h2>
+          <p className="text-sm leading-relaxed" style={{ color: "rgb(185 210 199)" }}>Atendimento, CRM, automação e resultados conectados com a identidade da sua empresa — sem ruído e sem retrabalho.</p>
         </div>
-        <ul className="auth-brand-points">
-          <li>Atendimento humano no centro da operação</li>
-          <li>Automação determinística antes da IA</li>
-          <li>Dados e credenciais isolados por empresa</li>
+        <ul className="relative grid list-none gap-3 p-0 text-sm" style={{ color: "rgb(211 231 222)" }}>
+          <li className="flex items-center gap-2.5"><span aria-hidden="true" className="size-2 flex-none rounded-full" style={{ background: "rgb(125 211 252)", boxShadow: "0 0 0 4px rgba(125,211,252,.14)" }} />Atendimento humano no centro da operação</li>
+          <li className="flex items-center gap-2.5"><span aria-hidden="true" className="size-2 flex-none rounded-full" style={{ background: "rgb(125 211 252)", boxShadow: "0 0 0 4px rgba(125,211,252,.14)" }} />Automação determinística antes da IA</li>
+          <li className="flex items-center gap-2.5"><span aria-hidden="true" className="size-2 flex-none rounded-full" style={{ background: "rgb(125 211 252)", boxShadow: "0 0 0 4px rgba(125,211,252,.14)" }} />Dados e credenciais isolados por empresa</li>
         </ul>
-        <p className="auth-brand-foot">Ambiente seguro · multiempresa</p>
+        <p className="relative text-2xs uppercase tracking-fin-label" style={{ color: "rgb(127 162 148)" }}>Ambiente seguro · multiempresa</p>
       </aside>
-      <section className="auth-panel">
-        <div className="auth-brand"><span className="brand-mark">V</span><span><strong>véxora</strong><small>SUITE</small></span></div>
-        <p className="eyebrow">AMBIENTE DE OPERAÇÕES</p>
+      <section className="mx-auto grid w-full max-w-catalog-search content-center gap-4 p-7 sm:p-10 lg:p-16">
+        <div className="flex items-center gap-2.5"><span className={brandMarkTw}>V</span><span><strong className="font-display text-brand-title font-extrabold">véxora</strong><small className="mt-1 block text-brand-badge font-extrabold tracking-brand-badge text-ink-secondary">SUITE</small></span></div>
+        <p className="text-nav-section font-extrabold uppercase tracking-fin-eyebrow text-blue-600">AMBIENTE DE OPERAÇÕES</p>
         <h1>{heading}</h1>
-        <p className="auth-description">{description}</p>
-        <form onSubmit={submit} className="auth-form">
+        <p className="text-body text-ink-secondary">{description}</p>
+        <form onSubmit={submit} className="grid gap-3.5">
           {mode === "register" ? <>
-            <label className="auth-field">Nome da empresa<input value={tenantName} onChange={(event) => setTenantName(event.target.value)} minLength={2} maxLength={100} required autoComplete="organization" /></label>
-            <label className="auth-field">Seu nome<input value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={100} required autoComplete="name" /></label>
+            <label className="grid gap-1.5">Nome da empresa<input value={tenantName} onChange={(event) => setTenantName(event.target.value)} minLength={2} maxLength={100} required autoComplete="organization" /></label>
+            <label className="grid gap-1.5">Seu nome<input value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={100} required autoComplete="name" /></label>
           </> : null}
-          {mode === "login" ? <label className="auth-field">Identificador da empresa<input value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} minLength={3} maxLength={80} required autoComplete="organization" placeholder="Identificador fornecido pela administração" /></label> : null}
-          {mode === "forgot" ? <label className="auth-field">Identificador da empresa (opcional)<input value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} maxLength={80} autoComplete="organization" placeholder="Ajuda a localizar a conta" /></label> : null}
-          {mode !== "reset" ? <label className="auth-field">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} required autoComplete="email" /></label> : null}
-          {mode !== "forgot" ? <label className="auth-field">{mode === "reset" ? "Nova senha" : "Senha"}<div className="auth-password-wrap"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={mode === "login" ? 1 : PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete={mode === "login" ? "current-password" : "new-password"} /><EyeToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} /></div></label> : null}
-          {mode === "reset" ? <label className="auth-field">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete="new-password" /></label> : null}
-          {notice ? <p className="auth-notice" role="status">{notice}</p> : null}
-          {error ? <p className="auth-error" role="alert">{error}</p> : null}
-          <button className={primaryTw + " auth-submit"} type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
+          {mode === "login" ? <label className="grid gap-1.5">Identificador da empresa<input value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} minLength={3} maxLength={80} required autoComplete="organization" placeholder="Identificador fornecido pela administração" /></label> : null}
+          {mode === "forgot" ? <label className="grid gap-1.5">Identificador da empresa (opcional)<input value={tenantSlug} onChange={(event) => setTenantSlug(event.target.value)} maxLength={80} autoComplete="organization" placeholder="Ajuda a localizar a conta" /></label> : null}
+          {mode !== "reset" ? <label className="grid gap-1.5">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} required autoComplete="email" /></label> : null}
+          {mode !== "forgot" ? <label className="grid gap-1.5">{mode === "reset" ? "Nova senha" : "Senha"}<div className="relative"><input className="pr-12" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={mode === "login" ? 1 : PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete={mode === "login" ? "current-password" : "new-password"} /><EyeToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} /></div></label> : null}
+          {mode === "reset" ? <label className="grid gap-1.5">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete="new-password" /></label> : null}
+          {notice ? <p className="rounded-token-sm bg-blue-50 px-3.5 py-3 text-body text-blue-800" role="status">{notice}</p> : null}
+          {error ? <p className="text-body text-danger" role="alert">{error}</p> : null}
+          <button className={submitTw} type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
         </form>
-        {mode === "login" ? <div className="auth-switch"><button type="button" onClick={() => switchMode("forgot")}>Esqueceu a senha?</button></div> : null}
-        {mode === "forgot" || mode === "reset" ? <div className="auth-switch"><span>{mode === "forgot" ? "Lembrou a senha?" : "Não solicitou a troca?"}</span><button type="button" onClick={() => switchMode("login")}>Voltar para entrar</button></div> : null}
-        {registrationEnabled && mode !== "forgot" && mode !== "reset" ? <div className="auth-switch"><span>{mode === "register" ? "Já tem uma conta?" : "Primeira vez na Véxora Suite?"}</span><button type="button" onClick={() => switchMode(mode === "register" ? "login" : "register")}>{mode === "register" ? "Entrar" : "Criar workspace"}</button></div> : null}
-        {mode === "register" || mode === "reset" ? <p className="auth-footnote">{PASSWORD_REQUIREMENTS}</p> : null}
-        {mode === "register" ? <p className="auth-footnote">Guarde o identificador da empresa retornado após o cadastro.</p> : null}
+        {mode === "login" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode("forgot")}>Esqueceu a senha?</button></div> : null}
+        {mode === "forgot" || mode === "reset" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><span>{mode === "forgot" ? "Lembrou a senha?" : "Não solicitou a troca?"}</span><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode("login")}>Voltar para entrar</button></div> : null}
+        {registrationEnabled && mode !== "forgot" && mode !== "reset" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><span>{mode === "register" ? "Já tem uma conta?" : "Primeira vez na Véxora Suite?"}</span><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode(mode === "register" ? "login" : "register")}>{mode === "register" ? "Entrar" : "Criar workspace"}</button></div> : null}
+        {mode === "register" || mode === "reset" ? <p className="text-body text-ink-secondary">{PASSWORD_REQUIREMENTS}</p> : null}
+        {mode === "register" ? <p className="text-body text-ink-secondary">Guarde o identificador da empresa retornado após o cadastro.</p> : null}
       </section>
     </main>
   );

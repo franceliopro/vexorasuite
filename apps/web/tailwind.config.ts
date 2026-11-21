@@ -90,6 +90,27 @@ const config: Config = {
         /* Cores de estado da lista de conversas (dados, não branding). */
         /* Fundo do QR Code do WhatsApp: papel do dispositivo, não tema. */
         "channels-qr": "#FFFFFF",
+        /* Cores dos filetes de tipo dos blocos do canvas: dados do editor,
+           não branding. O azul de marca continua vindo só de --primary. */
+        "flow-tone": {
+          message: "#2563eb",
+          choice: "#0d9488",
+          input: "#7c3aed",
+          logic: "#ea580c",
+          ai: "#6254e8",
+          asaas: "#0891b2",
+          transfer: "#dc2626",
+          crm: "#6254e8",
+          tag: "#6254e8",
+          finish: "#334155",
+          end: "#334155",
+          start: "#16a34a",
+          default: "#2563eb",
+        },
+        /* Superfícies do minimapa derivadas dos tokens, sem color-mix. */
+        "flow-minimap-bg": "var(--s2)",
+        "flow-minimap-node": "var(--tx2)",
+        "flow-minimap-viewport": "var(--primary-soft)",
         "ib-coral": "#F0645E",
         "ib-amber": "#F2A93B",
         "ib-read": "#25D366",
@@ -200,10 +221,14 @@ const config: Config = {
         "phone-lens-glow": "radial-gradient(circle at 35% 35%,#3a4a5a 0%,#0c0f13 70%)",
         "phone-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
         "phone-wallpaper": "radial-gradient(circle at 20% 15%,rgba(31,95,208,.14),transparent 45%),radial-gradient(circle at 85% 80%,rgba(31,95,208,.1),transparent 40%),radial-gradient(circle,rgba(255,255,255,.045) 1px,transparent 1.4px)",
+        /* Pontos do canvas do fluxo. A cor vem do token de linha do tema. */
+        "flow-grid": "radial-gradient(circle, var(--ln2) 0.75px, transparent 1px)",
+        "flow-grid-legacy": "radial-gradient(var(--ln2) 1px, transparent 1px)",
       },
       backgroundSize: {
         "rw-shimmer-size": "200% 100%",
         "phone-wallpaper": "auto, auto, 17px 17px",
+        "flow-grid-size": "24px 24px",
       },
       keyframes: {
         "rw-shimmer": {
@@ -231,6 +256,7 @@ const config: Config = {
       },
       strokeWidth: {
         ov: "5.5",
+        flow: "2",
       },
       borderWidth: {
         /* Filete dos eventos na grade do Calendário. */
@@ -239,6 +265,8 @@ const config: Config = {
         "crm-stage": "3px",
         /* Filete de destaque das notas de escopo dos Relatórios. */
         "rw-accent": "3px",
+        /* Filete de tom à esquerda dos blocos do canvas. */
+        "flow-node-edge": "3px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -296,6 +324,21 @@ const config: Config = {
         "fm-search": "10px",
         "fm-pill": "99px",
         "fm-lightbox": "16px",
+        /* Raios do canvas do fluxo. */
+        "flow-stage": "16px",
+        "flow-command": "13px",
+        "flow-command-primary": "14px",
+        "flow-more": "9px",
+        "flow-more-actions": "12px",
+        "flow-symbol": "9px",
+        "flow-quick": "7px",
+        "flow-node": "12px",
+        "flow-node-head": "13px",
+        "flow-output": "9px",
+        "flow-group": "16px",
+        "flow-group-icon": "11px",
+        "flow-field-tip": "99px",
+        "flow-tip": "10px",
       },
       aspectRatio: {
         /* Prévia quadrada dos arquivos e das imagens do site. */
@@ -327,6 +370,11 @@ const config: Config = {
         "phone-bubble": "0 1px 1px rgba(0,0,0,.32)",
         "phone-pill": "0 1px 2px rgba(0,0,0,.3)",
         "phone-mic": "0 2px 6px rgba(29,78,216,.4)",
+        /* Relevo dos blocos e dos pontos de conexão do canvas. */
+        "flow-node": "0 3px 16px -4px rgba(0,0,0,.18)",
+        "flow-node-selected": "0 0 0 2px var(--primary),0 18px 40px -18px var(--primary)",
+        "flow-start": "0 3px 16px -4px rgba(0,0,0,.18)",
+        "flow-port": "0 0 0 3px var(--primary-soft)",
       },
       fontFamily: {
         inherit: "inherit",
@@ -413,6 +461,23 @@ const config: Config = {
         "phone-chip": ["11.5px", { lineHeight: "1.3" }],
         "phone-hint": "12.5px",
         "phone-ticks": "10px",
+        /* Tipografia do canvas do fluxo. */
+        "flow-panel-title": ["13.5px", { lineHeight: "1.2", letterSpacing: "-.01em" }],
+        "flow-panel-sub": ["10.5px", { lineHeight: "1.4", letterSpacing: ".09em" }],
+        "flow-help": ["11.5px", { lineHeight: "1.4" }],
+        "flow-command": "12px",
+        "flow-stage": "11.5px",
+        "flow-zoom": ["11.5px", { lineHeight: "1", letterSpacing: "0" }],
+        "flow-node-title": ["11px", { lineHeight: "1.3" }],
+        "flow-node-summary": ["10px", { lineHeight: "1.4" }],
+        "flow-output": ["10px", { lineHeight: "1.3" }],
+        "flow-node-target": ["10px", { lineHeight: "1.3", letterSpacing: ".08em" }],
+        "flow-trigger": "11px",
+        "flow-trigger-sub": "10px",
+        "flow-group-title": ["10.5px", { lineHeight: "1", letterSpacing: ".13em" }],
+        "flow-group-sub": ["10.5px", { lineHeight: "1.4" }],
+        "flow-field": "11px",
+        "flow-tip": ["11px", { lineHeight: "1.45" }],
       },
       lineHeight: {
         "ib-quote-error": "1.35",
@@ -432,6 +497,10 @@ const config: Config = {
         "phone-clock": ".02em",
         "phone-day": ".03em",
         "phone-tick": "-1px",
+        /* Tracking dos rótulos e títulos do canvas do fluxo. */
+        "flow-tight": "-.01em",
+        "flow-wide": ".09em",
+        "flow-section": ".14em",
       },
       spacing: {
         sidebar: "var(--sb)",
@@ -555,6 +624,36 @@ const config: Config = {
         "phone-close": "40px",
         "phone-close-top": "max(14px, env(safe-area-inset-top))",
         "phone-close-right": "max(16px, env(safe-area-inset-right))",
+        /* Medidas do canvas do fluxo (compartilhadas por inset, gap e padding). */
+        "flow-shell": "clamp(640px,calc(100dvh - 190px),1000px)",
+        "flow-rail": "44px",
+        "flow-panel": "14px",
+        "flow-panel-gap": "12px",
+        "flow-handle-w": "22px",
+        "flow-handle-h": "72px",
+        "flow-handle-offset": "11px",
+        "flow-minimap-w": "196px",
+        "flow-minimap-h": "128px",
+        "flow-minimap-right": "12px",
+        "flow-minimap-bottom": "52px",
+        "flow-node-w": "212px",
+        "flow-start-w": "196px",
+        "flow-node-edge": "3px",
+        "flow-resizer-grip-h": "46px",
+        "flow-resizer-grip-h-active": "80px",
+        "flow-port": "15px",
+        "flow-port-offset": "9px",
+        "flow-command-h": "44px",
+        "flow-command-primary-h": "48px",
+        "flow-command-x": "13px",
+        "flow-stage-bar-y": "6px",
+        "flow-stage-bar-x": "12px",
+        "flow-resizer": "16px",
+        "flow-group-pad": "13px",
+        "flow-stage-bar-min": "54px",
+        "flow-more-actions-top": "calc(100% + 6px)",
+        "flow-command-tip-top": "calc(100% + 9px)",
+        "flow-field-tip-top": "calc(100% + 8px)",
       },
       gridTemplateColumns: {
         /* Grades da página de conexões. */
@@ -605,6 +704,14 @@ const config: Config = {
         /* Grades do gerenciador de arquivos e do seletor de imagens. */
         "fm-items": "repeat(auto-fill,minmax(180px,1fr))",
         "fm-picker": "repeat(auto-fill,minmax(150px,1fr))",
+        /* Grades do shell do canvas do fluxo. A largura do inspetor vem da
+           variável escrita pelo redimensionador, como dado do componente. */
+        "flow-shell": "260px minmax(0,1fr) var(--vx-flow-inspector-width)",
+        "flow-shell-left": "44px minmax(0,1fr) var(--vx-flow-inspector-width)",
+        "flow-shell-right": "260px minmax(0,1fr) 44px",
+        "flow-shell-both": "44px minmax(0,1fr) 44px",
+        "flow-inspector-actions": "repeat(3,1fr)",
+        "flow-more-actions": "minmax(180px,1fr)",
       },
       gridAutoColumns: {
         "crm-stage": "minmax(272px, 1fr)",
@@ -626,6 +733,12 @@ const config: Config = {
         "rw-donut": "132px",
         /* Prévia do local no mapa do Calendário. */
         "calendar-map": "clamp(180px, 38dvh, 320px)",
+        /* Alturas do canvas do fluxo. */
+        "flow-shell": "clamp(640px,calc(100dvh - 190px),1000px)",
+        "flow-shell-fullscreen": "calc(100% - 52px)",
+        "flow-stage-mobile": "70dvh",
+        "flow-handle": "72px",
+        "flow-minimap": "128px",
       },
       minHeight: {
         ov: "150px",
@@ -725,6 +838,14 @@ const config: Config = {
         /* Medidas dos gráficos dos Relatórios. */
         "rw-donut": "132px",
         "rw-dot": "11px",
+        /* Larguras do canvas do fluxo. */
+        "flow-node": "212px",
+        "flow-start": "196px",
+        "flow-handle": "22px",
+        "flow-minimap": "196px",
+        "flow-resizer": "16px",
+        "flow-resizer-grip": "3px",
+        "flow-more": "180px",
       },
       minWidth: {
         "channels-metric": "26px",
@@ -762,6 +883,17 @@ const config: Config = {
         "phone-header": "4",
         "phone-status": "5",
         "phone-island": "6",
+        /* Camadas do canvas do fluxo. */
+        "flow-fullscreen": "80",
+        "flow-command": "80",
+        "flow-command-tip": "90",
+        "flow-minimap": "24",
+        "flow-resizer": "9",
+        "flow-panel-handle": "6",
+        "flow-inspector-close": "5",
+        "flow-node-actions": "3",
+        "flow-tip": "70",
+        "flow-quick-actions": "4",
       },
       transitionProperty: {
         shell: "width, margin-left",

@@ -32,5 +32,5 @@ test("wizard and editor body are large enough for the first step", () => {
 
 test("editor window also escapes the animated workspace", () => {
   assert.match(editor, /import\s*{[^}]*createPortal[^}]*}\s*from\s*["']react-dom["']/);
-  assert.match(editor, /createPortal\(\s*<div className="vx-editor-window"/);
+  assert.match(editor, /createPortal\(\s*<div className=\{editorWindowClass\}/);
 });

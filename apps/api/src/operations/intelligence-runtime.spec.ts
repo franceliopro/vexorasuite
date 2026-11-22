@@ -23,7 +23,7 @@ describe('Intelligence runtime',()=>{
  it('honors explicit human requests',async()=>{const x=setup();x.inbound.content='atendente';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.conversation.update.mock.calls[0][0].data.handlingMode).toBe('HUMAN');});
  it('sends the configured handoff message with the conversation variables', async () => {
   const x = setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
-  const handoff = x.flow.steps.find(step => step.id === 'handoff')!;
+  const handoff = x.flow.steps.find((step: { id: string }) => step.id === 'handoff')!;
   handoff.message = 'A equipe da {{empresa}} continua o atendimento.';
   x.inbound.content = '1';
   await x.service.receive(x.channel, 'conversation', 'inbound');

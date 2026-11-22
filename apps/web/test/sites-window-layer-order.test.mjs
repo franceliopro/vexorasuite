@@ -8,6 +8,8 @@ const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const globals = read("src/app/vexora.css");
 const editor = read("src/app/sites/editor/editor.css");
+const preset = read("tailwind.config.ts");
+const reminders = read("src/app/reminder-center.tsx");
 
 test("reminders and alarms stay below fullscreen product windows", () => {
   const tokens = globals.match(/--z-reminder:\s*(\d+);--z-fullscreen-window:\s*(\d+);--z-fullscreen-dock:\s*(\d+);/);
@@ -16,7 +18,9 @@ test("reminders and alarms stay below fullscreen product windows", () => {
   assert.ok(reminder < windowLayer, `reminder (${reminder}) must be below the window (${windowLayer})`);
   assert.ok(windowLayer < dock, `window (${windowLayer}) must be below its dock (${dock})`);
 
-  assert.match(globals, /\.reminder-center\s*\{[^}]*z-index:\s*var\(--z-reminder\)/);
+  assert.match(preset, /reminder:\s*"var\(--z-reminder\)"/);
+  assert.match(reminders, /\bz-reminder\b/);
+  assert.doesNotMatch(reminders, /\breminder-center\b/);
   assert.match(globals, /\.alarm-overlay\s*\{[^}]*z-index:\s*var\(--z-reminder\)/);
   assert.doesNotMatch(globals, /z-index:\s*2147483647/);
 });

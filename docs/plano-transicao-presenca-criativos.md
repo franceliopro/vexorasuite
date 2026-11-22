@@ -230,8 +230,9 @@ As seis perguntas acima foram respondidas pelo proprietário e estão consolidad
 | Proxy | Traefik interno do Dokploy |
 | Acesso ao Docker | Socket do Docker montado no serviço provisionador |
 | Projeto Dokploy | `Estúdio de Sites`; serviço `Base` com MariaDB 11, phpMyAdmin e Filebrowser (via Docker) |
-| Sites atuais | 1 CMS próprio em PHP/MySQL (imobiliária), 2 WordPress, 1 WordPress infectado que será refeito como estático |
-| Migração | Arquivos + banco; e-mail fica na Zoho Mail e está fora de escopo |
+| Sites atuais | Todos os quatro rodam WordPress na origem, mas **nenhum WordPress será trazido**: os sites serão recriados com sistema próprio |
+| Destino dos sites | PHP puro ou Next.js, conforme avaliação de simplicidade e peso; decisão por site ainda pendente |
+| Migração | O proprietário baixa arquivos e banco na Valuehost e sobe para o nosso servidor; somente conteúdo/dados são aproveitados, não o código WordPress. E-mail fica na Zoho Mail e está fora de escopo |
 | Provedor de origem | Valuehost; o proprietário controla tudo, inclusive DNS |
 | Cofre de senhas | Ainda não existe; adotar Docker secrets como primeiro passo |
 | Linguagem | Node.js + TypeScript é a recomendação do plano; confirmar antes de escrever o primeiro arquivo de código |
@@ -309,26 +310,39 @@ Saída típica:
 
 ### 11.5 Plano dos quatro sites
 
-| Site citado | Estado atual | Destino | Estratégia |
-|---|---|---|---|
-| Imobiliária (Alto Araguaia Imóveis) | CMS próprio em PHP/MySQL | PHP/MySQL isolado | Copiar arquivos + dump; ajustar config de banco e caminhos |
-| Site WordPress A | WordPress | WordPress isolado | Copiar arquivos + dump; search-replace serializado de URLs |
-| Site WordPress B | WordPress | WordPress isolado | Copiar arquivos + dump; search-replace serializado de URLs |
-| Site WordPress infectado | WordPress comprometido | Estático | Não migrar código infectado; exportar conteúdo saneado e refazer |
+Todos os quatro serão **recriados com sistema próprio**. O download dos arquivos serve para resgatar conteúdo, imagens e dados; o código WordPress — inclusive o do site infectado — não é implantado no nosso servidor.
 
-Rastreabem permanece como referência de cliente/segmento, não como identidade global nem site obrigatório nesta leva.
+| Site citado | Estado na origem | Destino | Estratégia |
+|---|---|---|---|
+| Imobiliária (Alto Araguaia Imóveis) | WordPress | PHP puro ou Next.js | Extrair imóveis, textos e mídia do banco/arquivos; recriar sem CMS |
+| Rastreabem | WordPress | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS |
+| SOS Alto Araguaia | WordPress | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS |
+| Morbeck x Carvalhinho | WordPress | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS |
+
+**Site infectado:** nenhum arquivo do WordPress comprometido é reaproveitado como código. Somente dados saneados previamente revisados. Não reutilizar templates, plugins, uploads executáveis ou credenciais antigas sem inspeção.
+
+Rastreabem permanece como referência de cliente/segmento, não como identidade global nem fluxo obrigatório.
+
+### 11.5.1 Escolha PHP puro × Next.js
+
+A decisão é por site, com este critério declarado pelo proprietário: **se Next.js for mais leve e mais simples, usar Next.js; se não, usar PHP puro.**
+
+- **Next.js**: preferido para sites estáticos ou com pouco dinamismo e sem necessidade de banco por site.
+- **PHP puro**: preferido quando houver lógica de banco, formulários ou integrações que o sistema próprio precise manipular diretamente.
+- O provisionador deve aceitar ambos os tipos desde o início no contrato de entrada (`type: "php-mysql" | "nextjs"`), mesmo que o primeiro piloto use apenas um.
 
 ### 11.6 Sequência de migração por site
 
-1. Inventário no Valuehost: arquivos, dump, versões, cron, redirecionamentos e formulários.
-2. Reduzir TTL de DNS.
-3. Copiar arquivos e banco para ambiente temporário no Dokploy.
-4. Ajustar URLs absolutas, config de banco, caminhos e serializações do WordPress.
-5. Emitir TLS temporário e testar páginas, formulários e login no host temporário.
-6. Registrar aprovação humana na Véxora.
-7. Trocar DNS no Valuehost (o proprietário autoriza e executa).
-8. Health-check real no domínio final; só então a Véxora marca “no ar”.
-9. Manter rollback documentado: voltar DNS e preserved o ambiente anterior até a validação.
+1. O proprietário baixa arquivos e dump do banco na Valuehost e sobe para o nosso servidor.
+2. Inventariar o material recebido: conteúdo, mídia, redirecionamentos, formulários e credenciais antigas.
+3. Reduzir TTL de DNS.
+4. Extrair e sane conteúdo e dados; **descartar código, plugins e templates WordPress**.
+5. Recriar o site no sistema próprio (PHP puro ou Next.js) em ambiente temporário no Dokploy.
+6. Emitir TLS temporário e testar páginas, formulários e login no host temporário.
+7. Registrar aprovação humana na Véxora.
+8. Trocar DNS na Valuehost (o proprietário autoriza e executa).
+9. Health-check real no domínio final; só então a Véxora marca “no ar”.
+10. Manter rollback documentado: voltar DNS e preservar o ambiente anterior até a validação.
 
 E-mails transacionais ficam na Zoho Mail e não entram nesta migração.
 
@@ -341,11 +355,26 @@ E-mails transacionais ficam na Zoho Mail e não entram nesta migração.
 - Testes automatizados cobrem idempotência, isolamento entre sites e ausência de segredos em log.
 - Nenhuma alteração de DNS, TLS público ou domínio de cliente nesta etapa.
 
-### 11.8 Ainda precisa definir antes do primeiro arquivo de código
+### 11.8 Matriz de versões do PHP
 
+O provisionador deve oferecer explicitamente a escolha da versão do PHP por site. Lista solicitada pelo proprietário:
+
+`5.2`, `5.3`, `5.4`, `5.5`, `5.6`, `7.0`, `7.1`, `7.2`, `7.3`, `7.4`, `8.0`, `8.1`, `8.2`, `8.3`, `8.4`, `8.5`, `8.6`.
+
+Implementação:
+
+- Cada versão corresponde a uma **imagem Docker fixada por tag**, nunca `latest`.
+- A versão escolhida fica registrada no job e em `dry-run`; `apply` usa exatamente a mesma versão.
+- **Ressalva de segurança:** versões 5.x e 7.x estão fora de suporte e não devem ser padrão para sites recém-criados. Selecioná-las exige confirmação explícita do operador e aviso no `dry-run`. Como os quatro sites serão recriados do zero, a recomendação é iniciar na linha 8.x.
+- A lista acima é o contrato de UI solicitado; disponibilidade real de cada imagem e compatibilidade com o MariaDB 11 devem ser validadas antes de habilitar o `apply`.
+
+### 11.9 Ainda precisa definir antes do primeiro arquivo de código
+
+- Confirmação de Node.js + TypeScript para o provisionador.
 - Slugs e domínios reais dos quatro sites.
-- Versão do PHP do CMS próprio.
+- Tipo escolhido por site (PHP puro ou Next.js), após a avaliação de simplicidade.
 - Como o provisionador cria usuário/pasta no Filebrowser: API própria ou filesystem.
 - Formato do Docker secret e política de rotação.
 - Chave e escopo do webhook assinado (global do provisionador ou por tenant).
 - A GUI web vem junto da API ou depois do esqueleto validado.
+- Quais das versões PHP da lista serão efetivamente habilitadas no primeiro `apply`.

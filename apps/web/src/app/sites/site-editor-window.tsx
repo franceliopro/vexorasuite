@@ -350,7 +350,7 @@ export default function SiteEditorWindow({
     }
   }, [siteId]);
 
-  // O workspace anima .page-content > * com `vx-page-in ... both`; o transform
+  // O workspace anima a entrada dos filhos de .page-content; o transform
   // resultante vira containing block de position: fixed. O portal em document.body
   // garante que a janela do editor cubra o viewport de verdade.
   if (typeof document === "undefined") return null;

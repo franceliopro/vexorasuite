@@ -55,9 +55,9 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
     "grid min-w-0 gap-token rounded-token border border-gray-200 bg-zinc-100 p-pad shadow-token",
     "flex flex-wrap items-start gap-3",
     "grid size-10 shrink-0 place-items-center rounded-token bg-blue-50 text-blue-800",
-    "grid grid-cols-2 gap-2 p-0 list-none ov-tablet:grid-cols-4",
+    "grid grid-cols-2 gap-2 p-0 list-none md:grid-cols-4",
     "min-h-control min-w-0 flex-1 rounded-token-sm border border-gray-200 bg-zinc-50",
-    "grid grid-cols-1 gap-3 ov-tablet:grid-cols-2",
+    "grid grid-cols-1 gap-3 md:grid-cols-2",
     "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200",
     "bg-blue-600 px-brand-pad font-bold text-body text-blue-950",
   ]) {

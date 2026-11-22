@@ -16,6 +16,12 @@ const files = {
   window: read('src/app/sites/site-editor-window.tsx'),
 };
 
+const contracts = read('src/app/sites/editor/contracts.ts');
+const contractValue = (name) =>
+  contracts.match(new RegExp(`${name} = '([^']+)'`))?.[1];
+const editorPageId = contractValue('EDITOR_PAGE_ID');
+const inspectorAiFeedbackTestId = contractValue('INSPECTOR_AI_FEEDBACK_TEST_ID');
+
 const UTILITY_HINT =
   /(?:^|\s)(?:flex|grid|inline-flex|inline-block|fixed|absolute|relative|block|hidden|peer|truncate|overflow|bg-|text-|border|rounded|p-|px-|py-|m-|mx-|my-|w-|h-|min-|max-|gap-|items-|justify|shadow|font-|cursor|opacity|disabled:|hover:|focus:|group|z-|animate-|transition|leading-|resize|placeholder:|basis-|list-|cursor-)/;
 
@@ -142,8 +148,8 @@ test('o shell preserva testids, ARIA, callbacks e a estrutura paleta/árvore/can
   for (const token of [
     'role="application"',
     'aria-label="Editor de sites Véxora"',
-    'htmlFor="vx-editor-page"',
-    'id="vx-editor-page"',
+    'htmlFor={EDITOR_PAGE_ID}',
+    'id={EDITOR_PAGE_ID}',
     'aria-label="Fechar editor"',
     'aria-label="Minimizar editor"',
     'role="group"',
@@ -189,6 +195,8 @@ test('o shell preserva testids, ARIA, callbacks e a estrutura paleta/árvore/can
     [],
     'shell não deve ganhar/perder testids',
   );
+  assert.equal(editorPageId, 'vx-editor-page');
+  assert.match(source, /import \{ EDITOR_PAGE_ID \} from ['"]\.\/contracts['"]/);
 });
 
 test('o inspetor preserva testid, id, ARIA, callbacks e estados', () => {
@@ -196,7 +204,7 @@ test('o inspetor preserva testid, id, ARIA, callbacks e estados', () => {
   for (const token of [
     'aria-label="Propriedades do bloco"',
     'id="vexora-ai-prompt"',
-    'data-testid="vx-inspector-ai-feedback"',
+    'data-testid={INSPECTOR_AI_FEEDBACK_TEST_ID}',
     'role={aiFeedback.error ? \'alert\' : \'status\'}',
     'aria-live="polite"',
     'aria-label={aiPanelOpen ? \'Fechar assistente de IA\' : \'Abrir assistente de IA\'}',
@@ -216,10 +224,12 @@ test('o inspetor preserva testid, id, ARIA, callbacks e estados', () => {
     'Este bloco não tem propriedades editáveis.',
   ]) assert.ok(source.includes(token), `inspector perdeu ${token}`);
   assert.deepEqual(
-    [...source.matchAll(/data-testid=["']([^"']+)["']/g)].map((match) => match[1]),
-    ['vx-inspector-ai-feedback'],
+    [...source.matchAll(/data-testid=\{(INSPECTOR_AI_FEEDBACK_TEST_ID)\}/g)].map((match) => match[1]),
+    ['INSPECTOR_AI_FEEDBACK_TEST_ID'],
     'inspector perdeu o testid do feedback da IA',
   );
+  assert.equal(inspectorAiFeedbackTestId, 'vx-inspector-ai-feedback');
+  assert.match(source, /import \{ INSPECTOR_AI_FEEDBACK_TEST_ID \} from ['"]\.\/contracts['"]/);
 });
 
 test('a janela preserva portal, ids funcionais, ARIA, roles e fluxos', () => {

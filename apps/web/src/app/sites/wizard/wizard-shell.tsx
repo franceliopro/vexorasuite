@@ -16,6 +16,7 @@
 import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './../editor/editor.css';
+import { LAYOUT_IMAGE_INPUT_ID } from '../editor/contracts';
 import {
   X,
   Maximize,
@@ -93,7 +94,7 @@ const ICON_BUTTON_CLOSE_TW = 'inline-flex size-9 shrink-0 items-center justify-c
 const PROGRESS_TW = 'flex shrink-0 gap-1.5 overflow-x-auto border-b border-gray-200 bg-zinc-100 px-4 py-3';
 const STEP_ITEM_TW = 'flex items-center gap-1.5';
 const STEP_LABEL_TW = 'inline-flex items-center gap-1.5';
-const BODY_TW = 'min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50 px-12 pb-8 pt-7 ov-laptop:px-10 ov-tablet:px-6 ov-mobile:px-4';
+const BODY_TW = 'min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50 px-4 pb-8 pt-7 sm:px-6 md:px-10 lg:px-12';
 const PANEL_TW = 'mx-auto w-full';
 const FOOTER_TW = 'flex shrink-0 items-center justify-between border-t border-gray-200 bg-zinc-100 px-4 py-3';
 
@@ -123,7 +124,7 @@ const SECONDARY_TW = 'inline-flex min-h-control items-center justify-center gap-
 const STEP_HEAD_TW = 'mb-6';
 const STEP_TITLE_TW = 'mb-2 text-2xl font-heading leading-tight text-slate-950';
 const STEP_SUB_TW = 'max-w-xl text-base leading-normal text-slate-600';
-const OPTIONS_TW = 'grid grid-cols-3 gap-3.5 ov-laptop:grid-cols-2 ov-mobile:grid-cols-1';
+const OPTIONS_TW = 'grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3';
 const OPTION_TEXT_TW = 'flex min-w-0 flex-col gap-0.5';
 const OPTION_LABEL_TW = 'block text-base font-bold text-slate-950';
 const OPTION_DESC_TW = 'text-sm leading-snug text-slate-600';
@@ -145,7 +146,7 @@ const NAMED_LABEL_TW = 'mt-3 block';
 const NAMED_LABEL_HINT_TW = 'mb-1 block text-xs text-slate-600';
 const NAMED_INPUT_TW = 'w-full rounded-token-sm border border-gray-200 bg-zinc-100 px-3 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
 const NAMED_HELP_TW = 'mt-1 block text-xs text-slate-600';
-const THEMES_TW = 'grid grid-cols-5 gap-3.5 ov-tablet:grid-cols-3 ov-mobile:grid-cols-2';
+const THEMES_TW = 'grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5';
 const THEME_COLOR_TW = 'size-8 rounded-lg border border-gray-200';
 const THEME_LABEL_TW = 'text-sm font-semibold text-slate-950';
 const THEME_CHECK_TW = 'text-emerald-600';
@@ -421,8 +422,8 @@ export default function WizardShell({
   const isFullscreen = mode === 'fullscreen';
 
   /**
-   * Portal para `document.body`: o workspace aplica `animation: vx-page-in ... both`
-   * em `.page-content > *`, e o `transform` resultante vira containing block de
+   * Portal para `document.body`: o workspace anima a entrada dos filhos de
+   * `.page-content`, e o `transform` resultante vira containing block de
    * `position: fixed`. Sem o portal o wizard fica preso ao cartão do workspace
    * (784x307 em vez do viewport inteiro) e a área das opções tem só ~94px.
    */
@@ -772,12 +773,12 @@ function OrigemStep({
                 disabled={disabled}
               />
               <div className={LAYOUT_UPLOAD_TW}>
-                <label className={INLINE_FIELD_LABEL_TW} htmlFor="vx-wizard-layout-image">
+                <label className={INLINE_FIELD_LABEL_TW} htmlFor={LAYOUT_IMAGE_INPUT_ID}>
                   <ImageIcon size={14} aria-hidden="true" />
                   {value === 'image' ? 'Imagem do layout (obrigatória)' : 'Imagem de layout (opcional)'}
                 </label>
                 <input
-                  id="vx-wizard-layout-image"
+                  id={LAYOUT_IMAGE_INPUT_ID}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   aria-required={value === 'image'}

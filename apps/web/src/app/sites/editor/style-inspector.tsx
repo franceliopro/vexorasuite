@@ -26,6 +26,32 @@ const COLOR_PRESETS = [
 
 const TEXT_ALIGNS = ['left', 'center', 'right', 'justify'] as const;
 
+const inspectorRootClass = 'flex flex-col gap-3 text-body text-ink';
+const inspectorHintClass = 'text-small text-ink-secondary';
+const styleGroupClass = 'group/style overflow-hidden rounded-token border border-line bg-surface shadow-token-sm';
+const styleGroupSummaryClass = 'flex cursor-pointer list-none items-center gap-2 bg-surface-2 px-3 py-2 text-body font-semibold text-ink transition-colors hover:bg-hover';
+const styleGroupMarkerClass = 'w-3 text-small text-ink-muted group-open/style:hidden';
+const styleGroupMarkerOpenClass = 'hidden w-3 text-small text-ink-muted group-open/style:inline';
+const styleGroupBodyClass = 'flex flex-col gap-3 border-t border-line px-3 py-3';
+const fieldClass = 'flex min-w-0 flex-col gap-1';
+const fieldLabelClass = 'text-small font-semibold text-ink-secondary';
+const fieldControlClass = 'min-w-0';
+const inputClass = 'w-full min-h-control rounded-token-sm border border-line bg-surface-2 px-3 py-2 text-body text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
+const selectClass = 'w-full min-h-control rounded-token-sm border border-line bg-surface-2 px-3 py-2 text-body text-ink focus:border-brand focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
+const grid2Class = 'grid grid-cols-2 gap-2';
+const grid4Class = 'grid grid-cols-4 gap-2';
+const colorRowClass = 'flex items-center gap-2';
+const colorInputClass = 'h-control w-10 shrink-0 cursor-pointer rounded-token-sm border border-line bg-surface-2 p-1 disabled:cursor-not-allowed disabled:opacity-60';
+const colorPresetsClass = 'flex flex-wrap gap-1.5';
+const colorPresetClass = 'h-5 w-5 rounded-token-sm border border-line transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-60';
+const spacingClass = 'flex flex-col gap-2';
+const alignClass = 'flex gap-1.5';
+const alignButtonClass = 'flex h-control flex-1 items-center justify-center rounded-token-sm border border-line bg-surface-2 text-body text-ink transition-colors hover:border-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60';
+const alignButtonActiveClass = 'border-blue-600 bg-blue-50 font-bold text-blue-600';
+const rangeClass = 'flex items-center gap-2';
+const rangeInputClass = 'min-w-0 flex-1 accent-brand disabled:cursor-not-allowed disabled:opacity-60';
+const rangeValueClass = 'w-10 shrink-0 text-small text-ink-secondary';
+
 export function StyleInspector({ selectedNode, onStyleChange, disabled = false }: StyleInspectorProps) {
   const style = (key: string): string => selectedNode.styles?.[key] ?? '';
   const set = (key: string, value: string): void => {
@@ -33,8 +59,8 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
   };
 
   return (
-    <div className="vx-style-inspector">
-      <p className="vx-style-hint">
+    <div className={inspectorRootClass}>
+      <p className={inspectorHintClass}>
         Ajustes visuais imediatos no canvas. Revise e salve para publicar.
       </p>
 
@@ -52,7 +78,7 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
       </StyleGroup>
 
       <StyleGroup title="Dimensões" icon={<Maximize size={14} aria-hidden="true" />}>
-        <div className="vx-style-grid-2">
+        <div className={grid2Class}>
           <Field label="Largura"><TextInput value={style('width')} placeholder="100%" onChange={(v) => set('width', v)} disabled={disabled} /></Field>
           <Field label="Altura"><TextInput value={style('height')} placeholder="auto" onChange={(v) => set('height', v)} disabled={disabled} /></Field>
           <Field label="Largura mín."><TextInput value={style('minWidth')} placeholder="12rem" onChange={(v) => set('minWidth', v)} disabled={disabled} /></Field>
@@ -75,7 +101,7 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
             disabled={disabled}
           />
         </Field>
-        <div className="vx-style-grid-2">
+        <div className={grid2Class}>
           <Field label="Tamanho"><TextInput value={style('fontSize')} placeholder="1rem" onChange={(v) => set('fontSize', v)} disabled={disabled} /></Field>
           <Field label="Altura da linha"><TextInput value={style('lineHeight')} placeholder="1.6" onChange={(v) => set('lineHeight', v)} disabled={disabled} /></Field>
         </div>
@@ -92,12 +118,12 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
           />
         </Field>
         <Field label="Alinhamento">
-          <div className="vx-style-align">
+          <div className={alignClass}>
             {TEXT_ALIGNS.map((align) => (
               <button
                 key={align}
                 type="button"
-                className={`vx-style-align-btn ${style('textAlign') === align ? 'is-active' : ''}`}
+                className={`${alignButtonClass} ${style('textAlign') === align ? alignButtonActiveClass : ''}`}
                 onClick={() => set('textAlign', align)}
                 disabled={disabled}
                 title={align}
@@ -135,7 +161,7 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
             disabled={disabled}
           />
         </Field>
-        <div className="vx-style-grid-2">
+        <div className={grid2Class}>
           <Field label="Direção">
             <SelectInput
               value={style('flexDirection')}
@@ -198,7 +224,7 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
             disabled={disabled}
           />
         </Field>
-        <div className="vx-style-grid-4">
+        <div className={grid4Class}>
           <Field label="Topo"><TextInput value={style('top')} placeholder="0" onChange={(v) => set('top', v)} disabled={disabled} /></Field>
           <Field label="Direita"><TextInput value={style('right')} placeholder="0" onChange={(v) => set('right', v)} disabled={disabled} /></Field>
           <Field label="Baixo"><TextInput value={style('bottom')} placeholder="0" onChange={(v) => set('bottom', v)} disabled={disabled} /></Field>
@@ -227,7 +253,7 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
 
       <StyleGroup title="Efeitos" icon={<Sparkles size={14} aria-hidden="true" />}>
         <Field label="Opacidade">
-          <div className="vx-style-range">
+          <div className={rangeClass}>
             <input
               type="range"
               min="0"
@@ -237,8 +263,9 @@ export function StyleInspector({ selectedNode, onStyleChange, disabled = false }
               onChange={(e) => set('opacity', e.target.value)}
               disabled={disabled}
               aria-label="Opacidade"
+              className={rangeInputClass}
             />
-            <span>{style('opacity') || '1'}</span>
+            <span className={rangeValueClass}>{style('opacity') || '1'}</span>
           </div>
         </Field>
         <Field label="Transformação"><TextInput value={style('transform')} placeholder="translateY(-4px)" onChange={(v) => set('transform', v)} disabled={disabled} /></Field>
@@ -271,21 +298,23 @@ function StyleGroup({
   children: React.ReactNode;
 }) {
   return (
-    <details className="vx-style-group" open={defaultOpen}>
-      <summary className="vx-style-group-summary">
+    <details className={styleGroupClass} open={defaultOpen}>
+      <summary className={styleGroupSummaryClass}>
+        <span aria-hidden="true" className={styleGroupMarkerClass}>+</span>
+        <span aria-hidden="true" className={styleGroupMarkerOpenClass}>−</span>
         {icon}
         <span>{title}</span>
       </summary>
-      <div className="vx-style-group-body">{children}</div>
+      <div className={styleGroupBodyClass}>{children}</div>
     </details>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="vx-inspector-field">
-      <label className="vx-inspector-field-label">{label}</label>
-      <div className="vx-inspector-field-control">{children}</div>
+    <div className={fieldClass}>
+      <label className={fieldLabelClass}>{label}</label>
+      <div className={fieldControlClass}>{children}</div>
     </div>
   );
 }
@@ -304,7 +333,7 @@ function TextInput({
   return (
     <input
       type="text"
-      className="vx-inspector-input"
+      className={inputClass}
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
@@ -328,7 +357,7 @@ function SelectInput({
 }) {
   return (
     <select
-      className="vx-inspector-select"
+      className={selectClass}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
@@ -354,10 +383,10 @@ function ColorField({
 }) {
   return (
     <Field label={label}>
-      <div className="vx-style-color">
+      <div className={colorRowClass}>
         <input
           type="color"
-          className="vx-inspector-color"
+          className={colorInputClass}
           value={hexOf(value)}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
@@ -365,19 +394,19 @@ function ColorField({
         />
         <input
           type="text"
-          className="vx-inspector-input"
+          className={inputClass}
           value={value}
           placeholder="#ffffff ou var(--primary)"
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
         />
       </div>
-      <div className="vx-style-presets">
+      <div className={colorPresetsClass}>
         {COLOR_PRESETS.map((preset) => (
           <button
             key={preset}
             type="button"
-            className="vx-style-preset"
+            className={colorPresetClass}
             style={{ backgroundColor: preset }}
             title={preset}
             aria-label={`Usar cor ${preset}`}
@@ -406,11 +435,11 @@ function SpacingField({
   const shorthand = node.styles?.[prefix] ?? '';
   const sides = ['top', 'right', 'bottom', 'left'] as const;
   return (
-    <div className="vx-style-spacing">
+    <div className={spacingClass}>
       <Field label={label}>
         <TextInput value={shorthand} placeholder="1rem 2rem" onChange={(v) => set(prefix, v)} disabled={disabled} />
       </Field>
-      <div className="vx-style-grid-4">
+      <div className={grid4Class}>
         {sides.map((side) => (
           <Field key={side} label={side}>
             <TextInput

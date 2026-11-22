@@ -212,14 +212,14 @@ const networkColor = (label: string): string | null => {
 };
 const barColor = (label: string, index: number): string => networkColor(label) ?? CHART_PALETTE[index % CHART_PALETTE.length] ?? "#1D4ED8";
 const deltaTw: Record<"up" | "down" | "flat", string> = {
-  up: "bg-emerald-100 text-emerald-600",
+  up: "bg-blue-100 text-blue-800",
   down: "bg-red-100 text-red-600",
-  flat: "bg-surface-3 text-slate-600",
+  flat: "bg-zinc-300 text-slate-600",
 };
-const chipTw = "min-h-8 rounded-full border border-line bg-surface-2 px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+const chipTw = "min-h-8 rounded-full border border-gray-200 bg-zinc-200 px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-zinc-300 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 const chipActive = "border-blue-600 bg-blue-600 text-blue-900";
-const tabTw = "inline-flex min-h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
-const tabActive = "bg-blue-600 text-blue-900 shadow-token-sm";
+const tabTw = "inline-flex min-h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-zinc-300 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const tabActive = "bg-blue-600 text-blue-900 shadow-sm";
 
 
 /* ================================================================== */
@@ -236,9 +236,9 @@ function Delta({ value, invert = false, suffix = "%" }: { value: number | null; 
 }
 function Kpi({ label, value, note, delta, invert, suffix }: { label: string; value: ReactNode; note?: string; delta?: number | null; invert?: boolean; suffix?: string }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm gap-0.5" data-print="card kpi">
-      <span className="text-rw-kpi-label font-bold uppercase tracking-wider text-slate-600" data-print="kpi-label">{label}</span>
-      <strong className="m-1 mb-1.5 truncate text-rw-value font-extrabold tabular-nums text-ink rw-mobile:whitespace-normal" data-print="kpi-value">{value}</strong>
+    <div className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm gap-0.5" data-print="card kpi">
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-600" data-print="kpi-label">{label}</span>
+      <strong className="m-1 mb-1.5 truncate text-2xl font-extrabold tabular-nums text-slate-950 sm:whitespace-normal" data-print="kpi-value">{value}</strong>
       <div className="mt-auto flex flex-col gap-1.5" data-print="kpi-foot">
         {delta !== undefined ? <Delta value={delta} invert={invert} suffix={suffix} /> : null}
         {note ? <small className="text-xs text-slate-600" data-print="kpi-note">{note}</small> : null}
@@ -249,23 +249,23 @@ function Kpi({ label, value, note, delta, invert, suffix }: { label: string; val
 function PanelSkeleton() {
   return (
     <div className="flex flex-col gap-3.5" data-print="skeleton" aria-busy="true" role="status" aria-label="Carregando indicadores">
-      <div className="grid grid-cols-rw-kpi gap-3" data-print="skel-grid">
-        {Array.from({ length: 6 }, (_, index) => <div key={index} className="rounded-token bg-rw-shimmer bg-rw-shimmer-size animate-rw-shimmer h-rw-skel-card" data-print="skel skel-card" />)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="skel-grid">
+        {Array.from({ length: 6 }, (_, index) => <div key={index} className="rounded-xl animate-pulse bg-zinc-300 h-28" data-print="skel skel-card" />)}
       </div>
-      <div className="rounded-token bg-rw-shimmer bg-rw-shimmer-size animate-rw-shimmer h-rw-skel-chart" data-print="skel skel-chart" />
-      <div className="rounded-token bg-rw-shimmer bg-rw-shimmer-size animate-rw-shimmer h-rw-skel-chart-short" data-print="skel skel-chart-short" />
+      <div className="rounded-xl animate-pulse bg-zinc-300 h-48" data-print="skel skel-chart" />
+      <div className="rounded-xl animate-pulse bg-zinc-300 h-36" data-print="skel skel-chart-short" />
     </div>
   );
 }
 function SectionError({ title, message, onRetry }: { title: string; message: string; onRetry: () => void }) {
   return (
-    <div className="flex items-center gap-3.5 rounded-token border border-red-600/30 bg-red-100 p-4 text-ink" data-print="error" role="alert">
+    <div className="flex items-center gap-3.5 rounded-xl border border-red-600 bg-red-100 p-4 text-slate-950" data-print="error" role="alert">
       <CircleAlert size={26} strokeWidth={1.6} className="flex-none text-red-600" aria-hidden="true" />
       <div className="min-w-0 flex-1" data-print="error-body">
-        <strong className="text-sm text-ink">{title}</strong>
+        <strong className="text-sm text-slate-950">{title}</strong>
         <p className="m-0 mt-1 break-words text-xs text-slate-600">{message}</p>
       </div>
-      <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={onRetry}>
+      <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={onRetry}>
         <RefreshCw size={14} aria-hidden="true" /> Tentar novamente
       </button>
     </div>
@@ -273,10 +273,10 @@ function SectionError({ title, message, onRetry }: { title: string; message: str
 }
 function EmptyBlock({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-token-sm border border-dashed border-line-strong px-4 py-6 text-center text-slate-600" data-print="empty">
+    <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-slate-600" data-print="empty">
       <CircleAlert size={22} strokeWidth={1.6} aria-hidden="true" />
-      <strong className="text-sm text-ink">{title}</strong>
-      {hint ? <p className="max-w-rw-empty text-xs">{hint}</p> : null}
+      <strong className="text-sm text-slate-950">{title}</strong>
+      {hint ? <p className="max-w-xs text-xs">{hint}</p> : null}
     </div>
   );
 }
@@ -284,8 +284,8 @@ function CardHead({ title, hint, aside }: { title: string; hint?: string; aside?
   return (
     <div className="mb-3 flex items-start justify-between gap-3" data-print="card-head">
       <div>
-        <h3 className="m-0 text-rw-card-title font-heading text-ink" data-print="card-title">{title}</h3>
-        {hint ? <p className="m-0 mt-1 text-rw-hint text-slate-600" data-print="card-hint">{hint}</p> : null}
+        <h3 className="m-0 text-base font-semibold text-slate-950" data-print="card-title">{title}</h3>
+        {hint ? <p className="m-0 mt-1 text-xs text-slate-600" data-print="card-hint">{hint}</p> : null}
       </div>
       {aside ? <div className="flex-none" data-print="card-aside">{aside}</div> : null}
     </div>
@@ -297,11 +297,11 @@ function DataTable({ caption, columns, rows }: { caption: string; columns: strin
       <table className="w-full border-collapse text-xs" data-print="table">
         <caption className="sr-only" data-print="visually-hidden">{caption}</caption>
         <thead>
-          <tr>{columns.map((column) => <th key={column} scope="col" className="border-b border-line-strong px-2.5 py-2 text-left text-2xs font-bold uppercase tracking-wider text-slate-600">{column}</th>)}</tr>
+          <tr>{columns.map((column) => <th key={column} scope="col" className="border-b border-gray-300 px-2.5 py-2 text-left text-xs font-bold uppercase tracking-wider text-slate-600">{column}</th>)}</tr>
         </thead>
         <tbody>
           {rows.length ? rows.map((row, index) => (
-            <tr key={index} className="transition-colors hover:bg-surface-2/80">{row.map((cell, cellIndex) => <td key={cellIndex} className="border-t border-line px-2.5 py-2.5 tabular-nums text-ink">{cell}</td>)}</tr>
+            <tr key={index} className="transition-colors hover:bg-zinc-200">{row.map((cell, cellIndex) => <td key={cellIndex} className="border-t border-gray-200 px-2.5 py-2.5 tabular-nums text-slate-950">{cell}</td>)}</tr>
           )) : (
             <tr><td colSpan={columns.length} className="px-2.5 py-4 text-center text-slate-600" data-print="table-empty">Sem registros para este período.</td></tr>
           )}
@@ -321,12 +321,12 @@ function HorizontalBars({ rows, format }: { rows: Array<{ label: string; value: 
         const width = Math.max(row.value > 0 ? 3 : 0, (row.value / max) * 100);
         const fill = row.fill ?? barColor(row.label, index);
         return (
-          <div className="grid grid-cols-rw-hbar min-w-0 items-center gap-2.5" data-print="hbar-row" key={row.label}>
-            <span className="truncate text-xs font-semibold text-ink" data-print="hbar-label" title={row.label}>{row.label}</span>
-            <div className="relative h-2.5 overflow-hidden rounded-full bg-surface-3" data-print="hbar-track" role="img" aria-label={row.label + ": " + render(row.value)}>
-              {row.value > 0 ? <i className="block h-full rounded-full bg-blue-600 transition-all duration-bar ease-token" data-print="hbar-fill" style={{ width: width + "%", background: fill }} /> : null}
+          <div className="flex min-w-0 items-center gap-2.5" data-print="hbar-row" key={row.label}>
+            <span className="w-28 shrink-0 truncate text-xs font-semibold text-slate-950 md:w-44" data-print="hbar-label" title={row.label}>{row.label}</span>
+            <div className="relative h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-300" data-print="hbar-track" role="img" aria-label={row.label + ": " + render(row.value)}>
+              {row.value > 0 ? <i className="block h-full rounded-full bg-blue-600 transition-all duration-300 ease-out" data-print="hbar-fill" style={{ width: width + "%", background: fill }} /> : null}
             </div>
-            <span className="text-right text-xs font-bold tabular-nums text-slate-600" data-print="hbar-value">{render(row.value)}</span>
+            <span className="w-12 shrink-0 text-right text-xs font-bold tabular-nums text-slate-600" data-print="hbar-value">{render(row.value)}</span>
           </div>
         );
       })}
@@ -343,8 +343,8 @@ function Donut({ segments, totalLabel }: { segments: Array<{ label: string; valu
   let offset = 0;
   return (
     <div className="flex flex-wrap items-center gap-4" data-print="donut-wrap">
-      <svg className="h-rw-donut w-rw-donut flex-none" data-print="donut" viewBox={"0 0 " + size + " " + size} role="img" aria-label={"Distribuição: " + segments.map((segment) => segment.label + " " + segment.value).join(", ")}>
-        <circle cx={center} cy={center} r={radius} fill="none" strokeWidth={thickness} className="stroke-surface-3" data-print="donut-track" />
+      <svg className="h-32 w-32 flex-none" data-print="donut" viewBox={"0 0 " + size + " " + size} role="img" aria-label={"Distribuição: " + segments.map((segment) => segment.label + " " + segment.value).join(", ")}>
+        <circle cx={center} cy={center} r={radius} fill="none" strokeWidth={thickness} className="stroke-zinc-300" data-print="donut-track" />
         {total > 0 && segments.map((segment) => {
           if (segment.value <= 0) return null;
           const fraction = segment.value / total;
@@ -368,15 +368,15 @@ function Donut({ segments, totalLabel }: { segments: Array<{ label: string; valu
           offset += dash;
           return element;
         })}
-        <text x={center} y={center - 1} textAnchor="middle" className="fill-ink text-rw-donut-total font-extrabold" data-print="donut-total">{numberBR(total)}</text>
-        <text x={center} y={center + 14} textAnchor="middle" className="fill-slate-600 text-2xs font-semibold uppercase tracking-wider" data-print="donut-caption">{totalLabel}</text>
+        <text x={center} y={center - 1} textAnchor="middle" className="fill-slate-950 text-2xl font-extrabold" data-print="donut-total">{numberBR(total)}</text>
+        <text x={center} y={center + 14} textAnchor="middle" className="fill-slate-600 text-xs font-semibold uppercase tracking-wider" data-print="donut-caption">{totalLabel}</text>
       </svg>
-      <ul className="grid min-w-rw-legend list-none gap-2.5 p-0" data-print="legend">
+      <ul className="grid min-w-40 list-none gap-2.5 p-0" data-print="legend">
         {segments.map((segment) => (
           <li key={segment.label} className="flex items-center gap-2.5 text-xs text-slate-600" data-print="legend-item">
-            <span className="inline-block h-rw-dot w-rw-dot flex-none rounded-sm" data-print="legend-dot" style={{ background: segment.color }} aria-hidden="true" />
+            <span className="inline-block h-2.5 w-2.5 flex-none rounded-sm" data-print="legend-dot" style={{ background: segment.color }} aria-hidden="true" />
             <span className="min-w-0 flex-1" data-print="legend-label">{segment.label}</span>
-            <strong className="tabular-nums text-ink" data-print="legend-value">{numberBR(segment.value)}</strong>
+            <strong className="tabular-nums text-slate-950" data-print="legend-value">{numberBR(segment.value)}</strong>
           </li>
         ))}
       </ul>
@@ -411,8 +411,8 @@ function FinanceLine({ series }: { series: ExecutiveSeriesPoint[] }) {
           const gy = y(max * fraction);
           return (
             <g key={fraction}>
-              <line x1={padLeft} y1={gy} x2={width - padRight} y2={gy} className="stroke-line" data-print="gridline" />
-              <text x={padLeft - 8} y={gy + 3} textAnchor="end" className="fill-slate-600 text-2xs font-semibold tabular-nums" data-print="ylabel">{compactBRL(max * fraction)}</text>
+              <line x1={padLeft} y1={gy} x2={width - padRight} y2={gy} className="stroke-gray-200" data-print="gridline" />
+              <text x={padLeft - 8} y={gy + 3} textAnchor="end" className="fill-slate-600 text-xs font-semibold tabular-nums" data-print="ylabel">{compactBRL(max * fraction)}</text>
             </g>
           );
         })}
@@ -423,13 +423,13 @@ function FinanceLine({ series }: { series: ExecutiveSeriesPoint[] }) {
           <g key={point.month}>
             <circle cx={x(index)} cy={y(point.billed)} r={3} className="rounded-full bg-blue-600 fill-blue-600" data-print="dot-billed"><title>{shortMonth(point.month) + " · Faturado: " + currencyBRL(point.billed)}</title></circle>
             <circle cx={x(index)} cy={y(point.paid)} r={3} className="rounded-full bg-amber-400 fill-amber-400" data-print="dot-paid"><title>{shortMonth(point.month) + " · Recebido: " + currencyBRL(point.paid)}</title></circle>
-            <text x={x(index)} y={height - 10} textAnchor="middle" className="fill-slate-600 text-2xs font-semibold" data-print="xlabel">{shortMonth(point.month)}</text>
+            <text x={x(index)} y={height - 10} textAnchor="middle" className="fill-slate-600 text-xs font-semibold" data-print="xlabel">{shortMonth(point.month)}</text>
           </g>
         ))}
       </svg>
-      <div className="flex gap-4 text-rw-hint text-slate-600" data-print="linechart-legend">
-        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-rw-dot w-rw-dot flex-none rounded-full bg-blue-600 fill-blue-600" data-print="legend-dot dot-billed" aria-hidden="true" /> Faturado</span>
-        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-rw-dot w-rw-dot flex-none rounded-full bg-amber-400 fill-amber-400" data-print="legend-dot dot-paid" aria-hidden="true" /> Recebido</span>
+      <div className="flex gap-4 text-xs text-slate-600" data-print="linechart-legend">
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 flex-none rounded-full bg-blue-600 fill-blue-600" data-print="legend-dot dot-billed" aria-hidden="true" /> Faturado</span>
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 flex-none rounded-full bg-amber-400 fill-amber-400" data-print="legend-dot dot-paid" aria-hidden="true" /> Recebido</span>
       </div>
     </div>
   );
@@ -453,15 +453,15 @@ function HourlyBars({ labels, values, peakIndex }: { labels: string[]; values: n
             width={Math.max(2, slot * 0.64)}
             height={barHeight}
             rx={1.6}
-            className={isPeak ? "fill-blue-600" : "fill-line-strong"} data-print={isPeak ? "hour-peak" : "hour-bar"}
+            className={isPeak ? "fill-blue-600" : "fill-gray-300"} data-print={isPeak ? "hour-peak" : "hour-bar"}
           >
             <title>{(labels[index] ?? String(index) + "h") + ": " + value + " conversas"}</title>
           </rect>
         );
       })}
-      <line x1={0} y1={baseline} x2={width} y2={baseline} className="stroke-line" data-print="gridline" />
+      <line x1={0} y1={baseline} x2={width} y2={baseline} className="stroke-gray-200" data-print="gridline" />
       {[0, 6, 12, 18].map((hour) => (
-        <text key={hour} x={hour * slot + slot / 2} y={height - 2} textAnchor="middle" className="fill-slate-600 text-2xs font-semibold" data-print="xlabel">{String(hour).padStart(2, "0") + "h"}</text>
+        <text key={hour} x={hour * slot + slot / 2} y={height - 2} textAnchor="middle" className="fill-slate-600 text-xs font-semibold" data-print="xlabel">{String(hour).padStart(2, "0") + "h"}</text>
       ))}
     </svg>
   );
@@ -707,7 +707,7 @@ function ReportsWorkspaceInner() {
   const topAgent = service?.byAgent?.[0] ?? null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 text-ink tabular-nums" data-print="print-root">
+    <div className="flex min-w-0 flex-col gap-4 bg-zinc-50 text-slate-950 tabular-nums dark:bg-slate-900 dark:text-slate-100" data-print="print-root">
       <style>{REPORTS_CSS}</style>
 
       {/* Capa institucional — somente impressão */}
@@ -722,25 +722,25 @@ function ReportsWorkspaceInner() {
       {/* Barra superior — somente tela */}
       <div className="flex flex-wrap items-end justify-between gap-5 rw-laptop:items-start print:hidden" data-print="top no-print">
         <div className="grid" data-print="head-left">
-          <span className="inline-flex items-center rounded-full border border-blue-600/30 bg-blue-50 px-3 py-0.5 text-2xs font-bold uppercase tracking-widest text-blue-800" data-print="badge">Véxora Suite</span>
-          <h1 className="mb-1.5 mt-2.5 text-rw-title font-extrabold tracking-tight text-ink" data-print="top-title">Relatórios</h1>
-          <p className="max-w-rw-sub text-body text-slate-600" data-print="sub">Indicadores executivos de atendimento, equipe, vendas, financeiro e automação.</p>
+          <span className="inline-flex items-center rounded-full border border-blue-600/30 bg-blue-50 px-3 py-0.5 text-xs font-bold uppercase tracking-widest text-blue-800" data-print="badge">Véxora Suite</span>
+          <h1 className="mb-1.5 mt-2.5 text-3xl font-extrabold tracking-tight text-slate-950" data-print="top-title">Relatórios</h1>
+          <p className="max-w-2xl text-sm text-slate-600" data-print="sub">Indicadores executivos de atendimento, equipe, vendas, financeiro e automação.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 rw-laptop:w-full" data-print="actions">
-          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={refreshAll} title="Recarregar todos os indicadores">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={refreshAll} title="Recarregar todos os indicadores">
             <RefreshCw size={15} aria-hidden="true" /> Atualizar
           </button>
-          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={() => window.print()} title="Gera o PDF pela impressão do navegador">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={() => window.print()} title="Gera o PDF pela impressão do navegador">
             <Printer size={15} aria-hidden="true" /> Baixar PDF
           </button>
-          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 text-blue-900 shadow-vx-brand hover:from-blue-100 hover:via-blue-700 hover:to-blue-700" data-print="btn btn-primary" onClick={exportCsv} title="Exporta a seção ativa em CSV (Excel)">
+          <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center border-transparent bg-blue-600 text-blue-900 shadow-sm hover:bg-blue-700" data-print="btn btn-primary" onClick={exportCsv} title="Exporta a seção ativa em CSV (Excel)">
             <FileDown size={15} aria-hidden="true" /> Exportar CSV
           </button>
         </div>
       </div>
 
       {/* Filtro de período — somente tela */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-token border border-line bg-linear-to-b from-zinc-100 to-zinc-50 p-3.5 shadow-token-sm rw-laptop:flex-col rw-laptop:items-start print:hidden" data-print="period no-print">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-zinc-100 p-3.5 shadow-sm rw-laptop:flex-col rw-laptop:items-start print:hidden" data-print="period no-print">
         <div className="flex flex-wrap gap-1.5" data-print="presets" role="group" aria-label="Selecionar período">
           {PRESETS.map((option) => (
             <button
@@ -756,21 +756,21 @@ function ReportsWorkspaceInner() {
         </div>
         {preset === "custom" ? (
           <div className="flex flex-wrap items-center gap-2.5" data-print="custom">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">De<input type="date" className="min-h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-xs font-medium text-ink" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} /></label>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">Até<input type="date" className="min-h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-xs font-medium text-ink" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label>
-            <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-token-sm border border-line bg-surface px-3.5 text-xs font-bold text-ink transition-colors hover:bg-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={applyCustomRange}>Aplicar</button>
-            {customError ? <small className="basis-full text-rw-hint font-semibold text-red-600" data-print="custom-error" role="alert">{customError}</small> : null}
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">De<input type="date" className="min-h-9 rounded-lg border border-gray-300 bg-zinc-100 px-2.5 text-xs font-medium text-slate-950" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} /></label>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">Até<input type="date" className="min-h-9 rounded-lg border border-gray-300 bg-zinc-100 px-2.5 text-xs font-medium text-slate-950" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label>
+            <button type="button" className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rw-laptop:w-full rw-laptop:flex-1 rw-laptop:justify-center" data-print="btn btn-ghost" onClick={applyCustomRange}>Aplicar</button>
+            {customError ? <small className="basis-full text-xs font-semibold text-red-600" data-print="custom-error" role="alert">{customError}</small> : null}
           </div>
         ) : null}
-        <div className="flex items-center gap-2 text-xs text-slate-600 rw-laptop:w-full rw-laptop:border-t rw-laptop:border-line rw-laptop:pt-2.5" data-print="range">
+        <div className="flex items-center gap-2 text-xs text-slate-600 rw-laptop:w-full rw-laptop:border-t rw-laptop:border-gray-200 rw-laptop:pt-2.5" data-print="range">
           <CalendarDays size={14} aria-hidden="true" />
-          <strong className="font-bold tabular-nums text-ink">{periodLabel}</strong>
-          <span className="border-l border-line-strong pl-2.5 text-rw-hint" data-print="range-vs">{comparisonLabel}</span>
+          <strong className="font-bold tabular-nums text-slate-950">{periodLabel}</strong>
+          <span className="border-l border-gray-300 pl-2.5 text-xs" data-print="range-vs">{comparisonLabel}</span>
         </div>
       </div>
 
       {/* Abas da URL — somente tela */}
-      <div className="flex gap-1 overflow-x-auto rounded-token-sm border border-line bg-surface-2 p-1 print:hidden" data-print="tabs no-print" role="tablist" aria-label="Seções de relatórios">
+      <div className="flex gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-zinc-200 p-1 print:hidden" data-print="tabs no-print" role="tablist" aria-label="Seções de relatórios">
         {TABS.map((item) => {
           const Icon: LucideIcon = item.icon;
           const selected = tab === item.id;
@@ -798,7 +798,7 @@ function ReportsWorkspaceInner() {
           serviceSection.error ? <SectionError title="Não foi possível carregar a visão geral" message={serviceSection.error} onRetry={serviceSection.retry} /> :
           service && summary ? (
             <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Visão geral">
-              <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="kpi-grid">
                 <Kpi label="Conversas" value={numberBR(summary.total)} delta={deltaPercent(summary.total, comparison?.total)} note="Criadas no período" />
                 <Kpi label="Finalizadas" value={numberBR(summary.finished)} delta={deltaPercent(summary.finished, comparison?.finished)} note="Resolvidas ou encerradas" />
                 <Kpi label="Em aberto" value={numberBR(summary.open)} delta={deltaPercent(summary.open, comparison?.open)} note="Aguardando atendimento" />
@@ -806,12 +806,12 @@ function ReportsWorkspaceInner() {
                 <Kpi label="Contatos únicos" value={numberBR(summary.contacts)} delta={deltaPercent(summary.contacts, comparison?.contacts)} note="Pessoas distintas" />
                 <Kpi label="Primeira resposta" value={durationFromSeconds(summary.firstMessageSeconds)} delta={deltaPercent(summary.firstMessageSeconds, comparison?.firstMessageSeconds)} invert note={summary.firstMessageSample + " conversas com resposta"} />
               </div>
-              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Composição do atendimento" hint="Quem conduziu as conversas do período" />
                   <Donut segments={composition} totalLabel="conversas" />
                 </section>
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Comparativo de períodos" hint={comparisonLabel} />
                   <div className="flex flex-col" data-print="compare">
                     {([
@@ -822,26 +822,26 @@ function ReportsWorkspaceInner() {
                       ["Atendidas pela IA", summary.bot, comparison?.bot],
                       ["Atendidas por humano", summary.human, comparison?.human],
                     ] as Array<[string, number, number | undefined]>).map(([label, current, previous]) => (
-                      <div className="grid grid-cols-rw-compare items-center gap-3 border-t border-line px-0.5 py-2.5 first:border-t-0 first:pt-0.5" data-print="compare-row" key={label}>
+                      <div className="grid grid-cols-3 items-center gap-3 border-t border-gray-200 px-0.5 py-2.5 first:border-t-0 first:pt-0.5" data-print="compare-row" key={label}>
                         <span className="text-xs text-slate-600" data-print="compare-label">{label}</span>
-                        <span className="text-base font-extrabold tracking-tight text-ink" data-print="compare-current">{numberBR(current)}</span>
+                        <span className="text-base font-extrabold tracking-tight text-slate-950" data-print="compare-current">{numberBR(current)}</span>
                         <Delta value={deltaPercent(current, previous ?? null)} />
                       </div>
                     ))}
                   </div>
                 </section>
               </div>
-              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Volume por canal" hint="Conversas criadas por canal no período" />
                   <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total, fill: networkColor(row.name) ?? undefined }))} />
                 </section>
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Top atendentes" hint="Maior volume de conversas no período" />
                   <HorizontalBars rows={(service.byAgent ?? []).slice(0, 6).map((row) => ({ label: row.name, value: row.total }))} />
                 </section>
               </div>
-              {service.basis ? <p className="m-0 border-t border-dashed border-line-strong pt-2.5 text-xs leading-relaxed text-slate-600" data-print="footnote">{service.basis}</p> : null}
+              {service.basis ? <p className="m-0 border-t border-dashed border-gray-300 pt-2.5 text-xs leading-relaxed text-slate-600" data-print="footnote">{service.basis}</p> : null}
             </div>
           ) : null
         ) : null}
@@ -851,7 +851,7 @@ function ReportsWorkspaceInner() {
           serviceSection.error ? <SectionError title="Não foi possível carregar o atendimento" message={serviceSection.error} onRetry={serviceSection.retry} /> :
           service && summary ? (
             <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Atendimento">
-              <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="kpi-grid">
                 <Kpi label="Taxa de finalização" value={finishRate === null ? "Sem base" : finishRate.toFixed(1).replace(".", ",") + "%"} delta={finishRateDelta} suffix=" p.p." note="Finalizadas sobre o total" />
                 <Kpi label="Primeira resposta" value={durationFromSeconds(summary.firstMessageSeconds)} delta={deltaPercent(summary.firstMessageSeconds, comparison?.firstMessageSeconds)} invert note={summary.firstMessageSample + " conversas com resposta"} />
                 <Kpi label="Mensagens" value={numberBR(summary.messages)} delta={deltaPercent(summary.messages, comparison?.messages)} note="Todas as direções" />
@@ -859,17 +859,17 @@ function ReportsWorkspaceInner() {
                 <Kpi label="Atendidas por humano" value={numberBR(summary.human)} delta={deltaPercent(summary.human, comparison?.human)} note="Modo de atendimento registrado" />
                 <Kpi label="Pendentes" value={numberBR(summary.pending)} delta={deltaPercent(summary.pending, comparison?.pending)} note="Aguardando continuidade" />
               </div>
-              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Composição do atendimento" hint="Distribuição por modo de condução" />
                   <Donut segments={composition} totalLabel="conversas" />
                 </section>
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Volume por canal" hint="Em que canais as conversas nasceram" />
                   <HorizontalBars rows={(service.byChannel ?? []).map((row) => ({ label: row.name, value: row.total, fill: networkColor(row.name) ?? undefined }))} />
                 </section>
               </div>
-              <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                 <CardHead title="Desempenho por canal" hint="Volume, abertura e finalização por canal" />
                 <DataTable
                   caption="Desempenho por canal"
@@ -877,7 +877,7 @@ function ReportsWorkspaceInner() {
                   rows={(service.byChannel ?? []).map((row) => [row.name, row.total, row.open, row.pending, row.finished, row.bot, row.human])}
                 />
               </section>
-              {service.basis ? <p className="m-0 border-t border-dashed border-line-strong pt-2.5 text-xs leading-relaxed text-slate-600" data-print="footnote">{service.basis}</p> : null}
+              {service.basis ? <p className="m-0 border-t border-dashed border-gray-300 pt-2.5 text-xs leading-relaxed text-slate-600" data-print="footnote">{service.basis}</p> : null}
             </div>
           ) : null
         ) : null}
@@ -887,23 +887,23 @@ function ReportsWorkspaceInner() {
           serviceSection.error ? <SectionError title="Não foi possível carregar a equipe" message={serviceSection.error} onRetry={serviceSection.retry} /> :
           service ? (
             <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Equipe">
-              <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="kpi-grid">
                 <Kpi label="Atendentes" value={numberBR(service.byAgent.length)} note="Com conversas no período" />
                 <Kpi label="Setores" value={numberBR(service.byDepartment.length)} note="Com conversas no período" />
                 <Kpi label="Maior volume" value={topAgent ? numberBR(topAgent.total) : "0"} note={topAgent ? "Conversas com " + topAgent.name : "Sem registros"} />
                 <Kpi label="Média por atendente" value={service.byAgent.length ? (summary ? (summary.total / service.byAgent.length).toFixed(1).replace(".", ",") : "0") : "0"} note="Conversas por atendente" />
               </div>
-              <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Conversas por atendente" hint="Top 8 no período" />
                   <HorizontalBars rows={service.byAgent.map((row) => ({ label: row.name, value: row.total }))} />
                 </section>
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Conversas por setor" hint="Top 8 no período" />
                   <HorizontalBars rows={service.byDepartment.map((row) => ({ label: row.name, value: row.total }))} />
                 </section>
               </div>
-              <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                 <CardHead title="Desempenho por atendente" hint={service.byAgent.length + " atendentes com atividade"} />
                 <DataTable
                   caption="Desempenho por atendente"
@@ -911,7 +911,7 @@ function ReportsWorkspaceInner() {
                   rows={service.byAgent.map((row) => [row.name, row.total, row.open, row.pending, row.finished, row.bot, row.human])}
                 />
               </section>
-              <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+              <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                 <CardHead title="Desempenho por setor" hint={service.byDepartment.length + " setores com atividade"} />
                 <DataTable
                   caption="Desempenho por setor"
@@ -936,30 +936,30 @@ function ReportsWorkspaceInner() {
               const identifiedPct = origins.total > 0 ? (origins.identified / origins.total) * 100 : null;
               return (
                 <>
-                  <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="kpi-grid">
                     <Kpi label="Leads no período" value={numberBR(origins.total)} note="Contatos captados" />
                     <Kpi label="Identificados" value={identifiedPct === null ? "Sem base" : identifiedPct.toFixed(0) + "%"} note={origins.identified + " de " + origins.total + " com origem conhecida"} />
                     <Kpi label="Ganhos" value={numberBR(won)} note="Finalizados como ganho" />
                     <Kpi label="Perdas" value={numberBR(lost)} note="Finalizados como perda" />
                     <Kpi label="Em aberto" value={numberBR(open)} note="Ainda em negociação" />
                   </div>
-                  <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                    <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                       <CardHead title="Leads por origem" hint="Canais que trouxeram oportunidades" />
                       <HorizontalBars rows={byOrigin.map((origin) => ({ label: origin.name, value: origin.total, fill: networkColor(origin.name) ?? undefined }))} />
                     </section>
-                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                    <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                       <CardHead title="Leads por etapa" hint="Distribuição no funil" />
                       {origins.stages?.length ? (
                         <div className="flex flex-wrap gap-2" data-print="stage-chips">
                           {origins.stages.map((stage) => (
-                            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-slate-600" data-print="stage-chip" key={stage.name}>{stage.name}<strong className="tabular-nums text-ink">{numberBR(stage.count)}</strong></span>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-zinc-200 px-2.5 py-1 text-xs font-semibold text-slate-600" data-print="stage-chip" key={stage.name}>{stage.name}<strong className="tabular-nums text-slate-950">{numberBR(stage.count)}</strong></span>
                           ))}
                         </div>
                       ) : <EmptyBlock title="Funil sem dados" hint="Nenhum lead com etapa registrada no período." />}
                     </section>
                   </div>
-                  <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                  <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                     <CardHead title="Desempenho por origem" hint={byOrigin.length + " origens com leads no período"} />
                     <DataTable
                       caption="Desempenho por origem de lead"
@@ -976,25 +976,25 @@ function ReportsWorkspaceInner() {
             ) : pipelinesSection.data ? (() => {
               const pipelines = pipelinesSection.data?.pipelines ?? [];
               return (
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead
                     title="Pipelines e etapas"
                     hint="Estrutura comercial ativa · cards por etapa, ganhos e perdas"
-                    aside={<span className="inline-flex items-center rounded-full border border-line bg-surface-3 px-2.5 py-0.5 text-xs font-bold text-slate-600" data-print="count-pill">{pipelines.length} {pipelines.length === 1 ? "pipeline" : "pipelines"}</span>}
+                    aside={<span className="inline-flex items-center rounded-full border border-gray-200 bg-zinc-300 px-2.5 py-0.5 text-xs font-bold text-slate-600" data-print="count-pill">{pipelines.length} {pipelines.length === 1 ? "pipeline" : "pipelines"}</span>}
                   />
                   {pipelines.length ? (
                     <div className="flex flex-col gap-3" data-print="pipeline-list">
                       {pipelines.map((pipeline) => {
                         const stages = Array.isArray(pipeline.stages) ? (pipeline.stages as PipelineStage[]) : [];
                         return (
-                          <div className="grid gap-2 rounded-token-sm border border-line bg-surface-2 p-3.5" data-print="pipeline" key={pipeline.id}>
+                          <div className="grid gap-2 rounded-lg border border-gray-200 bg-zinc-200 p-3.5" data-print="pipeline" key={pipeline.id}>
                             <div className="flex flex-wrap items-baseline justify-between gap-2.5" data-print="pipeline-head">
-                              <strong className="text-sm font-heading text-ink">{pipeline.name}</strong>
-                              <span className="text-rw-hint text-slate-600">{pipeline.department?.name ?? "Sem setor vinculado"}{pipeline.template ? " · " + pipeline.template : ""}</span>
+                              <strong className="text-sm font-semibold text-slate-950">{pipeline.name}</strong>
+                              <span className="text-xs text-slate-600">{pipeline.department?.name ?? "Sem setor vinculado"}{pipeline.template ? " · " + pipeline.template : ""}</span>
                               {(typeof pipeline.won === "number" || typeof pipeline.lost === "number") ? (
                                 <span className="ml-auto inline-flex gap-2" data-print="pipeline-outcome">
-                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 bg-emerald-100 px-2.5 py-0.5 text-2xs font-bold text-emerald-600" data-print="outcome-won">{"Ganhos "}<strong>{numberBR(pipeline.won ?? 0)}</strong></span>
-                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-red-600/30 bg-red-100 px-2.5 py-0.5 text-2xs font-bold text-red-600" data-print="outcome-lost">{"Perdas "}<strong>{numberBR(pipeline.lost ?? 0)}</strong></span>
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-600 bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800" data-print="outcome-won">{"Ganhos "}<strong>{numberBR(pipeline.won ?? 0)}</strong></span>
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-red-600 bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-600" data-print="outcome-lost">{"Perdas "}<strong>{numberBR(pipeline.lost ?? 0)}</strong></span>
                                 </span>
                               ) : null}
                             </div>
@@ -1002,10 +1002,10 @@ function ReportsWorkspaceInner() {
                               {stages.length ? stages.map((stage, index) => {
                                 const count = typeof stage.count === "number" ? stage.count : typeof stage.cards === "number" ? stage.cards : null;
                                 return (
-                                  <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-slate-600" data-print="stage-chip" key={(stage.id ?? "stage") + "-" + index}>
+                                  <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-zinc-200 px-2.5 py-1 text-xs font-semibold text-slate-600" data-print="stage-chip" key={(stage.id ?? "stage") + "-" + index}>
                                     <i className="inline-block h-2.5 w-2.5 rounded-full" data-print="stage-dot" style={{ background: TONE_COLOR[String(stage.tone ?? "")] ?? STAGE_FALLBACK[index % STAGE_FALLBACK.length] }} aria-hidden="true" />
                                     {stage.label ?? stage.id ?? "Etapa " + (index + 1)}
-                                    {count !== null ? <strong className="tabular-nums text-ink">{numberBR(count)}</strong> : null}
+                                    {count !== null ? <strong className="tabular-nums text-slate-950">{numberBR(count)}</strong> : null}
                                   </span>
                                 );
                               }) : <span className="text-xs text-slate-600" data-print="pipeline-empty">Pipeline sem etapas configuradas.</span>}
@@ -1034,7 +1034,7 @@ function ReportsWorkspaceInner() {
             const totals = finance.totals;
             return (
               <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="Financeiro">
-                <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="kpi-grid">
                   <Kpi label="Faturado" value={currencyBRL(totals.billed)} note="Cobranças válidas no período" />
                   <Kpi label="Recebido" value={currencyBRL(totals.paid)} note={totals.customers + " clientes"} />
                   <Kpi label="Em aberto" value={currencyBRL(totals.open)} note="Aguardando pagamento" />
@@ -1042,12 +1042,12 @@ function ReportsWorkspaceInner() {
                   <Kpi label="Taxa de recebimento" value={finance.collectionRate === null ? "Sem base" : finance.collectionRate.toFixed(1).replace(".", ",") + "%"} note="Recebido sobre o faturado" />
                   <Kpi label="Cobranças" value={numberBR(totals.count)} note="Excluindo canceladas e reembolsadas" />
                 </div>
-                <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                   <CardHead title="Faturado × Recebido por mês" hint="Evolução da régua de cobrança" />
                   <FinanceLine series={finance.series ?? []} />
                 </section>
-                <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                  <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                  <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                     <CardHead title="Por situação" hint="Status das cobranças" />
                     <DataTable
                       caption="Cobranças por situação"
@@ -1055,7 +1055,7 @@ function ReportsWorkspaceInner() {
                       rows={(finance.byStatus ?? []).map((row) => [STATUS_BR[row.status] ?? row.status, row.count, currencyBRL(row.amount)])}
                     />
                   </section>
-                  <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                  <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                     <CardHead title="Por forma de pagamento" hint="Mix de meios de recebimento" />
                     <DataTable
                       caption="Cobranças por forma de pagamento"
@@ -1071,7 +1071,7 @@ function ReportsWorkspaceInner() {
 
         {tab === "ai" ? (
           <div className="flex min-w-0 flex-col gap-3.5" data-print="panel" role="tabpanel" aria-label="IA e Automação">
-            <p className="m-0 rounded-token-sm border border-line border-l-rw-accent bg-surface-2 px-3.5 py-2.5 text-xs text-slate-600" data-print="scope-note">Indicadores do painel Véxora — visão atual, não filtrada pelo período selecionado.</p>
+            <p className="m-0 rounded-lg border border-gray-200 border-l-4 border-l-blue-600 bg-zinc-200 px-3.5 py-2.5 text-xs text-slate-600" data-print="scope-note">Indicadores do painel Véxora — visão atual, não filtrada pelo período selecionado.</p>
             {overviewSection.loading && !overviewSection.data ? <PanelSkeleton /> :
             overviewSection.error ? (
               <SectionError title="Não foi possível carregar os indicadores de IA" message={overviewSection.error} onRetry={overviewSection.retry} />
@@ -1086,7 +1086,7 @@ function ReportsWorkspaceInner() {
               ];
               return (
                 <>
-                  <div className="grid grid-cols-rw-kpi gap-3 rw-laptop:grid-cols-2 rw-mobile:grid-cols-1" data-print="kpi-grid">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" data-print="kpi-grid">
                     <Kpi label="Resolvidas pela IA" value={numberBR(resolvedByAi)} note="Conversas concluídas sem humano" />
                     <Kpi label="Taxa de resolução IA" value={(kpis.resolvedByAiPercent ?? 0).toFixed(0) + "%"} note="Sobre conversas concluídas" />
                     <Kpi label="Conversas concluídas" value={numberBR(completed)} note="No período de referência do painel" />
@@ -1094,12 +1094,12 @@ function ReportsWorkspaceInner() {
                     <Kpi label="Primeira resposta" value={durationFromSeconds(kpis.firstResponseSeconds)} note="Média das conversas recentes" />
                     <Kpi label="Agentes ativos" value={numberBR(overview.activeAgents ?? 0) + " / " + numberBR(overview.agentsTotal ?? 0)} note="Agentes de IA habilitados" />
                   </div>
-                  <div className="grid grid-cols-rw-2 items-stretch gap-3.5 rw-wide:grid-cols-1" data-print="grid-2">
-                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-3.5" data-print="grid-2">
+                    <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                       <CardHead title="IA × Humano" hint="Quem resolveu as conversas concluídas" />
                       <Donut segments={aiSegments} totalLabel="concluídas" />
                     </section>
-                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                    <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                       <CardHead title="Demanda por hora" hint="Conversas criadas por hora nas últimas 24h" />
                       {overview.hourly && overview.hourly.values.length ? (
                         <HourlyBars labels={overview.hourly.labels} values={overview.hourly.values} peakIndex={overview.hourly.peakIndex} />
@@ -1107,7 +1107,7 @@ function ReportsWorkspaceInner() {
                     </section>
                   </div>
                   {overview.topics?.length ? (
-                    <section className="flex min-w-0 flex-col rounded-token border border-line bg-zinc-100 p-4 shadow-token-sm" data-print="card">
+                    <section className="flex min-w-0 flex-col rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900" data-print="card">
                       <CardHead title="Temas mais frequentes" hint="Baseado em assunto e departamento" />
                       <HorizontalBars rows={overview.topics.map((topic, index) => ({ label: topic.label, value: topic.count, fill: networkColor(topic.label) ?? CHART_PALETTE[index % CHART_PALETTE.length] }))} />
                     </section>
@@ -1127,10 +1127,10 @@ function ReportsWorkspaceInner() {
 /* Fallback de carregamento do Suspense (pré-render do Next) */
 function ReportsWorkspaceFallback() {
   return (
-    <div className="flex min-w-0 flex-col gap-4 text-ink tabular-nums" data-print="print-root">
+    <div className="flex min-w-0 flex-col gap-4 bg-zinc-50 text-slate-950 tabular-nums dark:bg-slate-900 dark:text-slate-100" data-print="print-root">
       <style>{REPORTS_CSS}</style>
       <PanelSkeleton />
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true"><defs><linearGradient id="rw-instagram" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FEDA77" /><stop offset=".25" stopColor="#FD1D1D" /><stop offset=".6" stopColor="#D6249F" /><stop offset="1" stopColor="#833AB4" /></linearGradient></defs></svg>
+      <svg className="absolute" width="0" height="0" aria-hidden="true"><defs><linearGradient id="rw-instagram" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FEDA77" /><stop offset=".25" stopColor="#FD1D1D" /><stop offset=".6" stopColor="#D6249F" /><stop offset="1" stopColor="#833AB4" /></linearGradient></defs></svg>
     </div>
   );
 }

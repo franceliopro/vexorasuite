@@ -253,9 +253,9 @@ test("as utilities centrais das quatro telas permanecem literais", () => {
       "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
     ],
     overview: [
-      "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-token-sm",
+      "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-600 px-4 text-xs font-bold text-blue-900 shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 justify-self-start",
       "justify-self-start",
-      "inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700",
+      "inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700",
     ],
   };
   for (const [screen, utilities] of Object.entries(expected)) {

@@ -307,6 +307,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       variables.endereco = address;
       const messages: string[] = [];
       const skills: string[] = [];
+      const visitedStepIds: string[] = [];
       let state: Prisma.InputJsonValue = {};
       let human = false;
       let departmentId: string | null = conversation.departmentId;
@@ -350,6 +351,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         if(naming) await savePreferredName(nameReply);
         if (!naming && active && previous.completed && !/^(menu|inicio|reiniciar)$/.test(normalize(inbound.content))) return { messages: [], handled: true, handoff: false };
         if (!naming && active && !/^(menu|inicio|reiniciar)$/.test(normalize(inbound.content))) {
+          visitedStepIds.push(step.id);
           if (['input.text','input.cpf'].includes(step.kind||'')) {
             const config = settings(step);
             const value=(step.kind==='input.cpf'||isDocumentField(config.variable!))?documentDigits(inbound.content):inbound.content.trim().slice(0,500);
@@ -382,6 +384,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           if (!active && flow.welcome) messages.push(interpolateVariables(flow.welcome,variables));
         }
         for (let count = 0; step && count < 10; count++) {
+          if (count > 0 || visitedStepIds.at(-1) !== step.id) visitedStepIds.push(step.id);
           const type = step.action || step.kind || 'buttons';
           const config = settings(step);
           if (type === 'text' && step.options.length === 1) {
@@ -672,7 +675,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         ].filter(Boolean).join('\n');
         await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'INTERNAL', status: 'SENT', content: context, contentType: 'text', senderName: 'Contexto do atendimento', metadata: { kind: 'handoff_context', reason, sourceMessageId: inbound.id, departmentId, assigneeId, scopeKey } } });
       }
-      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
+      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedStepIds, waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
     }, { timeout: 120000 });
     if (!result) return false;

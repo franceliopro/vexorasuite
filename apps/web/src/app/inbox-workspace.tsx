@@ -320,13 +320,16 @@ export function InboxWorkspace({tenantId,userId,canManageChannels=false}:{tenant
     const transfer = () => { document.querySelector<HTMLButtonElement>("[data-testid='thread-transfer-button']")?.click(); };
     const assume = () => document.querySelector<HTMLButtonElement>("[data-testid='inbox-assume-button']")?.click();
     const finalize = () => { document.querySelector<HTMLButtonElement>("[data-testid='thread-finalize-button']")?.click(); };
+    const conversationList = () => setMobileThreadOpen(false);
     window.addEventListener("vexora:mobile-transfer", transfer);
     window.addEventListener("vexora:mobile-assume", assume);
     window.addEventListener("vexora:mobile-finalize", finalize);
+    window.addEventListener("vexora:mobile-conversation-list", conversationList);
     return () => {
       window.removeEventListener("vexora:mobile-transfer", transfer);
       window.removeEventListener("vexora:mobile-assume", assume);
       window.removeEventListener("vexora:mobile-finalize", finalize);
+      window.removeEventListener("vexora:mobile-conversation-list", conversationList);
     };
   }, []);
   useEffect(() => {

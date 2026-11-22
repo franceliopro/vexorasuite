@@ -133,6 +133,7 @@ const stageTones = {
     count: "bg-violet-500/15 text-violet-700 ring-1 ring-inset ring-violet-500/25 dark:text-violet-300",
     title: "text-violet-700 dark:text-violet-300",
     empty: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+    column: "from-violet-50 to-violet-200 dark:from-violet-950 dark:to-violet-900",
   },
   rose: {
     dot: "bg-rose-500",
@@ -140,6 +141,7 @@ const stageTones = {
     count: "bg-rose-500/15 text-rose-700 ring-1 ring-inset ring-rose-500/25 dark:text-rose-300",
     title: "text-rose-700 dark:text-rose-300",
     empty: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+    column: "from-rose-50 to-rose-200 dark:from-rose-950 dark:to-rose-900",
   },
   amber: {
     dot: "bg-amber-500",
@@ -147,6 +149,7 @@ const stageTones = {
     count: "bg-amber-500/15 text-amber-700 ring-1 ring-inset ring-amber-500/25 dark:text-amber-300",
     title: "text-amber-700 dark:text-amber-300",
     empty: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    column: "from-amber-50 to-amber-200 dark:from-amber-950 dark:to-amber-900",
   },
   /* O contrato mantém a chave "green"; o tom visual é azul-700 (verde só em WhatsApp/dados). */
   green: {
@@ -155,6 +158,7 @@ const stageTones = {
     count: "bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-700/25",
     title: "text-blue-800",
     empty: "bg-blue-50 text-blue-800",
+    column: "from-blue-50 to-blue-200 dark:from-blue-800 dark:to-slate-900",
   },
   blue: {
     dot: "bg-blue-600",
@@ -162,6 +166,7 @@ const stageTones = {
     count: "bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-600/25",
     title: "text-blue-800",
     empty: "bg-blue-50 text-blue-800",
+    column: "from-blue-50 to-blue-200 dark:from-blue-800 dark:to-slate-900",
   },
 } as const;
 
@@ -334,7 +339,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     <section className="grid min-w-0 grid-cols-1 content-start gap-token">
       <header data-testid="crm-header" className="flex flex-wrap items-center justify-between gap-4 pb-1.5 print:hidden">
         <div><h1 className="text-h1 font-heading text-slate-950">CRM</h1><p className="mt-0.5 max-w-crm-copy text-small text-slate-600">Acompanhe cada oportunidade e mova os contatos pelo funil comercial.</p></div>
-        <div className="flex w-full flex-wrap items-center justify-start gap-3 md:w-auto md:justify-end"><div className="grid min-w-0 gap-1"><label htmlFor="crm-pipeline" className="grid gap-1.5"><span className="text-2xs font-extrabold uppercase tracking-nav-section text-slate-600">CRM do departamento</span><select id="crm-pipeline" value={pipelineId} onChange={e=>setPipelineId(e.target.value)} className="min-h-control min-w-crm-select max-w-crm-select appearance-none rounded-token-sm border border-gray-200 bg-zinc-100 px-3 pr-8 text-body font-semibold text-slate-950">{isAdmin&&<option value="">Todos os contatos · administração</option>}{pipelines.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>{!pipelines.length&&<small className="max-w-crm-select text-small text-slate-600">{isAdmin?'Ative o CRM nos setores em Atendentes → Setores e permissões.':'Nenhum CRM está habilitado para seu perfil e departamento.'}</small>}</div><button className={primaryButton} onClick={() => { setPendingStage(null); setFormOpen((value) => !value); }}><Plus size={16} aria-hidden="true" /> Novo contato</button></div>
+        <div className="flex w-full flex-wrap items-center justify-start gap-3 md:w-auto md:justify-end"><div className="grid min-w-0 gap-1"><label htmlFor="crm-pipeline" className="sr-only">CRM do departamento</label><select id="crm-pipeline" value={pipelineId} onChange={e=>setPipelineId(e.target.value)} className="min-h-control min-w-crm-select max-w-crm-select appearance-none rounded-token-sm border border-gray-200 bg-zinc-100 px-3 pr-8 text-body font-semibold text-slate-950">{isAdmin&&<option value="">Todos os contatos · administração</option>}{pipelines.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>{!pipelines.length&&<small className="max-w-crm-select text-small text-slate-600">{isAdmin?'Ative o CRM nos setores em Atendentes → Setores e permissões.':'Nenhum CRM está habilitado para seu perfil e departamento.'}</small>}</div><button className={primaryButton} onClick={() => { setPendingStage(null); setFormOpen((value) => !value); }}><Plus size={16} aria-hidden="true" /> Novo contato</button></div>
       </header>
       <div data-testid="crm-command-bar" className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 py-2.5 print:hidden">
         <div role="tablist" aria-label="Visualização do CRM" className="inline-flex gap-1 rounded-full border border-gray-200 bg-zinc-100 p-1">
@@ -373,7 +378,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
             const activeDrop = dropTarget === stage.id;
             const tone = stageTones[stage.tone as keyof typeof stageTones] ?? stageTones.blue;
             return <div key={stage.id}
-              className={"flex min-h-crm-column max-h-crm-column snap-start flex-col gap-2.5 rounded-token-lg border border-transparent border-t-crm-stage bg-linear-to-b from-blue-50 to-zinc-200 p-3.5 shadow-token transition-shadow duration-control " + (activeDrop ? "border-blue-600 border-t-blue-600 shadow-token-lg ring-4 ring-blue-600/30" : "")}
+              className={"flex min-h-crm-column max-h-crm-column snap-start flex-col gap-2.5 rounded-token-lg border border-transparent border-t-crm-stage bg-linear-to-b " + tone.column + " p-3.5 shadow-token transition-shadow duration-control " + (activeDrop ? "border-blue-600 border-t-blue-600 shadow-token-lg ring-4 ring-blue-600/30" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}
               onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(""); }}
               onDrop={(event) => dropOnStage(event, stage.id)}>

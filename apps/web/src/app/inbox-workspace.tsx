@@ -10,7 +10,7 @@ import { useModalDialog } from "../lib/use-modal-dialog";
 import { VexoraDialog } from "./vexora-dialog";
 import { AnchoredPopover } from "./anchored-popover";
 
-import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckCircle2,
@@ -57,6 +57,8 @@ import {
   Link2,
   Maximize2,
   Minimize2,
+  Phone,
+  Search,
 } from "lucide-react";
 import { CatalogQuotePanel } from "./catalog-quote-panel";
 const InboxCopilot=dynamic(()=>import("./inbox-copilot").then(m=>m.InboxCopilot));
@@ -88,8 +90,10 @@ const agentToneTw = ["bg-sky-400/20 text-sky-400", "bg-purple-400/20 text-purple
 type FinanceDebt={id:string;value:number;dueDate:string;status:string;description:string;invoiceUrl:string|null;bankSlipUrl:string|null};
 type Channel = { id: string; name: string; provider: string; status: string; lastError?: string | null; healthCheckedAt?: string | null };
 type ServiceProtocol = { code: string; conversationId: string };
+type InboxListFilters = { tag: string; name: string; phone: string; network: string; keyword: string; protocol: string };
+const EMPTY_INBOX_LIST_FILTERS: InboxListFilters = { tag: "", name: "", phone: "", network: "", keyword: "", protocol: "" };
 type Department = { id: string; key: string; name: string; keywords: string[]; isActive: boolean; isMine?: boolean };
-import { ContactAvatar } from "./inbox-avatars";
+import { ContactAvatar, contactLabels } from "./inbox-avatars";
 import { ConversationList } from "./conversation-list";
 import { MentionPopover } from "./mention-popover";
 import type { Agent, Message, Conversation } from "./inbox-workspace-types";
@@ -168,6 +172,42 @@ function LinkPreview({ preview }: { preview: NonNullable<Message["metadata"]>["l
     {preview.imageUrl ? <img className="w-full rounded-lg" src={preview.imageUrl} alt="" loading="lazy"/> : null}
     <span className="grid gap-0.5"><strong className="truncate text-slate-950">{preview.title || preview.url}</strong>{preview.description ? <small className="line-clamp-2 text-slate-600">{preview.description}</small> : null}<em className="break-all text-xs not-italic text-slate-600">{preview.url}</em></span>
   </a>;
+}
+
+/** Comparação tolerante de telefone: aceita DDD, país, espaços e pontuação digitados à mão. */
+function phoneDigits(value: unknown): string {
+  return typeof value === "string" ? value.replace(/\D/g, "") : "";
+}
+
+function loosePhoneMatch(value: unknown, query: string): boolean {
+  const hay = phoneDigits(value);
+  const needle = phoneDigits(query);
+  if (hay.length < 8 || needle.length < 8) return false;
+  return hay === needle || hay.endsWith(needle) || needle.endsWith(hay);
+}
+
+/**
+ * Filtro local da lista lateral. Não altera a consulta da fila: cada critério
+ * preenchido estreita as conversas já carregadas para a visão atual.
+ */
+function filterInboxConversations(conversations: Conversation[], filters: InboxListFilters, protocolCode: string, selectedId: string | null): Conversation[] {
+  const tag = filters.tag.trim().toLocaleLowerCase("pt-BR");
+  const name = filters.name.trim().toLocaleLowerCase("pt-BR");
+  const network = filters.network.trim().toLocaleLowerCase("pt-BR");
+  const keyword = filters.keyword.trim().toLocaleLowerCase("pt-BR");
+  const protocol = filters.protocol.trim().replace(/\s+/g, "").toLocaleUpperCase("pt-BR");
+  return conversations.filter((item) => {
+    if (tag && !contactLabels(item.contact).some((label) => label.name.toLocaleLowerCase("pt-BR").includes(tag))) return false;
+    if (name && ![item.contact.name, contactDisplayName(item.contact, item.botState)].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(name)) return false;
+    if (filters.phone.trim() && !loosePhoneMatch(item.contact.phone, filters.phone) && !loosePhoneMatch(item.contact.externalId, filters.phone)) return false;
+    if (network && ![item.channel, item.contact.source, String(item.botState?.provider || ""), String(item.botState?.mode || ""), JSON.stringify(item.contact.metadata || {})].join(" ").toLocaleLowerCase("pt-BR").includes(network)) return false;
+    if (keyword && ![item.subject, ...item.messages.map((message) => message.content)].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR").includes(keyword)) return false;
+    if (protocol) {
+      const haystack = [item.id, item.subject, item.id === selectedId ? protocolCode : "", ...item.messages.map((message) => message.content)].filter(Boolean).join(" ").toLocaleUpperCase("pt-BR").replace(/\s+/g, "");
+      if (!haystack.includes(protocol)) return false;
+    }
+    return true;
+  });
 }
 
 type QuickReply = { id:string; title:string; content:string; category?:string; shortcut?:string };
@@ -293,6 +333,13 @@ export function InboxWorkspace({tenantId,userId,canManageChannels=false}:{tenant
   const statusPillRef = useRef<HTMLElement>(null);
   const handoffRef = useRef<HTMLElement>(null);
   const inviteRef = useRef<HTMLElement>(null);
+  const phoneToolsRef = useRef<HTMLElement>(null);
+  const searchFiltersRef = useRef<HTMLElement>(null);
+  const [phoneToolsOpen, setPhoneToolsOpen] = useState(false);
+  const [searchFiltersOpen, setSearchFiltersOpen] = useState(false);
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [phoneNotice, setPhoneNotice] = useState("");
+  const [inboxListFilters, setInboxListFilters] = useState<InboxListFilters>(EMPTY_INBOX_LIST_FILTERS);
   const emojiRef = useRef<HTMLButtonElement>(null);
   const [contactProfileExpanded, setContactProfileExpanded] = useState(true);
   const toggleContactProfile = useCallback(() => {
@@ -1480,6 +1527,29 @@ export function InboxWorkspace({tenantId,userId,canManageChannels=false}:{tenant
     if (side === "list") setListW((v) => Math.min(520, Math.max(240, (v ?? 340) + delta)));
     else setFichaW((v) => Math.min(520, Math.max(260, (v ?? 380) - delta)));
   };
+  const visibleConversations = useMemo(
+    () => filterInboxConversations(conversations, inboxListFilters, serviceProtocol?.code || "", selectedId),
+    [conversations, inboxListFilters, serviceProtocol, selectedId],
+  );
+  const startPhoneConversation = (event: { currentTarget: HTMLElement }) => {
+    const digits = phoneDigits(phoneDraft);
+    if (digits.length < 8) {
+      setPhoneNotice("Informe um número com DDD (10 ou 11 dígitos).");
+      return;
+    }
+    setInboxListFilters((current) => ({ ...current, phone: phoneDraft.trim() }));
+    const match = conversations.find((item) => loosePhoneMatch(item.contact.phone, digits) || loosePhoneMatch(item.contact.externalId, digits));
+    if (!match) {
+      setPhoneNotice("Nenhuma conversa com esse número nesta fila. O filtro Número foi aplicado.");
+      return;
+    }
+    notificationFocus.current = null;
+    setSelectedId(match.id);
+    setMobileThreadOpen(true);
+    setPhoneDraft("");
+    setPhoneNotice("");
+    event.currentTarget.closest("details")?.removeAttribute("open");
+  };
   return <section ref={workspaceRef} style={{ "--inbox-list-w": `${listW ?? 340}px`, "--inbox-ficha-w": `${fichaW ?? 380}px` } as CSSProperties} data-testid="inbox-workspace" data-fullscreen={fullScreen ? "true" : "false"} data-mobile-thread={mobileThreadOpen ? "true" : "false"} data-ficha-open={fichaOpen ? "true" : "false"} data-ficha-compact={!selected || !contactProfileExpanded ? "true" : "false"} className="flex h-ib-workspace min-h-ib-workspace gap-3 rw-laptop:flex-col">
     <aside data-testid="inbox-list" className="flex w-(--inbox-list-w) shrink-0 min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-zinc-100 p-0 shadow-md">
       <div className="m-0 flex flex-none items-center justify-between gap-2 border-b border-gray-200 px-4 py-2.5"><h2 className="text-xs font-extrabold">Conversas</h2><button className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md px-1.5 text-xs font-bold text-blue-600 transition-colors hover:bg-zinc-400" title="Atualizar" aria-label="Atualizar conversas" onClick={() => { void loadConversations(); void loadChannels(); }}><RotateCw size={15} aria-hidden="true" /></button></div>
@@ -1506,7 +1576,31 @@ export function InboxWorkspace({tenantId,userId,canManageChannels=false}:{tenant
           </AnchoredPopover>
         </details>
       </nav>
-      <ConversationList conversations={conversations} conversationsLoading={conversationsLoading} selectedId={selectedId} queueView={queueView} onSelect={(item) => { notificationFocus.current = null; setSelectedId(item.id); setMobileThreadOpen(true); }} />
+      <ConversationList conversations={visibleConversations} conversationsLoading={conversationsLoading} selectedId={selectedId} queueView={queueView} onSelect={(item) => { notificationFocus.current = null; setSelectedId(item.id); setMobileThreadOpen(true); }} />
+      <div data-testid="inbox-list-tools" className="flex flex-none shrink-0 flex-wrap items-center gap-1.5 border-t border-gray-200 px-3 py-2">
+        <details data-testid="inbox-phone-tools" className="relative" onToggle={(event) => setPhoneToolsOpen(event.currentTarget.open)}>
+          <summary ref={phoneToolsRef} data-testid="inbox-phone-trigger" className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-gray-200 px-2 text-xs font-bold text-slate-600 hover:bg-zinc-300" aria-label="Iniciar conversa por telefone" title="Iniciar conversa por telefone"><Phone size={13} aria-hidden="true" /> Conversar</summary>
+          <AnchoredPopover open={phoneToolsOpen} anchorRef={phoneToolsRef} testId="inbox-phone-popover" side="top" className="grid w-72 gap-2 rounded-lg border border-gray-200 bg-zinc-100 p-2.5 shadow-xl" role="dialog" ariaLabel="Iniciar conversa por telefone">
+            <label className="grid gap-1 text-xs font-bold text-slate-600">Número<input data-testid="inbox-phone-input" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={phoneDraft} maxLength={24} placeholder="(00) 00000-0000" aria-label="Número para conversar" onChange={(event) => { setPhoneDraft(event.target.value); setPhoneNotice(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); startPhoneConversation(event); } }} /></label>
+            <button type="button" data-testid="inbox-phone-conversar" className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-2 text-xs font-bold text-blue-900 transition-colors hover:bg-blue-700" onClick={startPhoneConversation}>Conversar</button>
+            {phoneNotice ? <small data-testid="inbox-phone-notice" className="text-xs text-slate-600" role="status">{phoneNotice}</small> : null}
+          </AnchoredPopover>
+        </details>
+        <details data-testid="inbox-search-filters" className="relative" onToggle={(event) => setSearchFiltersOpen(event.currentTarget.open)}>
+          <summary ref={searchFiltersRef} data-testid="inbox-search-trigger" className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-gray-200 px-2 text-xs font-bold text-slate-600 hover:bg-zinc-300" aria-label="Buscar conversas" title="Buscar conversas"><Search size={13} aria-hidden="true" /> Buscar</summary>
+          <AnchoredPopover open={searchFiltersOpen} anchorRef={searchFiltersRef} testId="inbox-search-popover" side="top" className="grid max-h-96 w-80 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-zinc-100 p-2.5 shadow-xl" role="dialog" ariaLabel="Filtrar conversas">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="grid gap-1 text-xs font-bold text-slate-600">Tag<input data-testid="inbox-filter-tag" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={inboxListFilters.tag} placeholder="Etiqueta" aria-label="Filtrar por tag" onChange={(event) => setInboxListFilters((current) => ({ ...current, tag: event.target.value }))} /></label>
+              <label className="grid gap-1 text-xs font-bold text-slate-600">Nome<input data-testid="inbox-filter-name" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={inboxListFilters.name} placeholder="Nome do contato" aria-label="Filtrar por nome" onChange={(event) => setInboxListFilters((current) => ({ ...current, name: event.target.value }))} /></label>
+              <label className="grid gap-1 text-xs font-bold text-slate-600">Número<input data-testid="inbox-filter-phone" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={inboxListFilters.phone} placeholder="DDD + número" aria-label="Filtrar por número" onChange={(event) => setInboxListFilters((current) => ({ ...current, phone: event.target.value }))} /></label>
+              <label className="grid gap-1 text-xs font-bold text-slate-600">Rede Social<input data-testid="inbox-filter-network" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={inboxListFilters.network} placeholder="WhatsApp, Instagram…" aria-label="Filtrar por rede social" onChange={(event) => setInboxListFilters((current) => ({ ...current, network: event.target.value }))} /></label>
+              <label className="grid gap-1 text-xs font-bold text-slate-600">palavra-chave<input data-testid="inbox-filter-keyword" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={inboxListFilters.keyword} placeholder="Texto da mensagem" aria-label="Filtrar por palavra-chave" onChange={(event) => setInboxListFilters((current) => ({ ...current, keyword: event.target.value }))} /></label>
+              <label className="grid gap-1 text-xs font-bold text-slate-600">Protocolo<input data-testid="inbox-filter-protocol" className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950" value={inboxListFilters.protocol} placeholder="AT-2026-…" aria-label="Filtrar por protocolo" onChange={(event) => setInboxListFilters((current) => ({ ...current, protocol: event.target.value }))} /></label>
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-2"><small className="text-xs tabular-nums text-slate-600">{visibleConversations.length} de {conversations.length} conversas</small><button type="button" data-testid="inbox-filter-clear" className="inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-xs font-bold text-blue-600 hover:bg-zinc-300" onClick={() => { setInboxListFilters(EMPTY_INBOX_LIST_FILTERS); setPhoneNotice(""); }}>Limpar</button></div>
+          </AnchoredPopover>
+        </details>
+      </div>
     </aside>
     <div className="flex w-2 shrink-0 cursor-col-resize border-l-2 border-gray-200 rw-laptop:hidden hover:border-blue-600 focus-visible:border-blue-600" role="separator" aria-orientation="vertical" aria-label="Ajustar a largura da lista de conversas" tabIndex={0} onPointerDown={startResize("list")} onKeyDown={resizeByKey("list")} />
     <div data-testid="inbox-thread" className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-zinc-100 p-0 shadow-md">

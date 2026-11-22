@@ -56,6 +56,10 @@ test("o contrato de acessibilidade das 5 abas continua intacto", () => {
   assert.equal((crm.match(/aria-controls="crm-tabpanel"/g) ?? []).length, 5);
   assert.ok(crm.includes('aria-label="Visualização do CRM"'));
   assert.ok(a11y.includes("Visualização do CRM"));
+  assert.ok(crm.includes('htmlFor="crm-pipeline"'), "o rótulo do seletor de pipeline permanece associado");
+  assert.ok(crm.includes('id="crm-pipeline"'), "o seletor de pipeline mantém seu id");
+  assert.ok(migrado.includes('className="sr-only">CRM do departamento</label>'), "o título visível virou rótulo acessível");
+  assert.doesNotMatch(migrado, /text-2xs font-extrabold uppercase tracking-nav-section/);
 });
 
 test("as medidas do cabeçalho vivem no preset", () => {

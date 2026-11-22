@@ -89,16 +89,16 @@ test("classes dependentes de estado são literais completas", () => {
   }
   assert.ok(classTokens.get("src/app/vexora-dialog.tsx").includes("max-w-4xl"));
   assert.ok(classTokens.get("src/app/vexora-dialog.tsx").includes("max-w-lg"));
-  assert.ok(classTokens.get("src/app/mention-popover.tsx").includes("bg-slate-700"));
-  assert.ok(classTokens.get("src/app/mention-popover.tsx").includes("hover:bg-slate-800"));
+  assert.ok(classTokens.get("src/app/mention-popover.tsx").includes("dark:bg-slate-700"));
+  assert.ok(classTokens.get("src/app/mention-popover.tsx").includes("dark:hover:bg-slate-800"));
 });
 
 test("as utilities Tailwind básicas da fatia estão presentes", () => {
   for (const utility of [
     "fixed", "inset-0", "relative", "grid", "flex", "place-items-center",
     "rounded-lg", "rounded-xl", "rounded-full", "border", "border-slate-700",
-    "bg-slate-900", "bg-slate-800", "bg-slate-900/80", "text-slate-50",
-    "text-slate-200", "text-slate-300", "max-h-dvh", "max-w-4xl",
+    "dark:bg-slate-900", "dark:bg-slate-800", "bg-slate-900/80", "dark:text-slate-50",
+    "dark:text-slate-200", "dark:text-slate-300", "max-h-dvh", "max-w-4xl",
     "size-8", "size-9", "size-10", "text-xs", "text-2xs", "bg-blue-600",
     "text-white", "bg-red-600", "shadow-2xl", "backdrop-blur-sm", "animate-spin",
   ]) {
@@ -114,7 +114,7 @@ test("o escuro é slate real, nunca blue-dark", () => {
       `${label(file)}: tom blue-dark em classe`,
     );
   }
-  for (const utility of ["bg-slate-900", "bg-slate-800", "border-slate-700", "text-slate-50", "text-slate-200"]) {
+  for (const utility of ["dark:bg-slate-900", "dark:bg-slate-800", "dark:border-slate-700", "dark:text-slate-50", "dark:text-slate-200"]) {
     assert.ok(allClasses.has(utility), `falta o slate real ${utility}`);
   }
 });

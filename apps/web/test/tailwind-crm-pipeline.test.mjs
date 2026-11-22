@@ -7,11 +7,26 @@ const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "
 const crm = read("src/app/crm-workspace.tsx");
 const config = read("tailwind.config.ts");
 
+/** Cada etapa deve usar um gradiente literal próprio, válido em light e dark. */
+const gradientesPorTom = {
+  violet: "from-violet-50 to-violet-200 dark:from-violet-950 dark:to-violet-900",
+  rose: "from-rose-50 to-rose-200 dark:from-rose-950 dark:to-rose-900",
+  amber: "from-amber-50 to-amber-200 dark:from-amber-950 dark:to-amber-900",
+  green: "from-blue-50 to-blue-200 dark:from-blue-800 dark:to-slate-900",
+  blue: "from-blue-50 to-blue-200 dark:from-blue-800 dark:to-slate-900",
+};
+
 /** Só o Kanban migrado; Clientes/Contatos e diálogos entram nas próximas fatias. */
 const inicio = crm.indexOf('data-testid="crm-pipeline"');
 const fim = crm.indexOf('view === "origins"', inicio);
 assert.ok(inicio >= 0 && fim > inicio, "a fatia do Kanban não foi encontrada");
 const migrado = crm.slice(inicio, fim);
+
+/** Os tons ficam antes do Kanban; também devem passar pelo filtro de remendos. */
+const inicioTones = crm.indexOf("const stageTones = {");
+const fimTones = crm.indexOf("} as const;", inicioTones);
+assert.ok(inicioTones >= 0 && fimTones > inicioTones, "os tons das etapas não foram encontrados");
+const tons = crm.slice(inicioTones, fimTones);
 
 /** Cores de tag são dados do contato, não remendos visuais. */
 const semDados = migrado
@@ -34,27 +49,34 @@ test("o Kanban do CRM não usa classes componente", () => {
 });
 
 test("a fatia usa só utilities do preset, sem remendos", () => {
-  for (const forbidden of [
-    /\[[a-z-]+:\s*[^]\s]+\]/,
-    /#[0-9a-fA-F]{3,8}\b/,
-    /!important/,
-    /@apply/,
-  ]) {
-    const match = semDados.match(forbidden);
-    assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
+  for (const fonte of [semDados, tons]) {
+    for (const forbidden of [
+      /\[[a-z-]+:\s*[^]\s]+\]/,
+      /#[0-9a-fA-F]{3,8}\b/,
+      /!important/,
+      /@apply/,
+    ]) {
+      const match = fonte.match(forbidden);
+      assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
+    }
   }
   for (const utility of [
     'data-testid="crm-pipeline"',
     "grid-flow-col auto-cols-crm-stage",
     "min-h-crm-column max-h-crm-column",
     "snap-x snap-proximity",
-    "from-blue-50 to-zinc-200",
+    "bg-linear-to-b",
     "w-crm-accent",
     "border-t-crm-stage",
     "group-hover:text-blue-800",
   ]) {
     assert.ok(migrado.includes(utility), `falta a utility ${utility}`);
   }
+  for (const [tom, gradiente] of Object.entries(gradientesPorTom)) {
+    assert.ok(crm.includes(`column: "${gradiente}"`), `o tom ${tom} deve expor o gradiente ${gradiente}`);
+  }
+  assert.ok(migrado.includes("+ tone.column"), "a coluna deve usar o gradiente do seu tom");
+  assert.doesNotMatch(migrado, /from-blue-50 to-zinc-200/, "o gradiente fixo não pode permanecer");
 });
 
 test("o drag e a acessibilidade do Kanban continuam intactos", () => {

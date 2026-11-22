@@ -125,7 +125,7 @@ test("as superfícies escuras são slate real, nunca blue-dark", () => {
   assert.doesNotMatch(allClassText, /\b(?:bg|border|text)-(?:blue|indigo)-(?:900|950)\b/);
   for (const [key, list] of Object.entries(tokens)) {
     assert.ok(
-      list.some((token) => /^(?:bg|border)-slate-\d+/.test(token)),
+      list.some((token) => /^(?:dark:)?(?:bg|border)-slate-\d+/.test(token)),
       `${key}: falta superfície slate`,
     );
   }
@@ -170,7 +170,8 @@ test("dashboard, checklist e orçamento preservam contratos e textos e2e", () =>
     'dateTime={now.toISOString()}', 'role="grid"', 'role="columnheader"',
     'role="gridcell"', 'window.setInterval', 'window.localStorage',
     '/api/backend/auth/organization', 'geocoding-api.open-meteo.com',
-    'api.open-meteo.com/v1/forecast', 'vx:weather-city', 'weatherFor',
+    'api.open-meteo.com/v1/forecast', 'vx:weather-city', 'vx:weather-bg',
+    'aria-label="Alterar fundo do clima"', 'weatherFor',
     'saveCity', 'setCursor', 'Boa noite', 'Bom dia', 'Buscando o tempo…',
   ]) {
     assert.ok(dashboard.includes(marker), `dashboard-widgets perdeu ${marker}`);

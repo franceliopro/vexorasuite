@@ -8,6 +8,7 @@ import { ReminderCenter } from "./reminder-center";
 import { AlarmCenter } from "./alarm-center";
 import { DashboardWidgets } from "./dashboard-widgets";
 import { OnboardingChecklist } from "./onboarding-checklist";
+import { DashboardWelcome } from "./dashboard-welcome";
 const DocumentsWorkspace=dynamic(()=>import("./documents-workspace").then(module=>module.DocumentsWorkspace),{loading:()=> <p role="status">Carregando módulo.</p>});
 const CourseWorkspace=dynamic(()=>import("./course-workspace").then(module=>module.CourseWorkspace),{loading:()=> <p role="status">Carregando curso.</p>});
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
@@ -553,6 +554,7 @@ export default function HomePage() {
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
           {isOverview ? <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} /> : null}
+          {isOverview ? <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} /> : null}
 
           {!moduleVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>

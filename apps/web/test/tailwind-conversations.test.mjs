@@ -54,17 +54,22 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     const match = semDados.match(forbidden);
     assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
   }
+  // A lista usa apenas utilities padrão: tamanhos, tons e relevos saíram do preset.
   for (const utility of [
     "grid min-h-0 flex-1 content-start overflow-y-auto",
-    "gap-x-ib-gap gap-y-1",
-    "border-l-blue-600 bg-blue-50 shadow-ib-selected",
-    "h-ib-avatar w-ib-avatar",
-    "h-ib-presence w-ib-presence",
-    "text-ib-time tabular-nums",
-    "text-ib-micro text-slate-600",
-    "text-ib-tick tabular-nums",
-    "bg-emerald-600 shadow-ib-newdot",
-    "min-h-ib-tag items-center",
+    "gap-x-2 gap-y-1",
+    "border-l-blue-600 bg-blue-50",
+    "h-11 w-11",
+    "h-3 w-3",
+    "text-xs tabular-nums",
+    "text-2xs text-slate-600",
+    "text-2xs tabular-nums",
+    "bg-blue-700 ring-2 ring-blue-100",
+    "min-h-4 items-center",
+  ]) {
+    assert.ok(list.includes(utility), `falta a utility ${utility} na lista`);
+  }
+  for (const utility of [
     "h-ib-mark w-ib-mark",
     "place-items-center rounded-ib-channel",
     "bg-ib-avatar text-ib-avatar-fallback",

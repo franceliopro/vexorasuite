@@ -56,7 +56,7 @@ test("o Atendimento não usa classes componente vx-* nem ib-* no JSX", () => {
       if (name) assert.ok(declared.has(name), `o preset não declara ${name}`);
     }
   }
-  assert.match(track, /className="w-ib-track max-h-ib-track/);
+  assert.match(track, /className="w-full max-w-3xl max-h-dvh/);
   assert.match(support, /className="w-ib-support max-h-ib-support/);
 });
 
@@ -107,20 +107,20 @@ test("o preset expõe todos os tokens ib-* usados pelo Atendimento", () => {
 
 test("as utilities dos tokens ib-* estão aplicadas diretamente no JSX", () => {
   for (const token of [
-    "max-h-ib-track",
-    "rounded-ib-modal",
-    "bg-zinc-100",
-    "px-ib-pad",
-    "pb-ib-pad",
-    "text-ib-title",
-    "font-ib",
-    "gap-ib-gap",
-    "my-ib-block",
-    "rounded-ib-entry",
-    "grid-cols-ib-track",
-    "gap-3.5",
-    "ib-narrow:grid-cols-1",
+    "max-h-dvh",
+    "rounded-2xl",
+    "bg-slate-50",
+    "px-5 pb-5",
+    "text-lg font-bold",
+    "font-semibold",
+    "gap-2",
+    "my-2",
+    "rounded-lg",
+    "grid-cols-1 gap-3.5 sm:grid-cols-2",
     "border-blue-600",
+    "dark:bg-slate-900",
+    "dark:border-slate-700",
+    "dark:text-slate-50",
   ]) {
     assert.ok(track.includes(token), `Track deve usar ${token}`);
   }

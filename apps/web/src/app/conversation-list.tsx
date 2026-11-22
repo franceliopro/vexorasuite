@@ -20,11 +20,11 @@ function timeShortLabel(value: string | undefined, now = new Date()): string {
   return formatDateBR(date);
 }
 
-/** Tons de presença: utilities do preset, escolhidas pelos dados da conversa. */
+/** Tons de presença: utilities padrão, escolhidas pelos dados da conversa. */
 const presenceToneTw = {
-  overdue: "bg-ib-coral",
+  overdue: "bg-red-600",
   live: "bg-blue-600",
-  idle: "bg-ib-amber",
+  idle: "bg-amber-600",
 } as const;
 
 type PresenceTone = keyof typeof presenceToneTw;
@@ -41,13 +41,13 @@ function presenceTone(conversation: Conversation): PresenceTone | null {
 
 type OutboundMark = { glyph: string; tone: "queued" | "failed" | "sent" | "delivered" | "read"; label: string };
 
-/** Tons do comprovante de envio, também vindos do preset. */
+/** Tons do comprovante de envio; o verde de "lida" é o do WhatsApp. */
 const tickToneTw: Record<OutboundMark["tone"], string> = {
-  queued: "text-amber-600",
-  failed: "font-extrabold text-red-600",
-  sent: "text-slate-600",
-  delivered: "text-slate-950",
-  read: "text-ib-read",
+  queued: "text-amber-600 dark:text-amber-400",
+  failed: "font-extrabold text-red-600 dark:text-red-400",
+  sent: "text-slate-600 dark:text-slate-300",
+  delivered: "text-slate-950 dark:text-slate-200",
+  read: "text-emerald-600 dark:text-emerald-400",
 };
 
 function outboundMark(status: string | undefined): OutboundMark | null {
@@ -67,6 +67,10 @@ export interface ConversationListProps {
   onSelect: (conversation: Conversation) => void;
 }
 
+const conversationRowTw = "relative flex w-full flex-wrap content-start items-start gap-x-2 gap-y-1 border-b border-l-2 border-slate-200 bg-white px-3.5 py-2.5 text-left transition-colors duration-200 ease-in-out hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800";
+const conversationRowSelectedTw = "border-l-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-100 dark:bg-slate-800 dark:ring-slate-700";
+const conversationRowIdleTw = "border-l-transparent";
+
 /** Lista lateral de conversas do Atendimento (avatar, presença, canal, tags, destaque de novas). */
 export function ConversationList({ conversations, conversationsLoading, selectedId, queueView, onSelect }: ConversationListProps) {
   return (
@@ -83,13 +87,13 @@ export function ConversationList({ conversations, conversationsLoading, selected
         return (
           <button
             key={item.id}
-            className={"relative flex w-full flex-wrap content-start items-start gap-x-ib-gap gap-y-1 border-b border-l-2 border-line px-3.5 py-2.5 text-left transition-colors duration-control ease-token hover:bg-zinc-200" + (selected ? " border-l-blue-600 bg-blue-50 shadow-ib-selected" : " border-l-transparent")}
+            className={conversationRowTw + " " + (selected ? conversationRowSelectedTw : conversationRowIdleTw)}
             onClick={() => onSelect(item)}
             aria-pressed={selected}
           >
-            <span className="relative mt-0.5 inline-grid h-ib-avatar w-ib-avatar flex-none self-start">
+            <span className="relative mt-0.5 inline-grid h-11 w-11 flex-none self-start">
               <ContactAvatar contact={item.contact} />
-              {presence ? <span className={"absolute -bottom-0.5 -right-0.5 h-ib-presence w-ib-presence rounded-full border-2 border-zinc-100 " + presenceToneTw[presence]} aria-hidden="true" /> : null}
+              {presence ? <span className={"absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-slate-900 " + presenceToneTw[presence]} aria-hidden="true" /> : null}
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="flex min-w-0 items-center">
@@ -98,24 +102,24 @@ export function ConversationList({ conversations, conversationsLoading, selected
                   <ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"} />
                   <ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))} />
                 </span>
-                <span className="ml-auto flex-none text-ib-time tabular-nums text-slate-400">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
+                <span className="ml-auto flex-none text-xs tabular-nums text-slate-500 dark:text-slate-400">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
               </span>
-              <small className="flex min-w-0 items-center gap-1 text-ib-micro text-slate-600">
-                {mark ? <span className={"flex-none text-ib-tick tabular-nums " + tickToneTw[mark.tone]} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}
+              <small className="flex min-w-0 items-center gap-1 text-2xs text-slate-600 dark:text-slate-300">
+                {mark ? <span className={"flex-none text-2xs tabular-nums " + tickToneTw[mark.tone]} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}
                 <span className="block min-w-0 truncate">{previewText}</span>
               </small>
               {item.isOverdue ? (
-                <span className="inline-flex items-center gap-1 text-ib-time font-ib text-red-600"><AlarmClock size={11} /> Atrasado · sem assistência</span>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><AlarmClock size={11} /> Atrasado · sem assistência</span>
               ) : (!item.assignee && item.status === "OPEN" ? (
-                <span className="mt-0.5 inline-flex w-max items-center gap-1.5 text-ib-time font-ib text-emerald-600"><span className="h-ib-newdot w-ib-newdot rounded-full bg-emerald-600 shadow-ib-newdot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
+                <span className="mt-0.5 inline-flex w-max items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300"><span className="h-2 w-2 rounded-full bg-blue-700 ring-2 ring-blue-100 dark:bg-blue-400 dark:ring-slate-700" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
               ) : null)}
             </span>
-            {tags.length ? <span className="m-0 flex w-full flex-none flex-wrap gap-1">{tags.map((tag, index) => <span key={tag.name + index} className="inline-flex min-h-ib-tag items-center gap-0.5 rounded-ib-entry bg-blue-50 px-1.5 text-ib-micro font-bold text-blue-800" style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)" }}>{tag.name}</span>)}</span> : null}
+            {tags.length ? <span className="m-0 flex w-full flex-none flex-wrap gap-1">{tags.map((tag, index) => <span key={tag.name + index} className="inline-flex min-h-4 items-center gap-0.5 rounded-lg bg-blue-50 px-1.5 text-2xs font-bold text-blue-800 dark:bg-slate-800 dark:text-slate-200" style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: tag.color }}>{tag.name}</span>)}</span> : null}
           </button>
         );
       })}
-      {conversationsLoading && conversations.length === 0 ? <div className="px-3.5 py-5 text-center" role="status"><strong>Carregando conversas…</strong><p>Buscando as conversas desta fila.</p></div> : null}
-      {!conversationsLoading && !conversations.length ? <div className="px-3.5 py-5 text-center"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
+      {conversationsLoading && conversations.length === 0 ? <div className="px-3.5 py-5 text-center text-slate-600 dark:text-slate-300" role="status"><strong>Carregando conversas…</strong><p>Buscando as conversas desta fila.</p></div> : null}
+      {!conversationsLoading && !conversations.length ? <div className="px-3.5 py-5 text-center text-slate-600 dark:text-slate-300"><strong>{queueView === "mine" ? "Nenhuma conversa atribuída a você" : queueView === "team" ? "Nenhuma conversa da sua equipe" : queueView === "others" ? "Nenhuma conversa em que você foi incluído" : "Nenhuma conversa nesta fila"}</strong><p>Você só vê conversas destinadas a você, às suas equipes ou incluídas por convite. A visão ampliada continua sujeita às permissões.</p></div> : null}
     </div>
   );
 }

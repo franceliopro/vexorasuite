@@ -98,7 +98,7 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
     "rounded-token-lg", "rounded-token-xl", "border-gray-200", "bg-zinc-100",
     "bg-zinc-200", "bg-zinc-300", "bg-blue-50", "bg-blue-600", "bg-blue-700",
     "text-blue-900", "text-slate-600", "bg-amber-600",
-    "bg-red-100", "text-red-600", "shadow-md", "hover:bg-zinc-200", "ov-tablet:bg-zinc-50",
+    "bg-red-100", "text-red-600", "shadow-md", "hover:bg-zinc-200", "max-md:bg-zinc-50",
     "disabled:cursor-not-allowed", "disabled:opacity-50",
     "md:h-16", "md:w-16", "h-14", "w-14",
   ]) {
@@ -145,7 +145,7 @@ test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
   for (const token of [
     "text-slate-950", "text-slate-600", "text-slate-400",
     "bg-zinc-100", "bg-zinc-200", "bg-zinc-300", "border-gray-200",
-    "bg-blue-50", "bg-blue-600", "bg-blue-700", "ov-tablet:bg-zinc-50", "bg-amber-600",
+    "bg-blue-50", "bg-blue-600", "bg-blue-700", "max-md:bg-zinc-50", "bg-amber-600",
     "bg-amber-600", "bg-red-100",
   ]) {
     assert.ok(escopo.includes(token), `a Visão geral deve usar ${token}`);
@@ -156,7 +156,7 @@ test("nenhuma classe da Visão geral termina em -card nem herda .content-card", 
   const escopo = `${components}\n${page}`;
   assert.doesNotMatch(escopo, /\bov-[a-z0-9-]*-card\b/);
   assert.doesNotMatch(escopo, /content-card\s+ov-/);
-  assert.match(page, /fixed inset-x-0 bottom-0 z-40 hidden ov-tablet:grid ov-tablet:grid-cols-4 ov-tablet:justify-center ov-tablet:gap-x-8 ov-tablet:border-t ov-tablet:border-gray-200 ov-tablet:bg-zinc-50 ov-tablet:px-3 ov-tablet:pb-2 ov-tablet:pt-1/);
+  assert.match(page, /fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1/);
 });
 
 test("o preset expõe as escalas e os derivados da Visão geral", () => {

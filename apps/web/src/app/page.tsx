@@ -220,7 +220,7 @@ function dockItemClass(isOverview:boolean,menuOpen:boolean){
 const DOCK_ICON_STATE_TW:Record<string,string>={idle:"",active:"text-blue-950"};
 function dockIconClass(active:boolean){return active?DOCK_ICON_STATE_TW.active:DOCK_ICON_STATE_TW.idle;}
 const MOBILE_NAV_STATE_TW:Record<string,string>={
-  dock:"fixed inset-x-0 bottom-0 z-40 hidden ov-tablet:grid ov-tablet:grid-cols-4 ov-tablet:justify-center ov-tablet:gap-x-8 ov-tablet:border-t ov-tablet:border-gray-200 ov-tablet:bg-zinc-50 ov-tablet:px-3 ov-tablet:pb-2 ov-tablet:pt-1",
+  dock:"fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1",
   actions:"mobile-bottom-nav",
 };
 function mobileNavClass(isOverview:boolean){return isOverview?MOBILE_NAV_STATE_TW.dock:MOBILE_NAV_STATE_TW.actions;}

@@ -314,7 +314,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       let reason = 'workflow';
       let tokensUsed = 0;
       let model: string | null = null;
-      const handoff = async (key?: string,userId?:string) => {
+      const handoff = async (key?: string, userId?: string, message?: string) => {
         // An inbox configured for automation has a deterministic human fallback.
         // Audio, explicit "atendente" requests, and unsupported inputs must not
         // lose the configured department and fall into the general queue.
@@ -331,7 +331,10 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         handoffDepartment.value = department?.id && !target?.userId ? department.id : null;
         state = { flow: 'INTELLIGENCE', revision: published.revision, completed: true, variables };
         skills.push('human.handoff');
-        messages.push(target ? 'Encaminhei sua conversa para '+(target.knownBy?.trim()||target.user.name)+(department?', do time '+department.name:'')+'.' : department ? 'Encaminhei sua conversa para o time '+department.name+'. Um atendente continuará por aqui.' : reason==='handoff_target_unavailable'?'O destino configurado está indisponível. Encaminhei sua conversa para a fila geral de atendimento humano.':'Encaminhei sua conversa para a fila geral de atendimento humano.');
+        const configuredMessage = message?.trim() && reason !== 'handoff_target_unavailable'
+          ? interpolateVariables(message, variables).trim()
+          : '';
+        messages.push(configuredMessage || (target ? 'Encaminhei sua conversa para '+(target.knownBy?.trim()||target.user.name)+(department?', do time '+department.name:'')+'.' : department ? 'Encaminhei sua conversa para o time '+department.name+'. Um atendente continuará por aqui.' : reason==='handoff_target_unavailable'?'O destino configurado está indisponível. Encaminhei sua conversa para a fila geral de atendimento humano.':'Encaminhei sua conversa para a fila geral de atendimento humano.'));
       };
       const humanRequest = /^(atendente|humano|falar com atendente|falar com humano)$/i.test(normalize(inbound.content));
       if (humanRequest) { reason = 'explicit_human_request'; await handoff(); }
@@ -537,7 +540,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             const candidates = config.targetMode==='QUEUE'||(config.userId&&!config.departmentKey) ? [] : config.departmentKey ? [config.departmentKey] : sector ? [...(platform ? [sector+'_'+platform, platform+'_'+sector] : []), sector] : [];
             const departments = await tx.department.findMany({ where: { tenantId: channel.tenantId, isActive: true } });
             const key = config.targetMode==='QUEUE'?undefined:config.departmentKey||candidates.find(k => departments.some(d => d.key === k));
-            await handoff(key,config.targetMode==='QUEUE'?undefined:config.userId); step = undefined as unknown as RuntimeStep; break;
+            await handoff(key,config.targetMode==='QUEUE'?undefined:config.userId,step.message); step = undefined as unknown as RuntimeStep; break;
           }
           if (type === 'contact.lookup') {
             const phoneCandidates = [conversation.contact.phone, conversation.contact.externalId?.split('@')[0]]

@@ -17,11 +17,11 @@ Este documento **revisa** a decisão anterior registrada em `docs/product-focus.
 
 ### Navegação e interface (`apps/web/src/app/page.tsx`)
 
-| Rótulo | Destino atual |
-|---|---|
-| `Sites` | `sites-workspace.tsx` + `sites-domain-config.tsx` |
-| `Criações`, `Postagens`, `Marketing`, `Referências criativas` | `creative-library-workspace.tsx` |
-| `Google Drive` | `creative-library-workspace.tsx` (a integração de anexos é separada e está em `docs/ESCOPO-ENXUTO.md`) |
+| Rótulo                                                        | Destino atual                                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `Sites`                                                       | `sites-workspace.tsx` + `sites-domain-config.tsx`                                                      |
+| `Criações`, `Postagens`, `Marketing`, `Referências criativas` | `creative-library-workspace.tsx`                                                                       |
+| `Google Drive`                                                | `creative-library-workspace.tsx` (a integração de anexos é separada e está em `docs/ESCOPO-ENXUTO.md`) |
 
 Arquivos relacionados: `file-image-picker.tsx`, `post-body-editor.tsx`, `brand-glyph.tsx`.
 
@@ -154,15 +154,15 @@ Regras obrigatórias:
 
 ## 7. Riscos e mitigação
 
-| Risco | Mitigação |
-|---|---|
-| Qualidade criativa ruim | Preview + aprovação humana; nunca autopublish cego |
-| Mistura de tenants | Instância/workspace por empresa; credencial por tenant |
-| Custo de modelos variável | Créditos por pedido, limite por empresa, modelo fallback |
-| Vendor lock-in | Contrato de saída: exportar asset e histórico; pelo menos um segundo executor avaliado |
-| DNS/TLS na migração | TTL baixo antes, host temporário, validação antes do switch |
-| Suporte crescente | Um tipo de asset por piloto; expandir só após medição |
-| LGPD | Consentimento do formulário, texto legal revisado pelo proprietário, retenção definida |
+| Risco                     | Mitigação                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| Qualidade criativa ruim   | Preview + aprovação humana; nunca autopublish cego                                     |
+| Mistura de tenants        | Instância/workspace por empresa; credencial por tenant                                 |
+| Custo de modelos variável | Créditos por pedido, limite por empresa, modelo fallback                               |
+| Vendor lock-in            | Contrato de saída: exportar asset e histórico; pelo menos um segundo executor avaliado |
+| DNS/TLS na migração       | TTL baixo antes, host temporário, validação antes do switch                            |
+| Suporte crescente         | Um tipo de asset por piloto; expandir só após medição                                  |
+| LGPD                      | Consentimento do formulário, texto legal revisado pelo proprietário, retenção definida |
 
 ## 8. Decisões pendentes do proprietário
 
@@ -220,22 +220,22 @@ As seis perguntas acima foram respondidas pelo proprietário e estão consolidad
 
 ## 11. Arquitetura concreta do provisionador
 
-**Status:** desenho aprovado para discussão; **código ainda não criado**. Nada aqui afirma que algo está publicado, integrado ou funcionando.
+**Status:** desenho aprovado; esqueleto, GUI e camada real com configuração por ambiente já implementados em `apps/provisioner`. A camada real **não foi executada** contra a infraestrutura do proprietário. Nada aqui afirma deploy, domínio no ar ou integração pronta.
 
 ### 11.1 Decisões confirmadas
 
-| Item | Decisão |
-|---|---|
-| Script | Ainda não existe; será criado em conjunto com o proprietário |
-| Proxy | Traefik interno do Dokploy |
-| Acesso ao Docker | Socket do Docker montado no serviço provisionador |
-| Projeto Dokploy | `Estúdio de Sites`; serviço `Base` com MariaDB 11, phpMyAdmin e Filebrowser (via Docker) |
-| Sites atuais | Todos os quatro rodam WordPress na origem, mas **nenhum WordPress será trazido**: os sites serão recriados com sistema próprio |
-| Destino dos sites | PHP puro ou Next.js, conforme avaliação de simplicidade e peso; decisão por site ainda pendente |
-| Migração | O proprietário baixa arquivos e banco na Valuehost e sobe para o nosso servidor; somente conteúdo/dados são aproveitados, não o código WordPress. E-mail fica na Zoho Mail e está fora de escopo |
-| Provedor de origem | Valuehost; o proprietário controla tudo, inclusive DNS |
-| Cofre de senhas | Ainda não existe; adotar Docker secrets como primeiro passo |
-| Linguagem | Node.js + TypeScript é a recomendação do plano; confirmar antes de escrever o primeiro arquivo de código |
+| Item               | Decisão                                                                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Script             | Ainda não existe; será criado em conjunto com o proprietário                                                                                                                                     |
+| Proxy              | Traefik interno do Dokploy                                                                                                                                                                       |
+| Acesso ao Docker   | Socket do Docker montado no serviço provisionador                                                                                                                                                |
+| Projeto Dokploy    | `Estúdio de Sites`; serviço `Base` com MariaDB 11, phpMyAdmin e Filebrowser (via Docker)                                                                                                         |
+| Sites atuais       | Todos os quatro rodam WordPress na origem, mas **nenhum WordPress será trazido**: os sites serão recriados com sistema próprio                                                                   |
+| Destino dos sites  | PHP puro ou Next.js, conforme avaliação de simplicidade e peso; decisão por site ainda pendente                                                                                                  |
+| Migração           | O proprietário baixa arquivos e banco na Valuehost e sobe para o nosso servidor; somente conteúdo/dados são aproveitados, não o código WordPress. E-mail fica na Zoho Mail e está fora de escopo |
+| Provedor de origem | Valuehost; o proprietário controla tudo, inclusive DNS                                                                                                                                           |
+| Cofre de senhas    | Ainda não existe; adotar Docker secrets como primeiro passo                                                                                                                                      |
+| Linguagem          | Node.js + TypeScript é a recomendação do plano; confirmar antes de escrever o primeiro arquivo de código                                                                                         |
 
 ### 11.2 Topologia no Dokploy
 
@@ -312,12 +312,12 @@ Saída típica:
 
 Todos os quatro serão **recriados com sistema próprio**. O download dos arquivos serve para resgatar conteúdo, imagens e dados; o código WordPress — inclusive o do site infectado — não é implantado no nosso servidor.
 
-| Site citado | Estado na origem | Destino | Estratégia |
-|---|---|---|---|
-| Imobiliária (Alto Araguaia Imóveis) | WordPress | PHP puro ou Next.js | Extrair imóveis, textos e mídia do banco/arquivos; recriar sem CMS |
-| Rastreabem | WordPress | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS |
-| SOS Alto Araguaia | WordPress | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS |
-| Morbeck x Carvalhinho | WordPress | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS |
+| Site citado                         | Estado na origem | Destino             | Estratégia                                                         |
+| ----------------------------------- | ---------------- | ------------------- | ------------------------------------------------------------------ |
+| Imobiliária (Alto Araguaia Imóveis) | WordPress        | PHP puro ou Next.js | Extrair imóveis, textos e mídia do banco/arquivos; recriar sem CMS |
+| Rastreabem                          | WordPress        | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS                                  |
+| SOS Alto Araguaia                   | WordPress        | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS                                  |
+| Morbeck x Carvalhinho               | WordPress        | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS                                  |
 
 **Site infectado:** nenhum arquivo do WordPress comprometido é reaproveitado como código. Somente dados saneados previamente revisados. Não reutilizar templates, plugins, uploads executáveis ou credenciais antigas sem inspeção.
 
@@ -368,13 +368,21 @@ Implementação:
 - **Ressalva de segurança:** versões 5.x e 7.x estão fora de suporte e não devem ser padrão para sites recém-criados. Selecioná-las exige confirmação explícita do operador e aviso no `dry-run`. Como os quatro sites serão recriados do zero, a recomendação é iniciar na linha 8.x.
 - A lista acima é o contrato de UI solicitado; disponibilidade real de cada imagem e compatibilidade com o MariaDB 11 devem ser validadas antes de habilitar o `apply`.
 
-### 11.9 Ainda precisa definir antes do primeiro arquivo de código
+### 11.9 Decisões registradas e pontos ainda pendentes
 
-- Confirmação de Node.js + TypeScript para o provisionador.
+**Confirmados:**
+
+- Node.js + TypeScript para o provisionador.
+- A GUI web faz parte do escopo e é servida pelo próprio processo.
+- Todas as 17 versões PHP (5.2 a 8.6) ficam habilitadas no contrato; 5.x/7.x exigem aviso no `dry-run` e confirmação explícita no `apply`, e nunca são padrão na GUI.
+- A camada real é configurada por variáveis de ambiente; senhas e tokens entram somente como caminhos de Docker secrets. O modo padrão continua sendo simulação e o `apply` real exige uma chave adicional de habilitação.
+- Estado dos jobs persistido em arquivo próprio, separado dos bancos dos clientes; a tabela `provisioning_jobs` no MariaDB segue como evolução prevista.
+
+**Ainda pendentes (bloqueiam o primeiro `apply` real):**
+
 - Slugs e domínios reais dos quatro sites.
 - Tipo escolhido por site (PHP puro ou Next.js), após a avaliação de simplicidade.
-- Como o provisionador cria usuário/pasta no Filebrowser: API própria ou filesystem.
-- Formato do Docker secret e política de rotação.
-- Chave e escopo do webhook assinado (global do provisionador ou por tenant).
-- A GUI web vem junto da API ou depois do esqueleto validado.
-- Quais das versões PHP da lista serão efetivamente habilitadas no primeiro `apply`.
+- Contratos reais dos endpoints internos de administração do MariaDB e do Filebrowser (formato de criação de usuário, escopo e remoção).
+- Formato efetivo e política de rotação dos Docker secrets, incluindo quem provisiona os secrets de senha por site.
+- Chave e escopo do webhook assinado (global do provisionador ou por tenant) e a identidade do aprovador enviada pela Véxora.
+- Disponibilidade real das imagens das 17 versões PHP e compatibilidade com o MariaDB 11, mesmo com todas habilitadas no contrato.

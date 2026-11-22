@@ -2,6 +2,8 @@
 
 const byId = (id) => document.getElementById(id);
 let lastPlan = null;
+let currentMode = "simulation";
+let legacyVersions = [];
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -79,6 +81,9 @@ function renderStatus(status) {
     `vhost: ${status.vhost}`,
     `TLS: ${status.tls}`,
     `health: ${status.healthUrl}`,
+    `health verificado: ${status.health?.verified ?? false}`,
+    `publicado: ${status.published ? "sim" : "não"}`,
+    `aprovação: ${status.approval ? `${status.approval.approver} em ${status.approval.at}` : "—"}`,
   ];
   for (const line of lines) {
     const div = document.createElement("div");
@@ -114,6 +119,7 @@ byId("request-form").addEventListener("submit", async (event) => {
   byId("apply-button").disabled = true;
   byId("rollback-button").disabled = true;
   byId("approved").checked = false;
+  byId("legacy-confirm").checked = false;
   setResult("Gerando dry-run...");
   try {
     const data = await api("/provision/dry-run", {
@@ -140,16 +146,36 @@ byId("apply-button").addEventListener("click", async () => {
     setResult("Aprovação explícita é obrigatória antes de aplicar.");
     return;
   }
+  if (legacySelected() && !byId("legacy-confirm").checked) {
+    setResult("Confirmação explícita de PHP fora de suporte é obrigatória.");
+    return;
+  }
   const requestId = lastPlan.requestId;
-  setResult("Aplicando em modo simulação...");
+  setResult(`Aplicando em modo ${currentMode}...`);
   try {
+    if (currentMode === "real") {
+      const approver = byId("approver").value.trim();
+      if (!approver) {
+        setResult("Informe o aprovador antes de aplicar em modo real.");
+        return;
+      }
+      await api(`/provision/${encodeURIComponent(requestId)}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ approver }),
+      });
+    }
+    const body = { requestId };
+    if (legacySelected()) body.confirmLegacy = true;
     const data = await api("/provision/apply", {
       method: "POST",
-      body: JSON.stringify({ requestId }),
+      body: JSON.stringify(body),
     });
     const ok = document.createElement("span");
     ok.className = "ok";
-    ok.textContent = `Aplicado: ${data.status} · ${data.appliedAt ?? "—"}`;
+    const health = data.health
+      ? ` · health: ${data.health.verified ? "verificado" : "não verificado"}`
+      : "";
+    ok.textContent = `Aplicado: ${data.status} · ${data.appliedAt ?? "—"}${health}`;
     byId("result-output").replaceChildren(ok);
     await refreshStatus();
   } catch (error) {
@@ -178,18 +204,35 @@ byId("rollback-button").addEventListener("click", async () => {
   }
 });
 
+function legacySelected() {
+  return (
+    byId("type").value === "php-mysql" &&
+    legacyVersions.includes(byId("phpVersion").value)
+  );
+}
+
+function syncLegacy() {
+  const legacy = legacySelected();
+  byId("legacy-confirm-label").hidden = !legacy;
+  if (!legacy) byId("legacy-confirm").checked = false;
+}
+
 function syncType() {
   const isPhp = byId("type").value === "php-mysql";
   byId("php-version-field").hidden = !isPhp;
   byId("phpVersion").disabled = !isPhp;
+  syncLegacy();
 }
 
 byId("type").addEventListener("change", syncType);
+byId("phpVersion").addEventListener("change", syncLegacy);
 
 async function init() {
   syncType();
   try {
     const meta = await api("/meta");
+    currentMode = meta.mode;
+    legacyVersions = meta.legacyVersions;
     const select = byId("phpVersion");
     for (const version of meta.phpVersions) {
       const option = document.createElement("option");
@@ -203,8 +246,11 @@ async function init() {
       version.startsWith("8."),
     );
     if (recommended) select.value = recommended;
+    syncLegacy();
     byId("mode-badge").textContent =
-      `${meta.mode} · nenhum recurso real é criado`;
+      currentMode === "real"
+        ? "real · a aplicação cria recursos reais"
+        : "simulation · nenhum recurso real é criado";
   } catch (error) {
     setResult(`Falha ao carregar metadados: ${error.message}`);
   }

@@ -95,6 +95,15 @@
                 placeholder="valuehost"
               />
             </label>
+            <label>
+              <span>aprovado por</span>
+              <input
+                id="approver"
+                name="approver"
+                autocomplete="off"
+                placeholder="nome do operador"
+              />
+            </label>
           </div>
 
           <div class="actions">
@@ -119,7 +128,11 @@
         </p>
         <label class="approval" id="approval-label">
           <input type="checkbox" id="approved" />
-          <span>Li o plano e aprovo a aplicação em modo simulação</span>
+          <span>Li o plano e aprovo a aplicação</span>
+        </label>
+        <label class="approval" id="legacy-confirm-label" hidden>
+          <input type="checkbox" id="legacy-confirm" />
+          <span>Confirmo explicitamente o uso de PHP fora de suporte</span>
         </label>
         <div id="plan-output" class="output" role="status" aria-live="polite">
           Nenhum plano gerado.

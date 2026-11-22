@@ -73,7 +73,7 @@ export function GreetingSettings() {
           A faixa de horário segue o dispositivo do atendente.
         </p>
         {labels.map(([key, label]) => (
-          <fieldset key={key}>
+          <fieldset key={key} className="mt-3">
             <legend>{label}</legend>
             <label>
               Saudação

@@ -285,7 +285,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       variables.nome = preferred || conversation.contact.name || "";
       // novo_nome nunca fica vazio: sem nome preferido informado, usa o nome identificado do contato.
       variables.novo_nome = preferred || conversation.contact.name || "";
-      const namedInFlow=flow.steps.some(s=>s.kind==='input.text'&&settings(s).validation==='preferred-name');
+      const shouldAskPreferredName = flow.askPreferredName !== false && !flow.steps.some(s=>s.kind==='input.text'&&settings(s).validation==='preferred-name');
       const identifiedName=(conversation.contact.name||'').trim();
       variables.nome_identificado=identifiedName!==conversation.contact.externalId && isPreferredName(identifiedName) ? identifiedName : '';
       const savePreferredName=async(name:string)=>{
@@ -346,14 +346,14 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const humanRequest = /^(atendente|humano|falar com atendente|falar com humano)$/i.test(normalize(inbound.content));
       if (humanRequest) { reason = 'explicit_human_request'; await handoff(); }
       else if (inbound.contentType !== 'text') { reason = 'unsupported_media'; await handoff(); }
-      else if (!namedInFlow && !preferred && !previous.awaitingName) {
+      else if (shouldAskPreferredName && !preferred && !previous.awaitingName) {
         const suggested=conversation.contact.name && conversation.contact.name!==conversation.contact.externalId && !/^\d+$/.test(conversation.contact.name) ? conversation.contact.name : '';
         messages.push(suggested ? 'Identifiquei você pelo nome de '+suggested+'. Como gostaria de ser chamado? Responda “sim” para manter ou escreva o nome que prefere.' : 'Como você gostaria de ser chamado?');
         state={flow:'INTELLIGENCE',revision:published.revision,awaitingName:true,variables};
-      } else if (!namedInFlow && !preferred && previous.awaitingName && !/^[\p{L}][\p{L} .’'-]{0,79}$/u.test(nameReply)) {
+      } else if (shouldAskPreferredName && !preferred && previous.awaitingName && !/^[\p{L}][\p{L} .’'-]{0,79}$/u.test(nameReply)) {
         messages.push('Informe como gostaria de ser chamado, ou digite atendente.');state=previous as Prisma.InputJsonValue;
       } else {
-        const naming=!namedInFlow && !preferred && previous.awaitingName;
+        const naming=shouldAskPreferredName && !preferred && previous.awaitingName;
         if(naming) await savePreferredName(nameReply);
         if (!naming && active && previous.completed && !/^(menu|inicio|reiniciar)$/.test(normalize(inbound.content))) return { messages: [], handled: true, handoff: false };
         if (!naming && active && !/^(menu|inicio|reiniciar)$/.test(normalize(inbound.content))) {

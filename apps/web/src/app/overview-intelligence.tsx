@@ -184,7 +184,7 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
   const total = values.reduce((sum, value) => sum + value, 0);
   const ticks = [0, 0.5, 1];
   return (
-    <div className="grid min-w-0 gap-3">
+    <div className="grid min-w-0 gap-3 border-b border-gray-200 pb-3 dark:border-slate-800">
       <svg className="h-auto w-full" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label={`Atendimentos por hora nas últimas 24 horas${peak !== null ? `, pico às ${hourly.labels[peak]} com ${hourly.peakValue} atendimentos` : ""}`}>
         <defs>
           <linearGradient id="vxHourlyFill" x1="0" y1="0" x2="0" y2="1">
@@ -322,11 +322,11 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
       </div>
 
       <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
-        <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Equipe agora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Quem está atendendo neste momento</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200"><Users size={13} aria-hidden="true" />{team.length}</span></header>
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-800"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Equipe agora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Quem está atendendo neste momento</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200"><Users size={13} aria-hidden="true" />{team.length}</span></header>
         {team.length ? (
           <ul className="grid gap-3">
             {team.map((member) => (
-              <li key={member.id} className="flex items-center gap-2.5">
+              <li key={member.id} className="flex items-center gap-2.5 border-b border-gray-200 pb-2.5 last:border-b-0 dark:border-slate-800">
                 <span className="relative grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-sky-400">
                   {member.initials || initialsOf(member.name)}
                   <i className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-200 dark:border-slate-900 ${member.presence === "paused" ? "bg-amber-600 dark:bg-amber-400" : "bg-blue-700 dark:bg-blue-400"}`} aria-hidden="true" />
@@ -342,14 +342,14 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
       </article>
 
       <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
-        <header className="flex flex-wrap items-start justify-between gap-3">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-800">
           <div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Atividade recente</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Movimentações da sua operação</p></div>
           <button type="button" className="inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700 dark:text-sky-400 dark:hover:bg-slate-800 dark:hover:text-sky-300" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
         </header>
         {recent.length ? (
           <ul className="grid gap-3">
             {recent.slice(0, 6).map((item) => (
-              <li className="flex items-center gap-2.5" key={item.id}>
+              <li className="flex items-center gap-2.5 border-b border-gray-200 pb-2.5 last:border-b-0 dark:border-slate-800" key={item.id}>
                 <ClientAvatar id={item.contact.id ?? null} name={item.contact.name} className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-sky-400" />
                 <span className="grid min-w-0"><b className="truncate text-xs font-bold text-slate-950 dark:text-slate-50">{item.contact.name}</b><small className="block truncate text-xs text-slate-600 dark:text-slate-400">{contactLine(item.contact.phone, item.contact.handle) || (item.channel ? platformLabel(item.channel) : "")}{contactLine(item.contact.phone, item.contact.handle) ? " · " : ""}{recentLabel(item)}</small></span>
                 <time className="text-xs tabular-nums text-slate-400">{clock(item.updatedAt)}</time>
@@ -360,7 +360,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
       </article>
 
       <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
-        <header className="flex flex-wrap items-start justify-between gap-3">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-800">
           <div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Atendimentos por hora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 dark:bg-sky-400/15 dark:text-sky-400"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
         </header>
@@ -368,13 +368,13 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
       </article>
 
       <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
-        <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Do que as pessoas falam</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Top {topics.length || 0}</span></header>
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-800"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Do que as pessoas falam</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Top {topics.length || 0}</span></header>
         {topics.length ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {topics.map((topic) => {
               const channel = topic.channel || "";
               return (
-              <div className="grid min-w-0 content-start gap-1.5" key={topic.label}>
+              <div className="grid min-w-0 content-start gap-1.5 border-b border-gray-200 pb-3 dark:border-slate-800" key={topic.label}>
                 <div className="flex items-center justify-between gap-2"><span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-950 dark:text-slate-50"><i className="inline-block h-2 w-2 flex-none rounded-full bg-blue-600 dark:bg-blue-400" />{topic.label}{channel ? <small className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">{platformLabel(channel)}</small> : null}</span><b className="text-xs font-bold tabular-nums text-slate-950 dark:text-slate-50">{topic.percent}%</b></div>
                 <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-300 dark:bg-slate-800"><i className="block h-full rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
                 <small className="text-xs text-slate-600 dark:text-slate-400">{topic.count} {topic.count === 1 ? "conversa" : "conversas"}</small>

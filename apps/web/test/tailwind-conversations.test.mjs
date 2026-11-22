@@ -283,6 +283,7 @@ test("os agendamentos usam TW e preservam o contrato da agenda do Google", () =>
   ]) {
     assert.ok(source.includes(utility), `falta a utility ${utility}`);
   }
+  assert.ok(appointments.includes('<ul className="divide-y divide-gray-200 dark:divide-slate-700">'), "a lista de compromissos precisa de linhas entre os itens");
   for (const token of [
     'data-testid="inbox-appointments"',
     'data-testid="inbox-appointment-confirmed"',
@@ -386,15 +387,21 @@ test("o contexto interno da conversa mantém ícone e selo com contraste", () =>
   const noteStart = workspace.indexOf('message.direction === "INTERNAL"');
   const noteEnd = workspace.indexOf(' : <div data-testid="message-line"', noteStart);
   const note = workspace.slice(noteStart, noteEnd);
-  assert.ok(note.includes('border border-dashed border-blue-600 bg-blue-50 p-3 shadow'));
-  assert.ok(note.includes('rounded bg-blue-600 text-blue-900" aria-hidden="true"'));
-  assert.ok(note.includes('text-xs font-extrabold uppercase tracking-widest text-blue-900">Só a equipe vê</small>'));
+  assert.ok(workspace.includes('border border-dashed border-amber-400 bg-amber-200 p-3 text-amber-950 shadow'));
+  assert.ok(workspace.includes('rounded bg-amber-400 text-amber-950'));
+  assert.ok(workspace.includes('rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-widest text-amber-950'));
+  assert.ok(workspace.includes('const isHandoffContext = message.metadata?.kind === "handoff_context" || message.senderName === "Contexto do atendimento"'));
+  assert.ok(note.includes('internalTone.card'), "o bloco interno usa o tom por tipo");
+  assert.ok(workspace.includes('border border-dashed border-blue-600 bg-blue-50 p-3 shadow'), "notas privadas seguem azuis");
+  assert.ok(note.includes('Só a equipe vê</small>'));
   assert.doesNotMatch(note, /bg-warning(?:-soft)?\b/);
 });
 
 test("as bolhas OUTBOUND e INBOUND usam TW com fundos leves e visíveis", () => {
   assert.ok(workspace.includes('data-testid="message-line" data-direction={message.direction} className={message.direction === "OUTBOUND" ? "flex justify-end" : "flex justify-start"}'));
-  assert.ok(workspace.includes('className={"max-w-2xl break-words rounded-xl border p-2.5 font-sans text-sm text-slate-950 shadow " + (message.direction === "OUTBOUND" ? "border-blue-100 bg-blue-50" : "border-gray-200 bg-zinc-100")}'));
+  assert.ok(workspace.includes('className={"max-w-2xl break-words rounded-xl border p-2.5 font-sans text-sm shadow " + (message.direction === "OUTBOUND" ? "border-blue-700 bg-blue-700 text-white" : "border-gray-200 bg-zinc-100 text-slate-950")}'));
+  assert.ok(workspace.includes('const brandStatusTw={failed:"text-red-200",read:"text-emerald-200",delivered:"text-blue-100",queued:"text-amber-200",sent:"text-blue-100"}'));
+  assert.ok(workspace.includes('<MessageStatus message={message} onBrand />'));
   const css = read("src/app/vexora.css");
   assert.doesNotMatch(css, /\[data-testid='message-bubble'\]\{[^}]*(?:background|border-radius|padding|font-family|font-size|max-width)/);
   assert.doesNotMatch(css, /\[data-testid='message-line'\]\[data-direction='(?:OUTBOUND|INTERNAL)'\] \[data-testid='message-bubble'\]/);

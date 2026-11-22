@@ -50,14 +50,14 @@ const weatherSurface = (code: number | undefined, isDay: boolean | undefined) =>
   return "cloudy";
 };
 const weekdayTw: Record<string, string> = {
-  weekend: "text-xs font-bold uppercase text-purple-700 dark:text-purple-300",
-  weekday: "text-xs font-bold uppercase text-slate-600 dark:text-slate-300",
+  weekend: "border-b border-purple-200 pb-1 text-xs font-bold uppercase text-purple-700 dark:border-slate-700 dark:text-purple-300",
+  weekday: "border-b border-purple-200 pb-1 text-xs font-bold uppercase text-slate-600 dark:border-slate-700 dark:text-slate-300",
 };
 const calendarCellTw: Record<string, string> = {
   blank: "invisible",
-  today: "bg-blue-600 font-bold text-slate-50",
-  weekend: "text-purple-700 dark:text-purple-300",
-  weekday: "text-slate-700 dark:text-slate-200",
+  today: "border-b border-purple-100 bg-blue-600 font-bold text-slate-50 dark:border-slate-800",
+  weekend: "border-b border-purple-100 text-purple-700 dark:border-slate-800 dark:text-purple-300",
+  weekday: "border-b border-purple-100 text-slate-700 dark:border-slate-800 dark:text-slate-200",
 };
 const fullDate = () => {
   const now = new Date();
@@ -227,7 +227,7 @@ function CalendarWidget() {
   const navButton = "grid h-7 w-7 place-items-center rounded-lg border border-purple-200 bg-white text-purple-700 transition-colors duration-200 hover:bg-purple-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700";
   return (
     <article className="col-span-5 grid content-start gap-3 rounded-xl border border-purple-200 bg-linear-to-br from-violet-50 to-blue-100 p-5 text-slate-800 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900 dark:text-slate-100 max-md:col-span-12" aria-label="Calendário">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 border-b border-purple-200 pb-2.5 dark:border-slate-700">
         <strong className="text-sm font-bold text-slate-800 dark:text-slate-50">{monthLabel(year, month)}</strong>
         <div className="inline-flex items-center gap-1">
           <button type="button" aria-label="Mês anterior" onClick={() => setCursor(new Date(year, month - 1, 1))} className={navButton}><ChevronLeft size={16} aria-hidden="true" /></button>
@@ -249,7 +249,7 @@ function CalendarWidget() {
           );
         })}
       </div>
-      <p className="text-xs text-slate-600 dark:text-slate-300">{fullDate()}</p>
+      <p className="border-t border-purple-200 pt-2.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300">{fullDate()}</p>
     </article>
   );
 }

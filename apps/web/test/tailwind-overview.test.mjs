@@ -236,6 +236,19 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   assert.doesNotMatch(onboarding, /dark:bg-slate-800 dark:text-blue-300/);
 });
 
+test("linhas divisórias fecham cabeçalhos, gráficos e calendário da Visão geral", () => {
+  assert.ok(overview.includes("border-b border-gray-200"), "Inteligência perdeu a linha do cabeçalho no claro");
+  assert.ok(overview.includes("dark:border-slate-800"), "Inteligência perdeu a linha no dark");
+  assert.ok(widgets.includes("border-b border-purple-200"), "widgets perdeu a linha do cabeçalho no claro");
+  assert.ok(widgets.includes("dark:border-slate-700"), "widgets perdeu a linha no dark");
+  assert.ok(overview.includes("grid min-w-0 gap-3 border-b border-gray-200 pb-3 dark:border-slate-800"));
+  assert.ok(overview.includes("grid min-w-0 content-start gap-1.5 border-b border-gray-200 pb-3 dark:border-slate-800"));
+  assert.ok(overview.includes("border-b border-gray-200 pb-2.5 last:border-b-0 dark:border-slate-800"));
+  assert.ok(widgets.includes("border-b border-purple-200 pb-1"));
+  assert.ok(widgets.includes("border-b border-purple-100"));
+  assert.ok(widgets.includes("border-t border-purple-200 pt-2.5"));
+});
+
 test("nenhuma classe da Visão geral termina em -card nem herda .content-card", () => {
   const escopo = `${components}\n${page}`;
   assert.doesNotMatch(escopo, /\bov-[a-z0-9-]*-card\b/);

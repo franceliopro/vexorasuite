@@ -20,6 +20,11 @@ function classValues(source) {
   for (const match of source.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*"([^"]*)"/g)) {
     constants.set(match[1], match[2]);
   }
+  // Mapas Record<string,string> guardam literais completas por estado.
+  for (const match of source.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*:\s*Record<[^>]*>\s*=\s*\{([\s\S]*?)\};/g)) {
+    const literals = [...match[2].matchAll(/(["'])([^"']*)\1/g)].map((literal) => literal[2]);
+    if (literals.length) constants.set(match[1], literals.join(" "));
+  }
   const values = [];
   for (const match of source.matchAll(/className\s*=\s*(?:"([^"]*)"|\{([\s\S]*?)\})/g)) {
     if (match[1] !== undefined) {
@@ -83,18 +88,21 @@ test("os componentes de conversa usam só utilities, sem remendos", () => {
     "min-h-ib-quote-qty",
     "rounded-ib-quote-qty",
     "max-w-ib-quote-empty",
-    "z-ib-dialog",
-    "animate-vx-scrim-in",
-    "p-vx-dialog-pad",
-    "animate-vx-in",
-    "max-h-ib-dialog",
-    "w-ib-dialog-wide",
-    "size-ctl-sm",
-    "z-ib-mention",
-    "w-ib-mention",
-    "max-h-ib-mention",
-    "rounded-ib-mention-item",
-    "size-control",
+    "fixed inset-0 grid place-items-center",
+    "bg-slate-900/80",
+    "p-4 backdrop-blur-sm",
+    "max-h-dvh w-full max-w-lg",
+    "max-w-4xl",
+    "rounded-xl border border-slate-700 bg-slate-900 p-5 text-slate-50",
+    "size-10 rounded-lg",
+    "size-8 rounded-lg",
+    "max-h-60 rounded-xl",
+    "w-80 rounded-xl",
+    "size-9 rounded-lg",
+    "rounded-full",
+    "bg-slate-800 text-slate-200",
+    "text-xs text-slate-300",
+    "text-2xs",
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);
   }

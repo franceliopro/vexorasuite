@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlarmClock, Check, TimerReset } from "lucide-react";
 
 type Alarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
-const alarmSnoozeTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure border border-slate-600 bg-slate-700/50 px-4.5 text-body font-bold text-slate-100 shadow-token-sm transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
-const alarmStopTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure bg-blue-600 px-6.5 text-sm font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const alarmSnoozeTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure border border-slate-700 bg-slate-800 px-4.5 text-body font-bold text-slate-200 shadow-token-sm transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+const alarmStopTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure bg-slate-700 px-6.5 text-sm font-bold text-slate-50 shadow-token-sm transition-colors hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60";
 const FIRED_KEY = "vx:alarms:fired";
 const SNOOZED_KEY = "vx:alarms:snoozed";
 const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -162,19 +162,19 @@ export function AlarmCenter() {
   if (!ringing.length) return null;
   return (
     <div
-      className="fixed inset-0 grid animate-vx-in place-items-center bg-overlay p-5 backdrop-blur-md"
-      style={{ zIndex: "var(--z-reminder, 9500)", background: "radial-gradient(90rem 60rem at 50% -20%, rgba(29,78,216,.22), transparent 60%),rgba(4,8,20,.84)" }}
+      className="fixed inset-0 grid place-items-center bg-slate-900/90 p-5 backdrop-blur-md"
+      style={{ zIndex: "var(--z-reminder, 9500)", background: "radial-gradient(90rem 60rem at 50% -20%, hsl(215 28% 26% / 0.45), transparent 60%),hsl(222 47% 11% / 0.9)" }}
       role="alertdialog"
       aria-modal="true"
       aria-label={ringing.length === 1 ? "Alarme tocando" : "Alarmes tocando"}
     >
       <section className="grid max-h-phone-frame w-full max-w-calendar-event-modal justify-items-center gap-4 overflow-auto rounded-token-xl border border-slate-700 bg-linear-to-br from-slate-800 to-slate-900 px-7 pb-6 pt-8 text-center text-slate-50 shadow-token-lg">
-        <span className="grid size-26 animate-pulse place-items-center rounded-full bg-sky-500/15 text-sky-300" aria-hidden="true"><AlarmClock size={56} strokeWidth={1.9} /></span>
-        <p className="text-xs font-heading uppercase tracking-fin-eyebrow text-sky-300">{ringing.length === 1 ? "Alarme" : `${ringing.length} alarmes`} · {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
+        <span className="grid size-26 animate-pulse place-items-center rounded-full bg-slate-700/60 text-slate-200" aria-hidden="true"><AlarmClock size={56} strokeWidth={1.9} /></span>
+        <p className="text-xs font-heading uppercase tracking-fin-eyebrow text-slate-300">{ringing.length === 1 ? "Alarme" : `${ringing.length} alarmes`} · {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
         <ul className="grid w-full gap-4.5">
           {ringing.map((alarm) => (
             <li key={alarm.id} className="grid justify-items-center">
-              <h1 className="font-display font-extrabold text-white" style={{ fontSize: "clamp(26px,4.6vw,42px)", lineHeight: 1.14, letterSpacing: "-0.02em" }}>{alarm.title}</h1>
+              <h1 className="font-display font-extrabold text-slate-50" style={{ fontSize: "clamp(26px,4.6vw,42px)", lineHeight: 1.14, letterSpacing: "-0.02em" }}>{alarm.title}</h1>
               <p className="mt-1.5 text-body text-slate-300">{describe(alarm)}</p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5">
                 <button type="button" data-testid="alarm-snooze" className={alarmSnoozeTw} onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>

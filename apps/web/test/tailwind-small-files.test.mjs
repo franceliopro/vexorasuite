@@ -154,11 +154,11 @@ test("classes de estado são literais completas, nunca interpolação solta", ()
 test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
   const required = {
     "src/app/alarm-center.tsx": [
-      "fixed inset-0 grid animate-vx-in place-items-center bg-overlay p-5 backdrop-blur-md",
+      "fixed inset-0 grid place-items-center bg-slate-900/90 p-5 backdrop-blur-md",
       "max-h-phone-frame", "max-w-calendar-event-modal",
       "bg-linear-to-br from-slate-800 to-slate-900", "size-26",
       "grid w-full gap-4.5", "min-h-14 items-center justify-center gap-2.5 rounded-fin-figure",
-      "bg-blue-600", "text-blue-50", "bg-slate-700/50", "text-slate-100",
+      "border-slate-700", "bg-slate-800", "text-slate-200", "bg-slate-700", "text-slate-50",
       "shadow-token-sm", "shadow-token-lg",
     ],
     "src/app/dashboard-widgets.tsx": [
@@ -283,6 +283,6 @@ test("as quatro fatias continuam com os papéis e rótulos esperados", () => {
     const source = sources.get(file);
     assert.ok(/aria-label=|role="[a-z]+"/.test(source), `${label(file)}: sem rótulo acessível`);
   }
-  assert.ok(allClassText.includes("bg-slate-700/50"));
+  assert.ok(allClassText.includes("bg-slate-700/60"));
   assert.ok(allClassText.includes("text-slate-50"));
 });

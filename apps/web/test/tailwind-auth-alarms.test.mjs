@@ -62,8 +62,8 @@ test("auth e alarmes usam só utilities do preset, sem remendos", () => {
   }
   assert.doesNotMatch(alarms, /\banimate-vx-in\b|\bbg-(?:blue|sky)-\d|\btext-(?:blue|sky)-\d/);
   for (const utility of [
-    "min-h-dvh", "lg:grid-cols-2", "bg-zinc-50 dark:bg-slate-900", "grid-cols-1", "lg:flex",
-    "max-w-catalog-search", "grid h-control w-control flex-none place-items-center rounded-brand bg-blue-600",
+    "min-h-dvh", "md:grid-cols-2", "bg-zinc-50 bg-vx-page", "grid-cols-1", "md:flex",
+    "max-w-catalog-search", "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark",
     "text-nav-section font-extrabold uppercase tracking-fin-eyebrow",
     "min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600",
     "absolute right-1 top-1 grid size-8 place-items-center text-ink-secondary",

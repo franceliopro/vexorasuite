@@ -58,8 +58,26 @@ test("os contratos de auth, modelos e lembretes permanecem intactos", () => {
     assert.ok(templates.includes(token), `modelos perdeu ${token}`);
   }
   for (const token of [
-    'aria-label="Fechar lembretes"', "Adiar 15 min", "Entendi", "snoozeAll", "dismissAll", "reminder-center",
+    'aria-label="Fechar lembretes"', "Adiar 15 min", "Entendi", "snoozeAll", "dismissAll",
+    'role="alertdialog"', 'aria-modal="true"',
   ]) {
     assert.ok(reminders.includes(token), `lembretes perdeu ${token}`);
+  }
+});
+
+test("o centro de lembretes usa só utilities do preset", () => {
+  const classes = classValues(reminders);
+  for (const forbidden of [/\breminder-center(?:-[\w-]+)?\b/, /\bis-overdue\b/, /color-mix\(/, /#[0-9a-fA-F]{3,8}\b/]) {
+    const match = classes.match(forbidden);
+    assert.equal(match, null, `classe legada ou remendo em lembretes: ${match?.[0]}`);
+  }
+  for (const utility of [
+    "fixed inset-0 z-reminder grid place-items-center p-5",
+    "absolute inset-0 bg-overlay backdrop-blur-reminder",
+    "relative grid w-full max-w-reminder-card gap-4 rounded-reminder-card border border-line bg-surface p-reminder-pad shadow-reminder-card animate-reminder-card",
+    "grid size-reminder-icon place-items-center rounded-reminder-icon bg-blue-50 text-blue-600",
+    "border-red-600 bg-red-100",
+  ]) {
+    assert.ok(reminders.includes(utility), `falta a utility de lembretes ${utility}`);
   }
 });

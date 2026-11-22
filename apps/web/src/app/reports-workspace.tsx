@@ -219,7 +219,7 @@ const deltaTw: Record<"up" | "down" | "flat", string> = {
 const chipTw = "min-h-8 rounded-full border border-gray-200 bg-zinc-200 px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-zinc-300 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 const chipActive = "border-blue-600 bg-blue-600 text-blue-900";
 const tabTw = "inline-flex min-h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-zinc-300 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
-const tabActive = "bg-blue-600 text-blue-900 shadow-sm";
+const tabActive = "bg-blue-600 text-white shadow-sm";
 
 
 /* ================================================================== */

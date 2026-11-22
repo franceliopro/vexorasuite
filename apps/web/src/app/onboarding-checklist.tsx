@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Sparkles, X, ClipboardList } from "lucide-react";
 
 type Step = {
@@ -30,13 +30,15 @@ async function safeFetch<T>(url: string): Promise<T | null> {
   }
 }
 
-export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: string) => void }) {
+export function OnboardingChecklist({ onNavigate, onDismiss }: { onNavigate: (target: string) => void; onDismiss?: () => void }) {
   const [dismissed, setDismissed] = useState(false);
   const [ready, setReady] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
-    try { if (localStorage.getItem(DISMISS_KEY) === "1") { setDismissed(true); setReady(true); return; } } catch {}
+    try { if (localStorage.getItem(DISMISS_KEY) === "1") { setDismissed(true); setReady(true); onDismissRef.current?.(); return; } } catch {}
     let live = true;
     const init: Step[] = [
       { id: "empresa", title: "Complete os Dados da empresa", hint: "Nome, CNPJ e endereço — usados em cobranças e contratos", target: "Configurações", done: false, loading: true },
@@ -76,7 +78,7 @@ export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: strin
           <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-50">Bem-vindo à Véxora — primeiros passos</h2>
           <p className="text-xs text-slate-600 dark:text-slate-300">{allDone ? "Tudo pronto! Sua operação está calibrada." : `${doneCount} de ${steps.length} concluídos`}</p>
         </div>
-        <button type="button" className="grid h-7 w-7 flex-none place-items-center rounded-lg border border-blue-200 bg-white/70 text-slate-600 transition-colors duration-200 hover:bg-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); }}><X size={16} aria-hidden="true" /></button>
+        <button type="button" className="grid h-7 w-7 flex-none place-items-center rounded-lg border border-blue-200 bg-white/70 text-slate-600 transition-colors duration-200 hover:bg-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); onDismissRef.current?.(); }}><X size={16} aria-hidden="true" /></button>
       </div>
       <div className="h-1 overflow-hidden rounded-full bg-blue-200 dark:bg-slate-700" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-blue-400 transition-all duration-300 ease-out" style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
       <ol className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">

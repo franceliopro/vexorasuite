@@ -170,7 +170,7 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
       "bg-linear-to-br from-indigo-50 to-blue-100",
       "bg-linear-to-br from-violet-50 to-blue-100",
       "rounded-xl border border-white/40", "bg-white/20", "text-slate-50",
-      "text-blue-200", "text-slate-100", "text-slate-300",
+      "text-indigo-700", "text-slate-100", "text-slate-300",
       "bg-blue-600", "text-amber-300", "grid-cols-7",
       "role=\"grid\"",
     ],

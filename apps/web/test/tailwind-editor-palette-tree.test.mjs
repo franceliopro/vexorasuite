@@ -113,7 +113,7 @@ test("layer tree keeps tree semantics, permissions, drag payloads and drop indic
     "layerTreeNodeContentSelectedTw",
     "Somente leitura",
   ]) assert.ok(source.includes(token), `layer tree perdeu ${token}`);
-  assert.ok(source.includes("bg-brand/40"));
+  assert.ok(source.includes("border-brand/40"));
 });
 
 test("site editor window keeps portal layering, permissions and stable contracts", () => {

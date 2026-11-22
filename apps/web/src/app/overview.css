@@ -15,14 +15,27 @@
  * para o arquivo onde são declaradas, e sem elas a reemissão traria apenas
  * `.grid-cols-1` plain — que venceria `ib-grid:grid-cols-ib-workspace-resize`
  * em camada e deixaria a thread do Atendimento com uma coluna só.
- * O mesmo vale para o breakpoint padrão `max-md`: sem re-registrá-lo aqui,
- * a reemissão traria só `.hidden` plain, que venceria o `.max-md:grid` em
- * camada e deixaria o dock da Visão geral colado à esquerda no mobile.
+ * O mesmo vale para os breakpoints padrão (`sm`, `md`, `lg`, `xl`, `2xl` e
+ * seus `max-*`): sem re-registrá-los aqui, a reemissão traria apenas
+ * `.grid-cols-1` e `.hidden` plain, que venceriam as variantes responsivas em
+ * camada de theme.css. Era isso que deixava o login com uma coluna só e o
+ * painel esquerdo `hidden` em qualquer largura. `dark:` não precisa de
+ * re-registro: o seletor gerado com `:is([data-theme="dark"] *)` tem
+ * especificidade maior que a utility plain.
  */
 
 @config "../../tailwind.config.ts";
 
+@custom-variant sm (@media (width >= 40rem));
+@custom-variant md (@media (width >= 48rem));
+@custom-variant lg (@media (width >= 64rem));
+@custom-variant xl (@media (width >= 80rem));
+@custom-variant 2xl (@media (width >= 96rem));
+@custom-variant max-sm (@media (width < 40rem));
 @custom-variant max-md (@media (width < 48rem));
+@custom-variant max-lg (@media (width < 64rem));
+@custom-variant max-xl (@media (width < 80rem));
+@custom-variant max-2xl (@media (width < 96rem));
 @custom-variant ov-laptop (@media (max-width: 900px));
 @custom-variant ov-tablet (@media (max-width: 760px));
 @custom-variant ov-mobile (@media (max-width: 520px));

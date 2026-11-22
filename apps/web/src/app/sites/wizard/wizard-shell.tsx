@@ -16,6 +16,7 @@
 import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './../editor/editor.css';
+import { LAYOUT_IMAGE_INPUT_ID } from '../editor/contracts';
 import {
   X,
   Maximize,
@@ -79,85 +80,85 @@ const STEP_ICONS: Record<WizardStep, React.ElementType> = {
  * (nada de concatenar fragmentos), para o guard conseguir verificar cada variante.
  */
 const WIZARD_FULLSCREEN_TW = 'fixed inset-0 flex min-h-0 flex-col bg-zinc-50 font-ui text-slate-950';
-const WIZARD_WINDOW_TW = 'fixed left-1/2 top-1/2 flex min-h-0 -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-token border border-gray-200 bg-zinc-50 font-ui text-slate-950 shadow-token-lg';
+const WIZARD_WINDOW_TW = 'fixed left-1/2 top-1/2 flex min-h-0 -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-gray-200 bg-zinc-50 font-ui text-slate-950 shadow-lg';
 const DOCK_TW = 'fixed bottom-6 left-1/2 flex -translate-x-1/2 gap-2';
-const DOCK_BUTTON_TW = 'inline-flex items-center gap-1.5 rounded-token bg-blue-600 px-4 py-2 text-sm font-bold text-blue-950 transition-colors hover:bg-blue-700';
-const DOCK_CLOSE_TW = 'inline-flex size-9 items-center justify-center rounded-token border border-gray-200 bg-zinc-100 text-slate-950 transition-colors hover:bg-hover';
+const DOCK_BUTTON_TW = 'inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-blue-950 transition-colors hover:bg-blue-700';
+const DOCK_CLOSE_TW = 'inline-flex size-9 items-center justify-center rounded-lg border border-gray-200 bg-zinc-100 text-slate-950 transition-colors hover:bg-zinc-200';
 const HEADER_TW = 'flex shrink-0 items-center justify-between border-b border-gray-200 bg-zinc-100 px-4 py-3';
 const HEADER_LEFT_TW = 'flex items-center gap-2';
 const HEADER_CENTER_TW = 'min-w-0';
 const TITLE_TW = 'm-0 text-lg font-bold text-slate-950';
 const SUB_TW = 'm-0 text-sm text-slate-600';
-const ICON_BUTTON_TW = 'inline-flex size-9 shrink-0 items-center justify-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-colors hover:bg-hover hover:text-slate-950';
-const ICON_BUTTON_CLOSE_TW = 'inline-flex size-9 shrink-0 items-center justify-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-colors hover:border-red-600 hover:bg-red-600 hover:text-blue-950';
+const ICON_BUTTON_TW = 'inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-zinc-100 text-slate-600 transition-colors hover:bg-zinc-200 hover:text-slate-950';
+const ICON_BUTTON_CLOSE_TW = 'inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-zinc-100 text-slate-600 transition-colors hover:border-red-600 hover:bg-red-600 hover:text-blue-950';
 const PROGRESS_TW = 'flex shrink-0 gap-1.5 overflow-x-auto border-b border-gray-200 bg-zinc-100 px-4 py-3';
 const STEP_ITEM_TW = 'flex items-center gap-1.5';
 const STEP_LABEL_TW = 'inline-flex items-center gap-1.5';
-const BODY_TW = 'min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50 px-12 pb-8 pt-7 ov-laptop:px-10 ov-tablet:px-6 ov-mobile:px-4';
+const BODY_TW = 'min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50 px-4 pb-8 pt-7 sm:px-6 md:px-10 lg:px-12';
 const PANEL_TW = 'mx-auto w-full';
 const FOOTER_TW = 'flex shrink-0 items-center justify-between border-t border-gray-200 bg-zinc-100 px-4 py-3';
 
 type StepState = 'current' | 'done' | 'pending';
 
 const STEP_STATE_TW: Record<StepState, string> = {
-  current: 'inline-flex items-center gap-1.5 rounded-token-sm bg-blue-600 px-2.5 py-1 text-sm font-semibold text-blue-950 transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-  done: 'inline-flex items-center gap-1.5 rounded-token-sm bg-emerald-100 px-2.5 py-1 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50',
-  pending: 'inline-flex items-center gap-1.5 rounded-token-sm bg-transparent px-2.5 py-1 text-sm font-semibold text-slate-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+  current: 'inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-2.5 py-1 text-sm font-semibold text-blue-950 transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+  done: 'inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50',
+  pending: 'inline-flex items-center gap-1.5 rounded-md bg-transparent px-2.5 py-1 text-sm font-semibold text-slate-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 };
 
 const STEP_BADGE_STATE_TW: Record<StepState, string> = {
   current: 'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-blue-600 bg-blue-950 text-xs font-bold text-blue-600',
-  done: 'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-emerald-600 bg-emerald-600 text-xs font-bold text-blue-950',
+  done: 'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-blue-700 bg-blue-700 text-xs font-bold text-blue-950',
   pending: 'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-zinc-100 text-xs font-bold text-slate-600',
 };
 
 const CONNECTOR_STATE_TW: Record<'done' | 'pending', string> = {
-  done: 'size-1.5 shrink-0 rounded-full bg-emerald-600',
+  done: 'size-1.5 shrink-0 rounded-full bg-blue-700',
   pending: 'size-1.5 shrink-0 rounded-full bg-gray-200',
 };
 
-const PRIMARY_TW = 'inline-flex min-h-control items-center justify-center gap-1.5 rounded-token bg-blue-600 px-5 py-2 text-sm font-bold text-blue-950 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60';
-const PRIMARY_DISABLED_TW = 'inline-flex min-h-control cursor-not-allowed items-center justify-center gap-1.5 rounded-token bg-gray-200 px-5 py-2 text-sm font-bold text-slate-600 opacity-60';
-const SECONDARY_TW = 'inline-flex min-h-control items-center justify-center gap-1.5 rounded-token border border-gray-200 bg-zinc-100 px-4 py-2 text-sm font-bold text-slate-950 transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60';
+const PRIMARY_TW = 'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-blue-950 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60';
+const PRIMARY_DISABLED_TW = 'inline-flex min-h-10 cursor-not-allowed items-center justify-center gap-1.5 rounded-lg bg-gray-200 px-5 py-2 text-sm font-bold text-slate-600 opacity-60';
+const SECONDARY_TW = 'inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-zinc-100 px-4 py-2 text-sm font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60';
 
 const STEP_HEAD_TW = 'mb-6';
 const STEP_TITLE_TW = 'mb-2 text-2xl font-heading leading-tight text-slate-950';
 const STEP_SUB_TW = 'max-w-xl text-base leading-normal text-slate-600';
-const OPTIONS_TW = 'grid grid-cols-3 gap-3.5 ov-laptop:grid-cols-2 ov-mobile:grid-cols-1';
+const OPTIONS_TW = 'grid grid-cols-1 gap-3.5 sm:grid-cols-2 md:grid-cols-3';
 const OPTION_TEXT_TW = 'flex min-w-0 flex-col gap-0.5';
 const OPTION_LABEL_TW = 'block text-base font-bold text-slate-950';
 const OPTION_DESC_TW = 'text-sm leading-snug text-slate-600';
 const FIELD_LABEL_TW = 'mb-1.5 block text-sm font-bold text-slate-950';
 const INLINE_FIELD_LABEL_TW = 'mb-1.5 flex items-center gap-1.5 text-sm font-bold text-slate-950';
 const FIELD_HINT_TW = 'mt-1.5 text-xs text-slate-600';
-const INPUT_TW = 'w-full rounded-token-sm border border-gray-200 bg-zinc-100 px-3.5 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
-const TEXTAREA_TW = 'w-full resize-y rounded-token-sm border border-gray-200 bg-zinc-100 px-3.5 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
-const CODE_TEXTAREA_TW = 'w-full resize-y rounded-token-sm border border-gray-200 bg-zinc-100 px-3.5 py-2.5 font-mono text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
-const FILE_INPUT_TW = 'w-full rounded-token-sm border border-gray-200 bg-zinc-100 p-2 text-sm text-slate-950 disabled:cursor-not-allowed disabled:opacity-50';
+const INPUT_TW = 'w-full rounded-md border border-gray-200 bg-zinc-100 px-3.5 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
+const TEXTAREA_TW = 'w-full resize-y rounded-md border border-gray-200 bg-zinc-100 px-3.5 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
+const CODE_TEXTAREA_TW = 'w-full resize-y rounded-md border border-gray-200 bg-zinc-100 px-3.5 py-2.5 font-mono text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
+const FILE_INPUT_TW = 'w-full rounded-md border border-gray-200 bg-zinc-100 p-2 text-sm text-slate-950 disabled:cursor-not-allowed disabled:opacity-50';
 const CLONE_FIELD_TW = 'mt-4';
-const LAYOUT_UPLOAD_TW = 'mt-3.5 rounded-token-sm border border-gray-200 bg-zinc-200 p-3.5';
-const LAYOUT_PREVIEW_TW = 'mt-2.5 flex items-center gap-2.5 rounded-token-sm border border-gray-200 bg-zinc-100 p-2';
+const LAYOUT_UPLOAD_TW = 'mt-3.5 rounded-md border border-gray-200 bg-zinc-200 p-3.5';
+const LAYOUT_PREVIEW_TW = 'mt-2.5 flex items-center gap-2.5 rounded-md border border-gray-200 bg-zinc-100 p-2';
 const LAYOUT_PREVIEW_IMG_TW = 'h-14 w-20 rounded-md border border-gray-200 bg-zinc-200 object-cover';
 const LAYOUT_PREVIEW_META_TW = 'flex min-w-0 flex-1 flex-col gap-0.5';
 const LAYOUT_PREVIEW_NAME_TW = 'truncate text-xs text-slate-950';
 const LAYOUT_PREVIEW_SIZE_TW = 'text-xs text-slate-600';
 const NAMED_LABEL_TW = 'mt-3 block';
 const NAMED_LABEL_HINT_TW = 'mb-1 block text-xs text-slate-600';
-const NAMED_INPUT_TW = 'w-full rounded-token-sm border border-gray-200 bg-zinc-100 px-3 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
+const NAMED_INPUT_TW = 'w-full rounded-md border border-gray-200 bg-zinc-100 px-3 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
 const NAMED_HELP_TW = 'mt-1 block text-xs text-slate-600';
-const THEMES_TW = 'grid grid-cols-5 gap-3.5 ov-tablet:grid-cols-3 ov-mobile:grid-cols-2';
+const THEMES_TW = 'grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-5';
 const THEME_COLOR_TW = 'size-8 rounded-lg border border-gray-200';
 const THEME_LABEL_TW = 'text-sm font-semibold text-slate-950';
-const THEME_CHECK_TW = 'text-emerald-600';
+const THEME_CHECK_TW = 'text-blue-700';
 const DOMAIN_ROW_TW = 'flex items-center gap-2.5';
-const DOMAIN_INPUT_TW = 'min-w-0 flex-1 rounded-token-sm border border-gray-200 bg-zinc-100 px-3.5 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
+const DOMAIN_INPUT_TW = 'min-w-0 flex-1 rounded-md border border-gray-200 bg-zinc-100 px-3.5 py-2.5 text-sm text-slate-950 placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:opacity-50';
 const DOMAIN_HINT_TW = 'mt-2.5 text-xs text-slate-600';
 const PUBLISH_SUMMARY_TW = 'flex flex-col gap-2.5';
-const PUBLISH_ITEM_TW = 'flex items-center justify-between rounded-token-sm border border-gray-200 bg-zinc-100 p-3';
+const PUBLISH_ITEM_TW = 'flex items-center justify-between rounded-md border border-gray-200 bg-zinc-100 p-3';
 const PUBLISH_LABEL_TW = 'text-sm text-slate-600';
 const PUBLISH_VALUE_TW = 'text-sm font-semibold text-slate-950';
-const PUBLISH_NOTICE_TW = 'mt-4 flex items-start gap-2.5 rounded-token-sm border border-emerald-600 bg-emerald-100 p-4';
-const PUBLISH_NOTICE_ICON_TW = 'mt-0.5 shrink-0 text-emerald-600';
+const PUBLISH_NOTICE_TW = 'mt-4 flex items-start gap-2.5 rounded-md border border-blue-700 bg-blue-50 p-4';
+const PUBLISH_NOTICE_ICON_TW = 'mt-0.5 shrink-0 text-blue-700';
 const PUBLISH_NOTICE_TEXT_TW = 'text-sm leading-normal text-slate-950';
 const FORM_ERROR_TW = 'mt-3 text-sm text-red-600';
 const IMAGE_ERROR_TW = 'mt-1.5 text-xs text-red-600';
@@ -165,21 +166,21 @@ const IMAGE_ERROR_TW = 'mt-1.5 text-xs text-red-600';
 type OptionState = 'active' | 'idle' | 'disabled';
 
 const OPTION_STATE_TW: Record<OptionState, string> = {
-  active: 'flex min-h-20 items-center gap-3.5 rounded-token-sm border border-blue-600 bg-blue-50 p-5 text-left text-base text-slate-950 transition-colors',
-  idle: 'flex min-h-20 items-center gap-3.5 rounded-token-sm border border-gray-200 bg-zinc-100 p-5 text-left text-base text-slate-950 transition-colors hover:border-blue-600 hover:bg-blue-50',
-  disabled: 'flex min-h-20 cursor-not-allowed items-center gap-3.5 rounded-token-sm border border-gray-200 bg-zinc-100 p-5 text-left text-base text-slate-950 opacity-50',
+  active: 'flex min-h-20 items-center gap-3.5 rounded-md border border-blue-600 bg-blue-50 p-5 text-left text-base text-slate-950 transition-colors',
+  idle: 'flex min-h-20 items-center gap-3.5 rounded-md border border-gray-200 bg-zinc-100 p-5 text-left text-base text-slate-950 transition-colors hover:border-blue-600 hover:bg-blue-50',
+  disabled: 'flex min-h-20 cursor-not-allowed items-center gap-3.5 rounded-md border border-gray-200 bg-zinc-100 p-5 text-left text-base text-slate-950 opacity-50',
 };
 
 const OPTION_ICON_STATE_TW: Record<OptionState, string> = {
-  active: 'inline-flex size-11 shrink-0 items-center justify-center rounded-token-sm border border-blue-600 bg-blue-600 text-blue-950',
-  idle: 'inline-flex size-11 shrink-0 items-center justify-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600',
-  disabled: 'inline-flex size-11 shrink-0 items-center justify-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 opacity-50',
+  active: 'inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-blue-600 bg-blue-600 text-blue-950',
+  idle: 'inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-zinc-100 text-slate-600',
+  disabled: 'inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-zinc-100 text-slate-600 opacity-50',
 };
 
 const THEME_STATE_TW: Record<OptionState, string> = {
-  active: 'flex flex-col items-center gap-2 rounded-token-sm border-2 bg-blue-50 p-3 text-slate-950 transition-colors',
-  idle: 'flex flex-col items-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3 text-slate-950 transition-colors hover:border-blue-600',
-  disabled: 'flex cursor-not-allowed flex-col items-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3 text-slate-950 opacity-50 transition-colors',
+  active: 'flex flex-col items-center gap-2 rounded-md border-2 bg-blue-50 p-3 text-slate-950 transition-colors',
+  idle: 'flex flex-col items-center gap-2 rounded-md border border-gray-200 bg-zinc-100 p-3 text-slate-950 transition-colors hover:border-blue-600',
+  disabled: 'flex cursor-not-allowed flex-col items-center gap-2 rounded-md border border-gray-200 bg-zinc-100 p-3 text-slate-950 opacity-50 transition-colors',
 };
 
 /** A camada do wizard não tem utility no preset: vem do token legado de z-index. */
@@ -421,7 +422,7 @@ export default function WizardShell({
   const isFullscreen = mode === 'fullscreen';
 
   /**
-   * Portal para `document.body`: o workspace aplica `animation: vx-page-in ... both`
+   * Portal para `document.body`: o workspace aplica uma animação de entrada
    * em `.page-content > *`, e o `transform` resultante vira containing block de
    * `position: fixed`. Sem o portal o wizard fica preso ao cartão do workspace
    * (784x307 em vez do viewport inteiro) e a área das opções tem só ~94px.
@@ -772,12 +773,12 @@ function OrigemStep({
                 disabled={disabled}
               />
               <div className={LAYOUT_UPLOAD_TW}>
-                <label className={INLINE_FIELD_LABEL_TW} htmlFor="vx-wizard-layout-image">
+                <label className={INLINE_FIELD_LABEL_TW} htmlFor={LAYOUT_IMAGE_INPUT_ID}>
                   <ImageIcon size={14} aria-hidden="true" />
                   {value === 'image' ? 'Imagem do layout (obrigatória)' : 'Imagem de layout (opcional)'}
                 </label>
                 <input
-                  id="vx-wizard-layout-image"
+                  id={LAYOUT_IMAGE_INPUT_ID}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   aria-required={value === 'image'}

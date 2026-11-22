@@ -56,8 +56,8 @@ test("o Atendimento não usa classes componente vx-* nem ib-* no JSX", () => {
       if (name) assert.ok(declared.has(name), `o preset não declara ${name}`);
     }
   }
-  assert.match(track, /className="w-ib-track max-h-ib-track/);
-  assert.match(support, /className="w-ib-support max-h-ib-support/);
+  assert.ok(track.includes('className="w-full max-w-3xl max-h-dvh overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-5 pb-5 pt-0 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"'));
+  assert.ok(support.includes('className="w-full max-w-xl max-h-screen overflow-auto rounded-xl border border-gray-200 bg-zinc-100 px-4 pb-4 pt-0 text-slate-950 shadow-xl"'));
 });
 
 test("as utilities do Atendimento não usam arbitrários, hex, !important nem @apply no JSX", () => {
@@ -105,36 +105,36 @@ test("o preset expõe todos os tokens ib-* usados pelo Atendimento", () => {
   }
 });
 
-test("as utilities dos tokens ib-* estão aplicadas diretamente no JSX", () => {
+test("as utilities Tailwind padrão do Atendimento estão aplicadas diretamente no JSX", () => {
   for (const token of [
-    "max-h-ib-track",
-    "rounded-ib-modal",
-    "bg-zinc-100",
-    "px-ib-pad",
-    "pb-ib-pad",
-    "text-ib-title",
-    "font-ib",
-    "gap-ib-gap",
-    "my-ib-block",
-    "rounded-ib-entry",
-    "grid-cols-ib-track",
-    "gap-3.5",
-    "ib-narrow:grid-cols-1",
+    "max-h-dvh",
+    "rounded-2xl",
+    "bg-slate-50",
+    "px-5 pb-5",
+    "text-lg font-bold",
+    "font-semibold",
+    "gap-2",
+    "my-2",
+    "rounded-lg",
+    "grid-cols-1 gap-3.5 sm:grid-cols-2",
     "border-blue-600",
+    "dark:bg-slate-900",
+    "dark:border-slate-700",
+    "dark:text-slate-50",
   ]) {
     assert.ok(track.includes(token), `Track deve usar ${token}`);
   }
   for (const token of [
-    "max-h-ib-support",
-    "shadow-token-lg",
-    "rounded-ib-article",
+    "max-h-screen",
+    "shadow-xl",
+    "rounded-lg",
     "whitespace-pre-wrap",
     "bg-blue-50",
     "text-blue-800",
-    "grid-cols-ib-field",
-    "ib-mobile:grid-cols-2",
-    "ib-mobile:col-span-2",
-    "ib-mobile:justify-self-start",
+    "grid-cols-3",
+    "max-sm:grid-cols-2",
+    "max-sm:col-span-2",
+    "max-sm:justify-self-start",
   ]) {
     assert.ok(support.includes(token), `Apoio deve usar ${token}`);
   }

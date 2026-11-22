@@ -59,8 +59,8 @@ test("o diálogo de IA usa só utilities, sem remendos", () => {
     assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
   }
   for (const utility of [
-    "fixed inset-0 z-ib-dialog grid animate-vx-scrim-in place-items-center bg-overlay",
-    "w-ib-dialog max-w-xl max-h-ib-dialog flex-col animate-vx-in overflow-hidden rounded-token-lg",
+    "fixed inset-0 z-50 grid animate-dialog-scrim place-items-center bg-overlay",
+    "w-full max-w-xl max-h-full flex-col animate-dialog-in overflow-hidden rounded-token-lg",
     "flex flex-none items-center gap-3 pr-10",
     "min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain",
     "inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2",

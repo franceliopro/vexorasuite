@@ -10,6 +10,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const windowSource = read("src/app/sites/site-editor-window.tsx");
 const shell = read("src/app/sites/editor/editor-shell.tsx");
 const inspector = read("src/app/sites/editor/inspector.tsx");
+const contracts = read("src/app/sites/editor/contracts.ts");
 const layerTree = read("src/app/sites/editor/layer-tree.tsx");
 const canvas = read("src/app/sites/editor/canvas.tsx");
 const css = read("src/app/sites/editor/editor.css");
@@ -43,7 +44,8 @@ test("AI patch feedback is visible outside the collapsed settings", () => {
 
   assert.ok(windowSource.includes("aiFeedback={aiMessage}"));
   assert.ok(inspector.includes("setAiPanelOpen(true)"));
-  assert.ok(inspector.includes("vx-inspector-ai-feedback"));
+  assert.ok(contracts.includes("INSPECTOR_AI_FEEDBACK_TEST_ID = 'vx-inspector-ai-feedback'"));
+  assert.ok(inspector.includes("data-testid={INSPECTOR_AI_FEEDBACK_TEST_ID}"));
   assert.ok(inspector.includes("patch; revise e salve"));
 });
 

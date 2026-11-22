@@ -17,21 +17,25 @@ import { DND_MIME_BLOCK, DND_MIME_NODE, isDragPayload, type DragPayload } from '
 import type { DropPosition } from './site-tree';
 import './editor.css';
 
-const CANVAS = 'flex h-full w-full min-h-0 flex-col overflow-hidden bg-surface-2 text-ink';
-const CANVAS_EMPTY = 'flex flex-1 flex-col items-center justify-center gap-2.5 text-center text-sm text-ink-secondary';
-const CANVAS_TOOLBAR = 'flex flex-none items-center justify-between gap-2 border-b border-line bg-surface px-2.5 py-1.5 text-ink';
-const CANVAS_DEVICE_LABEL = 'text-body font-bold text-ink-secondary';
+const CANVAS = 'flex h-full w-full min-h-0 flex-col overflow-hidden bg-slate-800 text-slate-50';
+const CANVAS_EMPTY = 'flex flex-1 flex-col items-center justify-center gap-2.5 text-center text-sm text-slate-200';
+const CANVAS_TOOLBAR = 'flex flex-none items-center justify-between gap-2 border-b border-slate-700 bg-slate-800 px-2.5 py-1.5 text-slate-50';
+const CANVAS_DEVICE_LABEL = 'text-sm font-bold text-slate-200';
 const CANVAS_DEVICE_BUTTONS = 'flex gap-1';
-const CANVAS_DEVICE_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm bg-transparent text-ink-secondary hover:bg-hover';
-const CANVAS_DEVICE_BUTTON_ACTIVE = 'bg-blue-50 text-blue-600';
+const CANVAS_DEVICE_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-200 hover:bg-slate-700';
+const CANVAS_DEVICE_BUTTON_ACTIVE = 'inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-700 text-slate-50 hover:bg-slate-700';
+const CANVAS_DEVICE_BUTTON_CLASS = {
+  active: CANVAS_DEVICE_BUTTON_ACTIVE,
+  idle: CANVAS_DEVICE_BUTTON,
+} as const;
 const CANVAS_DEVICE_ICON = 'inline-block h-3.5 w-3.5';
-const CANVAS_FULLSCREEN_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm bg-transparent text-ink-secondary hover:bg-hover';
-const CANVAS_FRAME_WRAP = 'relative flex min-h-0 flex-1 justify-center overflow-auto bg-surface-2 p-3';
-const CANVAS_FRAME = 'block h-full w-full min-h-90 rounded-square border-0 bg-surface-page shadow-token';
+const CANVAS_FULLSCREEN_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-200 hover:bg-slate-700';
+const CANVAS_FRAME_WRAP = 'relative flex min-h-0 flex-1 justify-center overflow-auto bg-slate-800 p-3';
+const CANVAS_FRAME = 'block h-full w-full rounded-lg border-0 bg-slate-900 shadow-lg';
 const CANVAS_OVERLAY = 'pointer-events-none absolute inset-0 z-10';
-const CANVAS_PORTAL = 'fixed inset-0 z-wizard h-dvh w-screen bg-surface-page text-ink';
-const CANVAS_PORTAL_FRAME_WRAP = 'relative flex min-h-0 flex-1 justify-center overflow-auto bg-surface-2';
-const CANVAS_PORTAL_FRAME = 'block h-full w-full min-h-90 border-0 bg-surface-page shadow-token';
+const CANVAS_PORTAL = 'fixed inset-0 z-50 h-dvh w-screen bg-slate-900 text-slate-50';
+const CANVAS_PORTAL_FRAME_WRAP = 'relative flex min-h-0 flex-1 justify-center overflow-auto bg-slate-800';
+const CANVAS_PORTAL_FRAME = 'block h-full w-full border-0 bg-slate-900 shadow-lg';
 
 interface CanvasProps {
   doc: SiteDocument;
@@ -194,7 +198,7 @@ export function Canvas({
           <button
             key={d}
             type="button"
-            className={`${CANVAS_DEVICE_BUTTON} ${d === device ? CANVAS_DEVICE_BUTTON_ACTIVE : ''}`}
+            className={CANVAS_DEVICE_BUTTON_CLASS[d === device ? 'active' : 'idle']}
             aria-label={`Visualizar em ${d === 'desktop' ? 'desktop' : d === 'tablet' ? 'tablet' : 'celular'}`}
             onClick={() => onDeviceChange(d as 'desktop' | 'tablet' | 'mobile')}
           >
@@ -394,7 +398,7 @@ function buildIframeHtml(doc: SiteDocument): string {
         if (!el) return;
         var rect = el.getBoundingClientRect();
         indicator = document.createElement('div');
-        indicator.setAttribute('data-vx-dnd-indicator', 'true');
+        indicator.setAttribute('data-drop-indicator', 'true');
         indicator.style.position = 'absolute';
         indicator.style.zIndex = '2147483647';
         indicator.style.pointerEvents = 'none';
@@ -405,7 +409,7 @@ function buildIframeHtml(doc: SiteDocument): string {
           indicator.style.width = rect.width + 'px';
           indicator.style.height = rect.height + 'px';
           indicator.style.border = '2px dashed var(--primary, #0e7a5c)';
-          indicator.style.background = 'color-mix(in srgb, var(--primary, #0e7a5c) 12%, transparent)';
+          indicator.style.background = 'var(--primary-soft, rgba(14, 122, 92, 0.12))';
         } else {
           var top = position === 'before' ? rect.top : rect.bottom - 3;
           indicator.style.left = (rect.left + window.scrollX) + 'px';

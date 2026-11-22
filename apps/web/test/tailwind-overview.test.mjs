@@ -86,22 +86,20 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
   for (const utility of [
     "grid-cols-2", "col-span-2", "ov-laptop:col-span-1", "grid-cols-1",
     "grid-cols-3", "xl:grid-cols-6", "sm:grid-cols-2",
-    "gap-ov-section", "ov-laptop:grid-cols-1", "ov-tablet:grid-cols-1",
-    "ov-mobile:grid-cols-1", "grid-cols-ov-hero-body", "grid-cols-ov-team-row",
-    "grid-cols-ov-activity-row", "grid-cols-ov-topics", "grid-cols-ov-step",
-    "grid-cols-ov-calendar", "grid-cols-ov-dock", "gap-x-ov-dock-gap",
-    "pb-ov-dock-pb", "min-h-ov-dock-btn", "min-h-ov", "h-ov-ring",
-    "w-ov-ring-tile", "max-w-ov-sub", "max-w-ov-heading", "text-ov-hero",
-    "text-ov-kpi", "text-ov-clock", "text-ov-weather", "text-ov-onboarding",
-    "text-ov-micro", "text-ov-label", "text-ov-sub", "tracking-ov-wider",
-    "stroke-ov", "transition-stroke", "duration-ring", "transition-control",
-    "duration-control", "transition-fill", "duration-bar", "ease-token",
-    "rounded-token-lg", "rounded-token-xl", "border-gray-200", "bg-zinc-100",
-    "bg-zinc-200", "bg-zinc-300", "bg-blue-50", "bg-blue-600", "bg-indigo-950",
-    "text-blue-900", "text-indigo-400", "bg-emerald-600", "bg-amber-600",
-    "bg-red-100", "text-red-600", "shadow-vx-brand", "hover:bg-indigo-900",
+    "gap-5", "ov-laptop:grid-cols-1", "sm:grid-cols-1",
+    "lg:grid-cols-2", "gap-4", "gap-3", "md:grid-cols-2",
+    "sm:grid-cols-2", "grid-cols-3", "gap-x-8",
+    "min-h-14", "min-h-24", "h-20",
+    "w-20", "max-w-md", "max-w-lg", "text-2xl",
+    "text-sm", "text-xs", "text-4xl", "text-base", "text-slate-950", "tracking-widest",
+    "stroke-blue-600", "transition-all", "duration-300", "transition-colors",
+    "duration-200", "ease-out", "transition-colors", "duration-200",
+    "rounded-2xl", "rounded-lg", "border-gray-200", "bg-zinc-100",
+    "bg-zinc-200", "bg-zinc-300", "bg-blue-50", "bg-blue-600", "bg-blue-700",
+    "text-blue-900", "text-slate-600", "bg-amber-600",
+    "bg-red-100", "text-red-600", "shadow-md", "hover:bg-zinc-200", "max-md:bg-zinc-50",
     "disabled:cursor-not-allowed", "disabled:opacity-50",
-    "ov-tablet:h-ov-ring-sm", "ov-tablet:w-ov-ring-photo-sm",
+    "md:h-16", "md:w-16", "h-14", "w-14",
   ]) {
     assert.ok(components.includes(utility) || page.includes(utility), `a Visão geral deve usar ${utility}`);
   }
@@ -113,20 +111,20 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(theme, /@custom-variant ov-laptop \(@media \(max-width: 900px\)\);/);
 
   // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
-  assert.match(overview, /<section className="grid grid-cols-2 gap-ov-section ov-laptop:grid-cols-1"/);
+  assert.match(overview, /<section className="grid grid-cols-2 gap-5 ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
-  assert.match(overview, /col-span-2 grid gap-ov-section[^>]*data-testid="ov-hero"/);
+  assert.match(overview, /col-span-2 grid gap-5[^>]*data-testid="ov-hero"/);
   // O CTA do alerta não estica com a coluna: largura só do conteúdo.
   assert.match(overview, /inline-flex min-h-9[^"]*justify-self-start" onClick=\{onOpenQueue\}>Abrir a fila/);
-  assert.match(overview, /col-span-2 grid grid-cols-3 gap-ov-section ov-laptop:col-span-1 ov-mobile:grid-cols-1 xl:grid-cols-6/);
+  assert.match(overview, /col-span-2 grid grid-cols-3 gap-5 ov-laptop:col-span-1 sm:grid-cols-1 xl:grid-cols-6/);
 
   // Equipe/Atividade e Gráfico/Tópicos são quatro colunas irmãs de 50%.
-  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-token-lg[^"]*">/g) || [];
+  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-2xl[^"]*">/g) || [];
   assert.equal(colunasIrma.length, 4, "as quatro seções devem dividir a grade 50/50");
-  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-token-lg/);
+  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
 
-  // Widgets em 3 colunas iguais; onboarding em 2 passos por linha no tablet.
-  assert.match(widgets, /<section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1"/);
+  // Widgets em colunas proporcionais (3/5/4) e uma coluna no mobile; onboarding em 2 passos.
+  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 max-md:grid-cols-1"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
   // Nenhuma das grades antigas que causavam 4+2 ou colunas estreitas.
@@ -146,7 +144,7 @@ test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
   for (const token of [
     "text-slate-950", "text-slate-600", "text-slate-400",
     "bg-zinc-100", "bg-zinc-200", "bg-zinc-300", "border-gray-200",
-    "bg-blue-50", "bg-blue-600", "bg-indigo-950", "bg-emerald-600",
+    "bg-blue-50", "bg-blue-600", "bg-blue-700", "max-md:bg-zinc-50", "bg-amber-600",
     "bg-amber-600", "bg-red-100",
   ]) {
     assert.ok(escopo.includes(token), `a Visão geral deve usar ${token}`);
@@ -157,7 +155,7 @@ test("nenhuma classe da Visão geral termina em -card nem herda .content-card", 
   const escopo = `${components}\n${page}`;
   assert.doesNotMatch(escopo, /\bov-[a-z0-9-]*-card\b/);
   assert.doesNotMatch(escopo, /content-card\s+ov-/);
-  assert.match(page, /fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock/);
+  assert.match(page, /fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1/);
 });
 
 test("o preset expõe as escalas e os derivados da Visão geral", () => {

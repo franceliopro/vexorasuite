@@ -155,14 +155,14 @@ test("as quatro telas resolvem literais de constantes, mapas e helpers", () => {
   assert.ok(index.origins.classes.includes("inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm"));
   assert.ok(index.password.classes.includes("grid min-h-dvh place-items-center bg-zinc-50 p-5"));
   assert.ok(index.password.classes.includes("bg-linear-to-br from-blue-100 via-blue-600 to-blue-800"));
-  assert.ok(index.page.classes.includes("grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand"));
-  assert.ok(index.page.classes.includes("max-w-logo max-h-logo object-contain"));
+  assert.ok(index.page.classes.includes("grid h-10 w-10 flex-none place-items-center rounded-lg bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md"));
+  assert.ok(index.page.classes.includes("max-h-9 max-w-9 object-contain"));
 
   const variants = [
     "default", "round", "square", "logo", "logoRound", "logoSquare",
   ];
   assert.deepEqual([...index.page.maps.get("BRAND_MARK_TW")?.keys() || []], variants);
-  for (const token of ["rounded-full", "rounded-square", "bg-none", "shadow-none"]) {
+  for (const token of ["rounded-full", "rounded-md", "bg-transparent", "shadow-none"]) {
     assert.ok(hasToken("page", token), `o helper da marca deve resolver ${token}`);
   }
   assert.ok(index.page.helpers.has("brandMarkClass"), "o helper brandMarkClass deve ser detectado");
@@ -247,15 +247,17 @@ test("as utilities centrais das quatro telas permanecem literais", () => {
       "m-0 rounded-token-sm border border-red-600/40 bg-red-100 px-3 py-2.5 text-small leading-relaxed text-red-600",
     ],
     page: [
-      "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
-      "grid h-control w-control flex-none place-items-center rounded-brand rounded-full bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
-      "grid h-control w-control flex-none place-items-center rounded-brand rounded-square bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
-      "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
+      "grid h-10 w-10 flex-none place-items-center rounded-lg bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md",
+      "grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md",
+      "grid h-10 w-10 flex-none place-items-center rounded-md bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md",
+      "grid h-10 w-10 flex-none place-items-center rounded-lg bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
+      "grid h-10 w-10 flex-none place-items-center rounded-full bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
+      "grid h-10 w-10 flex-none place-items-center rounded-md bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
     ],
     overview: [
-      "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-token-sm",
+      "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-600 px-4 text-xs font-bold text-blue-900 shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 justify-self-start",
       "justify-self-start",
-      "inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700",
+      "inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700",
     ],
   };
   for (const [screen, utilities] of Object.entries(expected)) {

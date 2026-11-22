@@ -323,32 +323,14 @@ output {
     @apply text-brand-badge font-extrabold tracking-brand-badge text-indigo-400;
   }
 
-  /* Barra fina e chapada da navegação, nas cores do tema da sidebar. */
+  /* A navegação rola, mas não mostra barra: apenas esta região é sem barra. */
   .side-nav {
     @apply grid min-h-0 flex-1 auto-cols-auto content-start gap-0.5 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2;
-    scrollbar-color: transparent transparent;
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
 
   .side-nav::-webkit-scrollbar {
-    width: 5px;
-  }
-
-  .side-nav::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--sb-thumb) 25%, transparent);
-    border-radius: 99px;
-  }
-
-  .side-nav::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--sb-thumb) 45%, transparent);
-  }
-
-  .side-nav::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .side-nav:hover::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--sb-thumb) 30%, transparent);
+    display: none;
   }
 
   .nav-group {

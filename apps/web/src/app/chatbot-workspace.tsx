@@ -115,7 +115,7 @@ const canvasCommandPrimary = "min-h-flow-command-primary-h rounded-flow-command-
 const canvasMore = "relative";
 const canvasMoreSummary = "flex min-h-flow-command-h items-center gap-1.5 rounded-flow-more border border-line bg-surface px-flow-command-x text-flow-help font-bold text-ink";
 const canvasMoreActions = "absolute left-0 top-flow-more-actions z-flow-command-tip grid min-w-flow-more gap-1 rounded-flow-more-actions border border-line bg-surface p-1.5 shadow-token-lg";
-const canvasShell = "relative grid h-flow-shell w-full min-w-0 grid-cols-flow-shell rounded-token border border-line bg-surface ov-tablet:h-auto ov-tablet:grid-cols-1";
+const canvasShell = "relative grid h-flow-shell w-full min-w-0 grid-cols-flow-shell rounded-token border border-line bg-surface ov-laptop:h-auto ov-laptop:grid-cols-1";
 const canvasShellLeft = "grid-cols-flow-shell-left";
 const canvasShellRight = "grid-cols-flow-shell-right";
 const canvasShellBoth = "grid-cols-flow-shell-both";
@@ -135,7 +135,7 @@ const canvasPalette = "grid min-h-0 gap-1.5 overflow-y-auto pr-0.5";
 const canvasPaletteGrid = "grid gap-1.5";
 const canvasPaletteButton = "flex min-h-flow-command-h w-full items-center gap-2 rounded-flow-symbol border border-line bg-surface px-2.5 text-flow-help font-bold text-ink transition-control hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800";
 const canvasAutoHideButton = "flex min-h-9 w-full items-center justify-center rounded-token-sm border border-line bg-surface text-flow-help font-bold text-ink-secondary";
-const canvasStage = "relative isolate flex min-w-0 flex-col overflow-hidden rounded-flow-stage bg-surface ov-tablet:h-flow-stage-mobile";
+const canvasStage = "relative isolate flex min-w-0 flex-col overflow-hidden rounded-flow-stage bg-surface ov-laptop:h-flow-stage-mobile";
 const canvasStageBar = "flex min-h-flow-stage-bar flex-wrap items-center justify-between gap-2 border-b border-line px-flow-stage-bar-x py-flow-stage-bar-y text-flow-stage";
 const canvasStageBarGroup = "flex flex-wrap items-center gap-1.5";
 const canvasStageButton = "inline-flex min-h-7 items-center gap-2 rounded-flow-field-tip border border-line bg-surface-2 px-2.5 text-flow-stage font-bold text-ink-secondary transition-control hover:border-line-strong hover:bg-hover hover:text-ink";
@@ -173,7 +173,7 @@ const canvasNodeSummary = "m-0.5 truncate text-flow-node-summary text-ink-second
 const canvasOutputs = "grid gap-1 border-t border-line px-2.5 py-2.5";
 const canvasOutputButton = "relative flex min-h-6 w-full items-center justify-start gap-2 rounded-flow-output border border-dashed border-line-strong bg-surface-2 px-2.5 pr-flow-port-offset text-left text-flow-output font-bold text-ink transition-control hover:border-blue-600 hover:bg-blue-50";
 const canvasOutputConnecting = "border-solid border-blue-600 bg-blue-50 text-blue-800";
-const canvasOutputPort = "absolute right-[-8px] top-1/2 z-flow-quick-actions h-3.5 w-3.5 -translate-y-1/2 rounded-full border-2 border-blue-600 bg-surface";
+const canvasOutputPort = "absolute -right-2 top-1/2 z-flow-quick-actions h-3.5 w-3.5 -translate-y-1/2 rounded-full border-2 border-blue-600 bg-surface";
 const canvasNodeTarget = "relative w-full min-h-6 border-0 border-t border-line text-flow-node-target font-extrabold uppercase text-ink-secondary transition-control hover:bg-hover hover:text-ink";
 const canvasStartNode = "absolute w-flow-start rounded-flow-node border border-line-strong bg-surface p-2.5 shadow-flow-start";
 const canvasTriggerHeading = "flex items-center gap-2 text-ink";
@@ -194,11 +194,11 @@ const canvasInspectorActionActive = "border-blue-600 bg-blue-50 text-blue-800";
 const canvasInspectorBody = "grid min-h-0 flex-1 auto-rows-start content-start gap-3.5 overflow-y-auto p-4";
 const canvasInspectorLabel = "grid gap-1.5 text-flow-command font-bold text-ink-secondary";
 const canvasFieldHelp = "my-1 text-flow-help text-ink-secondary";
-const aiDialogBackdropTw = "fixed inset-0 z-ib-dialog grid animate-vx-scrim-in place-items-center bg-overlay p-vx-dialog-pad backdrop-blur-sm";
-const aiDialogTw = "relative flex z-ib-dialog-inner w-ib-dialog max-w-xl max-h-ib-dialog flex-col animate-vx-in overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg";
+const aiDialogBackdropTw = "fixed inset-0 z-50 grid animate-dialog-scrim place-items-center bg-overlay p-4 backdrop-blur-sm";
+const aiDialogTw = "relative flex z-10 w-full max-w-xl max-h-full flex-col animate-dialog-in overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg";
 const aiDialogHeadingTw = "flex flex-none items-center gap-3 pr-10";
 const aiDialogIconTw = "grid size-9 flex-none place-items-center rounded-token-sm bg-blue-50 text-blue-800";
-const aiDialogCloseTw = "absolute right-3 top-3 z-ib-dialog-inner grid size-9 place-items-center rounded-token-sm border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink disabled:opacity-50";
+const aiDialogCloseTw = "absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-token-sm border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink disabled:opacity-50";
 const aiDialogBodyTw = "min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain";
 const aiRequestTw = "grid gap-2 text-body font-bold text-ink";
 const aiRequestHeadTw = "flex flex-wrap items-center justify-between gap-3";
@@ -232,39 +232,39 @@ const inspectorChannelGlyphTw = "grid size-9 shrink-0 place-items-center rounded
 const inspectorChannelCopyTw = "grid min-w-0 gap-px text-small font-semibold text-ink";
 const inspectorChannelMetaTw = "text-catalog-metric font-normal text-ink-secondary";
 const inspectorTransitionTw = "grid gap-2 rounded-token border border-line bg-surface p-3";
-const inspectorSimulatorOverlayTw = "fixed inset-0 z-flow-fullscreen grid animate-vx-scrim-in place-items-center bg-overlay p-vx-dialog-pad backdrop-blur-sm";
+const inspectorSimulatorOverlayTw = "fixed inset-0 z-flow-fullscreen grid animate-dialog-scrim place-items-center bg-overlay p-4 backdrop-blur-sm";
 
 /* Configurações da página pública do bot: utilities TW com tokens do preset. */
 const publicSettingsTw = "grid gap-2.5 rounded-token border border-line bg-surface-2 p-3";
-const publicSettingsTitleTw = "m-0 text-ib-input font-extrabold tracking-tight text-ink";
-const publicNoteTw = "m-0 text-ib-caption leading-relaxed text-ink-secondary";
-const publicToggleTw = "inline-flex w-max min-h-ib-control items-center gap-2.5 rounded-full border border-line bg-surface px-3 text-ib-input font-bold text-ink";
+const publicSettingsTitleTw = "m-0 text-xs font-extrabold tracking-tight text-ink";
+const publicNoteTw = "m-0 text-xs leading-relaxed text-ink-secondary";
+const publicToggleTw = "inline-flex w-max min-h-9 items-center gap-2.5 rounded-full border border-line bg-surface px-3 text-xs font-bold text-ink";
 const publicToggleInputTw = "size-4 min-h-4 flex-none accent-blue-600";
 const publicLinkTw = "grid gap-1.5";
-const publicLinkCodeTw = "block break-all select-all rounded-ib-panel border border-line bg-surface p-2.5 text-ib-time text-ink-secondary";
+const publicLinkCodeTw = "block break-all select-all rounded-xl border border-line bg-surface p-2.5 text-xs text-ink-secondary";
 const publicActionsTw = "flex flex-wrap gap-2";
 const publicReservedTw = "mt-3.5 grid gap-2.5 rounded-token-lg border border-dashed border-blue-600 bg-blue-50 p-3.5";
 const publicReservedHeadTw = "flex flex-wrap items-center justify-between gap-3";
 const publicSectionLabelTw = "flex items-center gap-2 pt-0.5 text-2xs font-extrabold uppercase tracking-widest text-ink-secondary after:h-px after:flex-1 after:bg-line";
 const publicReservedTagTw = "inline-flex flex-none items-center rounded-full border border-amber-300 bg-warning-soft px-2.5 py-0.5 text-2xs font-extrabold uppercase tracking-widest text-amber-800";
-const publicReservedCodeTw = "block break-all rounded-token border border-line bg-surface-2 p-2.5 text-ib-input text-brand";
+const publicReservedCodeTw = "block break-all rounded-token border border-line bg-surface-2 p-2.5 text-xs text-brand";
 const publicReservedFootTw = "flex flex-wrap items-end justify-between gap-3";
-const publicReservedFootSmallTw = "flex-1 text-ib-micro leading-relaxed text-ink-secondary";
+const publicReservedFootSmallTw = "flex-1 text-xs leading-relaxed text-ink-secondary";
 const publicInlineCodeTw = "rounded-square border border-line bg-surface-2 px-1 py-px text-2xs";
-const publicThemeTw = "mt-3 grid gap-2.5 rounded-ib-panel border border-line p-2.5";
-const publicThemeLegendTw = "px-1.5 text-ib-label font-extrabold text-ink-secondary";
+const publicThemeTw = "mt-3 grid gap-2.5 rounded-xl border border-line p-2.5";
+const publicThemeLegendTw = "px-1.5 text-xs uppercase tracking-widest font-extrabold text-ink-secondary";
 const publicThemeGridTw = "flex flex-wrap gap-2";
 const publicThemeRowTw = "flex flex-wrap gap-3";
 const publicColorTw = "w-16 min-h-9 flex-none p-0.5";
-const publicSwatchCreamTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-stone-300 bg-stone-100 text-2xs font-bold text-stone-900 transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicSwatchDarkTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-zinc-700 bg-zinc-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicSwatchWhatsappTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-teal-600 bg-linear-to-br from-teal-800 to-stone-100 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicSwatchDefaultTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-slate-800 bg-slate-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicSwatchSolidTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-slate-700 bg-slate-900 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicSwatchGradientTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-slate-700 bg-linear-to-br from-blue-700 to-slate-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicSwatchImageTw = "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2 border-slate-700 bg-linear-to-br from-sky-900 to-slate-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
-const publicWidgetTw = "grid gap-2 rounded-ib-panel border border-dashed border-line-strong bg-surface-2 p-3";
-const publicWidgetCodeTw = "block overflow-x-auto whitespace-nowrap rounded-token-sm border border-line bg-slate-950 p-2.5 text-ib-micro leading-relaxed text-slate-200";
+const publicSwatchCreamTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-stone-300 bg-stone-100 text-2xs font-bold text-stone-900 transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicSwatchDarkTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-zinc-700 bg-zinc-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicSwatchWhatsappTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-teal-600 bg-linear-to-br from-teal-800 to-stone-100 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicSwatchDefaultTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-slate-800 bg-slate-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicSwatchSolidTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-slate-700 bg-slate-900 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicSwatchGradientTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-slate-700 bg-linear-to-br from-blue-700 to-slate-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicSwatchImageTw = "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2 border-slate-700 bg-linear-to-br from-sky-900 to-slate-950 text-2xs font-bold text-white transition-transform hover:-translate-y-px aria-pressed:border-blue-600 aria-pressed:shadow-ring";
+const publicWidgetTw = "grid gap-2 rounded-xl border border-dashed border-line-strong bg-surface-2 p-3";
+const publicWidgetCodeTw = "block overflow-x-auto whitespace-nowrap rounded-token-sm border border-line bg-slate-950 p-2.5 text-xs leading-relaxed text-slate-200";
 
 /* Biblioteca de fluxos salvos: utilities TW com tokens do preset. */
 const flowLibraryTw = "grid min-w-0 gap-3 rounded-token-lg border border-line bg-surface-2 p-pad shadow-none";
@@ -751,7 +751,7 @@ function dictateAiRequest(){
     <button type="button" className={canvasCommandButton} aria-expanded={helpOpen} aria-label="Como usar os fluxos" onClick={()=>setHelpOpen(v=>!v)}><HelpCircle size={19}/>Como usar</button>
    </div>
   </details><input ref={importInputRef} type="file" accept="application/json,.json" style={{display:"none"}} aria-hidden="true" tabIndex={-1} onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void importFlowFile(file);e.currentTarget.value="";}}/><button type="button" className={canvasCommandButton} onClick={()=>setLeftCollapsed(v=>!v)} data-tip="Elementos" aria-label="Mostrar ou ocultar elementos"><PanelLeft size={19}/></button><button type="button" className={canvasCommandButton} onClick={()=>{setStudioPanel("test");setEditorOpen(true);restartSimulation()}} data-tip="Testar fluxo" aria-label="Testar o fluxo agora"><Play size={19}/></button><button type="button" className={canvasCommandButton} onClick={autoArrange} data-tip="Organizar e enquadrar blocos" aria-label="Organizar os blocos automaticamente"><Wand2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={()=>{setStudioPanel("nodes");setEditorOpen(true);setRightCollapsed(false);requestAnimationFrame(()=>requestAnimationFrame(()=>{document.querySelector("[data-flow-public-page]")?.scrollIntoView({behavior:"smooth",block:"center"})}));}} data-tip="Página pública" aria-label="Página pública do robô"><ExternalLink size={19}/></button><button type="button" className={canvasCommandButton} onClick={()=>void toggleFullScreen()} data-tip={fullScreen?"Sair da tela cheia":"Tela cheia"} aria-label={fullScreen?"Sair da tela cheia":"Tela cheia"}>{fullScreen?<Minimize2 size={19}/>:<Maximize2 size={19}/>}</button><button type="button" className={`${canvasCommandButton} ${canvasCommandPrimary}`} onClick={()=>void save()} disabled={savingRemote} data-tip="Salvar — guarda o rascunho (nada vai para o ar)" aria-label="Salvar"><Save size={20}/></button><button type="button" disabled={runtimeBusy||savingRemote} onClick={()=>void runtimeAction("publish")} title="Congela o rascunho como revisão imutável e coloca o fluxo no ar">{runtimeBusy?"Publicando…":"Publicar fluxo"}</button>{runtime.active&&<button type="button" disabled={runtimeBusy} onClick={()=>void runtimeAction("stop")}>Pausar motor</button>}</div>
- <div className={`${canvasShell} ${leftCollapsed&&rightCollapsed?canvasShellBoth:leftCollapsed?canvasShellLeft:rightCollapsed||!editorOpen?canvasShellRight:""}`} data-left-collapsed={leftCollapsed?"true":undefined} data-right-collapsed={rightCollapsed?"true":undefined} data-auto-hide={autoHidePanels?"true":undefined} data-inspector-empty={!editorOpen?"true":undefined} style={{"--vx-flow-inspector-width":inspectorWidth+"px"} as CSSProperties}>
+ <div className={`${canvasShell} ${leftCollapsed&&rightCollapsed?canvasShellBoth:leftCollapsed?canvasShellLeft:rightCollapsed||!editorOpen?canvasShellRight:""}`} data-left-collapsed={leftCollapsed?"true":undefined} data-right-collapsed={rightCollapsed?"true":undefined} data-auto-hide={autoHidePanels?"true":undefined} data-inspector-empty={!editorOpen?"true":undefined} style={{"--inspector-width":inspectorWidth+"px"} as CSSProperties}>
  <aside className={`${canvasPanel} ${canvasLibrary} ${leftCollapsed?canvasPanelCollapsed:""}`}><button type="button" className={`${canvasPanelHandle} ${canvasLibraryHandle} ${leftCollapsed?canvasHandleCollapsed:""}`} data-flow-panel-handle aria-label={leftCollapsed?"Exibir elementos":"Ocultar elementos"} onClick={()=>setLeftCollapsed(v=>!v)}>{leftCollapsed?<ChevronRight size={16} aria-hidden="true"/>:<ChevronLeft size={16} aria-hidden="true"/>}</button><div className={`${canvasPanelTitle} ${leftCollapsed?"hidden":""}`}><strong className={canvasPanelTitleStrong}>Elementos</strong><small className={canvasPanelTitleSmall}>Adicione e conecte blocos</small></div><input className={`${canvasSearch} ${leftCollapsed?"hidden":""}`} aria-label="Buscar elemento" placeholder="Buscar elemento..." value={librarySearch} onChange={e=>setLibrarySearch(e.target.value)}/><div className={`${canvasPalette} ${leftCollapsed?"hidden":""}`}><details open><summary>Departamentos</summary><div className={canvasPaletteGrid}><button type="button" className={canvasPaletteButton} onClick={()=>add("department.route","Departamento",{targetMode:"DEPARTMENT"})}>Departamento</button><button type="button" className={canvasPaletteButton} onClick={()=>add("department.route","Financeiro",{targetMode:"DEPARTMENT",departmentCategory:"FINANCE"})}>Financeiro</button><button type="button" className={canvasPaletteButton} onClick={()=>add("department.route","Suporte",{targetMode:"DEPARTMENT",departmentCategory:"SUPPORT"})}>Suporte</button></div>{destinations.departments.filter(d=>d.name.toLowerCase().includes(librarySearch.toLowerCase())).map(d=><button type="button" className={canvasPaletteButton} key={d.id} onClick={()=>add("department.route",d.name,{targetMode:"DEPARTMENT",departmentKey:d.key})}>{d.name}</button>)}</details><details><summary>Atendentes</summary>{destinations.agents.filter(a=>a.name.toLowerCase().includes(librarySearch.toLowerCase())).map(a=><button type="button" className={canvasPaletteButton} key={a.id} onClick={()=>add("human.handoff",a.name,{targetMode:"PERSON",userId:a.id})}>{a.name}</button>)}</details><details><summary>Agentes de IA</summary>{aiAgents.filter(a=>a.enabled&&a.name.toLowerCase().includes(librarySearch.toLowerCase())).map(a=><button type="button" className={canvasPaletteButton} key={a.id} onClick={()=>add("agent",a.name,{agentId:a.id})}>{a.name}</button>)}</details>{palette.map(category=>{const items=category.items.filter(([kind,label])=>executable.has(kind)&&(label.toLowerCase().includes(librarySearch.toLowerCase())||category.group.toLowerCase().includes(librarySearch.toLowerCase())));return items.length?<section key={category.group}><h3>{category.group}</h3><div className={canvasPaletteGrid}>{items.map(([kind,label])=><button key={kind} type="button" className={canvasPaletteButton} onClick={()=>add(kind,label)} title={"Adicionar "+label}><Plus size={12}/>{label}</button>)}</div></section>:null})}</div><button type="button" className={`${canvasAutoHideButton} ${leftCollapsed?"hidden":""}`} onClick={()=>setAutoHidePanels(v=>!v)}>{autoHidePanels?"Fixar laterais":"Auto-ocultar laterais"}</button></aside>
  <section className={canvasStage} data-grid-visible={showGrid?"true":"false"} aria-label="Editor visual do fluxo">
   <div className={canvasStageBar}>

@@ -89,6 +89,8 @@ const allowedVariants = new Set([
   "ib-narrow",
   "ov-laptop",
   "rw-laptop",
+  // Variante built-in registrada em overview.css para a cascata da Visão geral.
+  "max-md",
   // Variantes padrão Tailwind usadas pelos quatro arquivos.
   "sm", "md", "lg", "xl", "2xl", "3xl", "4xl",
   "hover", "focus", "focus-visible", "focus-within", "active", "disabled",
@@ -154,25 +156,27 @@ test("classes de estado são literais completas, nunca interpolação solta", ()
 test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
   const required = {
     "src/app/alarm-center.tsx": [
-      "fixed inset-0 grid animate-vx-in place-items-center bg-overlay p-5 backdrop-blur-md",
+      "fixed inset-0 grid place-items-center bg-slate-900/90 p-5 backdrop-blur-md",
       "max-h-phone-frame", "max-w-calendar-event-modal",
       "bg-linear-to-br from-slate-800 to-slate-900", "size-26",
       "grid w-full gap-4.5", "min-h-14 items-center justify-center gap-2.5 rounded-fin-figure",
-      "bg-blue-600", "text-blue-50", "bg-slate-700/50", "text-slate-100",
+      "border-slate-700", "bg-slate-800", "text-slate-200", "bg-slate-700", "text-slate-50",
       "shadow-token-sm", "shadow-token-lg",
     ],
     "src/app/dashboard-widgets.tsx": [
-      "grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1",
-      "rounded-token-xl border border-gray-200", "bg-blue-50", "bg-zinc-200",
-      "bg-zinc-300", "text-blue-800", "text-slate-600", "text-slate-950",
-      "bg-blue-700", "text-blue-50", "text-amber-600", "grid-cols-ov-calendar",
+      "grid grid-cols-12 gap-4 max-md:grid-cols-1",
+      "col-span-3", "col-span-5", "col-span-4", "max-md:col-span-12",
+      "bg-linear-to-br from-slate-800 to-slate-900", "bg-linear-to-br from-slate-900 to-slate-800",
+      "rounded-2xl border border-slate-700", "bg-slate-800", "bg-slate-700",
+      "text-blue-200", "text-slate-300", "text-slate-50",
+      "bg-blue-600", "text-amber-300", "grid-cols-7",
       "role=\"grid\"",
     ],
     "src/app/contact-profile-panel.tsx": [
-      "w-ib-profile-collapsed", "h-ib-profile-avatar w-ib-profile-avatar",
-      "grid-cols-ib-profile-field-row", "max-w-ib-profile-control", "bg-ib-avatar",
-      "text-ib-instagram", "ib-desktop:grid-cols-2", "bg-blue-50", "text-blue-800",
-      "border-red-600", "bg-red-100", "text-red-600", "rounded-token",
+      "w-13", "h-12 w-12",
+      "grid-cols-2", "max-w-md", "bg-linear-to-br from-slate-700 to-slate-900",
+      "text-fuchsia-400", "lg:grid-cols-2", "bg-slate-800", "text-blue-200",
+      "border-red-700", "bg-red-900/40", "text-red-200", "rounded-xl",
     ],
     "src/app/inboxes-management.tsx": [
       "grid min-w-0 gap-3 rounded-xl border border-gray-200 bg-zinc-50 p-4 shadow-token-sm",
@@ -283,6 +287,6 @@ test("as quatro fatias continuam com os papéis e rótulos esperados", () => {
     const source = sources.get(file);
     assert.ok(/aria-label=|role="[a-z]+"/.test(source), `${label(file)}: sem rótulo acessível`);
   }
-  assert.ok(allClassText.includes("bg-slate-700/50"));
+  assert.ok(allClassText.includes("bg-slate-700/60"));
   assert.ok(allClassText.includes("text-slate-50"));
 });

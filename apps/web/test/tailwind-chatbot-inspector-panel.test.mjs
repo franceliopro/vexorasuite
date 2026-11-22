@@ -80,7 +80,7 @@ test("o inspetor usa utilities literais e tokens do preset, sem remendos", () =>
     "text-catalog-metric font-normal text-ink-secondary",
     "grid gap-2 rounded-token border border-line bg-surface p-3",
     "flex flex-wrap items-start justify-between gap-3",
-    "fixed inset-0 z-flow-fullscreen grid animate-vx-scrim-in place-items-center bg-overlay p-vx-dialog-pad backdrop-blur-sm",
+    "fixed inset-0 z-flow-fullscreen grid animate-dialog-scrim place-items-center bg-overlay p-4 backdrop-blur-sm",
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);
   }

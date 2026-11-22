@@ -131,48 +131,48 @@ function Icon({ name, size = 18, className }: { name: keyof typeof iconMap; size
   return <IconComponent aria-hidden="true" size={size} strokeWidth={1.7} className={className} />;
 }
 
-/** Utilities da home: classes que existiam apenas no vexora.css legado. */
-const primaryButton="inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-900 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
-const secondaryButton="inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
-const authScreenTw="grid min-h-dvh place-items-center bg-vx-page p-5";
+/** Utilities TW padrão da home: literais completas, sem tokens decorativos legados. */
+const primaryButton="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-blue-950 shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-4 py-2 text-sm font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60";
+const authScreenTw="grid min-h-dvh place-items-center bg-zinc-50 p-5";
 const authPanelTw="mx-auto grid w-full max-w-md content-center gap-4 p-8";
-const contrastOkTw="inline-flex self-start rounded-full border border-success bg-success-soft px-3 py-1.5 text-2xs font-bold tracking-normal text-success";
-const contrastWarnTw="inline-flex self-start rounded-full border border-warning bg-warning-soft px-3 py-1.5 text-2xs font-bold tracking-normal text-warning";
+const contrastOkTw="inline-flex self-start rounded-full border border-blue-700 bg-blue-50 px-3 py-1.5 text-xs font-bold tracking-wide text-blue-700";
+const contrastWarnTw="inline-flex self-start rounded-full border border-amber-600 bg-amber-100 px-3 py-1.5 text-xs font-bold tracking-wide text-amber-600";
 const colorPickerTw="flex flex-wrap items-center gap-2.5";
-const colorInputTw="size-8 w-12 flex-none cursor-pointer rounded-token-sm border border-line bg-surface-2 p-0.5";
+const colorInputTw="h-10 w-12 flex-none cursor-pointer rounded-lg border border-gray-200 bg-zinc-100 p-0.5";
 const colorHexTw="min-w-0 flex-1";
-const crumbSlashTw="hidden text-ink-secondary";
-const themeToggleTw="grid size-11 min-h-11 place-items-center rounded-token-sm border-0 bg-none text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
-const textButtonTw="inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap px-1.5 text-nav font-bold text-blue-700";
-const textButtonMutedTw="inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap px-1.5 text-nav font-bold text-ink-secondary";
-const settingsFieldTw="grid gap-1.5 text-2xs font-bold text-ink-secondary";
-const settingsHintTw="mt-1 block text-2xs leading-normal text-ink-secondary";
-const settingsBackLinkTw="inline-flex items-center gap-2 text-nav font-bold text-blue-700";
-const cardTw="min-w-0 rounded-token-lg border border-line bg-surface-2 p-pad shadow-token";
-const placeholderTw="grid min-w-0 content-start gap-3 rounded-token-lg border border-line bg-surface-2 p-pad shadow-token";
-const placeholderIconTw="grid size-20 place-items-center rounded-token-xl bg-blue-100 text-blue-700";
-const eyebrowTw="inline-flex items-center gap-2 text-2xs font-extrabold uppercase tracking-fin-eyebrow text-blue-700";
-const placeholderStatusTw="flex items-center gap-2 text-2xs text-ink-secondary";
+const crumbSlashTw="hidden text-slate-600";
+const themeToggleTw="grid size-11 min-h-11 place-items-center rounded-lg border-0 bg-transparent text-slate-600 transition-colors hover:bg-zinc-200 hover:text-slate-950";
+const textButtonTw="inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap px-1.5 text-sm font-bold text-blue-700";
+const textButtonMutedTw="inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap px-1.5 text-sm font-bold text-slate-600";
+const settingsFieldTw="grid gap-1.5 text-xs font-bold text-slate-600";
+const settingsHintTw="mt-1 block text-xs leading-normal text-slate-600";
+const settingsBackLinkTw="inline-flex items-center gap-2 text-sm font-bold text-blue-700";
+const cardTw="min-w-0 rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-md";
+const placeholderTw="grid min-w-0 content-start gap-3 rounded-xl border border-gray-200 bg-zinc-100 p-4 shadow-md";
+const placeholderIconTw="grid size-20 place-items-center rounded-2xl bg-blue-50 text-blue-700";
+const eyebrowTw="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-blue-700";
+const placeholderStatusTw="flex items-center gap-2 text-xs text-slate-600";
 const pageHeadingTw="flex flex-wrap items-start justify-between gap-4";
-const colorPopoverTw="fixed z-popover grid max-h-screen w-80 gap-3 overflow-auto rounded-token-lg border border-line bg-surface-2 p-3.5 text-ink shadow-vx-popover";
+const colorPopoverTw="fixed z-50 grid max-h-screen w-80 gap-3 overflow-auto rounded-xl border border-gray-200 bg-zinc-100 p-3.5 text-slate-950 shadow-lg";
 const colorPopoverHeaderTw="flex items-start justify-between gap-2.5";
-const colorPopoverTitleTw="m-0 font-display text-sm font-extrabold tracking-normal";
-const colorPopoverCopyTw="mb-0 mt-0.5 text-2xs leading-relaxed text-ink-secondary";
-const colorCloseTw="grid size-8 flex-none place-items-center rounded-token-sm border border-line bg-none text-ink-secondary hover:bg-hover hover:text-ink";
-const colorWarningTw="m-0 rounded-token border border-warning bg-warning-soft p-2 text-2xs leading-relaxed text-warning";
-const colorFooterTw="flex items-center justify-between gap-2.5 border-t border-line pt-2.5";
+const colorPopoverTitleTw="m-0 font-sans text-sm font-extrabold tracking-normal";
+const colorPopoverCopyTw="mb-0 mt-0.5 text-xs leading-relaxed text-slate-600";
+const colorCloseTw="grid size-8 flex-none place-items-center rounded-lg border border-gray-200 bg-transparent text-slate-600 hover:bg-zinc-200 hover:text-slate-950";
+const colorWarningTw="m-0 rounded-lg border border-amber-600 bg-amber-100 p-2 text-xs leading-relaxed text-amber-600";
+const colorFooterTw="flex items-center justify-between gap-2.5 border-t border-gray-200 pt-2.5";
 const colorActionsTw="flex items-center gap-2";
-const colorErrorTw="m-0 text-2xs text-danger";
+const colorErrorTw="m-0 text-xs text-red-600";
 
 const BRAND_MARK_TW:Record<string,string>={
-  default:"grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
-  round:"grid h-control w-control flex-none place-items-center rounded-brand rounded-full bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
-  square:"grid h-control w-control flex-none place-items-center rounded-brand rounded-square bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand",
-  logo:"grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
-  logoRound:"grid h-control w-control flex-none place-items-center rounded-brand rounded-full bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
-  logoSquare:"grid h-control w-control flex-none place-items-center rounded-brand rounded-square bg-vx-brand-mark bg-none font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand shadow-none",
+  default:"grid h-10 w-10 flex-none place-items-center rounded-lg bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md",
+  round:"grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md",
+  square:"grid h-10 w-10 flex-none place-items-center rounded-md bg-blue-600 font-sans text-base font-extrabold text-blue-950 shadow-md",
+  logo:"grid h-10 w-10 flex-none place-items-center rounded-lg bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
+  logoRound:"grid h-10 w-10 flex-none place-items-center rounded-full bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
+  logoSquare:"grid h-10 w-10 flex-none place-items-center rounded-md bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
 };
-const BRAND_LOGO_IMG_TW="max-w-logo max-h-logo object-contain";
+const BRAND_LOGO_IMG_TW="max-h-9 max-w-9 object-contain";
 function brandMarkClass(hasLogo:boolean,shape:string){
   if(hasLogo){
     if(shape==="round")return BRAND_MARK_TW.logoRound;
@@ -184,10 +184,46 @@ function brandMarkClass(hasLogo:boolean,shape:string){
   return BRAND_MARK_TW.default;
 }
 
-const DOCK_BUTTON = "grid min-h-ov-dock-btn place-items-center gap-0.5 rounded-token-sm px-3.5 py-0.5 text-ov-micro font-semibold transition-control duration-control";
-const DOCK_BUTTON_IDLE = "text-indigo-400 hover:bg-indigo-900 hover:text-indigo-50";
-const DOCK_BUTTON_ACTIVE = "bg-blue-600 text-blue-900 shadow-vx-brand";
-const DOCK_ICON_ACTIVE = "text-blue-900";
+/** Estados resolvem mapas Record para strings completas — nunca fragmentos concatenados. */
+const SIDEBAR_STATE_TW:Record<string,string>={
+  expanded:"sidebar",
+  expandedOpen:"sidebar sidebar-open",
+  compact:"sidebar sidebar-compact",
+  compactOpen:"sidebar sidebar-open sidebar-compact",
+};
+function sidebarClass(menuOpen:boolean,collapsed:boolean){
+  if(collapsed)return menuOpen?SIDEBAR_STATE_TW.compactOpen:SIDEBAR_STATE_TW.compact;
+  return menuOpen?SIDEBAR_STATE_TW.expandedOpen:SIDEBAR_STATE_TW.expanded;
+}
+const ACCORDION_STATE_TW:Record<string,string>={idle:"nav-accordion",expanded:"nav-accordion expanded"};
+function accordionClass(expanded:boolean){return expanded?ACCORDION_STATE_TW.expanded:ACCORDION_STATE_TW.idle;}
+const NAV_ITEM_STATE_TW:Record<string,string>={idle:"nav-item",active:"nav-item active"};
+function navItemClass(active:boolean){return active?NAV_ITEM_STATE_TW.active:NAV_ITEM_STATE_TW.idle;}
+const NAV_SUBITEM_STATE_TW:Record<string,string>={idle:"nav-subitem",active:"nav-subitem active"};
+function navSubitemClass(active:boolean){return active?NAV_SUBITEM_STATE_TW.active:NAV_SUBITEM_STATE_TW.idle;}
+const MODULE_TAB_STATE_TW:Record<string,string>={idle:"",active:"active"};
+function moduleTabClass(active:boolean){return active?MODULE_TAB_STATE_TW.active:MODULE_TAB_STATE_TW.idle;}
+const PAGE_CONTENT_STATE_TW:Record<string,string>={normal:"page-content",fixed:"page-content page-content--fixed"};
+function pageContentClass(fixed:boolean){return fixed?PAGE_CONTENT_STATE_TW.fixed:PAGE_CONTENT_STATE_TW.normal;}
+
+const DOCK_ITEM_STATE_TW:Record<string,string>={
+  overviewIdle:"grid min-h-14 place-items-center gap-0.5 rounded-lg px-3.5 py-0.5 text-xs font-semibold text-slate-600 transition-colors duration-150 hover:bg-zinc-200 hover:text-slate-950",
+  overviewActive:"grid min-h-14 place-items-center gap-0.5 rounded-lg bg-blue-600 px-3.5 py-0.5 text-xs font-semibold text-blue-950 shadow-md transition-colors duration-150",
+  overviewMenuOpen:"grid min-h-14 place-items-center gap-0.5 rounded-lg bg-blue-600 px-3.5 py-0.5 text-xs font-bold text-blue-950 shadow-md transition-colors duration-150",
+  idle:"",
+  menuOpen:"active",
+};
+function dockItemClass(isOverview:boolean,menuOpen:boolean){
+  if(isOverview)return menuOpen?DOCK_ITEM_STATE_TW.overviewMenuOpen:DOCK_ITEM_STATE_TW.overviewIdle;
+  return menuOpen?DOCK_ITEM_STATE_TW.menuOpen:DOCK_ITEM_STATE_TW.idle;
+}
+const DOCK_ICON_STATE_TW:Record<string,string>={idle:"",active:"text-blue-950"};
+function dockIconClass(active:boolean){return active?DOCK_ICON_STATE_TW.active:DOCK_ICON_STATE_TW.idle;}
+const MOBILE_NAV_STATE_TW:Record<string,string>={
+  dock:"fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-cols-4 max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1",
+  actions:"mobile-bottom-nav",
+};
+function mobileNavClass(isOverview:boolean){return isOverview?MOBILE_NAV_STATE_TW.dock:MOBILE_NAV_STATE_TW.actions;}
 
 type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
@@ -406,7 +442,7 @@ export default function HomePage() {
   if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
   return (
     <div className="suite-app">
-      <aside id="mobile-navigation-menu" className={`sidebar ${menuOpen ? "sidebar-open" : ""} ${sidebarCollapsed ? "sidebar-compact" : ""}`} onContextMenu={(event) => { const target = event.target as Element; if (target.closest("button,a,summary,input,select,textarea,img,details,[role=\"menuitem\"]")) return; event.preventDefault(); const padding = 300; openSidebarColorMenu(Math.max(8, Math.min(event.clientX, window.innerWidth - padding)), Math.max(8, Math.min(event.clientY, window.innerHeight - 340))); }}>
+      <aside id="mobile-navigation-menu" className={sidebarClass(menuOpen, sidebarCollapsed)} onContextMenu={(event) => { const target = event.target as Element; if (target.closest("button,a,summary,input,select,textarea,img,details,[role=\"menuitem\"]")) return; event.preventDefault(); const padding = 300; openSidebarColorMenu(Math.max(8, Math.min(event.clientX, window.innerWidth - padding)), Math.max(8, Math.min(event.clientY, window.innerHeight - 340))); }}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("Visão geral");setMenuOpen(false); }}>
           {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
@@ -423,8 +459,8 @@ export default function HomePage() {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
                 const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Marketing" && workspaceTabKey(active) === "marketing") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
-                return <div className={"nav-accordion " + (expanded ? "expanded" : "")} key={item.label}>
-                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={"nav-item " + ((active === item.label || childActive || familyActive) ? "active" : "")}
+                return <div className={accordionClass(expanded)} key={item.label}>
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={navItemClass(active === item.label || childActive || familyActive)}
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
@@ -435,7 +471,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={"nav-subitem " + (active === child.label ? "active" : "")} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === child.label)} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -503,8 +539,8 @@ export default function HomePage() {
           </div>
         </header>
 
-        {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={active === tab.target ? "active" : ""} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
-        <div className={"page-content" + (active === "Atendimento" ? " page-content--fixed" : "")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
+        {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={moduleTabClass(active === tab.target)} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
+        <div className={pageContentClass(active === "Atendimento")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className={pageHeadingTw}>
             <div><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
             <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
@@ -570,7 +606,7 @@ export default function HomePage() {
       {assistantOpen ? <PersonalAssistantPanel onClose={() => setAssistantOpen(false)} /> : null}
       <ReminderCenter />
       <AlarmCenter />
-      <nav className={active === "Visão geral" ? "fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock ov-tablet:justify-center ov-tablet:gap-x-ov-dock-gap ov-tablet:border-t ov-tablet:border-indigo-800 ov-tablet:bg-indigo-950 ov-tablet:px-3 ov-tablet:pb-ov-dock-pb ov-tablet:pt-1" : "mobile-bottom-nav"} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
+      <nav className={mobileNavClass(active === "Visão geral")} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-conversation-list")); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
@@ -580,10 +616,10 @@ export default function HomePage() {
           </>
         ) : (
           <>
-            <button type="button" className={active === "Visão geral" ? `${DOCK_BUTTON} ${DOCK_BUTTON_IDLE}` : ""} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
+            <button type="button" className={dockItemClass(active === "Visão geral", false)} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
             {active !== "Visão geral" && <>
-            <button type="button" className={active === "Visão geral" ? `${DOCK_BUTTON} ${DOCK_BUTTON_IDLE}` : ""} onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
-            <button type="button" className={active === "Visão geral" ? `${DOCK_BUTTON} ${menuOpen ? DOCK_BUTTON_ACTIVE : DOCK_BUTTON_IDLE}` : menuOpen ? "active" : ""} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20} className={active === "Visão geral" && menuOpen ? DOCK_ICON_ACTIVE : undefined}/><span>Mais</span></button>
+            <button type="button" className={dockItemClass(active === "Visão geral", false)} onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
+            <button type="button" className={dockItemClass(active === "Visão geral", menuOpen)} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20} className={dockIconClass(active === "Visão geral" && menuOpen) || undefined}/><span>Mais</span></button>
             </>}
           </>
         )}

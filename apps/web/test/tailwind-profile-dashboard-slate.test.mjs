@@ -58,7 +58,7 @@ const allClassText = allTokens.join(" ");
 
 const allowedVariants = new Set([
   // Variantes legadas mantidas apenas como breakpoint, nunca como classe componente.
-  "ib-narrow", "ov-laptop", "rw-laptop",
+  "ib-narrow", "ov-laptop", "rw-laptop", "max-md",
   "sm", "md", "lg", "xl", "2xl",
   "hover", "focus", "focus-visible", "focus-within", "active", "disabled",
   "placeholder", "group-hover", "peer-checked", "dark",

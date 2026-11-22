@@ -89,6 +89,8 @@ const allowedVariants = new Set([
   "ib-narrow",
   "ov-laptop",
   "rw-laptop",
+  // Variante built-in registrada em overview.css para a cascata da Visão geral.
+  "max-md",
   // Variantes padrão Tailwind usadas pelos quatro arquivos.
   "sm", "md", "lg", "xl", "2xl", "3xl", "4xl",
   "hover", "focus", "focus-visible", "focus-within", "active", "disabled",
@@ -162,7 +164,9 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
       "shadow-token-sm", "shadow-token-lg",
     ],
     "src/app/dashboard-widgets.tsx": [
-      "grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3",
+      "grid grid-cols-12 gap-4 max-md:grid-cols-1",
+      "col-span-3", "col-span-5", "col-span-4", "max-md:col-span-12",
+      "bg-linear-to-br from-slate-800 to-slate-900", "bg-linear-to-br from-slate-900 to-slate-800",
       "rounded-2xl border border-slate-700", "bg-slate-800", "bg-slate-700",
       "text-blue-200", "text-slate-300", "text-slate-50",
       "bg-blue-600", "text-amber-300", "grid-cols-7",

@@ -308,6 +308,12 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const messages: string[] = [];
       const skills: string[] = [];
       const visitedStepIds: string[] = [];
+      const visitedEdges: { from: string; option: string; to: string }[] = [];
+      const followStep = (source: RuntimeStep, option: string) => {
+        const destination = findStep(source.transitions?.[option]);
+        if (destination) visitedEdges.push({ from: source.id, option, to: destination.id });
+        return destination;
+      };
       let state: Prisma.InputJsonValue = {};
       let human = false;
       let departmentId: string | null = conversation.departmentId;
@@ -358,8 +364,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             if(config.validation==='preferred-name'&&!isPreferredName(value)){messages.push('Informe um nome válido.');messages.push(renderStep({...step,options:[]},variables));step=undefined;state=previous as Prisma.InputJsonValue;}
             else if(step.kind==='input.cpf'&&![11,14].includes(value.length)){messages.push('Envie um CPF com 11 dígitos ou CNPJ com 14 dígitos. Pode usar pontos, traços e espaços.');step=undefined;state=previous as Prisma.InputJsonValue;}else{variables[config.variable!]=value;
             if(config.validation==='preferred-name'&&config.variable==='novo_nome')await savePreferredName(value);
-            const nextId: string | undefined = step.transitions?.[step.options[0]!];
-            step = findStep(nextId);}
+            step = followStep(step, step.options[0]!);}
           } else {
             const option = selectedOption(step, inbound.content, variables);
             if (!option && step.kind === 'agent') {
@@ -372,11 +377,10 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               state = previous as Prisma.InputJsonValue;
               step = undefined as unknown as RuntimeStep;
             } else {
-              const target = step.transitions?.[option!];
               if (step.id.startsWith('financeiro')) variables.setor = 'FINANCEIRO';
               if (step.id.startsWith('suporte')) variables.setor = 'SUPORTE';
               if (['Ceeb Vision','Link','Rastreabem'].includes(option)) variables.plataforma = ({'Ceeb Vision':'CEEB_VISION','Link':'LINK','Rastreabem':'RASTREABEM'} as Record<string,string>)[option]!;
-              step = target === '__start__' ? flow.steps.find(s => s.id === 'menu') || flow.steps[0] : flow.steps.find(s => s.id === target)!;
+              step = followStep(step, option);
             }
           }
         } else {
@@ -389,19 +393,17 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           const config = settings(step);
           if (type === 'text' && step.options.length === 1) {
             messages.push(renderStep({ ...step, options: [] }, variables));
-            step = findStep(step.transitions?.[step.options[0]!]); continue;
+            step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'variable') {
             const value=interpolateVariables(config.value!,variables);
             variables[config.variable!] = isDocumentField(config.variable!) ? documentDigits(value) : value;
             if(config.variable==='novo_nome'&&config.value==='{{nome_identificado}}'&&isPreferredName(value))await savePreferredName(value);
-            const target = step.transitions?.[step.options[0]!];
-            step = findStep(target); continue;
+            step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'condition') {
             const option = variables[config.variable!] === config.value ? 'Sim' : 'Não';
-            const target = step.transitions?.[option];
-            step = findStep(target); continue;
+            step = followStep(step, option); continue;
           }
           if (type === 'agent') {
             const assistant = object(object(tenant.integrations).assistant);
@@ -563,7 +565,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               messages.push('Não encontrei um cadastro para este telefone. Vamos continuar o atendimento normalmente.');
             }
             skills.push('contact.lookup');
-            step = findStep(step.transitions?.[step.options[0]!]);
+            step = followStep(step, step.options[0]!);
             continue;
           }
           if (type === 'asaas.payment.lookup') {
@@ -610,7 +612,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             });
             crmStageChange.value = { id: conversation.contactId, pipelineId: pipeline.id, stage: config.stage! };crmContactChanged=true;
             skills.push('crm.stage.move');
-            step = findStep(step.transitions?.[step.options[0]!]);
+            step = followStep(step, step.options[0]!);
             continue;
           }
           if (type === 'crm.finalize') {
@@ -644,8 +646,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             await tx.contact.update({ where: { id: conversation.contactId }, data: { metadata: { ...profile, tags } } });
             conversation.contact.metadata = { ...profile, tags };
             crmContactChanged=true;skills.push('crm.tag.apply');
-            const nextId: string | undefined = step.transitions?.[step.options[0]!];
-            step = findStep(nextId);
+            step = followStep(step, step.options[0]!);
             continue;
           }
           messages.push(['input.text','input.cpf'].includes(type) ? renderStep({ ...step, options: [] }, variables) : renderStep(step, variables));
@@ -675,7 +676,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         ].filter(Boolean).join('\n');
         await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'INTERNAL', status: 'SENT', content: context, contentType: 'text', senderName: 'Contexto do atendimento', metadata: { kind: 'handoff_context', reason, sourceMessageId: inbound.id, departmentId, assigneeId, scopeKey } } });
       }
-      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedSteps: visitedStepIds.map(id => ({ id, title: flow.steps.find(item => item.id === id)?.title || id })), waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
+      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedEdges, visitedSteps: visitedStepIds.map(id => ({ id, title: flow.steps.find(item => item.id === id)?.title || id })), waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
     }, { timeout: 120000 });
     if (!result) return false;

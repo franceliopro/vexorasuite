@@ -12,6 +12,9 @@ function classValues(src) {
     constants.set(match[1], match[2]);
   }
   const values = [];
+  for (const match of src.matchAll(/\bconst\s+[A-Za-z_$][\w$]*\s*:\s*Record<\s*string\s*,\s*string\s*>\s*=\s*\{([\s\S]*?)\}\s*;/g)) {
+    for (const literal of match[1].matchAll(/(['"])([^"']*)\1/g)) values.push(literal[2]);
+  }
   for (const match of src.matchAll(/className\s*=\s*(?:"([^"]*)"|\{([\s\S]*?)\})/g)) {
     if (match[1] !== undefined) {
       values.push(match[1]);
@@ -48,21 +51,21 @@ test("a home mantém as utilities e os marcadores funcionais", () => {
   for (const marker of [
     'className="sidebar-collapse"', 'className="persistent-module-tabs"',
     'data-testid={active === "Visão geral" ? "ov-dock" : undefined}',
-    'fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock',
+    'fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1',
     "Recolher menu", "Instalar Véxora", "workspaceTabs", "sidebarCollapsed", "applyBrandAll",
     "#1D4ED8", 'aria-controls="mobile-navigation-menu"', 'id="mobile-navigation-menu"',
     'aria-labelledby="sidebar-color-title"', 'id="sidebar-color-title"',
   ]) assert.ok(source.includes(marker), `faltou ${marker}`);
 
   for (const utility of [
-    "min-h-dvh", "bg-vx-page", "max-w-md", "content-center",
-    "rounded-token-lg", "border-line", "bg-surface-2", "p-pad", "shadow-token",
-    "bg-blue-600", "text-blue-900", "hover:bg-blue-700", "disabled:cursor-not-allowed",
-    "min-h-control", "text-body", "text-ink", "text-ink-secondary", "text-nav",
-    "text-2xs", "tracking-fin-eyebrow", "bg-blue-100", "rounded-token-xl",
-    "shadow-vx-popover", "z-popover", "border-warning", "bg-warning-soft", "text-warning",
-    "border-success", "bg-success-soft", "text-success", "text-danger",
-    "grid-cols-ov-dock", "pb-ov-dock-pb", "z-dock", "ov-tablet:grid",
+    "min-h-dvh", "bg-zinc-50", "max-w-md", "content-center",
+    "rounded-xl", "border-gray-200", "bg-zinc-100", "p-4", "shadow-md",
+    "bg-blue-600", "text-blue-950", "hover:bg-blue-700", "disabled:cursor-not-allowed",
+    "min-h-10", "text-sm", "text-slate-950", "text-slate-600", "text-sm font-bold",
+    "text-xs", "tracking-widest", "bg-blue-50", "rounded-2xl",
+    "shadow-lg", "z-50", "border-amber-600", "bg-amber-100", "text-amber-600",
+    "border-blue-700", "bg-transparent", "text-blue-700", "text-red-600",
+    "max-md:grid-flow-col", "max-md:auto-cols-auto", "max-md:pb-2", "z-40", "max-md:grid",
   ]) assert.ok(classes.includes(utility), `falta a utility ${utility}`);
 });
 

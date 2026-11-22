@@ -35,43 +35,44 @@ type SiteEditorWindowProps = {
   onClose: () => void;
 };
 
-const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-800 px-4 text-sm font-bold text-slate-50 shadow-sm transition-colors hover:border-slate-600 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryWithMarginTw = "mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-800 px-4 text-sm font-bold text-slate-50 shadow-sm transition-colors hover:border-slate-600 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
 
-const editorWindowClass = "fixed inset-0 z-10000 flex flex-col bg-surface-page text-ink";
-const editorDockClass = "fixed bottom-6 left-1/2 z-10001 flex -translate-x-1/2 items-center gap-2 rounded-token border border-line bg-surface p-1.5 shadow-token-lg";
-const dockRestoreClass = "inline-flex items-center gap-1.5 rounded-token bg-brand px-4 py-2 text-body font-bold text-brand-contrast transition-colors hover:bg-brand-strong";
-const dockLabelClass = "pl-1.5 text-body font-bold text-ink";
-const dockCloseClass = "inline-flex h-9 w-9 items-center justify-center rounded-token border border-line bg-surface text-ink transition-colors hover:bg-hover";
-const loadingClass = "flex items-center gap-2.5 p-6 text-ink-secondary";
-const errorPanelClass = "m-4 rounded-token border border-red-600 p-4";
+const editorWindowClass = "fixed inset-0 z-50 flex flex-col bg-slate-900 text-slate-50";
+const editorDockClass = "fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 p-1.5 shadow-lg";
+const dockRestoreClass = "inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700";
+const dockLabelClass = "pl-1.5 text-sm font-bold text-slate-50";
+const dockCloseClass = "inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-50 transition-colors hover:bg-slate-700";
+const loadingClass = "flex items-center gap-2.5 p-6 text-slate-200";
+const errorPanelClass = "m-4 rounded-lg border border-red-600 p-4";
 const errorCopyClass = "m-0 flex items-center gap-2";
-const responseErrorPanelClass = "mx-4 mt-3 rounded-token border border-red-600 p-3";
-const responseSuccessPanelClass = "mx-4 mt-3 rounded-token border border-emerald-600 p-3";
-const responseSuccessCopyClass = "m-0 text-body";
-const previewBarClass = "flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-2.5";
+const responseErrorPanelClass = "mx-4 mt-3 rounded-lg border border-red-600 p-3";
+const responseSuccessPanelClass = "mx-4 mt-3 rounded-lg border border-emerald-600 p-3";
+const responseSuccessCopyClass = "m-0 text-sm";
+const previewBarClass = "flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800 px-4 py-2.5";
 const previewCopyClass = "mr-auto flex min-w-60 flex-col gap-0.5";
-const previewTitleClass = "text-body font-bold text-ink";
-const previewNoteClass = "text-small text-ink-secondary";
-const previewExpiryClass = "text-small text-ink-secondary";
-const previewErrorClass = "m-0 basis-full text-small text-red-600";
-const aiStatusBaseClass = "mx-4 mt-0 rounded-token-sm border px-3 py-2 text-small";
-const aiStatusOkClass = "border-emerald-600 bg-emerald-100 text-emerald-600";
-const aiStatusErrorClass = "border-red-600 bg-red-100 text-red-600";
-const detailsClass = "group/settings shrink-0 px-4 text-ink";
-const detailsSummaryClass = "cursor-pointer list-none py-2 text-small font-bold text-ink-secondary group-open/settings:text-ink";
-const settingsRowClass = "flex flex-wrap items-center gap-2 border-b border-line bg-surface py-2.5 group-open/settings:border-b-0";
-const domainLabelClass = "text-body font-bold";
-const domainInputClass = "min-w-56 rounded-token-sm border border-line bg-surface-page px-2.5 py-2 text-body text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none";
-const domainStatusClass = "text-small opacity-75";
-const domainOkClass = "basis-full text-small text-emerald-600";
-const domainErrorClass = "basis-full text-small text-red-600";
-const responsesClass = "group/responses shrink-0 px-4 text-ink";
-const responsesBodyClass = "mb-2 flex max-h-42 flex-col gap-2 rounded-token-sm border border-line bg-surface p-3";
-const responsesBodyTextClass = "m-0 text-body text-ink-secondary";
-const responseCardClass = "rounded-token-sm border border-line p-2.5";
-const responseHeaderClass = "flex justify-between gap-3 text-small";
-const responseTimeClass = "text-ink-secondary";
-const responseValuesClass = "mt-1 break-words text-body";
+const previewTitleClass = "text-sm font-bold text-slate-50";
+const previewNoteClass = "text-sm text-slate-200";
+const previewExpiryClass = "text-sm text-slate-200";
+const previewErrorClass = "m-0 basis-full text-sm text-red-400";
+const aiStatusOkClass = "mx-4 mt-0 rounded-md border border-emerald-600 bg-emerald-950 px-3 py-2 text-sm text-emerald-200";
+const aiStatusErrorClass = "mx-4 mt-0 rounded-md border border-red-600 bg-red-950 px-3 py-2 text-sm text-red-200";
+const detailsClass = "group/settings shrink-0 px-4 text-slate-50";
+const detailsSummaryClass = "cursor-pointer list-none py-2 text-sm font-bold text-slate-200 group-open/settings:text-slate-50";
+const settingsRowClass = "flex flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800 py-2.5 group-open/settings:border-b-0";
+const domainLabelClass = "text-sm font-bold";
+const domainInputClass = "min-w-64 rounded-md border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-50 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none";
+const domainStatusClass = "text-sm opacity-75";
+const domainOkClass = "basis-full text-sm text-emerald-400";
+const domainErrorClass = "basis-full text-sm text-red-400";
+const responsesClass = "group/responses shrink-0 px-4 text-slate-50";
+const responsesBodyClass = "mb-2 flex max-h-64 flex-col gap-2 rounded-md border border-slate-700 bg-slate-800 p-3";
+const responsesBodyTextClass = "m-0 text-sm text-slate-200";
+const responsesBodyErrorTextClass = "m-0 text-sm text-red-400";
+const responseCardClass = "rounded-md border border-slate-700 p-2.5";
+const responseHeaderClass = "flex justify-between gap-3 text-sm";
+const responseTimeClass = "text-slate-200";
+const responseValuesClass = "mt-1 break-words text-sm";
 
 type Device = "desktop" | "tablet" | "mobile";
 
@@ -350,7 +351,7 @@ export default function SiteEditorWindow({
     }
   }, [siteId]);
 
-  // O workspace anima .page-content > * com `vx-page-in ... both`; o transform
+  // O workspace anima `.page-content > *` com keyframes; o transform
   // resultante vira containing block de position: fixed. O portal em document.body
   // garante que a janela do editor cubra o viewport de verdade.
   if (typeof document === "undefined") return null;
@@ -383,7 +384,7 @@ export default function SiteEditorWindow({
           <p className={errorCopyClass}>
             <AlertCircle size={16} aria-hidden="true" /> {error}
           </p>
-          <button type="button" className={`${secondaryTw} mt-3`} onClick={requestClose}>
+          <button type="button" className={secondaryWithMarginTw} onClick={requestClose}>
             Voltar para Sites
           </button>
         </div>
@@ -425,7 +426,7 @@ export default function SiteEditorWindow({
 
           {aiMessage ? (
             <div
-              className={`${aiStatusBaseClass} ${aiMessage.error ? aiStatusErrorClass : aiStatusOkClass}`}
+              className={aiMessage.error ? aiStatusErrorClass : aiStatusOkClass}
               role={aiMessage.error ? "alert" : "status"}
             >
               {aiMessage.text}
@@ -506,7 +507,7 @@ export default function SiteEditorWindow({
               >
                 {submissionsLoading ? "Atualizando…" : "Atualizar"}
               </button>
-              {submissionsError ? <p role="alert" className={`${responsesBodyTextClass} text-red-600`}>{submissionsError}</p> : null}
+              {submissionsError ? <p role="alert" className={responsesBodyErrorTextClass}>{submissionsError}</p> : null}
               {!submissions && !submissionsError && !submissionsLoading ? (
                 <p className={responsesBodyTextClass}>As respostas enviadas pelo site publicado aparecem aqui.</p>
               ) : null}

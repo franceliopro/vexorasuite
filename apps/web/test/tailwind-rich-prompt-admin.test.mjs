@@ -50,18 +50,16 @@ for (const [name, source] of SOURCES) {
 
 test("rich prompt editor uses preset utilities", () => {
   for (const utility of [
-    "bg-surface",
-    "bg-surface-2",
-    "bg-surface-3",
-    "bg-surface-page",
-    "border-line",
-    "border-line-strong",
-    "text-ink",
-    "text-ink-secondary",
-    "text-warning",
+    "bg-slate-800",
+    "bg-slate-900",
+    "bg-slate-700",
+    "border-slate-700",
+    "text-slate-50",
+    "text-slate-200",
+    "text-amber-300",
     "focus-within:border-blue-600",
-    "aria-pressed:bg-blue-50",
-    "text-blue-800",
+    "focus-visible:outline-blue-600",
+    "text-blue-50",
   ]) {
     assert.ok(richPromptSource.includes(utility), `falta a utility ${utility}`);
   }
@@ -95,7 +93,8 @@ test("rich prompt editor preserves editor contracts", () => {
     'role="status"',
     "current.current.onChange(markdown)",
     "data-placeholder",
-    "before:content-[attr(data-placeholder)]",
+    "content:attr(data-placeholder)",
+    "data-rich-content",
     "VexoraDialog",
     "Concluir edição",
   ]) {

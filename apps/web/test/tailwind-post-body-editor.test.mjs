@@ -68,17 +68,17 @@ test("o editor de corpo usa só utilities do preset, sem remendos", () => {
     assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
   }
   for (const utility of [
-    "grid min-w-0 overflow-hidden rounded-2xl border border-line bg-surface",
-    "flex flex-wrap items-center gap-0.5 border-b border-line bg-surface-2 px-2.5 py-2",
-    "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-transparent font-extrabold text-ink",
-    "min-h-65 outline-none px-4.5 py-4 text-base leading-relaxed text-ink",
-    "min-h-70 w-full resize-y border-0 px-4.5 py-4 font-mono text-xs leading-relaxed outline-none",
-    "m-0 bg-red-100 px-3 py-2 text-small font-semibold text-red-600",
-    "m-0 border-t border-line px-3.5 py-2.5 text-small text-slate-600",
-    "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-line-strong bg-surface-2 p-2.5",
+    "grid min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900",
+    "flex flex-wrap items-center gap-0.5 border-b border-slate-700 bg-slate-800 px-2.5 py-2",
+    "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-transparent font-extrabold text-slate-200",
+    "min-h-64 outline-none px-4 py-4 text-base leading-relaxed text-slate-50",
+    "min-h-72 w-full resize-y border-0 px-4 py-4 font-mono text-xs leading-relaxed outline-none",
+    "m-0 bg-red-100 px-3 py-2 text-xs font-semibold text-red-600",
+    "m-0 border-t border-slate-700 px-3 py-2.5 text-xs text-slate-200",
+    "my-4 grid grid-cols-2 gap-2 sm:grid-cols-3",
     "grid grid-cols-2 gap-2 sm:grid-cols-3",
     "block aspect-square w-full object-cover",
-    "grid h-5.5 w-5.5 place-items-center rounded-md border border-white/40 bg-zinc-950/65 text-white",
+    "grid h-5 w-5 place-items-center rounded-md border border-slate-700 bg-slate-900/80 text-slate-50",
     "block w-full rounded-xl",
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);

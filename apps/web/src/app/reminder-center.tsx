@@ -5,6 +5,29 @@ import { Bell, CalendarClock, CheckCircle2, X } from "lucide-react";
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const iconButtonTw = "inline-grid size-9 place-items-center rounded-token-sm border border-line bg-surface text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const shellTw = "fixed inset-0 z-reminder grid place-items-center p-5";
+const backdropTw = "absolute inset-0 bg-overlay backdrop-blur-reminder";
+const cardTw = "relative grid w-full max-w-reminder-card gap-4 rounded-reminder-card border border-line bg-surface p-reminder-pad shadow-reminder-card animate-reminder-card";
+const headerTw = "flex items-center gap-3.5";
+const titleTw = "m-0 font-display text-reminder-title font-extrabold text-ink";
+const subtitleTw = "mt-0.5 text-reminder-desc text-ink-secondary";
+const badgeTw = "grid size-reminder-icon place-items-center rounded-reminder-icon bg-blue-50 text-blue-600";
+const listTw = "m-0 grid list-none gap-2 p-0";
+const itemTw = "flex items-start gap-3 rounded-reminder-item border border-line bg-surface-2 p-3";
+const itemOverdueTw = "border-red-600 bg-red-100";
+const itemIconTw = "mt-0.5 text-blue-600";
+const itemIconOverdueTw = "text-red-600";
+const itemVariantTw: Record<"normal" | "overdue", string> = {
+  normal: itemTw,
+  overdue: `${itemTw} ${itemOverdueTw}`,
+};
+const itemIconVariantTw: Record<"normal" | "overdue", string> = {
+  normal: itemIconTw,
+  overdue: `${itemIconTw} ${itemIconOverdueTw}`,
+};
+const itemTitleTw = "block text-reminder-item-title text-ink";
+const itemMetaTw = "mt-1 block text-reminder-item-meta text-ink-secondary";
+const footerTw = "flex flex-wrap justify-end gap-2";
 type Reminder = { fireKey: string; kind: "task" | "event"; title: string; when: string; overdue: boolean; url?: string };
 type Settings = { enabled: boolean; minutesBefore: number[]; sound: boolean; push: boolean; mutedWeekdays?: number[]; maxPerDay?: number };
 type AgendaReminders = Record<string, { enabled: boolean; minutesBefore: number[] }>;
@@ -130,29 +153,29 @@ export function ReminderCenter() {
 
   if (!open || !queue.length) return null;
   return (
-    <div className="reminder-center" role="alertdialog" aria-modal="true" aria-label="Lembrete">
-      <div className="reminder-center-backdrop" onClick={dismissAll} aria-hidden="true" />
-      <section className="reminder-center-card">
-        <header>
-          <span className="reminder-center-icon" aria-hidden="true"><Bell size={26} /></span>
+    <div className={shellTw} role="alertdialog" aria-modal="true" aria-label="Lembrete">
+      <div className={backdropTw} onClick={dismissAll} aria-hidden="true" />
+      <section className={cardTw}>
+        <header className={headerTw}>
+          <span className={badgeTw} aria-hidden="true"><Bell size={26} /></span>
           <div>
-            <h2>{queue.length === 1 ? "Lembrete" : `${queue.length} lembretes`}</h2>
-            <p>{settings?.minutesBefore?.length ? `Avisos: ${settings.minutesBefore.join(", ")} min antes` : "Nova tarefa ou compromisso prestes a começar"}</p>
+            <h2 className={titleTw}>{queue.length === 1 ? "Lembrete" : `${queue.length} lembretes`}</h2>
+            <p className={subtitleTw}>{settings?.minutesBefore?.length ? `Avisos: ${settings.minutesBefore.join(", ")} min antes` : "Nova tarefa ou compromisso prestes a começar"}</p>
           </div>
           <button type="button" className={iconButtonTw} aria-label="Fechar lembretes" onClick={dismissAll}><X size={20} aria-hidden="true" /></button>
         </header>
-        <ul className="reminder-center-list">
+        <ul className={listTw}>
           {queue.map(item => (
-            <li key={item.fireKey} className={"reminder-center-item" + (item.overdue ? " is-overdue" : "")}>
-              {item.kind === "task" ? <CalendarClock size={18} aria-hidden="true" className="reminder-center-item-icon" /> : <Bell size={18} aria-hidden="true" className="reminder-center-item-icon" />}
+            <li key={item.fireKey} className={itemVariantTw[item.overdue ? "overdue" : "normal"]}>
+              {item.kind === "task" ? <CalendarClock size={18} aria-hidden="true" className={itemIconVariantTw[item.overdue ? "overdue" : "normal"]} /> : <Bell size={18} aria-hidden="true" className={itemIconVariantTw[item.overdue ? "overdue" : "normal"]} />}
               <div>
-                <strong>{item.title}</strong>
-                <small>{item.kind === "task" ? "Tarefa" : "Compromisso"} · {formatWhen(item.when)}</small>
+                <strong className={itemTitleTw}>{item.title}</strong>
+                <small className={itemMetaTw}>{item.kind === "task" ? "Tarefa" : "Compromisso"} · {formatWhen(item.when)}</small>
               </div>
             </li>
           ))}
         </ul>
-        <footer>
+        <footer className={footerTw}>
           <button type="button" className={secondaryTw} onClick={snoozeAll}>Adiar 15 min</button>
           <button type="button" className={secondaryTw} onClick={() => openModule(queue[0]?.kind === "event" ? "Agenda" : "Tarefas")}>Abrir {queue[0]?.kind === "event" ? "agenda" : "tarefas"}</button>
           <button type="button" className={primaryTw} onClick={dismissAll}><CheckCircle2 size={15} aria-hidden="true" /> Entendi</button>

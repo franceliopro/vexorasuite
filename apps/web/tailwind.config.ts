@@ -262,6 +262,8 @@ const config: Config = {
       animation: {
         "rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite",
         "vx-scrim-in": "vx-scrim-in .18s ease both",
+        /* Cartão de lembretes: mesma entrada, duração do legado. */
+        "reminder-card": "vx-scrim-in .25s ease both",
         "vx-in": "vx-in .26s var(--ease) both",
         "phone-pulse": "phone-pulse 2.4s ease-in-out infinite",
       },
@@ -283,11 +285,17 @@ const config: Config = {
       },
       backdropBlur: {
         topbar: "18px",
+        /* Desfoque do backdrop dos lembretes (legado blur(6px)). */
+        reminder: "6px",
       },
       backdropSaturate: {
         topbar: "1.12",
       },
       borderRadius: {
+        /* Cantos do cartão de lembretes (legado 18px/14px/12px). */
+        "reminder-card": "18px",
+        "reminder-icon": "14px",
+        "reminder-item": "12px",
         "catalog-icon": "12px",
         "catalog-metric": "8px",
         token: "var(--r)",
@@ -397,6 +405,8 @@ const config: Config = {
         "docs-editor": "auto minmax(0,1fr) auto",
       },
       boxShadow: {
+        /* Relevo do cartão de lembretes (legado 0 30px 80px -20px). */
+        "reminder-card": "0 30px 80px -20px rgba(4,10,30,.55)",
         ring: "var(--ring)",
         "catalog-sheen": "inset 0 1px 0 var(--sheen)",
         "catalog-icon": "inset 0 0 0 1px var(--vx-core-line-soft)",
@@ -443,6 +453,11 @@ const config: Config = {
         "2xs": "10px",
         /* Rótulos das permissões de módulo (legado .module-permissions label). */
         "modules-label": "11px",
+        /* Textos do cartão de lembretes. */
+        "reminder-title": ["18px", { lineHeight: "1.2" }],
+        "reminder-desc": "12.5px",
+        "reminder-item-title": "13.5px",
+        "reminder-item-meta": "11.5px",
         body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
         h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
         h2: ["17px", { lineHeight: "1.3", letterSpacing: "-0.015em" }],
@@ -588,6 +603,9 @@ const config: Config = {
 
       },
       spacing: {
+        /* Medidas do cartão de lembretes (legado 22px/52px). */
+        "reminder-pad": "22px",
+        "reminder-icon": "52px",
         "catalog-eyebrow-rule": "18px",
         "catalog-search-basis": "320px",
         "catalog-card-y": "14px",
@@ -968,6 +986,8 @@ const config: Config = {
 
       },
       maxWidth: {
+        /* Largura do cartão de lembretes (legado min(560px,100%)). */
+        "reminder-card": "560px",
         "catalog-search": "420px",
         content: "1520px",
         tabs: "1500px",
@@ -1067,6 +1087,8 @@ const config: Config = {
         "fm-picker-body": "min(860px,94vw)",
       },
       zIndex: {
+        /* Lembretes internos ficam acima do shell, abaixo das janelas fullscreen. */
+        reminder: "var(--z-reminder)",
         sidebar: "40",
         dock: "45",
         topbar: "30",

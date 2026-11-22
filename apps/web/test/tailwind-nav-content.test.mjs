@@ -72,7 +72,7 @@ test("o menu de perfil da sidebar usa so utilities do preset", () => {
     "flex w-full cursor-pointer list-none items-center gap-profile-gap",
     "relative grid size-profile-avatar shrink-0 place-items-center overflow-hidden rounded-full bg-brand-soft",
     "flex min-w-0 flex-col gap-profile-copy-gap overflow-hidden",
-    "absolute z-profile-popover grid gap-token bg-surface p-pad text-ink shadow-token ov-tablet:fixed",
+    "fixed inset-x-3 bottom-20 z-50 grid w-auto gap-token rounded-token-sm bg-surface p-pad text-ink shadow-token dark:bg-slate-900 dark:text-slate-50",
     "grid gap-1.5 text-body font-semibold text-ink",
   ]) {
     assert.ok(profile.includes(utility), `falta a utility de perfil ${utility}`);

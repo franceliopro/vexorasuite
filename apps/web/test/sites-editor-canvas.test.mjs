@@ -28,7 +28,7 @@ test("canvas fills the editor area instead of rendering a tiny iframe", () => {
 });
 
 test("domain and form responses are collapsed behind an expandable section", () => {
-  assert.ok(windowSource.includes('<details className="vx-editor-settings">'));
-  assert.ok(windowSource.includes("<summary>Domínio, publicação e respostas</summary>"));
+  assert.ok(windowSource.includes("<details className={detailsClass}>"));
+  assert.ok(windowSource.includes("<summary className={detailsSummaryClass}>Domínio, publicação e respostas</summary>"));
   assert.match(css, /\.vx-editor-settings\s*\{[^}]*flex:\s*0\s+0\s+auto/);
 });

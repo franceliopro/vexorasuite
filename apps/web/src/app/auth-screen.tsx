@@ -140,7 +140,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
         </ul>
         <p className="relative text-2xs uppercase tracking-fin-label text-slate-300">Ambiente seguro · multiempresa</p>
       </aside>
-      <section className="relative mx-auto grid w-full max-w-catalog-search content-center gap-4 p-7 sm:p-10 lg:p-16">
+      <section className="relative mx-auto grid w-full max-w-catalog-search content-center gap-4 bg-white p-7 dark:bg-slate-900 sm:p-10 lg:p-16">
         <span aria-hidden="true" className="pointer-events-none absolute inset-x-7 top-0 h-px md:hidden" style={{ background: "linear-gradient(90deg,transparent,rgb(from var(--primary) r g b / .6),transparent)" }} />
         <div className="flex items-center gap-2.5"><span className={brandMarkTw}>V</span><span><strong className="font-display text-brand-title font-extrabold">véxora</strong><small className="mt-1 block text-brand-badge font-extrabold tracking-brand-badge text-ink-secondary">SUITE</small></span></div>
         <p className="text-nav-section font-extrabold uppercase tracking-fin-eyebrow text-blue-600">AMBIENTE DE OPERAÇÕES</p>

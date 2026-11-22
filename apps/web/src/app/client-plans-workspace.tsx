@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Star, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isPublic: boolean };
+const CUSTOM_PLAN_CODE = "personalizado";
 const PRICE = (cents: number, cycle = "MONTH") => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + (cycle === "YEAR" ? "/ano" : cycle === "MONTH" ? "/mês" : "");
 const BENEFIT_KEYS: Array<[string, string]> = [ ["attendants","Atendentes"],["bots","Robôs com IA"],["ia","Crédito de IA / mês"],["sites","Sites incluídos"],["dynamic","Site dinâmico (posts/imóveis)"],["forms","Formulários de captura"],["socialAccounts","Redes vinculadas"],["whatsapp","WhatsApp vinculado"],["crm","CRM completo"],["finance","Financeiro Asaas"],["followups","Follow-ups / cobrança"],["marketingPublishing","Publicação automática"] ];
 const MODULE_LABEL: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", AUTOMATION: "Chatbot / IA", MARKETING: "Marketing", SITES: "Sites", FINANCE: "Financeiro", CHANNELS: "Canais", CALENDAR: "Agenda", TASKS: "Tarefas", SETTINGS: "Configurações" };
@@ -95,14 +96,22 @@ export function ClientPlansWorkspace({ currentPlanCode, currentPlanName }: { cur
         {plans.map(p => (
           <article key={p.id} className={cardVariantTw[featured?.id === p.id ? (currentPlanCode === p.code ? "featured-current" : "featured") : (currentPlanCode === p.code ? "current" : "normal")]}>
             {featured?.id === p.id && <span className={badgeTw}><Star size={12} aria-hidden="true" /> Mais escolhido</span>}
-            <header className={cardHeaderTw}><span className={kindTw}>{p.kind === "PACKAGE" ? "Pacote" : "Plano"}</span>{currentPlanCode === p.code ? <span className={currentTw}><ShieldCheck size={12} aria-hidden="true" /> Seu plano</span> : null}</header>
+            <header className={cardHeaderTw}><span className={kindTw}>{p.code === CUSTOM_PLAN_CODE ? "Personalizado" : p.kind === "PACKAGE" ? "Pacote" : "Plano"}</span>{currentPlanCode === p.code ? <span className={currentTw}><ShieldCheck size={12} aria-hidden="true" /> Seu plano</span> : null}</header>
             <h2 className={cardTitleTw}>{p.name}</h2>
             {p.tagline && <p className={taglineTw}>{p.tagline}</p>}
-            <div className={priceTw}><b className={priceValueTw}>{PRICE(p.priceCents, p.cycle)}</b><small className={priceNoteTw}>{p.cycle === "YEAR" ? "cobrança anual" : p.cycle === "MONTH" ? "cobrança mensal" : "cobrança única"}</small></div>
-            <ul className={benefitsTw}>{BENEFIT_KEYS.map(([key, label]) => { const v = p.limits?.[key]; const on = typeof v === "boolean" ? v : typeof v === "number" ? v > 0 : !!v; return <li key={key} className={on ? benefitTw : `${benefitTw} ${benefitOffTw}`}><Check size={13} aria-hidden="true" className={benefitIconTw} /> <span>{label}</span>{typeof v === "number" && v > 0 ? <b className={benefitCountTw}>{v}</b> : null}</li>; })}</ul>
-            <p className={modulesTw}>{Array.isArray(p.limits?.modules) ? p.limits.modules.map((m: string) => MODULE_LABEL[m] || m).join(" · ") : ""}</p>
+            <div className={priceTw}><b className={priceValueTw}>{p.code === CUSTOM_PLAN_CODE ? "Sob consulta" : PRICE(p.priceCents, p.cycle)}</b><small className={priceNoteTw}>{p.code === CUSTOM_PLAN_CODE ? "contratado com a Véxora" : p.cycle === "YEAR" ? "cobrança anual" : p.cycle === "MONTH" ? "cobrança mensal" : "cobrança única"}</small></div>
+            {p.code === CUSTOM_PLAN_CODE ? (
+              <p className={modulesTw}>{p.description}</p>
+            ) : (
+              <>
+                <ul className={benefitsTw}>{BENEFIT_KEYS.map(([key, label]) => { const v = p.limits?.[key]; const on = typeof v === "boolean" ? v : typeof v === "number" ? v > 0 : !!v; return <li key={key} className={on ? benefitTw : `${benefitTw} ${benefitOffTw}`}><Check size={13} aria-hidden="true" className={benefitIconTw} /> <span>{label}</span>{typeof v === "number" && v > 0 ? <b className={benefitCountTw}>{v}</b> : null}</li>; })}</ul>
+                <p className={modulesTw}>{Array.isArray(p.limits?.modules) ? p.limits.modules.map((m: string) => MODULE_LABEL[m] || m).join(" · ") : ""}</p>
+              </>
+            )}
             <footer className={cardFooterTw}>
-              {currentPlanCode === p.code ? (
+              {p.code === CUSTOM_PLAN_CODE ? (
+                <a className={primaryTw} href="https://wa.me/5562999990000?text=Quero%20um%20plano%20personalizado%20na%20V%C3%A9xora" target="_blank" rel="noopener noreferrer">Falar com a Véxora</a>
+              ) : currentPlanCode === p.code ? (
                 <a className={secondaryTw} href={"https://wa.me/5562999990000?text=Quero%20revisar%20o%20meu%20plano%20" + encodeURIComponent(p.name)} target="_blank" rel="noopener noreferrer">Revisar plano</a>
               ) : (
                 <div className={actionsTw}>

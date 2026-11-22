@@ -49,14 +49,24 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
     "grid min-w-0 gap-token",
     "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface p-6 shadow-token-sm",
     "flex shrink-0 flex-col gap-1 self-start rounded-token border border-line bg-surface-2 p-1.5 lg:w-52",
-    "grid grid-cols-ai-layout items-start gap-token",
-    "mt-3 flex max-w-full gap-2 overflow-x-auto pb-1",
+    "mt-3 flex w-full max-w-full gap-2 overflow-x-auto pb-1",
     "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg",
     "grid gap-2 rounded-ai-phone border border-line bg-surface-2 p-3",
     "bg-blue-600 px-brand-pad text-body font-bold text-blue-50",
   ]) {
     assert.ok(ai.includes(utility), `falta a utility ${utility}`);
   }
+});
+
+test("a lista de agentes fica no topo, em horizontal e em largura total", () => {
+  const strip = ai.indexOf('{workspaceTab==="Agentes"&&<section className={adminCardTw}>');
+  const nav = ai.indexOf('<nav className={workspaceNavTw}');
+  assert.ok(strip >= 0, "a faixa de agentes não foi encontrada");
+  assert.ok(nav >= 0, "a navegação lateral não foi encontrada");
+  assert.ok(strip < nav, "a faixa de agentes deve vir antes da navegação lateral");
+  assert.ok(ai.includes('className={agentsGridTw} role="listbox" aria-label="Agentes de IA"'));
+  assert.equal(ai.match(/role="listbox"/g)?.length, 1, "deve existir uma única lista de agentes");
+  assert.equal(ai.includes("grid-cols-ai-layout"), false, "a lista não pode voltar para uma coluna estreita");
 });
 
 test("os contratos de acessibilidade do workspace permanecem intactos", () => {

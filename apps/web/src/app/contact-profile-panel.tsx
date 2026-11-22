@@ -525,7 +525,7 @@ export function ContactProfilePanel({
           <div className={"grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4" + (bare ? " flex-none overflow-visible pt-3.5" : "")}>
             {tab === "dados" ? (
               <>
-                                <div className="grid gap-4 ib-desktop:grid-cols-2">
+                                <div className="grid gap-4 lg:grid-cols-2">
                                   <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
                   <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><UserRound size={12} /> Campos personalizados</strong>
                   {fieldDefinitions.map((field) => (

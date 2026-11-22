@@ -222,7 +222,7 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     "max-w-ib-profile-control",
     "bg-ib-avatar",
     "text-ib-instagram",
-    "ib-desktop:grid-cols-2",
+    "lg:grid-cols-2",
   ]) {
     assert.ok(values.includes(utility), `falta a utility ${utility}`);
   }

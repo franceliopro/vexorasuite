@@ -126,7 +126,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-token-lg/);
 
   // Widgets em 3 colunas iguais; onboarding em 2 passos por linha no tablet.
-  assert.match(widgets, /<section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1"/);
+  assert.match(widgets, /<section className="grid grid-cols-1 gap-ov-section md:grid-cols-2 lg:grid-cols-3"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
   // Nenhuma das grades antigas que causavam 4+2 ou colunas estreitas.

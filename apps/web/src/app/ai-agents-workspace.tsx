@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 const RichPromptEditor=dynamic(()=>import("./rich-prompt-editor").then(m=>m.RichPromptEditor),{ssr:false});
 import {InboxesManagement} from "./inboxes-management";
@@ -15,16 +15,19 @@ import {
   Sparkles,
   X,
   Phone,
-  Workflow,
   BrainCircuit,
   Zap,
   Cpu,
+  RefreshCw,
+  Link2,
 } from "lucide-react";
-import { PlatformIcon, platformLabel } from "./platform-icon";
+import { PlatformIcon } from "./platform-icon";
+import { applyPhoneMask } from "../hooks/useGlobalPhoneMask";
 
 type KnowledgeDocument = { id: string; name: string; content: string };
 type BusinessSegment = { id: string; name: string; guidance: string };
 type VoiceModelSelection={provider:string;model:string;endpoint?:string;voice?:string};
+type EngineStatus={engine?:string;enabled?:boolean;executionMode?:string;automaticCustomerReplies?:boolean;workflowExecution?:boolean;workflowPersistence?:boolean;agentCount?:number;enabledAgentCount?:number;agentVisibility?:{id:string;name:string;enabled:boolean;visibleInInterface:boolean;activeInPublishedFlow:boolean;channels:string[]}[];capabilities?:Record<string,boolean>;nextSteps?:string[]};
 /* TW utility-first: cores do preset, azul só por tokens blue-*. */
 const rootTw = "grid min-w-0 gap-token";
 const heroTw = "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface p-6 shadow-token-sm";
@@ -35,63 +38,88 @@ const heroBadgeTw = "flex items-center";
 const statusPillTw = "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-small font-extrabold tracking-wide";
 const statusPillStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-zinc-200 text-slate-600" };
 const statusPillClass = (on: boolean) => `${statusPillTw} ${statusPillStateTw[on ? "on" : "off"]}`;
-const workspaceTabsTw = "inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-line bg-surface-2 p-1";
+const workspaceLayoutTw = "flex min-w-0 flex-col gap-token lg:flex-row";
+const workspaceNavTw = "flex shrink-0 flex-col gap-1 self-start rounded-token border border-line bg-surface-2 p-1.5 lg:w-52";
+const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 rounded-token-sm px-3 text-left text-body font-bold transition-colors";
+const workspaceNavIdleTw = "text-ink-secondary hover:bg-surface hover:text-ink";
+const workspaceNavActiveTw = "bg-blue-600 text-white shadow-token-sm hover:bg-blue-600 hover:text-white";
+const workspaceNavDividerTw = "my-1 border-t border-line";
+const workspaceNavItemClass = (active: boolean) => `${workspaceNavItemTw} ${active ? workspaceNavActiveTw : workspaceNavIdleTw}`;
+const workspaceContentTw = "min-w-0 flex-1";
 const agentTabsTw = "mx-0 mb-3 flex max-w-full gap-1 overflow-x-auto border-b border-line pb-0";
 const tabTw = "shrink-0 rounded-full px-3.5 py-1.5 text-small font-bold transition-colors";
 const tabStateTw: Record<string, string> = { active: "bg-blue-600 text-blue-50 shadow-token-sm", idle: "text-ink-secondary hover:bg-surface hover:text-ink" };
 const tabClass = (active: boolean) => `${tabTw} ${tabStateTw[active ? "active" : "idle"]}`;
-const workspaceActionsTw = "flex flex-wrap items-center justify-between gap-2.5";
+const workspaceActionsTw = "flex flex-wrap items-center justify-end gap-2.5";
 const noticeTw = "rounded-token-sm border border-line bg-surface-2 px-3.5 py-2.5 text-body text-ink-secondary";
-const adminLayoutTw = "grid grid-cols-ai-layout items-start gap-token";
 const adminGridTw = "grid grid-cols-1 gap-token";
-const adminCardTw = "grid min-w-0 content-start gap-3 rounded-token border border-line bg-surface p-pad shadow-token";
+const adminCardTw = "grid min-w-0 content-start gap-4 rounded-token border border-line bg-surface p-pad shadow-token";
 const adminHeadingTw = "flex flex-wrap items-center gap-2 border-b border-line pb-3";
 const adminNoteTw = "text-small leading-relaxed text-ink-secondary";
-const toggleNoteTw = "max-w-2xl text-small leading-relaxed text-ink-secondary";
-const adminFieldsTw = "grid gap-3";
+const agentHeaderTw = "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3";
+const helpTw = "m-0 rounded-xl border border-line bg-surface-2 px-4 py-3 text-small leading-relaxed text-ink-secondary";
+const adminFieldsTw = "grid gap-5";
 const toggleTw = "inline-flex cursor-pointer items-center gap-2 text-body";
-const agentsGridTw = "mt-3 grid grid-cols-ai-agents gap-3";
-const agentsGridEmptyTw = "mt-3 grid place-items-center gap-2.5 rounded-2xl border border-dashed border-line-strong p-6 text-center text-ink-secondary";
-const agentCardTw = "grid justify-items-center gap-3 rounded-2xl border border-line bg-linear-to-br from-blue-50 to-surface p-4 text-center transition-transform hover:-translate-y-0.5 hover:shadow-token-lg";
-const agentCardStateTw: Record<string, string> = { selected: "border-blue-600 shadow-token-lg ring-2 ring-blue-600", idle: "" };
+const agentsGridTw = "mt-3 flex w-full max-w-full gap-2 overflow-x-auto pb-1";
+const agentsGridEmptyTw = "mt-4 grid place-items-center gap-2.5 rounded-2xl border border-dashed border-line-strong p-6 text-center text-ink-secondary";
+const agentCardTw = "inline-flex min-w-0 shrink-0 items-center gap-2.5 rounded-token-sm border px-3 py-2 text-left transition-colors hover:shadow-token-sm";
+const agentCardStateTw: Record<string, string> = { selected: "border-blue-600 ring-2 ring-blue-600", idle: "border-line" };
 const agentCardClass = (selected: boolean) => `${agentCardTw} ${agentCardStateTw[selected ? "selected" : "idle"]}`;
-const agentFaceTw = "grid size-20 place-items-center rounded-full bg-blue-50 text-blue-700 shadow-token-sm";
+/* Cores de dados dos cards — vêm do preset e acompanham os três temas. */
+const agentToneTw = [
+  "bg-blue-50 text-blue-800",
+  "bg-emerald-100 text-emerald-600",
+  "bg-amber-100 text-amber-600",
+  "bg-red-100 text-red-600",
+  "bg-sky-100 text-sky-600",
+  "bg-zinc-200 text-ink-secondary",
+];
+const agentToneClass = (hue: number) => agentToneTw[hue % agentToneTw.length]!;
+const agentFaceTw = "grid size-8 shrink-0 place-items-center rounded-lg";
 const agentBodyTw = "grid min-w-0 gap-0.5";
-const agentFootTw = "flex items-center gap-2";
-const agentStatusTw = "rounded-full bg-surface-2 px-2.5 py-1 text-h6 font-extrabold uppercase tracking-wider text-ink-secondary";
-const agentStatusStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "" };
+const agentNameTw = "truncate text-small font-extrabold text-ink";
+const agentRoleTw = "truncate text-2xs text-ink-secondary";
+const agentFootTw = "flex shrink-0 items-center gap-1.5";
+const agentStatusTw = "rounded-full px-2 py-0.5 text-2xs font-extrabold uppercase tracking-wide";
+const agentStatusStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-surface-2 text-ink-secondary" };
 const agentStatusClass = (on: boolean) => `${agentStatusTw} ${agentStatusStateTw[on ? "on" : "off"]}`;
-const agentTierTw = "rounded-full border border-line-strong px-2.5 py-1 text-h6 font-bold uppercase tracking-wider text-ink-secondary";
-const routingCardTw = "grid gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5";
-const routingListTw = "grid gap-2";
+const agentTierTw = "text-2xs font-bold text-ink-secondary";
+const routingCardTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-3.5";
+const routingListTw = "grid gap-3";
 const routingItemTw = "flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5";
-const flowGlyphTw = "shrink-0 text-blue-800";
-const checkboxGroupTw = "mt-3 grid min-w-0 gap-2 rounded-xl border border-line bg-surface-2 p-3";
+const checkboxGroupTw = "mt-5 grid min-w-0 gap-4 rounded-xl border border-line bg-surface-2 p-4";
+const checkboxGroupTitleTw = "px-0.5 text-small font-extrabold text-ink";
 const fieldHintTw = "m-0 text-small leading-relaxed text-ink-secondary";
-const moduleGridTw = "flex flex-wrap gap-1.5";
-const moduleOptionTw = "inline-flex min-h-8 items-center gap-2 rounded-full border border-line bg-surface px-3 text-small font-semibold text-ink transition-colors hover:border-line-strong";
+const moduleGridTw = "grid gap-3.5 sm:grid-cols-2";
+const moduleOptionTw = "flex min-h-11 items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 text-small font-semibold text-ink transition-colors hover:border-line-strong hover:bg-hover";
+const checkboxBlockTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-4";
+const inlineLinkFieldTw = "flex flex-wrap items-end gap-2.5";
+const growFieldTw = "min-w-0 flex-1";
+const referenceListTw = "grid list-none gap-3 p-0";
+const referenceIconTw = "shrink-0 text-blue-800";
+const previewTw = "m-0 overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-2 p-3 text-small leading-relaxed text-ink";
 const adminActionsTw = "flex justify-end";
-const prohibitionsBlockTw = "grid gap-2";
+const prohibitionsBlockTw = "grid gap-3";
 const prohibitionsActionsTw = "flex flex-wrap items-start gap-3";
-const freePresetTw = "mb-3.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-600 bg-blue-50 p-3.5";
+const freePresetTw = "mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-600 bg-blue-50 p-3.5";
 const freePresetTextTw = "grid gap-0.5";
-const subtleCardTw = "grid gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5";
-const modelGroupTw = "mt-3 grid min-w-0 gap-3 rounded-xl border border-line bg-surface-2 px-3.5 py-3";
-const fieldsetSpacingTw = "mt-3";
+const subtleCardTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-3.5";
+const modelGroupTw = "mt-5 grid min-w-0 gap-4 rounded-xl border border-line bg-surface-2 px-3.5 py-3";
+const fieldsetSpacingTw = "mt-5";
 const modelPresetsTw = "flex flex-wrap gap-2";
 const assistantPanelTw = "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg";
 const assistantHeadTw = "flex items-center justify-between border-b border-line px-4 py-3";
 const assistantContentTw = "grid min-h-0 flex-1 auto-rows-start gap-2.5 overflow-y-auto p-3.5";
 const assistantMessageTw = "rounded-xl bg-surface-2 p-2.5";
 const assistantFormTw = "flex items-center gap-2";
-const disclosureTw = "mt-3";
+const disclosureTw = "mt-5";
 const creativeSlideListTw = "flex flex-wrap gap-3";
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-brand-pad text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-brand-pad text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
-const surfaceFieldsTw = "grid min-w-0 gap-3 rounded-token border border-line bg-surface p-pad shadow-token";
+const surfaceFieldsTw = "grid min-w-0 gap-4 rounded-token border border-line bg-surface p-pad shadow-token";
 
-const phoneListTw = "grid list-none gap-2.5 p-0";
-const phoneCardTw = "grid gap-2 rounded-ai-phone border border-line bg-surface-2 p-3";
+const phoneListTw = "grid list-none gap-3 p-0";
+const phoneCardTw = "grid gap-3 rounded-ai-phone border border-line bg-surface-2 p-3";
 const phoneHeadTw = "flex items-center justify-between gap-2.5";
 const phoneNumberTw = "inline-flex items-center gap-2 text-body font-extrabold tabular-nums";
 const phoneRemoveTw = "inline-flex min-h-7 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-small font-semibold text-ink-secondary transition-colors hover:bg-surface hover:text-ink";
@@ -145,6 +173,7 @@ export function AiAgentsWorkspace() {
   const [companyProhibitions,setCompanyProhibitions]=useState("");
   const [personalAssistantRules,setPersonalAssistantRules]=useState<{phone:string;allowed:string;forbidden:string}[]>([]);
   const [knowledgeDocuments,setKnowledgeDocuments]=useState<KnowledgeDocument[]>([]);
+  const [referenceDraft,setReferenceDraft]=useState("");
   const [activation, setActivation] = useState("Clique ou texto");
   const [notice, setNotice] = useState("");
   const [assistantEnabled, setAssistantEnabled] = useState(false);
@@ -153,7 +182,7 @@ export function AiAgentsWorkspace() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("Perfil");
   const [workspaceTab,setWorkspaceTab]=useState<"Agentes"|"Conhecimento"|"Configuração geral"|"Testar">("Agentes");
-  const [engineStatus,setEngineStatus]=useState<{active?:boolean;publications?:{key:string;scope?:{departmentId?:string|null;userId?:string|null};active:boolean;flowName?:string}[]}|null>(null);
+  const [engineStatus,setEngineStatus]=useState<EngineStatus|null>(null);
   type InboxOption = { id:string; name:string; provider?:string; platform?:string; accountName?:string; handle?:string; status?:string };
   const [inboxes,setInboxes]=useState<InboxOption[]>([]);
   const [departmentCatalog,setDepartmentCatalog]=useState<{id:string;name:string;key:string}[]>([]);
@@ -289,8 +318,8 @@ export function AiAgentsWorkspace() {
     } catch (error) { setNotice(error instanceof Error ? error.message : "Não foi possível salvar agora. Suas alterações não foram enviadas; tente novamente."); return false; }
     finally { setSaving(false); }
   };
-  const addPhone = () => { const digits=phoneDraft.replace(/\D/g,""); if(digits.length<8||digits.length>15){setNotice("Informe o número com código do país e DDD.");return;} if(allowedPhones.includes(digits)){setNotice("Esse celular já está autorizado.");return;} if(allowedPhones.length>=50){setNotice("Limite de 50 celulares autorizados.");return;} setAllowedPhones(items=>[...items,digits]);setPersonalAssistantRules(items=>items.some(rule=>rule.phone===digits)?items:[...items,{phone:digits,allowed:"",forbidden:""}]);setPhoneDraft("");setNotice("Número adicionado. Defina o que pode e o que é proibido e salve a configuração para aplicar."); };
-  const addTestPhone = () => { const digits=testPhoneDraft.replace(/\D/g,""); if(digits.length<8||digits.length>15){setNotice("Informe o celular com código do país e DDD.");return;} if(testPhones.includes(digits)){setNotice("Esse celular já está na lista de testes.");return;} if(testPhones.length>=50){setNotice("Limite de 50 celulares de teste.");return;} setTestPhones(items=>[...items,digits]);setTestPhoneDraft("");setNotice("Celular autorizado para testes. Salve a configuração."); };
+  const addPhone = () => { const digits=phoneDraft.replace(/\D/g,""); if(digits.length<8||digits.length>15){setNotice("Informe o número com DDD, usando de 8 a 15 dígitos.");return;} if(allowedPhones.includes(digits)){setNotice("Esse celular já está autorizado.");return;} if(allowedPhones.length>=50){setNotice("Limite de 50 celulares autorizados.");return;} setAllowedPhones(items=>[...items,digits]);setPersonalAssistantRules(items=>items.some(rule=>rule.phone===digits)?items:[...items,{phone:digits,allowed:"",forbidden:""}]);setPhoneDraft("");setNotice("Número adicionado. Defina o que pode e o que é proibido e salve a configuração para aplicar."); };
+  const addTestPhone = () => { const digits=testPhoneDraft.replace(/\D/g,""); if(digits.length<8||digits.length>15){setNotice("Informe o celular com DDD, usando de 8 a 15 dígitos.");return;} if(testPhones.includes(digits)){setNotice("Esse celular já está na lista de testes.");return;} if(testPhones.length>=50){setNotice("Limite de 50 celulares de teste.");return;} setTestPhones(items=>[...items,digits]);setTestPhoneDraft("");setNotice("Celular autorizado para testes. Salve a configuração."); };
   const addKnowledgeFiles = async (files: FileList | null) => { if(!files?.length)return; const additions:KnowledgeDocument[]=[]; for(const file of Array.from(files)){if(knowledgeDocuments.length+additions.length>=10){setNotice("Limite de 10 documentos.");break;}if(file.size>5*1024*1024){setNotice(file.name+" excede 5 MB.");continue;}try{const form=new FormData();form.set("file",file);const response=await fetch("/api/backend/assistant/knowledge-documents/parse",{method:"POST",body:form});const data=await response.json();if(!response.ok)throw Error(Array.isArray(data.message)?data.message.join(" "):data.message||"Não foi possível extrair o documento.");const content=String(data.content||"").trim();if(!content){setNotice(file.name+" está vazio.");continue;}additions.push({id:crypto.randomUUID(),name:String(data.name||file.name),content:content.slice(0,8000)});if(data.truncated)setNotice(file.name+" foi limitado aos primeiros 8.000 caracteres.");}catch(error){setNotice(file.name+": "+(error instanceof Error?error.message:"falha ao ler o arquivo"));}} if(additions.length){setKnowledgeDocuments(items=>[...items,...additions].slice(0,10));setNotice(additions.length+" documento(s) extraído(s). Salve para adicioná-los à base.");} };
   const agent = agents.find(a => a.id === selected);
   const applyGeminiPreset = () => {
@@ -302,16 +331,16 @@ export function AiAgentsWorkspace() {
     if (designer) setAgents(items => items.map(a => a.id === designer.id ? { ...a, llm: { provider: "gemini", model: geminiWebDesigner.id, tier: "Inteligente" } } : a));
     setNotice("Aplicado: gemini-3.8-flash no Web Designer (site/relayout) e gemini-3.5-flash-lite na configuração geral. Verifique e clique em \"Salvar configuração\" para persistir.");
   };
-  const flowBindings = (engineStatus?.publications||[]).map(p => {
-    const key = String(p?.key || "");
-    if (!key) return null;
-    const departmentId = p.scope?.departmentId || (key.startsWith("department:") ? key.slice("department:".length) : null);
-    const department = departmentId ? departmentCatalog.find(item => item.id === departmentId || item.key === String(departmentId).toUpperCase()) : null;
-    const name = p.flowName?.trim() || (key === "default" ? "Fluxo principal da empresa" : department ? "Fluxo · " + department.name : "Fluxo de atendimento");
-    const scopeLabel = key === "default" ? "Toda a empresa" : department ? "Departamento · " + department.name : "Departamento";
-    return { key, name, scopeLabel, active: p.active === true };
-  }).filter(Boolean) as { key:string; name:string; scopeLabel:string; active:boolean }[];
   const update = (patch: Partial<Agent>) => setAgents(items => items.map(a => a.id === selected ? { ...a, ...patch } : a));
+  const addReference = () => {
+    const url = referenceDraft.trim();
+    if (!url) return;
+    try { const parsed = new URL(url); if (!["https:", "http:"].includes(parsed.protocol)) throw Error(); }
+    catch { setNotice("Informe um endereço http ou https válido."); return; }
+    if ((agent?.knowledgeUrls||[]).includes(url)) { setNotice("Essa referência já está na lista."); return; }
+    update({ knowledgeUrls: [...(agent?.knowledgeUrls||[]), url] });
+    setReferenceDraft("");
+  };
   const markPersonalAssistant = (enabled:boolean) => setAgents(items=>items.map(a=>({...a,personalAssistant:a.id===selected?enabled:false})));
   const add = () => {
     const id=crypto.randomUUID();
@@ -335,59 +364,176 @@ export function AiAgentsWorkspace() {
     <datalist>{(catalog.models||[]).filter(model=>model.provider==="ollama").map(model=><option key={model.id} value={model.id}>{model.name} · {model.tier} · instalado</option>)}</datalist>
     <datalist>{(catalog.models||[]).filter(model=>model.provider==="local-voice").map(model=><option key={model.id} value={model.id}>{model.name}</option>)}</datalist>
     <datalist><option value="openrouter/free">OpenRouter Free · cota gratuita</option>{(catalog.models||[]).filter(model=>model.provider==="openrouter"&&model.id!=="openrouter/free").map(model=><option key={model.id} value={model.id}>{model.name} · US$ {Number.isFinite(model.pricePerMillionInputUsd)?Number((model.pricePerMillionInputUsd??0).toFixed(4)):0}/1M entrada</option>)}</datalist>
-    <nav className={workspaceTabsTw} role="tablist" aria-label="Áreas de configuração da inteligência">{(["Agentes","Conhecimento","Configuração geral","Testar"] as const).map(item=>{const tabId="ai-workspace-tab-"+item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");return <button id={tabId} key={item} type="button" role="tab" aria-controls="ai-workspace-tabpanel" aria-selected={workspaceTab===item} className={tabClass(workspaceTab===item)} onClick={()=>setWorkspaceTab(item)}>{item}</button>})}</nav>
+    {workspaceTab==="Agentes"&&<section className={adminCardTw}>
+      <div className={adminHeadingTw}><h2><Bot size={19}/> Agentes</h2><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates de negócio…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={primaryTw} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>
+      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a) => { const hue = agentHue(String(a.id)); const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[hue % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={`${agentCardClass(selected === a.id)} ${agentToneClass(hue)}`} onClick={() => setSelected(a.id)}><span className={agentFaceTw}><Face size={17} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Clique em Novo acima para criar o primeiro.</p></div>}
+    </section>}
+    <div className={workspaceLayoutTw}>
+    <nav className={workspaceNavTw} role="tablist" aria-label="Áreas de configuração da inteligência">
+      {([
+        { name: "Agentes", icon: Bot },
+        { name: "Conhecimento", icon: BrainCircuit },
+        { name: "Configuração geral", icon: Cpu },
+        { name: "Testar", icon: Zap },
+      ] as const).map(({ name: item, icon: Icon }) => {
+        const tabId="ai-workspace-tab-"+item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+        return <button id={tabId} key={item} type="button" role="tab" aria-controls="ai-workspace-tabpanel" aria-selected={workspaceTab===item} className={workspaceNavItemClass(workspaceTab===item)} onClick={()=>setWorkspaceTab(item)}><Icon size={17} aria-hidden="true"/>{item}</button>;
+      })}
+      <span className={workspaceNavDividerTw} aria-hidden="true"/>
+      <button type="button" className={`${workspaceNavItemTw} ${workspaceNavIdleTw}`} onClick={()=>{void fetch("/api/backend/assistant/model-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(setCatalog).catch(()=>setNotice("Não foi possível atualizar os modelos."))}}><RefreshCw size={16} aria-hidden="true"/> Atualizar modelos</button>
+    </nav>
+    <div className={workspaceContentTw}>
     <div id="ai-workspace-tabpanel" role="tabpanel" aria-labelledby={"ai-workspace-tab-"+workspaceTab.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}>
-    <div className={workspaceActionsTw}><button type="button" className={secondaryTw} onClick={()=>{void fetch("/api/backend/assistant/model-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(setCatalog).catch(()=>setNotice("Não foi possível atualizar os modelos."))}}>Atualizar modelos</button><button type="button" className={primaryTw} onClick={()=>void save()} disabled={saving||loading||!configAvailable}><Save size={15}/> {saving?"Salvando…":"Salvar configuração"}</button></div>
+    <div className={workspaceActionsTw}><button type="button" className={primaryTw} onClick={()=>void save()} disabled={saving||loading||!configAvailable}><Save size={15}/> {saving?"Salvando…":"Salvar configuração"}</button></div>
     {notice&&<p role="status" className={noticeTw}>{notice}</p>}
-    {workspaceTab==="Agentes"&&<div className={adminLayoutTw}>
-      <section className={adminCardTw}>
-        <div className={adminHeadingTw}><h2><Bot size={19}/> Agentes</h2><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates de negócio…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={primaryTw} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>
-        {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a) => { const hue = agentHue(String(a.id)); const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[hue % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={agentCardClass(selected === a.id)} style={{"--hue": String(hue)} as CSSProperties} onClick={() => setSelected(a.id)}><span className={agentFaceTw}><Face size={36} strokeWidth={1.8} aria-hidden="true"/></span><span className={agentBodyTw}><strong>{a.name}</strong><small>{a.role}</small><em>{a.profile?.tone || "Cordial e objetivo"}</em></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Clique em Novo acima para criar o primeiro.</p></div>}
-      </section>
-      <section className={adminCardTw}>
+    {workspaceTab==="Agentes"&&<section className={adminCardTw}>
         <h2><ShieldCheck size={19}/> Configuração</h2>
         {agent ? <div className={adminFieldsTw}>
-          <p className={adminNoteTw}>{agent.allowedActions?.length||0} Skills selecionadas · LLM: {agent.llm?.model||primaryModel.model||"falta configurar"} · STT: {agent.stt?.provider||"herdado"} · TTS: {agent.tts?.provider||"herdado"}</p>
+          <p className={helpTw}>Escolha um agente na faixa acima e ajuste as abas abaixo. Nada é aplicado ao cliente antes de clicar em <strong>Salvar configuração</strong>. Skills ativas: {agent.allowedActions?.length||0} · modelo: {agent.llm?.model||primaryModel.model||"a definir"}.</p>
           <nav className={agentTabsTw} role="tablist" aria-label="Configurações do agente">{["Perfil","Acesso","Modelos e Voz","Referências","Comportamento","Skills","Papel e vínculos"].map(t=>{const tabId="ai-agent-tab-"+t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");return <button id={tabId} key={t} type="button" role="tab" aria-controls="ai-agent-tabpanel" aria-selected={tab===t} className={tabClass(tab===t)} onClick={()=>setTab(t)}>{t}</button>})}</nav>
           <div id="ai-agent-tabpanel" role="tabpanel" aria-labelledby={"ai-agent-tab-"+tab.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")} hidden={!agent}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2><ShieldCheck size={19}/> {agent.name}</h2><label className={toggleTw}><input type="checkbox" checked={agent.enabled} onChange={e=>update({enabled:e.target.checked})}/> Agente habilitado</label><span className={toggleNoteTw}>Disponível para testes e para ser escolhido em um fluxo. A marcação de inbox abaixo é o que autoriza respostas nessa conexão.</span></div>
+          <div className={agentHeaderTw}><h2><ShieldCheck size={19}/> {agent.name}</h2><label className={toggleTw}><input type="checkbox" checked={agent.enabled} onChange={e=>update({enabled:e.target.checked})}/> Agente habilitado</label></div>
           {tab==="Perfil" && <>
-            <label>Nome do agente<input value={agent.name} onChange={e=>update({name:e.target.value})}/></label>
-            <label className={toggleTw}><input type="checkbox" checked={agent.personalAssistant===true||agent.id==="1"} disabled={agent.id==="1"||(!agent.personalAssistant&&agents.some(a=>a.id!=="1"&&a.personalAssistant))} onChange={e=>markPersonalAssistant(e.target.checked)}/>Acesso restrito à Assistente Pessoal — WhatsApp só para celulares autorizados</label>
-            <label>Papel na operação<select value={agent.role} onChange={e=>update({role:e.target.value})}>{["Atendimento","Marketing","Financeiro","Assistente virtual","Supervisor","SDR · qualificação","Vendedor online","Parceiro comercial","Funcionário","Coordenador"].map(x=><option key={x}>{x}</option>)}</select></label>
-            <label>Tom de fala<select value={agent.profile?.tone||"Cordial e objetivo"} onChange={e=>update({profile:{...agent.profile,channels:agent.profile?.channels||[],tone:e.target.value}})}>{["Cordial e objetivo","Consultivo e acolhedor","Neutro e equilibrado","Formal e institucional"].map(x=><option key={x}>{x}</option>)}</select></label>
-            <InboxesManagement agentId={agent.id} compact/>
+            <p className={helpTw}><strong>Para que serve:</strong> defina a identidade do agente — o nome que aparece na lista, a função que ele exerce e o tom que usa ao responder. As alterações só valem depois de clicar em <strong>Salvar configuração</strong>.</p>
+            <section className={surfaceFieldsTw}>
+              <h3>Identidade</h3>
+              <label>Nome do agente<input value={agent.name} onChange={e=>update({name:e.target.value})}/></label>
+              <div className={moduleGridTw}>
+                <label>Papel na operação<select value={agent.role} onChange={e=>update({role:e.target.value})}>{["Atendimento","Marketing","Financeiro","Assistente virtual","Supervisor","SDR · qualificação","Vendedor online","Parceiro comercial","Funcionário","Coordenador"].map(x=><option key={x}>{x}</option>)}</select></label>
+                <label>Tom de fala<select value={agent.profile?.tone||"Cordial e objetivo"} onChange={e=>update({profile:{...agent.profile,channels:agent.profile?.channels||[],tone:e.target.value}})}>{["Cordial e objetivo","Consultivo e acolhedor","Neutro e equilibrado","Formal e institucional"].map(x=><option key={x}>{x}</option>)}</select></label>
+              </div>
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>Assistente Pessoal</h3>
+              <p className={adminNoteTw}>Marque se este agente fala por você no WhatsApp. Apenas um agente pode ser a Assistente Pessoal e ele atende somente os celulares autorizados na aba Acesso.</p>
+              <label className={toggleTw}><input type="checkbox" checked={agent.personalAssistant===true||agent.id==="1"} disabled={agent.id==="1"||(!agent.personalAssistant&&agents.some(a=>a.id!=="1"&&a.personalAssistant))} onChange={e=>markPersonalAssistant(e.target.checked)}/> Usar este agente como Assistente Pessoal</label>
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>Canais conectados</h3>
+              <p className={adminNoteTw}>Veja o estado real de cada canal e configure seu destino. Para autorizar este agente a responder em um canal, marque a inbox na aba <strong>Papel e vínculos</strong>.</p>
+              <InboxesManagement agentId={agent.id} compact/>
+            </section>
           </>}
-          {tab==="Acesso"&&<><h3>Celulares autorizados</h3><section className={surfaceFieldsTw} style={{marginBottom:16}}><label className={toggleTw}><input type="checkbox" checked={testAccessEnabled} onChange={e=>setTestAccessEnabled(e.target.checked)}/> Restringir Chatbot e Agentes de IA aos celulares de teste</label><p className={adminNoteTw}>Enquanto estiver ligado, somente os números abaixo podem iniciar testes. Desligue antes de abrir o atendimento para o público.</p><div style={{display:"flex",gap:8,alignItems:"end",flexWrap:"wrap"}}><label style={{flex:1,minWidth:220}}>Celular de teste<input type="tel" inputMode="tel" placeholder="+55 (11) 99999-9999" value={testPhoneDraft} onChange={e=>setTestPhoneDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addTestPhone();}}}/></label><button type="button" className={secondaryTw} onClick={addTestPhone}><Plus size={15}/> Adicionar</button></div>{testPhones.length===0?<p>Nenhum celular de teste cadastrado.</p>:<ul>{testPhones.map(phone=><li key={phone} style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}><span>+{phone}</span><button type="button" className={secondaryTw} onClick={()=>setTestPhones(items=>items.filter(item=>item!==phone))}><Trash2 size={15}/> Remover</button></li>)}</ul>}</section><h3>Celulares autorizados</h3><p className={adminNoteTw}>Esta lista vale somente para o agente marcado como Assistente Pessoal. Outros agentes continuam atendendo clientes normalmente. Se a lista estiver vazia, ninguém acessa a Assistente Pessoal pelo WhatsApp. Para cada celular, defina o que ele pode ver/fazer e o que é proibido — essas regras nunca são ultrapassadas, nem por pedido.</p><div style={{display:"flex",gap:8,alignItems:"end",flexWrap:"wrap"}}><label style={{flex:1,minWidth:220}}>Número com código do país e DDD<input type="tel" inputMode="tel" autoComplete="tel" placeholder="+55 (11) 99999-9999" value={phoneDraft} onChange={e=>setPhoneDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addPhone();}}}/></label><button type="button" className={secondaryTw} onClick={addPhone}><Plus size={15}/> Autorizar</button></div>{allowedPhones.length===0?<p>Nenhum celular autorizado.</p>:<ul className={phoneListTw}>{allowedPhones.map(phone=>{const rule=personalAssistantRules.find(item=>item.phone===phone)??{phone,allowed:"",forbidden:""};return <li key={phone} className={phoneCardTw}><div className={phoneHeadTw}><span className={phoneNumberTw}><Phone size={14} aria-hidden="true"/>+{phone}</span><button type="button" className={phoneRemoveTw} aria-label={"Remover +"+phone} onClick={()=>{setAllowedPhones(items=>items.filter(item=>item!==phone));setPersonalAssistantRules(items=>items.filter(item=>item.phone!==phone));}}><Trash2 size={14} aria-hidden="true"/> Remover</button></div><label className={phoneRuleTw}>O que pode ver e fazer<textarea rows={2} maxLength={2000} placeholder="Ex.: ver o resumo do dia, compromissos e avisos importantes" value={rule.allowed} onChange={e=>setPersonalAssistantRules(items=>{const rest=items.filter(item=>item.phone!==phone);return [...rest,{phone,allowed:e.target.value,forbidden:rule.forbidden}]})}/></label><label className={phoneRuleTw}>O que é proibido — sempre, mesmo por pedido<textarea rows={2} maxLength={2000} placeholder="Ex.: dados financeiros, cadastros de clientes, cobranças, alterações no sistema" value={rule.forbidden} onChange={e=>setPersonalAssistantRules(items=>{const rest=items.filter(item=>item.phone!==phone);return [...rest,{phone,allowed:rule.allowed,forbidden:e.target.value}]})}/></label></li>})}</ul>}</>}
-          {tab==="Modelos e Voz" && <>{(["llm","stt","tts"] as const).map(kind=>{const value=kind==="llm"?(agent.llm||primaryModel):(agent[kind]||(kind==="stt"?globalStt:globalTts));const title=kind==="llm"?"Texto e raciocínio (LLM)":kind==="stt"?"Ouvir áudio e transformar em texto (STT)":"Falar a resposta em áudio (TTS)";const patch=(v:Partial<NonNullable<typeof value>>)=>update({[kind]:{...value,...(kind==="llm"?{tier:agent.tier}:{}),...v}});return <fieldset key={kind} className={modelGroupTw}><legend><strong>{title}</strong></legend>{kind==="llm"&&<button type="button" className={secondaryTw} onClick={()=>update({llm:undefined})}>Usar modelo da configuração geral</button>}<label>Provedor<select value={value?.provider||(kind==="llm"?"openrouter":"browser")} onChange={e=>patch({provider:e.target.value,model:kind==="llm"?"":voiceModel(kind,e.target.value),...(kind==="tts"?{voice:undefined}:{})})}>{(kind==="llm"?Object.keys(llmLabels):["browser","local","openai"]).map(x=><option key={x} value={x}>{kind==="llm"?llmLabels[x]:x}</option>)}</select></label>{kind==="llm"?<><AiModelPicker label="Nome do modelo" provider={value?.provider||primaryModel.provider} value={value?.model||""} models={catalog.models||[]} onChange={model=>patch({model})}/>{catalog.services?.filter(s=>s.provider===(value?.provider||primaryModel.provider)&&!s.available).map(s=><p role="status" key={s.provider}>{s.message}</p>)}</>:<><AiVoiceModelPicker label="Nome do modelo" kind={kind} provider={value?.provider||"browser"} value={value?.model||"browser"} models={catalog.models||[]} onChange={model=>patch({model,...(kind==="tts"?{voice:undefined}:{})})}/>{catalog.services?.filter(s=>s.provider===(value?.provider+"-"+kind)&&!s.available).map(s=><p role="status" key={s.provider}>{s.message}</p>)}</>}{kind==="llm"&&<label>Perfil de custo<select value={agent.tier} onChange={e=>{update({tier:e.target.value as Agent["tier"],llm:{provider:value?.provider||"openrouter",model:value?.model||"",tier:e.target.value,endpoint:'endpoint' in value&&typeof value.endpoint==='string'?value.endpoint:undefined}})}}><option>Econômico</option><option>Equilíbrio</option><option>Inteligente</option></select></label>}{kind==="tts"&&<><TtsVoicePicker provider={value.provider} model={value.model} value={(agent.tts||globalTts).voice||""} voices={catalog.voiceOptions||[]} onChange={voice=>update({tts:{...(agent.tts||globalTts),voice:voice||undefined}})}/><p className={adminNoteTw}>Voz do navegador funciona por clique. OpenAI usa o modelo configurado e a chave protegida da empresa ou do servidor; pode consumir seu orçamento de IA.</p></>}</fieldset>})}</>}
-          {tab==="Referências"&&<><h3>Referências deste agente</h3><p className={adminNoteTw}>Estas URLs são específicas do agente. Para informações compartilhadas por toda a empresa, use a aba Conhecimento.</p><label>URLs de referência (uma por linha)<textarea rows={5} placeholder="Exemplo:\nhttps://www.behance.net/estudo-de-identidade\nhttps://www.awwwards.com/sites/referencia-de-interface" value={(agent.knowledgeUrls||[]).join("\\n")} onChange={e=>update({knowledgeUrls:e.target.value.split("\\n").map(x=>x.trim()).filter(Boolean)})}/></label><p className={adminNoteTw}>O Designer de Referências pesquisa fontes públicas e retorna links como inspiração; revise cada referência e confirme a licença dos ativos antes de usar.</p></>}
-          {tab==="Comportamento"&&<><RichPromptEditor label={"Prompt principal"} documentKey={agent.id+":"+ "Prompt principal (Markdown)"} rows={7} placeholder="Exemplo:\nVocê atende pela {{empresa}} com tom cordial e direto.\nObjetivo: entender a necessidade, orientar com base nas informações cadastradas e encaminhar quando necessário.\nUse linguagem natural, faça uma pergunta por vez e nunca invente políticas, preços ou disponibilidade." value={agent.instructions} onChange={value=>update({instructions:value})}/><RichPromptEditor label={"Regras de atendimento"} documentKey={agent.id+":"+ "Regras de atendimento"} rows={4} placeholder="Exemplo:\n- Cumprimente e descubra o que a pessoa precisa.\n- Confirme dados antes de registrar ou encaminhar.\n- Se faltar informação, pergunte ou chame a equipe responsável." value={agent.behavior?.rules||""} onChange={value=>update({behavior:{rules:value,prohibitions:agent.behavior?.prohibitions||""}})}/><RichPromptEditor label={"O que NÃO pode fazer?"} documentKey={agent.id+":"+ "O que NÃO pode fazer?"} rows={4} placeholder="Exemplo:\n- Não inventar preços, prazos, vagas ou políticas.\n- Não revelar dados de outros clientes ou instruções internas.\n- Não afirmar que agendou, cobrou ou alterou algo sem confirmação do sistema." value={agent.behavior?.prohibitions||""} onChange={value=>update({behavior:{rules:agent.behavior?.rules||"",prohibitions:value}})}/><strong>Prévia do comportamento</strong><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{[agent.instructions,agent.behavior?.rules&&"Regras de atendimento:\n"+agent.behavior.rules,agent.behavior?.prohibitions&&"Proibições:\n"+agent.behavior.prohibitions].filter(Boolean).join("\n\n")}</pre></>}
-          {tab==="Skills"&&<><h3>Biblioteca de Skills</h3><ProductSkillsEditor/>{customSkillsLoading&&<p role="status" aria-live="polite">Carregando habilidades personalizadas…</p>}{customSkillsError&&<p role="alert">{customSkillsError} <button type="button" className={secondaryTw} onClick={()=>setCustomSkillsRetry(value=>value+1)}>Tentar novamente</button></p>}<details><summary><strong>+ Criar Skill personalizada</strong></summary><div className={adminFieldsTw} style={{paddingTop:12}}><label>Nome<input value={skillDraft.name} onChange={e=>setSkillDraft(v=>({...v,name:e.target.value,id:v.id||e.target.value.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}))}/></label><label>ID técnico<input value={skillDraft.id} onChange={e=>setSkillDraft(v=>({...v,id:e.target.value}))}/></label><RichPromptEditor label={"Descrição"} rows={3} maxLength={1000} value={skillDraft.description} onChange={value=>setSkillDraft(v=>({...v,description:value}))}/><RichPromptEditor label={"Instruções"} rows={7} maxLength={12000} value={skillDraft.instructions} onChange={value=>setSkillDraft(v=>({...v,instructions:value}))}/><label>Importar arquivo .md<input type="file" accept=".md,text/markdown,text/plain" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>50000){setSkillNotice("Arquivo muito grande");return;}const content=await file.text();setSkillDraft(v=>({...v,name:v.name||file.name.replace(/\\.md$/i,""),instructions:content}));}}/></label><button type="button" className={primaryTw} onClick={async()=>{const next=[...customSkills,skillDraft];try{const response=await fetch("/api/backend/assistant/custom-skills",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({skills:next})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha ao salvar");setCustomSkills(data.skills);setSkillDraft({id:"",name:"",description:"",instructions:""});setSkillNotice("Skill salva como rascunho; não executável.");}catch(error){setSkillNotice(error instanceof Error?error.message:"Erro ao salvar");}}}><Save size={15}/> Salvar Skill</button>{skillNotice&&<p role="status">{skillNotice}</p>}</div></details><p className={adminNoteTw}>Skills personalizadas são rascunhos não executáveis. Para executar ações, é necessária uma implementação revisada e autorizada.</p>{customSkills.filter(skill=>skill.status!=='implemented').map(skill=><p key={skill.id}><strong>{skill.name}</strong> · Rascunho <small>{skill.description}</small></p>)}<p className={adminNoteTw}>Habilidades compartilhadas, priorizando custo zero. Selecionar uma Skill não a executa nem ultrapassa permissões do usuário. Recursos ainda não implementados são exibidos desabilitados.</p>{skillsLoading&&<p role="status" aria-live="polite">Carregando skills…</p>}{skillsError&&<p role="alert">{skillsError} <button type="button" className={secondaryTw} onClick={()=>setSkillsRetry(value=>value+1)}>Tentar novamente</button></p>}{!skillsLoading&&!skillsError&&skills.length===0?<p>Catálogo indisponível. Verifique a conexão com a API.</p>:skills.map(skill=><label key={skill.id} className={toggleTw} style={{opacity:skill.implemented?1:0.65}}><input type="checkbox" disabled={!skill.implemented} checked={(agent.allowedActions||[]).includes(skill.id)} onChange={e=>update({allowedActions:e.target.checked?[...(agent.allowedActions||[]),skill.id]:(agent.allowedActions||[]).filter(x=>x!==skill.id)})}/><span><strong>{skill.name}</strong><small style={{display:"block"}}>{skill.category} · {skill.cost==="zero"?"Sem custo de LLM":skill.cost==="model"?"Depende do modelo":"Pode consumir API externa"} · {skill.implemented?"Disponível para configuração":"Em desenvolvimento"}</small></span></label>)}</>}
+          {tab==="Acesso"&&<>
+            <p className={helpTw}><strong>Para que serve:</strong> controle aqui quem pode testar a IA e quais celulares podem falar com a Assistente Pessoal pelo WhatsApp. Digite o número com DDD; o campo formata automaticamente. Salve a configuração para aplicar.</p>
+            <section className={surfaceFieldsTw}>
+              <h3>Celulares de teste</h3>
+              <p className={adminNoteTw}>Enquanto o bloqueio estiver ligado, só estes números podem testar o Chatbot e os Agentes de IA. Desligue antes de abrir o atendimento ao público.</p>
+              <label className={toggleTw}><input type="checkbox" checked={testAccessEnabled} onChange={e=>setTestAccessEnabled(e.target.checked)}/> Limitar testes a estes celulares</label>
+              <div className={inlineLinkFieldTw}>
+                <label className={growFieldTw}>Celular de teste<input type="tel" inputMode="tel" placeholder="(11) 99999-9999" value={testPhoneDraft} onChange={e=>setTestPhoneDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addTestPhone();}}}/></label>
+                <button type="button" className={secondaryTw} onClick={addTestPhone}><Plus size={15}/> Adicionar</button>
+              </div>
+              {testPhones.length===0?<p className={adminNoteTw}>Nenhum celular de teste cadastrado.</p>:<ul className={referenceListTw}>{testPhones.map(phone=><li key={phone} className={routingItemTw}><span className={phoneNumberTw}><Phone size={14} aria-hidden="true"/>{applyPhoneMask(phone)}</span><button type="button" className={phoneRemoveTw} aria-label={"Remover "+applyPhoneMask(phone)} onClick={()=>setTestPhones(items=>items.filter(item=>item!==phone))}><Trash2 size={14} aria-hidden="true"/> Remover</button></li>)}</ul>}
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>Assistente Pessoal no WhatsApp</h3>
+              <p className={adminNoteTw}>Estes números falam com a Assistente Pessoal. Se a lista estiver vazia, ninguém acessa esse agente pelo WhatsApp. Para cada número, defina o que ele pode e não pode fazer — essas regras não são ultrapassadas nem por pedido.</p>
+              <div className={inlineLinkFieldTw}>
+                <label className={growFieldTw}>Número com DDD<input type="tel" inputMode="tel" autoComplete="tel" placeholder="(11) 99999-9999" value={phoneDraft} onChange={e=>setPhoneDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addPhone();}}}/></label>
+                <button type="button" className={secondaryTw} onClick={addPhone}><Plus size={15}/> Autorizar</button>
+              </div>
+              {allowedPhones.length===0?<p className={adminNoteTw}>Nenhum celular autorizado.</p>:<ul className={phoneListTw}>{allowedPhones.map(phone=>{const rule=personalAssistantRules.find(item=>item.phone===phone)??{phone,allowed:"",forbidden:""};return <li key={phone} className={phoneCardTw}><div className={phoneHeadTw}><span className={phoneNumberTw}><Phone size={14} aria-hidden="true"/>{applyPhoneMask(phone)}</span><button type="button" className={phoneRemoveTw} aria-label={"Remover "+applyPhoneMask(phone)} onClick={()=>{setAllowedPhones(items=>items.filter(item=>item!==phone));setPersonalAssistantRules(items=>items.filter(item=>item.phone!==phone));}}><Trash2 size={14} aria-hidden="true"/> Remover</button></div><label className={phoneRuleTw}>O que pode ver e fazer<textarea rows={2} maxLength={2000} placeholder="Ex.: ver o resumo do dia, compromissos e avisos importantes" value={rule.allowed} onChange={e=>setPersonalAssistantRules(items=>{const rest=items.filter(item=>item.phone!==phone);return [...rest,{phone,allowed:e.target.value,forbidden:rule.forbidden}]})}/></label><label className={phoneRuleTw}>O que é proibido — sempre, mesmo por pedido<textarea rows={2} maxLength={2000} placeholder="Ex.: dados financeiros, cadastros de clientes, cobranças, alterações no sistema" value={rule.forbidden} onChange={e=>setPersonalAssistantRules(items=>{const rest=items.filter(item=>item.phone!==phone);return [...rest,{phone,allowed:rule.allowed,forbidden:e.target.value}]})}/></label></li>})}</ul>}
+            </section>
+          </>}
+          {tab==="Modelos e Voz" && <><p className={helpTw}>Escolha o modelo que este agente usa em cada tarefa. Sem escolha, ele usa o modelo da configuração geral. A voz do navegador funciona sem chave de API.</p>{(["llm","stt","tts"] as const).map(kind=>{const value=kind==="llm"?(agent.llm||primaryModel):(agent[kind]||(kind==="stt"?globalStt:globalTts));const title=kind==="llm"?"Texto e raciocínio (LLM)":kind==="stt"?"Ouvir áudio e transformar em texto (STT)":"Falar a resposta em áudio (TTS)";const patch=(v:Partial<NonNullable<typeof value>>)=>update({[kind]:{...value,...(kind==="llm"?{tier:agent.tier}:{}),...v}});return <fieldset key={kind} className={modelGroupTw}><legend><strong>{title}</strong></legend>{kind==="llm"&&<button type="button" className={secondaryTw} onClick={()=>update({llm:undefined})}>Usar modelo da configuração geral</button>}<label>Provedor<select value={value?.provider||(kind==="llm"?"openrouter":"browser")} onChange={e=>patch({provider:e.target.value,model:kind==="llm"?"":voiceModel(kind,e.target.value),...(kind==="tts"?{voice:undefined}:{})})}>{(kind==="llm"?Object.keys(llmLabels):["browser","local","openai"]).map(x=><option key={x} value={x}>{kind==="llm"?llmLabels[x]:x}</option>)}</select></label>{kind==="llm"?<><AiModelPicker label="Nome do modelo" provider={value?.provider||primaryModel.provider} value={value?.model||""} models={catalog.models||[]} onChange={model=>patch({model})}/>{catalog.services?.filter(s=>s.provider===(value?.provider||primaryModel.provider)&&!s.available).map(s=><p role="status" key={s.provider}>{s.message}</p>)}</>:<><AiVoiceModelPicker label="Nome do modelo" kind={kind} provider={value?.provider||"browser"} value={value?.model||"browser"} models={catalog.models||[]} onChange={model=>patch({model,...(kind==="tts"?{voice:undefined}:{})})}/>{catalog.services?.filter(s=>s.provider===(value?.provider+"-"+kind)&&!s.available).map(s=><p role="status" key={s.provider}>{s.message}</p>)}</>}{kind==="llm"&&<label>Perfil de custo<select value={agent.tier} onChange={e=>{update({tier:e.target.value as Agent["tier"],llm:{provider:value?.provider||"openrouter",model:value?.model||"",tier:e.target.value,endpoint:'endpoint' in value&&typeof value.endpoint==='string'?value.endpoint:undefined}})}}><option>Econômico</option><option>Equilíbrio</option><option>Inteligente</option></select></label>}{kind==="tts"&&<><TtsVoicePicker provider={value.provider} model={value.model} value={(agent.tts||globalTts).voice||""} voices={catalog.voiceOptions||[]} onChange={voice=>update({tts:{...(agent.tts||globalTts),voice:voice||undefined}})}/><p className={adminNoteTw}>Voz do navegador funciona por clique. OpenAI usa o modelo configurado e a chave protegida da empresa ou do servidor; pode consumir seu orçamento de IA.</p></>}</fieldset>})}</>}
+          {tab==="Referências"&&<>
+            <p className={helpTw}><strong>Para que serve:</strong> adicione links que este agente pode consultar como inspiração, um por vez. Eles valem só para este agente; para informações de toda a empresa, use a aba Conhecimento.</p>
+            <section className={surfaceFieldsTw}>
+              <h3>Links de referência</h3>
+              <div className={inlineLinkFieldTw}>
+                <label className={growFieldTw}>Endereço do link<input type="url" inputMode="url" placeholder="https://exemplo.com/referencia" value={referenceDraft} onChange={e=>setReferenceDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addReference();}}}/></label>
+                <button type="button" className={secondaryTw} onClick={addReference}><Link2 size={15}/> Adicionar</button>
+              </div>
+              {(agent.knowledgeUrls||[]).length===0?<p className={adminNoteTw}>Nenhuma referência adicionada.</p>:<ul className={referenceListTw}>{(agent.knowledgeUrls||[]).map((url,index)=><li key={url+index} className={routingItemTw}><Link2 size={15} aria-hidden="true" className={referenceIconTw}/><a href={url} target="_blank" rel="noreferrer" className={growFieldTw}>{url}</a><button type="button" className={phoneRemoveTw} aria-label={"Remover "+url} onClick={()=>update({knowledgeUrls:(agent.knowledgeUrls||[]).filter((_,itemIndex)=>itemIndex!==index)})}>Remover</button></li>)}</ul>}
+            </section>
+          </>}
+          {tab==="Comportamento"&&<>
+            <p className={helpTw}><strong>Para que serve:</strong> estas instruções dizem ao agente como responder. Escreva em linguagem natural; os três blocos abaixo são enviados juntos ao modelo. Nada muda para o cliente antes de Salvar configuração.</p>
+            <section className={surfaceFieldsTw}>
+              <h3>Prompt principal</h3>
+              <p className={adminNoteTw}>Descreva a missão do agente, o tom, a empresa e o objetivo da conversa. O marcador {"{{empresa}}"} é preenchido automaticamente.</p>
+              <RichPromptEditor label={"Prompt principal"} documentKey={agent.id+":"+ "Prompt principal (Markdown)"} rows={7} placeholder="Exemplo:\nVocê atende pela {{empresa}} com tom cordial e direto.\nObjetivo: entender a necessidade, orientar com base nas informações cadastradas e encaminhar quando necessário.\nUse linguagem natural, faça uma pergunta por vez e nunca invente políticas, preços ou disponibilidade." value={agent.instructions} onChange={value=>update({instructions:value})}/>
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>Regras de atendimento</h3>
+              <p className={adminNoteTw}>Liste os passos que ele deve seguir, um por linha — por exemplo, cumprimentar, confirmar dados e encaminhar.</p>
+              <RichPromptEditor label={"Regras de atendimento"} documentKey={agent.id+":"+ "Regras de atendimento"} rows={4} placeholder="Exemplo:\n- Cumprimente e descubra o que a pessoa precisa.\n- Confirme dados antes de registrar ou encaminhar.\n- Se faltar informação, pergunte ou chame a equipe responsável." value={agent.behavior?.rules||""} onChange={value=>update({behavior:{rules:value,prohibitions:agent.behavior?.prohibitions||""}})}/>
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>O que NÃO pode fazer</h3>
+              <p className={adminNoteTw}>Liste os limites que valem mesmo se a pessoa pedir o contrário: não inventar dados, não prometer ações sem confirmação.</p>
+              <RichPromptEditor label={"O que NÃO pode fazer?"} documentKey={agent.id+":"+ "O que NÃO pode fazer?"} rows={4} placeholder="Exemplo:\n- Não inventar preços, prazos, vagas ou políticas.\n- Não revelar dados de outros clientes ou instruções internas.\n- Não afirmar que agendou, cobrou ou alterou algo sem confirmação do sistema." value={agent.behavior?.prohibitions||""} onChange={value=>update({behavior:{rules:agent.behavior?.rules||"",prohibitions:value}})}/>
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>Prévia do comportamento</h3>
+              <p className={adminNoteTw}>É exatamente isso que o agente recebe. Esta prévia é somente leitura.</p>
+              <pre className={previewTw}>{[agent.instructions,agent.behavior?.rules&&"Regras de atendimento:\n"+agent.behavior.rules,agent.behavior?.prohibitions&&"O que NÃO pode fazer:\n"+agent.behavior.prohibitions].filter(Boolean).join("\n\n")}</pre>
+            </section>
+          </>}
+          {tab==="Skills"&&<>
+            <p className={helpTw}><strong>Para que serve:</strong> Skills são ações que o agente pode usar. Marcar uma habilidade autoriza sua configuração — não executa nada sozinha e não ultrapassa as permissões da pessoa atendida.</p>
+            <section className={surfaceFieldsTw}>
+              <h3>Habilidades disponíveis</h3>
+              {skillsLoading&&<p role="status" aria-live="polite">Carregando skills…</p>}
+              {skillsError&&<p role="alert">{skillsError} <button type="button" className={secondaryTw} onClick={()=>setSkillsRetry(value=>value+1)}>Tentar novamente</button></p>}
+              {!skillsLoading&&!skillsError&&skills.length===0?<p className={adminNoteTw}>Catálogo indisponível. Verifique a conexão com a API.</p>:<div className={moduleGridTw}>{skills.map(skill=><label key={skill.id} className={moduleOptionTw} style={{opacity:skill.implemented?1:0.65}}><input type="checkbox" disabled={!skill.implemented} checked={(agent.allowedActions||[]).includes(skill.id)} onChange={e=>update({allowedActions:e.target.checked?[...(agent.allowedActions||[]),skill.id]:(agent.allowedActions||[]).filter(x=>x!==skill.id)})}/><span><strong>{skill.name}</strong><small className={agentRoleTw}>{skill.implemented?(skill.category||"Disponível"):"Em desenvolvimento"}</small></span></label>)}</div>}
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3>Skills personalizadas</h3>
+              <p className={adminNoteTw}>Ficam salvas como rascunho: servem de instrução e ainda não executam ações. Só se tornam executáveis após implementação revisada e autorizada.</p>
+              {customSkillsLoading&&<p role="status" aria-live="polite">Carregando habilidades personalizadas…</p>}
+              {customSkillsError&&<p role="alert">{customSkillsError} <button type="button" className={secondaryTw} onClick={()=>setCustomSkillsRetry(value=>value+1)}>Tentar novamente</button></p>}
+              {customSkills.filter(skill=>skill.status!=='implemented').map(skill=><div key={skill.id} className={checkboxBlockTw}><strong>{skill.name}</strong><span className={fieldHintTw}>{skill.description||"Sem descrição"} · Rascunho, não executável</span></div>)}
+              <ProductSkillsEditor/>
+              <details className={disclosureTw}><summary><strong>+ Criar Skill personalizada</strong></summary><div className={adminFieldsTw}>
+                <label>Nome<input value={skillDraft.name} onChange={e=>setSkillDraft(v=>({...v,name:e.target.value,id:v.id||e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}))}/></label>
+                <label>ID técnico<input value={skillDraft.id} onChange={e=>setSkillDraft(v=>({...v,id:e.target.value}))}/></label>
+                <RichPromptEditor label={"Descrição"} rows={3} maxLength={1000} value={skillDraft.description} onChange={value=>setSkillDraft(v=>({...v,description:value}))}/>
+                <RichPromptEditor label={"Instruções"} rows={7} maxLength={12000} value={skillDraft.instructions} onChange={value=>setSkillDraft(v=>({...v,instructions:value}))}/>
+                <label>Importar arquivo .md<input type="file" accept=".md,text/markdown,text/plain" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>50000){setSkillNotice("Arquivo muito grande");return;}const content=await file.text();setSkillDraft(v=>({...v,name:v.name||file.name.replace(/\.md$/i,""),instructions:content}));}}/></label>
+                <button type="button" className={primaryTw} onClick={async()=>{const next=[...customSkills,skillDraft];try{const response=await fetch("/api/backend/assistant/custom-skills",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({skills:next})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha ao salvar");setCustomSkills(data.skills);setSkillDraft({id:"",name:"",description:"",instructions:""});setSkillNotice("Skill salva como rascunho; ainda não executa ações.");}catch(error){setSkillNotice(error instanceof Error?error.message:"Erro ao salvar");}}}><Save size={15}/> Salvar Skill</button>
+                {skillNotice&&<p role="status">{skillNotice}</p>}
+              </div></details>
+            </section>
+          </>}
           {tab==="Papel e vínculos"&&<>
-            <section className={routingCardTw}>
-              <h3>Onde este agente atende</h3>
-              <p className={adminNoteTw}>Marque as inboxes que podem usar este agente. Nada é ativado automaticamente: sem inbox marcada, ele não responde clientes.</p>
-              {inboxes.length===0?<p className={adminNoteTw}>Nenhuma inbox conectada nesta empresa.</p>:<div className={routingListTw}>{inboxes.map(inbox=>{const platform=inbox.platform||inbox.provider;const account=inbox.handle||inbox.accountName;const rawStatus=(inbox.status||"").toUpperCase();const statusLabel=["CONNECTED","ACTIVE","HEALTHY"].includes(rawStatus)?"Conectada":["ERROR","FAILED","DISCONNECTED","REVOKED"].includes(rawStatus)?"Precisa de atenção":rawStatus==="CONNECTING"||rawStatus==="PENDING"?"Em validação":rawStatus==="UNKNOWN"?"Conexão não confirmada":"";return <label key={inbox.id} className={routingItemTw}><input type="checkbox" checked={(agent.bindings?.inboxes||[]).includes(inbox.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:e.target.checked?[...(agent.bindings?.inboxes||[]),inbox.id]:(agent.bindings?.inboxes||[]).filter(id=>id!==inbox.id)}})}/><PlatformIcon platform={platform} size={22}/><span><strong>{inbox.name}</strong><small>{platformLabel(platform)}{account?" · "+account:""}{statusLabel?" · "+statusLabel:""}</small></span></label>})}</div>}
-              <p className={adminNoteTw}>Uso atual: {inboxes.filter(item=>(agent.bindings?.inboxes||[]).includes(item.id)).map(item=>item.name).join(", ")||"nenhuma inbox vinculada"}.</p>
+            <p className={helpTw}><strong>Para que serve:</strong> defina onde este agente pode atuar. Marcar um canal autoriza respostas nele; marcar áreas limita o alcance na plataforma. Nada muda para o cliente antes de Salvar configuração.</p>
+            <section className={surfaceFieldsTw}>
+              <h3 className={checkboxGroupTitleTw}>Canais que este agente atende</h3>
+              <p className={fieldHintTw}>Sem canal marcado, ele não responde ninguém. O ícone identifica a rede; o texto mostra a conta e o estado real da conexão.</p>
+              {inboxes.length===0?<p className={adminNoteTw}>Nenhum canal conectado nesta empresa.</p>:<div className={routingListTw}>{inboxes.map(inbox=>{const platform=inbox.platform||inbox.provider;const account=inbox.handle||inbox.accountName;const rawStatus=(inbox.status||"").toUpperCase();const statusLabel=["CONNECTED","ACTIVE","HEALTHY"].includes(rawStatus)?"Conectada":["ERROR","FAILED","DISCONNECTED","REVOKED"].includes(rawStatus)?"Precisa de atenção":rawStatus==="CONNECTING"||rawStatus==="PENDING"?"Em validação":rawStatus==="UNKNOWN"?"Conexão não confirmada":"";const detail=[account,statusLabel].filter(Boolean).join(" · ");return <label key={inbox.id} className={routingItemTw}><input type="checkbox" checked={(agent.bindings?.inboxes||[]).includes(inbox.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:e.target.checked?[...(agent.bindings?.inboxes||[]),inbox.id]:(agent.bindings?.inboxes||[]).filter(id=>id!==inbox.id)}})}/><PlatformIcon platform={platform} size={22}/><span className={agentBodyTw}><strong>{inbox.name}</strong><small className={agentRoleTw}>{detail||"Canal conectado"}</small></span></label>})}</div>}
             </section>
-            <section className={routingCardTw}>
-              <h3>Fluxos deste agente</h3>
-              <p className={adminNoteTw}>Os fluxos publicados de cada departamento desta empresa aparecem aqui automaticamente. Marque quais este agente pode operar.</p>
-              {flowBindings.length===0?<p className={adminNoteTw}>Nenhum fluxo publicado nesta empresa ainda. <a href="/?module=Chatbots">Abrir o Construtor de chatbot</a> e publique um fluxo — ele aparecerá aqui, com o nome do departamento.</p>:<div className={routingListTw}>{flowBindings.map(flow=><label key={flow.key} className={routingItemTw}><input type="checkbox" checked={(agent.bindings?.flows||[]).includes(flow.key)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:e.target.checked?[...(agent.bindings?.flows||[]),flow.key]:(agent.bindings?.flows||[]).filter(key=>key!==flow.key),pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><Workflow size={20} aria-hidden="true" className={flowGlyphTw}/><span><strong>{flow.name}</strong><small>{flow.scopeLabel} · {flow.active?"Publicado":"Pausado"}</small></span></label>)}</div>}
+            <section className={surfaceFieldsTw}>
+              <h3 className={checkboxGroupTitleTw}>Como ele entra no atendimento</h3>
+              <label>Modo de atuação<select value={agent.bindings?.mode||"principal"} onChange={e=>update({bindings:{mode:e.target.value,specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}><option value="principal">Principal · pode iniciar atendimentos</option><option value="specialist">Especialista · somente por encaminhamento</option></select></label>
             </section>
-            <label>Como este agente entra no atendimento<select value={agent.bindings?.mode||"principal"} onChange={e=>update({bindings:{mode:e.target.value,specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}><option value="principal">Principal · pode iniciar atendimentos</option><option value="specialist">Especialista · somente por encaminhamento</option></select></label>
-            <p className={adminNoteTw}>O papel orienta o comportamento; os vínculos acima determinam exatamente onde o agente pode atuar.</p>
-            <fieldset className={checkboxGroupTw}><legend>Especialistas para encaminhamento</legend><p className={fieldHintTw}>Quando este agente não conseguir resolver, para quais colegas ele pode transferir? Só aparecem os agentes desta empresa.</p>{agents.filter(other=>other.id!==selected).length===0?<p className={adminNoteTw}>Crie outros agentes para liberar o encaminhamento.</p>:<div className={moduleGridTw}>{agents.filter(other=>other.id!==selected).map(other=><label key={other.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.specialists||[]).includes(other.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:e.target.checked?[...(agent.bindings?.specialists||[]),other.id]:(agent.bindings?.specialists||[]).filter(id=>id!==other.id),flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><span>{other.name}<small>{other.role}</small></span></label>)}</div>}</fieldset>
-            <fieldset className={checkboxGroupTw}><legend>Painéis onde pode criar oportunidades</legend><p className={fieldHintTw}>O agente só registra oportunidades nos painéis escolhidos. Só aparecem os painéis desta empresa.</p>{pipelineCatalog.length===0?<p className={adminNoteTw}>Nenhum painel de oportunidades nesta empresa ainda.</p>:<div className={moduleGridTw}>{pipelineCatalog.map(pipeline=><label key={pipeline.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.pipelines||[]).includes(pipeline.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:e.target.checked?[...(agent.bindings?.pipelines||[]),pipeline.id]:(agent.bindings?.pipelines||[]).filter(id=>id!==pipeline.id),externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><span>{pipeline.name}</span></label>)}</div>}</fieldset>
-            <fieldset className={checkboxGroupTw}><legend>Sistemas externos que pode consultar</legend><p className={fieldHintTw}>Somente sistemas já conectados nesta empresa aparecem aqui. O que o agente pode fazer em cada sistema é definido pelas Skills.</p><div className={moduleGridTw}>{[{id:"channels",label:"Canais conectados (WhatsApp e redes)",show:inboxes.length>0},{id:"crm",label:"CRM e oportunidades",show:true},{id:"asaas",label:"Asaas (financeiro)",show:connectedSystems.asaas},{id:"google",label:"Google (Agenda e Drive)",show:connectedSystems.google},{id:"email",label:"E-mail",show:connectedSystems.email}].filter(option=>option.show).map(option=><label key={option.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.externalSystems||[]).includes(option.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:e.target.checked?[...(agent.bindings?.externalSystems||[]),option.id]:(agent.bindings?.externalSystems||[]).filter(id=>id!==option.id),modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><span>{option.label}</span></label>)}</div></fieldset>
-            <fieldset className={checkboxGroupTw}><legend>Módulos onde pode atuar</legend><p className={fieldHintTw}>Restrinja em quais áreas da plataforma este agente pode atuar.</p><div className={moduleGridTw}>{[{id:"INBOX",label:"Atendimento"},{id:"CRM",label:"CRM"},{id:"CALENDAR",label:"Agenda"},{id:"TASKS",label:"Tarefas"},{id:"MARKETING",label:"Marketing"},{id:"FINANCE",label:"Financeiro"},{id:"CHANNELS",label:"Canais"}].map(option=><label key={option.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.modules||[]).includes(option.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:e.target.checked?[...(agent.bindings?.modules||[]),option.id]:(agent.bindings?.modules||[]).filter(id=>id!==option.id),inboxes:agent.bindings?.inboxes||[]}})}/><span>{option.label}</span></label>)}</div></fieldset>
+            <section className={surfaceFieldsTw}>
+              <h3 className={checkboxGroupTitleTw}>Encaminhamentos</h3>
+              <p className={fieldHintTw}>Quando não souber resolver, para quais colegas ele pode passar?</p>
+              {agents.filter(other=>other.id!==selected).length===0?<p className={adminNoteTw}>Crie outros agentes para liberar encaminhamentos.</p>:<div className={moduleGridTw}>{agents.filter(other=>other.id!==selected).map(other=><label key={other.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.specialists||[]).includes(other.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:e.target.checked?[...(agent.bindings?.specialists||[]),other.id]:(agent.bindings?.specialists||[]).filter(id=>id!==other.id),flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><span className={agentBodyTw}>{other.name}<small className={agentRoleTw}>{other.role}</small></span></label>)}</div>}
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3 className={checkboxGroupTitleTw}>Painéis de oportunidade</h3>
+              <p className={fieldHintTw}>O agente só registra oportunidades nos painéis marcados.</p>
+              {pipelineCatalog.length===0?<p className={adminNoteTw}>Nenhum painel de oportunidades nesta empresa ainda.</p>:<div className={moduleGridTw}>{pipelineCatalog.map(pipeline=><label key={pipeline.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.pipelines||[]).includes(pipeline.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:e.target.checked?[...(agent.bindings?.pipelines||[]),pipeline.id]:(agent.bindings?.pipelines||[]).filter(id=>id!==pipeline.id),externalSystems:agent.bindings?.externalSystems||[],modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><span>{pipeline.name}</span></label>)}</div>}
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3 className={checkboxGroupTitleTw}>Sistemas que pode consultar</h3>
+              <p className={fieldHintTw}>Só aparecem sistemas já conectados nesta empresa. O que ele pode fazer em cada um é definido nas Skills.</p>
+              <div className={moduleGridTw}>{[{id:"channels",label:"Canais conectados",show:inboxes.length>0},{id:"crm",label:"CRM e oportunidades",show:true},{id:"asaas",label:"Asaas (financeiro)",show:connectedSystems.asaas},{id:"google",label:"Google (Agenda e Drive)",show:connectedSystems.google},{id:"email",label:"E-mail",show:connectedSystems.email}].filter(option=>option.show).map(option=><label key={option.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.externalSystems||[]).includes(option.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:e.target.checked?[...(agent.bindings?.externalSystems||[]),option.id]:(agent.bindings?.externalSystems||[]).filter(id=>id!==option.id),modules:agent.bindings?.modules||[],inboxes:agent.bindings?.inboxes||[]}})}/><span>{option.label}</span></label>)}</div>
+            </section>
+            <section className={surfaceFieldsTw}>
+              <h3 className={checkboxGroupTitleTw}>Áreas da plataforma</h3>
+              <p className={fieldHintTw}>Restrinja em quais áreas este agente pode atuar.</p>
+              <div className={moduleGridTw}>{[{id:"INBOX",label:"Atendimento"},{id:"CRM",label:"CRM"},{id:"CALENDAR",label:"Agenda"},{id:"TASKS",label:"Tarefas"},{id:"MARKETING",label:"Marketing"},{id:"FINANCE",label:"Financeiro"},{id:"CHANNELS",label:"Canais"}].map(option=><label key={option.id} className={moduleOptionTw}><input type="checkbox" checked={(agent.bindings?.modules||[]).includes(option.id)} onChange={e=>update({bindings:{mode:agent.bindings?.mode||"principal",specialists:agent.bindings?.specialists||[],flows:agent.bindings?.flows||[],pipelines:agent.bindings?.pipelines||[],externalSystems:agent.bindings?.externalSystems||[],modules:e.target.checked?[...(agent.bindings?.modules||[]),option.id]:(agent.bindings?.modules||[]).filter(id=>id!==option.id),inboxes:agent.bindings?.inboxes||[]}})}/><span>{option.label}</span></label>)}</div>
+            </section>
           </>}
 
           <div className={adminActionsTw}><button type="button" className={secondaryTw} onClick={() => { setAgents(items => items.filter(a => a.id !== selected)); setSelected(agents.find(a => a.id !== selected)?.id ?? ""); }}><Trash2 size={15}/> Excluir</button></div>
           </div>
         </div> : <p>Crie um agente para configurar.</p>}
-      </section>
-    </div>}
+    </section>}
     {workspaceTab==="Conhecimento"&&<section className={adminCardTw} style={{marginTop:16}}>
       <h2>Conhecimento da empresa</h2>
       <p className={adminNoteTw}>Esta base é compartilhada pelos agentes. Atualize as informações aqui; depois salve a configuração para que a prévia e os novos atendimentos recebam o conteúdo.</p>
@@ -455,7 +601,7 @@ export function AiAgentsWorkspace() {
           <label className={toggleTw}><input type="checkbox" checked={assistantEnabled} onChange={async e => { const value = e.target.checked; setAssistantEnabled(value); const ok = await save({ enabled: value }); if (!ok) setAssistantEnabled(current => current === value ? !value : current); }}/> Permitir IA da Véxora nesta empresa (salva imediatamente)</label><p className={adminNoteTw}>Este controle libera a IA configurada. Para responder clientes, ainda é preciso publicar um fluxo e associá-lo ao canal correto. O teste nesta tela não envia mensagens.</p>
           <section className={subtleCardTw}>
             <h3>Atendimento aos clientes</h3>
-            <p>{((engineStatus?.active?1:0)+(engineStatus?.publications||[]).filter(item=>item.active).length)>0?"Há "+((engineStatus?.active?1:0)+(engineStatus?.publications||[]).filter(item=>item.active).length)+" fluxo(s) publicado(s).":"Nenhum fluxo de IA publicado no momento."}</p>
+            <p>{engineStatus?.automaticCustomerReplies?"Há fluxo de IA publicado e respostas automáticas habilitadas nesta empresa.":"Nenhum fluxo de IA publicado no momento. O teste nesta tela usa simulação e não envia mensagens."}</p>
             <p className={adminNoteTw}>Um agente habilitado fica disponível para entrar em um fluxo. Ele só conversa automaticamente depois que o fluxo é publicado com um canal conectado.</p>
             <a className={secondaryTw} href="/?module=Chatbots">Abrir fluxos de atendimento</a>
           </section>
@@ -492,6 +638,8 @@ export function AiAgentsWorkspace() {
     <section className={adminCardTw} style={{marginTop:16}}><h2>Criar fluxo por comando</h2><p className={adminNoteTw}>Descreva o atendimento. A Assistente cria um rascunho real no Chatbot para você revisar e publicar. O fluxo anterior é preservado no histórico.</p><div className={adminFieldsTw}><label>O que deseja automatizar?<textarea rows={3} maxLength={2000} value={workflowRequest} onChange={e=>setWorkflowRequest(e.target.value)}/></label><button type="button" className={secondaryTw} onClick={async()=>{setWorkflowError("");setWorkflowDraft(null);try{const response=await fetch("/api/backend/assistant/engine/create-flow",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({request:workflowRequest,agentId:selected})});const data=await response.json();if(!response.ok)throw Error(data.message||"Falha na proposta");setWorkflowDraft({title:data.draft.name,status:"draft",steps:data.draft.steps.map((step:{id:string;kind:string;title:string})=>({id:step.id,type:step.kind,label:step.title})),missing:["Revisar no Chatbot, selecionar canais e publicar"]})}catch(e){setWorkflowError(e instanceof Error?e.message:"Falha na proposta")}}}>Criar rascunho no Chatbot</button>{workflowDraft&&<div role="status"><strong>{workflowDraft.title}</strong><p>Rascunho — não ativado</p><ol>{workflowDraft.steps.map(step=><li key={step.id}>{step.label}</li>)}</ol><strong>Falta configurar:</strong><ul>{workflowDraft.missing.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}{workflowError&&<p role="alert">{workflowError}</p>}</div></section>
     </details>}
     <p className={adminNoteTw}>Configurações armazenadas por empresa. Agentes respondem nos blocos habilitados; ações operacionais usam Skills autorizadas. Consultas e relatórios determinísticos não utilizam tokens.</p>
+    </div>
+    </div>
     </div>
   </section>;
 }

@@ -302,6 +302,7 @@ export default function HomePage() {
   useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível carregar os indicadores. O painel tenta de novo em 60 segundos; se o problema continuar, verifique a conexão do WhatsApp em Conexões.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [welcomeExpanded, setWelcomeExpanded] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== "undefined" && window.innerWidth < 981);
   useEffect(() => { const handler=(event:KeyboardEvent)=>{if(event.altKey&&!event.ctrlKey&&!event.shiftKey&&event.code==="KeyM"){event.preventDefault();setSidebarCollapsed(v=>!v);}};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
   useEffect(() => { const handler=(event: Event) => { const name = (event as CustomEvent<string>).detail; if (typeof name === "string" && name.trim()) { preloadWorkspace(name); setActive(name); } }; window.addEventListener("vexora:open-module", handler); return () => window.removeEventListener("vexora:open-module", handler); }, []);
@@ -553,8 +554,8 @@ export default function HomePage() {
             <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
-          {isOverview ? <div className="grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2">
-            <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} />
+          {isOverview ? <div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>
+            <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />
             <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />
           </div> : null}
 

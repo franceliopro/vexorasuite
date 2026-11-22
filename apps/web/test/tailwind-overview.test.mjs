@@ -202,7 +202,9 @@ test("o bloco de boas-vindas traz vídeo opcional e atalhos úteis", () => {
 
 test("as seções da Visão geral são planas e os blocos de boas-vindas ficam lado a lado", () => {
   assert.ok(page.includes('const pageHeadingTw="flex flex-wrap items-start justify-between gap-4 bg-transparent hover:bg-transparent"'));
-  assert.ok(page.includes('<div className="grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2">'));
+  assert.ok(page.includes('const [welcomeExpanded, setWelcomeExpanded] = useState(false);'));
+  assert.ok(page.includes('<div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>'));
+  assert.ok(page.includes('<OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />'));
   assert.ok(page.includes('<div className="bg-transparent"><h1>{greeting+'));
 
   for (const [source, label] of [
@@ -227,6 +229,7 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   assert.ok(onboarding.includes('dark:border-slate-700 dark:bg-slate-800'));
   assert.ok(onboarding.includes('ACCENT_STEPS = new Set(["empresa", "documento"])'));
   assert.ok(welcome.includes('dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700'));
+  assert.ok(onboarding.includes("onDismissRef.current?.();"), "o fechamento do checklist avisa a Visão geral");
   assert.doesNotMatch(onboarding, /bg-linear-to-br from-blue-50 to-indigo-100/);
   assert.doesNotMatch(welcome, /bg-linear-to-br from-blue-50 via-white to-purple-50/);
   assert.ok(welcome.includes('border border-line bg-surface p-3.5 text-left text-ink'));
@@ -234,6 +237,14 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   assert.ok(onboarding.includes('dark:border-slate-600 dark:bg-sky-400/15 dark:text-sky-400'));
   assert.ok(welcome.includes('dark:border-slate-600 dark:bg-slate-800 dark:text-sky-300'));
   assert.doesNotMatch(onboarding, /dark:bg-slate-800 dark:text-blue-300/);
+});
+
+test("o relógio mantém o fundo claro em todos os temas", () => {
+  const clock = widgets.match(/function ClockWidget\(\)[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(clock.includes('aria-label="Relógio e data de hoje"'));
+  assert.ok(clock.includes("bg-linear-to-br from-indigo-50 to-blue-100"));
+  assert.ok(clock.includes("text-indigo-700"));
+  assert.doesNotMatch(clock, /dark:from-slate-900|dark:to-slate-900|dark:text-blue-200|dark:text-slate-300/);
 });
 
 test("linhas divisórias fecham cabeçalhos, gráficos e calendário da Visão geral", () => {

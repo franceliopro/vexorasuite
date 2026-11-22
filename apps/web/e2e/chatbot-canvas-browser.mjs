@@ -108,7 +108,7 @@ try{
  const setup=page.getByRole("region",{name:"Configurar novo fluxo"});
  await expect(setup).toBeVisible();
  await setup.getByLabel("Quando…").selectOption("keyword");
- await setup.getByLabel("Palavra-chave").fill("orçamento");
+ await setup.getByRole("textbox",{name:"Palavra-chave",exact:true}).fill("orçamento");
  await setup.getByRole("button",{name:"Enviar mensagem",exact:true}).click();
  await expect(setup).toHaveCount(0);
  const message=board.getByRole("textbox",{name:"Mensagem de Enviar mensagem"});

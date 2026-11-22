@@ -56,7 +56,7 @@ test("os contratos dos formularios e editores permanecem intactos", () => {
   for (const token of [
     "/api/backend/reminders/alarms", 'role="alertdialog"', "alarm-snooze", "alarm-stop", "Adiar 5 min", "Parar",
   ]) assert.ok(alarms.includes(token), `alarmes perdeu ${token}`);
-  for (const token of ["course-print", "Certificado", "window.print()"]) {
+  for (const token of ['data-testid="course-print"', "Certificado", "window.print()"]) {
     assert.ok(course.includes(token), `curso perdeu ${token}`);
   }
   for (const token of [

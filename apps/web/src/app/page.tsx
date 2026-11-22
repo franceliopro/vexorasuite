@@ -155,7 +155,7 @@ const placeholderTw="grid min-w-0 content-start gap-3 rounded-xl border border-g
 const placeholderIconTw="grid size-20 place-items-center rounded-2xl bg-blue-50 text-blue-700";
 const eyebrowTw="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-blue-700";
 const placeholderStatusTw="flex items-center gap-2 text-xs text-slate-600";
-const pageHeadingTw="flex flex-wrap items-start justify-between gap-4";
+const pageHeadingTw="flex flex-wrap items-start justify-between gap-4 bg-transparent hover:bg-transparent";
 const colorPopoverTw="fixed z-50 grid max-h-screen w-80 gap-3 overflow-auto rounded-xl border border-gray-200 bg-zinc-100 p-3.5 text-slate-950 shadow-lg";
 const colorPopoverHeaderTw="flex items-start justify-between gap-2.5";
 const colorPopoverTitleTw="m-0 font-sans text-sm font-extrabold tracking-normal";
@@ -549,12 +549,14 @@ export default function HomePage() {
         {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={moduleTabClass(active === tab.target)} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={pageContentClass(active === "Atendimento")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className={pageHeadingTw}>
-            <div><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
+            <div className="bg-transparent"><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
             <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
-          {isOverview ? <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} /> : null}
-          {isOverview ? <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} /> : null}
+          {isOverview ? <div className="grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2">
+            <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} />
+            <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />
+          </div> : null}
 
           {!moduleVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>

@@ -5,7 +5,7 @@ import {useCallback,useEffect,useRef, useState} from "react";
 import {CheckCircle2,ClipboardCheck,Plus,RefreshCw,CalendarClock,X,Bell,Pencil,Trash2} from "lucide-react";
 type Step={id:string;label:string;done:boolean};
 type Task={id:string;title:string;description:string;status:string;priority:string;complexity:number;dueAt:string|null;completedAt:string|null;steps:Step[];assignee?:{name:string}|null;progress?:number};
-type Metrics={total:number;completed:number;overdue:number;weightedCompleted:number};
+type Metrics={total:number;completed:number;completedToday:number;overdue:number;weightedCompleted:number};
 type ReminderSettings={enabled:boolean;minutesBefore:number[];sound:boolean;push:boolean;mutedWeekdays:number[];maxPerDay:number};
 
 /** Utilities reaproveitadas desta tela — o padrão TW continua sendo a única fonte. */
@@ -15,6 +15,25 @@ const iconButton="inline-grid h-control w-control flex-none place-items-center r
 const fieldLabel="grid gap-1.5 text-2xs font-extrabold uppercase tracking-wide text-slate-600";
 const fieldControl="min-h-10 w-full rounded-token-sm border border-gray-300 bg-zinc-50 px-2.5 py-2 text-body normal-case tracking-normal text-slate-950";
 const priorityTone={LOW:"bg-zinc-300 text-slate-600",NORMAL:"bg-blue-50 text-blue-800",HIGH:"bg-amber-100 text-amber-700",URGENT:"bg-red-100 text-red-600"} as const;
+const workspaceTabsTw="inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200 bg-zinc-200 p-1";
+const workspaceTabTw="min-h-9 shrink-0 rounded-full px-4 text-small font-bold transition-colors";
+const workspaceTabClass=(active:boolean)=>workspaceTabTw+" "+(active?"bg-blue-600 text-blue-900 shadow-token-sm":"text-slate-600 hover:bg-zinc-300");
+const statusGridTw="grid grid-cols-1 gap-2.5 sm:grid-cols-3";
+const statusCardTw="grid min-w-0 content-start gap-1.5 rounded-token border px-4 py-3 shadow-token-sm";
+const statusToneTw:Record<string,string>={overdue:"border-red-600/40 bg-red-100 text-red-600",today:"border-emerald-600/40 bg-emerald-100 text-emerald-600",total:"border-blue-600/40 bg-blue-50 text-blue-800"};
+const statusCardClass=(kind:string)=>`${statusCardTw} ${statusToneTw[kind]??statusToneTw.total}`;
+const statusTitleTw="flex min-w-0 items-center gap-2 text-small font-extrabold uppercase tracking-wide";
+const statusValueTw="text-h2 font-heading tabular-nums";
+const statusHintTw="text-2xs leading-snug";
+const metaGridTw="grid grid-cols-1 gap-x-3.5 gap-y-1.5 text-small tabular-nums text-slate-600 sm:grid-cols-3";
+const metaItemTw="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-ellipsis";
+const remindersGridTw="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-tasks-reminders";
+const reminderColumnTw="grid min-w-0 content-start gap-1.5";
+const chipRowTw="flex min-w-0 flex-wrap gap-1.5";
+const chipTw="inline-flex min-h-8 items-center rounded-full border px-3.5 text-2xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-60";
+const chipClass=(active:boolean)=>chipTw+" "+(active?"border-blue-600 bg-blue-600 text-blue-900":"border-gray-300 bg-zinc-200 text-slate-600 hover:bg-zinc-300");
+const maxLabelTw="text-2xs font-extrabold uppercase tracking-wide text-slate-600 whitespace-nowrap";
+const maxInputTw="w-full min-w-0 max-w-20 rounded-token-sm border border-gray-200 bg-zinc-200 px-2.5 py-1.5 text-body text-slate-950";
 
 function overdueTag(t:Task){
   const due=t.dueAt?new Date(t.dueAt):null;
@@ -27,6 +46,7 @@ const MINUTE_PRESETS=[5,15,30,60,120,1440];
 async function api<T>(path:string,init?:RequestInit):Promise<T>{const r=await fetch("/api/backend/tasks"+path,{...init,cache:"no-store"});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(Array.isArray(data.message)?data.message.join(", "):data.message||"Falha ao acessar tarefas.");return data as T;}
 export function TasksWorkspace(){const [editId,setEditId]=useState<string|null>(null);
   const [tasks,setTasks]=useState<Task[]>([]),[metrics,setMetrics]=useState<Metrics|null>(null),[filter,setFilter]=useState<"active"|"done">("active"),[busy,setBusy]=useState(false),[error,setError]=useState(""),[form,setForm]=useState(false),[title,setTitle]=useState(""),[description,setDescription]=useState(""),[priority,setPriority]=useState("NORMAL"),[complexity,setComplexity]=useState(1),[due,setDue]=useState(""),[steps,setSteps]=useState(""),[role,setRole]=useState(""),[reminders,setReminders]=useState<ReminderSettings|null>(null),[remindersLoading,setRemindersLoading]=useState(true),[remindersSaving,setRemindersSaving]=useState(false),[remindersNotice,setRemindersNotice]=useState("");
+  const [workspaceTab,setWorkspaceTab]=useState<"Tarefas"|"Lembretes">("Tarefas");
   const canConfigureReminders=["OWNER","ADMIN","MANAGER"].includes(role.toUpperCase());
   useEffect(()=>{let live=true;void Promise.all([fetch("/api/backend/auth/me",{cache:"no-store"}).then(r=>r.json()).catch(()=>null),fetch("/api/backend/reminders/settings",{cache:"no-store"}).then(r=>r.json()).catch(()=>null)]).then(([me,rs])=>{if(!live)return;setRole(typeof me?.role==="string"?me.role:"");setReminders(rs?{enabled:rs.enabled!==false,minutesBefore:Array.isArray(rs.minutesBefore)?rs.minutesBefore:[15,60],sound:rs.sound!==false,push:rs.push!==false,mutedWeekdays:Array.isArray(rs.mutedWeekdays)?rs.mutedWeekdays:[],maxPerDay:typeof rs.maxPerDay==="number"?rs.maxPerDay:15}:{enabled:true,minutesBefore:[15,60],sound:true,push:true,mutedWeekdays:[],maxPerDay:15});}).finally(()=>{if(live)setRemindersLoading(false)});return()=>{live=false};},[]);
   const saveReminders=async(patch:Partial<ReminderSettings>)=>{if(!reminders)return;setRemindersSaving(true);setRemindersNotice("");try{const next={...reminders,...patch};const r=await fetch("/api/backend/reminders/settings",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(next)});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data?.message||"Não foi possível salvar.");setReminders(next);setRemindersNotice("Lembretes salvos para a empresa.");}catch(e){setRemindersNotice(e instanceof Error?e.message:"Não foi possível salvar.");}finally{setRemindersSaving(false);}};
@@ -41,71 +61,80 @@ export function TasksWorkspace(){const [editId,setEditId]=useState<string|null>(
   async function finish(task:Task){setBusy(true);try{await api("/"+task.id+"/complete",{method:"POST"});await load();}catch(e){setError(e instanceof Error?e.message:"Falha ao finalizar.");}finally{setBusy(false);}}
   return <section data-testid="tasks-workspace" className="grid content-start gap-token">
     <header className="flex flex-wrap items-center justify-between gap-3.5">
-      <div><h1 className="text-h1 font-heading text-slate-950">Tarefas</h1><p className="mt-0.5 text-small text-slate-600">Execução, checklists e acompanhamento operacional.</p></div>
+      <div><h1 className="text-h1 font-heading text-slate-950">Tarefas</h1><p className="mt-0.5 text-small text-slate-600">Checklists, prazos e acompanhamento do trabalho interno da empresa.</p></div>
       <button className={primaryButton} type="button" onClick={openNew}><Plus size={16}/> Nova tarefa</button>
     </header>
-    <div className="grid content-start gap-token">
-    {canConfigureReminders && reminders ? (
+    <nav className={workspaceTabsTw} role="tablist" aria-label="Áreas de Tarefas">
+      <button id="tasks-tab-tarefas" type="button" role="tab" aria-controls="tasks-tabpanel" aria-selected={workspaceTab==="Tarefas"} className={workspaceTabClass(workspaceTab==="Tarefas")} onClick={()=>setWorkspaceTab("Tarefas")}>Tarefas</button>
+      {canConfigureReminders?<button id="tasks-tab-lembretes" type="button" role="tab" aria-controls="reminders-tabpanel" aria-selected={workspaceTab==="Lembretes"} className={workspaceTabClass(workspaceTab==="Lembretes")} onClick={()=>setWorkspaceTab("Lembretes")}>Lembretes</button>:null}
+    </nav>
+    <div id="tasks-tabpanel" role="tabpanel" aria-labelledby="tasks-tab-tarefas" hidden={workspaceTab!=="Tarefas"} className={workspaceTab==="Tarefas"?"grid content-start gap-token":"hidden"}>
+      {metrics?<div className={statusGridTw} aria-label="Resumo das tarefas">
+        <div className={statusCardClass("overdue")}><span className={statusTitleTw}><CalendarClock size={16} aria-hidden="true"/> Atrasadas</span><strong className={statusValueTw}>{metrics.overdue}</strong><span className={statusHintTw}>Prazo vencido: ajuste a data ou conclua hoje.</span></div>
+        <div className={statusCardClass("today")}><span className={statusTitleTw}><CheckCircle2 size={16} aria-hidden="true"/> Concluídas hoje</span><strong className={statusValueTw}>{metrics.completedToday}</strong><span className={statusHintTw}>Finalizadas desde a meia-noite de hoje.</span></div>
+        <div className={statusCardClass("total")}><span className={statusTitleTw}><ClipboardCheck size={16} aria-hidden="true"/> Todas</span><strong className={statusValueTw}>{metrics.total}</strong><span className={statusHintTw}>Tarefas internas visíveis para você.</span></div>
+      </div>:null}
+      {metrics&&metrics.overdue>0?<div className="flex items-center gap-2.5 rounded-token border border-red-600/40 bg-red-100 px-3.5 py-3 text-small font-bold text-red-600" role="alert"><CalendarClock size={15} aria-hidden="true"/> Você tem {metrics.overdue} tarefa(s) atrasada(s). Ajuste o prazo ou conclua-as hoje.</div>:null}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200 bg-zinc-200 p-1">
+          <button aria-pressed={filter==="active"} className={"min-h-8 rounded-full px-3.5 text-small font-bold transition-colors " + (filter==="active" ? "bg-blue-600 text-blue-900 shadow-token-sm" : "text-slate-600 hover:bg-zinc-300")} onClick={()=>setFilter("active")}>Em andamento</button>
+          <button aria-pressed={filter==="done"} className={"min-h-8 rounded-full px-3.5 text-small font-bold transition-colors " + (filter==="done" ? "bg-blue-600 text-blue-900 shadow-token-sm" : "text-slate-600 hover:bg-zinc-300")} onClick={()=>setFilter("done")}>Concluídas</button>
+        </div>
+        <button className={secondaryButton} type="button" onClick={()=>void load()} title="Atualizar"><RefreshCw size={16}/></button>
+      </div>
+      {error?<p role="alert" className="flex items-center gap-2 rounded-xl border border-red-600/30 bg-red-100 px-3.5 py-3 text-small font-semibold text-red-600">{error}</p>:null}
+      <div className="grid gap-2.5">{tasks.map(t=><article className="grid gap-2.5 rounded-token border border-gray-200 bg-zinc-100 p-4 shadow-token transition-colors hover:border-gray-300" key={t.id}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0"><strong className="text-h3 font-extrabold tracking-tight text-slate-950 break-words">{t.title}</strong><p className="mt-0.5 line-clamp-2 text-small leading-relaxed text-slate-600">{t.description}</p></div>
+          <div className="flex flex-none items-center gap-2">
+            <span className={"inline-flex min-h-5 items-center rounded-full px-2.5 text-2xs font-extrabold uppercase tracking-wide " + (priorityTone[t.priority as keyof typeof priorityTone] ?? priorityTone.NORMAL)}>{({LOW:"Baixa",NORMAL:"Normal",HIGH:"Alta",URGENT:"Urgente"} as Record<string,string>)[t.priority]||t.priority}</span>
+            {overdueTag(t)}
+          </div>
+        </div>
+        <div className={metaGridTw}>
+          <span className={metaItemTw}>Complexidade {t.complexity}/5</span>
+          {t.assignee?<span className={metaItemTw} title={t.assignee.name}>Responsável: <span className="truncate">{t.assignee.name}</span></span>:null}
+          {t.dueAt?<span className={metaItemTw}><CalendarClock size={13} className="shrink-0" aria-hidden="true"/><span className="truncate">{formatDateTimeBR(t.dueAt)}</span></span>:null}
+        </div>
+        {t.steps.length?<div className="grid gap-1.5">{t.steps.map(s=><label key={s.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-zinc-200 px-2.5 py-2 text-small text-slate-950 hover:bg-blue-50"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" disabled={busy||t.status==="DONE"} checked={s.done} onChange={()=>void toggle(t,s)}/><span className="min-w-0 truncate">{s.label}</span></label>)}</div>:null}
+        <footer className="flex items-center justify-between gap-2.5 border-t border-dashed border-gray-200 pt-2.5">
+          {(()=>{const done=t.steps.filter(s=>s.done).length;const pct=typeof t.progress==="number"&&t.steps.length?t.progress:(t.steps.length?Math.round(done/t.steps.length*100):(t.status==="DONE"?100:0));return <div className="grid min-w-0 flex-1 gap-1.5"><small className="text-2xs tabular-nums text-slate-600">{done}/{t.steps.length} etapas · {pct}%</small><div className="h-1.5 overflow-hidden rounded-full border border-gray-200 bg-zinc-300" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-blue-50 transition-all duration-bar" style={{width:pct+"%"}}/></div></div>})()}
+          <div className="flex flex-none items-center gap-2">
+            <button type="button" className={iconButton + " text-slate-600 hover:text-blue-800"} title="Editar tarefa" aria-label="Editar tarefa" onClick={()=>openEdit(t)} disabled={busy}><Pencil size={15}/></button>
+            <button type="button" className={iconButton + " text-red-600 hover:bg-red-100"} title="Excluir tarefa" aria-label="Excluir tarefa" onClick={()=>void removeTask(t)} disabled={busy}><Trash2 size={15}/></button>
+            {t.status==="DONE"?<span className="inline-flex items-center gap-1.5 text-small font-extrabold text-blue-800"><CheckCircle2 size={16}/> Finalizada</span>:<button type="button" className={primaryButton} disabled={busy||t.steps.some(s=>!s.done)} onClick={()=>void finish(t)}><CheckCircle2 size={15}/> Finalizar tarefa</button>}
+          </div>
+        </footer>
+      </article>)}{!tasks.length?<div className="grid justify-items-center gap-2.5 rounded-token border border-gray-200 bg-zinc-100 p-10 text-slate-600"><ClipboardCheck size={30}/><p>{filter==="active"?"Nenhuma tarefa pendente.":"Nenhuma tarefa finalizada."}</p></div>:null}</div>
+    </div>
+    {canConfigureReminders&&reminders?<div id="reminders-tabpanel" role="tabpanel" aria-labelledby="tasks-tab-lembretes" hidden={workspaceTab!=="Lembretes"} className={workspaceTab==="Lembretes"?"grid content-start gap-token":"hidden"}>
       <section className="grid gap-3 rounded-token border border-gray-200 bg-zinc-100 p-4 shadow-token-sm" aria-label="Lembretes de tarefas e compromissos">
         <header className="flex items-center gap-2.5 text-blue-600">
           <Bell size={16} aria-hidden="true"/>
           <div><h2 className="text-h3 font-extrabold text-slate-950">Lembretes</h2><p className="mt-0.5 text-small text-slate-600">Tarefas e compromissos prestes a vencer aparecem como um aviso grande na tela do atendente — com som, se ativado.</p></div>
         </header>
-        <div className="grid grid-cols-tasks-reminders gap-2.5">
-          <div className="flex flex-col gap-1.5">
+        <div className={remindersGridTw}>
+          <div className={reminderColumnTw}>
             <label className="inline-flex items-center gap-2 text-small text-slate-950"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" checked={reminders.enabled} disabled={remindersLoading||remindersSaving} onChange={e=>void saveReminders({enabled:e.target.checked})}/> Ativar lembretes para esta empresa</label>
             <label className="inline-flex items-center gap-2 text-small text-slate-950"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" checked={reminders.sound} disabled={remindersLoading||remindersSaving} onChange={e=>void saveReminders({sound:e.target.checked})}/> Tocar som ao aparecer</label>
             <label className="inline-flex items-center gap-2 text-small text-slate-950"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" checked={reminders.push} disabled={remindersLoading||remindersSaving} onChange={e=>void saveReminders({push:e.target.checked})}/> Permitir aviso por notificação do sistema</label>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className={reminderColumnTw}>
             <p className={fieldLabel}>Avisar com antecedência de</p>
-            <div className="flex flex-wrap gap-1.5">{MINUTE_PRESETS.map(min=>{const active=reminders.minutesBefore.includes(min);return <button key={min} type="button" className={"inline-flex min-h-8 items-center rounded-full border px-3.5 text-2xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-60 " + (active ? "border-blue-600 bg-blue-600 text-blue-900" : "border-gray-300 bg-zinc-200 text-slate-600 hover:bg-zinc-300")} disabled={remindersSaving} onClick={()=>{const next=active?reminders.minutesBefore.filter(m=>m!==min):[...reminders.minutesBefore,min].sort((a,b)=>a-b);if(!next.length)return;void saveReminders({minutesBefore:next});}}>{min===1440?"24h":min===60?"1h":min+" min"}</button>})}</div>
+            <div className={chipRowTw}>{MINUTE_PRESETS.map(min=>{const active=reminders.minutesBefore.includes(min);return <button key={min} type="button" className={chipClass(active)} disabled={remindersSaving} onClick={()=>{const next=active?reminders.minutesBefore.filter(m=>m!==min):[...reminders.minutesBefore,min].sort((a,b)=>a-b);if(!next.length)return;void saveReminders({minutesBefore:next});}}>{min===1440?"24h":min===120?"2h":min===60?"1h":min+" min"}</button>})}</div>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className={reminderColumnTw}>
             <p className={fieldLabel}>Não avisar nestes dias (ex.: fins de semana ou dias sem atendimento)</p>
-            <div className="flex flex-wrap gap-1.5">{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((label,day)=>{const active=reminders.mutedWeekdays.includes(day);return <button key={label} type="button" className={"inline-flex min-h-8 items-center rounded-full border px-3.5 text-2xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-60 " + (active ? "border-blue-600 bg-blue-600 text-blue-900" : "border-gray-300 bg-zinc-200 text-slate-600 hover:bg-zinc-300")} disabled={remindersSaving} onClick={()=>{const next=active?reminders.mutedWeekdays.filter(d=>d!==day):[...reminders.mutedWeekdays,day].sort((a,b)=>a-b);void saveReminders({mutedWeekdays:next})}}>{label}</button>})}</div>
+            <div className={chipRowTw}>{["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((label,day)=>{const active=reminders.mutedWeekdays.includes(day);return <button key={label} type="button" className={chipClass(active)} disabled={remindersSaving} onClick={()=>{const next=active?reminders.mutedWeekdays.filter(d=>d!==day):[...reminders.mutedWeekdays,day].sort((a,b)=>a-b);void saveReminders({mutedWeekdays:next})}}>{label}</button>})}</div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <p className={fieldLabel}>Limite de avisos por dia</p>
-            <input className="w-full rounded-token-sm border border-gray-200 bg-zinc-200 px-2.5 py-1.5 text-body text-slate-950" type="number" min={1} max={50} inputMode="numeric" value={reminders.maxPerDay} disabled={remindersSaving} aria-label="Máximo de avisos por dia" onChange={e=>{const n=Number(e.target.value);if(Number.isFinite(n)&&n>=1&&n<=50)void saveReminders({maxPerDay:Math.floor(n)})}}/>
+          <div className={reminderColumnTw}>
+            <p className={maxLabelTw}>Limite de avisos por dia</p>
+            <input className={maxInputTw} type="number" min={1} max={50} inputMode="numeric" value={reminders.maxPerDay} disabled={remindersSaving} aria-label="Máximo de avisos por dia" onChange={e=>{const n=Number(e.target.value);if(Number.isFinite(n)&&n>=1&&n<=50)void saveReminders({maxPerDay:Math.floor(n)})}}/>
           </div>
-          {remindersNotice ? <p role="status" className="mt-1 text-small text-slate-600">{remindersNotice}</p> : null}
+          {remindersNotice?<p role="status" className="col-span-full mt-1 text-small text-slate-600">{remindersNotice}</p>:null}
         </div>
       </section>
-    ) : null}
-    {metrics&&metrics.overdue>0?<div className="mb-1 flex items-center gap-2.5 rounded-token border border-red-600/40 bg-red-100 px-3.5 py-3 text-small font-bold text-red-600" role="alert"><CalendarClock size={15} aria-hidden="true"/> Você tem {metrics.overdue} tarefa(s) atrasada(s). Ajuste o prazo ou conclua-as hoje.</div>:null}
-    <div className="flex flex-wrap items-center justify-between gap-2.5">
-      <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200 bg-zinc-200 p-1">
-        <button aria-pressed={filter==="active"} className={"min-h-8 rounded-full px-3.5 text-small font-bold transition-colors " + (filter==="active" ? "bg-blue-600 text-blue-900 shadow-token-sm" : "text-slate-600 hover:bg-zinc-300")} onClick={()=>setFilter("active")}>Em andamento</button>
-        <button aria-pressed={filter==="done"} className={"min-h-8 rounded-full px-3.5 text-small font-bold transition-colors " + (filter==="done" ? "bg-blue-600 text-blue-900 shadow-token-sm" : "text-slate-600 hover:bg-zinc-300")} onClick={()=>setFilter("done")}>Concluídas</button>
-      </div>
-      <button className={secondaryButton} type="button" onClick={()=>void load()} title="Atualizar"><RefreshCw size={16}/></button>
-    </div>
-    {error?<p role="alert" className="flex items-center gap-2 rounded-xl border border-red-600/30 bg-red-100 px-3.5 py-3 text-small font-semibold text-red-600">{error}</p>:null}
-    <div className="grid gap-2.5">{tasks.map(t=><article className="grid gap-2.5 rounded-token border border-gray-200 bg-zinc-100 p-4 shadow-token transition-colors hover:border-gray-300" key={t.id}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0"><strong className="text-h3 font-extrabold tracking-tight text-slate-950">{t.title}</strong><p className="mt-0.5 text-small leading-relaxed text-slate-600">{t.description}</p></div>
-        <div className="flex flex-none items-center gap-2">
-          <span className={"inline-flex min-h-5 items-center rounded-full px-2.5 text-2xs font-extrabold uppercase tracking-wide " + (priorityTone[t.priority as keyof typeof priorityTone] ?? priorityTone.NORMAL)}>{({LOW:"Baixa",NORMAL:"Normal",HIGH:"Alta",URGENT:"Urgente"} as Record<string,string>)[t.priority]||t.priority}</span>
-          {overdueTag(t)}
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-x-3.5 gap-y-2 text-small tabular-nums text-slate-600">
-        <span className="inline-flex items-center gap-1.5">Complexidade {t.complexity}/5</span>
-        {t.assignee?<span className="inline-flex items-center gap-1.5">Responsável: {t.assignee.name}</span>:null}
-        {t.dueAt?<span className="inline-flex items-center gap-1.5"><CalendarClock size={13}/> {formatDateTimeBR(t.dueAt)}</span>:null}
-      </div>
-      {t.steps.length?<div className="grid gap-1.5">{t.steps.map(s=><label key={s.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg bg-zinc-200 px-2.5 py-2 text-small text-slate-950 hover:bg-blue-50"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" disabled={busy||t.status==="DONE"} checked={s.done} onChange={()=>void toggle(t,s)}/><span>{s.label}</span></label>)}</div>:null}
-      <footer className="flex items-center justify-between gap-2.5 border-t border-dashed border-gray-200 pt-2.5">
-        {(()=>{const done=t.steps.filter(s=>s.done).length;const pct=typeof t.progress==="number"&&t.steps.length?t.progress:(t.steps.length?Math.round(done/t.steps.length*100):(t.status==="DONE"?100:0));return <div className="grid min-w-0 flex-1 gap-1.5"><small className="text-2xs tabular-nums text-slate-600">{done}/{t.steps.length} etapas · {pct}%</small><div className="h-1.5 overflow-hidden rounded-full border border-gray-200 bg-zinc-300" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-blue-50 transition-all duration-bar" style={{width:pct+"%"}}/></div></div>})()}
-        <div className="flex flex-none items-center gap-2">
-          <button type="button" className={iconButton + " text-slate-600 hover:text-blue-800"} title="Editar tarefa" aria-label="Editar tarefa" onClick={()=>openEdit(t)} disabled={busy}><Pencil size={15}/></button>
-          <button type="button" className={iconButton + " text-red-600 hover:bg-red-100"} title="Excluir tarefa" aria-label="Excluir tarefa" onClick={()=>void removeTask(t)} disabled={busy}><Trash2 size={15}/></button>
-          {t.status==="DONE"?<span className="inline-flex items-center gap-1.5 text-small font-extrabold text-blue-800"><CheckCircle2 size={16}/> Finalizada</span>:<button type="button" className={primaryButton} disabled={busy||t.steps.some(s=>!s.done)} onClick={()=>void finish(t)}><CheckCircle2 size={15}/> Finalizar tarefa</button>}
-        </div>
-      </footer>
-    </article>)}{!tasks.length?<div className="grid justify-items-center gap-2.5 rounded-token border border-gray-200 bg-zinc-100 p-10 text-slate-600"><ClipboardCheck size={30}/><p>{filter==="active"?"Nenhuma tarefa pendente.":"Nenhuma tarefa finalizada."}</p></div>:null}</div>
-    </div>
+    </div>:null}
     {form?<div className="fixed inset-0 z-wizard flex items-center justify-center bg-slate-950/60 p-4" onMouseDown={e=>{if(e.target===e.currentTarget)setForm(false)}}><section ref={modalRef} tabIndex={-1} className="relative grid max-h-wizard w-full max-w-lg gap-3 overflow-y-auto rounded-token-lg border border-gray-200 bg-zinc-100 p-5 shadow-token-lg" role="dialog" aria-modal="true" aria-label={editId?"Editar tarefa":"Nova tarefa"}>
       <button type="button" className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-xl bg-zinc-200 text-slate-600 transition-colors hover:bg-zinc-300" aria-label="Fechar" onClick={()=>{if(!busy)setForm(false)}}><X size={18} aria-hidden="true" /></button>
       <h2 className="text-h2 font-heading text-slate-950">{editId?"Editar tarefa":"Nova tarefa"}</h2>

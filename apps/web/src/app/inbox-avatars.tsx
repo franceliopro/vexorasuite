@@ -56,7 +56,7 @@ export function ContactAvatar({ contact, className = contactAvatarFillTw }: { co
   return (
     <span className={className}>
       {src ? <img key={src} src={src} alt={"Foto de " + contactDisplayName(contact)} loading="lazy" referrerPolicy="no-referrer" className="block h-full w-full rounded-full object-cover" onError={() => setSrc(current => current === proxy ? avatarUrl(contact) : null)}/> : null}
-      {!src && <span className="grid h-full w-full place-items-center rounded-full bg-slate-200 font-extrabold tracking-tight text-slate-800 dark:bg-slate-800 dark:text-slate-50">{contactDisplayName(contact).slice(0, 1).toUpperCase()}</span>}
+      {!src && <span className="grid h-full w-full place-items-center rounded-full bg-zinc-200 font-extrabold tracking-tight text-slate-800 dark:bg-slate-800 dark:text-slate-50">{contactDisplayName(contact).slice(0, 1).toUpperCase()}</span>}
     </span>
   );
 }

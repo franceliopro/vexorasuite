@@ -38,6 +38,17 @@ const config: Config = {
           300: "var(--s3)",
           400: "var(--hover)",
         },
+        /*
+         * Os pesos slate que não eram tokenizados permanecem na paleta canônica
+         * do Tailwind — que é exatamente a paleta slate pedida para o dark:
+         * 950 #020617 (base), 900 #0f172a (surface), 800 #1e293b (elevated),
+         * 700 #334155 (border-light), 50 #f8fafc (texto), 400 #94a3b8 (muted),
+         * 500 #64748b (dim). Remapear todos os pesos para tokens de tema
+         * quebraria o light: text-slate-50, por exemplo, é texto quase branco
+         * sobre fundos escuros em 143 usos e não pode virar --text-main.
+         * Os usos de borda/fundo que antes dependiam de slate-200 foram
+         * reescritos para border-gray-200 (--ln) e bg-zinc-200 (--s2).
+         */
         slate: {
           400: "var(--text-muted)",
           600: "var(--tx2)",
@@ -210,11 +221,17 @@ const config: Config = {
           2: "var(--s2)",
           3: "var(--s3)",
           page: "var(--bg)",
+          /* Aliases semânticos da hierarquia de camadas escuras. */
+          base: "var(--bg-base)",
+          elevated: "var(--bg-elevated)",
+          hover: "var(--bg-hover)",
         },
         ink: {
           DEFAULT: "var(--tx)",
           secondary: "var(--tx2)",
           muted: "var(--text-muted)",
+          main: "var(--text-main)",
+          dim: "var(--text-dim)",
         },
         line: {
           DEFAULT: "var(--ln)",

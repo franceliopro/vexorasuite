@@ -135,7 +135,7 @@ test("a lista e o track usam utilities Tailwind padrão", () => {
   for (const util of [
     "grid min-h-0 flex-1 content-start overflow-y-auto",
     "gap-x-2 gap-y-1",
-    "border-b border-l-2 border-slate-200",
+    "border-b border-l-2 border-gray-200",
     "duration-200 ease-in-out",
     "h-11 w-11",
     "h-3 w-3",
@@ -152,11 +152,11 @@ test("a lista e o track usam utilities Tailwind padrão", () => {
   }
   for (const util of [
     "w-full max-w-3xl max-h-dvh",
-    "rounded-2xl border border-slate-200",
+    "rounded-2xl border border-gray-200",
     "px-5 pb-5",
     "grid-cols-1 gap-3.5 sm:grid-cols-2",
     "my-2 grid min-w-0 content-start gap-2",
-    "rounded-xl border border-slate-200",
+    "rounded-xl border border-gray-200",
     "font-semibold",
     "bg-blue-700 px-4 text-xs font-bold text-white",
   ]) {

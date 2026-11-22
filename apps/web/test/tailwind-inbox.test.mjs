@@ -56,7 +56,7 @@ test("o Atendimento não usa classes componente vx-* nem ib-* no JSX", () => {
       if (name) assert.ok(declared.has(name), `o preset não declara ${name}`);
     }
   }
-  assert.ok(track.includes('className="w-full max-w-3xl max-h-dvh overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-5 pb-5 pt-0 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"'));
+  assert.ok(track.includes('className="w-full max-w-3xl max-h-dvh overflow-auto rounded-2xl border border-gray-200 bg-slate-50 px-5 pb-5 pt-0 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"'));
   assert.ok(support.includes('className="w-full max-w-xl max-h-screen overflow-auto rounded-xl border border-gray-200 bg-zinc-100 px-4 pb-4 pt-0 text-slate-950 shadow-xl"'));
 });
 

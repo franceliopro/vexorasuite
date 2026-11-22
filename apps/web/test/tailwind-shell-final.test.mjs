@@ -302,12 +302,15 @@ test("os contratos funcionais e de acessibilidade permanecem intactos", () => {
 test("os tokens reais do tema escuro não foram alterados", () => {
   const darkBlock = legacyCss.match(/:root\[data-theme=dark\]\{([\s\S]*?)\}/)?.[1] ?? "";
   for (const [name, value] of Object.entries({
-    "--bg": "#0F172A",
-    "--s1": "#1E293B",
-    "--s2": "#334155",
-    "--ln": "#334155",
-    "--tx": "#F8FAFC",
-    "--sb-bg": "#020617",
+    "--bg-base": "#020617",
+    "--bg-surface": "#0F172A",
+    "--bg-elevated": "#1E293B",
+    "--border-light": "#334155",
+    "--text-main": "#F8FAFC",
+    "--bg": "var(--bg-base)",
+    "--s1": "var(--bg-surface)",
+    "--s2": "var(--bg-elevated)",
+    "--sb-bg": "var(--bg-surface)",
   })) {
     assert.ok(darkBlock.includes(`${name}:${value}`), `o tema escuro perdeu ${name}:${value}`);
   }

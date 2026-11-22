@@ -70,9 +70,9 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     "from-slate-700 to-slate-900",
     // Avatares e copiloto migrados para utilities Tailwind padrão com dark slate.
     "inline-grid h-5 w-5 flex-none place-items-center rounded-full",
-    "bg-slate-200 font-extrabold tracking-tight text-slate-800",
+    "bg-zinc-200 font-extrabold tracking-tight text-slate-800",
     "bg-blue-100 text-xs font-bold",
-    "rounded-lg border border-slate-200 bg-slate-50",
+    "rounded-lg border border-gray-200 bg-slate-50",
     "min-h-4 items-center rounded-full bg-blue-100",
     "max-w-md text-xs",
     "dark:border-slate-700",

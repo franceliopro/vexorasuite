@@ -138,8 +138,8 @@ test("os tokens derivados continuam disponiveis para o preset", () => {
     "--vx-overlay-soft:color-mix(in srgb,var(--tx) 20%,transparent)",
     "--vx-ok-soft:color-mix(in srgb,var(--ok) 12%,var(--s1))",
     "--vx-warn-soft:color-mix(in srgb,var(--warn) 12%,var(--s1))",
-    "--bg:#0F172A;--s1:#1E293B;--s2:#334155",
-    "--sb-bg:#020617",
+    "--bg:var(--bg-base);--s1:var(--bg-surface);--s2:var(--bg-elevated)",
+    "--sb-bg:var(--bg-surface)",
   ]) {
     assert.ok(vexora.includes(token), `o tema perdeu ${token}`);
   }

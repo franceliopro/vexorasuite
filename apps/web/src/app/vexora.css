@@ -24,6 +24,13 @@
   --page:var(--surface-page);--surface-page:var(--bg);--surface-1:var(--s1);--surface-2:var(--s2);--surface-3:var(--s3);
   --ink:var(--text-primary);--text:var(--tx);--text-primary:var(--tx);--text-secondary:var(--tx2);--muted:var(--text-muted);--text-muted:var(--tx2);
   --line:var(--border-subtle);--border-subtle:var(--ln);--border-strong:var(--ln2);
+  /* Hierarquia explícita de camadas (paleta Tailwind slate). Cada tema redefine
+     estes nove tokens; o preset consome os pesos fixos através deles, sem hex nas
+     classes. No dark: main --bg-base, filhos diretos e sidebar --bg-surface,
+     cards/netos e hover --bg-elevated/--bg-hover. */
+  --bg-base:#F8FAFC;--bg-surface:#FFFFFF;--bg-elevated:#F1F5F9;--bg-hover:rgb(241 245 249 / .6);
+  --border:#E2E8F0;--border-light:#CBD5E1;
+  --text-main:#0F172A;--text-muted:#475569;--text-dim:#64748B;
   /* Derivados do core — o preset Tailwind consome estas variáveis, então ele
      não precisa de color-mix() nem de valores de cor fixos. */
   --vx-core-page-wash:radial-gradient(72rem 40rem at 100% -12%,color-mix(in srgb,var(--primary) 5%,transparent),transparent 62%);
@@ -51,14 +58,32 @@
 }
 :root[data-theme=hybrid]{--sb-bg:#020617;--sb-on:#0F172A;--sb-ln:#1E293B;--sb-mut:#94A3B8;--sb-tx:#F8FAFC;--sb-thumb:#475569;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast)}
 :root[data-theme=dark]{
-  --bg:#0F172A;--s1:#1E293B;--s2:#334155;--s3:#475569;--hover:#334155;
-  --tx:#F8FAFC;--tx2:#CBD5E1;--ln:#334155;--ln2:#475569;--thumb:#64748B;
+  /* Paleta dark explícita — exatamente os nove tokens pedidos, em pesos TW slate. */
+  --bg-base:#020617;--bg-surface:#0F172A;--bg-elevated:#1E293B;--bg-hover:rgb(30 41 59 / .6);
+  --border:#1E293B;--border-light:#334155;
+  --text-main:#F8FAFC;--text-muted:#94A3B8;--text-dim:#64748B;
+  /* Aliases legados: --bg é a main (mais escura), --s1 a camada da sidebar e
+     dos filhos diretos, --s2 a camada dos cards. Mantém os contratos do preset. */
+  --bg:var(--bg-base);--s1:var(--bg-surface);--s2:var(--bg-elevated);--s3:#334155;--hover:var(--bg-hover);
+  --tx:var(--text-main);--tx2:var(--text-muted);--ln:var(--border);--ln2:var(--border-light);--thumb:var(--text-main);
   --ok:#34D399;--warn:#F0B25E;--bad:#F0907A;--accent2:#94A3B8;
   --mint:#34D399;--mint-ink:#6EE7B7;--amber:#F0B25E;--amber-ink:#F6CD93;--coral:#F0907A;--coral-ink:#F7B4A5;
   --primary-soft:var(--s1);--primary-soft:color-mix(in srgb,var(--primary) 26%,var(--s1));--primary-ink:var(--tx);--primary-ink:color-mix(in srgb,var(--primary) 72%,var(--tx));--primary-strong:var(--primary);--primary-strong:color-mix(in srgb,var(--primary) 78%,var(--s2));--primary-contrast:#F8FAFC;
-  --sb-bg:#020617;--sb-on:#0F172A;--sb-ln:#1E293B;--sb-mut:#94A3B8;--sb-tx:#F8FAFC;--sb-thumb:#64748B;--sb-active:var(--primary);--sb-active-tx:#F8FAFC;
+  --sb-bg:var(--bg-surface);--sb-on:var(--bg-elevated);--sb-ln:var(--border-light);--sb-mut:var(--text-muted);--sb-tx:var(--text-main);--sb-thumb:var(--text-main);--sb-active:var(--primary);--sb-active-tx:#F8FAFC;
   --shadow:0 1px 2px rgba(0,0,0,.45),0 22px 48px -28px rgba(0,0,0,.88);--shadow-sm:0 1px 2px rgba(0,0,0,.5);--shadow-lg:0 6px 16px rgba(0,0,0,.26),0 36px 72px -34px rgba(0,0,0,.92);--sheen:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0));color-scheme:dark;
 }
+/* Profundidade do dark: a main é mais escura que a sidebar; os filhos de 1º
+   grau da main ficam na cor da sidebar; cards/netos e o hover desses filhos
+   sobem um tom. Títulos e informações complementares vêm de --text-main/--text-muted
+   através das classes `text-slate-*` já tokenizadas no preset. */
+:root[data-theme=dark] .main-area{background-color:var(--bg-base)}
+:root[data-theme=dark] .main-area>*{background-color:var(--bg-surface)}
+:root[data-theme=dark] .page-content>*{background-color:var(--bg-elevated)}
+:root[data-theme=dark] .page-content>*:hover{background-color:var(--bg-hover)}
+/* Barras de rolagem: a main usa --thumb (branca em área escura) e a sidebar
+   usa --sb-thumb, que acompanha a cor configurada pelo cliente no híbrido. */
+:root[data-theme=dark] .page-content,
+:root[data-theme=dark] .vx-dialog-body{scrollbar-color:var(--thumb) transparent}
 @media(max-width:760px){:root{--top:50px}}
 /* ===== 2. Base ===== */
 *{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--thumb) transparent}
@@ -2767,12 +2792,17 @@ input.channels-inbox-name:focus{border-color:var(--primary);background:var(--s1)
 }
 :root[data-theme=hybrid]{--sb-bg:#020617;--sb-on:#0F172A;--sb-ln:#1E293B;--sb-mut:#94A3B8;--sb-tx:#F8FAFC;--sb-thumb:#475569;--sb-active:var(--primary);--sb-active-tx:var(--primary-contrast)}
 :root[data-theme=dark]{
-  --bg:#0F172A;--s1:#1E293B;--s2:#334155;--s3:#475569;--hover:#334155;
-  --tx:#F8FAFC;--tx2:#CBD5E1;--ln:#334155;--ln2:#475569;--thumb:#64748B;
+  /* Reaplica a paleta slate: este bloco vem depois do bloco base e, sem
+     esta reaplicacao, os aliases voltariam aos tons antigos. */
+  --bg-base:#020617;--bg-surface:#0F172A;--bg-elevated:#1E293B;--bg-hover:rgb(30 41 59 / .6);
+  --border:#1E293B;--border-light:#334155;
+  --text-main:#F8FAFC;--text-muted:#94A3B8;--text-dim:#64748B;
+  --bg:var(--bg-base);--s1:var(--bg-surface);--s2:var(--bg-elevated);--s3:#334155;--hover:var(--bg-hover);
+  --tx:var(--text-main);--tx2:var(--text-muted);--ln:var(--border);--ln2:var(--border-light);--thumb:var(--text-main);
   --ok:#34D399;--warn:#F0B25E;--bad:#F0907A;--accent2:#94A3B8;--accent3:#CBD5E1;--accent4:#64748B;
   --mint:#34D399;--mint-ink:#6EE7B7;--amber:#F0B25E;--amber-ink:#F6CD93;--coral:#F0907A;--coral-ink:#F7B4A5;
   --primary-soft:var(--s1);--primary-soft:color-mix(in srgb,var(--primary) 26%,var(--s1));--primary-ink:var(--tx);--primary-ink:color-mix(in srgb,var(--primary) 72%,var(--tx));--primary-strong:var(--primary);--primary-strong:color-mix(in srgb,var(--primary) 78%,var(--s2));--primary-contrast:#F8FAFC;
-  --sb-bg:#020617;--sb-on:#0F172A;--sb-ln:#1E293B;--sb-mut:#94A3B8;--sb-tx:#F8FAFC;--sb-thumb:#64748B;--sb-active:var(--primary);--sb-active-tx:#F8FAFC;
+  --sb-bg:var(--bg-surface);--sb-on:var(--bg-elevated);--sb-ln:var(--border-light);--sb-mut:var(--text-muted);--sb-tx:var(--text-main);--sb-thumb:var(--text-main);--sb-active:var(--primary);--sb-active-tx:#F8FAFC;
 }
 /* Sidebar: feixes diagonais de luz azul + brilho do diamante */
 .sidebar{--sb-surface:#FBFCFE;background:var(--sb-surface);border-right:1px solid var(--sb-ln)}

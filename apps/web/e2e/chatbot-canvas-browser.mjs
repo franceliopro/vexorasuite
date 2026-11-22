@@ -27,6 +27,13 @@ try{
  await page.route("**/api/backend/**",async route=>{
   const path=new URL(route.request().url()).pathname.slice("/api/backend".length);
   if(path==="/events")return route.fulfill({contentType:"text/event-stream",body:": ready\n\n"});
+  if(path==="/chatbot/engine/preview"){
+   const payload=route.request().postDataJSON();
+   assert.equal(payload.channelId,"test-channel");
+   assert.equal(payload.draft.triggers[0].keyword,"orçamento");
+   assert.equal(payload.draft.steps[0].message,"Olá! Vamos preparar seu orçamento.");
+   return route.fulfill({json:{matched:payload.text==="orçamento",executed:false,sent:false}});
+  }
   const fixtures={
    "/auth/me":{
     user:{id:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",name:"Operador",email:"qa@example.test",isPlatformAdmin:true,mustChangePassword:false},
@@ -41,7 +48,7 @@ try{
    "/chatbot/runtime/destinations":{departments:[],agents:[]},
    "/crm/pipelines":[],
    "/assistant/config":{agents:[]},
-   "/channels":[],
+   "/channels":[{id:"test-channel",name:"WhatsApp de teste",provider:"WAHA"}],
    "/conversations/mentions":[],
   };
   return route.fulfill({json:fixtures[path]??{}});
@@ -127,6 +134,7 @@ try{
  await expect(setup).toBeVisible();
  await setup.getByLabel("Quando…").selectOption("keyword");
  await setup.getByRole("textbox",{name:"Palavra-chave",exact:true}).fill("orçamento");
+ await setup.getByRole("checkbox",{name:"WhatsApp de teste"}).check();
  await setup.getByRole("button",{name:"Enviar mensagem",exact:true}).click();
  await expect(setup).toHaveCount(0);
  const message=board.getByRole("textbox",{name:"Mensagem de Enviar mensagem"});
@@ -134,7 +142,16 @@ try{
  await message.fill("Olá! Vamos preparar seu orçamento.");
  await message.press("Tab");
  await expect(board.getByRole("button",{name:"Olá! Vamos preparar seu orçamento."})).toBeVisible();
- console.log("Chatbot: canvas interaction and guided trigger-to-message setup OK");
+ await page.getByRole("button",{name:"Testar o fluxo agora"}).click();
+ const triggerText=page.getByRole("textbox",{name:"Mensagem que ativa o teste"});
+ await triggerText.fill("mensagem diferente");
+ await page.getByRole("button",{name:"Testar gatilho",exact:true}).click();
+ await expect(page.getByText("A mensagem não ativou esta palavra-chave.")).toBeVisible();
+ await expect(board.locator("[data-flow-node].ring-accent")).toHaveCount(0);
+ await triggerText.fill("orçamento");
+ await page.getByRole("button",{name:"Testar gatilho",exact:true}).click();
+ await expect(board.locator("[data-flow-node].ring-accent")).toHaveCount(1);
+ console.log("Chatbot: canvas interaction, guided setup and keyword-triggered simulation OK");
 }finally{
  await browser?.close();
  server.kill("SIGTERM");

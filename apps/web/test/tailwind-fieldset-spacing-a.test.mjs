@@ -199,7 +199,7 @@ function classNameExpression(tag) {
 }
 
 for (const file of FILES) {
-  test(`${file}: todo fieldset possui mt-3 na classe correspondente`, () => {
+  test(`${file}: todo fieldset possui mt-5 na classe correspondente`, () => {
     const source = fs.readFileSync(path.join(webRoot, "src/app", file), "utf8");
     const constants = constantLiterals(source);
     const tags = fieldsetTags(source);
@@ -211,11 +211,11 @@ for (const file of FILES) {
       const tokens = resolve(expression, constants);
       assert.ok(tokens, `${file}:${line} className nao resolvida: ${expression}`);
       assert.ok(
-        tokens.includes("mt-3"),
-        `${file}:${line} fieldset sem mt-3: ${tokens.join(" ")}`,
+        tokens.includes("mt-5"),
+        `${file}:${line} fieldset sem mt-5: ${tokens.join(" ")}`,
       );
       const conflicting = tokens.filter(
-        (token) => /^(?:m|mt|my)-/.test(token) && token !== "mt-3",
+        (token) => /^(?:m|mt|my)-/.test(token) && token !== "mt-5",
       );
       assert.deepEqual(
         conflicting,

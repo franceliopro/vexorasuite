@@ -81,14 +81,14 @@ test('custom-fields-settings usa md: em vez de ov-tablet:', () => {
   assert.doesNotMatch(t, /ov-tablet:/);
 });
 
-test('documents-workspace usa lg:/md: e preserva mt-3 nos fieldsets', () => {
+test('documents-workspace usa lg:/md: e preserva mt-5 nos fieldsets', () => {
   const t = files.documents;
   assert.match(t, /lg:grid-cols-docs-generate/);
   assert.match(t, /lg:grid-cols-docs-grid/);
   assert.match(t, /md:grid-cols-docs-variable/);
   assert.doesNotMatch(t, /ov-tablet:/);
   assert.doesNotMatch(t, /rw-wide:/);
-  assert.match(t, /const variablesTw = "mt-3 /);
+  assert.match(t, /const variablesTw = "mt-5 /);
   assert.match(t, /<fieldset className=\{variablesTw\}>/);
 });
 
@@ -100,14 +100,14 @@ test('operations-settings usa md: e dark slate', () => {
   assert.match(t, /border-slate-700/);
 });
 
-test('provider-connections usa md: e preserva mt-3 no fieldset', () => {
+test('provider-connections usa md: e preserva mt-5 no fieldset', () => {
   const t = files.providers;
   assert.match(t, /md:grid-cols-provider-status/);
   assert.doesNotMatch(t, /ov-tablet:/);
   const fieldsets = [...t.matchAll(/<fieldset[^>]*className=\{?["'`]([^"'`]*)["'`]\}?[^>]*>/g)];
   assert.ok(fieldsets.length >= 1, 'deve haver ao menos 1 fieldset');
   for (const f of fieldsets) {
-    assert.match(f[1], /(?:^|\s)mt-3(?:\s|$)/, `fieldset sem mt-3: ${f[1]}`);
+    assert.match(f[1], /(?:^|\s)mt-5(?:\s|$)/, `fieldset sem mt-5: ${f[1]}`);
   }
 });
 

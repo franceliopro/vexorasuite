@@ -6,7 +6,7 @@ import path from "node:path";
 const appDir = new URL("../src/app/", import.meta.url);
 const read = (name) => fs.readFileSync(new URL(name, appDir), "utf8");
 
-// Grupo C: um fieldset por arquivo, sempre com margem superior mt-3.
+// Grupo C: um fieldset por arquivo, sempre com margem superior mt-5.
 const expected = {
   "personal-alarms.tsx": { fieldsets: 1, legends: 1 },
   "documents-workspace.tsx": { fieldsets: 1, legends: 1 },
@@ -67,7 +67,7 @@ function fieldsetClasses(attributes, constants, file) {
   assert.fail(`${file}: className do fieldset nao resolvida (${expression})`);
 }
 
-test("todo fieldset do grupo C possui mt-3 na classe TW correspondente", () => {
+test("todo fieldset do grupo C possui mt-5 na classe TW correspondente", () => {
   for (const [file, counts] of Object.entries(expected)) {
     const source = read(file);
     const constants = twConstants(source);
@@ -87,11 +87,11 @@ test("todo fieldset do grupo C possui mt-3 na classe TW correspondente", () => {
       const tokens = classes.trim().split(/\s+/).filter(Boolean);
 
       assert.ok(
-        tokens.includes("mt-3"),
-        `${file}: fieldset sem mt-3 (${classes})`,
+        tokens.includes("mt-5"),
+        `${file}: fieldset sem mt-5 (${classes})`,
       );
       assert.deepEqual(
-        tokens.filter((token) => /^mt-/.test(token) && token !== "mt-3"),
+        tokens.filter((token) => /^mt-/.test(token) && token !== "mt-5"),
         [],
         `${file}: fieldset com margem superior duplicada (${classes})`,
       );

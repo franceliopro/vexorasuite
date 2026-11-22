@@ -280,9 +280,9 @@ test("o shell do workspace usa TW e preserva os hooks de estado", () => {
   }
   assert.doesNotMatch(values, /\b(?:inbox-workspace|inbox-thread|inbox-composer|composer-shell|composer-tools|composer-icon-button|thread-heading|thread-header-actions|inbox-queue-button|handoff-option|message-line|message-bubble|quick-reply-use|emoji-category|finalization-outcome|ficha-open|ficha-compact|mobile-thread-open|inbox-full-screen|composer-is-note|more-open|is-alert|recording|active|selected|won|lost)\b/);
   for (const utility of [
-    "h-dvh min-h-0 grid-cols-1 gap-3 lg:grid-cols-3",
-    "lg:grid-cols-5",
-    "lg:grid-cols-4",
+    "h-ib-workspace min-h-ib-workspace grid-cols-1 gap-3 ib-grid:grid-cols-ib-workspace-resize",
+    "ib-grid-ficha:grid-cols-ib-workspace-resize-ficha",
+    "ib-grid-ficha:grid-cols-ib-workspace-resize-compact",
     "grid-cols-1",
     "grid-cols-4",
     "max-w-2xl",

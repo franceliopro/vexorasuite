@@ -56,7 +56,7 @@ test("o Atendimento não usa classes componente vx-* nem ib-* no JSX", () => {
       if (name) assert.ok(declared.has(name), `o preset não declara ${name}`);
     }
   }
-  assert.ok(track.includes('className="w-full max-w-3xl max-h-screen overflow-auto rounded-xl border border-gray-200 bg-zinc-100 px-4 pb-4 pt-0 text-slate-950"'));
+  assert.ok(track.includes('className="w-full max-w-3xl max-h-dvh overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-5 pb-5 pt-0 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"'));
   assert.ok(support.includes('className="w-full max-w-xl max-h-screen overflow-auto rounded-xl border border-gray-200 bg-zinc-100 px-4 pb-4 pt-0 text-slate-950 shadow-xl"'));
 });
 
@@ -107,20 +107,20 @@ test("o preset expõe todos os tokens ib-* usados pelo Atendimento", () => {
 
 test("as utilities Tailwind padrão do Atendimento estão aplicadas diretamente no JSX", () => {
   for (const token of [
-    "max-h-screen",
-    "rounded-xl",
-    "bg-zinc-100",
-    "px-4",
-    "pb-4",
+    "max-h-dvh",
+    "rounded-2xl",
+    "bg-slate-50",
+    "px-5 pb-5",
     "text-lg font-bold",
-    "font-bold",
-    "gap-2.5",
-    "my-3",
+    "font-semibold",
+    "gap-2",
+    "my-2",
     "rounded-lg",
-    "grid-cols-2",
-    "gap-3.5",
-    "ib-narrow:grid-cols-1",
+    "grid-cols-1 gap-3.5 sm:grid-cols-2",
     "border-blue-600",
+    "dark:bg-slate-900",
+    "dark:border-slate-700",
+    "dark:text-slate-50",
   ]) {
     assert.ok(track.includes(token), `Track deve usar ${token}`);
   }

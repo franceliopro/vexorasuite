@@ -57,10 +57,10 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
   for (const utility of [
     "grid min-h-0 flex-1 content-start overflow-y-auto",
     "gap-x-2 gap-y-1",
-    "border-l-blue-600 bg-blue-50 ring-1 ring-blue-500",
+    "border-l-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-100",
     "h-11 w-11",
     "h-3 w-3",
-    "text-xs tabular-nums text-slate-400",
+    "text-xs tabular-nums text-slate-500 dark:text-slate-400",
     "text-xs text-slate-600",
     "text-xs tabular-nums",
     "h-2 w-2 rounded-full bg-blue-700 ring-2 ring-blue-100",
@@ -79,6 +79,21 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     "dark:bg-slate-900",
   ]) {
     assert.ok(semDados.includes(utility), `falta a utility ${utility}`);
+  }
+  // A lista usa apenas utilities padrão: tamanhos, tons e relevos saíram do preset.
+  for (const utility of [
+    "grid min-h-0 flex-1 content-start overflow-y-auto",
+    "gap-x-2 gap-y-1",
+    "border-l-blue-600 bg-blue-50",
+    "h-11 w-11",
+    "h-3 w-3",
+    "text-xs tabular-nums",
+    "text-2xs text-slate-600",
+    "text-2xs tabular-nums",
+    "bg-blue-700 ring-2 ring-blue-100",
+    "min-h-4 items-center",
+  ]) {
+    assert.ok(list.includes(utility), `falta a utility ${utility} na lista`);
   }
   for (const token of [
     '"ib-coral": "#F0645E"',

@@ -6,8 +6,9 @@ import { MapPin } from "lucide-react";
 type Position = { id?: string; latitude: number; longitude: number; battery: number | null; speedKph: number | null; recordedAt: string; receivedAt: string };
 type Device = { id: string; name: string; reference: string; isSimulation: boolean; isActive: boolean; lastSeenAt: string | null; position: Position | null; department: { name: string } | null };
 type Devices = { manager: boolean; hasNext: boolean; devices: Device[]; departments: { id: string; name: string }[] };
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-transparent bg-blue-700 px-4 text-xs font-bold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60";
-const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-gray-200 bg-zinc-200 px-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-zinc-400 disabled:cursor-not-allowed disabled:opacity-60";
+
+const primaryTw = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-700 px-4 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryTw = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3.5 text-xs font-bold text-slate-800 shadow-sm transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700";
 
 
 async function api<T>(path: string, body?: object): Promise<T> {
@@ -87,46 +88,46 @@ export function InboxTrack({ menuItem = false }: { menuItem?: boolean }) {
   }
 
   return <>
-    <button type="button" role={menuItem ? "menuitem" : undefined} className={menuItem ? undefined : secondaryButton} onClick={() => { dialog.current?.showModal(); void run(() => refresh()); }}>
+    <button type="button" role={menuItem ? "menuitem" : undefined} className={menuItem ? undefined : secondaryTw} onClick={() => { dialog.current?.showModal(); void run(() => refresh()); }}>
       <MapPin size={16} aria-hidden="true" /> Véxora Track
     </button>
-    <dialog ref={dialog} className="w-full max-w-3xl max-h-screen overflow-auto rounded-xl border border-gray-200 bg-zinc-100 px-4 pb-4 pt-0 text-slate-950" aria-label="Véxora Track" onClose={() => setToken("")}>
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-2.5 border-b border-gray-200 bg-zinc-100 py-3"><div><h2 className="m-0 text-lg font-bold">Véxora Track</h2><span>Dispositivos e posições</span></div><button type="button" className={secondaryButton} onClick={() => dialog.current?.close()}>Fechar</button></header>
+    <dialog ref={dialog} className="w-full max-w-3xl max-h-dvh overflow-auto rounded-2xl border border-slate-200 bg-slate-50 px-5 pb-5 pt-0 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50" aria-label="Véxora Track" onClose={() => setToken("")}>
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2.5 border-b border-slate-200 bg-slate-50 py-3 dark:border-slate-700 dark:bg-slate-900"><div><h2 className="m-0 text-lg font-bold">Véxora Track</h2><span>Dispositivos e posições</span></div><button type="button" className={secondaryTw} onClick={() => dialog.current?.close()}>Fechar</button></header>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {!catalog && saving && <p role="status">Carregando dispositivos…</p>}
-      {token && <aside className="my-3 rounded-lg border border-gray-200 p-3">
+      {token && <aside className="my-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700 dark:bg-slate-800">
         <strong>Chave de ingestão</strong>
         <p>Copie esta chave agora para o dispositivo ou integrador. Ela será exibida uma única vez.</p>
-        <input aria-label="Chave de ingestão" className="w-full min-w-0" value={token} readOnly onFocus={event => event.currentTarget.select()} />
+        <input aria-label="Chave de ingestão" className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" value={token} readOnly onFocus={event => event.currentTarget.select()} />
       </aside>}
-      {catalog?.manager && <details className="my-3 rounded-lg border border-gray-200 p-3"><summary className="cursor-pointer font-semibold">Cadastrar dispositivo</summary>
+      {catalog?.manager && <details className="my-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700 dark:bg-slate-800"><summary className="cursor-pointer font-semibold">Cadastrar dispositivo</summary>
         <form onSubmit={create} className="my-2 grid min-w-0 content-start gap-2">
-          <label className="grid min-w-0 content-start gap-2">Nome <input className="w-full min-w-0" name="name" required maxLength={100} placeholder="Ex. Equipamento da unidade 01" /></label>
-          <label className="grid min-w-0 content-start gap-2">Referência <input className="w-full min-w-0" name="reference" required maxLength={80} placeholder="Ex. TRK-01" /></label>
-          <label className="grid min-w-0 content-start gap-2">Modo <select className="w-full min-w-0" name="mode"><option value="simulation">Simulado</option><option value="real">Integração real</option></select></label>
-          <label className="grid min-w-0 content-start gap-2">Equipe com acesso <select className="w-full min-w-0" name="team"><option value="">Administradores</option>{catalog.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
-          <button className={primaryButton + " justify-self-start"} disabled={saving}>Cadastrar</button>
+          <label className="grid min-w-0 content-start gap-2">Nome <input className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" name="name" required maxLength={100} placeholder="Ex. Equipamento da unidade 01" /></label>
+          <label className="grid min-w-0 content-start gap-2">Referência <input className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" name="reference" required maxLength={80} placeholder="Ex. TRK-01" /></label>
+          <label className="grid min-w-0 content-start gap-2">Modo <select className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" name="mode"><option value="simulation">Simulado</option><option value="real">Integração real</option></select></label>
+          <label className="grid min-w-0 content-start gap-2">Equipe com acesso <select className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" name="team"><option value="">Administradores</option>{catalog.departments.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+          <button className={primaryTw + " justify-self-start"} disabled={saving}>Cadastrar</button>
         </form>
       </details>}
       {catalog && <>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="grid min-w-0 content-start gap-2">Filtrar nesta página <input className="w-full min-w-0" type="search" value={filter} onChange={event => setFilter(event.target.value)} /></label>
-          <button type="button" className={secondaryButton} disabled={saving} onClick={() => void run(async () => {
+          <label className="grid min-w-0 content-start gap-2">Filtrar nesta página <input className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" type="search" value={filter} onChange={event => setFilter(event.target.value)} /></label>
+          <button type="button" className={secondaryTw} disabled={saving} onClick={() => void run(async () => {
             await refresh();
             if (selected) setHistory(await api<Position[]>("devices/" + selected + "/history"));
           })}>Atualizar</button>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3.5 ib-narrow:grid-cols-1">
+        <div className="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <nav aria-label="Dispositivos" className="grid min-w-0 content-start gap-2">
             {!catalog.devices.length && <p>Nenhum dispositivo disponível.</p>}
-            {catalog.devices.filter(device => (device.name + " " + device.reference).toLowerCase().includes(filter.trim().toLowerCase())).map(device => <button type="button" key={device.id} disabled={saving} aria-pressed={selected === device.id} className={"grid gap-1 break-words rounded-lg border border-gray-200 bg-zinc-200 p-2.5 text-start text-slate-950" + (selected === device.id ? " border-blue-600" : "")} onClick={() => void run(async () => {
+            {catalog.devices.filter(device => (device.name + " " + device.reference).toLowerCase().includes(filter.trim().toLowerCase())).map(device => <button type="button" key={device.id} disabled={saving} aria-pressed={selected === device.id} className={"grid gap-1 break-words rounded-lg border border-slate-200 bg-slate-100 p-2.5 text-start text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" + (selected === device.id ? " border-blue-600" : "")} onClick={() => void run(async () => {
               setSelected(device.id); setToken(""); setHistory([]);
               setHistory(await api<Position[]>("devices/" + device.id + "/history"));
             })}><strong>{device.name}</strong><small>{device.reference} · {device.isSimulation ? "Simulado" : "Real"}{device.isActive ? "" : " · Pausado"}</small></button>)}
             {(page > 1 || catalog.hasNext) && <div className="flex flex-wrap items-end gap-2">
-              <button type="button" className={secondaryButton} disabled={saving || page <= 1} onClick={() => void run(() => refresh(page - 1))}>Anterior</button>
-              <button type="button" className={secondaryButton} disabled={saving || !catalog.hasNext} onClick={() => void run(() => refresh(page + 1))}>Próxima</button>
+              <button type="button" className={secondaryTw} disabled={saving || page <= 1} onClick={() => void run(() => refresh(page - 1))}>Anterior</button>
+              <button type="button" className={secondaryTw} disabled={saving || !catalog.hasNext} onClick={() => void run(() => refresh(page + 1))}>Próxima</button>
             </div>}
           </nav>
           {current && <section className="my-2 grid min-w-0 content-start gap-2">
@@ -138,15 +139,15 @@ export function InboxTrack({ menuItem = false }: { menuItem?: boolean }) {
             </dl>
             {current.position && <a href={location(current.position)} target="_blank" rel="noreferrer">Abrir última posição no mapa</a>}
             {catalog.manager && <div className="flex flex-wrap items-end gap-2">
-              <button type="button" className={secondaryButton} disabled={saving} onClick={() => change(current, current.isActive ? "pause" : "resume")}>{current.isActive ? "Pausar recebimento" : "Retomar recebimento"}</button>
-              {!current.isSimulation && <button type="button" className={secondaryButton} disabled={saving} onClick={() => change(current, "rotate")}>Gerar nova chave</button>}
+              <button type="button" className={secondaryTw} disabled={saving} onClick={() => change(current, current.isActive ? "pause" : "resume")}>{current.isActive ? "Pausar recebimento" : "Retomar recebimento"}</button>
+              {!current.isSimulation && <button type="button" className={secondaryTw} disabled={saving} onClick={() => change(current, "rotate")}>Gerar nova chave</button>}
             </div>}
             {catalog.manager && current.isActive && current.isSimulation && <form onSubmit={event => simulate(event, current)} className="my-2 grid min-w-0 content-start gap-2">
-              <label className="grid min-w-0 content-start gap-2">Latitude <input className="w-full min-w-0" name="latitude" type="number" min="-90" max="90" step="any" required /></label>
-              <label className="grid min-w-0 content-start gap-2">Longitude <input className="w-full min-w-0" name="longitude" type="number" min="-180" max="180" step="any" required /></label>
-              <button className={primaryButton + " justify-self-start"} disabled={saving}>Registrar posição simulada</button>
+              <label className="grid min-w-0 content-start gap-2">Latitude <input className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" name="latitude" type="number" min="-90" max="90" step="any" required /></label>
+              <label className="grid min-w-0 content-start gap-2">Longitude <input className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50" name="longitude" type="number" min="-180" max="180" step="any" required /></label>
+              <button className={primaryTw + " justify-self-start"} disabled={saving}>Registrar posição simulada</button>
             </form>}
-            {history.length > 0 && <details className="my-3 rounded-lg border border-gray-200 p-3"><summary className="cursor-pointer font-semibold">Histórico de posições</summary>
+            {history.length > 0 && <details className="my-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700 dark:bg-slate-800"><summary className="cursor-pointer font-semibold">Histórico de posições</summary>
               <ul>{history.map(point => <li key={point.id}><a href={location(point)} target="_blank" rel="noreferrer">{date(point.recordedAt)}</a> · {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</li>)}</ul>
             </details>}
           </section>}

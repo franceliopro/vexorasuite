@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS, passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
 
-const submitTw = "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 auth-submit";
+const submitTw = "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const brandMarkTw = "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand";
 export interface AuthSession {
   allowedModules?:string[]; departmentIds?:string[];
@@ -157,7 +157,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
           {mode === "reset" ? <label className="grid gap-1.5">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete="new-password" /></label> : null}
           {notice ? <p className="rounded-token-sm bg-blue-50 px-3.5 py-3 text-body text-blue-800" role="status">{notice}</p> : null}
           {error ? <p className="text-body text-danger" role="alert">{error}</p> : null}
-          <button className={submitTw} type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
+          <button data-testid="auth-submit" className={submitTw} type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
         </form>
         {mode === "login" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode("forgot")}>Esqueceu a senha?</button></div> : null}
         {mode === "forgot" || mode === "reset" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><span>{mode === "forgot" ? "Lembrou a senha?" : "Não solicitou a troca?"}</span><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode("login")}>Voltar para entrar</button></div> : null}

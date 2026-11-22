@@ -12,7 +12,7 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day
 const fmtSize = (a: Asset) => a.kind === "image" ? `${a.width}×${a.height}` : "PDF";
 
 /* Utilities compartilhadas da fatia: azul vem dos tokens --primary do preset. */
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-600 px-4 text-xs font-bold text-white shadow-lg transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const iconButton = "grid size-control flex-none place-items-center rounded-token-sm border border-line bg-surface-2 text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const searchTw = "flex min-h-10 min-w-fm-search flex-1 items-center gap-2 rounded-fm-search border border-line bg-surface-2 px-3 text-ink-secondary";
@@ -184,7 +184,7 @@ export function FileManager({ onNotice, onSelect, selectable }: { onNotice?: (v:
               </article>
             ))}
           </div>}
-      {preview && <div className="fixed inset-0 z-fm-lightbox grid animate-vx-scrim-in place-items-center bg-overlay p-5" role="dialog" aria-modal="true" aria-label={"Visualizar " + preview.name} onClick={() => setPreview(null)}><figure className="m-0 max-w-fm-lightbox overflow-hidden rounded-fm-lightbox border border-line bg-surface" onClick={e => e.stopPropagation()}><img className="block max-h-fm-lightbox-img max-w-full bg-surface-page object-contain" src={preview.url} alt={preview.name || "Arquivo"} /><figcaption className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-fm-caption text-ink"><span className="truncate">{preview.name}</span><a className={secondaryButton} href={preview.url} download={preview.name}>Baixar</a><button type="button" className={iconButton} aria-label="Fechar" onClick={() => setPreview(null)}><X size={18} aria-hidden="true" /></button></figcaption></figure></div>}
+      {preview && <div className="fixed inset-0 grid place-items-center bg-slate-900/80 p-5 backdrop-blur-sm" style={{ zIndex: 60 }} role="dialog" aria-modal="true" aria-label={"Visualizar " + preview.name} onClick={() => setPreview(null)}><figure className="m-0 max-w-fm-lightbox overflow-hidden rounded-xl border border-slate-700 bg-slate-900" onClick={e => e.stopPropagation()}><img className="block max-h-fm-lightbox-img max-w-full bg-surface-page object-contain" src={preview.url} alt={preview.name || "Arquivo"} /><figcaption className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-fm-caption text-ink"><span className="truncate">{preview.name}</span><a className={secondaryButton} href={preview.url} download={preview.name}>Baixar</a><button type="button" className={iconButton} aria-label="Fechar" onClick={() => setPreview(null)}><X size={18} aria-hidden="true" /></button></figcaption></figure></div>}
     </div>
   );
 }

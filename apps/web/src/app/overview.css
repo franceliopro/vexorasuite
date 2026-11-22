@@ -15,10 +15,14 @@
  * para o arquivo onde são declaradas, e sem elas a reemissão traria apenas
  * `.grid-cols-1` plain — que venceria `ib-grid:grid-cols-ib-workspace-resize`
  * em camada e deixaria a thread do Atendimento com uma coluna só.
+ * O mesmo vale para o breakpoint padrão `max-md`: sem re-registrá-lo aqui,
+ * a reemissão traria só `.hidden` plain, que venceria o `.max-md:grid` em
+ * camada e deixaria o dock da Visão geral colado à esquerda no mobile.
  */
 
 @config "../../tailwind.config.ts";
 
+@custom-variant max-md (@media (width < 48rem));
 @custom-variant ov-laptop (@media (max-width: 900px));
 @custom-variant ov-tablet (@media (max-width: 760px));
 @custom-variant ov-mobile (@media (max-width: 520px));

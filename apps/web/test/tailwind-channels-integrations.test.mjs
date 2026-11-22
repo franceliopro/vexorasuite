@@ -90,6 +90,8 @@ test("a página de conexões usa só utilities, sem remendos", () => {
     "bg-zinc-200",
     "text-slate-950",
     "text-blue-800",
+    "text-xs font-extrabold uppercase tracking-wider text-blue-800",
+    "text-xs text-slate-600",
     "text-red-600",
     "text-emerald-600",
   ]) {

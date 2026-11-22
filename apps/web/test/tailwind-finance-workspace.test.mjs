@@ -68,6 +68,10 @@ test("o workspace financeiro não usa classes componente legadas", () => {
     /^dot-(?:paid|open|overdue)\b/m,
     /^is-(?:empty|static|selected)\b/m,
     /^(?:primary|secondary)-button\b/m,
+    /^ov-(?!laptop:)[a-z0-9-]+/m,
+    /^vx-[a-z0-9-]+/m,
+    /^ib-[a-z0-9-]+/m,
+    /^rw-[a-z0-9-]+/m,
   ]) {
     const match = legacyScanClasses.match(forbidden);
     assert.equal(match, null, `classe legada no JSX: ${match?.[0]}`);
@@ -149,11 +153,16 @@ test("o workspace financeiro usa só utilities, sem remendos", () => {
     "tracking-fin-label",
     "tracking-fin-wide",
     "ov-laptop:grid-cols-fin-metrics-tablet",
-    "ov-mobile:grid-cols-fin-metrics-mobile",
-    "z-ib-dialog",
-    "p-vx-dialog-pad",
-    "animate-vx-in",
-    "animate-vx-scrim-in",
+    "ov-laptop:grid-cols-2",
+    "max-sm:grid-cols-2",
+    "max-sm:grid-cols-1",
+    "z-50",
+    "p-4",
+    "bg-slate-900/80",
+    "max-h-dvh",
+    "dark:border-slate-700",
+    "dark:bg-slate-900",
+    "dark:text-slate-50",
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);
   }

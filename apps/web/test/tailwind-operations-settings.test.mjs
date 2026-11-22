@@ -79,6 +79,8 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
     "max-w-settings-name",
     "max-h-group-list",
     "rounded-settings-swatch",
+    "grid grid-cols-1 gap-3 md:grid-cols-2",
+    "grid grid-cols-1 gap-3 md:grid-cols-settings-upload",
   ]) {
     assert.ok(resolvido.includes(utility), `falta a utility ${utility}`);
   }

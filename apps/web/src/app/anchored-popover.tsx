@@ -22,7 +22,7 @@ export interface AnchoredPopoverProps {
  *
  * Usa `position: fixed` com coordenadas medidas do âncora: o painel escapa do
  * `overflow-hidden` do cabeçalho/ficha, não depende de portal (os e2e localizam
- * os itens dentro do `<details>`) e a camada `z-ib-anchored` o mantém acima das
+ * os itens dentro do `<details>`) e a camada 260 (via style) o mantém acima das
  * janelas do Atendimento, abaixo apenas dos diálogos modais.
  */
 export function AnchoredPopover({ open, anchorRef, children, className, testId, id, role, ariaLabel, align = "start", side = "bottom", offset = 8, onClick }: AnchoredPopoverProps) {
@@ -58,5 +58,5 @@ export function AnchoredPopover({ open, anchorRef, children, className, testId, 
     };
   }, [open, place]);
 
-  return <div ref={panelRef} data-testid={testId} id={id} role={role} aria-label={ariaLabel} className={"fixed z-ib-anchored " + className} style={position} onClick={onClick}>{children}</div>;
+  return <div ref={panelRef} data-testid={testId} id={id} role={role} aria-label={ariaLabel} className={"fixed " + className} style={{ ...position, zIndex: 260 }} onClick={onClick}>{children}</div>;
 }

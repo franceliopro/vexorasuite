@@ -127,8 +127,10 @@ test("o CSS legado órfão da fatia foi removido sem tocar nos tokens do tema", 
     assert.equal(legacyCss.includes(legacy), false, `CSS legado ${legacy} ainda em vexora.css`);
   }
   for (const token of [
-    "--bg:#0F172A", "--s1:#1E293B", "--s2:#334155", "--tx:#F8FAFC",
-    "--ln:#334155", "--sb-bg:#020617",
+    "--bg-base:#020617", "--bg-surface:#0F172A", "--bg-elevated:#1E293B",
+    "--text-main:#F8FAFC", "--border-light:#334155",
+    "--bg:var(--bg-base)", "--s1:var(--bg-surface)", "--s2:var(--bg-elevated)",
+    "--tx:var(--text-main)", "--sb-bg:var(--bg-surface)",
   ]) {
     assert.ok(legacyCss.includes(token), `token do dark slate ${token} foi alterado`);
   }

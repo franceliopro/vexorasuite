@@ -165,7 +165,12 @@ test("as cores e os breakpoints vêm do preset e do tema slate real", () => {
   ]) {
     assert.ok(config.includes(trecho) || theme.includes(trecho), `o preset deve expor ${trecho}`);
   }
-  for (const token of ["--bg:#0F172A", "--s1:#1E293B", "--s2:#334155", "--tx:#F8FAFC", "--ln:#334155", "--sb-bg:#020617"]) {
+  for (const token of [
+    "--bg-base:#020617", "--bg-surface:#0F172A", "--bg-elevated:#1E293B",
+    "--text-main:#F8FAFC", "--border-light:#334155",
+    "--bg:var(--bg-base)", "--s1:var(--bg-surface)", "--s2:var(--bg-elevated)",
+    "--tx:var(--text-main)", "--sb-bg:var(--bg-surface)",
+  ]) {
     assert.ok(legacyCss.includes(token), `o tema escuro deve mapear ${token}`);
   }
 });

@@ -65,7 +65,12 @@ test("a marca padrão é blue-700 e o escuro usa slate", () => {
   }
 
   const dark = legacy.match(/:root\[data-theme=dark\][\s\S]*?\n\}/)?.[0] ?? "";
-  for (const token of ["--bg:#0F172A", "--s1:#1E293B", "--s2:#334155", "--tx:#F8FAFC", "--ln:#334155", "--sb-bg:#020617"]) {
+  for (const token of [
+    "--bg-base:#020617", "--bg-surface:#0F172A", "--bg-elevated:#1E293B",
+    "--text-main:#F8FAFC", "--border-light:#334155",
+    "--bg:var(--bg-base)", "--s1:var(--bg-surface)", "--s2:var(--bg-elevated)",
+    "--sb-bg:var(--bg-surface)",
+  ]) {
     assert.ok(dark.includes(token), `o tema escuro deve mapear ${token} (slate)`);
   }
   assert.match(legacy, /--primary:#1D4ED8/);

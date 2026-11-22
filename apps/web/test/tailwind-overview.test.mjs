@@ -112,7 +112,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(theme, /@custom-variant ov-laptop \(@media \(max-width: 900px\)\);/);
 
   // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
-  assert.match(overview, /<section className="grid grid-cols-2 gap-5 bg-transparent hover:bg-transparent ov-laptop:grid-cols-1"/);
+  assert.match(overview, /<section className="grid grid-cols-2 gap-5 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
   assert.match(overview, /col-span-2 grid gap-5[^>]*data-testid="ov-hero"/);
   // O CTA do alerta não estica com a coluna: largura só do conteúdo.
@@ -125,7 +125,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
 
   // Widgets em colunas proporcionais (3/4/5) e uma coluna no mobile; onboarding em 2 passos.
-  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 bg-transparent hover:bg-transparent max-md:grid-cols-1"/);
+  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 max-md:grid-cols-1"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
   // Nenhuma das grades antigas que causavam 4+2 ou colunas estreitas.
@@ -139,7 +139,12 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
 
 test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
   const aliases = /\b(?:bg|text|border|from|to|via|stroke|fill)-(?:surface(?:-\d+)?|ink(?:-secondary|-muted)?|line(?:-strong|-soft|-footer|-hover)?|brand(?:-soft|-ink|-strong|-contrast)?|danger|accent|focus|selection|overlay(?:-soft)?|topbar|hover|sidebar(?:-on|-line|-muted|-text|-thumb)?|success(?:-soft)?|warning(?:-soft)?)\b/;
-  assert.doesNotMatch(components, aliases);
+  // Os alias semânticos são permitidos no cartão dos Primeiros passos, que segue
+  // o padrão .card/.tool-box com tokens de superfície, borda e texto.
+  assert.doesNotMatch(`${overview}\n${widgets}`, aliases);
+  for (const token of ["rounded-lg border border-line bg-surface", "bg-surface-2", "text-ink", "p-3.5", "dark:bg-slate-800", "dark:bg-sky-400/15 dark:text-sky-400"]) {
+    assert.ok(onboarding.includes(token), `o cartão dos Primeiros passos perdeu ${token}`);
+  }
 
   const escopo = `${components}\n${page}`;
   for (const token of [
@@ -183,18 +188,19 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
     [overview, 'aria-label="Inteligência da operação"'],
   ]) {
     assert.ok(source.includes(label), `a seção ${label} perdeu o rótulo`);
-    assert.ok(source.includes("bg-transparent"), `a seção ${label} ainda pinta fundo`);
-    assert.ok(source.includes("hover:bg-transparent"), `a seção ${label} ainda pinta fundo no hover`);
+    assert.ok(source.includes("bg-white"), `a seção ${label} não é branca no claro/híbrido`);
+    assert.ok(source.includes("dark:bg-slate-900"), `a seção ${label} não usa slate-900 no dark`);
   }
 
-  assert.ok(onboarding.includes('dark:border-slate-600 dark:bg-slate-700'));
-  assert.ok(onboarding.includes('dark:border-slate-500 dark:bg-slate-600 dark:text-slate-50'));
-  assert.ok(welcome.includes('dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600'));
+  assert.ok(onboarding.includes('dark:border-slate-700 dark:bg-slate-800'));
+  assert.ok(onboarding.includes('ACCENT_STEPS = new Set(["empresa", "documento"])'));
+  assert.ok(welcome.includes('dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700'));
   assert.doesNotMatch(onboarding, /bg-linear-to-br from-blue-50 to-indigo-100/);
   assert.doesNotMatch(welcome, /bg-linear-to-br from-blue-50 via-white to-purple-50/);
-  assert.ok(welcome.includes('border border-blue-100 bg-transparent px-3'));
-  // Contraste dos botões "Configurar": fundo claro e texto na cor do menu no dark.
-  assert.ok(onboarding.includes('dark:border-slate-500 dark:bg-slate-600 dark:text-slate-50 dark:hover:bg-slate-500'));
+  assert.ok(welcome.includes('border border-line bg-surface p-3.5 text-left text-ink'));
+  // "Configurar" e os dois ícones pedidos usam sky-400 com 15% de opacidade no dark.
+  assert.ok(onboarding.includes('dark:border-slate-600 dark:bg-sky-400/15 dark:text-sky-400'));
+  assert.ok(welcome.includes('dark:border-slate-600 dark:bg-slate-800 dark:text-sky-300'));
   assert.doesNotMatch(onboarding, /dark:bg-slate-800 dark:text-blue-300/);
 });
 

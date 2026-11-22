@@ -12,9 +12,12 @@ type Step = {
 };
 
 const DISMISS_KEY = "vexora:onboarding-dismissed";
-const stepIconTw: Record<string, string> = {
-  done: "grid h-6 w-6 flex-none place-items-center rounded-full bg-emerald-400/20 text-emerald-700 dark:text-emerald-300",
-  pending: "grid h-6 w-6 flex-none place-items-center rounded-full bg-blue-400/20 text-blue-700 dark:text-blue-300",
+const ACCENT_STEPS = new Set(["empresa", "documento"]);
+const stepIconTw = (done: boolean, id: string) => {
+  const base = done
+    ? "grid h-6 w-6 flex-none place-items-center rounded-full bg-emerald-400/20 text-emerald-700 dark:text-emerald-300"
+    : "grid h-6 w-6 flex-none place-items-center rounded-full bg-blue-400/20 text-blue-700 dark:text-blue-300";
+  return ACCENT_STEPS.has(id) ? `${base} dark:bg-sky-400/15 dark:text-sky-400` : base;
 };
 
 async function safeFetch<T>(url: string): Promise<T | null> {
@@ -66,7 +69,7 @@ export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: strin
   if (dismissed || (allDone && ready)) return null;
 
   return (
-    <section className="grid w-full content-start gap-3 bg-transparent p-4 text-slate-800 hover:bg-transparent dark:text-slate-100" aria-label="Primeiros passos na Véxora">
+    <section className="grid w-full content-start gap-3 bg-white p-4 text-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-900" aria-label="Primeiros passos na Véxora">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex flex-wrap items-center gap-1.5 text-blue-700 dark:text-blue-300">
           <Sparkles size={16} aria-hidden="true" />
@@ -78,10 +81,10 @@ export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: strin
       <div className="h-1 overflow-hidden rounded-full bg-blue-200 dark:bg-slate-700" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-blue-400 transition-all duration-300 ease-out" style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
       <ol className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {steps.map((step) => (
-          <li key={step.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-transparent px-3 py-2 dark:border-slate-600 dark:bg-slate-700">
-            <span className={stepIconTw[step.done ? "done" : "pending"]} aria-hidden="true">{step.done ? <Check size={14} strokeWidth={3} /> : <ClipboardList size={14} />}</span>
+          <li key={step.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-3.5 text-left text-ink dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50">
+            <span className={stepIconTw(step.done, step.id)} aria-hidden="true">{step.done ? <Check size={14} strokeWidth={3} /> : <ClipboardList size={14} />}</span>
             <span className="grid min-w-0 flex-1"><strong className="truncate text-xs font-bold text-slate-800 dark:text-slate-50">{step.title}</strong><small className="truncate text-xs text-slate-600 dark:text-slate-300">{step.hint}</small></span>
-            <button type="button" className="inline-flex min-h-7 flex-none items-center gap-1 rounded-lg border border-blue-200 bg-slate-100 px-2 text-xs font-bold text-slate-800 transition-colors duration-200 hover:border-blue-400 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-500 dark:bg-slate-600 dark:text-slate-50 dark:hover:bg-slate-500" onClick={() => onNavigate(step.target)} disabled={step.loading}>Configurar <ChevronRight size={14} aria-hidden="true" /></button>
+            <button type="button" className="inline-flex min-h-7 flex-none items-center gap-1 rounded-lg border border-line bg-surface-2 px-2 text-xs font-bold text-ink transition-colors duration-200 hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-sky-400/15 dark:text-sky-400 dark:hover:bg-sky-400/25" onClick={() => onNavigate(step.target)} disabled={step.loading}>Configurar <ChevronRight size={14} aria-hidden="true" /></button>
           </li>
         ))}
       </ol>

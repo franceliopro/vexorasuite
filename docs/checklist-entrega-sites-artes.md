@@ -1,0 +1,54 @@
+# Checklist de entrega — sites e artes
+
+**Status:** aguardando o proprietário. **Não autoriza `apply`, DNS, TLS público, publicação, migração nem qualquer operação externa.**  
+**Data:** 2026-11-22. Complementa `docs/plano-transicao-presenca-criativos.md`.
+
+A Véxora registra o pedido, a aprovação, a publicação e a auditoria. A execução de sites e criativos fica fora da Véxora e depende de acesso e insumos que o proprietário ainda não enviou. Enquanto isso, o provisionador continua em `simulation`; nenhum recurso real foi criado.
+
+## 1. Sites — um bloco por site
+
+Preencher para cada um dos quatro sites (Alto Araguaia Imóveis, Rastreabem, SOS Alto Araguaia, Morbeck x Carvalhinho):
+
+- [ ] **Slug definitivo** usado em pasta, banco e vhost.
+- [ ] **Domínio real** no qual o site deve responder.
+- [ ] **Tipo de destino:** `nextjs` ou `php-mysql`, conforme a avaliação de simplicidade e peso.
+- [ ] **Versão do PHP**, quando aplicável. A GUI oferece `5.2` a `8.6`; `5.x`/`7.x` exigem aviso no `dry-run` e confirmação explícita, nunca são padrão.
+- [ ] **Dump do banco e arquivos baixados da Valuehost** e enviados para o servidor. Somente conteúdo e dados são reaproveitados; nenhum código, plugin, template ou upload executável do WordPress é implantado.
+- [ ] **Mídia e documentos** necessários, com direitos de uso confirmados.
+- [ ] **Redirecionamentos** antigos que precisam ser preservados.
+- [ ] **Formulários e integrações** atuais, incluindo o destino dos e-mails (Zoho Mail fica fora da migração).
+- [ ] **Credenciais antigas** que precisam ser invalidadas ou substituídas.
+
+## 2. Infraestrutura do provisionador
+
+- [ ] Contrato real dos endpoints internos de administração do **MariaDB 11** (criação de banco/usuário, escopo e remoção).
+- [ ] Contrato real dos endpoints internos do **Filebrowser** (criação de usuário, escopo e remoção).
+- [ ] Formato efetivo e política de rotação dos **Docker secrets**, incluindo quem provisiona a senha de cada site.
+- [ ] Chave e escopo do **webhook assinado** (global do provisionador ou por tenant).
+- [ ] Identidade do **aprovador** enviada pela Véxora antes de cada `apply`.
+- [ ] Validação no servidor da disponibilidade das **17 imagens PHP** e da compatibilidade com MariaDB 11.
+- [ ] Confirmação de que o socket do Docker e a rede isolada estão configurados com as mitigações do §11.4 do plano de transição.
+
+## 3. Artes e criativos
+
+A Véxora governa o pedido e a aprovação; a produção acontece em software externo. Para cada peça:
+
+- [ ] **Objetivo** da peça (ex.: divulgação de imóvel, campanha, post, vídeo de boas-vindas).
+- [ ] **Canal e formato** finais (tamanho, proporção, duração, legenda/áudio).
+- [ ] **Identidade visual** aplicável: cores, logo, tipografia e tom de voz do cliente.
+- [ ] **Texto e matéria-prima** aprovados (fotos, vídeos, dados do imóvel ou da campanha).
+- [ ] **Prazo e aprovador** nomeado.
+- [ ] **Destino da publicação** (site, rede social ou outro canal) e quem executa a publicação.
+
+Nenhuma peça é considerada criada, aprovada, publicada ou entregue apenas porque existe configuração ou rascunho no sistema.
+
+## 4. Sequência segura
+
+1. O proprietário envia os itens acima e autoriza explicitamente o primeiro `dry-run`.
+2. O provisionador gera o plano em `dry-run`; nada é criado.
+3. A Véxora registra a aprovação humana com a identidade do aprovador.
+4. Somente então o `apply` é habilitado para o job específico, com `requestId` de idempotência.
+5. `status` consulta o estado real; `published: true` e `tls: configured` aparecem apenas após health-check 2xx no domínio final.
+6. rollback permanece disponível e o ambiente anterior é preservado até a validação.
+
+Nenhuma alteração de DNS é feita pelo provisionador: o proprietário controla o DNS na Valuehost e executa a troca.

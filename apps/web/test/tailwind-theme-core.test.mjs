@@ -51,7 +51,7 @@ test("os três temas continuam sendo a fonte dos tokens", () => {
   assert.match(layout, /localStorage\.getItem\("vexora:theme"\)/);
 });
 
-test("a marca padrão é blue-700 e o escuro usa slate", () => {
+test("a marca padrão é indigo-600 e o escuro usa slate", () => {
   for (const file of [
     "src/app/vexora.css",
     "src/app/page.tsx",
@@ -60,7 +60,7 @@ test("a marca padrão é blue-700 e o escuro usa slate", () => {
     "../api/src/ai/public-design-approvals.controller.ts",
   ]) {
     const source = read(file);
-    assert.match(source, /#1D4ED8/, `${file} deve usar blue-700 como padrão`);
+    assert.match(source, /#4F46E5/, `${file} deve usar indigo-600 como padrão`);
     assert.doesNotMatch(source, /#2E7CF6/i, `${file} ainda usa a cor antiga`);
   }
 
@@ -73,7 +73,7 @@ test("a marca padrão é blue-700 e o escuro usa slate", () => {
   ]) {
     assert.ok(dark.includes(token), `o tema escuro deve mapear ${token} (slate)`);
   }
-  assert.match(legacy, /--primary:#1D4ED8/);
+  assert.match(legacy, /--primary:#4F46E5/);
   assert.match(legacy, /--sb-active:var\(--primary\)/);
 });
 
@@ -232,7 +232,7 @@ test("o contrato híbrido permanece: menu escuro, restante claro", () => {
     assert.ok(legacy.includes(token), `os temas devem definir ${token}`);
   }
   const hybrid = legacy.match(/:root\[data-theme=hybrid\]\{[^}]*\}/)?.[0] ?? "";
-  assert.match(hybrid, /--sb-bg:#020617/);
+  assert.match(hybrid, /--sb-bg:#1D4ED8/);
   assert.match(hybrid, /--sb-tx:#F8FAFC/);
   assert.match(hybrid, /--sb-active:var\(--primary\)/);
   assert.doesNotMatch(hybrid, /--bg:/);

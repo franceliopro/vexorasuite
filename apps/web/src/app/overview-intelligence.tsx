@@ -248,8 +248,8 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
   const outOfSlaNote = outOfSla || staleWaiting;
 
   return (
-    <section className="grid grid-cols-2 gap-5 bg-transparent hover:bg-transparent ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
-      <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-100 p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 ov-laptop:col-span-1" data-testid="ov-hero">
+    <section className="grid grid-cols-2 gap-5 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
+      <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-200 p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 ov-laptop:col-span-1" data-testid="ov-hero">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
           <div className="grid min-w-0 content-start gap-4">
             <h2 className="max-w-md text-2xl font-semibold text-slate-950 sm:text-xl">{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
@@ -321,7 +321,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         </article>
       </div>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-100 p-5 dark:border-slate-800 dark:bg-slate-900">
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
         <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">Equipe agora</h2><p className="mt-0.5 text-xs text-slate-600">Quem está atendendo neste momento</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600"><Users size={13} aria-hidden="true" />{team.length}</span></header>
         {team.length ? (
           <ul className="grid gap-3">
@@ -341,7 +341,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         <p className="border-t border-gray-200 pt-2.5 text-xs text-slate-600">Véxora Intelligence Engine · IA · {kpis ? `${kpis.resolvedByAi} ${kpis.resolvedByAi === 1 ? "conversa resolvida" : "conversas resolvidas"} pela IA` : "sem dados ainda"}</p>
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-100 p-5 dark:border-slate-800 dark:bg-slate-900">
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-base font-semibold text-slate-950">Atividade recente</h2><p className="mt-0.5 text-xs text-slate-600">Movimentações da sua operação</p></div>
           <button type="button" className="inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
@@ -359,7 +359,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         ) : <p className="py-6 text-center text-xs text-slate-600">Os atendimentos desta empresa aparecerão aqui.</p>}
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-100 p-5 dark:border-slate-800 dark:bg-slate-900">
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-base font-semibold text-slate-950">Atendimentos por hora</h2><p className="mt-0.5 text-xs text-slate-600">Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
@@ -367,7 +367,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         {hourly ? <HourlyChart hourly={hourly} /> : <p className="py-6 text-center text-xs text-slate-600">Aguardando os primeiros atendimentos.</p>}
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-100 p-5 dark:border-slate-800 dark:bg-slate-900">
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
         <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">Do que as pessoas falam</h2><p className="mt-0.5 text-xs text-slate-600">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600">Top {topics.length || 0}</span></header>
         {topics.length ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

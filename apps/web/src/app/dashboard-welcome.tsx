@@ -49,14 +49,14 @@ export function DashboardWelcome({ onNavigate }: { onNavigate: (target: string) 
   };
 
   return (
-    <section className="grid w-full gap-3 bg-transparent p-4 text-slate-800 hover:bg-transparent dark:text-slate-100" aria-label="Comece por aqui">
+    <section className="grid w-full gap-3 bg-white p-4 text-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-900" aria-label="Comece por aqui">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex flex-wrap items-center gap-1.5 text-blue-700 dark:text-blue-300">
           <Video size={16} aria-hidden="true" />
           <h2 className="text-sm font-bold text-slate-900 dark:text-slate-50">Conheça a Véxora em pouco tempo</h2>
           <span className="text-xs text-slate-600 dark:text-slate-300">Um espaço reservado para o vídeo da sua empresa</span>
         </div>
-        <button type="button" className="inline-flex min-h-7 items-center gap-1 rounded-lg border border-blue-200 bg-white/80 px-2 text-xs font-bold text-blue-700 transition-colors duration-200 hover:border-blue-400 dark:border-slate-600 dark:bg-slate-800 dark:text-blue-300" onClick={() => { setDraft(video); setInvalid(false); setEditing(value => !value); }} aria-label="Alterar vídeo de boas-vindas">Alterar vídeo</button>
+        <button type="button" className="inline-flex min-h-7 items-center gap-1 rounded-lg border border-line bg-surface px-2 text-xs font-bold text-blue-700 transition-colors duration-200 hover:border-line-strong dark:border-slate-600 dark:bg-slate-800 dark:text-sky-300 dark:hover:bg-slate-700 dark:hover:text-sky-200" onClick={() => { setDraft(video); setInvalid(false); setEditing(value => !value); }} aria-label="Alterar vídeo de boas-vindas">Alterar vídeo</button>
       </div>
       {editing ? (
         <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); saveVideo(); }}>
@@ -81,7 +81,7 @@ export function DashboardWelcome({ onNavigate }: { onNavigate: (target: string) 
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200">Atalhos úteis</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {shortcuts.map(({ id, label, hint, target, Icon }) => (
-            <button key={id} type="button" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-blue-100 bg-transparent px-3 text-left transition-colors duration-200 hover:border-blue-300 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600" onClick={() => onNavigate(target)}>
+            <button key={id} type="button" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-surface p-3.5 text-left text-ink transition-colors duration-200 hover:border-line-strong hover:bg-hover dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700" onClick={() => onNavigate(target)}>
               <span className={shortcutTw[id]} aria-hidden="true"><Icon size={16} /></span>
               <span className="grid min-w-0"><strong className="truncate text-xs font-bold text-slate-800 dark:text-slate-50">{label}</strong><small className="truncate text-xs text-slate-600 dark:text-slate-300">{hint}</small></span>
             </button>

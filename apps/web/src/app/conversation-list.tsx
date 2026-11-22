@@ -67,7 +67,7 @@ export interface ConversationListProps {
   onSelect: (conversation: Conversation) => void;
 }
 
-const conversationRowTw = "relative flex w-full flex-wrap content-start items-start gap-x-2 gap-y-1 border-b border-l-2 border-slate-200 bg-white px-3.5 py-2.5 text-left transition-colors duration-200 ease-in-out hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800";
+const conversationRowTw = "relative flex w-full flex-wrap content-start items-start gap-x-2 gap-y-1 border-b border-l-2 border-gray-200 bg-white px-3.5 py-2.5 text-left transition-colors duration-200 ease-in-out hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800";
 const conversationRowSelectedTw = "border-l-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-100 dark:bg-slate-800 dark:ring-slate-700";
 const conversationRowIdleTw = "border-l-transparent";
 

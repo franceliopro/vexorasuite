@@ -123,22 +123,22 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
     >
       <aside
         className="relative isolate flex flex-col justify-between gap-9 overflow-hidden p-8 text-slate-50 ib-shell:hidden lg:p-12 xl:p-16"
-        style={{ background: "linear-gradient(155deg, rgb(8 19 16) 0%, rgb(12 35 26) 44%, rgb(15 58 42) 100%)" }}
+        style={{ background: "linear-gradient(155deg, rgb(8 19 36) 0%, rgb(12 35 62) 44%, rgb(15 58 95) 100%)" }}
       >
         <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ backgroundImage: "linear-gradient(rgba(156,208,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(156,208,255,.05) 1px,transparent 1px)", backgroundSize: "34px 34px", maskImage: "radial-gradient(70% 60% at 50% 30%, black, transparent 78%)", WebkitMaskImage: "radial-gradient(70% 60% at 50% 30%, black, transparent 78%)" }} />
         <span aria-hidden="true" className="pointer-events-none absolute -z-10 aspect-square rounded-full opacity-60" style={{ right: "-18%", top: "-18%", width: "74%", background: "radial-gradient(circle, rgb(from var(--primary) r g b / .58), transparent 68%)" }} />
-        <div className="relative flex items-center gap-3"><span className={brandMarkTw}>V</span><span className="font-display text-brand-title font-extrabold">véxora<small className="mt-1 block text-brand-badge font-extrabold tracking-brand-badge" style={{ color: "rgb(159 199 184)" }}>SUITE</small></span></div>
+        <div className="relative flex items-center gap-3"><span className={brandMarkTw}>V</span><span className="font-display text-brand-title font-extrabold">véxora<small className="mt-1 block text-brand-badge font-extrabold tracking-brand-badge" style={{ color: "rgb(159 199 255)" }}>SUITE</small></span></div>
         <div className="relative grid max-w-catalog-search gap-4">
           <p className="text-nav-section font-extrabold uppercase tracking-fin-eyebrow" style={{ color: "rgb(156 208 255)" }}>INTELIGÊNCIA OPERACIONAL</p>
-          <h2 className="font-display text-h1 font-extrabold" style={{ color: "rgb(242 250 246)", lineHeight: 1.1 }}>Uma operação inteira, em um só lugar.</h2>
-          <p className="text-sm leading-relaxed" style={{ color: "rgb(185 210 199)" }}>Atendimento, CRM, automação e resultados conectados com a identidade da sua empresa — sem ruído e sem retrabalho.</p>
+          <h2 className="font-display text-h1 font-extrabold" style={{ color: "rgb(242 250 255)", lineHeight: 1.1 }}>Uma operação inteira, em um só lugar.</h2>
+          <p className="text-sm leading-relaxed" style={{ color: "rgb(185 210 235)" }}>Atendimento, CRM, automação e resultados conectados com a identidade da sua empresa — sem ruído e sem retrabalho.</p>
         </div>
-        <ul className="relative grid list-none gap-3 p-0 text-sm" style={{ color: "rgb(211 231 222)" }}>
+        <ul className="relative grid list-none gap-3 p-0 text-sm" style={{ color: "rgb(211 231 250)" }}>
           <li className="flex items-center gap-2.5"><span aria-hidden="true" className="size-2 flex-none rounded-full" style={{ background: "rgb(125 211 252)", boxShadow: "0 0 0 4px rgba(125,211,252,.14)" }} />Atendimento humano no centro da operação</li>
           <li className="flex items-center gap-2.5"><span aria-hidden="true" className="size-2 flex-none rounded-full" style={{ background: "rgb(125 211 252)", boxShadow: "0 0 0 4px rgba(125,211,252,.14)" }} />Automação determinística antes da IA</li>
           <li className="flex items-center gap-2.5"><span aria-hidden="true" className="size-2 flex-none rounded-full" style={{ background: "rgb(125 211 252)", boxShadow: "0 0 0 4px rgba(125,211,252,.14)" }} />Dados e credenciais isolados por empresa</li>
         </ul>
-        <p className="relative text-2xs uppercase tracking-fin-label" style={{ color: "rgb(127 162 148)" }}>Ambiente seguro · multiempresa</p>
+        <p className="relative text-2xs uppercase tracking-fin-label" style={{ color: "rgb(127 162 205)" }}>Ambiente seguro · multiempresa</p>
       </aside>
       <section className="mx-auto grid w-full max-w-catalog-search content-center gap-4 p-7 sm:p-10 lg:p-16">
         <div className="flex items-center gap-2.5"><span className={brandMarkTw}>V</span><span><strong className="font-display text-brand-title font-extrabold">véxora</strong><small className="mt-1 block text-brand-badge font-extrabold tracking-brand-badge text-ink-secondary">SUITE</small></span></div>

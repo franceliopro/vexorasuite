@@ -1,17 +1,19 @@
 const assert=require('node:assert/strict');
-const {PrismaClient}=require('@prisma/client');
+const {PrismaClient}=require('../dist/generated/prisma/client');
+const { createPrismaAdapter } = require('../dist/prisma/adapter');
 const {randomUUID}=require('node:crypto');
-const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
+const fs=require('node:fs/promises'),path=require('node:path');
 const {spawnSync}=require('node:child_process');
 async function main(){
  const base=new URL(process.env.DATABASE_URL||'');
  assert(process.env.CI==='true'&&['localhost','127.0.0.1'].includes(base.hostname),'Isolated CI database only');
  const schema='retirement_'+randomUUID().replaceAll('-','');
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'vexora-upgrade-'));
+ const root=await fs.mkdtemp(path.join(process.cwd(),'.prisma-upgrade-'));
  const url=new URL(base);url.searchParams.set('schema',schema);
- const admin=new PrismaClient(),db=new PrismaClient({datasourceUrl:url.toString()});
+ const configPath=path.join(root,'prisma.config.ts');
+ const admin=new PrismaClient({ adapter: createPrismaAdapter() }),db=new PrismaClient({ adapter: createPrismaAdapter(url.toString()) });
  const migration='20261028030000_retire_marketing_campaigns';
- const deploy=()=>{const result=spawnSync(process.execPath,[require.resolve('prisma/build/index.js'),'migrate','deploy','--schema',path.join(root,'schema.prisma')],{env:{...process.env,DATABASE_URL:url.toString()},encoding:'utf8'});assert.equal(result.status,0,result.stderr||'Migration failed');};
+ const deploy=()=>{const result=spawnSync(process.execPath,[require.resolve('prisma/build/index.js'),'migrate','deploy','--config',configPath],{env:{...process.env,DATABASE_URL:url.toString()},encoding:'utf8'});assert.equal(result.status,0,result.stderr||'Migration failed');};
  try{
   await fs.copyFile('prisma/schema.prisma',path.join(root,'schema.prisma'));
   await fs.mkdir(path.join(root,'migrations'));
@@ -19,6 +21,11 @@ async function main(){
    if(entry.name===migration)continue;
    await fs.cp(path.join('prisma/migrations',entry.name),path.join(root,'migrations',entry.name),{recursive:true});
   }
+  await fs.writeFile(configPath,[
+   'import { defineConfig } from "prisma/config";',
+   `export default defineConfig({ schema: ${JSON.stringify(path.join(root,'schema.prisma'))}, migrations: { path: ${JSON.stringify(path.join(root,'migrations'))} }, datasource: { url: process.env.DATABASE_URL ?? "" } });`,
+   '',
+  ].join('\n'));
   deploy();
   const tenant=await db.tenant.create({data:{name:'Keep company',slug:'cleanup-'+randomUUID(),integrations:{brandSettings:{primaryColor:'#123456'},marketing:{autoPublish:true,folderId:'keep-folder'}}}});
   const user=await db.user.create({data:{name:'Keep user',email:randomUUID()+'@example.test',passwordHash:'fixture'}});

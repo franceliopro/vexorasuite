@@ -2,7 +2,7 @@ import { AuditCovered } from "../common/audit/audit.decorator";
 import { usageView, providerLimit } from "./provider-usage";
 import { probeConnections, type ConnectionProbe } from "./provider-status";
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Put, Req, UseGuards } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';

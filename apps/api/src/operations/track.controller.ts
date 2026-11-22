@@ -2,7 +2,7 @@ import {
   BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Headers,
   HttpCode, Injectable, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UnauthorizedException, UseGuards,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { isUUID } from "class-validator";
 import { AuthGuard } from "../auth/auth.guard";

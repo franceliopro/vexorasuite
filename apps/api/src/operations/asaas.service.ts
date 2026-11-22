@@ -1,7 +1,7 @@
 import { documentDigits } from "../common/documents";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual, randomUUID } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 

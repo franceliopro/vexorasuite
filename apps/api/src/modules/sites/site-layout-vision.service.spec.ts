@@ -1,22 +1,24 @@
-import { visionProviders } from "../../ai/vision-providers";
-import { SiteLayoutVisionService } from "./site-layout-vision.service";
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 import type { LayoutImageInput } from "./layout-image";
 
-jest.mock("../../ai/creative-agent", () => ({
+const visionProviders = jest.fn(async (providers: unknown) => providers);
+jest.unstable_mockModule("../../ai/creative-agent", () => ({
   resolveCreativeAgent: jest.fn(() => ({
     providers: [{ provider: "openai", model: "gpt-5", apiKey: "test-key" }],
     persona: "Você é a designer da empresa.",
   })),
 }));
 
-jest.mock("../../ai/ai-budget", () => ({
+jest.unstable_mockModule("../../ai/ai-budget", () => ({
   dailyAiLimit: jest.fn(() => 100),
   reserveAiExecution: jest.fn().mockResolvedValue({}),
 }));
 
-jest.mock("../../ai/vision-providers", () => ({
-  visionProviders: jest.fn(async (providers: unknown) => providers),
-}));
+jest.unstable_mockModule("../../ai/vision-providers", () => ({ visionProviders }));
+
+let SiteLayoutVisionService: typeof import("./site-layout-vision.service").SiteLayoutVisionService;
+beforeAll(async () => { ({ SiteLayoutVisionService } = await import("./site-layout-vision.service")); });
 
 const image: LayoutImageInput = {
   dataUrl: "data:image/jpeg;base64,/9j/AAAA",

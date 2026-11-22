@@ -12,7 +12,7 @@ import { Body, Controller, ForbiddenException, Get, Put, Post, Req, UseGuards, B
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 import { normalizeAssistantPhone } from "../operations/assistant-phone-access";
 import { AiService } from "./ai.service";
@@ -343,7 +343,8 @@ export class AssistantController {
       content = file.buffer.toString("utf8");
     } else {
       try {
-        const parser = require("officeparser") as { parseOffice: (input: Buffer, options?: Record<string, unknown>) => Promise<{ to: (format: string) => Promise<{ value?: string }> }> };
+        const parserModule = await import("officeparser");
+        const parser = ((parserModule as any).default ?? parserModule) as { parseOffice: (input: Buffer, options?: Record<string, unknown>) => Promise<{ to: (format: string) => Promise<{ value?: string }> }> };
         const document = await parser.parseOffice(file.buffer, { fileType: extension, pdfParserConfig: { maxTimeMs: 10000, maxTextItems: 20000 } });
         content = (await document.to("text")).value || "";
       } catch {

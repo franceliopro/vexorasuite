@@ -1,12 +1,13 @@
 const assert=require("node:assert/strict");
 const {randomUUID}=require("node:crypto");
 const {compare}=require("bcryptjs");
-const {PrismaClient}=require("@prisma/client");
+const {PrismaClient}=require("../dist/generated/prisma/client");
+const { createPrismaAdapter } = require('../dist/prisma/adapter');
 const {TeamController}=require("../dist/operations/team.controller");
 async function main(){
  const url=new URL(process.env.DATABASE_URL||"");
  assert(process.env.CI==="true"&&["localhost","127.0.0.1"].includes(url.hostname),"Use isolated CI database only");
- const prisma=new PrismaClient();
+ const prisma=new PrismaClient({ adapter: createPrismaAdapter() });
  const tenant=await prisma.tenant.create({data:{name:"Team CI",slug:"team-"+randomUUID(),entitlements:{modules:["CRM"]}}});
  const admin=await prisma.user.create({data:{name:"Admin",email:randomUUID()+"@example.test",passwordHash:"ci-only"}});
  let user;

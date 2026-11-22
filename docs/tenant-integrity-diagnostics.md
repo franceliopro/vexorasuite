@@ -164,8 +164,10 @@ ORDER BY em.tenant_id, em.id;
 Prisma Client não expressa de forma portátil comparações entre duas colunas relacionadas. Use queryRaw com SQL estático e tipos explícitos para divergências:
 
 ~~~ts
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { PrismaClient } from "../apps/api/src/generated/prisma/client";
+import { createPrismaAdapter } from "../apps/api/src/prisma/adapter";
+
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 const conversationTenantMismatches = await prisma.$queryRaw<Array<{
   conversation_id: string;

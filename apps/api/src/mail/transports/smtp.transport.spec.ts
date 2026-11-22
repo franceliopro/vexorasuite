@@ -1,7 +1,13 @@
-jest.mock("nodemailer", () => ({ createTransport: jest.fn() }));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 
-import { createTransport } from "nodemailer";
-import { SmtpMailTransport } from "./smtp.transport";
+const createTransport = jest.fn();
+jest.unstable_mockModule("nodemailer", () => ({
+  createTransport,
+  default: { createTransport },
+}));
+
+let SmtpMailTransport: typeof import("./smtp.transport").SmtpMailTransport;
 
 const createTransportMock = createTransport as unknown as jest.Mock;
 
@@ -15,6 +21,10 @@ const build = () =>
     from: "nao-responda@vexorasuite.com.br",
     fromName: "Véxora Suite",
   });
+
+beforeAll(async () => {
+  ({ SmtpMailTransport } = await import("./smtp.transport"));
+});
 
 describe("SmtpMailTransport", () => {
   const sendMail = jest.fn();

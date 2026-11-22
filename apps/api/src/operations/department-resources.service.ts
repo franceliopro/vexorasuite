@@ -1,5 +1,5 @@
 import {BadGatewayException,BadRequestException,ConflictException,ForbiddenException,Injectable} from '@nestjs/common';
-import {Prisma} from '@prisma/client';
+import {Prisma} from '../generated/prisma/client';
 import {randomUUID} from 'node:crypto';
 import {isUUID} from 'class-validator';
 import {PrismaService} from '../prisma/prisma.service';

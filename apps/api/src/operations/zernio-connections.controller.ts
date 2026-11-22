@@ -1,7 +1,7 @@
 import { AuditCovered } from "../common/audit/audit.decorator";
 import { randomBytes } from "node:crypto";
 import { BadRequestException, Body, Controller, Delete, Get, Put, Req, UseGuards, ForbiddenException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';

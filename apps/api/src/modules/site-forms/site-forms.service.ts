@@ -12,7 +12,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../generated/prisma/client";
 import { createHash } from "node:crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 

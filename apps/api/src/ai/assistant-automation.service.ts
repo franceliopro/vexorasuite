@@ -3,7 +3,7 @@ import { CreativeReferencesService } from "./creative-references.service";
 import { BadGatewayException, BadRequestException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { ZernioService } from '../operations/zernio.service';

@@ -90,6 +90,6 @@ async function bootstrap() {
   await app.listen(port, "0.0.0.0");
 }
 
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   void bootstrap();
 }

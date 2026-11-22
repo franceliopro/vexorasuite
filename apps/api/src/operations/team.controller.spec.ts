@@ -1,3 +1,5 @@
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 import { ForbiddenException } from "@nestjs/common";
 jest.mock("bcryptjs", () => ({ hash: jest.fn().mockResolvedValue("hashed-password") }));
 import { TeamController } from "./team.controller";

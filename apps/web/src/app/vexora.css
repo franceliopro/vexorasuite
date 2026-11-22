@@ -38,7 +38,7 @@
   --vx-core-brand-mark:linear-gradient(150deg,color-mix(in srgb,var(--primary) 68%,white),var(--primary) 62%,color-mix(in srgb,var(--primary) 78%,black));
   --vx-core-nav-active:linear-gradient(140deg,color-mix(in srgb,var(--sb-surface,var(--sb-bg)) 84%,white),var(--sb-surface,var(--sb-bg)) 42%,color-mix(in srgb,var(--sb-surface,var(--sb-bg)) 88%,black));
   --vx-core-control-bg:linear-gradient(180deg,var(--s1),color-mix(in srgb,var(--s1) 95%,var(--bg)));
-  --vx-core-topbar-bg:color-mix(in srgb,var(--bg) 78%,transparent);
+  --vx-core-topbar-bg:var(--bg-surface);
   --vx-core-line-soft:color-mix(in srgb,var(--ln) 80%,transparent);
   --vx-core-line-footer:color-mix(in srgb,var(--ln) 70%,transparent);
   --vx-core-line-hover:color-mix(in srgb,var(--ln2) 70%,var(--primary));
@@ -3207,8 +3207,8 @@ a:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--p
 /* ===== Celular — app nativo ===== */
 @media (max-width:760px){
   :root{--top:48px;--dock:calc(60px + env(safe-area-inset-bottom))}
-  /* Topbar mais compacta e com translucidez nativa */
-  .topbar{height:var(--top);padding:0 8px;gap:4px;background:color-mix(in srgb,var(--bg) 84%,transparent)}
+  /* Topbar compacta, opaca na superfície do tema */
+  .topbar{height:var(--top);padding:0 8px;gap:4px;background:var(--bg-surface)}
   .topbar .search-box,.topbar .breadcrumbs,.topbar .logout-button span,.topbar .ai-assistant-trigger span{display:none!important}
   .topbar .mobile-menu,.topbar .logout-button,.topbar .ai-assistant-trigger,.topbar .icon-button{min-height:34px;min-width:34px;padding:0 8px;border-radius:10px}
   .topbar .icon-button{padding:0}
@@ -3569,7 +3569,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;bo
 /* ===== 94. Mobile premium — app nativo, alinhamentos clean ===== */
 @media (max-width:760px){
   .suite-app{grid-template-columns:1fr!important}
-  .topbar{height:42px!important;padding:0 8px!important;gap:4px!important;background:color-mix(in srgb,var(--bg) 92%,transparent)!important;backdrop-filter:blur(16px) saturate(1.15)!important;-webkit-backdrop-filter:blur(16px) saturate(1.15)!important;border-bottom:none!important}
+  .topbar{height:42px!important;padding:0 8px!important;gap:4px!important;background:var(--bg-surface)!important;border-bottom:none!important}
   .topbar .breadcrumbs,.topbar .hero-title,.topbar .ai-assistant-trigger strong,.topbar .logout-button span{display:none!important}
   .topbar .search-box{min-height:34px!important;width:44px!important;min-width:44px!important;padding:0!important;justify-content:center!important;border-radius:11px!important;border:1px solid var(--ln)!important}
   .topbar .search-box kbd{display:none!important}

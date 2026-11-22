@@ -210,8 +210,8 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
     [welcome, 'aria-label="Comece por aqui"'],
   ]) {
     assert.ok(source.includes(label), `a seção ${label} perdeu o rótulo`);
-    assert.ok(source.includes("bg-white"), `a seção ${label} não é branca no claro/híbrido`);
-    assert.ok(source.includes("dark:bg-slate-900"), `a seção ${label} não usa slate-900 no dark`);
+    assert.ok(source.includes("rounded-xl border border-gray-200 bg-white p-5"), `a seção ${label} não tem borda/padding de card no claro`);
+    assert.ok(source.includes("dark:border-slate-800 dark:bg-slate-900"), `a seção ${label} não tem borda de card no dark`);
   }
 
   // As grades de widgets e de inteligência são transparentes: quem pinta fundo
@@ -234,6 +234,19 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   assert.ok(onboarding.includes('dark:border-slate-600 dark:bg-sky-400/15 dark:text-sky-400'));
   assert.ok(welcome.includes('dark:border-slate-600 dark:bg-slate-800 dark:text-sky-300'));
   assert.doesNotMatch(onboarding, /dark:bg-slate-800 dark:text-blue-300/);
+});
+
+test("linhas divisórias fecham cabeçalhos, gráficos e calendário da Visão geral", () => {
+  assert.ok(overview.includes("border-b border-gray-200"), "Inteligência perdeu a linha do cabeçalho no claro");
+  assert.ok(overview.includes("dark:border-slate-800"), "Inteligência perdeu a linha no dark");
+  assert.ok(widgets.includes("border-b border-purple-200"), "widgets perdeu a linha do cabeçalho no claro");
+  assert.ok(widgets.includes("dark:border-slate-700"), "widgets perdeu a linha no dark");
+  assert.ok(overview.includes("grid min-w-0 gap-3 border-b border-gray-200 pb-3 dark:border-slate-800"));
+  assert.ok(overview.includes("grid min-w-0 content-start gap-1.5 border-b border-gray-200 pb-3 dark:border-slate-800"));
+  assert.ok(overview.includes("border-b border-gray-200 pb-2.5 last:border-b-0 dark:border-slate-800"));
+  assert.ok(widgets.includes("border-b border-purple-200 pb-1"));
+  assert.ok(widgets.includes("border-b border-purple-100"));
+  assert.ok(widgets.includes("border-t border-purple-200 pt-2.5"));
 });
 
 test("nenhuma classe da Visão geral termina em -card nem herda .content-card", () => {

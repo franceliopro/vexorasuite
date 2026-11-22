@@ -49,7 +49,7 @@ export function DashboardWelcome({ onNavigate }: { onNavigate: (target: string) 
   };
 
   return (
-    <section className="grid w-full gap-3 rounded-xl bg-white p-4 text-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-900" aria-label="Comece por aqui">
+    <section className="grid w-full gap-3 rounded-xl border border-gray-200 bg-white p-5 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-900" aria-label="Comece por aqui">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex flex-wrap items-center gap-1.5 text-blue-700 dark:text-blue-300">
           <Video size={16} aria-hidden="true" />

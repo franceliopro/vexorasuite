@@ -12,6 +12,7 @@ const DocumentsWorkspace=dynamic(()=>import("./documents-workspace").then(module
 const CourseWorkspace=dynamic(()=>import("./course-workspace").then(module=>module.CourseWorkspace),{loading:()=> <p role="status">Carregando curso.</p>});
 const WorkflowsWorkspace=dynamic(()=>import("./workflows-workspace").then(m=>m.WorkflowsWorkspace));
 import { applyBrandAll, sanitizeHex, wcagRatio, HYBRID_SIDEBAR_DEFAULTS } from "../lib/brand-theme";
+import { TailwindColorPicker, TailwindPalettePreview } from "./tailwind-color-picker";
 import { applyThemeColor } from "../lib/theme-color";
 const CreativeLibraryWorkspace=dynamic(()=>import("./creative-library-workspace").then(module=>module.CreativeLibraryWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ClientPlansWorkspace=dynamic(()=>import("./client-plans-workspace").then(module=>module.ClientPlansWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -496,15 +497,20 @@ export default function HomePage() {
           ] as const).map(item => {
             const value = sidebarDraft[item.key];
             return (
-              <label key={item.key} className={settingsFieldTw}>
+              <div key={item.key} className={settingsFieldTw}>
                 <span>{item.label}<small className={settingsHintTw}>{item.hint}</small></span>
-                <span className={colorPickerTw}>
-                  <input type="color" className={colorInputTw} value={value || "#000000"} aria-label={"Escolher " + item.label.toLowerCase()} onChange={event => setSidebarField(item.key, event.target.value)} />
-                  <input className={colorHexTw} aria-label={item.label + " (HEX)"} value={value} maxLength={7} placeholder="#HEXADECIMAL" onChange={event => setSidebarField(item.key, event.target.value)} />
-                </span>
-              </label>
+                <TailwindColorPicker
+                  value={value}
+                  label={item.label}
+                  ariaLabel={item.label + " (HEX)"}
+                  swatchAriaLabel={"Escolher " + item.label.toLowerCase()}
+                  fallback={item.key === "sidebarBackground" ? { family: "slate", weight: 950 } : item.key === "sidebarForeground" ? { family: "slate", weight: 50 } : { family: "slate", weight: 900 }}
+                  onChange={hex => setSidebarField(item.key, hex)}
+                />
+              </div>
             );
           })}
+          <TailwindPalettePreview colors={{primary:brandAssets.primaryColor,sidebarBackground:sidebarDraft.sidebarBackground,sidebarForeground:sidebarDraft.sidebarForeground,sidebarHover:sidebarDraft.sidebarHover}} />
           {(() => {
             const ratio = wcagRatio(sanitizeHex(sidebarDraft.sidebarBackground) || HYBRID_SIDEBAR_DEFAULTS.background, sanitizeHex(sidebarDraft.sidebarForeground) || HYBRID_SIDEBAR_DEFAULTS.foreground);
             const ok = ratio >= 4.5;

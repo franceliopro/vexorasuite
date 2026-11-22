@@ -112,7 +112,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(theme, /@custom-variant ov-laptop \(@media \(max-width: 900px\)\);/);
 
   // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
-  assert.match(overview, /<section className="grid grid-cols-2 gap-5 ov-laptop:grid-cols-1"/);
+  assert.match(overview, /<section className="grid grid-cols-2 gap-5 bg-transparent hover:bg-transparent ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
   assert.match(overview, /col-span-2 grid gap-5[^>]*data-testid="ov-hero"/);
   // O CTA do alerta não estica com a coluna: largura só do conteúdo.
@@ -125,7 +125,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
 
   // Widgets em colunas proporcionais (3/4/5) e uma coluna no mobile; onboarding em 2 passos.
-  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 max-md:grid-cols-1"/);
+  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 bg-transparent hover:bg-transparent max-md:grid-cols-1"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
   // Nenhuma das grades antigas que causavam 4+2 ou colunas estreitas.
@@ -169,6 +169,33 @@ test("o bloco de boas-vindas traz vídeo opcional e atalhos úteis", () => {
   }
   assert.doesNotMatch(welcome, /\[[a-z-]+:\s*[^]\s]+\]/);
   assert.doesNotMatch(welcome, /className=\{`/);
+});
+
+test("as seções da Visão geral são planas e os blocos de boas-vindas ficam lado a lado", () => {
+  assert.ok(page.includes('const pageHeadingTw="flex flex-wrap items-start justify-between gap-4 bg-transparent hover:bg-transparent"'));
+  assert.ok(page.includes('<div className="grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2">'));
+  assert.ok(page.includes('<div className="bg-transparent"><h1>{greeting+'));
+
+  for (const [source, label] of [
+    [onboarding, 'aria-label="Primeiros passos na Véxora"'],
+    [welcome, 'aria-label="Comece por aqui"'],
+    [widgets, 'aria-label="Seu dia agora"'],
+    [overview, 'aria-label="Inteligência da operação"'],
+  ]) {
+    assert.ok(source.includes(label), `a seção ${label} perdeu o rótulo`);
+    assert.ok(source.includes("bg-transparent"), `a seção ${label} ainda pinta fundo`);
+    assert.ok(source.includes("hover:bg-transparent"), `a seção ${label} ainda pinta fundo no hover`);
+  }
+
+  assert.ok(onboarding.includes('dark:border-slate-600 dark:bg-slate-700'));
+  assert.ok(onboarding.includes('dark:border-slate-500 dark:bg-slate-600 dark:text-slate-50'));
+  assert.ok(welcome.includes('dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600'));
+  assert.doesNotMatch(onboarding, /bg-linear-to-br from-blue-50 to-indigo-100/);
+  assert.doesNotMatch(welcome, /bg-linear-to-br from-blue-50 via-white to-purple-50/);
+  assert.ok(welcome.includes('border border-blue-100 bg-transparent px-3'));
+  // Contraste dos botões "Configurar": fundo claro e texto na cor do menu no dark.
+  assert.ok(onboarding.includes('dark:border-slate-500 dark:bg-slate-600 dark:text-slate-50 dark:hover:bg-slate-500'));
+  assert.doesNotMatch(onboarding, /dark:bg-slate-800 dark:text-blue-300/);
 });
 
 test("nenhuma classe da Visão geral termina em -card nem herda .content-card", () => {

@@ -49,7 +49,7 @@ export function DashboardWelcome({ onNavigate }: { onNavigate: (target: string) 
   };
 
   return (
-    <section className="grid w-full max-w-5xl gap-3 rounded-2xl border border-blue-200 bg-linear-to-br from-blue-50 via-white to-purple-50 p-4 text-slate-800 dark:border-slate-700 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100" aria-label="Comece por aqui">
+    <section className="grid w-full gap-3 bg-transparent p-4 text-slate-800 hover:bg-transparent dark:text-slate-100" aria-label="Comece por aqui">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex flex-wrap items-center gap-1.5 text-blue-700 dark:text-blue-300">
           <Video size={16} aria-hidden="true" />
@@ -81,7 +81,7 @@ export function DashboardWelcome({ onNavigate }: { onNavigate: (target: string) 
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200">Atalhos úteis</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {shortcuts.map(({ id, label, hint, target, Icon }) => (
-            <button key={id} type="button" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-blue-100 bg-white/80 px-3 text-left transition-colors duration-200 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900" onClick={() => onNavigate(target)}>
+            <button key={id} type="button" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-blue-100 bg-transparent px-3 text-left transition-colors duration-200 hover:border-blue-300 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600" onClick={() => onNavigate(target)}>
               <span className={shortcutTw[id]} aria-hidden="true"><Icon size={16} /></span>
               <span className="grid min-w-0"><strong className="truncate text-xs font-bold text-slate-800 dark:text-slate-50">{label}</strong><small className="truncate text-xs text-slate-600 dark:text-slate-300">{hint}</small></span>
             </button>

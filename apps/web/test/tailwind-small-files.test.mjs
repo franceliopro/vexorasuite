@@ -164,7 +164,7 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
       "shadow-token-sm", "shadow-token-lg",
     ],
     "src/app/dashboard-widgets.tsx": [
-      "grid grid-cols-12 gap-4 max-md:grid-cols-1",
+      "grid grid-cols-12 gap-4 bg-transparent hover:bg-transparent max-md:grid-cols-1",
       "col-span-3", "col-span-4", "col-span-5", "max-md:col-span-12",
       "bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600",
       "bg-linear-to-br from-indigo-50 to-blue-100",

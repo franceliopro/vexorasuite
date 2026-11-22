@@ -695,7 +695,10 @@ function dictateAiRequest(){
     if(step.message)messages.push(resolveSimulationText(step.message,variables));
     step=follow(step,step.options[0]!);continue;
    }
-   if(kind==="human.handoff"||kind==="department.route")return {nodes,edges,stepId:null,message:[...messages,"Encaminhamento simulado: "+destinationSummary(step)].join("\n")};
+   if(kind==="human.handoff"||kind==="assignment"||kind==="department.route"){
+    const configured=kind==="department.route"?"":resolveSimulationText(step.message,variables).trim();
+    return {nodes,edges,stepId:null,message:[...messages,configured||"Encaminhamento simulado: "+destinationSummary(step)].join("\n")};
+   }
    return {nodes,edges,stepId:step.options.length?step.id:null,message:[...messages,resolveSimulationText(step.message||step.title,variables)].join("\n")};
   }
   return {nodes,edges,stepId:null,message:messages.join("\n")||"Fim desta ramificação."};

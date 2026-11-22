@@ -15,4 +15,15 @@ describe('chatbot trigger preview', () => {
     await expect(preview('  SÉGUNDA   VIA  ')).resolves.toMatchObject({ matched: true, executed: false, sent: false });
     await expect(preview('Quero segunda via')).resolves.toMatchObject({ matched: false, executed: false, sent: false });
   });
+  it('matches an unsaved draft without reading or writing the saved flow', async () => {
+    const lookup = jest.fn();
+    const controller = new ChatbotTriggerPreviewController({
+      tenant: { findUniqueOrThrow: lookup },
+    } as unknown as PrismaService);
+    const request = { user: { tenantId: 'tenant' } } as AuthenticatedRequest;
+    const draft = { name: 'Rascunho', welcome: 'Olá', steps: [], channelIds: ['test-channel'], triggers: [{ kind: 'keyword', keyword: 'teste' }] };
+    await expect(controller.preview(request, { draft, channelId: 'test-channel', eventType: 'dm', text: 'teste' }))
+      .resolves.toMatchObject({ matched: true, previewMessage: 'Olá', executed: false, sent: false });
+    expect(lookup).not.toHaveBeenCalled();
+  });
 });

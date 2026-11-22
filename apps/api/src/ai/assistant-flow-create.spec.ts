@@ -1,5 +1,10 @@
-import { AssistantController } from './assistant.controller';
-jest.mock('./economical-providers',()=>({economicalProviders:()=>[{provider:'openrouter',model:'configured',apiKey:'test',timeoutMs:20_000},{provider:'ollama',model:'installed',apiKey:'local',timeoutMs:300_000}]}));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
+
+jest.unstable_mockModule('./economical-providers',()=>({economicalProviders:()=>[{provider:'openrouter',model:'configured',apiKey:'test',timeoutMs:20_000},{provider:'ollama',model:'installed',apiKey:'local',timeoutMs:300_000}]}));
+
+let AssistantController: typeof import('./assistant.controller').AssistantController;
+beforeAll(async()=>{({AssistantController}=await import('./assistant.controller'));});
 
 const departments = [{key:'SUPORTE',name:'Suporte Técnico'},{key:'ADM',name:'Administrativo'}];
 const modelPlan = {name:'Véxora Suite',welcome:'Olá!',steps:[

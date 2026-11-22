@@ -1,10 +1,16 @@
-jest.mock("imapflow", () => ({ ImapFlow: jest.fn() }));
-jest.mock("../communications/security", () => ({ mailHost: jest.fn().mockResolvedValue("203.0.113.10") }));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 
-import { ImapFlow } from "imapflow";
-import { EmailMailboxService, isValidEmailAddress } from "./email-mailbox.service";
+const ImapFlow = jest.fn();
+jest.unstable_mockModule("imapflow", () => ({ ImapFlow, default: { ImapFlow } }));
+jest.unstable_mockModule("../communications/security", () => ({ mailHost: jest.fn().mockResolvedValue("203.0.113.10") }));
 
+let EmailMailboxService: typeof import("./email-mailbox.service").EmailMailboxService;
+let isValidEmailAddress: typeof import("./email-mailbox.service").isValidEmailAddress;
 const ImapFlowMock = ImapFlow as unknown as jest.Mock;
+beforeAll(async () => {
+  ({ EmailMailboxService, isValidEmailAddress } = await import("./email-mailbox.service"));
+});
 
 describe("EmailMailboxService IMAP timeouts", () => {
   const mailbox = {

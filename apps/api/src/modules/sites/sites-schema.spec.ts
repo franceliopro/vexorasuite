@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 describe('schema Prisma do módulo Sites', () => {
-  const schemaPath = path.join(__dirname, '../../../prisma/schema.prisma');
+  const schemaPath = path.join(process.cwd(), 'prisma/schema.prisma');
   const schema = fs.readFileSync(schemaPath, 'utf8');
 
   it('declara siteId como UUID em todos os modelos que relacionam com Site', () => {

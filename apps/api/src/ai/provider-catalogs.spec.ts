@@ -1,7 +1,16 @@
-import { AiService } from './ai.service';
-import { modelCatalog } from './model-catalog';
-import { economicalProviders } from './economical-providers';
-jest.mock('./provider-credentials',()=>({providerApiKey:(provider:string,root:any)=>root?.keys?.[provider]}));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
+
+jest.unstable_mockModule('./provider-credentials',()=>({providerApiKey:(provider:string,root:any)=>root?.keys?.[provider]}));
+
+let AiService: typeof import('./ai.service').AiService;
+let modelCatalog: typeof import('./model-catalog').modelCatalog;
+let economicalProviders: typeof import('./economical-providers').economicalProviders;
+beforeAll(async()=>{
+ ({AiService}=await import('./ai.service'));
+ ({modelCatalog}=await import('./model-catalog'));
+ ({economicalProviders}=await import('./economical-providers'));
+});
 describe('provider catalogs and execution',()=>{
  const env={...process.env};
  afterEach(()=>{process.env={...env};jest.restoreAllMocks();});

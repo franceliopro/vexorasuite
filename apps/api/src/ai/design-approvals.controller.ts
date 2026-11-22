@@ -4,7 +4,7 @@ import type { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { randomUUID, randomBytes } from "node:crypto";
 import sharp from "sharp";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import { AiService } from "./ai.service";
 import { ZernioService } from "../operations/zernio.service";
 import { WahaService } from "../operations/waha.service";

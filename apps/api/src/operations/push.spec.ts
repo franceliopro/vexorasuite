@@ -1,3 +1,5 @@
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 import {PushService,validPushEndpoint,validPushSubscription} from './push.service';
 jest.mock('web-push',()=>({generateVAPIDKeys:jest.fn(),sendNotification:jest.fn().mockResolvedValue({})}));
 describe('push notification privacy and scope',()=>{

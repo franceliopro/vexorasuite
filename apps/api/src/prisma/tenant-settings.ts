@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from './prisma.service';
 
 /** Serialize writes to one settings key without overwriting other modules' JSON. */

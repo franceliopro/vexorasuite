@@ -1,5 +1,5 @@
 import { BadGatewayException, Injectable, ServiceUnavailableException } from "@nestjs/common";
-import { ChannelConnection } from "@prisma/client";
+import { ChannelConnection } from "../generated/prisma/client";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 

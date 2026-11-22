@@ -1,5 +1,5 @@
 import { ForbiddenException } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../generated/prisma/client";
 
 type ConversationClaim = {
   assigneeId: string | null;

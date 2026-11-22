@@ -7,7 +7,7 @@ import {provisionCompany} from './company-blueprint';
 import {entitlementsFromPlanLimits} from './entitlements';
 import { ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { MembershipRole } from "@prisma/client";
+import { MembershipRole } from "../generated/prisma/client";
 import { compare, hash } from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";

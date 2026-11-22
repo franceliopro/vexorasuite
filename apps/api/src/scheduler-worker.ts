@@ -78,6 +78,6 @@ async function bootstrap() {
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   void bootstrap();
 }

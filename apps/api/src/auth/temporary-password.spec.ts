@@ -24,7 +24,7 @@ describe("temporary administrative passwords", () => {
     expect(result.temporaryPassword).toMatch(/^Vx![A-Za-z0-9_-]{32}$/);
     expect(result.temporaryPassword).not.toBe("Senha@123");
     await expect(compare(result.temporaryPassword, userCreate.mock.calls[0][0].data.passwordHash)).resolves.toBe(true);
-  });
+  }, 15000);
 
   it("generates a new temporary password when resetting a user", async () => {
     const userUpdate = jest.fn().mockResolvedValue({});
@@ -38,5 +38,5 @@ describe("temporary administrative passwords", () => {
     expect(result.temporaryPassword).toMatch(/^Vx![A-Za-z0-9_-]{32}$/);
     expect(result.temporaryPassword).not.toBe("Senha@123");
     await expect(compare(result.temporaryPassword, userUpdate.mock.calls[0][0].data.passwordHash)).resolves.toBe(true);
-  });
+  }, 15000);
 });

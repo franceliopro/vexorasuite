@@ -5,7 +5,7 @@ import {
   OnModuleDestroy,
   Logger,
 } from "@nestjs/common";
-import { ChannelConnection } from "@prisma/client";
+import { ChannelConnection } from "../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { VoiceService } from "../ai/voice.service";
 import { AiService } from "../ai/ai.service";

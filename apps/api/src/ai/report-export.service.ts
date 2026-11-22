@@ -2,7 +2,7 @@ import { AsaasService } from "../operations/asaas.service";
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import { randomUUID } from 'node:crypto';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { ReportsController } from '../operations/reports.controller';

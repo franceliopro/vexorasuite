@@ -2,6 +2,8 @@ node_modules/
 .pnpm-store/
 .next/
 dist/
+apps/api/src/generated/prisma/
+apps/api/.prisma-upgrade-*/
 coverage/
 .env
 .env.*

@@ -1,6 +1,14 @@
-import { modelCatalog } from './model-catalog';
-import { VoiceService } from './voice.service';
-jest.mock('./provider-credentials',()=>({providerApiKey:()=>undefined}));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
+
+jest.unstable_mockModule('./provider-credentials',()=>({providerApiKey:()=>undefined}));
+
+let modelCatalog: typeof import('./model-catalog').modelCatalog;
+let VoiceService: typeof import('./voice.service').VoiceService;
+beforeAll(async()=>{
+ ({modelCatalog}=await import('./model-catalog'));
+ ({VoiceService}=await import('./voice.service'));
+});
 describe('speech model catalogs and private previews',()=>{
  const env={...process.env};
  afterEach(()=>{process.env={...env};jest.restoreAllMocks();});

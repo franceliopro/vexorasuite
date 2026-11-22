@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
-const {PrismaClient}=require('@prisma/client');
+const {PrismaClient}=require('../dist/generated/prisma/client');
+const { createPrismaAdapter } = require('../dist/prisma/adapter');
 const {JwtService}=require('@nestjs/jwt');
 const {AuthService}=require('../dist/auth/auth.service');
 const {AuthGuard}=require('../dist/auth/auth.guard');
@@ -9,7 +10,7 @@ const {ConversationsController}=require('../dist/operations/conversations.contro
 async function main(){
  const url=new URL(process.env.DATABASE_URL||'');
  assert(process.env.CI==='true'&&['localhost','127.0.0.1'].includes(url.hostname),'Use isolated CI database only');
- const db=new PrismaClient(),platformId=randomUUID(),platformUser=randomUUID(),users=[platformUser],events={publish(){}},jwt=new JwtService();
+ const db=new PrismaClient({ adapter: createPrismaAdapter() }),platformId=randomUUID(),platformUser=randomUUID(),users=[platformUser],events={publish(){}},jwt=new JwtService();
  const guard=new AuthGuard(jwt,db),auth=new AuthService(db,jwt),team=new TeamController(db,events);
  const allow=(token,path)=>guard.canActivate({switchToHttp:()=>({getRequest:()=>({headers:{authorization:'Bearer '+token},path,method:'GET'})})});
  try{

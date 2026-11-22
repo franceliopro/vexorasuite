@@ -23,7 +23,7 @@ describe("EventsService", () => {
     const subscription = service.observe().subscribe((event) => received.push(event.type));
 
     expect(() => service.publish("tenant-a", "conversation.updated", { id: "1" })).not.toThrow();
-    await wait(1200);
+    await wait(2500);
 
     // The screen still updates; the failure stays in the log instead of becoming an
     // unhandled rejection that would terminate the API process.

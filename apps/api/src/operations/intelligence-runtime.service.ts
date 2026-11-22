@@ -10,7 +10,7 @@ import { economicalProviders } from "../ai/economical-providers";
 import { isAuthorizedAssistantPhone, normalizeAssistantPhone } from "./assistant-phone-access";
 import { AiService } from "../ai/ai.service";
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
-import { Prisma, ChannelConnection, Message } from '@prisma/client';
+import { Prisma, ChannelConnection, Message } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from './events.service';
 import { WahaService } from './waha.service';

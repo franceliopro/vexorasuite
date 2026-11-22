@@ -1,5 +1,10 @@
-import { economicalProviders } from './economical-providers';
-jest.mock('./provider-credentials',()=>({providerApiKey:()=> 'test-key'}));
+import { jest as jestGlobals } from '@jest/globals';
+const jest = jestGlobals as any;
+
+jest.unstable_mockModule('./provider-credentials',()=>({providerApiKey:()=> 'test-key'}));
+
+let economicalProviders: typeof import('./economical-providers').economicalProviders;
+beforeAll(async()=>{({economicalProviders}=await import('./economical-providers'));});
 describe('explicit AI providers',()=>{
  const original={...process.env};
  afterEach(()=>{process.env={...original};});

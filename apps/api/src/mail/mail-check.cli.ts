@@ -142,7 +142,7 @@ async function main(): Promise<number> {
   }
 }
 
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   main()
     .then((code) => process.exit(code))
     .catch((error: unknown) => {

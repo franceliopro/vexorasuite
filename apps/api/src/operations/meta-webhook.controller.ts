@@ -22,7 +22,7 @@ import { inboundKind } from "./inbound-kind";
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { MetaService } from "./meta.service";
 import { metaAppSecretFor, metaVerifyTokenFor } from "./meta-credentials";
-import type { ChannelConnection } from "@prisma/client";
+import type { ChannelConnection } from "../generated/prisma/client";
 
 const trim = (value: unknown, max = 20000) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";

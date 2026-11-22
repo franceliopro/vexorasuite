@@ -1,7 +1,8 @@
 // Runs only against the ephemeral PostgreSQL service configured by GitHub Actions.
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('../dist/generated/prisma/client');
+const { createPrismaAdapter } = require('../dist/prisma/adapter');
 const { ContactsController } = require('../dist/operations/contacts.controller');
 const { lockedContact, contactMetadata } = require('../dist/prisma/contact-metadata');
 
@@ -9,7 +10,7 @@ async function main() {
   const database = new URL(process.env.DATABASE_URL || '');
   assert(process.env.CI === 'true' && ['localhost', '127.0.0.1'].includes(database.hostname),
     'Use the isolated CI database for this regression check');
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
   const tenant = await prisma.tenant.create({ data: { name: 'Concurrency regression', slug: 'ci-' + randomUUID() } });
   const controller = new ContactsController(prisma, { publish() {} }, { syncCustomerByContact() { throw Error('No external calls allowed'); } });
   const user = await prisma.user.create({ data: { email: 'ci-' + randomUUID() + '@example.test', passwordHash: 'not-a-real-hash', name: 'Concurrency actor' } });

@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { providerApiKey } from "../ai/provider-credentials";
 import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 

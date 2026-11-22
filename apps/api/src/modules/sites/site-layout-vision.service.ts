@@ -1,7 +1,7 @@
 /** Interpreta a captura de layout com um modelo com visão configurado pela empresa. */
 
 import { Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../generated/prisma/client";
 import { AiService, AiMessage } from "../../ai/ai.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { dailyAiLimit, reserveAiExecution } from "../../ai/ai-budget";

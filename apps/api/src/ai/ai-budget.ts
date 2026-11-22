@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 export function dailyAiLimit(value:unknown){return typeof value==='number'&&Number.isInteger(value)&&value>=0&&value<=10000?value:100;}
 /** Counts logical AI executions, each with at most three configured model attempts. */
 export async function reserveAiExecution(tx:Prisma.TransactionClient,tenantId:string,limit:number,purpose:string,userId?:string){

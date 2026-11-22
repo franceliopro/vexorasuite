@@ -6,7 +6,7 @@ import {randomUUID} from 'node:crypto';
 import {validDraft} from '../ai/chatbot-draft.controller';
 import {mutateTenantSetting} from '../prisma/tenant-settings';
 import {BadRequestException,Body,Controller,Delete,ForbiddenException,Get,Post,Put,Param,Req,UseGuards} from '@nestjs/common';
-import {Prisma} from '@prisma/client';
+import {Prisma} from '../generated/prisma/client';
 import {AuthGuard} from '../auth/auth.guard';
 import {AuthenticatedRequest} from '../auth/auth.types';
 import {PrismaService} from '../prisma/prisma.service';

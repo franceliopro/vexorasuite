@@ -1,6 +1,12 @@
-import {CopilotController} from "./copilot.controller";
-import {economicalProviders} from "../ai/economical-providers";
-jest.mock("../ai/economical-providers",()=>({economicalProviders:jest.fn(()=>[{provider:"ollama",model:"local-model",apiKey:"local"}])}));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
+
+const economicalProviders = jest.fn(()=>[{provider:"ollama",model:"local-model",apiKey:"local"}]);
+jest.unstable_mockModule("../ai/economical-providers",()=>({economicalProviders}));
+
+let CopilotController: typeof import("./copilot.controller").CopilotController;
+beforeAll(async()=>{({CopilotController}=await import("./copilot.controller"));});
+
 describe("attendant copilot",()=>{
  const req:any={user:{tenantId:"tenant",sub:"attendant",role:"OWNER"}};
  const messageId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";

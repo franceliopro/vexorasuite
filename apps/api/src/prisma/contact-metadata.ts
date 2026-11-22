@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from './prisma.service';
 
 /** Read after locking: a profile edit must preserve concurrent financial/routing data. */

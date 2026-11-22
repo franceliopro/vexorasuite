@@ -1,9 +1,10 @@
 // One-time deployment command. Existing verified owner and workspace IDs are mandatory.
-const {PrismaClient}=require('@prisma/client');
+const {PrismaClient}=require('../dist/generated/prisma/client');
+const { createPrismaAdapter } = require('../dist/prisma/adapter');
 async function main(){
  const email=process.env.PLATFORM_OWNER_EMAIL?.trim().toLowerCase(),tenantId=process.env.PLATFORM_TENANT_ID;
  if(!email||!tenantId)throw Error('Configure PLATFORM_OWNER_EMAIL and PLATFORM_TENANT_ID explicitly.');
- const db=new PrismaClient();
+ const db=new PrismaClient({ adapter: createPrismaAdapter() });
  try{await db.$transaction(async tx=>{
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(73910482)`;
   const owner=await tx.membership.findFirst({where:{tenantId,role:'OWNER',user:{email,isActive:true},tenant:{status:'ACTIVE'}},select:{userId:true}});

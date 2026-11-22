@@ -1,8 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma/client";
+import { createPrismaAdapter } from "./prisma/adapter";
 import { assertWebhookTargetSafe, decryptWebhookSecret, signWebhookPayload } from "./operations/webhook-crypto";
 import { touchWorkerHeartbeat } from "./worker-heartbeat";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 const intervalMs = Math.max(1000, Number(process.env.WEBHOOK_WORKER_INTERVAL_MS || 2000));
 const batchSize = Math.max(1, Math.min(100, Number(process.env.WEBHOOK_WORKER_BATCH_SIZE || 25)));
 const maxAttempts = 3;
@@ -168,7 +169,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   void main().catch(async (error) => {
     console.error("Webhook worker não pôde iniciar:", error);
     await prisma.$disconnect();

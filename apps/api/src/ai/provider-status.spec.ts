@@ -1,9 +1,16 @@
-import { probeConnections } from "./provider-status";
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 
-jest.mock("./provider-credentials", () => ({
-  ...jest.requireActual("./provider-credentials"),
+const credentialProviders = ['openrouter', 'openai', 'gemini', 'anthropic', 'deepseek', 'qwen', 'brave', 'groq', 'vercel-gateway', 'nvidia'] as const;
+jest.unstable_mockModule("./provider-credentials", () => ({
+  credentialProviders,
   providerApiKey: jest.fn((provider: string) => (provider === "groq" || provider === "openrouter" ? "key-" + provider : undefined)),
+  encryptProviderKey: jest.fn(),
+  providerConnectionStatus: jest.fn(),
 }));
+
+let probeConnections: typeof import("./provider-status").probeConnections;
+beforeAll(async () => { ({ probeConnections } = await import("./provider-status")); });
 
 describe("probeConnections", () => {
   afterEach(() => { jest.restoreAllMocks(); });

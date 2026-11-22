@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { EventsService } from './events.service';
-const webpush: { generateVAPIDKeys():{publicKey:string;privateKey:string}; sendNotification(subscription:unknown,payload:string,options:unknown):Promise<unknown> }=require('web-push');
+import webpush from 'web-push';
 export function validPushEndpoint(value:unknown):value is string{try{if(typeof value!=='string'||value.length>3000)return false;const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&['fcm.googleapis.com','updates.push.services.mozilla.com','push.apple.com','notify.windows.com'].some(host=>u.hostname===host||u.hostname.endsWith('.'+host));}catch{return false}}
 export function validPushSubscription(value:any){return !!value&&validPushEndpoint(value.endpoint)&&typeof value.keys?.p256dh==='string'&&/^[A-Za-z0-9_-]{87}=?$/.test(value.keys.p256dh)&&typeof value.keys?.auth==='string'&&/^[A-Za-z0-9_-]{22}={0,2}$/.test(value.keys.auth)}
 @Injectable()

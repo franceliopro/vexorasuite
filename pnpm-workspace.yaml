@@ -1,9 +1,42 @@
 packages:
   - "apps/*"
   - "packages/*"
+autoInstallPeers: true
+strictPeerDependencies: false
+overrides:
+  '@types/estree': 1.0.9
+  # TS 7 has no compiler API; typescript-eslint 8 requires the TS 6 API.
+  # Direct workspace `typescript` stays 7.0.2 for tsc/typechecks.
+  'typescript-eslint>typescript:peer': '-'
+  '@typescript-eslint/*>typescript:peer': '-'
+packageExtensions:
+  'typescript-eslint@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/eslint-plugin@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/parser@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/project-service@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/tsconfig-utils@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/type-utils@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/typescript-estree@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
+  '@typescript-eslint/utils@8.72.1':
+    dependencies:
+      typescript: 'npm:@typescript/typescript6@6.0.2'
 allowBuilds:
-  '@parcel/watcher': set this to true or false
-  '@prisma/client': set this to true or false
-  '@prisma/engines': set this to true or false
-  prisma: set this to true or false
-  tesseract.js: set this to true or false
+  '@parcel/watcher': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  tesseract.js: true

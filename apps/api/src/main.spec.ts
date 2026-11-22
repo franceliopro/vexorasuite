@@ -1,4 +1,10 @@
-import { isAllowedCorsOrigin, parseCorsOrigins } from "./main";
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
+jest.mock("sanitize-html", () => ({ __esModule: true, default: (value: string) => value }));
+
+let isAllowedCorsOrigin: typeof import("./main").isAllowedCorsOrigin;
+let parseCorsOrigins: typeof import("./main").parseCorsOrigins;
+beforeAll(async () => { ({ isAllowedCorsOrigin, parseCorsOrigins } = await import("./main")); });
 
 describe("CORS origin validation", () => {
   it("preserves the localhost default outside production", () => {

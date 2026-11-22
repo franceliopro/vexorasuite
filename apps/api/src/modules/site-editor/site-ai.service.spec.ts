@@ -1,17 +1,26 @@
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 import { BadGatewayException, BadRequestException, NotFoundException } from "@nestjs/common";
-import { SiteAiService, deterministicPatch, hasPatch, safeUrl } from "./site-ai.service";
 
-jest.mock("../../ai/creative-agent", () => ({
+jest.unstable_mockModule("../../ai/creative-agent", () => ({
   resolveCreativeAgent: jest.fn(() => ({
     providers: [{ provider: "openai", model: "gpt-5", apiKey: "test-key" }],
     persona: "Você é a designer da empresa.",
   })),
 }));
 
-jest.mock("../../ai/ai-budget", () => ({
+jest.unstable_mockModule("../../ai/ai-budget", () => ({
   dailyAiLimit: jest.fn(() => 100),
   reserveAiExecution: jest.fn().mockResolvedValue({}),
 }));
+
+let SiteAiService: typeof import("./site-ai.service").SiteAiService;
+let deterministicPatch: typeof import("./site-ai.service").deterministicPatch;
+let hasPatch: typeof import("./site-ai.service").hasPatch;
+let safeUrl: typeof import("./site-ai.service").safeUrl;
+beforeAll(async () => {
+  ({ SiteAiService, deterministicPatch, hasPatch, safeUrl } = await import("./site-ai.service"));
+});
 
 const baseNode = () => ({
   id: "n_teste",

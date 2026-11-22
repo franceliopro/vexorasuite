@@ -2,7 +2,7 @@ import { AuditCovered } from "../common/audit/audit.decorator";
 import {BadRequestException,Body,Controller,Delete,ForbiddenException,Get,Patch,Param,ParseUUIDPipe,Post,Query,Req,ServiceUnavailableException,UseGuards} from '@nestjs/common';
 import {randomUUID} from 'node:crypto';
 import {PrismaService} from '../prisma/prisma.service';
-import {Prisma} from '@prisma/client';
+import {Prisma} from '../generated/prisma/client';
 import {AuthGuard} from '../auth/auth.guard';
 import {AuthenticatedRequest} from '../auth/auth.types';
 import {assertDraftInput} from '../auth/product-scope';

@@ -1,11 +1,12 @@
 const assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
-const {PrismaClient}=require('@prisma/client');
+const {PrismaClient}=require('../dist/generated/prisma/client');
+const { createPrismaAdapter } = require('../dist/prisma/adapter');
 const {AuthService}=require('../dist/auth/auth.service');
 async function main(){
  const url=new URL(process.env.DATABASE_URL||'');
  assert(process.env.CI==='true'&&['localhost','127.0.0.1'].includes(url.hostname),'Use isolated CI database only');
- const db=new PrismaClient(),userId=randomUUID(),sourceId=randomUUID();
+ const db=new PrismaClient({ adapter: createPrismaAdapter() }),userId=randomUUID(),sourceId=randomUUID();
  try{
   await db.user.create({data:{id:userId,email:randomUUID()+'@example.test',name:'CI owner',passwordHash:'not-a-login',isPlatformAdmin:true}});
   await db.tenant.create({data:{id:sourceId,name:'Source CI',slug:'source-'+sourceId,kind:'PLATFORM'}});

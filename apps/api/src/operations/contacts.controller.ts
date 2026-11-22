@@ -1,7 +1,7 @@
 import { contactMetadata, lockedContact, mutateContactMetadata } from "../prisma/contact-metadata";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { administrative } from "../auth/module-policy";

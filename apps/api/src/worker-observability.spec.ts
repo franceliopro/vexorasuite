@@ -1,5 +1,13 @@
-import { formatWorkerCycleLog as formatWebhookWorkerCycleLog } from "./webhook-worker";
-import { formatWorkerCycleLog as formatSchedulerWorkerCycleLog } from "./scheduler-worker";
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
+jest.mock("sanitize-html", () => ({ __esModule: true, default: (value: string) => value }));
+
+let formatWebhookWorkerCycleLog: typeof import("./webhook-worker").formatWorkerCycleLog;
+let formatSchedulerWorkerCycleLog: typeof import("./scheduler-worker").formatWorkerCycleLog;
+beforeAll(async () => {
+  ({ formatWorkerCycleLog: formatWebhookWorkerCycleLog } = await import("./webhook-worker"));
+  ({ formatWorkerCycleLog: formatSchedulerWorkerCycleLog } = await import("./scheduler-worker"));
+});
 
 describe("structured worker cycle logs", () => {
   const metrics = {

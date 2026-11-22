@@ -1,9 +1,19 @@
-jest.mock("imapflow", () => ({ ImapFlow: jest.fn() }));
+import { jest as jestGlobals } from "@jest/globals";
+const jest = jestGlobals as any;
 
-import { ImapFlow } from "imapflow";
-import { ImapMailTransport } from "./imap.transport";
+const ImapFlow = jest.fn();
+jest.unstable_mockModule("imapflow", () => ({
+  ImapFlow,
+  default: { ImapFlow },
+}));
+
+let ImapMailTransport: typeof import("./imap.transport").ImapMailTransport;
 
 const ImapFlowMock = ImapFlow as unknown as jest.Mock;
+
+beforeAll(async () => {
+  ({ ImapMailTransport } = await import("./imap.transport"));
+});
 
 describe("ImapMailTransport timeouts", () => {
   beforeEach(() => {

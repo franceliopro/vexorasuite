@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:26.13.0-alpine AS base
 RUN apk add --no-cache openssl font-dejavu
 WORKDIR /workspace
 
@@ -20,6 +20,7 @@ COPY --from=build --chown=node:node /workspace/node_modules /workspace/node_modu
 COPY --from=build --chown=node:node /workspace/apps/api/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/apps/api/dist ./dist
 COPY --from=build --chown=node:node /workspace/apps/api/prisma ./prisma
+COPY --from=build --chown=node:node /workspace/apps/api/prisma.config.ts ./prisma.config.ts
 COPY --from=build --chown=node:node /workspace/apps/api/package.json ./package.json
 COPY --from=build --chown=node:node /workspace/apps/api/scripts ./scripts
 RUN mkdir -p /var/lib/vexora/media && chown -R node:node /var/lib/vexora

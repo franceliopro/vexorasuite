@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { WahaService } from "./waha.service";
 import { EventsService } from "./events.service";

@@ -5,7 +5,7 @@ import {documentDigits} from '../common/documents';
 import { formatDateBR } from '../common/date-format';
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { Body, Controller, ForbiddenException, Logger, NotFoundException, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import { MessageStatus, Prisma, type ChannelConnection } from "@prisma/client";
+import { MessageStatus, Prisma, type ChannelConnection } from "../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { WahaService } from "./waha.service";

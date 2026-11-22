@@ -156,7 +156,7 @@ try{
  await expect(setup.getByRole("combobox",{name:/Quando/})).toHaveValue("first_message");
  await setup.getByRole("button",{name:"Verificar condição",exact:true}).click();
  const condition=board.locator("[data-flow-node]").filter({has:page.getByRole("button",{name:"Verificar condição",exact:false})});
- await condition.getByRole("textbox",{name:"Informação",exact:true}).fill("departamento");
+ await condition.getByRole("combobox",{name:"Informação",exact:true}).fill("departamento");
  await condition.getByRole("textbox",{name:"É igual a",exact:true}).fill("Financeiro");
  await condition.getByRole("button",{name:"Concluir",exact:true}).click();
  await expect(board.getByRole("button",{name:"Se Departamento é igual a “Financeiro”",exact:true})).toBeVisible();

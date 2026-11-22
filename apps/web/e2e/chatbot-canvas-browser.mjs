@@ -11,7 +11,7 @@ let diagnostics="";
 server.stdout.on("data",chunk=>{diagnostics+=chunk});
 server.stderr.on("data",chunk=>{diagnostics+=chunk});
 const draft={name:"Fluxo de teste",welcome:"Bem-vindo",triggers:[{kind:"message"}],steps:[
- {id:"left",kind:"text",title:"Bloco à esquerda",message:"Olá",options:["Continuar"],transitions:{Continuar:"right"},position:{x:-300,y:-240}},
+ {id:"left",kind:"text",title:"Bloco à esquerda",message:"Olá",options:["Continuar","Outra saída"],transitions:{Continuar:"right","Outra saída":"right"},position:{x:-300,y:-240}},
  {id:"right",kind:"text",title:"Bloco à direita",message:"Fim",options:[],position:{x:300,y:280}},
 ]};
 let browser;
@@ -33,7 +33,9 @@ try{
     role:"OWNER",allowedModules:["INBOX","AUTOMATION","SETTINGS"],
    },
    "/chatbot/draft":{draft},
-   "/chatbot/runtime":{active:false,publications:[]},
+   "/chatbot/runtime":{active:true,revision:"r1",draftMatchesPublication:true,publications:[],executions:[
+    {id:"execution-1",createdAt:"2026-11-22T15:00:00.000Z",details:{revision:"r1",scopeKey:"default",visitedSteps:[{id:"left",title:"Bloco à esquerda"},{id:"right",title:"Bloco à direita"}],visitedEdges:[{from:"left",option:"Continuar",to:"right"}],waitingStepId:"right"}},
+   ]},
    "/chatbot/runtime/destinations":{departments:[],agents:[]},
    "/crm/pipelines":[],
    "/assistant/config":{agents:[]},
@@ -55,6 +57,15 @@ try{
  await fit.click();
  await expect(node).toBeInViewport();
  const initial=await camera();
+
+ const history=page.getByText("Execuções reais",{exact:true});
+ await history.click();
+ await page.getByRole("button",{name:"Ver no canvas",exact:true}).click();
+ await expect(board.locator("svg g path")).toHaveCount(2);
+ await expect(board.locator("svg g path.stroke-accent")).toHaveCount(1);
+ await expect(board.getByText("Aguardando resposta",{exact:true})).toBeVisible();
+ await history.click();
+ await expect(board.locator("svg g path.stroke-accent")).toHaveCount(0);
 
  await canvas.focus();
  for(const key of ["ArrowLeft","ArrowUp"])await page.keyboard.press(key);

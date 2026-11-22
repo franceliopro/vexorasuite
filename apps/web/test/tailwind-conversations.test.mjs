@@ -264,6 +264,7 @@ test("os agendamentos usam TW e preservam o contrato da agenda do Google", () =>
     "grid gap-2 rounded-token border border-line bg-surface p-pad shadow-token",
     "grid grid-cols-2 gap-3",
     "flex items-center gap-2",
+    "shadow-token-sm",
   ]) {
     assert.ok(source.includes(utility), `falta a utility ${utility}`);
   }

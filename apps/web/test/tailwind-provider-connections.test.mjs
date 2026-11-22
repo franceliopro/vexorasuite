@@ -102,7 +102,7 @@ test("as conexões de IA usam só utilities, sem remendos", () => {
     "grid-cols-provider-status",
     "tracking-provider-pill",
     "tracking-provider-alert",
-    "ov-tablet:grid-cols-1",
+    "grid grid-cols-1 items-center gap-x-4 gap-y-2 rounded-provider-item border border-gray-200 bg-zinc-100 px-provider-pad py-3 md:grid-cols-provider-status",
     "bg-blue-600",
     "border-gray-200",
     "bg-zinc-200",
@@ -111,6 +111,8 @@ test("as conexões de IA usam só utilities, sem remendos", () => {
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);
   }
+  /* Classe viva em template literal: o parser de expressão para no `${}`. */
+  assert.match(source, /justify-self-start md:justify-self-end/);
 });
 
 test("o preset expõe os tokens das conexões de IA", () => {

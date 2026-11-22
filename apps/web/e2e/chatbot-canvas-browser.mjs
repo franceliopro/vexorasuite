@@ -15,6 +15,7 @@ const draft={name:"Fluxo de teste",welcome:"Bem-vindo",triggers:[{kind:"message"
  {id:"right",kind:"text",title:"Bloco à direita",message:"Fim",options:[],position:{x:300,y:280}},
 ]};
 let browser;
+let conversationContinued=false;
 try{
  for(let attempt=0;attempt<60;attempt++){
   try{if((await fetch(origin)).ok)break;}catch{}
@@ -34,7 +35,8 @@ try{
    },
    "/chatbot/draft":{draft},
    "/chatbot/runtime":{active:true,revision:"r1",draftMatchesPublication:true,publications:[],executions:[
-    {id:"execution-1",createdAt:"2026-11-22T15:00:00.000Z",details:{revision:"r1",scopeKey:"default",visitedSteps:[{id:"left",title:"Bloco à esquerda"},{id:"right",title:"Bloco à direita"}],visitedEdges:[{from:"left",option:"Continuar",to:"right"}],waitingStepId:"right"}},
+    ...(conversationContinued?[{id:"execution-2",createdAt:"2026-11-22T15:00:05.000Z",details:{revision:"r1",scopeKey:"default",conversationId:"conversation-1",visitedSteps:[{id:"left",title:"Bloco à esquerda"},{id:"right",title:"Bloco à direita"}],visitedEdges:[{from:"left",option:"Outra saída",to:"right"}],waitingStepId:null}}]:[]),
+    {id:"execution-1",createdAt:"2026-11-22T15:00:00.000Z",details:{revision:"r1",scopeKey:"default",conversationId:"conversation-1",visitedSteps:[{id:"left",title:"Bloco à esquerda"},{id:"right",title:"Bloco à direita"}],visitedEdges:[{from:"left",option:"Continuar",to:"right"}],waitingStepId:"right"}},
    ]},
    "/chatbot/runtime/destinations":{departments:[],agents:[]},
    "/crm/pipelines":[],
@@ -64,6 +66,11 @@ try{
  await expect(board.locator("svg g path")).toHaveCount(2);
  await expect(board.locator("svg g path.stroke-accent")).toHaveCount(1);
  await expect(board.getByText("Aguardando resposta",{exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Acompanhar conversa",exact:true}).click();
+ conversationContinued=true;
+ await expect(board.locator("svg g path").last()).toHaveClass("stroke-accent",{timeout:12000});
+ await expect(board.getByText("Aguardando resposta",{exact:true})).toHaveCount(0);
+ await expect(page.getByRole("button",{name:"Parar de acompanhar",exact:true})).toHaveCount(1);
  await history.click();
  await expect(board.locator("svg g path.stroke-accent")).toHaveCount(0);
 

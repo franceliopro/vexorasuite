@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = process.cwd();
-const WEB = path.join(ROOT, "apps", "web");
+// Resolve a partir do próprio arquivo: o CI executa `pnpm --filter web test`
+// com cwd em apps/web, enquanto a execução local costuma partir da raiz.
+const WEB = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const REPORTS = path.join(WEB, "src", "app", "reports-workspace.tsx");
 const OVERVIEW = path.join(WEB, "src", "app", "overview-intelligence.tsx");
 
@@ -237,7 +239,7 @@ test("sem regras proibidas e sem alterações em arquivos de terceiros", () => {
   const twConfig = read(path.join(WEB, "tailwind.config.ts"));
   const themeCss = read(path.join(WEB, "src", "app", "theme.css"));
   const vexoraCss = read(path.join(WEB, "src", "app", "vexora.css"));
-  const siteHtml = read(path.join(ROOT, "apps", "api", "src", "modules", "sites-deploy", "site-html.ts"));
+  const siteHtml = read(path.join(WEB, "..", "api", "src", "modules", "sites-deploy", "site-html.ts"));
   assert.ok(twConfig.includes('"rw-title"'));
   assert.ok(twConfig.includes('"ov-hero"'));
   assert.ok(themeCss.includes("@custom-variant ov-laptop"));

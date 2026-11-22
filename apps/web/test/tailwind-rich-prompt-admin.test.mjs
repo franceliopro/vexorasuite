@@ -50,13 +50,14 @@ for (const [name, source] of SOURCES) {
 
 test("rich prompt editor uses preset utilities", () => {
   for (const utility of [
-    "bg-slate-800",
-    "bg-slate-900",
-    "bg-slate-700",
-    "border-slate-700",
-    "text-slate-50",
-    "text-slate-200",
-    "text-amber-300",
+    "bg-surface",
+    "bg-surface-2",
+    "bg-surface-3",
+    "border-line",
+    "border-line-strong",
+    "text-ink",
+    "text-ink-secondary",
+    "text-warning",
     "focus-within:border-blue-600",
     "focus-visible:outline-blue-600",
     "text-blue-50",
@@ -100,6 +101,10 @@ test("rich prompt editor preserves editor contracts", () => {
   ]) {
     assert.ok(richPromptSource.includes(expected), `o prompt perdeu ${expected}`);
   }
+  assert.doesNotMatch(richPromptSource, /Rascunho/);
+  assert.ok(richPromptSource.includes("var(--tx)"));
+  assert.ok(richPromptSource.includes("var(--ln2)"));
+  assert.ok(richPromptSource.includes("var(--primary)"));
 });
 
 test("platform admin workspace preserves state and accessibility contracts", () => {

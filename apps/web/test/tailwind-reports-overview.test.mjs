@@ -161,7 +161,7 @@ test("constantes e variantes resolvem para literais completos", () => {
     'flat: "bg-zinc-300 text-slate-600"',
     'const chipTw = "min-h-8 rounded-full border border-gray-200 bg-zinc-200',
     'const tabTw = "inline-flex min-h-9 items-center gap-2 whitespace-nowrap rounded-lg',
-    'const tabActive = "bg-blue-600 text-blue-900 shadow-sm"',
+    'const tabActive = "bg-blue-600 text-white shadow-sm"',
   ];
   for (const literal of expected) {
     assert.ok(reports.includes(literal), `literal incompleto: ${literal}`);

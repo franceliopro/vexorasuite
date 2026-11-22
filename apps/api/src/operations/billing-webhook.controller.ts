@@ -46,6 +46,11 @@ export class BillingWebhookController {
     }
     const code = match[1]!.toLowerCase();
     const tenantId = match[2]!.toLowerCase();
+    // O plano personalizado é contratado com a Véxora: nunca é ativado por cobrança automática.
+    if (code === "personalizado") {
+      this.logger.warn(`Webhook de cobrança: ativação automática do plano personalizado ignorada para o tenant ${tenantId}.`);
+      return { ok: true, ignored: true, plan: "contract-only" };
+    }
     const plan = await this.prisma.plan.findFirst({ where: { code } });
     if (!plan) {
       this.logger.warn(`Webhook de cobrança: plano "${code}" não encontrado.`);

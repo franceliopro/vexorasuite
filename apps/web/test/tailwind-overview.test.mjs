@@ -242,9 +242,10 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
 test("o relógio mantém o fundo claro em todos os temas", () => {
   const clock = widgets.match(/function ClockWidget\(\)[\s\S]*?\n\}/)?.[0] ?? "";
   assert.ok(clock.includes('aria-label="Relógio e data de hoje"'));
-  assert.ok(clock.includes("bg-linear-to-br from-indigo-50 to-blue-100"));
-  assert.ok(clock.includes("text-indigo-700"));
-  assert.doesNotMatch(clock, /dark:from-slate-900|dark:to-slate-900|dark:text-blue-200|dark:text-slate-300/);
+  assert.ok(clock.includes("bg-linear-to-br from-blue-50 to-blue-100"));
+  assert.ok(clock.includes("text-blue-700"));
+  assert.doesNotMatch(clock, /indigo-|dark:from-slate-900|dark:to-slate-900|dark:text-blue-200|dark:text-slate-300/);
+  assert.ok(clock.includes("border-gray-200"), "a borda usa a linha do tema");
 });
 
 test("linhas divisórias fecham cabeçalhos, gráficos e calendário da Visão geral", () => {

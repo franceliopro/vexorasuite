@@ -235,6 +235,28 @@ describe("GUI web do provisionador", () => {
     assert.ok(js.includes("/provision/apply"));
     assert.ok(js.includes("window.confirm"));
   });
+
+  it("mostra confirmação legada, aprovador e estado de publicação", async () => {
+    await withServer(async (base) => {
+      const html = await (await fetch(`${base}/`)).text();
+      for (const id of ["approver", "legacy-confirm", "legacy-confirm-label"]) {
+        assert.ok(html.includes(`id="${id}"`), `a GUI perdeu o campo ${id}`);
+      }
+      assert.ok(
+        html.includes("Confirmo explicitamente o uso de PHP fora de suporte"),
+      );
+    });
+
+    const js = readFileSync(
+      fileURLToPath(new URL("../public/app.js", import.meta.url)),
+      "utf8",
+    );
+    assert.ok(js.includes("function legacySelected()"));
+    assert.ok(js.includes("body.confirmLegacy = true"));
+    assert.ok(js.includes("/approve"));
+    assert.ok(js.includes('`publicado: ${status.published ? "sim" : "não"}`'));
+    assert.ok(js.includes('currentMode === "real"'));
+  });
 });
 
 after(() => {

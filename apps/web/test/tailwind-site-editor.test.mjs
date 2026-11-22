@@ -27,10 +27,9 @@ test("o editor de sites usa so utilities, sem remendos", () => {
     const match = classes.match(forbidden);
     assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
   }
-  assert.ok(editor.includes("border border-line bg-surface-2 px-4 text-body font-bold text-ink"));
+  assert.ok(editor.includes("border border-slate-700 bg-slate-800 px-4 text-sm font-bold text-slate-50"));
   assert.ok(editor.includes("animate-spin"));
-  assert.ok(editor.includes("z-10000"));
-  assert.ok(editor.includes("z-10001"));
+  assert.ok(editor.includes("z-50"));
 });
 
 test("os contratos do editor de sites permanecem intactos", () => {

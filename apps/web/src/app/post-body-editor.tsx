@@ -6,33 +6,35 @@ import Image from "@tiptap/extension-image";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Undo2, Redo2, Link2, ImagePlus, Youtube, Images, Code2, FileText, X, ChevronUp, ChevronDown } from "lucide-react";
 
-const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
-const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600 transition-colors hover:bg-surface hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryTw = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-slate-50 shadow-lg transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const textButtonTw = "inline-flex min-h-8 items-center justify-center gap-2 rounded-lg px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-slate-700 hover:text-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
 
-/* Utilities completas do preset para a fatia do editor de corpo de post. */
-const postBodyTw = "grid min-w-0 overflow-hidden rounded-2xl border border-line bg-surface";
-const postToolbarTw = "flex flex-wrap items-center gap-0.5 border-b border-line bg-surface-2 px-2.5 py-2";
-const postToolbarButtonTw = "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-transparent font-extrabold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
-const postToolbarActiveTw = "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-blue-600 font-extrabold text-blue-950 transition-colors hover:bg-blue-700";
-const postToolbarSepTw = "mx-1.5 h-5.5 w-px bg-line";
+/* Utilities completas para a fatia do editor de corpo de post. */
+const postBodyTw = "grid min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900";
+const postToolbarTw = "flex flex-wrap items-center gap-0.5 border-b border-slate-700 bg-slate-800 px-2.5 py-2";
+const postToolbarButtonTw = "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-transparent font-extrabold text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+const postToolbarActiveTw = "inline-grid h-8 min-w-8 place-items-center rounded-lg bg-blue-600 font-extrabold text-slate-50 transition-colors hover:bg-blue-700";
+const postToolbarSepTw = "mx-1.5 h-5 w-px bg-slate-700";
 const postToolbarSpacerTw = "flex-1";
-const postPopoverTw = "flex gap-2 border-b border-line bg-surface-2 p-2.5";
-const postPopoverInputTw = "min-h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-surface px-3 text-body text-ink";
-const postContentTw = "min-h-65 outline-none px-4.5 py-4 text-base leading-relaxed text-ink";
-const postSourceTw = "min-h-70 w-full resize-y border-0 px-4.5 py-4 font-mono text-xs leading-relaxed outline-none";
-const postNoticeTw = "m-0 bg-red-100 px-3 py-2 text-small font-semibold text-red-600";
-const postHintTw = "m-0 border-t border-line px-3.5 py-2.5 text-small text-slate-600";
-const fieldHintTw = "m-0 text-small text-slate-600";
-const galleryNodeTw = "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-line-strong bg-surface-2 p-2.5";
-const galleryNodeSelectedTw = "border-solid border-blue-600";
-const galleryHeadTw = "flex items-center gap-2.5 text-small text-slate-600";
+const postPopoverTw = "flex gap-2 border-b border-slate-700 bg-slate-800 p-2.5";
+const postPopoverInputTw = "min-h-9 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-50";
+const postContentTw = "min-h-64 outline-none px-4 py-4 text-base leading-relaxed text-slate-50";
+const postSourceTw = "min-h-72 w-full resize-y border-0 px-4 py-4 font-mono text-xs leading-relaxed outline-none";
+const postNoticeTw = "m-0 bg-red-100 px-3 py-2 text-xs font-semibold text-red-600";
+const postHintTw = "m-0 border-t border-slate-700 px-3 py-2.5 text-xs text-slate-200";
+const fieldHintTw = "m-0 text-xs text-slate-200";
+const galleryNodeTw = "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-slate-700 bg-slate-800 p-2.5";
+const galleryNodeSelectedTw = "my-2.5 grid gap-2.5 rounded-xl border border-solid border-blue-600 bg-slate-800 p-2.5";
+const galleryNodeClass = (selected: boolean) => selected ? galleryNodeSelectedTw : galleryNodeTw;
+const galleryHeadTw = "flex items-center gap-2.5 text-xs text-slate-200";
 const galleryGridTw = "grid grid-cols-2 gap-2 sm:grid-cols-3";
-const galleryThumbTw = "relative m-0 overflow-hidden rounded-xl border border-line";
+const galleryThumbTw = "relative m-0 overflow-hidden rounded-xl border border-slate-700";
 const galleryThumbImgTw = "block aspect-square w-full object-cover";
 const galleryActionsTw = "absolute right-1 top-1 flex gap-1";
-const galleryActionButtonTw = "grid h-5.5 w-5.5 place-items-center rounded-md border border-white/40 bg-zinc-950/65 text-white transition-colors hover:bg-zinc-950";
-const youtubeNodeTw = "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-line-strong bg-surface-2 p-2.5";
-const youtubeNodeSelectedTw = "border-solid border-blue-600";
+const galleryActionButtonTw = "grid h-5 w-5 place-items-center rounded-md border border-slate-700 bg-slate-900/80 text-slate-50 transition-colors hover:bg-slate-900";
+const youtubeNodeTw = "my-2.5 grid gap-2.5 rounded-xl border border-dashed border-slate-700 bg-slate-800 p-2.5";
+const youtubeNodeSelectedTw = "my-2.5 grid gap-2.5 rounded-xl border border-solid border-blue-600 bg-slate-800 p-2.5";
+const youtubeNodeClass = (selected: boolean) => selected ? youtubeNodeSelectedTw : youtubeNodeTw;
 const youtubeIframeTw = "block w-full rounded-xl";
 const galleryRenderTw = "my-4 grid grid-cols-2 gap-2 sm:grid-cols-3";
 const galleryRenderLinkTw = "block overflow-hidden rounded-xl";
@@ -111,7 +113,7 @@ function GalleryNodeView(props: any) {
     updateAttributes({ items: next });
   };
   return (
-    <NodeViewWrapper className={`${galleryNodeTw}${selected ? ` ${galleryNodeSelectedTw}` : ""}`} data-vx-gallery="true">
+    <NodeViewWrapper className={galleryNodeClass(selected)} data-vx-gallery="true">
       <div className={galleryHeadTw}><Images size={15} aria-hidden="true" /><span>{items.length} imagem(ns) na galeria</span>
         <button type="button" className={textButtonTw} onClick={() => setPickerOpen(true)}>+ Adicionar imagens</button>
         
@@ -138,7 +140,7 @@ function YoutubeNodeView(props: any) {
   const { node, selected } = props;
   const id = String(node.attrs.src || "");
   return (
-    <NodeViewWrapper className={`${youtubeNodeTw}${selected ? ` ${youtubeNodeSelectedTw}` : ""}`} data-vx-youtube="true">
+    <NodeViewWrapper className={youtubeNodeClass(selected)} data-vx-youtube="true">
       {id ? <iframe className={youtubeIframeTw} src={youtubeEmbedUrl(id)} title={String(node.attrs.title || "Vídeo")} width="100%" height="360" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : <p className={fieldHintTw}>Vídeo sem URL — selecione e exclua o bloco.</p>}
     </NodeViewWrapper>
   );

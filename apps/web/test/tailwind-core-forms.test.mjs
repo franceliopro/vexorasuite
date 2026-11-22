@@ -46,7 +46,7 @@ test("os formularios e editores usam so utilities, sem remendos", () => {
   for (const utility of [
     "min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600",
     "border border-line bg-surface-2 px-4 text-body font-bold text-ink",
-    "min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600",
+    "min-h-8 min-w-8 place-items-center rounded-md border-0 bg-transparent px-1.5 text-slate-200",
   ]) {
     assert.ok(screens.join("\n").includes(utility), `falta a utility ${utility}`);
   }

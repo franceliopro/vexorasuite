@@ -62,34 +62,42 @@ import {
 } from 'lucide-react';
 import './editor.css';
 
-const SHELL = 'flex h-dvh min-h-0 flex-col bg-surface-page font-ui text-ink';
-const SHELL_TOPBAR = 'flex h-14 flex-none items-center justify-between gap-2.5 border-b border-line bg-surface px-4';
+const SHELL = 'flex h-dvh min-h-0 flex-col bg-slate-900 font-sans text-slate-50';
+const SHELL_TOPBAR = 'flex h-14 flex-none items-center justify-between gap-2.5 border-b border-slate-700 bg-slate-800 px-4';
 const SHELL_TOPBAR_SECTION = 'flex min-w-0 items-center gap-2.5';
 const SHELL_SITE_INFO = 'flex min-w-0 flex-col';
-const SHELL_SITE_ID = 'truncate text-xs text-ink-secondary';
-const SHELL_SITE_TITLE = 'truncate text-sm font-bold text-ink';
-const SHELL_NODE_COUNT = 'px-2.5 text-sm text-ink-secondary';
-const SHELL_ICON_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-token-sm bg-transparent text-ink-secondary hover:bg-hover';
-const SHELL_DEVICE_GROUP = 'flex gap-1.5 rounded-token-sm border border-line bg-surface';
-const SHELL_DEVICE_BUTTON = 'inline-flex h-8 w-8 items-center justify-center bg-transparent text-ink-secondary hover:bg-hover';
-const SHELL_DEVICE_BUTTON_ACTIVE = 'bg-blue-50 text-blue-600';
+const SHELL_SITE_ID = 'truncate text-xs text-slate-200';
+const SHELL_SITE_TITLE = 'truncate text-sm font-bold text-slate-50';
+const SHELL_NODE_COUNT = 'px-2.5 text-sm text-slate-200';
+const SHELL_ICON_BUTTON = 'inline-flex h-8 w-8 items-center justify-center rounded-md bg-transparent text-slate-200 hover:bg-slate-700';
+const SHELL_DEVICE_GROUP = 'flex gap-1.5 rounded-md border border-slate-700 bg-slate-800';
+const SHELL_DEVICE_BUTTON = 'inline-flex h-8 w-8 items-center justify-center bg-transparent text-slate-200 hover:bg-slate-700';
+const SHELL_DEVICE_BUTTON_ACTIVE = 'inline-flex h-8 w-8 items-center justify-center bg-slate-700 text-slate-50 hover:bg-slate-700';
+const SHELL_DEVICE_BUTTON_CLASS = {
+  active: SHELL_DEVICE_BUTTON_ACTIVE,
+  idle: SHELL_DEVICE_BUTTON,
+} as const;
 const SHELL_DEVICE_ICON = 'inline-block h-3.5 w-3.5';
-const SHELL_SECONDARY_BUTTON = 'inline-flex h-9 w-9 items-center justify-center rounded-token-sm border border-line bg-surface text-ink hover:bg-hover';
-const SHELL_SECONDARY_DISABLED = 'cursor-not-allowed opacity-50';
-const SHELL_PRIMARY_BUTTON = 'inline-flex h-control items-center gap-2 rounded-token-sm border-0 bg-brand px-4 text-sm font-bold text-brand-contrast hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50';
+const SHELL_SECONDARY_BUTTON = 'inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-50 hover:bg-slate-700';
+const SHELL_SECONDARY_DISABLED = 'inline-flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-50 opacity-50 hover:bg-slate-700';
+const SHELL_SECONDARY_BUTTON_CLASS = {
+  enabled: SHELL_SECONDARY_BUTTON,
+  disabled: SHELL_SECONDARY_DISABLED,
+} as const;
+const SHELL_PRIMARY_BUTTON = 'inline-flex h-9 items-center gap-2 rounded-md border-0 bg-blue-600 px-4 text-sm font-bold text-white hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50';
 const SHELL_MAIN = 'flex min-h-0 flex-1 overflow-hidden';
-const SHELL_SIDEBAR_LEFT = 'flex w-80 flex-none flex-col overflow-hidden border-r border-line bg-surface';
-const SHELL_CANVAS_AREA = 'relative min-w-0 flex-1 overflow-hidden bg-surface-2';
-const SHELL_SIDEBAR_RIGHT = 'flex w-85 flex-none flex-col overflow-hidden border-l border-line bg-surface';
-const SHELL_NOTICE = 'mx-3 my-2 inline-flex items-center gap-2 rounded-token-sm border border-line bg-surface-3 px-3 py-1.5 text-sm text-ink';
-const SHELL_READONLY_BANNER = 'mx-3 my-2 inline-flex items-center gap-2 rounded-token-sm border border-amber-600/45 bg-amber-100 px-3 py-2 text-sm text-amber-600';
+const SHELL_SIDEBAR_LEFT = 'flex w-80 flex-none flex-col overflow-hidden border-r border-slate-700 bg-slate-800';
+const SHELL_CANVAS_AREA = 'relative min-w-0 flex-1 overflow-hidden bg-slate-900';
+const SHELL_SIDEBAR_RIGHT = 'flex w-80 flex-none flex-col overflow-hidden border-l border-slate-700 bg-slate-800';
+const SHELL_NOTICE = 'mx-3 my-2 inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-50';
+const SHELL_READONLY_BANNER = 'mx-3 my-2 inline-flex items-center gap-2 rounded-md border border-amber-600/45 bg-amber-950 px-3 py-2 text-sm text-amber-200';
 const SHELL_PAGE_LABEL = 'mr-1.5 text-xs font-semibold';
-const SHELL_PAGE_SELECT = 'max-w-55 rounded-token-sm border border-line bg-surface px-2 py-1 text-body text-ink';
+const SHELL_PAGE_SELECT = 'max-w-64 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-50';
 
 const SHELL_NOTICE_KIND: Record<'info' | 'ok' | 'bad', string> = {
-  info: '',
-  ok: 'border-emerald-600/40 bg-emerald-100 text-emerald-600',
-  bad: 'border-red-600/40 bg-red-100 text-red-600',
+  info: SHELL_NOTICE,
+  ok: 'mx-3 my-2 inline-flex items-center gap-2 rounded-md border border-emerald-600/40 bg-emerald-950 px-3 py-1.5 text-sm text-emerald-200',
+  bad: 'mx-3 my-2 inline-flex items-center gap-2 rounded-md border border-red-600/40 bg-red-950 px-3 py-1.5 text-sm text-red-200',
 };
 
 interface EditorShellProps {
@@ -425,7 +433,7 @@ export function EditorShell({
               <button
                 key={d}
                 type="button"
-                className={`${SHELL_DEVICE_BUTTON} ${d === device ? SHELL_DEVICE_BUTTON_ACTIVE : ''}`}
+                className={SHELL_DEVICE_BUTTON_CLASS[d === device ? 'active' : 'idle']}
                 aria-label={`Preview ${d}`}
                 onClick={() => onDeviceChange(d)}
               >
@@ -435,7 +443,7 @@ export function EditorShell({
           </div>
           <button
             type="button"
-            className={`${SHELL_SECONDARY_BUTTON} ${!canUndo(historyRef.current) || interactionDisabled ? SHELL_SECONDARY_DISABLED : ''}`}
+            className={SHELL_SECONDARY_BUTTON_CLASS[!canUndo(historyRef.current) || interactionDisabled ? 'disabled' : 'enabled']}
             disabled={!canUndo(historyRef.current) || interactionDisabled}
             onClick={handleUndo}
             title="Desfazer"
@@ -444,7 +452,7 @@ export function EditorShell({
           </button>
           <button
             type="button"
-            className={`${SHELL_SECONDARY_BUTTON} ${!canRedo(historyRef.current) || interactionDisabled ? SHELL_SECONDARY_DISABLED : ''}`}
+            className={SHELL_SECONDARY_BUTTON_CLASS[!canRedo(historyRef.current) || interactionDisabled ? 'disabled' : 'enabled']}
             disabled={!canRedo(historyRef.current) || interactionDisabled}
             onClick={handleRedo}
             title="Refazer"
@@ -545,7 +553,7 @@ export function EditorShell({
 
       {notice && (
         <div
-          className={`${SHELL_NOTICE} ${SHELL_NOTICE_KIND[noticeKind]}`}
+          className={SHELL_NOTICE_KIND[noticeKind]}
           role="status"
           aria-live="polite"
         >

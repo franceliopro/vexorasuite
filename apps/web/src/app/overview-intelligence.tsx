@@ -248,8 +248,8 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
   const outOfSlaNote = outOfSla || staleWaiting;
 
   return (
-    <section className="grid grid-cols-2 gap-5 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
-      <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-200 p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 ov-laptop:col-span-1" data-testid="ov-hero">
+    <section className="grid grid-cols-2 gap-5 bg-transparent ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
+      <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-xl border border-gray-200 bg-white p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 ov-laptop:col-span-1" data-testid="ov-hero">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
           <div className="grid min-w-0 content-start gap-4">
             <h2 className="max-w-md text-2xl font-semibold text-slate-950 dark:text-slate-50 sm:text-xl">{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
@@ -289,39 +289,39 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
       </article>
 
       <div className="col-span-2 grid grid-cols-3 gap-5 ov-laptop:col-span-1 sm:grid-cols-1 xl:grid-cols-6" role="group" aria-label="Resumo da operação">
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Conversas abertas</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{data?.openConversations ?? "—"}</strong>
           <em className={`inline-flex items-center gap-1.5 text-xs font-semibold ${outOfSlaNote ? "text-red-600 dark:text-red-300" : "text-slate-600 dark:text-slate-400"}`}>{outOfSlaNote ? <><span className="inline-block h-2 w-2 rounded-full bg-red-600 dark:bg-red-400" aria-hidden="true" />{outOfSlaNote} fora do SLA</> : <><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />Nenhuma fora do SLA</>}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Contatos</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{data?.contacts ?? "—"}</strong>
           <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{data?.contactsNewWeek ? `${data.contactsNewWeek} novos esta semana` : "Cadastros desta empresa"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Agentes ativos</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small className="text-xs font-semibold text-slate-600"> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
           <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500" aria-hidden="true" />{agentsPaused === 1 ? "1 em pausa" : agentsPaused > 1 ? `${agentsPaused} em pausa` : "Todos ativos"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Atendimentos finalizados</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{data?.completedConversations ?? "-"}</strong>
           <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Receita do mês</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
           <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">1ª resposta</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
           <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500" aria-hidden="true" />Média dos últimos 30 dias</em>
         </article>
       </div>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+      <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
         <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Equipe agora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Quem está atendendo neste momento</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200"><Users size={13} aria-hidden="true" />{team.length}</span></header>
         {team.length ? (
           <ul className="grid gap-3">
@@ -341,7 +341,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         <p className="border-t border-gray-200 pt-2.5 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">Véxora Intelligence Engine · IA · {kpis ? `${kpis.resolvedByAi} ${kpis.resolvedByAi === 1 ? "conversa resolvida" : "conversas resolvidas"} pela IA` : "sem dados ainda"}</p>
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+      <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Atividade recente</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Movimentações da sua operação</p></div>
           <button type="button" className="inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700 dark:text-sky-400 dark:hover:bg-slate-800 dark:hover:text-sky-300" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
@@ -359,7 +359,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         ) : <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">Os atendimentos desta empresa aparecerão aqui.</p>}
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+      <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Atendimentos por hora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 dark:bg-sky-400/15 dark:text-sky-400"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
@@ -367,7 +367,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         {hourly ? <HourlyChart hourly={hourly} /> : <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">Aguardando os primeiros atendimentos.</p>}
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+      <article className="grid content-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
         <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Do que as pessoas falam</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Top {topics.length || 0}</span></header>
         {topics.length ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -136,7 +136,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(theme, /@custom-variant ov-laptop \(@media \(max-width: 900px\)\);/);
 
   // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
-  assert.match(overview, /<section className="grid grid-cols-2 gap-5 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 ov-laptop:grid-cols-1"/);
+  assert.match(overview, /<section className="grid grid-cols-2 gap-5 bg-transparent ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
   assert.match(overview, /col-span-2 grid gap-5[^>]*data-testid="ov-hero"/);
   // O CTA do alerta não estica com a coluna: largura só do conteúdo.
@@ -144,12 +144,12 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(overview, /col-span-2 grid grid-cols-3 gap-5 ov-laptop:col-span-1 sm:grid-cols-1 xl:grid-cols-6/);
 
   // Equipe/Atividade e Gráfico/Tópicos são quatro colunas irmãs de 50%.
-  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-2xl[^"]*">/g) || [];
+  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-xl[^"]*">/g) || [];
   assert.equal(colunasIrma.length, 4, "as quatro seções devem dividir a grade 50/50");
-  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
+  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-xl/);
 
   // Widgets em colunas proporcionais (3/4/5) e uma coluna no mobile; onboarding em 2 passos.
-  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 max-md:grid-cols-1"/);
+  assert.match(widgets, /<section className="grid grid-cols-12 gap-4 bg-transparent max-md:grid-cols-1"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
   // Nenhuma das grades antigas que causavam 4+2 ou colunas estreitas.
@@ -208,12 +208,20 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   for (const [source, label] of [
     [onboarding, 'aria-label="Primeiros passos na Véxora"'],
     [welcome, 'aria-label="Comece por aqui"'],
-    [widgets, 'aria-label="Seu dia agora"'],
-    [overview, 'aria-label="Inteligência da operação"'],
   ]) {
     assert.ok(source.includes(label), `a seção ${label} perdeu o rótulo`);
     assert.ok(source.includes("bg-white"), `a seção ${label} não é branca no claro/híbrido`);
     assert.ok(source.includes("dark:bg-slate-900"), `a seção ${label} não usa slate-900 no dark`);
+  }
+
+  // As grades de widgets e de inteligência são transparentes: quem pinta fundo
+  // é o card filho, nunca a grade intermediária.
+  for (const [source, label, classes] of [
+    [widgets, 'aria-label="Seu dia agora"', "grid grid-cols-12 gap-4 bg-transparent max-md:grid-cols-1"],
+    [overview, 'aria-label="Inteligência da operação"', "grid grid-cols-2 gap-5 bg-transparent ov-laptop:grid-cols-1"],
+  ]) {
+    assert.ok(source.includes(label), `a seção ${label} perdeu o rótulo`);
+    assert.ok(source.includes(`<section className="${classes}" ${label}>`), `a seção ${label} não é transparente`);
   }
 
   assert.ok(onboarding.includes('dark:border-slate-700 dark:bg-slate-800'));

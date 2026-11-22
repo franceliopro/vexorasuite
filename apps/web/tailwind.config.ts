@@ -310,6 +310,9 @@ const config: Config = {
         /* Cartão de lembretes: mesma entrada, duração do legado. */
         "reminder-card": "vx-scrim-in .25s ease both",
         "vx-in": "vx-in .26s var(--ease) both",
+        /* Entradas de diálogo sem prefixo de token: mesmas curvas do preset. */
+        "dialog-scrim": "vx-scrim-in .18s ease both",
+        "dialog-in": "vx-in .26s var(--ease) both",
         "phone-pulse": "phone-pulse 2.4s ease-in-out infinite",
         "pf-spin": "pf-spin .8s linear infinite",
         "pf-typing": "pf-typing-bounce 1.15s ease-in-out infinite",
@@ -1124,8 +1127,8 @@ const config: Config = {
         "fm-picker": "repeat(auto-fill,minmax(150px,1fr))",
         /* Grades do shell do canvas do fluxo. A largura do inspetor vem da
            variável escrita pelo redimensionador, como dado do componente. */
-        "flow-shell": "260px minmax(0,1fr) var(--vx-flow-inspector-width)",
-        "flow-shell-left": "44px minmax(0,1fr) var(--vx-flow-inspector-width)",
+        "flow-shell": "260px minmax(0,1fr) var(--inspector-width, 360px)",
+        "flow-shell-left": "44px minmax(0,1fr) var(--inspector-width, 360px)",
         "flow-shell-right": "260px minmax(0,1fr) 44px",
         "flow-shell-both": "44px minmax(0,1fr) 44px",
         "flow-inspector-actions": "repeat(3,1fr)",

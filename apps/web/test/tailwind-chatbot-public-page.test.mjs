@@ -61,11 +61,11 @@ test("a página pública do bot usa só utilities, sem remendos", () => {
   }
   for (const utility of [
     "grid gap-2.5 rounded-token border border-line bg-surface-2 p-3",
-    "inline-flex w-max min-h-ib-control items-center gap-2.5 rounded-full border border-line bg-surface px-3",
-    "block break-all select-all rounded-ib-panel border border-line bg-surface p-2.5",
+    "inline-flex w-max min-h-9 items-center gap-2.5 rounded-full border border-line bg-surface px-3",
+    "block break-all select-all rounded-xl border border-line bg-surface p-2.5",
     "mt-3.5 grid gap-2.5 rounded-token-lg border border-dashed border-blue-600 bg-blue-50 p-3.5",
-    "grid gap-2.5 rounded-ib-panel border border-line p-2.5",
-    "inline-flex min-h-ib-control min-w-16 flex-none items-center justify-center rounded-ib-panel border-2",
+    "grid gap-2.5 rounded-xl border border-line p-2.5",
+    "inline-flex min-h-9 min-w-16 flex-none items-center justify-center rounded-xl border-2",
     "block overflow-x-auto whitespace-nowrap rounded-token-sm border border-line bg-slate-950",
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);

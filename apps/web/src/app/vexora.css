@@ -4844,40 +4844,6 @@ input[type=tel]{letter-spacing:.02em}
 @media (max-width:760px){.vx-onboarding-steps{grid-template-columns:1fr}.vx-onboarding-go{display:none}}
 
 /* ===== Curso Véxora ===== */
-.course-workspace{display:grid;gap:18px;max-width:980px}
-.course-hero{display:flex;gap:18px;align-items:center;padding:22px;border:1px solid var(--ln);border-radius:20px;background:linear-gradient(155deg,color-mix(in srgb,var(--primary) 12%,var(--s1)),var(--s1) 55%)}
-.course-hero svg{color:var(--primary);flex:none}
-.course-hero h1{margin:0;font:800 22px/1.25 var(--font-display);color:var(--tx)}
-.course-hero p{margin:4px 0 10px;color:var(--tx2);font-size:13px;line-height:1.5;max-width:62ch}
-.course-progress{display:flex;align-items:center;gap:10px}
-.course-progress-track{width:180px;height:8px;border-radius:99px;background:var(--s3);overflow:hidden}
-.course-progress-track>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 65%,#FFFFFF));transition:width .3s var(--ease)}
-.course-progress strong{font-size:11px;color:var(--tx2)}
-.course-hero .course-print{margin-left:auto;flex:none}
-.course-lessons{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.course-lesson{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--ln);border-radius:16px;background:var(--s1);transition:border-color .14s}
-.course-lesson.is-done{border-style:solid;border-color:color-mix(in srgb,var(--ok) 30%,var(--ln))}
-.course-lesson-toggle{flex:none;border:0;background:none;cursor:pointer;color:var(--tx2);padding:2px}
-.course-lesson-mark{color:var(--tx2)}
-.course-lesson.is-done .course-lesson-mark{color:var(--ok)}
-.course-lesson-body{display:grid;gap:6px;min-width:0}
-.course-lesson-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.course-lesson-head h2{margin:0;font:750 14.5px/1.3 var(--font-display);color:var(--tx)}
-.course-lesson-duration{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:750;color:var(--tx2);white-space:nowrap}
-.course-lesson p{margin:0;color:var(--tx2);font-size:12.5px;line-height:1.5}
-.course-lesson-points{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:3px;font-size:11.5px;color:var(--tx2)}
-.course-lesson-points li{display:flex;align-items:center;gap:6px}
-.course-lesson-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;font-size:10.5px;color:var(--tx2)}
-.course-lesson-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:var(--s2);border:1px solid var(--ln);font-weight:650}
-.course-certificate{display:grid;place-items:center;padding:20px}
-.course-certificate-inner{display:grid;justify-items:center;gap:8px;max-width:560px;text-align:center;padding:34px 30px;border:2px solid color-mix(in srgb,var(--primary) 55%,var(--ln));border-radius:22px;background:linear-gradient(160deg,color-mix(in srgb,var(--primary) 8%,#FFFFFF) 0%,var(--s1) 60%)}
-.course-certificate-inner svg{color:var(--primary)}
-.course-certificate-eyebrow{font:800 11px var(--font-display);letter-spacing:.14em;color:var(--tx2)}
-.course-certificate-inner h2{margin:0;font:800 19px var(--font-display);color:var(--tx)}
-.course-certificate-name{margin:0;font:800 26px var(--font-display);color:var(--primary-ink)}
-.course-certificate-text{margin:0;color:var(--tx2);font-size:13px;line-height:1.5}
-.course-certificate-foot{margin:0;color:var(--tx2);font-size:11px}
-@media print{.sidebar,.topbar,.workspace-actions,.course-lessons{display:none!important}.course-certificate{display:block}.course-certificate-inner{max-width:none;width:100%;border:0;border-radius:0;background:#fff}}
 
 /* ===== Catálogo + Orçamento rápido da inbox ===== */
 .catalog-quote-panel{display:grid;gap:10px;padding:12px 14px;min-height:320px}

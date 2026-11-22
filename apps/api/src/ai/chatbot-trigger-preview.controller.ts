@@ -2,10 +2,9 @@ import { BadRequestException, Body, Controller, Post, Req, UseGuards } from "@ne
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { matchesChatbotTrigger, RuntimeFlow } from "./flow-runtime";
 
-type Trigger = {kind:"message"|"dm"|"keyword";keyword?:string};
-type Draft = {name?:string;channelIds?:string[];triggers?:Trigger[];welcome?:string};
-function normalized(text:string){return text.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").trim().toLowerCase()}
+type Draft = {name?:string;channelIds?:string[];triggers?:RuntimeFlow["triggers"];welcome?:string};
 @Controller("chatbot/engine")
 @UseGuards(AuthGuard)
 export class ChatbotTriggerPreviewController {
@@ -17,9 +16,7 @@ export class ChatbotTriggerPreviewController {
   const root=tenant.integrations && typeof tenant.integrations==="object" && !Array.isArray(tenant.integrations)?tenant.integrations as Record<string,unknown>:{};
   const draft=root.chatbotDraft as Draft|undefined;
   if(!draft || !Array.isArray(draft.channelIds) || !draft.channelIds.includes(body.channelId as string))return {matched:false,reason:"channel_not_selected",executed:false,sent:false};
-  const triggers=Array.isArray(draft.triggers)&&draft.triggers.length?draft.triggers:[{kind:"message" as const}];
-  const messageText:string=body.text;
-  const matched=triggers.some(t=>t.kind==="message"&&body.eventType==="message" || t.kind==="dm"&&body.eventType==="dm" || t.kind==="keyword"&&typeof t.keyword==="string"&&normalized(messageText).includes(normalized(t.keyword as string)));
+  const matched=matchesChatbotTrigger(draft.triggers,body.text,body.eventType==="dm");
   return {matched,reason:matched?"draft_trigger_match":"trigger_not_matched",flowName:matched?draft.name:null,previewMessage:matched?draft.welcome:null,executed:false,sent:false,published:false,needsApproval:true};
  }
 }

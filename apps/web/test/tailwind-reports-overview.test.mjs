@@ -166,9 +166,9 @@ test("constantes e variantes resolvem para literais completos", () => {
   for (const literal of expected) {
     assert.ok(reports.includes(literal), `literal incompleto: ${literal}`);
   }
-  assert.ok(overview.includes('if (tone === "mint") return "bg-blue-100 text-blue-800";'));
-  assert.ok(overview.includes('if (tone === "amber") return "bg-amber-100 text-amber-600";'));
-  assert.ok(overview.includes('return "bg-red-100 text-red-600";'));
+  assert.ok(overview.includes('if (tone === "mint") return "bg-blue-100 text-blue-800 dark:bg-blue-400/15 dark:text-blue-300";'));
+  assert.ok(overview.includes('if (tone === "amber") return "bg-amber-100 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300";'));
+  assert.ok(overview.includes('return "bg-red-100 text-red-600 dark:bg-red-400/15 dark:text-red-300";'));
 });
 
 test("verde comum foi substituído por azul; dados verdes permanecem apenas como dados", () => {

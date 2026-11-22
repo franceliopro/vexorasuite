@@ -53,7 +53,7 @@ test("a home mantém as utilities e os marcadores funcionais", () => {
     'data-testid={active === "Visão geral" ? "ov-dock" : undefined}',
     'fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1',
     "Recolher menu", "Instalar Véxora", "workspaceTabs", "sidebarCollapsed", "applyBrandAll",
-    "#1D4ED8", 'aria-controls="mobile-navigation-menu"', 'id="mobile-navigation-menu"',
+    "#4F46E5", 'aria-controls="mobile-navigation-menu"', 'id="mobile-navigation-menu"',
     'aria-labelledby="sidebar-color-title"', 'id="sidebar-color-title"',
   ]) assert.ok(source.includes(marker), `faltou ${marker}`);
 

@@ -30,7 +30,7 @@ type DistributionSettings={enabled:boolean;strategy:"QUEUE"|"ROUND_ROBIN"|"LOAD"
 type Organization={name:string;cnpj:string;legalName:string;address:string;city:string;state:string;zipCode:string;mapsUrl:string};
 type MailStatus={transport:string;configured:boolean;host?:string;port:number;secure:boolean;user?:string;from?:string;missing:string[];warnings:string[];note:string};
 type MailTestResult={delivered:boolean;transport?:string;reason?:string;accepted?:string[]};
-const defaultBrand:BrandSettings={primaryColor:"#1D4ED8",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,displayName:"",fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
+const defaultBrand:BrandSettings={primaryColor:"#4F46E5",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,displayName:"",fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
 function settingsTabKey(tab:string){return tab.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g,"-");}
 /* Utilities TW das abas de Configurações (preset + tokens). */
 const headingTw = "mb-4 flex min-w-0 items-center justify-start gap-3";

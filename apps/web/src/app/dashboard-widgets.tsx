@@ -89,7 +89,7 @@ function ClockWidget() {
   }, []);
   const isNight = now.getHours() < 6 || now.getHours() >= 18;
   return (
-    <article className="col-span-3 grid content-center justify-items-center gap-2 rounded-2xl border border-indigo-200 bg-linear-to-br from-indigo-50 to-blue-100 p-4 text-center dark:border-slate-700 dark:from-slate-800 dark:to-slate-900 max-md:col-span-12" aria-label="Relógio e data de hoje">
+    <article className="col-span-3 grid content-center justify-items-center gap-2 rounded-2xl border border-indigo-200 bg-linear-to-br from-indigo-50 to-blue-100 p-4 text-center dark:border-slate-700 dark:from-slate-900 dark:to-slate-900 max-md:col-span-12" aria-label="Relógio e data de hoje">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-slate-50">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
       <time className="text-3xl font-semibold tabular-nums text-indigo-700 dark:text-blue-200 sm:text-4xl" dateTime={now.toISOString()}>{hhmmss()}</time>
       <p className="text-sm text-slate-600 dark:text-slate-300">Horário local</p>
@@ -226,7 +226,7 @@ function CalendarWidget() {
   const isWeekend = (index: number) => index % 7 === 0 || index % 7 === 6;
   const navButton = "grid h-7 w-7 place-items-center rounded-lg border border-purple-200 bg-white text-purple-700 transition-colors duration-200 hover:bg-purple-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700";
   return (
-    <article className="col-span-5 grid content-start gap-3 rounded-2xl border border-purple-200 bg-linear-to-br from-violet-50 to-blue-100 p-4 text-slate-800 dark:border-slate-700 dark:from-slate-800 dark:to-slate-900 dark:text-slate-100 max-md:col-span-12" aria-label="Calendário">
+    <article className="col-span-5 grid content-start gap-3 rounded-2xl border border-purple-200 bg-linear-to-br from-violet-50 to-blue-100 p-4 text-slate-800 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900 dark:text-slate-100 max-md:col-span-12" aria-label="Calendário">
       <div className="flex items-center justify-between gap-2">
         <strong className="text-sm font-bold text-slate-800 dark:text-slate-50">{monthLabel(year, month)}</strong>
         <div className="inline-flex items-center gap-1">

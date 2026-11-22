@@ -130,7 +130,7 @@ test("os contratos funcionais da home permanecem", () => {
     "vexora:mobile-assume", "vexora:mobile-transfer",
     "vexora:mobile-finalize", "vexora:install", "vexora:open-companies",
     "vexora:team-updated", "vexora:brand-updated",
-    "#1D4ED8",
+    "#4F46E5",
   ]) {
     assert.ok(page.includes(hook), `a home perdeu o contrato ${hook}`);
   }

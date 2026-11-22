@@ -72,14 +72,18 @@
   --sb-bg:var(--bg-surface);--sb-on:var(--bg-elevated);--sb-ln:var(--border-light);--sb-mut:var(--text-muted);--sb-tx:var(--text-main);--sb-thumb:var(--text-main);--sb-active:var(--primary);--sb-active-tx:#F8FAFC;
   --shadow:0 1px 2px rgba(0,0,0,.45),0 22px 48px -28px rgba(0,0,0,.88);--shadow-sm:0 1px 2px rgba(0,0,0,.5);--shadow-lg:0 6px 16px rgba(0,0,0,.26),0 36px 72px -34px rgba(0,0,0,.92);--sheen:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0));color-scheme:dark;
 }
-/* Profundidade do dark: a main é mais escura que a sidebar; os filhos de 1º
-   grau da main ficam na cor da sidebar; cards/netos e o hover desses filhos
-   sobem um tom. Títulos e informações complementares vêm de --text-main/--text-muted
-   através das classes `text-slate-*` já tokenizadas no preset. */
+/* Hierarquia ancorada em .page-content: a main mantém a cor do tema e a
+   .page-content não pinta fundo, herdando essa cor nos três temas. Filhos de
+   1º grau recebem a cor da sidebar (configurável pela empresa, inclusive
+   azul); netos e o hover desses filhos sobem um tom com --sb-on. No dark,
+   --sb-on é exatamente --bg-elevated e a sidebar é --bg-surface. */
+:root{--layer-child:var(--sb-bg);--layer-nested:var(--sb-on)}
+:root[data-theme=dark]{--layer-child:var(--bg-surface);--layer-nested:var(--bg-elevated)}
 :root[data-theme=dark] .main-area{background-color:var(--bg-base)}
-:root[data-theme=dark] .main-area>*{background-color:var(--bg-surface)}
-:root[data-theme=dark] .page-content>*{background-color:var(--bg-elevated)}
-:root[data-theme=dark] .page-content>*:hover{background-color:var(--bg-hover)}
+.page-content{background:transparent}
+.page-content>*{background-color:var(--layer-child)}
+.page-content>*:hover{background-color:var(--layer-nested)}
+.page-content>*>*{background-color:var(--layer-nested)}
 /* Barras de rolagem: a main usa --thumb (branca em área escura) e a sidebar
    usa --sb-thumb, que acompanha a cor configurada pelo cliente no híbrido. */
 :root[data-theme=dark] .page-content,

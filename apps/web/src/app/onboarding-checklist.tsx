@@ -13,8 +13,8 @@ type Step = {
 
 const DISMISS_KEY = "vexora:onboarding-dismissed";
 const stepIconTw: Record<string, string> = {
-  done: "grid h-7 w-7 place-items-center rounded-full bg-emerald-900/40 text-emerald-300",
-  pending: "grid h-7 w-7 place-items-center rounded-full bg-slate-700 text-slate-300",
+  done: "grid h-6 w-6 flex-none place-items-center rounded-full bg-emerald-400/20 text-emerald-700 dark:text-emerald-300",
+  pending: "grid h-6 w-6 flex-none place-items-center rounded-full bg-blue-400/20 text-blue-700 dark:text-blue-300",
 };
 
 async function safeFetch<T>(url: string): Promise<T | null> {
@@ -66,24 +66,22 @@ export function OnboardingChecklist({ onNavigate }: { onNavigate: (target: strin
   if (dismissed || (allDone && ready)) return null;
 
   return (
-    <section className="grid content-start gap-4 rounded-xl border border-slate-700 bg-slate-800 p-5" aria-label="Primeiros passos na Véxora">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5 text-blue-300">
-          <Sparkles size={18} aria-hidden="true" />
-          <div>
-            <h2 className="text-base font-semibold text-slate-50">Bem-vindo à Véxora — primeiros passos</h2>
-            <p className="text-sm text-slate-300">{allDone ? "Tudo pronto! Sua operação está calibrada." : `${doneCount} de ${steps.length} concluídos`}</p>
-          </div>
+    <section className="grid w-full max-w-5xl content-start gap-3 rounded-xl border border-blue-200 bg-linear-to-br from-blue-50 to-indigo-100 p-4 text-slate-800 dark:border-slate-700 dark:from-slate-800 dark:to-slate-900 dark:text-slate-100" aria-label="Primeiros passos na Véxora">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex flex-wrap items-center gap-1.5 text-blue-700 dark:text-blue-300">
+          <Sparkles size={16} aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-50">Bem-vindo à Véxora — primeiros passos</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300">{allDone ? "Tudo pronto! Sua operação está calibrada." : `${doneCount} de ${steps.length} concluídos`}</p>
         </div>
-        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors duration-200 hover:bg-slate-700" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); }}><X size={16} aria-hidden="true" /></button>
+        <button type="button" className="grid h-7 w-7 flex-none place-items-center rounded-lg border border-blue-200 bg-white/70 text-slate-600 transition-colors duration-200 hover:bg-white dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Dispensar checklist" onClick={() => { try { localStorage.setItem(DISMISS_KEY, "1"); } catch {} setDismissed(true); }}><X size={16} aria-hidden="true" /></button>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-700" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-blue-400 transition-all duration-300 ease-out" style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
+      <div className="h-1 overflow-hidden rounded-full bg-blue-200 dark:bg-slate-700" aria-hidden="true"><span className="block h-full rounded-full bg-linear-to-r from-blue-600 to-blue-400 transition-all duration-300 ease-out" style={{ width: (steps.length ? (doneCount / steps.length) * 100 : 0) + "%" }} /></div>
       <ol className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {steps.map((step) => (
-          <li key={step.id} className="grid grid-cols-3 items-center gap-3 rounded-lg border border-slate-700 bg-slate-900 p-4">
+          <li key={step.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-blue-100 px-3 py-2 dark:border-slate-700">
             <span className={stepIconTw[step.done ? "done" : "pending"]} aria-hidden="true">{step.done ? <Check size={14} strokeWidth={3} /> : <ClipboardList size={14} />}</span>
-            <span className="grid min-w-0"><strong className="truncate text-sm font-bold text-slate-50">{step.title}</strong><small className="truncate text-xs text-slate-300">{step.hint}</small></span>
-            <button type="button" className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2.5 text-xs font-bold text-slate-300 transition-colors duration-200 hover:border-blue-400 hover:text-blue-200 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onNavigate(step.target)} disabled={step.loading}>Configurar <ChevronRight size={14} aria-hidden="true" /></button>
+            <span className="grid min-w-0 flex-1"><strong className="truncate text-xs font-bold text-slate-800 dark:text-slate-50">{step.title}</strong><small className="truncate text-xs text-slate-600 dark:text-slate-300">{step.hint}</small></span>
+            <button type="button" className="inline-flex min-h-7 flex-none items-center gap-1 rounded-lg border border-blue-200 bg-white/80 px-2 text-xs font-bold text-blue-700 transition-colors duration-200 hover:border-blue-400 hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-blue-300" onClick={() => onNavigate(step.target)} disabled={step.loading}>Configurar <ChevronRight size={14} aria-hidden="true" /></button>
           </li>
         ))}
       </ol>

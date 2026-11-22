@@ -52,13 +52,13 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
   const hexEmClasse = [...semDados.matchAll(/className="[^"]*#[0-9a-fA-F]{3,8}/g)];
   assert.equal(hexEmClasse.length, 0, "hex direto em classe");
   for (const utility of [
-    "grid min-w-0 gap-4 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-lg",
+    "grid min-w-0 gap-4 rounded-lg border border-slate-200 bg-white p-6 text-slate-800 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50",
     "flex flex-wrap items-start gap-3",
-    "grid size-10 shrink-0 place-items-center rounded-lg bg-slate-800 text-slate-50",
+    "grid size-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-blue-700 dark:bg-slate-800 dark:text-slate-50",
     "grid grid-cols-2 gap-2 p-0 list-none max-md:grid-cols-4",
-    "min-h-9 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800",
+    "min-h-9 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-hidden placeholder:text-slate-500 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:placeholder:text-slate-400",
     "grid grid-cols-1 gap-3 max-md:grid-cols-2",
-    "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-700",
+    "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700",
     "bg-blue-600 px-4 text-sm font-bold text-white",
   ]) {
     assert.ok(semDados.includes(utility), `falta a utility ${utility}`);

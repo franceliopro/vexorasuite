@@ -111,6 +111,12 @@ test("a acessibilidade e os contratos do Calendário continuam intactos", () => 
   assert.equal((calendar.match(/role="status"/g) ?? []).length, 3);
 });
 
+test("mini-calendário e lista de compromissos mantêm linhas divisórias", () => {
+  assert.ok(calendar.includes('className="border-b border-gray-200 py-0.5 text-center text-2xs font-extrabold uppercase tracking-widest text-slate-600"'));
+  assert.ok(calendar.includes('place-items-center rounded-xl border-b border-gray-100 text-2xs'));
+  assert.ok(calendar.includes('rounded-xl border-b border-gray-200 px-3 py-2.5 text-left'));
+});
+
 test("as integrações e os modais do Calendário continuam intactos", () => {
   for (const endpoint of [
     '"/api/backend/integrations/google/calendar/"',

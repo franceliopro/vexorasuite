@@ -40,10 +40,11 @@ const statusPillStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-5
 const statusPillClass = (on: boolean) => `${statusPillTw} ${statusPillStateTw[on ? "on" : "off"]}`;
 const workspaceLayoutTw = "flex min-w-0 flex-col gap-token lg:flex-row";
 const workspaceNavTw = "flex shrink-0 flex-col gap-1 self-start rounded-token border border-line bg-surface-2 p-1.5 lg:w-52";
-const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 rounded-token-sm px-3 text-left text-body font-bold text-ink-secondary transition-colors hover:bg-surface hover:text-ink";
-const workspaceNavActiveTw = "bg-blue-600 text-blue-50 shadow-token-sm hover:bg-blue-600 hover:text-blue-50";
+const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 rounded-token-sm px-3 text-left text-body font-bold transition-colors";
+const workspaceNavIdleTw = "text-ink-secondary hover:bg-surface hover:text-ink";
+const workspaceNavActiveTw = "bg-blue-600 text-white shadow-token-sm hover:bg-blue-600 hover:text-white";
 const workspaceNavDividerTw = "my-1 border-t border-line";
-const workspaceNavItemClass = (active: boolean) => `${workspaceNavItemTw} ${active ? workspaceNavActiveTw : ""}`;
+const workspaceNavItemClass = (active: boolean) => `${workspaceNavItemTw} ${active ? workspaceNavActiveTw : workspaceNavIdleTw}`;
 const workspaceContentTw = "min-w-0 flex-1";
 const agentTabsTw = "mx-0 mb-3 flex max-w-full gap-1 overflow-x-auto border-b border-line pb-0";
 const tabTw = "shrink-0 rounded-full px-3.5 py-1.5 text-small font-bold transition-colors";
@@ -52,15 +53,15 @@ const tabClass = (active: boolean) => `${tabTw} ${tabStateTw[active ? "active" :
 const workspaceActionsTw = "flex flex-wrap items-center justify-end gap-2.5";
 const noticeTw = "rounded-token-sm border border-line bg-surface-2 px-3.5 py-2.5 text-body text-ink-secondary";
 const adminGridTw = "grid grid-cols-1 gap-token";
-const adminCardTw = "grid min-w-0 content-start gap-3 rounded-token border border-line bg-surface p-pad shadow-token";
+const adminCardTw = "grid min-w-0 content-start gap-4 rounded-token border border-line bg-surface p-pad shadow-token";
 const adminHeadingTw = "flex flex-wrap items-center gap-2 border-b border-line pb-3";
 const adminNoteTw = "text-small leading-relaxed text-ink-secondary";
 const agentHeaderTw = "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3";
 const helpTw = "m-0 rounded-xl border border-line bg-surface-2 px-4 py-3 text-small leading-relaxed text-ink-secondary";
-const adminFieldsTw = "grid gap-3";
+const adminFieldsTw = "grid gap-5";
 const toggleTw = "inline-flex cursor-pointer items-center gap-2 text-body";
 const agentsGridTw = "mt-3 flex w-full max-w-full gap-2 overflow-x-auto pb-1";
-const agentsGridEmptyTw = "mt-3 grid place-items-center gap-2.5 rounded-2xl border border-dashed border-line-strong p-6 text-center text-ink-secondary";
+const agentsGridEmptyTw = "mt-4 grid place-items-center gap-2.5 rounded-2xl border border-dashed border-line-strong p-6 text-center text-ink-secondary";
 const agentCardTw = "inline-flex min-w-0 shrink-0 items-center gap-2.5 rounded-token-sm border px-3 py-2 text-left transition-colors hover:shadow-token-sm";
 const agentCardStateTw: Record<string, string> = { selected: "border-blue-600 ring-2 ring-blue-600", idle: "border-line" };
 const agentCardClass = (selected: boolean) => `${agentCardTw} ${agentCardStateTw[selected ? "selected" : "idle"]}`;
@@ -83,42 +84,42 @@ const agentStatusTw = "rounded-full px-2 py-0.5 text-2xs font-extrabold uppercas
 const agentStatusStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-surface-2 text-ink-secondary" };
 const agentStatusClass = (on: boolean) => `${agentStatusTw} ${agentStatusStateTw[on ? "on" : "off"]}`;
 const agentTierTw = "text-2xs font-bold text-ink-secondary";
-const routingCardTw = "grid gap-3 rounded-xl border border-line bg-surface-2 p-3.5";
-const routingListTw = "grid gap-2.5";
+const routingCardTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-3.5";
+const routingListTw = "grid gap-3";
 const routingItemTw = "flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5";
-const checkboxGroupTw = "mt-4 grid min-w-0 gap-2.5 rounded-xl border border-line bg-surface-2 p-4";
+const checkboxGroupTw = "mt-5 grid min-w-0 gap-4 rounded-xl border border-line bg-surface-2 p-4";
 const checkboxGroupTitleTw = "px-0.5 text-small font-extrabold text-ink";
 const fieldHintTw = "m-0 text-small leading-relaxed text-ink-secondary";
-const moduleGridTw = "grid gap-2.5 sm:grid-cols-2";
+const moduleGridTw = "grid gap-3.5 sm:grid-cols-2";
 const moduleOptionTw = "flex min-h-11 items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 text-small font-semibold text-ink transition-colors hover:border-line-strong hover:bg-hover";
-const checkboxBlockTw = "grid gap-2.5 rounded-xl border border-line bg-surface-2 p-4";
+const checkboxBlockTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-4";
 const inlineLinkFieldTw = "flex flex-wrap items-end gap-2.5";
 const growFieldTw = "min-w-0 flex-1";
-const referenceListTw = "grid list-none gap-2 p-0";
+const referenceListTw = "grid list-none gap-3 p-0";
 const referenceIconTw = "shrink-0 text-blue-800";
 const previewTw = "m-0 overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-2 p-3 text-small leading-relaxed text-ink";
 const adminActionsTw = "flex justify-end";
-const prohibitionsBlockTw = "grid gap-2";
+const prohibitionsBlockTw = "grid gap-3";
 const prohibitionsActionsTw = "flex flex-wrap items-start gap-3";
-const freePresetTw = "mb-3.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-600 bg-blue-50 p-3.5";
+const freePresetTw = "mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-600 bg-blue-50 p-3.5";
 const freePresetTextTw = "grid gap-0.5";
-const subtleCardTw = "grid gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5";
-const modelGroupTw = "mt-3 grid min-w-0 gap-3 rounded-xl border border-line bg-surface-2 px-3.5 py-3";
-const fieldsetSpacingTw = "mt-3";
+const subtleCardTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-3.5";
+const modelGroupTw = "mt-5 grid min-w-0 gap-4 rounded-xl border border-line bg-surface-2 px-3.5 py-3";
+const fieldsetSpacingTw = "mt-5";
 const modelPresetsTw = "flex flex-wrap gap-2";
 const assistantPanelTw = "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg";
 const assistantHeadTw = "flex items-center justify-between border-b border-line px-4 py-3";
 const assistantContentTw = "grid min-h-0 flex-1 auto-rows-start gap-2.5 overflow-y-auto p-3.5";
 const assistantMessageTw = "rounded-xl bg-surface-2 p-2.5";
 const assistantFormTw = "flex items-center gap-2";
-const disclosureTw = "mt-3";
+const disclosureTw = "mt-5";
 const creativeSlideListTw = "flex flex-wrap gap-3";
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-brand-pad text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-brand-pad text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
-const surfaceFieldsTw = "grid min-w-0 gap-3 rounded-token border border-line bg-surface p-pad shadow-token";
+const surfaceFieldsTw = "grid min-w-0 gap-4 rounded-token border border-line bg-surface p-pad shadow-token";
 
-const phoneListTw = "grid list-none gap-2.5 p-0";
-const phoneCardTw = "grid gap-2 rounded-ai-phone border border-line bg-surface-2 p-3";
+const phoneListTw = "grid list-none gap-3 p-0";
+const phoneCardTw = "grid gap-3 rounded-ai-phone border border-line bg-surface-2 p-3";
 const phoneHeadTw = "flex items-center justify-between gap-2.5";
 const phoneNumberTw = "inline-flex items-center gap-2 text-body font-extrabold tabular-nums";
 const phoneRemoveTw = "inline-flex min-h-7 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-small font-semibold text-ink-secondary transition-colors hover:bg-surface hover:text-ink";
@@ -379,7 +380,7 @@ export function AiAgentsWorkspace() {
         return <button id={tabId} key={item} type="button" role="tab" aria-controls="ai-workspace-tabpanel" aria-selected={workspaceTab===item} className={workspaceNavItemClass(workspaceTab===item)} onClick={()=>setWorkspaceTab(item)}><Icon size={17} aria-hidden="true"/>{item}</button>;
       })}
       <span className={workspaceNavDividerTw} aria-hidden="true"/>
-      <button type="button" className={workspaceNavItemTw} onClick={()=>{void fetch("/api/backend/assistant/model-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(setCatalog).catch(()=>setNotice("Não foi possível atualizar os modelos."))}}><RefreshCw size={16} aria-hidden="true"/> Atualizar modelos</button>
+      <button type="button" className={`${workspaceNavItemTw} ${workspaceNavIdleTw}`} onClick={()=>{void fetch("/api/backend/assistant/model-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(setCatalog).catch(()=>setNotice("Não foi possível atualizar os modelos."))}}><RefreshCw size={16} aria-hidden="true"/> Atualizar modelos</button>
     </nav>
     <div className={workspaceContentTw}>
     <div id="ai-workspace-tabpanel" role="tabpanel" aria-labelledby={"ai-workspace-tab-"+workspaceTab.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}>

@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 /**
  * Guard de espaçamento do grupo B: todo <fieldset> destes arquivos precisa
- * de mt-3 na classe efetiva (literal ou constante TW), sem margens concorrentes.
+ * de mt-5 na classe efetiva (literal ou constante TW), sem margens concorrentes.
  */
 const FILES = [
   "src/app/finance-workspace.tsx",
@@ -106,7 +106,7 @@ function resolveClasses(expression, constants) {
 }
 
 for (const file of FILES) {
-  test(`${file}: todo fieldset com mt-3`, () => {
+  test(`${file}: todo fieldset com mt-5`, () => {
     const src = read(file);
     const constants = constantsOf(src);
     const tags = fieldsetTags(src);
@@ -122,9 +122,9 @@ for (const file of FILES) {
 
       for (const value of values) {
         const tokens = value.split(/\s+/).filter(Boolean);
-        assert.ok(tokens.includes("mt-3"), `${where}: falta mt-3 em "${value}"`);
+        assert.ok(tokens.includes("mt-5"), `${where}: falta mt-5 em "${value}"`);
         const margins = tokens.filter((token) => /^(?:m|mx|my|mt|mr|mb|ml)-/.test(token));
-        assert.deepEqual(margins, ["mt-3"], `${where}: margens inconsistentes em "${value}"`);
+        assert.deepEqual(margins, ["mt-5"], `${where}: margens inconsistentes em "${value}"`);
       }
     });
   });

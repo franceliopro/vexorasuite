@@ -51,7 +51,7 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
     "flex shrink-0 flex-col gap-1 self-start rounded-token border border-line bg-surface-2 p-1.5 lg:w-52",
     "mt-3 flex w-full max-w-full gap-2 overflow-x-auto pb-1",
     "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg",
-    "grid gap-2 rounded-ai-phone border border-line bg-surface-2 p-3",
+    "grid gap-3 rounded-ai-phone border border-line bg-surface-2 p-3",
     "bg-blue-600 px-brand-pad text-body font-bold text-blue-50",
   ]) {
     assert.ok(ai.includes(utility), `falta a utility ${utility}`);
@@ -67,6 +67,25 @@ test("a lista de agentes fica no topo, em horizontal e em largura total", () => 
   assert.ok(ai.includes('className={agentsGridTw} role="listbox" aria-label="Agentes de IA"'));
   assert.equal(ai.match(/role="listbox"/g)?.length, 1, "deve existir uma única lista de agentes");
   assert.equal(ai.includes("grid-cols-ai-layout"), false, "a lista não pode voltar para uma coluna estreita");
+});
+
+test("a navegação ativa usa texto branco sem cor herdada conflitante", () => {
+  assert.ok(ai.includes('const workspaceNavActiveTw = "bg-blue-600 text-white shadow-token-sm hover:bg-blue-600 hover:text-white"'));
+  assert.doesNotMatch(ai, /const workspaceNavItemTw = "[^"]*text-(?:ink|slate|blue-50)/);
+  assert.ok(ai.includes("active ? workspaceNavActiveTw : workspaceNavIdleTw"));
+  assert.ok(ai.includes("`${workspaceNavItemTw} ${workspaceNavIdleTw}`"));
+});
+
+test("os blocos das abas do agente têm respiro entre si", () => {
+  for (const token of [
+    'const adminFieldsTw = "grid gap-5"',
+    'const surfaceFieldsTw = "grid min-w-0 gap-4 rounded-token border border-line bg-surface p-pad shadow-token"',
+    'const checkboxGroupTw = "mt-5 grid min-w-0 gap-4 rounded-xl border border-line bg-surface-2 p-4"',
+    'const subtleCardTw = "grid gap-4 rounded-xl border border-line bg-surface-2 p-3.5"',
+    'const fieldsetSpacingTw = "mt-5"',
+  ]) {
+    assert.ok(ai.includes(token), `falta o espaçamento: ${token}`);
+  }
 });
 
 test("os contratos de acessibilidade do workspace permanecem intactos", () => {

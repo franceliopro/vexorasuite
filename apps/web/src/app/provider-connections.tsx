@@ -99,7 +99,7 @@ export function ProviderConnections() {
           </li>;
         })}</ul>
       </section>
-      <fieldset className="mt-3 grid gap-2.5 rounded-token-sm border border-gray-200 p-provider-pad"><legend>Prioridade de custo</legend>
+      <fieldset className="mt-5 grid gap-2.5 rounded-token-sm border border-gray-200 p-provider-pad"><legend>Prioridade de custo</legend>
         <label className={togglerTw}><input type="checkbox" className={checkTw} checked={policy.freeFirst} disabled={busy} onChange={event=>setPolicy(value=>({...value,freeFirst:event.target.checked}))}/> Priorizar modelos locais e gratuitos · OpenRouter Free</label>
         <label className={togglerTw}><input type="checkbox" className={checkTw} checked={policy.allowPaidFallback} disabled={busy} onChange={event=>setPolicy(value=>({...value,allowPaidFallback:event.target.checked}))}/> Permitir modelos pagos configurados como contingência</label>
         <p className={noteTw}>Com a prioridade ativa, modelos Ollama configurados vêm primeiro, depois openrouter/free. Sem contingência paga, o limite gratuito interrompe a execução. A cota do OpenRouter depende da conta; consulte os valores informados pelo provedor abaixo.</p>

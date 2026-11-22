@@ -37,6 +37,36 @@ type SiteEditorWindowProps = {
 
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 
+/* Janela e dock do editor: utilities literais sobre os tokens do preset. A camada
+   fullscreen não tem utility própria, então vem do token legado via style, como
+   no wizard — nenhum valor arbitrário entra no className. */
+const editorWindowTw = "fixed inset-0 flex flex-col bg-surface-page text-ink";
+const editorWindowStyle: React.CSSProperties = { zIndex: "var(--z-fullscreen-window, 10000)" };
+const editorDockTw = "fixed bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-token border border-line bg-surface p-1.5 shadow-token-lg";
+const editorDockStyle: React.CSSProperties = { zIndex: "var(--z-fullscreen-dock, 10001)" };
+const dockRestoreTw = "inline-flex items-center gap-1.5 rounded-token border-0 bg-brand px-4 py-2 text-sm font-bold text-white";
+const dockCloseTw = "inline-flex size-9 items-center justify-center rounded-token border border-line bg-surface text-ink";
+const previewBarTw = "flex flex-none flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-2.5";
+const previewCopyTw = "mr-auto flex min-w-60 flex-col gap-0.5";
+const previewCopyTitleTw = "text-sm text-ink";
+const previewCopyMetaTw = "text-xs text-ink-secondary";
+const previewExpiryTw = "text-xs text-ink-secondary";
+const previewErrorTw = "basis-full text-xs text-danger";
+type AiStatus = "ok" | "error";
+const aiStatusTw: Record<AiStatus, string> = {
+  ok: "mx-4 flex-none rounded-token-sm border border-success bg-success-soft px-3 py-2 text-sm text-success",
+  error: "mx-4 flex-none rounded-token-sm border border-danger bg-danger/10 px-3 py-2 text-sm text-danger",
+};
+const editorSettingsTw = "group flex-none px-4 text-ink open:border-b open:border-line open:pb-2";
+const editorSettingsSummaryTw = "cursor-pointer py-2 text-sm font-bold text-ink-secondary group-open:text-ink";
+const editorResponsesTw = "group flex-none px-4 text-ink";
+const editorResponsesSummaryTw = "cursor-pointer py-1.5 text-sm font-bold text-ink-secondary group-open:text-ink";
+const editorResponsesBodyTw = "mb-2 flex max-h-42 flex-col gap-2 overflow-y-auto rounded-token-sm border border-line bg-surface px-3 pb-3 pt-2";
+const editorResponseTw = "rounded-token-sm border border-line px-2.5 py-2";
+const editorResponseHeadTw = "flex justify-between gap-3 text-xs";
+const editorResponseTimeTw = "text-ink-secondary";
+const editorResponseValueTw = "mt-1 break-words";
+
 type Device = "desktop" | "tablet" | "mobile";
 
 function isDocument(value: unknown): value is SiteDocument {
@@ -314,19 +344,19 @@ export default function SiteEditorWindow({
     }
   }, [siteId]);
 
-  // O workspace anima .page-content > * com `vx-page-in ... both`; o transform
-  // resultante vira containing block de position: fixed. O portal em document.body
-  // garante que a janela do editor cubra o viewport de verdade.
+  // O workspace anima .page-content > * na entrada; o transform resultante vira
+  // containing block de position: fixed. O portal em document.body garante que a
+  // janela do editor cubra o viewport de verdade.
   if (typeof document === "undefined") return null;
 
   if (minimized) {
     return createPortal(
-      <div className="vx-editor-editor-dock" role="region" aria-label="Editor minimizado">
-        <button type="button" className="vx-wizard-dock-btn" onClick={() => setMinimized(false)} title="Restaurar editor">
+      <div className={editorDockTw} style={editorDockStyle} role="region" aria-label="Editor minimizado">
+        <button type="button" className={dockRestoreTw} onClick={() => setMinimized(false)} title="Restaurar editor">
           <Maximize2 size={16} aria-hidden="true" />
           <span>Editando: {title}{dirty ? " • não salvo" : ""}</span>
         </button>
-        <button type="button" className="vx-wizard-dock-close" onClick={requestClose} aria-label="Fechar editor" title="Fechar editor">
+        <button type="button" className={dockCloseTw} onClick={requestClose} aria-label="Fechar editor" title="Fechar editor">
           <X size={16} aria-hidden="true" />
         </button>
       </div>,
@@ -335,7 +365,7 @@ export default function SiteEditorWindow({
   }
 
   return createPortal(
-    <div className="vx-editor-window" role="region" aria-label={`Editor do site ${title}`}>
+    <div className={editorWindowTw} style={editorWindowStyle} role="region" aria-label={`Editor do site ${title}`}>
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 24, color: "var(--text-secondary)" }} role="status">
           <Loader2 className="animate-spin" size={18} aria-hidden="true" /> Abrindo editor…
@@ -355,10 +385,10 @@ export default function SiteEditorWindow({
 
       {!loading && !error && doc ? (
         <>
-          <section className="vx-editor-preview-bar" aria-label="Prévia temporária">
-            <div className="vx-editor-preview-copy">
-              <strong>Ver antes de publicar</strong>
-              <small>
+          <section className={previewBarTw} aria-label="Prévia temporária">
+            <div className={previewCopyTw}>
+              <strong className={previewCopyTitleTw}>Ver antes de publicar</strong>
+              <small className={previewCopyMetaTw}>
                 Prévia temporária do rascunho salvo · não é publicação · o link expira em 2 horas
               </small>
             </div>
@@ -379,17 +409,17 @@ export default function SiteEditorWindow({
                 <button type="button" className={secondaryTw} onClick={() => void copyPreviewLink()}>
                   <Copy size={14} aria-hidden="true" /> Copiar
                 </button>
-                <small className="vx-editor-preview-expiry">
+                <small className={previewExpiryTw}>
                   Válido até {new Date(previewLink.expiresAt).toLocaleString("pt-BR")}
                 </small>
               </>
             ) : null}
-            {previewError ? <p role="alert" className="vx-editor-preview-error">{previewError}</p> : null}
+            {previewError ? <p role="alert" className={previewErrorTw}>{previewError}</p> : null}
           </section>
 
           {aiMessage ? (
             <div
-              className={`vx-editor-ai-status ${aiMessage.error ? "is-error" : "is-ok"}`}
+              className={aiMessage.error ? aiStatusTw.error : aiStatusTw.ok}
               role={aiMessage.error ? "alert" : "status"}
             >
               {aiMessage.text}
@@ -399,116 +429,116 @@ export default function SiteEditorWindow({
       ) : null}
 
       {!loading && !error && doc ? (
-        <details className="vx-editor-settings">
-          <summary>Domínio, publicação e respostas</summary>
+        <details className={editorSettingsTw}>
+          <summary className={editorSettingsSummaryTw}>Domínio, publicação e respostas</summary>
           <div
             style={{
               display: "flex",
               flexWrap: "wrap",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 16px",
-            borderBottom: "1px solid var(--border)",
-            background: "var(--surface)",
-          }}
-        >
-          <label htmlFor={`domain-${siteId}`} style={{ fontSize: "0.8125rem", fontWeight: 700 }}>
-            Domínio próprio
-          </label>
-          <input
-            id={`domain-${siteId}`}
-            type="text"
-            value={domainInput}
-            onChange={(event) => setDomainInput(event.target.value)}
-            placeholder="www.seusite.com.br"
-            aria-label="Domínio do site"
-            style={{
-              padding: "0.45rem 0.6rem",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-sm)",
-              background: "var(--background)",
-              color: "var(--text)",
-              minWidth: 220,
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 16px",
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface)",
             }}
-          />
-          <button type="button" className={secondaryTw} onClick={() => void bindDomain()} disabled={domainBusy}>
-            Vincular
-          </button>
-          <button type="button" className={secondaryTw} onClick={() => void verifyDomain()} disabled={domainBusy || !domainInput}>
-            Verificar
-          </button>
-          <span style={{ fontSize: "0.75rem", opacity: 0.75 }}>Status: {domainState}</span>
-          {domainMessage ? (
-            <small role="status" style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--ok)" }}>
-              {domainMessage}
-            </small>
-          ) : null}
-          {domainError ? (
-            <small role="alert" style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--bad)" }}>
-              {domainError}
-            </small>
-          ) : null}
+          >
+            <label htmlFor={`domain-${siteId}`} style={{ fontSize: "0.8125rem", fontWeight: 700 }}>
+              Domínio próprio
+            </label>
+            <input
+              id={`domain-${siteId}`}
+              type="text"
+              value={domainInput}
+              onChange={(event) => setDomainInput(event.target.value)}
+              placeholder="www.seusite.com.br"
+              aria-label="Domínio do site"
+              style={{
+                padding: "0.45rem 0.6rem",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                background: "var(--background)",
+                color: "var(--text)",
+                minWidth: 220,
+              }}
+            />
+            <button type="button" className={secondaryTw} onClick={() => void bindDomain()} disabled={domainBusy}>
+              Vincular
+            </button>
+            <button type="button" className={secondaryTw} onClick={() => void verifyDomain()} disabled={domainBusy || !domainInput}>
+              Verificar
+            </button>
+            <span style={{ fontSize: "0.75rem", opacity: 0.75 }}>Status: {domainState}</span>
+            {domainMessage ? (
+              <small role="status" style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--ok)" }}>
+                {domainMessage}
+              </small>
+            ) : null}
+            {domainError ? (
+              <small role="alert" style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--bad)" }}>
+                {domainError}
+              </small>
+            ) : null}
           </div>
 
           {publishError ? (
-        <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--bad)", borderRadius: "var(--r)" }} role="alert">
-          <p style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-            <AlertCircle size={16} aria-hidden="true" /> {publishError}
-          </p>
-        </div>
-      ) : null}
+            <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--bad)", borderRadius: "var(--r)" }} role="alert">
+              <p style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+                <AlertCircle size={16} aria-hidden="true" /> {publishError}
+              </p>
+            </div>
+          ) : null}
 
-      {publishResult ? (
-        <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--ok)", borderRadius: "var(--r)" }} role="status">
-          <p style={{ margin: 0, fontSize: "0.875rem" }}>
-            {publishResult.idempotent ? "Este conteúdo já estava publicado. " : "Publicação concluída. "}
-            {publishResult.url ? (
-              <a href={publishResult.url} target="_blank" rel="noopener noreferrer">
-                Abrir site publicado
-              </a>
-            ) : null}
-          </p>
-        </div>
-      ) : null}
+          {publishResult ? (
+            <div style={{ padding: 12, margin: "0 16px", border: "1px solid var(--ok)", borderRadius: "var(--r)" }} role="status">
+              <p style={{ margin: 0, fontSize: "0.875rem" }}>
+                {publishResult.idempotent ? "Este conteúdo já estava publicado. " : "Publicação concluída. "}
+                {publishResult.url ? (
+                  <a href={publishResult.url} target="_blank" rel="noopener noreferrer">
+                    Abrir site publicado
+                  </a>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
 
           <details
-            className="vx-editor-responses"
-          onToggle={(event) => {
-            if (event.currentTarget.open && !submissions && !submissionsLoading) void loadSubmissions();
-          }}
-        >
-          <summary>Respostas do formulário{submissions ? ` (${submissions.total})` : ""}</summary>
-          <div className="vx-editor-responses-body">
-            <button
-              type="button"
-              className={secondaryTw}
-              onClick={() => void loadSubmissions()}
-              disabled={submissionsLoading}
-            >
-              {submissionsLoading ? "Atualizando…" : "Atualizar"}
-            </button>
-            {submissionsError ? <p role="alert" style={{ color: "var(--bad)" }}>{submissionsError}</p> : null}
-            {!submissions && !submissionsError && !submissionsLoading ? (
-              <p style={{ color: "var(--text-secondary)" }}>As respostas enviadas pelo site publicado aparecem aqui.</p>
-            ) : null}
-            {submissions && !submissions.submissions.length ? (
-              <p style={{ color: "var(--text-secondary)" }}>Nenhuma resposta recebida ainda.</p>
-            ) : null}
-            {submissions?.submissions.map((row) => (
-              <article key={row.id} className="vx-editor-response">
-                <header>
-                  <strong>{row.formName}</strong>
-                  <time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString("pt-BR")}</time>
-                </header>
-                <p>
-                  {Object.entries(row.values ?? {})
-                    .map(([key, value]) => `${key}: ${String(value ?? "")}`)
-                    .join(" · ")}
-                </p>
-              </article>
-            ))}
-          </div>
-        </details>
+            className={editorResponsesTw}
+            onToggle={(event) => {
+              if (event.currentTarget.open && !submissions && !submissionsLoading) void loadSubmissions();
+            }}
+          >
+            <summary className={editorResponsesSummaryTw}>Respostas do formulário{submissions ? ` (${submissions.total})` : ""}</summary>
+            <div className={editorResponsesBodyTw}>
+              <button
+                type="button"
+                className={secondaryTw}
+                onClick={() => void loadSubmissions()}
+                disabled={submissionsLoading}
+              >
+                {submissionsLoading ? "Atualizando…" : "Atualizar"}
+              </button>
+              {submissionsError ? <p role="alert" style={{ color: "var(--bad)" }}>{submissionsError}</p> : null}
+              {!submissions && !submissionsError && !submissionsLoading ? (
+                <p style={{ color: "var(--text-secondary)" }}>As respostas enviadas pelo site publicado aparecem aqui.</p>
+              ) : null}
+              {submissions && !submissions.submissions.length ? (
+                <p style={{ color: "var(--text-secondary)" }}>Nenhuma resposta recebida ainda.</p>
+              ) : null}
+              {submissions?.submissions.map((row) => (
+                <article key={row.id} className={editorResponseTw}>
+                  <header className={editorResponseHeadTw}>
+                    <strong>{row.formName}</strong>
+                    <time className={editorResponseTimeTw} dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString("pt-BR")}</time>
+                  </header>
+                  <p className={editorResponseValueTw}>
+                    {Object.entries(row.values ?? {})
+                      .map(([key, value]) => `${key}: ${String(value ?? "")}`)
+                      .join(" · ")}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </details>
         </details>
       ) : null}
 

@@ -45,8 +45,8 @@ test("o editor de sites usa so utilities, sem remendos", () => {
 
 test("os contratos do editor de sites permanecem intactos", () => {
   for (const token of [
-    '<details className="vx-editor-settings">', "Dom\u00ednio, publica\u00e7\u00e3o e respostas",
-    '<div className="vx-editor-window"', "readOnly={!canEdit}", "saving={saving}", "publishing={publishing}",
+    '<details className={editorSettingsTw}>', "Dom\u00ednio, publica\u00e7\u00e3o e respostas",
+    '<div className={editorWindowTw}', "readOnly={!canEdit}", "saving={saving}", "publishing={publishing}",
     "aiFeedback={aiMessage}", "Ver pr\u00e9via tempor\u00e1ria", "Voltar para Sites", "Vincular", "Verificar",
   ]) assert.ok(editor.includes(token), `editor perdeu ${token}`);
 });

@@ -36,7 +36,7 @@ test("saving and publishing are transient states, not a permission denial", () =
 
 test("AI patch feedback is visible outside the collapsed settings", () => {
   const feedbackIndex = windowSource.indexOf("{aiMessage ? (");
-  const settingsIndex = windowSource.indexOf('<details className="vx-editor-settings">');
+  const settingsIndex = windowSource.indexOf('<details className={editorSettingsTw}>');
   assert.ok(feedbackIndex > -1, "window must render the AI result");
   assert.ok(settingsIndex > -1, "settings must remain collapsible");
   assert.ok(feedbackIndex < settingsIndex, "AI feedback must not live inside collapsed settings");

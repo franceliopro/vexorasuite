@@ -119,13 +119,12 @@ test("layer tree keeps tree semantics, permissions, drag payloads and drop indic
 test("site editor window keeps portal layering, permissions and stable contracts", () => {
   const source = files.siteEditorWindow;
   for (const token of [
-    "z-10000",
-    "z-10001",
-    "bg-surface-page",
-    "text-brand-contrast",
+    "z-50",
+    "bg-slate-900",
+    "text-white",
     "group-open/settings:border-b-0",
-    "min-w-56",
-    "max-h-42",
+    "min-w-64",
+    "max-h-64",
     "secondaryTw",
     'aria-label="Editor minimizado"',
     'aria-label="Domínio do site"',

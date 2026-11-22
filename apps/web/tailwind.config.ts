@@ -1120,7 +1120,7 @@ const config: Config = {
         "calendar-layout": "minmax(260px, 320px) minmax(0, 1fr)",
         "calendar-event": "auto auto minmax(0, 1fr) auto auto",
         /* Preferências de lembretes de Tarefas. */
-        "tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))",
+        "tasks-reminders": "minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(6rem, 0.45fr)",
         /* Grades da gestão de inbox do Atendimento. */
         "ib-inboxes": "repeat(2, minmax(0, 1fr))",
         "ib-compact-meta": "repeat(3, minmax(0, 1fr))",

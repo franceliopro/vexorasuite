@@ -43,7 +43,7 @@ test("Tarefas usa só utilities do preset, sem remendos", () => {
   ].filter((item) => item !== "grid-flow-row")) {
     assert.ok(tasks.includes(utility), `falta a utility ${utility}`);
   }
-  assert.ok(config.includes('"tasks-reminders": "repeat(auto-fit, minmax(210px, 1fr))"'));
+  assert.ok(config.includes('"tasks-reminders": "minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(6rem, 0.45fr)"'));
 });
 
 test("a acessibilidade e os mocks de Tarefas continuam intactos", () => {
@@ -58,10 +58,30 @@ test("a acessibilidade e os mocks de Tarefas continuam intactos", () => {
   assert.ok(tasks.includes('aria-label="Máximo de avisos por dia"'));
   assert.ok(tasks.includes("tabIndex={-1}"));
   assert.ok(tasks.includes("useModalDialog(form,modalRef,"));
-  assert.doesNotMatch(tasks, /role="tablist"/);
+  assert.ok(tasks.includes('role="tablist"'));
+  assert.ok(tasks.includes('aria-label="Áreas de Tarefas"'));
+  assert.ok(tasks.includes('id="tasks-tabpanel"'));
+  assert.ok(tasks.includes('id="reminders-tabpanel"'));
+  assert.ok(tasks.includes('aria-controls="tasks-tabpanel"'));
+  assert.ok(tasks.includes('aria-controls="reminders-tabpanel"'));
 
   assert.ok(tasks.includes('fetch("/api/backend/tasks"+path'));
   assert.ok(tasks.includes('api<Task[]>("?status="+filter+"&scope=internal")'));
   assert.ok(tasks.includes('api<Metrics>("/metrics")'));
   assert.ok(tasks.includes('fetch("/api/backend/reminders/settings"'));
+});
+
+test("Tarefas mostra status no topo e mantém dados em coluna", () => {
+  for (const label of ["Atrasadas", "Concluídas hoje", "Todas"]) {
+    assert.ok(tasks.includes(label), `falta o cartão de status ${label}`);
+  }
+  assert.ok(tasks.includes("metrics.completedToday"));
+  assert.ok(tasks.includes('min===120?"2h"'));
+  assert.ok(tasks.includes("grid-cols-1 gap-2.5 sm:grid-cols-3"));
+  assert.ok(tasks.includes("sm:grid-cols-3"));
+  assert.ok(tasks.includes("max-w-20"));
+  assert.ok(tasks.includes("min-w-0"));
+  assert.ok(tasks.includes("whitespace-nowrap text-ellipsis"));
+  assert.ok(tasks.includes("line-clamp-2"));
+  assert.doesNotMatch(tasks, /120 min/);
 });

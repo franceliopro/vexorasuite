@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlarmClock, Check, TimerReset } from "lucide-react";
 
 type Alarm = { id: string; title: string; time: string; date?: string; weekdays?: number[]; enabled: boolean };
-const alarmSnoozeTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure border border-slate-600 bg-slate-700/50 px-4.5 text-body font-bold text-slate-100 shadow-token-sm transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 alarm-snooze";
-const alarmStopTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure bg-blue-600 px-6.5 text-sm font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 alarm-stop";
+const alarmSnoozeTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure border border-slate-600 bg-slate-700/50 px-4.5 text-body font-bold text-slate-100 shadow-token-sm transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+const alarmStopTw = "inline-flex min-h-14 items-center justify-center gap-2.5 rounded-fin-figure bg-blue-600 px-6.5 text-sm font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const FIRED_KEY = "vx:alarms:fired";
 const SNOOZED_KEY = "vx:alarms:snoozed";
 const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -177,8 +177,8 @@ export function AlarmCenter() {
               <h1 className="font-display font-extrabold text-white" style={{ fontSize: "clamp(26px,4.6vw,42px)", lineHeight: 1.14, letterSpacing: "-0.02em" }}>{alarm.title}</h1>
               <p className="mt-1.5 text-body text-slate-300">{describe(alarm)}</p>
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2.5">
-                <button type="button" className={alarmSnoozeTw} onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>
-                <button type="button" className={alarmStopTw} onClick={() => dismiss(alarm)}><Check size={18} aria-hidden="true" /> Parar</button>
+                <button type="button" data-testid="alarm-snooze" className={alarmSnoozeTw} onClick={() => snooze(alarm)}><TimerReset size={17} aria-hidden="true" /> Adiar 5 min</button>
+                <button type="button" data-testid="alarm-stop" className={alarmStopTw} onClick={() => dismiss(alarm)}><Check size={18} aria-hidden="true" /> Parar</button>
               </div>
             </li>
           ))}

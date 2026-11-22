@@ -214,6 +214,138 @@ Não é one-click. Checklist mínimo: dump e arquivos → ambiente temporário �
 - `docs/implementation-register.md` e `docs/production-readiness.md` não confirmam publicação real, TLS ou domínio ativo.
 - `docs/isolated-sites-and-platform-admin.md` registra provisionamento de departamentos/pipelines por pacote — não confundir com provisionamento de host.
 
-### Decisões pendentes
+### Decisões pendentes — resolvidas em 2026-11-22
 
-Linguagem do script; tipo dos sites atuais; significado exato de “puxar o cliente” (arquivos+banco ou conta inteira); provedor de origem; estratégia de cofre de senhas; quem assina a troca de DNS.
+As seis perguntas acima foram respondidas pelo proprietário e estão consolidadas na §11.
+
+## 11. Arquitetura concreta do provisionador
+
+**Status:** desenho aprovado para discussão; **código ainda não criado**. Nada aqui afirma que algo está publicado, integrado ou funcionando.
+
+### 11.1 Decisões confirmadas
+
+| Item | Decisão |
+|---|---|
+| Script | Ainda não existe; será criado em conjunto com o proprietário |
+| Proxy | Traefik interno do Dokploy |
+| Acesso ao Docker | Socket do Docker montado no serviço provisionador |
+| Projeto Dokploy | `Estúdio de Sites`; serviço `Base` com MariaDB 11, phpMyAdmin e Filebrowser (via Docker) |
+| Sites atuais | 1 CMS próprio em PHP/MySQL (imobiliária), 2 WordPress, 1 WordPress infectado que será refeito como estático |
+| Migração | Arquivos + banco; e-mail fica na Zoho Mail e está fora de escopo |
+| Provedor de origem | Valuehost; o proprietário controla tudo, inclusive DNS |
+| Cofre de senhas | Ainda não existe; adotar Docker secrets como primeiro passo |
+| Linguagem | Node.js + TypeScript é a recomendação do plano; confirmar antes de escrever o primeiro arquivo de código |
+
+### 11.2 Topologia no Dokploy
+
+```text
+Projeto: Estúdio de Sites
+├─ serviço Base
+│  ├─ MariaDB 11
+│  ├─ phpMyAdmin
+│  └─ Filebrowser
+├─ serviço provisionador (novo, Node/TS)
+│  └─ /var/run/docker.sock
+├─ rede interna: provisionador ↔ Base ↔ containers dos sites
+└─ Traefik interno: vhost por site + TLS
+```
+
+O provisionador é um **app interno de operação**, fora do core da Véxora. A Véxora continua sendo a porta de entrada: pedido, aprovação, registro e auditoria.
+
+### 11.3 API do provisionador
+
+```text
+POST /provision/dry-run            → plano de ações; não cria nada
+POST /provision/apply              → cria pasta, banco, usuário, vhost
+GET  /provision/:requestId/status  → estado real: pasta, banco, TLS, health
+POST /provision/:requestId/rollback→ desfaz apenas o criado pelo job
+```
+
+Contratos:
+
+- `requestId` enviado pela Véxora é a chave de idempotência; repetir `apply` não duplica recurso.
+- Estado persistido em tabela própria `provisioning_jobs`, separada dos bancos dos clientes.
+- Log estruturado **sem senha, token ou string de conexão**.
+- Webhook assinado entre Véxora e provisionador, com ID de correlação, retry e log.
+- Nenhum `apply` sem aprovação humana registrada na Véxora.
+- Publicação só é marcada na Véxora após health-check real no domínio final.
+
+Entrada típica:
+
+```json
+{
+  "requestId": "vx-123",
+  "tenantId": "...",
+  "slug": "alto-araguaia-imoveis",
+  "domain": "exemplo.com.br",
+  "type": "php-mysql",
+  "phpVersion": "8.3",
+  "quotaGb": 2,
+  "source": "valuehost"
+}
+```
+
+Saída típica:
+
+```json
+{
+  "folder": "/sites/alto-araguaia-imoveis",
+  "database": "site_alto_araguaia_imoveis",
+  "dbUser": "site_alto_araguaia_imoveis",
+  "vhost": "aplicado",
+  "dnsPending": ["CNAME → traefik"],
+  "tls": "pending",
+  "healthUrl": "https://exemplo.com.br/health"
+}
+```
+
+### 11.4 Isolamento e segurança
+
+- Pasta, banco, usuário de banco e credenciais **por site**.
+- Senha gerada pelo provisionador e gravada como Docker secret; nunca em log, response ou variável de ambiente visível na GUI.
+- phpMyAdmin sem login global; acesso restrito à rede interna.
+- O socket do Docker dá ao provisionador controle quase total do host. Mitigações obrigatórias antes do primeiro `apply`: allowlist de imagens e comandos, container sem privilégios adicionais além do socket, rede isolada, backup prévio e rollback testado.
+- `dry-run` é sempre o primeiro passo de qualquer job; `apply` só aceita um plano gerado por `dry-run`.
+
+### 11.5 Plano dos quatro sites
+
+| Site citado | Estado atual | Destino | Estratégia |
+|---|---|---|---|
+| Imobiliária (Alto Araguaia Imóveis) | CMS próprio em PHP/MySQL | PHP/MySQL isolado | Copiar arquivos + dump; ajustar config de banco e caminhos |
+| Site WordPress A | WordPress | WordPress isolado | Copiar arquivos + dump; search-replace serializado de URLs |
+| Site WordPress B | WordPress | WordPress isolado | Copiar arquivos + dump; search-replace serializado de URLs |
+| Site WordPress infectado | WordPress comprometido | Estático | Não migrar código infectado; exportar conteúdo saneado e refazer |
+
+Rastreabem permanece como referência de cliente/segmento, não como identidade global nem site obrigatório nesta leva.
+
+### 11.6 Sequência de migração por site
+
+1. Inventário no Valuehost: arquivos, dump, versões, cron, redirecionamentos e formulários.
+2. Reduzir TTL de DNS.
+3. Copiar arquivos e banco para ambiente temporário no Dokploy.
+4. Ajustar URLs absolutas, config de banco, caminhos e serializações do WordPress.
+5. Emitir TLS temporário e testar páginas, formulários e login no host temporário.
+6. Registrar aprovação humana na Véxora.
+7. Trocar DNS no Valuehost (o proprietário autoriza e executa).
+8. Health-check real no domínio final; só então a Véxora marca “no ar”.
+9. Manter rollback documentado: voltar DNS e preserved o ambiente anterior até a validação.
+
+E-mails transacionais ficam na Zoho Mail e não entram nesta migração.
+
+### 11.7 Critérios de aceite do primeiro esqueleto (sem domínio real)
+
+- `dry-run` não cria nenhum recurso.
+- `apply` cria pasta, banco e usuário em ambiente de teste.
+- `status` devolve o estado real consultado, não um valor assumido.
+- `rollback` desfaz apenas recursos criados pelo mesmo `requestId`.
+- Testes automatizados cobrem idempotência, isolamento entre sites e ausência de segredos em log.
+- Nenhuma alteração de DNS, TLS público ou domínio de cliente nesta etapa.
+
+### 11.8 Ainda precisa definir antes do primeiro arquivo de código
+
+- Slugs e domínios reais dos quatro sites.
+- Versão do PHP do CMS próprio.
+- Como o provisionador cria usuário/pasta no Filebrowser: API própria ou filesystem.
+- Formato do Docker secret e política de rotação.
+- Chave e escopo do webhook assinado (global do provisionador ou por tenant).
+- A GUI web vem junto da API ou depois do esqueleto validado.

@@ -1,4 +1,8 @@
 ﻿"use client";
+const fieldsetTw = "grid grid-cols-modules content-start gap-1.5";
+const labelTw = "inline-flex cursor-pointer items-center gap-2 font-medium text-modules-label";
+const checkboxTw = "size-4 flex-none accent-blue-600";
+
 export const moduleLabels: Record<string, string> = {
   INBOX: "Atendimento",
   CRM: "CRM",
@@ -20,12 +24,13 @@ export function ModuleChoices({
   allowed?: string[];
 }) {
   return (
-    <fieldset className="module-permissions">
+    <fieldset className={fieldsetTw}>
       <legend>Módulos permitidos</legend>
       {Object.entries(moduleLabels).map(([id, label]) => (
-        <label className="ai-toggle" key={id}>
+        <label className={labelTw} key={id}>
           <input
             type="checkbox"
+            className={checkboxTw}
             disabled={allowed !== undefined && !allowed.includes(id)}
             checked={value.includes(id)}
             onChange={(e) =>

@@ -441,6 +441,8 @@ const config: Config = {
         "docs-hint": "12.5px",
         "docs-document": ["13.5px", { lineHeight: "1.6" }],
         "2xs": "10px",
+        /* Rótulos das permissões de módulo (legado .module-permissions label). */
+        "modules-label": "11px",
         body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
         h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
         h2: ["17px", { lineHeight: "1.3", letterSpacing: "-0.015em" }],
@@ -784,6 +786,7 @@ const config: Config = {
         "flow-field-tip-top": "calc(100% + 8px)",
       },
       gridTemplateColumns: {
+        "modules": "repeat(auto-fill,minmax(170px,1fr))",
         "catalog-grid": "repeat(auto-fill,minmax(min(100%,300px),1fr))",
         "catalog-card": "auto minmax(0,1fr) auto auto",
         /* Grades da página de conexões. */

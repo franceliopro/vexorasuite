@@ -130,8 +130,12 @@ test("os contratos de diálogo, backdrop, testids e estados foram preservados", 
     assert.ok(alarms.includes(expected), `os alarmes perderam ${expected}`);
   }
 
-  // Nenhum dos dois arquivos tinha data-testid antes da migração: não remover nem criar um.
+  // Os hooks de submit e alarme migraram de classes componente para data-testid.
+  assert.ok(alarms.includes('data-testid="alarm-snooze"'), "alarmes perderam o testid de adiar");
+  assert.ok(alarms.includes('data-testid="alarm-stop"'), "alarmes perderam o testid de parar");
   for (const [name, source] of sources) {
-    assert.equal(source.match(/data-testid/g)?.length ?? 0, 0, `${name}: contrato de testid alterado`);
+    for (const token of ["auth-submit", "alarm-snooze", "alarm-stop"]) {
+      assert.doesNotMatch(classValues(source), new RegExp(`\\b${token}\\b`), `${name}: classe legada ${token} voltou`);
+    }
   }
 });

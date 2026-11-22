@@ -216,12 +216,12 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     assert.ok(profile.includes(token), `a ficha deve manter ${token}`);
   }
   for (const utility of [
-    "w-ib-profile-collapsed",
-    "h-ib-profile-avatar w-ib-profile-avatar",
-    "grid-cols-ib-profile-field-row",
-    "max-w-ib-profile-control",
-    "bg-ib-avatar",
-    "text-ib-instagram",
+    "w-14",
+    "h-12 w-12",
+    "grid-cols-2",
+    "max-w-md",
+    "bg-linear-to-br from-slate-700 to-slate-900",
+    "text-fuchsia-400",
     "lg:grid-cols-2",
   ]) {
     assert.ok(values.includes(utility), `falta a utility ${utility}`);

@@ -75,14 +75,14 @@ test("os componentes de conversa usam só utilities, sem remendos", () => {
     }
   }
   for (const utility of [
-    "min-h-ib-quote",
-    "max-h-ib-quote-list",
-    "mt-ib-quote-error-y",
-    "leading-ib-quote-error",
-    "px-ib-quote-qty-x",
-    "min-h-ib-quote-qty",
-    "rounded-ib-quote-qty",
-    "max-w-ib-quote-empty",
+    "min-h-80",
+    "max-h-96",
+    "mt-1",
+    "leading-snug",
+    "px-2",
+    "min-h-8",
+    "rounded-lg",
+    "max-w-xs",
     "z-ib-dialog",
     "animate-vx-scrim-in",
     "p-vx-dialog-pad",

@@ -573,7 +573,7 @@ export default function HomePage() {
       <nav className={active === "Visão geral" ? "fixed inset-x-0 bottom-0 z-dock hidden ov-tablet:grid ov-tablet:grid-cols-ov-dock ov-tablet:justify-center ov-tablet:gap-x-ov-dock-gap ov-tablet:border-t ov-tablet:border-indigo-800 ov-tablet:bg-indigo-950 ov-tablet:px-3 ov-tablet:pb-ov-dock-pb ov-tablet:pt-1" : "mobile-bottom-nav"} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
         {active === "Atendimento" ? (
           <>
-            <button type="button" className="active" aria-current="page" onClick={() => setMenuOpen(false)}><Icon name="messages" size={20}/><span>Conversa</span></button>
+            <button type="button" className="active" aria-current="page" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-conversation-list")); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-assume")); }}><Icon name="assume" size={20}/><span>Assumir</span></button>
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-finalize")); }}><Icon name="finalize" size={20}/><span>Finalizar</span></button>

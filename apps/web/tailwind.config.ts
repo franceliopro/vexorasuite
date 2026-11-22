@@ -119,6 +119,27 @@ const config: Config = {
         "dept-slate": "var(--s3)",
         "dept-slate-ink": "var(--tx2)",
         "dept-avatar-ink": "#FFFFFF",
+        /* Página pública do chatbot: cores configuráveis por tema via `style`.
+           Os verdes ficam só no tema WhatsApp; os demais usam azul/slate. */
+        "pf-bg": "var(--pf-bg)",
+        "pf-card": "var(--pf-card)",
+        "pf-surface": "var(--pf-surface)",
+        "pf-ink": "var(--pf-ink)",
+        "pf-muted": "var(--pf-muted)",
+        "pf-header": "var(--pf-header)",
+        "pf-header-ink": "var(--pf-header-ink)",
+        "pf-accent": "var(--pf-accent)",
+        "pf-user": "var(--pf-user)",
+        "pf-user-ink": "var(--pf-user-ink)",
+        "pf-border": "var(--pf-border)",
+        "pf-kb": "var(--pf-kb)",
+        "pf-phone": "#0F172A",
+        "pf-phone-frame": "#10140F",
+        "pf-glass": "rgba(255,255,255,.15)",
+        "pf-glass-line": "rgba(255,255,255,.3)",
+        "pf-glass-hover": "rgba(255,255,255,.25)",
+        "pf-avatar-line": "rgba(255,255,255,.35)",
+        "pf-spinner-track": "rgba(255,255,255,.2)",
         "provider-alert-line": "rgba(229,72,77,.42)",
         "provider-alert-ink": "#C2494E",
         /* Tons dos gráficos do Financeiro: dados do dashboard, não tema. */
@@ -276,6 +297,12 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: ".45" },
         },
+        /* Página pública do chatbot (legado @keyframes spin/typing-bounce). */
+        "pf-spin": { to: { transform: "rotate(360deg)" } },
+        "pf-typing-bounce": {
+          "0%, 60%, 100%": { transform: "translateY(0)", opacity: ".5" },
+          "30%": { transform: "translateY(-5px)", opacity: "1" },
+        },
       },
       animation: {
         "rw-shimmer": "rw-shimmer 1.4s ease-in-out infinite",
@@ -284,6 +311,8 @@ const config: Config = {
         "reminder-card": "vx-scrim-in .25s ease both",
         "vx-in": "vx-in .26s var(--ease) both",
         "phone-pulse": "phone-pulse 2.4s ease-in-out infinite",
+        "pf-spin": "pf-spin .8s linear infinite",
+        "pf-typing": "pf-typing-bounce 1.15s ease-in-out infinite",
       },
       strokeWidth: {
         ov: "5.5",
@@ -300,6 +329,10 @@ const config: Config = {
         "flow-node-edge": "3px",
         /* Alerta de cota baixa das conexões de IA. */
         "provider-alert": "1.5px",
+        /* Página pública do chatbot (legado .pf-*). */
+        "pf-frame": "9px",
+        "pf-option": "1.5px",
+        "pf-spinner": "3px",
       },
       backdropBlur: {
         topbar: "18px",
@@ -321,6 +354,13 @@ const config: Config = {
         "dept-details": "12px",
         "dept-options": "10px",
         "dept-field": "10px",
+        /* Cantos da página pública do chatbot (legado .pf-*). */
+        "pf-card": "22px",
+        "pf-phone-card": "40px",
+        "pf-bubble": "18px",
+        "pf-tail": "6px",
+        "pf-end": "18px",
+        "pf-restart": "10px",
         /* Cantos do cartão de lembretes (legado 18px/14px/12px). */
         "reminder-card": "18px",
         "reminder-icon": "14px",
@@ -432,6 +472,8 @@ const config: Config = {
         "fm-picker-item": "1fr auto",
         /* Corpo do editor de modelos de Documentos. */
         "docs-editor": "auto minmax(0,1fr) auto",
+        /* Corpo da página pública do chatbot (legado .pf-card). */
+        "pf-card": "auto auto minmax(0,1fr) auto",
       },
       boxShadow: {
         /* Relevo do cartão de lembretes (legado 0 30px 80px -20px). */
@@ -468,13 +510,35 @@ const config: Config = {
         "dept-blue": "inset 0 0 0 1px var(--vx-accent-soft)",
         "dept-amber": "inset 0 0 0 1px var(--vx-warn-soft)",
         "dept-violet": "inset 0 0 0 1px var(--vx-core-selection)",
+        /* Relevo da página pública do chatbot (legado .pf-*). */
+        "pf-device": "0 10px 24px rgba(30,42,36,.18)",
+        "pf-card": "0 36px 80px -32px rgba(0,0,0,.35)",
+        "pf-phone-card": "0 46px 110px -18px rgba(0,0,0,.82)",
+        "pf-dot": "0 0 9px 1px var(--pf-kb)",
+        "pf-bubble": "0 2px 6px -2px rgba(0,0,0,.18)",
       },
       fontFamily: {
         inherit: "inherit",
         ui: 'var(--font-ui),"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",system-ui,sans-serif',
         display: "var(--font-display)",
+        "pf-ui": "'Manrope',sans-serif",
+        "pf-display": "'Fraunces',serif",
       },
       fontSize: {
+        /* Tipografia da página pública do chatbot (legado .pf-*). */
+        "pf-device": ["11px", { lineHeight: "1" }],
+        "pf-unavailable-title": "19px",
+        "pf-unavailable-copy": ["12.5px", { lineHeight: "1.55" }],
+        "pf-initials": ["15px", { lineHeight: "1" }],
+        "pf-head-title": "17px",
+        "pf-head-sub": "11px",
+        "pf-progress": ["13px", { lineHeight: "1" }],
+        "pf-tagline": ["10.5px", { lineHeight: "1.4" }],
+        "pf-bubble": ["14.5px", { lineHeight: "1.6" }],
+        "pf-option": ["12px", { lineHeight: "1" }],
+        "pf-input": "14px",
+        "pf-end-copy": ["13px", { lineHeight: "1.6" }],
+        "pf-restart": ["12.5px", { lineHeight: "1" }],
         "catalog-eyebrow": ["10px", { lineHeight: "1.4", letterSpacing: ".16em" }],
         "catalog-metric": ["10.5px", { lineHeight: "1.4" }],
         "catalog-card-title": ["14px", { lineHeight: "1.3" }],
@@ -653,6 +717,12 @@ const config: Config = {
         ib: "650",
       },
       letterSpacing: {
+        /* Rótulos da página pública do chatbot (legado .pf-*). */
+        "pf-device": ".03em",
+        "pf-unavailable-title": "-.02em",
+        "pf-head-title": ".002em",
+        "pf-progress": ".04em",
+        "pf-tagline": ".19em",
         "nav-section": ".13em",
         "course-eyebrow": ".14em",
         "brand-badge": ".22em",
@@ -685,6 +755,40 @@ const config: Config = {
 
       },
       spacing: {
+        /* Medidas da página pública do chatbot (legado .pf-*). */
+        "pf-shell": "clamp(12px,2.5vw,32px)",
+        "pf-stage": "min(920px,100%)",
+        "pf-device-x": "15px",
+        "pf-header": "13px",
+        "pf-header-x": "18px",
+        "pf-header-y": "14px",
+        "pf-avatar": "48px",
+        "pf-head-text": "3px",
+        "pf-head-sub": "7px",
+        "pf-dot": "7px",
+        "pf-progress-x": "13px",
+        "pf-progress-y": "7px",
+        "pf-restart": "36px",
+        "pf-restart-x": "20px",
+        "pf-tagline-x": "18px",
+        "pf-tagline-y": "11px",
+        "pf-messages": "18px",
+        "pf-bubble-x": "16px",
+        "pf-bubble-y": "12px",
+        "pf-options": "10px",
+        "pf-option-x": "15px",
+        "pf-typing": "5px",
+        "pf-typing-x": "16px",
+        "pf-typing-y": "13px",
+        "pf-composer": "10px",
+        "pf-composer-x": "16px",
+        "pf-composer-y": "12px",
+        "pf-input": "46px",
+        "pf-input-x": "18px",
+        "pf-end": "20px",
+        "pf-unavailable-x": "30px",
+        "pf-unavailable-y": "44px",
+        "pf-spinner": "34px",
         /* Medidas do cartão de lembretes (legado 22px/52px). */
         "reminder-pad": "22px",
         "reminder-icon": "52px",
@@ -1054,6 +1158,9 @@ const config: Config = {
         "crm-stage": "minmax(272px, 1fr)",
       },
       height: {
+        /* Alturas da página pública do chatbot (legado .pf-*). */
+        "pf-card": "min(780px,calc(100dvh - 44px))",
+        "pf-phone-card": "min(716px,calc(100dvh - 48px))",
         "catalog-icon": "42px",
         "catalog-metric": "24px",
         /* Shell do workspace de Atendimento. */
@@ -1132,6 +1239,9 @@ const config: Config = {
 
       },
       maxWidth: {
+        /* Larguras da página pública do chatbot (legado .pf-*). */
+        "pf-bubble": "min(78%,560px)",
+        "pf-end": "420px",
         /* Largura do cartão de lembretes (legado min(560px,100%)). */
         "reminder-card": "560px",
         /* Larguras dos textos e do aviso da página de planos. */
@@ -1192,6 +1302,9 @@ const config: Config = {
 
       },
       width: {
+        /* Larguras da página pública do chatbot (legado .pf-*). */
+        "pf-stage": "min(920px,100%)",
+        "pf-phone-card": "min(400px,calc(100vw - 36px))",
         "catalog-icon": "42px",
         "profile-popover": "248px",
         "submenu-compact": "220px",
@@ -1282,12 +1395,17 @@ const config: Config = {
         "flow-node-actions": "3",
         "flow-tip": "70",
         "flow-quick-actions": "4",
+        "pf-device": "3",
       },
       filter: {
         "dept-inactive": "saturate(.6)",
+        "pf-hover": "brightness(1.15)",
       },
       opacity: {
         "dept-inactive": ".68",
+        "pf-sub": ".85",
+        "pf-em": ".7",
+        "pf-disabled": ".45",
       },
       transitionProperty: {
         shell: "width, margin-left",

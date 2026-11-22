@@ -89,9 +89,9 @@ function ClockWidget() {
   }, []);
   const isNight = now.getHours() < 6 || now.getHours() >= 18;
   return (
-    <article className="col-span-3 grid content-center justify-items-center gap-2 rounded-xl border border-indigo-200 bg-linear-to-br from-indigo-50 to-blue-100 p-5 text-center max-md:col-span-12" aria-label="Relógio e data de hoje">
+    <article className="col-span-3 grid content-center justify-items-center gap-2 rounded-xl border border-gray-200 bg-linear-to-br from-blue-50 to-blue-100 p-5 text-center max-md:col-span-12" aria-label="Relógio e data de hoje">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-slate-50">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
-      <time className="text-3xl font-semibold tabular-nums text-indigo-700 sm:text-4xl" dateTime={now.toISOString()}>{hhmmss()}</time>
+      <time className="text-3xl font-semibold tabular-nums text-blue-700 sm:text-4xl" dateTime={now.toISOString()}>{hhmmss()}</time>
       <p className="text-sm text-slate-600">Horário local</p>
     </article>
   );

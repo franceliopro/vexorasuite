@@ -397,10 +397,13 @@ test("o contexto interno da conversa mantém ícone e selo com contraste", () =>
   assert.doesNotMatch(note, /bg-warning(?:-soft)?\b/);
 });
 
-test("as bolhas OUTBOUND e INBOUND usam TW com fundos leves e visíveis", () => {
+test("a bolha OUTBOUND usa a primary, clareia meta/horário e pinta os ticks de WhatsApp", () => {
   assert.ok(workspace.includes('data-testid="message-line" data-direction={message.direction} className={message.direction === "OUTBOUND" ? "flex justify-end" : "flex justify-start"}'));
-  assert.ok(workspace.includes('className={"max-w-2xl break-words rounded-xl border p-2.5 font-sans text-sm shadow " + (message.direction === "OUTBOUND" ? "border-blue-700 bg-blue-700 text-white" : "border-gray-200 bg-zinc-100 text-slate-950")}'));
-  assert.ok(workspace.includes('const brandStatusTw={failed:"text-red-200",read:"text-emerald-200",delivered:"text-blue-100",queued:"text-amber-200",sent:"text-blue-100"}'));
+  assert.ok(workspace.includes('className={"max-w-2xl break-words rounded-xl border p-2.5 font-sans text-sm shadow " + (message.direction === "OUTBOUND" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-zinc-100 text-slate-950")}'));
+  assert.ok(workspace.includes('const statusTw={failed:"text-red-600",read:"text-ib-read",delivered:"text-blue-700",queued:"text-amber-600",sent:"text-slate-600"}'), "os ticks lidos saem do verde padrão");
+  assert.ok(workspace.includes('const brandStatusTw={failed:"text-red-200",read:"text-ib-read",delivered:"text-blue-100",queued:"text-amber-200",sent:"text-blue-100"}'));
+  assert.ok(workspace.includes('<small className="text-white/75">{message.metadata.departmentName}</small>'), "o departamento fica mais claro");
+  assert.ok(workspace.includes('<span className="text-white/75">{new Date(message.occurredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>'), "o horário fica mais claro");
   assert.ok(workspace.includes('<MessageStatus message={message} onBrand />'));
   const css = read("src/app/vexora.css");
   assert.doesNotMatch(css, /\[data-testid='message-bubble'\]\{[^}]*(?:background|border-radius|padding|font-family|font-size|max-width)/);

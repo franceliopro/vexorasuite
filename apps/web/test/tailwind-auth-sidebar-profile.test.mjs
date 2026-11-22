@@ -56,8 +56,8 @@ test("auth e perfil da sidebar não usam classes componente legadas", () => {
 
 test("as duas telas usam utilities Tailwind básicas e literais completas", () => {
   for (const utility of [
-    "grid min-h-dvh grid-cols-1 bg-zinc-50 dark:bg-slate-900 lg:grid-cols-2",
-    "hidden flex-col justify-between gap-9 overflow-hidden bg-slate-900 p-8 text-slate-50 lg:flex",
+    "grid min-h-dvh grid-cols-1 bg-zinc-50 bg-vx-page md:grid-cols-2",
+    "relative isolate hidden flex-col justify-between gap-9 overflow-hidden p-8 text-slate-50 md:flex lg:p-12 xl:p-16",
     "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600",
     "absolute right-1 top-1 grid size-8 place-items-center text-ink-secondary",
     "grid gap-3.5", "grid gap-1.5", "pr-12", "min-h-0 p-0 font-bold text-blue-600",
@@ -90,20 +90,23 @@ test("as duas telas usam utilities Tailwind básicas e literais completas", () =
   }
 });
 
-test("o painel escuro é slate real, nunca blue-dark", () => {
-  assert.match(auth, /bg-slate-900 p-8 text-slate-50/);
-  assert.match(auth, /dark:bg-slate-900/);
-  for (const stop of ["rgb(15 23 42)", "rgb(30 41 59)", "rgb(51 65 85)"]) {
+test("o split do login voltou com painel slate e identidade configurável", () => {
+  assert.match(auth, /grid min-h-dvh grid-cols-1 bg-zinc-50 bg-vx-page md:grid-cols-2/);
+  assert.match(auth, /hidden flex-col justify-between gap-9 overflow-hidden p-8 text-slate-50 md:flex/);
+  for (const stop of ["rgb(2 6 23)", "rgb(15 23 42)", "rgb(30 41 59)"]) {
     assert.ok(auth.includes(stop), `falta o tom slate ${stop}`);
   }
-  for (const oldTone of [
-    "rgb(8 19 36)", "rgb(12 35 62)", "rgb(15 58 95)", "rgb(156 208 255)",
-    "rgb(159 199 255)", "rgb(242 250 255)", "rgb(185 210 235)",
-    "rgb(211 231 250)", "rgb(127 162 205)", "rgb(125 211 252)",
-    "rgba(156,208,255", "rgb(from var(--primary)", "rgb(from var(--accent2)",
+  for (const token of [
+    "rgb(from var(--primary) r g b / .55)",
+    "rgb(from var(--primary) r g b / .95)",
+    "rgb(from var(--accent2) r g b / .95)",
+    "bg-vx-brand-mark",
+    "font-display text-h1 font-extrabold leading-tight text-slate-50",
+    "Uma operação inteira, em um só lugar.",
   ]) {
-    assert.equal(auth.includes(oldTone), false, `auth ainda usa ${oldTone}`);
+    assert.ok(auth.includes(token), `login perdeu ${token}`);
   }
+  assert.doesNotMatch(auth, /bg-slate-900 p-8 text-slate-50 lg:flex/);
   assert.doesNotMatch(auth + profile, /blue-dark/i);
   assert.match(profile, /dark:bg-slate-900 dark:text-slate-50/);
 });

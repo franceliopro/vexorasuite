@@ -453,6 +453,10 @@ const config: Config = {
         "2xs": "10px",
         /* Rótulos das permissões de módulo (legado .module-permissions label). */
         "modules-label": "11px",
+        /* Textos do menu de perfil da sidebar (legado .profile-copy/.profile-avatar). */
+        "profile-name": "13px",
+        "profile-email": "11px",
+        "profile-avatar": "13px",
         /* Textos do cartão de lembretes. */
         "reminder-title": ["18px", { lineHeight: "1.2" }],
         "reminder-desc": "12.5px",
@@ -620,6 +624,14 @@ const config: Config = {
         "plans-card-pad": "18px",
         "plans-badge-x": "11px",
         "plans-badge-y": "4px",
+        /* Medidas do menu de perfil da sidebar. */
+        "profile-gap": "10px",
+        "profile-row-x": "8px",
+        "profile-row-y": "7px",
+        "profile-avatar": "44px",
+        "profile-copy-gap": "2px",
+        "profile-popover-inset": "12px",
+        "profile-popover-bottom": "78px",
         "catalog-eyebrow-rule": "18px",
         "catalog-search-basis": "320px",
         "catalog-card-y": "14px",
@@ -1109,6 +1121,7 @@ const config: Config = {
         /* Lembretes internos ficam acima do shell, abaixo das janelas fullscreen. */
         reminder: "var(--z-reminder)",
         sidebar: "40",
+        "profile-popover": "50",
         dock: "45",
         topbar: "30",
         popover: "70",

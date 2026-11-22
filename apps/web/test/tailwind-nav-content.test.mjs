@@ -55,6 +55,30 @@ test("perfil, sites e conteudo usam so utilities, sem remendos", () => {
   }
 });
 
+test("o menu de perfil da sidebar usa so utilities do preset", () => {
+  const profileClasses = new Set(classValues(profile).split(/\s+/).filter(Boolean));
+  for (const forbidden of [
+    "sidebar-profile-menu",
+    "sidebar-profile-popover",
+    "profile-row",
+    "profile-avatar",
+    "profile-copy",
+    "ai-admin-fields",
+  ]) {
+    assert.equal(profileClasses.has(forbidden), false, `classe legada no perfil: ${forbidden}`);
+  }
+  for (const utility of [
+    "group relative w-full",
+    "flex w-full cursor-pointer list-none items-center gap-profile-gap",
+    "relative grid size-profile-avatar shrink-0 place-items-center overflow-hidden rounded-full bg-brand-soft",
+    "flex min-w-0 flex-col gap-profile-copy-gap overflow-hidden",
+    "absolute z-profile-popover grid gap-token bg-surface p-pad text-ink shadow-token ov-tablet:fixed",
+    "grid gap-1.5 text-body font-semibold text-ink",
+  ]) {
+    assert.ok(profile.includes(utility), `falta a utility de perfil ${utility}`);
+  }
+});
+
 test("os contratos de perfil, sites e conteudo permanecem intactos", () => {
   for (const token of [
     "/api/backend/profile", 'role="status"', 'role="alert"', "Tentar novamente", "Salvar perfil",

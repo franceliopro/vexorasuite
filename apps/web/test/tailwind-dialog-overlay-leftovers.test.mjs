@@ -78,9 +78,10 @@ test("as classes migradas são strings literárias completas do preset", () => {
   }
 
   assert.ok(
-    alarmClasses.includes("fixed inset-0 grid animate-vx-in place-items-center bg-overlay p-5 backdrop-blur-md"),
-    "o overlay do alarme perdeu grid/animação/backdrop do preset",
+    alarmClasses.includes("fixed inset-0 grid place-items-center bg-slate-900/90 p-5 backdrop-blur-md"),
+    "o overlay do alarme perdeu grid/backdrop slate",
   );
+  assert.doesNotMatch(alarmClasses, /\banimate-vx-in\b|\bbg-(?:blue|sky)-\d|\btext-(?:blue|sky)-\d/);
 });
 
 test("as camadas dos overlays permanecem acima do shell e abaixo das janelas fullscreen", () => {

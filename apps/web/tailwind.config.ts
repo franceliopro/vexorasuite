@@ -458,6 +458,14 @@ const config: Config = {
         "reminder-desc": "12.5px",
         "reminder-item-title": "13.5px",
         "reminder-item-meta": "11.5px",
+        /* Textos da página de planos do cliente. */
+        "plans-eyebrow": ["10px", { lineHeight: "1", letterSpacing: ".09em" }],
+        "plans-badge": ["9.5px", { lineHeight: "1", letterSpacing: ".07em" }],
+        "plans-title": ["17px", { lineHeight: "1.2", letterSpacing: "-.01em" }],
+        "plans-price": ["24px", { lineHeight: "1", letterSpacing: "-.02em" }],
+        "plans-meta": "11px",
+        "plans-modules": "10px",
+        "plans-footnote": "10.5px",
         body: ["13px", { lineHeight: "1.55", letterSpacing: "-0.005em" }],
         h1: ["clamp(28px, 2.7vw, 38px)", { lineHeight: "1.08", letterSpacing: "-0.035em" }],
         h2: ["17px", { lineHeight: "1.3", letterSpacing: "-0.015em" }],
@@ -606,6 +614,12 @@ const config: Config = {
         /* Medidas do cartão de lembretes (legado 22px/52px). */
         "reminder-pad": "22px",
         "reminder-icon": "52px",
+        /* Espaçamentos da página de planos do cliente. */
+        "plans-hero-x": "24px",
+        "plans-hero-y": "22px",
+        "plans-card-pad": "18px",
+        "plans-badge-x": "11px",
+        "plans-badge-y": "4px",
         "catalog-eyebrow-rule": "18px",
         "catalog-search-basis": "320px",
         "catalog-card-y": "14px",
@@ -804,6 +818,8 @@ const config: Config = {
         "flow-field-tip-top": "calc(100% + 8px)",
       },
       gridTemplateColumns: {
+        /* Grade dos planos do cliente (legado minmax(270px,1fr)). */
+        plans: "repeat(auto-fill,minmax(270px,1fr))",
         "modules": "repeat(auto-fill,minmax(170px,1fr))",
         "catalog-grid": "repeat(auto-fill,minmax(min(100%,300px),1fr))",
         "catalog-card": "auto minmax(0,1fr) auto auto",
@@ -988,6 +1004,9 @@ const config: Config = {
       maxWidth: {
         /* Largura do cartão de lembretes (legado min(560px,100%)). */
         "reminder-card": "560px",
+        /* Larguras dos textos e do aviso da página de planos. */
+        "plans-copy": "520px",
+        "plans-notice": "640px",
         "catalog-search": "420px",
         content: "1520px",
         tabs: "1500px",

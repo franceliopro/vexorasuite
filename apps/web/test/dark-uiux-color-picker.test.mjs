@@ -38,7 +38,7 @@ test("os tokens dark continuam slate e shell consome tokens, nunca blue-dark", (
   }
   assert.doesNotMatch(layout, /vexora-night\.css/, "o tema Night Base não é importado");
 
-  const sidebar = theme.match(/\.sidebar \{[\s\S]*?\n  \}/)?.[0] ?? "";
+  const sidebar = theme.match(/\.sidebar \{[\s\S]*?\n {2}\}/)?.[0] ?? "";
   assert.match(sidebar, /bg-indigo-950/, "sidebar usa o alias de --sb-bg");
   assert.match(sidebar, /text-indigo-50/, "sidebar usa o alias de --sb-tx");
   assert.match(config, /950:\s*"var\(--sb-bg\)"/);
@@ -51,7 +51,7 @@ test("os tokens dark continuam slate e shell consome tokens, nunca blue-dark", (
 });
 
 test("só a navegação da sidebar esconde a barra; as demais usam tokens", () => {
-  const sideNav = theme.match(/\.side-nav \{[\s\S]*?\n  \}/)?.[0] ?? "";
+  const sideNav = theme.match(/\.side-nav \{[\s\S]*?\n {2}\}/)?.[0] ?? "";
   assert.match(sideNav, /scrollbar-width:\s*none/, "Firefox sem barra na nav");
   assert.match(theme, /\.side-nav::-webkit-scrollbar \{\s*display:\s*none;\s*\}/, "WebKit sem barra na nav");
   assert.match(vexora, /\.sidebar,\.side-nav,\.sidebar nav\{scrollbar-width:none\}/);

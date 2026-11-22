@@ -150,7 +150,7 @@ details>summary::-webkit-details-marker{display:none}
 [data-testid='vexora-dialog-footer'],.finalization-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 [class$="-close"]{position:absolute;top:12px;right:12px;z-index:5;display:grid;place-items:center;width:34px;height:34px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:11px;background:var(--s2);color:var(--tx2);transition:background .15s,color .15s,border-color .15s,transform .15s}
 [class$="-close"]:hover{background:var(--hover);color:var(--tx);border-color:var(--ln2);transform:scale(1.06)}
-[class$="-popover"],[class$="-menu"]:not(.nav-submenu,.nav-submenu-panel,.sidebar-profile-menu,.mobile-menu,.vx-flow-command-menu,[data-testid='handoff-menu'],.invite-menu,.inbox-more-queues-menu),[data-testid='handoff-menu']{position:absolute;z-index:50;background:var(--s1);box-shadow:var(--shadow)}
+[class$="-popover"],[class$="-menu"]:not(.nav-submenu,.nav-submenu-panel,.mobile-menu,.vx-flow-command-menu,[data-testid='handoff-menu'],.invite-menu,.inbox-more-queues-menu),[data-testid='handoff-menu']{position:absolute;z-index:50;background:var(--s1);box-shadow:var(--shadow)}
 .is-collapsed>:not(:first-child){display:none}
 .vx-spin{animation:vx-spin 1s linear infinite}
 @keyframes vx-spin{to{transform:rotate(360deg)}}
@@ -642,7 +642,6 @@ details>summary:hover{color:var(--tx)}
   .sidebar.sidebar-compact .sidebar-utilities{flex-direction:row}
   .mobile-sidebar-backdrop{display:block;position:fixed;inset:0;z-index:35;padding:0;background:rgba(6,12,9,.5);backdrop-filter:blur(2px)}
   .main-area{margin-left:0;padding-bottom:var(--dock);transition:none}
-  .sidebar-profile-popover{position:fixed;left:12px;right:12px;bottom:78px;width:auto;max-width:calc(100vw - 24px)}
   .topbar{padding:0 14px;gap:8px}
   .mobile-menu{display:inline-grid;place-items:center;width:var(--ctl);height:var(--ctl)}
   .breadcrumbs span,.crumb-slash{display:none}
@@ -1235,16 +1234,6 @@ details>summary:hover{color:var(--tx)}
 .sidebar-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--sb-tx); cursor: pointer; list-style: none; }
 .sidebar-icon::-webkit-details-marker { display: none; }
 .sidebar-icon:hover { background: var(--sb-on); color: var(--sb-tx); }
-.sidebar-profile-menu { width: 100%; position: relative; }
-.sidebar-profile-menu > .profile-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 12px; list-style: none; cursor: pointer; border: 1px solid transparent; overflow: hidden; }
-.sidebar-profile-menu > .profile-row::-webkit-details-marker { display: none; }
-.sidebar-profile-menu > .profile-row:hover { background: var(--sb-on); border-color: var(--sb-ln); }
-.sidebar-profile-menu[open] > .profile-row { background: var(--sb-on); border-color: var(--sb-ln); }
-.sidebar-profile-menu .profile-avatar { position: relative; width: 44px; height: 44px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: color-mix(in srgb, var(--primary) 26%, var(--sb-on)); color: var(--sb-tx); font-size: 13px; font-weight: 700; }
-.sidebar-profile-menu .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.sidebar-profile-menu .profile-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
-.sidebar-profile-menu .profile-copy strong { font-size: 13px; font-weight: 650; color: var(--sb-tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-profile-menu .profile-copy small { font-size: 11px; color: var(--sb-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 
 /* ===== Menu "Mais filas" (Concluídos, Arquivados, Lixeira) ===== */

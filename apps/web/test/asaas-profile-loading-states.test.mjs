@@ -21,8 +21,8 @@ test("profile distinguishes loading, failed load, and retry", () => {
   assert.match(source, /\[loading, setLoading\] = useState\(true\)/);
   assert.match(source, /\[loadError, setLoadError\] = useState\(""\)/);
   assert.match(source, /async function loadProfile\(\)/);
-  assert.match(source, /role="status">Carregando perfil/);
-  assert.match(source, /role="alert">\{loadError\}/);
+  assert.match(source, /role="status"[^>]*>Carregando perfil/);
+  assert.match(source, /role="alert"[^>]*>\{loadError\}/);
   assert.match(source, /onClick=\{\(\) => void loadProfile\(\)\}/);
   assert.doesNotMatch(source, /\.catch\(\(\) => \{\}\)/);
 });

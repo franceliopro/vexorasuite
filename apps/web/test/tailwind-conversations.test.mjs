@@ -56,20 +56,44 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
   }
   for (const utility of [
     "grid min-h-0 flex-1 content-start overflow-y-auto",
-    "gap-x-ib-gap gap-y-1",
-    "border-l-blue-600 bg-blue-50 shadow-ib-selected",
-    "h-ib-avatar w-ib-avatar",
-    "h-ib-presence w-ib-presence",
-    "text-ib-time tabular-nums",
-    "text-ib-micro text-slate-600",
-    "text-ib-tick tabular-nums",
-    "bg-emerald-600 shadow-ib-newdot",
-    "min-h-ib-tag items-center",
-    "h-ib-mark w-ib-mark",
-    "place-items-center rounded-ib-channel",
-    "bg-ib-avatar text-ib-avatar-fallback",
+    "gap-x-2 gap-y-1",
+    "border-l-blue-600 bg-blue-50 ring-1 ring-inset ring-blue-100",
+    "h-11 w-11",
+    "h-3 w-3",
+    "text-xs tabular-nums text-slate-500 dark:text-slate-400",
+    "text-xs text-slate-600",
+    "text-xs tabular-nums",
+    "h-2 w-2 rounded-full bg-blue-700 ring-2 ring-blue-100",
+    "min-h-4 items-center",
+    "h-5 w-5",
+    "place-items-center rounded-full",
+    "from-slate-700 to-slate-900",
+    // Avatares e copiloto migrados para utilities Tailwind padrão com dark slate.
+    "inline-grid h-5 w-5 flex-none place-items-center rounded-full",
+    "bg-slate-200 font-extrabold tracking-tight text-slate-800",
+    "bg-blue-100 text-xs font-bold",
+    "rounded-lg border border-slate-200 bg-slate-50",
+    "min-h-4 items-center rounded-full bg-blue-100",
+    "max-w-md text-xs",
+    "dark:border-slate-700",
+    "dark:bg-slate-900",
   ]) {
     assert.ok(semDados.includes(utility), `falta a utility ${utility}`);
+  }
+  // A lista usa apenas utilities padrão: tamanhos, tons e relevos saíram do preset.
+  for (const utility of [
+    "grid min-h-0 flex-1 content-start overflow-y-auto",
+    "gap-x-2 gap-y-1",
+    "border-l-blue-600 bg-blue-50",
+    "h-11 w-11",
+    "h-3 w-3",
+    "text-xs tabular-nums",
+    "text-2xs text-slate-600",
+    "text-2xs tabular-nums",
+    "bg-blue-700 ring-2 ring-blue-100",
+    "min-h-4 items-center",
+  ]) {
+    assert.ok(list.includes(utility), `falta a utility ${utility} na lista`);
   }
   for (const token of [
     '"ib-coral": "#F0645E"',
@@ -216,13 +240,13 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     assert.ok(profile.includes(token), `a ficha deve manter ${token}`);
   }
   for (const utility of [
-    "w-ib-profile-collapsed",
-    "h-ib-profile-avatar w-ib-profile-avatar",
-    "grid-cols-ib-profile-field-row",
-    "max-w-ib-profile-control",
-    "bg-ib-avatar",
-    "text-ib-instagram",
-    "ib-desktop:grid-cols-2",
+    "w-13",
+    "h-12 w-12",
+    "grid-cols-2",
+    "max-w-md",
+    "bg-slate-900",
+    "text-fuchsia-400",
+    "lg:grid-cols-2",
   ]) {
     assert.ok(values.includes(utility), `falta a utility ${utility}`);
   }
@@ -255,6 +279,7 @@ test("os agendamentos usam TW e preservam o contrato da agenda do Google", () =>
     "grid gap-2 rounded-token border border-line bg-surface p-pad shadow-token",
     "grid grid-cols-2 gap-3",
     "flex items-center gap-2",
+    "shadow-token-sm",
   ]) {
     assert.ok(source.includes(utility), `falta a utility ${utility}`);
   }
@@ -280,14 +305,14 @@ test("o shell do workspace usa TW e preserva os hooks de estado", () => {
   }
   assert.doesNotMatch(values, /\b(?:inbox-workspace|inbox-thread|inbox-composer|composer-shell|composer-tools|composer-icon-button|thread-heading|thread-header-actions|inbox-queue-button|handoff-option|message-line|message-bubble|quick-reply-use|emoji-category|finalization-outcome|ficha-open|ficha-compact|mobile-thread-open|inbox-full-screen|composer-is-note|more-open|is-alert|recording|active|selected|won|lost)\b/);
   for (const utility of [
-    "h-ib-workspace min-h-ib-workspace grid-cols-1 gap-3 ib-grid:grid-cols-ib-workspace-resize",
-    "ib-grid-ficha:grid-cols-ib-workspace-resize-ficha",
-    "ib-grid-ficha:grid-cols-ib-workspace-resize-compact",
-    "ib-shell:grid-cols-1",
-    "grid-cols-ib-supervision",
-    "max-w-ib-bubble",
-    "z-ib-overlay",
-    "grid-rows-ib-quick-dialog",
+    "flex h-ib-workspace min-h-ib-workspace gap-3 rw-laptop:flex-col",
+    "w-(--inbox-list-w) shrink-0",
+    "w-(--inbox-ficha-w)",
+    "min-w-0 min-h-0 flex-1 flex-col",
+    "grid-cols-4",
+    "max-w-2xl",
+    "z-50",
+    "grid-rows-2",
   ]) {
     assert.ok(values.includes(utility), `falta a utility ${utility}`);
   }
@@ -332,24 +357,24 @@ test("o avatar do cabeçalho tem tamanho próprio e o header alinha os blocos", 
   assert.ok(avatars.includes("<span className={className}>"));
   // A lista continua preenchendo o wrapper; só o chamador do cabeçalho define o tamanho.
   assert.ok(list.includes("<ContactAvatar contact={item.contact} />"));
-  assert.ok(workspace.includes('className="relative grid size-ib-avatar shrink-0 place-items-center overflow-hidden rounded-full bg-ib-avatar text-base font-extrabold text-white"'));
+  assert.ok(workspace.includes('className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-blue-600 text-base font-extrabold text-white"'));
 
   const heading = workspace.match(/<header data-testid="thread-heading"[^>]*>/)?.[0] ?? "";
   const hasUtility = (utility) => heading.includes(` ${utility} `) || heading.includes(` ${utility}"`);
-  for (const utility of ["flex", "flex-none", "flex-nowrap", "items-center", "gap-ib-gap"]) {
+  for (const utility of ["flex", "flex-none", "flex-nowrap", "items-center", "gap-2"]) {
     assert.ok(hasUtility(utility), `o header deve manter ${utility}: ${heading}`);
   }
   assert.doesNotMatch(heading, /h-full|w-full|size-ib-avatar|flex-wrap/);
-  for (const utility of ["flex-nowrap", "gap-ib-gap", "ib-narrow:px-3"]) assert.ok(hasUtility(utility), `o header deve manter ${utility}`);
+  for (const utility of ["flex-nowrap", "gap-2", "ib-narrow:px-3"]) assert.ok(hasUtility(utility), `o header deve manter ${utility}`);
   const primaryActions = workspace.match(/<div data-testid="thread-primary-actions" className="([^"]*)">/)?.[1] ?? "";
-  for (const utility of ["ml-auto", "flex", "shrink-0", "flex-nowrap", "items-center", "gap-ib-gap"]) {
+  for (const utility of ["ml-auto", "flex", "shrink-0", "flex-nowrap", "items-center", "gap-2"]) {
     assert.ok(primaryActions.includes(utility), `as ações primárias devem manter ${utility}: ${primaryActions}`);
   }
-  assert.ok(workspace.includes('data-testid="thread-header-actions" data-open={moreActionsOpen ? "true" : "false"} id="thread-header-actions" className={moreActionsOpen ? "flex shrink-0 items-center gap-ib-gap rounded-ib-panel border border-line bg-surface p-2 shadow-token-lg" : "hidden"}'));
-  assert.ok(workspace.includes('data-testid="thread-mobile-actions" className="hidden items-center gap-ib-gap ib-narrow:flex"'));
+  assert.ok(workspace.includes('data-testid="thread-header-actions" data-open={moreActionsOpen ? "true" : "false"} id="thread-header-actions" className={moreActionsOpen ? "flex shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 p-2 shadow-xl" : "hidden"}'));
+  assert.ok(workspace.includes('data-testid="thread-mobile-actions" className="hidden items-center gap-2 ib-narrow:flex"'));
   assert.ok(workspace.includes('bg-white text-blue-800'), "badge ativo das filas com bolinha branca");
   assert.ok(workspace.includes('bg-blue-100 text-blue-800 ring-1 ring-blue-600'), "badge inativo das filas mantém o contraste");
-  assert.ok(workspace.includes('data-testid="thread-finalize-button" aria-label="Finalizar atendimento" className="grid size-8 place-items-center rounded-ib-entry bg-blue-600 text-blue-900'), "Finalizar com ícone claro sobre azul");
+  assert.ok(workspace.includes('data-testid="thread-finalize-button" aria-label="Finalizar atendimento" className="grid size-8 place-items-center rounded-lg bg-blue-600 text-blue-900'), "Finalizar com ícone claro sobre azul");
   for (const hook of ['data-testid="thread-heading"', 'aria-controls="thread-header-actions"', 'id="thread-header-actions"', 'data-testid="thread-primary-actions"', 'data-testid="thread-header-actions"', 'data-testid="thread-mobile-actions"']) {
     assert.ok(workspace.includes(hook), `o cabeçalho deve manter ${hook}`);
   }
@@ -361,15 +386,15 @@ test("o contexto interno da conversa mantém ícone e selo com contraste", () =>
   const noteStart = workspace.indexOf('message.direction === "INTERNAL"');
   const noteEnd = workspace.indexOf(' : <div data-testid="message-line"', noteStart);
   const note = workspace.slice(noteStart, noteEnd);
-  assert.ok(note.includes('border border-dashed border-blue-600 bg-blue-50 p-3 shadow-token-sm'));
-  assert.ok(note.includes('rounded-ib-mention-item bg-blue-600 text-blue-900" aria-hidden="true"'));
-  assert.ok(note.includes('text-ib-micro font-extrabold uppercase tracking-ib-wide text-blue-900">Só a equipe vê</small>'));
+  assert.ok(note.includes('border border-dashed border-blue-600 bg-blue-50 p-3 shadow'));
+  assert.ok(note.includes('rounded bg-blue-600 text-blue-900" aria-hidden="true"'));
+  assert.ok(note.includes('text-xs font-extrabold uppercase tracking-widest text-blue-900">Só a equipe vê</small>'));
   assert.doesNotMatch(note, /bg-warning(?:-soft)?\b/);
 });
 
 test("as bolhas OUTBOUND e INBOUND usam TW com fundos leves e visíveis", () => {
   assert.ok(workspace.includes('data-testid="message-line" data-direction={message.direction} className={message.direction === "OUTBOUND" ? "flex justify-end" : "flex justify-start"}'));
-  assert.ok(workspace.includes('className={"max-w-ib-bubble break-words rounded-ib-bubble border p-2.5 font-ui text-body text-ink shadow-token-sm " + (message.direction === "OUTBOUND" ? "border-blue-100 bg-blue-50" : "border-line bg-surface")}'));
+  assert.ok(workspace.includes('className={"max-w-2xl break-words rounded-xl border p-2.5 font-sans text-sm text-slate-950 shadow " + (message.direction === "OUTBOUND" ? "border-blue-100 bg-blue-50" : "border-gray-200 bg-zinc-100")}'));
   const css = read("src/app/vexora.css");
   assert.doesNotMatch(css, /\[data-testid='message-bubble'\]\{[^}]*(?:background|border-radius|padding|font-family|font-size|max-width)/);
   assert.doesNotMatch(css, /\[data-testid='message-line'\]\[data-direction='(?:OUTBOUND|INTERNAL)'\] \[data-testid='message-bubble'\]/);
@@ -377,18 +402,18 @@ test("as bolhas OUTBOUND e INBOUND usam TW com fundos leves e visíveis", () => 
 
 test("a lista, a supervisão e o composer alinham os filhos em uma linha só", () => {
   const listHeading = workspace.match(/<div className="[^"]*"><h2[^>]*>Conversas<\/h2><button[^>]*aria-label="Atualizar conversas"/)?.[0] ?? "";
-  assert.match(listHeading, /flex flex-none items-center justify-between gap-ib-gap/);
-  assert.match(listHeading, /<h2 className="text-ib-input font-extrabold">Conversas<\/h2>/);
+  assert.match(listHeading, /flex flex-none items-center justify-between gap-2/);
+  assert.match(listHeading, /<h2 className="text-xs font-extrabold">Conversas<\/h2>/);
 
   const supervision = workspace.match(/<section className="[^"]*" aria-label="Supervisão operacional">/)?.[0] ?? "";
-  assert.match(supervision, /text-ib-caption/);
+  assert.match(supervision, /grid gap-1\.5 border-b border-gray-200 px-4 py-2\.5 text-xs/);
   assert.match(supervision, /gap-1\.5/);
   for (const metric of ["Aguardando", "Abertas", "Pausadas", "Fora do SLA"]) {
-    assert.ok(workspace.includes(`<small className="text-ib-micro text-ink-secondary">${metric}</small>`), `métrica ${metric}`);
+    assert.ok(workspace.includes(`<small className="text-xs text-slate-600">${metric}</small>`), `métrica ${metric}`);
   }
 
   const composerRow = workspace.match(/<div className="([^"]*)">\s*<textarea data-testid="inbox-composer-input"/)?.[1] ?? "";
-  assert.match(composerRow, /flex flex-nowrap items-center gap-ib-gap/);
+  assert.match(composerRow, /flex flex-nowrap items-center gap-2/);
   assert.ok(workspace.includes('data-testid="composer-tools" className="order-1 flex flex-nowrap shrink-0 items-center gap-1"'));
   assert.ok(workspace.includes('data-testid="inbox-composer-input" className="order-2 min-w-0 flex-1 resize-none ib-narrow:order-first ib-narrow:basis-full'));
   assert.ok(workspace.includes('className="order-3 flex shrink-0 items-center gap-1"'));

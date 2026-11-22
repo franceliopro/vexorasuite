@@ -12,14 +12,15 @@ type Props = {
   title?: string;
 };
 
-/* Utilities compartilhadas da fatia: azul vem dos tokens --primary do preset. */
-const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
-const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-3.5 text-xs font-bold text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
-const iconButton = "grid size-control flex-none place-items-center rounded-token-sm border border-line bg-surface-2 text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
-const searchTw = "flex min-h-10 min-w-fm-search flex-1 items-center gap-2 rounded-fm-search border border-line bg-surface-2 px-3 text-ink-secondary";
-const searchInput = "min-w-0 flex-1 border-0 bg-transparent text-body text-ink outline-hidden";
-const stateTw = "grid place-items-center gap-2.5 rounded-fm-card border border-dashed border-line-strong p-10 text-center text-ink-secondary";
-const itemTw = "relative grid grid-rows-fm-picker-item overflow-hidden rounded-fm-card border-2 border-transparent bg-surface-2 p-0 text-left transition-colors hover:border-line";
+/* Utilities compartilhadas da fatia: slate real no escuro, azul só de realce. */
+const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-600 px-4 text-xs font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3.5 text-xs font-bold text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+const iconButton = "grid size-9 flex-none place-items-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+const searchTw = "flex min-h-10 min-w-56 flex-1 items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 text-slate-300";
+const searchInput = "min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-50 outline-none";
+const stateTw = "grid place-items-center gap-2.5 rounded-xl border border-dashed border-slate-600 p-10 text-center text-slate-300";
+const itemTw = "relative grid grid-rows-2 overflow-hidden rounded-xl border-2 border-transparent bg-slate-800 p-0 text-left transition-colors hover:border-slate-600";
+const itemSelectedTw = "relative grid grid-rows-2 overflow-hidden rounded-xl border-2 border-blue-500 bg-slate-800 p-0 text-left transition-colors hover:border-slate-600";
 
 /** Picas do File manager (as imagens que o próprio site guarda) — envie do PC/celular ou escolha das já enviadas. */
 export function FileImagePicker({ open, onClose, onSelect, multiple, title = "File manager · escolher imagem" }: Props) {
@@ -56,30 +57,30 @@ export function FileImagePicker({ open, onClose, onSelect, multiple, title = "Fi
   const visible = (assets || []).filter(a => !query.trim() || (a.name || "").toLowerCase().includes(query.trim().toLowerCase()));
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-ib-dialog grid animate-vx-scrim-in place-items-center bg-overlay-soft p-vx-dialog-pad backdrop-blur-sm" role="presentation" data-testid="file-image-picker-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className="relative z-ib-dialog-inner flex max-h-ib-dialog w-ib-dialog-wide animate-vx-in flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg" role="dialog" aria-modal="true" aria-label={title} data-testid="file-image-picker">
+    <div className="fixed inset-0 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm" style={{ zIndex: 1000 }} role="presentation" data-testid="file-image-picker-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="relative flex max-h-dvh w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-900 p-5 text-slate-50 shadow-2xl" style={{ zIndex: 1 }} role="dialog" aria-modal="true" aria-label={title} data-testid="file-image-picker">
         <header className="mb-3.5 flex flex-none items-center gap-3 pr-10">
-          <span className="grid size-ib-avatar-sm flex-none place-items-center rounded-ib-dialog-icon border border-blue-600/20 bg-blue-50 text-blue-800" data-testid="file-image-picker-icon"><ImageIcon size={20} aria-hidden="true" /></span>
-          <div className="min-w-0"><h2 className="truncate">{title}</h2><p className="text-fm-caption text-ink-secondary">Estas são as imagens do File manager do seu site. Envie do PC ou celular, ou escolha das que já estão no servidor.</p></div>
-          <button type="button" className="absolute right-3 top-3 z-10 grid size-ctl-sm place-items-center rounded-ib-dialog-icon border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink" aria-label="Fechar" onClick={onClose}><X size={18} aria-hidden="true" /></button>
+          <span className="grid size-10 flex-none place-items-center rounded-lg border border-blue-500/30 bg-slate-800 text-blue-300" data-testid="file-image-picker-icon"><ImageIcon size={20} aria-hidden="true" /></span>
+          <div className="min-w-0"><h2 className="truncate">{title}</h2><p className="text-xs text-slate-300">Estas são as imagens do File manager do seu site. Envie do PC ou celular, ou escolha das que já estão no servidor.</p></div>
+          <button type="button" className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700 hover:text-slate-50" aria-label="Fechar" onClick={onClose}><X size={18} aria-hidden="true" /></button>
         </header>
-        <div className="grid min-h-0 min-w-fm-picker-body flex-1 gap-3 overflow-y-auto overscroll-contain" data-testid="file-image-picker-body">
+        <div className="grid min-h-0 min-w-0 flex-1 gap-3 overflow-y-auto overscroll-contain" data-testid="file-image-picker-body">
           <div className="flex flex-wrap items-center gap-2.5">
             <label className={searchTw}><Search size={16} aria-hidden="true" /><input autoFocus className={searchInput} value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar imagens…" aria-label="Pesquisar imagens" /></label>
             <button type="button" className={primaryButton} onClick={() => inputRef.current?.click()} disabled={uploading}>{uploading ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Upload size={15} aria-hidden="true" />} {uploading ? "Enviando…" : "Enviar imagem"}</button>
             <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={e => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ""; }} />
           </div>
-          {notice && <p className="m-0 text-small text-blue-700" role="status">{notice}</p>}
+          {notice && <p className="m-0 text-xs text-blue-300" role="status">{notice}</p>}
           {assets === null ? <div className={stateTw} role="status"><Loader2 size={20} className="animate-spin" aria-hidden="true" /> Carregando imagens…</div>
             : !visible.length ? <div className={stateTw}><p>{assets.length ? "Nenhuma imagem corresponde à busca." : "Nenhuma imagem no File manager ainda — envie o primeiro arquivo."}</p></div>
-            : <div className="grid grid-cols-fm-picker max-h-fm-picker-grid gap-2.5 overflow-auto pr-1" data-testid="file-image-picker-grid">{visible.map(asset => { const isSelected = !!selected[asset.id]; return (
-                <button key={asset.id} type="button" className={itemTw + (isSelected ? " border-blue-600" : "")} onClick={() => pick(asset)} aria-pressed={multiple ? isSelected : true} title={asset.name} data-testid="file-image-picker-item">
-                  <img className="block aspect-fm-preview w-full object-cover" src={asset.url} alt={asset.name || "Imagem"} loading="lazy" />
-                  {multiple && isSelected && <span className="absolute right-2 top-2 grid size-fm-check place-items-center rounded-fm-pill bg-blue-600 text-blue-900" data-testid="file-image-picker-check"><Check size={16} aria-hidden="true" /></span>}
-                  <span className="truncate px-2.5 py-2 text-fm-meta text-ink">{asset.name || "Imagem"}</span>
+            : <div className="grid max-h-96 grid-cols-2 gap-2.5 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-4" data-testid="file-image-picker-grid">{visible.map(asset => { const isSelected = !!selected[asset.id]; return (
+                <button key={asset.id} type="button" className={isSelected ? itemSelectedTw : itemTw} onClick={() => pick(asset)} aria-pressed={multiple ? isSelected : true} title={asset.name} data-testid="file-image-picker-item">
+                  <img className="block aspect-4/3 w-full object-cover" src={asset.url} alt={asset.name || "Imagem"} loading="lazy" />
+                  {multiple && isSelected && <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-blue-600 text-white" data-testid="file-image-picker-check"><Check size={16} aria-hidden="true" /></span>}
+                  <span className="truncate px-2.5 py-2 text-xs text-slate-200">{asset.name || "Imagem"}</span>
                 </button>); })}</div>}
         </div>
-        {multiple && <footer className="mt-0 flex flex-none flex-wrap justify-end gap-2 border-t border-line pt-3"><button type="button" className={secondaryButton} onClick={onClose}>Cancelar</button><button type="button" className={primaryButton} disabled={!Object.values(selected).some(Boolean)} onClick={confirm}>Inserir {Object.values(selected).filter(Boolean).length} imagem(ns)</button></footer>}
+        {multiple && <footer className="mt-0 flex flex-none flex-wrap justify-end gap-2 border-t border-slate-700 pt-3"><button type="button" className={secondaryButton} onClick={onClose}>Cancelar</button><button type="button" className={primaryButton} disabled={!Object.values(selected).some(Boolean)} onClick={confirm}>Inserir {Object.values(selected).filter(Boolean).length} imagem(ns)</button></footer>}
       </section>
     </div>
   );

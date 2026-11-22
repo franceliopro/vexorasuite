@@ -16,15 +16,15 @@ export function avatarUrl(contact: Contact): string | null {
 }
 
 /** Base comum dos marcadores de canal: forma neutra, cor vem do tom de cada canal. */
-const channelBaseTw = "inline-grid h-ib-mark w-ib-mark flex-none place-items-center rounded-ib-channel";
+const channelBaseTw = "inline-grid h-5 w-5 flex-none place-items-center rounded-full";
 const channelTw = {
-  ai: "bg-blue-50 text-blue-700",
-  bot: "bg-zinc-200 text-slate-600",
-  email: "bg-blue-50 text-blue-700",
-  instagram: "bg-red-100 text-red-600",
-  facebook: "bg-blue-100 text-blue-800",
-  tiktok: "bg-zinc-200 text-slate-950",
-  whatsapp: "bg-emerald-100 text-emerald-600",
+  ai: "bg-blue-100 text-blue-700 dark:bg-slate-800 dark:text-slate-200",
+  bot: "bg-zinc-200 text-slate-600 dark:bg-slate-800 dark:text-slate-200",
+  email: "bg-blue-100 text-blue-700 dark:bg-slate-800 dark:text-slate-200",
+  instagram: "bg-red-100 text-red-600 dark:bg-slate-800 dark:text-slate-200",
+  facebook: "bg-blue-100 text-blue-800 dark:bg-slate-800 dark:text-slate-200",
+  tiktok: "bg-zinc-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
+  whatsapp: "bg-emerald-100 text-emerald-600 dark:bg-slate-800 dark:text-slate-200",
 } as const;
 
 export function ChannelMark({ channel, kind = "source", mode }: { channel?: string; kind?: "source" | "agent"; mode?: "BOT" | "HUMAN" }) {
@@ -56,17 +56,17 @@ export function ContactAvatar({ contact, className = contactAvatarFillTw }: { co
   return (
     <span className={className}>
       {src ? <img key={src} src={src} alt={"Foto de " + contactDisplayName(contact)} loading="lazy" referrerPolicy="no-referrer" className="block h-full w-full rounded-full object-cover" onError={() => setSrc(current => current === proxy ? avatarUrl(contact) : null)}/> : null}
-      {!src && <span className="grid h-full w-full place-items-center rounded-full bg-ib-avatar text-ib-avatar-fallback font-extrabold tracking-tight text-white">{contactDisplayName(contact).slice(0, 1).toUpperCase()}</span>}
+      {!src && <span className="grid h-full w-full place-items-center rounded-full bg-slate-200 font-extrabold tracking-tight text-slate-800 dark:bg-slate-800 dark:text-slate-50">{contactDisplayName(contact).slice(0, 1).toUpperCase()}</span>}
     </span>
   );
 }
 
 export function InitialsAvatar({ name }: { name: string }) {
   const trimmed = name.trim();
-  if (!trimmed) return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-50 text-ib-tick font-ib text-blue-800">?</span>;
+  if (!trimmed) return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-100 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-slate-200">?</span>;
   const parts = trimmed.split(/\s+/).filter(Boolean);
   const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("") || "?";
-  return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-50 text-ib-tick font-ib text-blue-800" data-testid="mention-avatar">{initials}</span>;
+  return <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-100 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-slate-200" data-testid="mention-avatar">{initials}</span>;
 }
 
 export function contactLabels(contact: Contact): Array<{ name: string; color: string }> {

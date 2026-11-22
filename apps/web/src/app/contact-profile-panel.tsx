@@ -23,14 +23,14 @@ import {
   Mail,
 } from "lucide-react";
 
-const pillTw = "inline-flex min-h-ib-profile-pill items-center gap-1 rounded-full px-2 text-ib-profile-pill font-bold tabular-nums";
-const pillSmallTw = "inline-flex min-h-ib-profile-pill items-center gap-1 rounded-full px-1.5 text-ib-profile-pill font-bold tabular-nums";
+const pillTw = "inline-flex min-h-4 items-center gap-1 rounded-full px-2 text-xs font-bold tabular-nums";
+const pillSmallTw = "inline-flex min-h-4 items-center gap-1 rounded-full px-1.5 text-xs font-bold tabular-nums";
 
 function channelGlyph(channel?: string) {
   const value = (channel || "WHATSAPP").toUpperCase();
-  if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} className="text-ib-instagram" aria-hidden="true" />;
-  if (value.includes("FACEBOOK") || value === "MESSENGER") return <Facebook size={12} strokeWidth={2.25} className="text-ib-facebook" aria-hidden="true" />;
-  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <Mail size={12} strokeWidth={2.25} className="text-ib-email" aria-hidden="true" />;
+  if (value.includes("INSTAGRAM")) return <Instagram size={12} strokeWidth={2.25} className="text-fuchsia-400" aria-hidden="true" />;
+  if (value.includes("FACEBOOK") || value === "MESSENGER") return <Facebook size={12} strokeWidth={2.25} className="text-blue-400" aria-hidden="true" />;
+  if (value.includes("EMAIL") || value.includes("E-MAIL")) return <Mail size={12} strokeWidth={2.25} className="text-red-300" aria-hidden="true" />;
   if (value.includes("CHATBOT") || value.includes("WEBCHAT") || value.includes("WIDGET")) return <Bot size={12} aria-hidden="true" />;
   return <WhatsAppGlyph size={12} />;
 }
@@ -395,13 +395,13 @@ export function ContactProfilePanel({
       data-testid="contact-profile"
       data-collapsed={expanded ? "false" : "true"}
       data-bare={bare ? "true" : "false"}
-      className={"flex min-w-0 flex-col overflow-hidden " + (bare ? "" : "rounded-token border border-line bg-zinc-100 shadow-token") + (!expanded ? " w-ib-profile-collapsed" : "")}
+      className={"flex min-w-0 flex-col overflow-hidden " + (bare ? "" : "rounded-xl border border-slate-700 bg-slate-900 shadow-lg") + (!expanded ? " w-13" : "")}
     >
       {bare ? null : (
-      <div data-testid="contact-profile-heading" className={"flex flex-none items-center gap-2.5 border-b border-line " + (expanded ? "px-3 pb-1.5 pt-3" : "justify-center p-2")}>
+      <div data-testid="contact-profile-heading" className={"flex flex-none items-center gap-2.5 border-b border-slate-700 " + (expanded ? "px-3 pb-1.5 pt-3" : "justify-center p-2")}>
         {expanded ? (
           <>
-            <span className="grid h-ib-profile-avatar w-ib-profile-avatar flex-none place-items-center overflow-hidden rounded-full bg-ib-avatar text-ib-avatar-fallback font-extrabold tracking-tight text-blue-950">
+            <span className="grid h-12 w-12 flex-none place-items-center overflow-hidden rounded-full bg-linear-to-br from-slate-700 to-slate-900 text-xs font-extrabold tracking-tight text-slate-50">
               {!photoFailed ? (
                 <img key={photoAttempt} className="h-full w-full object-cover" src={"/api/backend/contacts/" + contact.id + "/avatar?v=" + photoAttempt} alt={"Foto de " + (displayName || contactDisplayName(contact))} loading="lazy" referrerPolicy="no-referrer" onError={() => { if (photoTimer.current) window.clearTimeout(photoTimer.current); if (photoAttempt < 2) { photoTimer.current = window.setTimeout(() => setPhotoAttempt(v => v + 1), 1500); } else { setPhotoFailed(true); } }} />
               ) : (
@@ -409,15 +409,15 @@ export function ContactProfilePanel({
               )}
             </span>
             <div className="grid min-w-0 gap-px">
-              <strong className="flex min-w-0 items-center gap-1.5 truncate text-ib-profile-name font-bold text-slate-950">{displayName || contactDisplayName(contact)}<span className="inline-grid h-ib-mark w-ib-mark flex-none place-items-center rounded-ib-channel bg-blue-50 text-slate-600" title={channel || "WhatsApp"}>{channelGlyph(channel)}</span></strong>
-              <small className="text-ib-profile-sub text-slate-600">{profileLeadSubtitle()}</small>
+              <strong className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold text-slate-50">{displayName || contactDisplayName(contact)}<span className="inline-grid h-5 w-5 flex-none place-items-center rounded-md bg-slate-800 text-slate-300" title={channel || "WhatsApp"}>{channelGlyph(channel)}</span></strong>
+              <small className="text-xs text-slate-300">{profileLeadSubtitle()}</small>
             </div>
           </>
         ) : null}
         {hideToggle ? null : (
           <button
             type="button"
-            className="inline-grid h-ib-profile-toggle w-ib-profile-toggle flex-none place-items-center rounded-ib-profile-toggle border border-line-strong bg-zinc-100 p-0 text-slate-600 transition-colors hover:bg-zinc-300 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+            className="inline-grid h-8 w-8 flex-none place-items-center rounded-lg border border-slate-600 bg-slate-900 p-0 text-slate-300 transition-colors hover:bg-slate-700 hover:text-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
             aria-label={expanded ? "Recolher ficha" : "Expandir ficha"}
             onClick={() => onExpandedChange(!expanded)}
           >
@@ -429,12 +429,12 @@ export function ContactProfilePanel({
       {expanded ? (
         <>
           <div data-testid="contact-profile-identity" className="grid gap-0.5 px-3 pb-1.5 pt-1">
-            {contact.phone ? <p className="m-0 text-ib-profile-copy">{readablePhone(contact.phone, contact.externalId)}</p> : null}
-            {contact.email ? <p className="m-0 text-ib-profile-copy">{contact.email}</p> : null}
+            {contact.phone ? <p className="m-0 text-xs">{readablePhone(contact.phone, contact.externalId)}</p> : null}
+            {contact.email ? <p className="m-0 text-xs">{contact.email}</p> : null}
             {statusPill ? statusPill : status ? (
               <span
                 className={
-                  pillTw + " " + (["RESOLVED", "CLOSED"].includes(status) ? "bg-blue-50 text-blue-800" : "bg-blue-50 text-blue-800")
+                  pillTw + " " + (["RESOLVED", "CLOSED"].includes(status) ? "bg-slate-800 text-blue-200" : "bg-slate-800 text-blue-200")
                 }
               >
                 {status === "RESOLVED"
@@ -448,7 +448,7 @@ export function ContactProfilePanel({
             ) : null}
             {finalization ? (
               <span
-                className={pillTw + " " + (finalization.outcome === "WON" ? "bg-blue-50 text-blue-800" : "bg-blue-50 text-blue-800")}
+                className={pillTw + " " + (finalization.outcome === "WON" ? "bg-slate-800 text-blue-200" : "bg-slate-800 text-blue-200")}
               >
                 {finalization.outcome === "WON"
                   ? "Cliente · Ganho"
@@ -460,7 +460,7 @@ export function ContactProfilePanel({
             <button
               type="button"
               aria-pressed={tab === "dados"}
-              className={tab === "dados" ? "min-h-ib-profile-tab rounded-ib-profile-tag bg-blue-50 px-1 text-ib-profile-tab font-bold text-blue-800" : "min-h-ib-profile-tab rounded-ib-profile-tag px-1 text-ib-profile-tab font-semibold text-slate-600 hover:bg-zinc-200"}
+              className={tab === "dados" ? "min-h-7 rounded-md bg-slate-800 px-1 text-xs font-bold text-blue-200" : "min-h-7 rounded-md px-1 text-xs font-semibold text-slate-300 hover:bg-slate-700"}
               onClick={() => setTab("dados")}
             >
               Dados
@@ -468,7 +468,7 @@ export function ContactProfilePanel({
             <button
               type="button"
               aria-pressed={tab === "notas"}
-              className={tab === "notas" ? "min-h-ib-profile-tab rounded-ib-profile-tag bg-blue-50 px-1 text-ib-profile-tab font-bold text-blue-800" : "min-h-ib-profile-tab rounded-ib-profile-tag px-1 text-ib-profile-tab font-semibold text-slate-600 hover:bg-zinc-200"}
+              className={tab === "notas" ? "min-h-7 rounded-md bg-slate-800 px-1 text-xs font-bold text-blue-200" : "min-h-7 rounded-md px-1 text-xs font-semibold text-slate-300 hover:bg-slate-700"}
               onClick={() => setTab("notas")}
             >
               Anotações
@@ -476,18 +476,18 @@ export function ContactProfilePanel({
             <button
               type="button"
               aria-pressed={tab === "protocolos"}
-              className={tab === "protocolos" ? "min-h-ib-profile-tab rounded-ib-profile-tag bg-blue-50 px-1 text-ib-profile-tab font-bold text-blue-800" : "min-h-ib-profile-tab rounded-ib-profile-tag px-1 text-ib-profile-tab font-semibold text-slate-600 hover:bg-zinc-200"}
+              className={tab === "protocolos" ? "min-h-7 rounded-md bg-slate-800 px-1 text-xs font-bold text-blue-200" : "min-h-7 rounded-md px-1 text-xs font-semibold text-slate-300 hover:bg-slate-700"}
               onClick={() => setTab("protocolos")}
             >
               Protocolos
             </button>
-            <button type="button" aria-pressed={tab === "procedimentos"} className={tab === "procedimentos" ? "min-h-ib-profile-tab rounded-ib-profile-tag bg-blue-50 px-1 text-ib-profile-tab font-bold text-blue-800" : "min-h-ib-profile-tab rounded-ib-profile-tag px-1 text-ib-profile-tab font-semibold text-slate-600 hover:bg-zinc-200"} onClick={() => setTab("procedimentos")}>Procedimentos</button>
+            <button type="button" aria-pressed={tab === "procedimentos"} className={tab === "procedimentos" ? "min-h-7 rounded-md bg-slate-800 px-1 text-xs font-bold text-blue-200" : "min-h-7 rounded-md px-1 text-xs font-semibold text-slate-300 hover:bg-slate-700"} onClick={() => setTab("procedimentos")}>Procedimentos</button>
           </nav>
-          <section className="grid gap-2 border-b border-line px-4 pb-3 pt-2.5" aria-label="Tags do contato">
+          <section className="grid gap-2 border-b border-slate-700 px-4 pb-3 pt-2.5" aria-label="Tags do contato">
             <div className="flex flex-wrap gap-1.5">
               {tags.map((tag, index) => (
                 <span
-                  className="inline-flex min-h-ib-profile-tag items-center gap-0.5 rounded-ib-profile-tag border px-1.5 text-ib-profile-tag font-semibold tabular-nums"
+                  className="inline-flex min-h-5 items-center gap-0.5 rounded-md border px-1.5 text-xs font-semibold tabular-nums"
                   key={index}
                   style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: tag.color }}
                 >
@@ -501,10 +501,10 @@ export function ContactProfilePanel({
                   </button>
                 </span>
               ))}
-              {!tags.length ? <small className="text-ib-profile-copy text-slate-600">Sem tags neste contato.</small> : null}
+              {!tags.length ? <small className="text-xs text-slate-300">Sem tags neste contato.</small> : null}
             </div>
             <form className="flex items-center gap-1.5" onSubmit={addTag}>
-              <input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+              <input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                 list={"crm-tag-catalog-" + contact.id}
                 value={tagDraft}
                 onChange={(e) => setTagDraft(e.target.value)}
@@ -517,7 +517,7 @@ export function ContactProfilePanel({
                   <option key={tag.id} value={tag.name} />
                 ))}
               </datalist>
-              <button type="submit" aria-label="Adicionar tag cadastrada" className="inline-grid h-ib-profile-add w-ib-profile-add place-items-center rounded-ib-profile-add border border-line bg-transparent p-0 text-slate-600 transition-colors hover:bg-zinc-300 hover:text-slate-950">
+              <button type="submit" aria-label="Adicionar tag cadastrada" className="inline-grid h-7 w-7 place-items-center rounded-lg border border-slate-700 bg-transparent p-0 text-slate-300 transition-colors hover:bg-slate-700 hover:text-slate-50">
                 <Plus size={14} />
               </button>
             </form>
@@ -525,14 +525,14 @@ export function ContactProfilePanel({
           <div className={"grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4" + (bare ? " flex-none overflow-visible pt-3.5" : "")}>
             {tab === "dados" ? (
               <>
-                                <div className="grid gap-4 ib-desktop:grid-cols-2">
-                                  <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                  <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><UserRound size={12} /> Campos personalizados</strong>
+                                <div className="grid gap-4 lg:grid-cols-2">
+                                  <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><UserRound size={12} /> Campos personalizados</strong>
                   {fieldDefinitions.map((field) => (
-                    <label className="grid max-w-ib-profile-row grid-cols-ib-profile-field-row items-center gap-2.5 text-ib-profile-label text-slate-600" key={field.id}>
+                    <label className="grid max-w-lg grid-cols-2 items-center gap-2.5 text-xs text-slate-300" key={field.id}>
                       <span>{field.name}</span>
                       {field.type === "SELECT" ? (
-                        <select className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                        <select className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                           value={String(fields[field.key] ?? "")}
                           onChange={(e) =>
                             setFields((current) => ({ ...current, [field.key]: e.target.value }))
@@ -552,7 +552,7 @@ export function ContactProfilePanel({
                           }
                         />
                       ) : (
-                        <input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                        <input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                           type={
                             field.type === "NUMBER"
                               ? "number"
@@ -569,13 +569,13 @@ export function ContactProfilePanel({
                     </label>
                   ))}
                   <form className="grid gap-2" onSubmit={createField}>
-                    <input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                    <input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                       value={fieldDraftName}
                       onChange={(e) => setFieldDraftName(e.target.value)}
                       placeholder="Criar novo campo"
                       maxLength={80}
                     />
-                    <select className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                    <select className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                       value={fieldDraftType}
                       onChange={(e) => setFieldDraftType(e.target.value as ProfileFieldDef["type"])}
                     >
@@ -586,7 +586,7 @@ export function ContactProfilePanel({
                       <option value="CHECKBOX">Sim / não</option>
                     </select>
                     {fieldDraftType === "SELECT" ? (
-                      <input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                      <input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                         value={fieldDraftOptions}
                         onChange={(e) => setFieldDraftOptions(e.target.value)}
                         placeholder="Opções separadas por vírgula"
@@ -602,13 +602,13 @@ export function ContactProfilePanel({
                       <Plus size={13} /> Criar campo
                     </button>
                   </form>
-                  <small className="text-ib-profile-label text-slate-600">Os valores ficam na ficha do contato e podem ser usados por automações e processos.</small>
+                  <small className="text-xs text-slate-300">Os valores ficam na ficha do contato e podem ser usados por automações e processos.</small>
                 </section>
                 {asaas?.customerId ? (
-                  <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                    <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><UserRound size={12} /> Cadastro financeiro</strong>
+                  <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                    <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><UserRound size={12} /> Cadastro financeiro</strong>
                     <span
-                      className={pillTw + " " + (asaas.status === "ACTIVE" ? "bg-blue-50 text-blue-800" : "bg-blue-50 text-blue-800")}
+                      className={pillTw + " " + (asaas.status === "ACTIVE" ? "bg-slate-800 text-blue-200" : "bg-slate-800 text-blue-200")}
                     >
                       {asaasStatusLabel(asaas.status)}
                     </span>
@@ -634,23 +634,23 @@ export function ContactProfilePanel({
                 ) : null}
                 </div>
                 <div className="grid gap-4">
-                  <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                  <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><Link2 size={12} /> Identidades de atendimento</strong>
-                  <p className="mb-2 mt-0.5 text-ib-profile-label text-slate-600">Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="grid gap-2">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="flex items-center gap-2 rounded-ib-profile-card border border-line bg-zinc-200 p-2" key={identity.id}><span className="grid h-ib-profile-icon w-ib-profile-icon flex-none place-items-center rounded-ib-entry bg-blue-50 text-blue-800" aria-hidden="true">{isWaha ? <WhatsAppGlyph size={18} /> : <Link2 size={18}/>}</span><span className="grid min-w-0 gap-0.5"><b className="truncate text-ib-profile-body text-slate-950">{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small className="text-ib-profile-copy text-slate-600">{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className={pillSmallTw + " bg-blue-50 text-blue-800"}>Ativo</span></div>})}</div> : <small className="text-ib-profile-copy text-slate-600">Nenhuma identidade sincronizada ainda.</small>}
-                  <form className="grid max-w-ib-profile-copy grid-cols-ib-profile-identity gap-2.5 ib-narrow:grid-cols-1" onSubmit={bindIdentity}>
-                    <label>Provedor<select className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
-                    <label>Número atual<input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
-                    <label>Identificador do canal<input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={identityExternalId} onChange={(e) => setIdentityExternalId(e.target.value)} placeholder="Ex.: 5511999999999@c.us" /></label>
-                    <button type="submit" className="inline-flex min-h-ib-profile-field items-center justify-center gap-2 rounded-token-sm px-2.5 text-ib-profile-action font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:opacity-50" disabled={identitySaving}>{identitySaving ? "Vinculando…" : "Vincular novo canal"}</button>
+                  <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><Link2 size={12} /> Identidades de atendimento</strong>
+                  <p className="mb-2 mt-0.5 text-xs text-slate-300">Os números vinculados preservam o mesmo contato e todo o histórico.</p>
+                  {identities.length ? <div className="grid gap-2">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 p-2" key={identity.id}><span className="grid h-9 w-9 flex-none place-items-center rounded-lg bg-slate-800 text-blue-200" aria-hidden="true">{isWaha ? <WhatsAppGlyph size={18} /> : <Link2 size={18}/>}</span><span className="grid min-w-0 gap-0.5"><b className="truncate text-sm text-slate-50">{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small className="text-xs text-slate-300">{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className={pillSmallTw + " bg-slate-800 text-blue-200"}>Ativo</span></div>})}</div> : <small className="text-xs text-slate-300">Nenhuma identidade sincronizada ainda.</small>}
+                  <form className="grid max-w-xl grid-cols-2 gap-2.5 ib-narrow:grid-cols-1" onSubmit={bindIdentity}>
+                    <label>Provedor<select className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
+                    <label>Número atual<input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>
+                    <label>Identificador do canal<input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={identityExternalId} onChange={(e) => setIdentityExternalId(e.target.value)} placeholder="Ex.: 5511999999999@c.us" /></label>
+                    <button type="submit" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-slate-50 transition-colors hover:bg-slate-700 disabled:opacity-50" disabled={identitySaving}>{identitySaving ? "Vinculando…" : "Vincular novo canal"}</button>
                   </form>
                 </section>
-                <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                  <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><Compass size={12} /> Origem do lead</strong>
+                <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><Compass size={12} /> Origem do lead</strong>
                    {!leadOrigin || originEditing ? (
                      <>
                        <select
-                         className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                         className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                          value={leadOrigin}
                          onChange={(e) => {
                            setLeadOrigin(e.target.value);
@@ -682,39 +682,39 @@ export function ContactProfilePanel({
                          "Campanha de Áudio",
                        ].includes(leadOrigin) ? (
                          <input
-                           className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                           className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                            value={leadOriginId}
                            onChange={(e) => setLeadOriginId(e.target.value)}
                            placeholder="Identificador da landing page/campanha"
                            maxLength={120}
                          />
                        ) : null}
-                       <small className="text-ib-profile-label text-slate-600">Use o identificador criado na landing page ou campanha para atribuir corretamente a origem. O canal de atendimento não define a origem.</small>
-                       <button type="button" className="text-ib-profile-action font-bold text-blue-800 transition-colors hover:text-blue-700" onClick={() => setOriginEditing(false)}>Concluir</button>
+                       <small className="text-xs text-slate-300">Use o identificador criado na landing page ou campanha para atribuir corretamente a origem. O canal de atendimento não define a origem.</small>
+                       <button type="button" className="text-xs font-bold text-blue-200 transition-colors hover:text-blue-200" onClick={() => setOriginEditing(false)}>Concluir</button>
                      </>
                    ) : (
-                     <div className="flex items-center justify-between gap-2.5 rounded-ib-profile-origin border border-line bg-zinc-200 px-3 py-2.5">
-                       <span className="min-w-0 truncate text-ib-profile-body font-bold text-slate-950">{leadOrigin}{leadOriginId ? ` · ${leadOriginId}` : ""}</span>
-                       <button type="button" className="text-ib-profile-action font-bold text-blue-800 transition-colors hover:text-blue-700" onClick={() => setOriginEditing(true)}>Alterar</button>
+                     <div className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5">
+                       <span className="min-w-0 truncate text-sm font-bold text-slate-50">{leadOrigin}{leadOriginId ? ` · ${leadOriginId}` : ""}</span>
+                       <button type="button" className="text-xs font-bold text-blue-200 transition-colors hover:text-blue-200" onClick={() => setOriginEditing(true)}>Alterar</button>
                      </div>
                    )}
                  </section>
-                 <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                   <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><CalendarDays size={12} /> Calendário e cobrança</strong>
-                   <div className="grid justify-items-center gap-1.5 rounded-ib-profile-card border border-dashed border-line-strong px-3 py-5 text-center">
-                     <b className="text-ib-profile-body">Nada agendado ainda</b>
-                     <p className="m-0 max-w-ib-profile-agenda text-ib-profile-copy text-slate-600">Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
+                 <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                   <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><CalendarDays size={12} /> Calendário e cobrança</strong>
+                   <div className="grid justify-items-center gap-1.5 rounded-xl border border-dashed border-slate-600 px-3 py-5 text-center">
+                     <b className="text-sm">Nada agendado ainda</b>
+                     <p className="m-0 max-w-xs text-xs text-slate-300">Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
                    </div>
                  </section>
                 </div>
               </>
             ) : null}
             {tab === "notas" ? (
-              <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><StickyNote size={12} /> Anotações internas</strong>
-                <p className="m-0 text-ib-profile-copy text-slate-600">Visíveis à equipe, nunca enviadas ao cliente.</p>
+              <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><StickyNote size={12} /> Anotações internas</strong>
+                <p className="m-0 text-xs text-slate-300">Visíveis à equipe, nunca enviadas ao cliente.</p>
                 <textarea
-                  className="w-full max-w-ib-profile-copy rounded-ib-profile-field border border-line bg-zinc-100 p-2 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                  className="w-full max-w-xl rounded-md border border-slate-700 bg-slate-900 p-2 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
                   rows={10}
                   maxLength={10000}
                   value={notes}
@@ -724,15 +724,15 @@ export function ContactProfilePanel({
               </section>
             ) : null}
             {tab === "protocolos" ? (
-              <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><Clock3 size={12} /> Jornada do cliente</strong>
-                <p className="m-0 text-ib-profile-copy text-slate-600">
+              <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><Clock3 size={12} /> Jornada do cliente</strong>
+                <p className="m-0 text-xs text-slate-300">
                   Conversas, canais, responsáveis e etapas registradas para auditoria.
                 </p>
                 {conversationId ? (
-                  <div className="grid gap-1 rounded-ib-profile-card border border-line bg-zinc-200 p-3">
-                    <small className="text-ib-profile-label font-bold tracking-widest text-slate-600">ATENDIMENTO ATUAL</small>
-                    <b className="text-ib-profile-body text-slate-950">{protocol(conversationId)}</b>
+                  <div className="grid gap-1 rounded-xl border border-slate-700 bg-slate-800 p-3">
+                    <small className="text-xs font-bold tracking-widest text-slate-300">ATENDIMENTO ATUAL</small>
+                    <b className="text-sm text-slate-50">{protocol(conversationId)}</b>
                     <span>
                       {new Date(createdAt || Date.now()).toLocaleString("pt-BR")} ·{" "}
                       {channel || "WhatsApp"}
@@ -740,9 +740,9 @@ export function ContactProfilePanel({
                   </div>
                 ) : null}
                 {history.map((item) => (
-                  <div className="grid gap-1 border-b border-line pb-2" key={item.id}>
+                  <div className="grid gap-1 border-b border-slate-700 pb-2" key={item.id}>
                     <div>
-                      <b className="text-ib-profile-body text-slate-950">{protocol(item.id)}</b>
+                      <b className="text-sm text-slate-50">{protocol(item.id)}</b>
                       <small>
                         {new Date(item.createdAt).toLocaleString("pt-BR")} →{" "}
                         {new Date(item.updatedAt).toLocaleString("pt-BR")}
@@ -757,34 +757,34 @@ export function ContactProfilePanel({
                     </small>
                   </div>
                 ))}
-                {!history.length ? <p className="m-0 text-ib-profile-copy text-slate-600">Nenhuma conversa registrada para este contato.</p> : null}
+                {!history.length ? <p className="m-0 text-xs text-slate-300">Nenhuma conversa registrada para este contato.</p> : null}
               </section>
             ) : null}
             {tab === "procedimentos" ? (
-              <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
-                <div className="flex items-center justify-between gap-2"><strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><CheckCircle2 size={12} /> Procedimentos do cliente</strong><button type="button" className="inline-flex min-h-ib-profile-field items-center justify-center gap-2 rounded-token-sm px-2.5 text-ib-profile-action font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:opacity-50" onClick={() => setProcedureForm((value) => !value)}><Plus size={13} /> Novo</button></div>
-                <p className="m-0 text-ib-profile-copy text-slate-600">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
-                {procedureForm ? <form className="grid gap-2" onSubmit={createProcedure}><label>Nome do procedimento<input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder="Ex.: Documentação de contratação" autoFocus /></label><label>Descrição<textarea className="w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 p-2 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label><label>Etapas — uma por linha<textarea className="w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 p-2 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label><label>Prazo<input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="datetime-local" value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="flex flex-wrap justify-end gap-2"><button type="button" className="inline-flex min-h-ib-profile-field items-center justify-center gap-2 rounded-token-sm px-2.5 text-ib-profile-action font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:opacity-50" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="inline-flex min-h-ib-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-ib-profile-action font-bold text-blue-950 transition-colors hover:bg-blue-700 disabled:opacity-50" disabled={procedureBusy}>{procedureBusy ? "Criando…" : "Criar procedimento"}</button></div></form> : null}
+              <section className="grid min-w-0 gap-2 border-b border-slate-700 px-3 pb-4">
+                <div className="flex items-center justify-between gap-2"><strong className="flex items-center gap-1.5 text-xs font-bold text-slate-50"><CheckCircle2 size={12} /> Procedimentos do cliente</strong><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-slate-50 transition-colors hover:bg-slate-700 disabled:opacity-50" onClick={() => setProcedureForm((value) => !value)}><Plus size={13} /> Novo</button></div>
+                <p className="m-0 text-xs text-slate-300">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
+                {procedureForm ? <form className="grid gap-2" onSubmit={createProcedure}><label>Nome do procedimento<input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder="Ex.: Documentação de contratação" autoFocus /></label><label>Descrição<textarea className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 p-2 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label><label>Etapas — uma por linha<textarea className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 p-2 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label><label>Prazo<input className="min-h-7 w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-50 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="datetime-local" value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="flex flex-wrap justify-end gap-2"><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-slate-50 transition-colors hover:bg-slate-700 disabled:opacity-50" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-slate-50 transition-colors hover:bg-blue-600 disabled:opacity-50" disabled={procedureBusy}>{procedureBusy ? "Criando…" : "Criar procedimento"}</button></div></form> : null}
                 {procedures.map((procedure) => (
-                  <article className="grid gap-2 rounded-ib-profile-card border border-line bg-zinc-100 p-3" key={procedure.id}>
-                    <div className="flex items-center justify-between gap-2"><b className="text-ib-profile-body text-slate-950">{procedure.title}</b><span className="text-ib-profile-copy tabular-nums text-slate-600">{procedure.progress}%</span></div>
-                    {procedure.description ? <p className="m-0 text-ib-profile-copy text-slate-600">{procedure.description}</p> : null}
-                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-300"><span className="block h-full bg-blue-600" style={{ width: procedure.progress + "%" }} /></div>
-                    <div className="grid gap-1.5">{procedure.steps.map((step) => <label key={step.id} className="flex items-center gap-2 text-ib-profile-copy text-slate-950"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
-                    <div className="flex items-center justify-between gap-2">{procedure.status === "DONE" ? <><span className="inline-flex items-center gap-1.5 text-ib-profile-action font-bold text-blue-800"><CheckCircle2 size={12} /> Finalizado</span><button type="button" className="inline-flex min-h-ib-profile-field items-center justify-center gap-2 rounded-token-sm px-2.5 text-ib-profile-action font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:opacity-50" disabled={procedureBusy} onClick={() => void reopenProcedure(procedure)}>Reabrir</button></> : <button type="button" className="inline-flex min-h-ib-profile-field items-center justify-center gap-2 rounded-token-sm px-2.5 text-ib-profile-action font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:opacity-50" disabled={procedureBusy || procedure.progress < 100} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> Finalizar procedimento</button>}</div>
+                  <article className="grid gap-2 rounded-xl border border-slate-700 bg-slate-900 p-3" key={procedure.id}>
+                    <div className="flex items-center justify-between gap-2"><b className="text-sm text-slate-50">{procedure.title}</b><span className="text-xs tabular-nums text-slate-300">{procedure.progress}%</span></div>
+                    {procedure.description ? <p className="m-0 text-xs text-slate-300">{procedure.description}</p> : null}
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-700"><span className="block h-full bg-blue-600" style={{ width: procedure.progress + "%" }} /></div>
+                    <div className="grid gap-1.5">{procedure.steps.map((step) => <label key={step.id} className="flex items-center gap-2 text-xs text-slate-50"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
+                    <div className="flex items-center justify-between gap-2">{procedure.status === "DONE" ? <><span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-200"><CheckCircle2 size={12} /> Finalizado</span><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-slate-50 transition-colors hover:bg-slate-700 disabled:opacity-50" disabled={procedureBusy} onClick={() => void reopenProcedure(procedure)}>Reabrir</button></> : <button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-slate-50 transition-colors hover:bg-slate-700 disabled:opacity-50" disabled={procedureBusy || procedure.progress < 100} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> Finalizar procedimento</button>}</div>
                   </article>
                 ))}
-                {!procedures.length ? <p className="m-0 text-ib-profile-copy text-slate-600">Nenhum procedimento personalizado registrado para este cliente.</p> : null}
+                {!procedures.length ? <p className="m-0 text-xs text-slate-300">Nenhum procedimento personalizado registrado para este cliente.</p> : null}
               </section>
             ) : null}
           </div>
           {error ? (
-            <p className="m-0 rounded-ib-entry border border-red-600 bg-red-100 p-2 text-ib-profile-copy font-bold text-red-600" role="alert">
+            <p className="m-0 rounded-lg border border-red-700 bg-red-900/40 p-2 text-xs font-bold text-red-200" role="alert">
               {error}
             </p>
           ) : null}
-          <footer className="sticky bottom-0 z-10 flex flex-none items-center border-t border-line bg-zinc-100 px-4 py-3">
-            <button type="button" className="inline-flex min-h-ib-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-ib-profile-action font-bold text-blue-950 transition-colors hover:bg-blue-700 disabled:opacity-50" onClick={() => void save()} disabled={saving}>
+          <footer className="sticky bottom-0 z-10 flex flex-none items-center border-t border-slate-700 bg-slate-900 px-4 py-3">
+            <button type="button" className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-slate-50 transition-colors hover:bg-blue-600 disabled:opacity-50" onClick={() => void save()} disabled={saving}>
               <Save size={15} />
               {saving ? "Salvando..." : "Salvar ficha"}
             </button>

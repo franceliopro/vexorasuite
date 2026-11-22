@@ -25,7 +25,7 @@ const tabsTw = "flex flex-wrap gap-1.5 print:hidden";
 const tabTw = "rounded-full border border-line bg-surface px-4 py-2 text-body font-semibold text-ink-secondary transition-colors";
 const tabStateTw: Record<string, string> = { on: "border-blue-600 bg-blue-600 text-blue-50", off: "border-line bg-surface text-ink-secondary" };
 const tabClass = (active: boolean) => `${tabTw} ${tabStateTw[active ? "on" : "off"]}`;
-const gridTw = "grid grid-cols-docs-grid items-start gap-4 rw-wide:grid-cols-1";
+const gridTw = "grid grid-cols-1 items-start gap-4 lg:grid-cols-docs-grid";
 const listTw = "grid content-start gap-2.5";
 const listHeadTw = "flex items-center justify-between gap-2.5 px-0.5 py-1";
 const listHeadTitleTw = "font-display text-body font-extrabold tracking-wide text-ink-secondary";
@@ -39,7 +39,7 @@ const iconBtnDangerTw = "inline-grid size-docs-icon place-items-center rounded-l
 const emptyTw = "rounded-docs-empty border border-dashed border-line-strong px-3.5 py-3.5 text-docs-hint text-ink-secondary";
 const detailTw = "rounded-docs-card border border-dashed border-line-strong p-docs-pad text-body leading-normal text-ink-secondary";
 const hintTw = "text-docs-hint leading-normal text-ink-secondary";
-const generateTw = "grid grid-cols-docs-generate items-start gap-4 rw-wide:grid-cols-1";
+const generateTw = "grid grid-cols-1 items-start gap-4 lg:grid-cols-docs-generate";
 const formTw = "grid gap-3 rounded-docs-card border border-line bg-surface p-4";
 const formHeadTw = "flex items-center gap-3 border-b border-line pb-2";
 const requiredTw = "text-red-600";
@@ -64,7 +64,7 @@ const editorScrollTw = "grid min-h-0 min-w-0 content-start gap-4 overflow-auto o
 const editorActionsTw = "flex justify-end gap-2.5 border-t border-line bg-surface px-docs-editor-x pb-docs-safe-bottom pt-3";
 const variablesTw = "mt-3 grid gap-2 rounded-docs-empty border border-line p-3";
 const variablesLegendTw = "px-1.5 text-2xs font-extrabold uppercase tracking-wider text-ink-secondary";
-const variableRowTw = "grid grid-cols-docs-variable items-center gap-1.5 ov-tablet:grid-cols-2";
+const variableRowTw = "grid grid-cols-2 items-center gap-1.5 md:grid-cols-docs-variable";
 const requiredToggleTw = "inline-flex items-center gap-1.5 text-2xs font-semibold text-ink-secondary";
 const KINDS = [
   { id: "QUOTE", label: "Orçamentos" },

@@ -84,7 +84,9 @@ test("as configurações de campos usam só utilities, sem remendos", () => {
     "text-asaas-label",
     "text-asaas-muted",
     "text-2xs",
-    "ov-tablet:grid-cols-1",
+    "grid grid-cols-1 gap-3 md:grid-cols-cf-fields",
+    "grid grid-cols-1 items-center gap-2 md:grid-cols-cf-tag-row",
+    "grid grid-cols-1 items-center gap-2 md:grid-cols-cf-field-row",
   ]) {
     assert.ok(classes.includes(utility), `falta a utility ${utility}`);
   }

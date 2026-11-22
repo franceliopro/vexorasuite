@@ -10,18 +10,36 @@ const MONTH_NAMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
 
 /* Estados visuais em literais completas: a classe aplicada nunca é montada por interpolação. */
 const weatherCardTw: Record<string, string> = {
-  day: "grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-200 p-5",
-  night: "grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-300 p-5",
+  clear: "grid min-h-24 content-start gap-3 rounded-2xl border border-slate-700 bg-linear-to-br from-slate-800 to-slate-900 p-4",
+  cloudy: "grid min-h-24 content-start gap-3 rounded-2xl border border-slate-700 bg-linear-to-br from-slate-800 to-slate-700 p-4",
+  rain: "grid min-h-24 content-start gap-3 rounded-2xl border border-slate-700 bg-linear-to-br from-slate-900 to-slate-800 p-4",
+  storm: "grid min-h-24 content-start gap-3 rounded-2xl border border-slate-700 bg-linear-to-br from-slate-950 to-slate-800 p-4",
+  night: "grid min-h-24 content-start gap-3 rounded-2xl border border-slate-700 bg-linear-to-br from-slate-900 to-slate-800 p-4",
+};
+const weatherAccentTw: Record<string, string> = {
+  clear: "text-amber-300",
+  cloudy: "text-slate-300",
+  rain: "text-blue-300",
+  storm: "text-violet-300",
+  night: "text-indigo-300",
+};
+const weatherSurface = (code: number | undefined, isDay: boolean | undefined) => {
+  if (isDay === false) return "night";
+  if (code === 0 || code === 1) return "clear";
+  if (code === 2 || code === 3 || code === 45 || code === 48) return "cloudy";
+  if ((code ?? 0) >= 95) return "storm";
+  if ((code ?? 0) >= 51) return "rain";
+  return "cloudy";
 };
 const weekdayTw: Record<string, string> = {
-  weekend: "text-ov-micro font-bold uppercase text-blue-700",
-  weekday: "text-ov-micro font-bold uppercase text-slate-400",
+  weekend: "text-xs font-bold uppercase text-blue-300",
+  weekday: "text-xs font-bold uppercase text-slate-400",
 };
 const calendarCellTw: Record<string, string> = {
   blank: "invisible",
-  today: "bg-blue-600 font-bold text-blue-900",
-  weekend: "text-blue-700",
-  weekday: "text-slate-950",
+  today: "bg-blue-600 font-bold text-slate-50",
+  weekend: "text-blue-300",
+  weekday: "text-slate-50",
 };
 const fullDate = () => {
   const now = new Date();
@@ -53,12 +71,10 @@ function ClockWidget() {
   }, []);
   const isNight = now.getHours() < 6 || now.getHours() >= 18;
   return (
-    <article className="grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-blue-50 p-5" aria-label="Relógio e data de hoje">
-      <div className="grid h-full content-center justify-items-center gap-1 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-ov-micro font-bold text-blue-800">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
-        <time className="text-ov-clock font-heading tabular-nums text-blue-800" dateTime={now.toISOString()}>{hhmmss()}</time>
-        <p className="text-small text-slate-600">{fullDate()}</p>
-      </div>
+    <article className="col-span-3 grid content-center justify-items-center gap-1 rounded-2xl border border-slate-700 bg-slate-800 p-4 text-center max-md:col-span-12" aria-label="Relógio e data de hoje">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-2.5 py-1 text-xs font-bold text-blue-200">{isNight ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}{isNight ? "Boa noite" : "Bom dia"}</span>
+      <time className="text-3xl font-semibold tabular-nums text-blue-200 sm:text-4xl" dateTime={now.toISOString()}>{hhmmss()}</time>
+      <p className="text-sm text-slate-300">{fullDate()}</p>
     </article>
   );
 }
@@ -131,32 +147,33 @@ function WeatherWidget() {
   const info = state.status === "ready" ? weatherFor(state.code ?? 0) : null;
   const Icon = info?.Icon ?? CloudSun;
   const night = state.isDay === false;
+  const surface = weatherSurface(state.code, state.isDay);
   return (
-    <article className={weatherCardTw[night ? "night" : "day"]} aria-label="Clima agora">
+    <article className={weatherCardTw[surface] + " col-span-5 max-md:col-span-12"} aria-label="Clima agora">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <span className="text-ov-label font-bold uppercase tracking-ov-wider text-slate-600">Clima{state.city ? ` · ${state.city}` : ""}</span>
-        <span className="inline-flex items-center gap-1.5 text-amber-600">
-          <button type="button" className="grid h-7 w-7 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
+        <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Clima{state.city ? ` · ${state.city}` : ""}</span>
+        <span className={"inline-flex items-center gap-1.5 " + weatherAccentTw[surface]}>
+          <button type="button" className="grid h-7 w-7 place-items-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors duration-200 hover:bg-slate-700" onClick={() => { setDraftCity(configuredCity || state.city || ""); setEditing(v => !v); }} aria-label="Definir local do clima" title="Definir local do clima"><MapPin size={14} aria-hidden="true" /></button>
           {night ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
         </span>
       </div>
       {editing ? (
         <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
           <input autoFocus value={draftCity} onChange={(event) => setDraftCity(event.target.value)} aria-label="Cidade para o clima" placeholder="Ex.: Rondonópolis, MT" />
-          <button type="submit" className="inline-flex min-h-control items-center rounded-token-sm bg-blue-700 px-3 text-small font-bold text-blue-50 transition-control duration-control hover:bg-blue-700">Salvar</button>
+          <button type="submit" className="inline-flex min-h-9 items-center rounded-lg bg-blue-600 px-3 text-sm font-bold text-slate-50 transition-colors duration-200 hover:bg-blue-600">Salvar</button>
         </form>
       ) : null}
-      {state.status === "loading" ? <p className="text-small text-slate-600">Buscando o tempo…</p> : null}
+      {state.status === "loading" ? <p className="text-sm text-slate-300">Buscando o tempo…</p> : null}
       {state.status === "error" ? (
-        <p className="text-small text-slate-600">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
+        <p className="text-sm text-slate-300">Não consegui consultar o clima agora.<br />Toque no alfinete para definir a sua cidade.</p>
       ) : null}
       {state.status === "ready" ? (
         <>
           <div className="flex items-center gap-3">
-            <Icon size={58} strokeWidth={1.7} aria-hidden="true" className="h-14 w-14 flex-none text-amber-600" />
-            <div className="grid"><b className="text-ov-weather font-heading tabular-nums text-slate-950">{state.temp}°</b><span className="text-small text-slate-600">{info?.label}</span></div>
+            <Icon size={52} strokeWidth={1.7} aria-hidden="true" className={"h-12 w-12 flex-none " + weatherAccentTw[surface]} />
+            <div className="grid"><b className="text-4xl font-semibold tabular-nums text-slate-50">{state.temp}°</b><span className="text-sm text-slate-300">{info?.label}</span></div>
           </div>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-ov-micro text-slate-600">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-300">
             <span className="inline-flex items-center gap-1"><Sunrise size={13} aria-hidden="true" /> Máx. {state.max}°</span>
             <span className="inline-flex items-center gap-1"><Sunset size={13} aria-hidden="true" /> Mín. {state.min}°</span>
             <span className="inline-flex items-center gap-1"><Droplets size={13} aria-hidden="true" /> {state.humidity}%</span>
@@ -180,17 +197,17 @@ function CalendarWidget() {
   for (let day = 1; day <= daysInMonth; day++) cells.push(day);
   const isToday = (day: number | null) => day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
   const isWeekend = (index: number) => index % 7 === 0 || index % 7 === 6;
-  const navButton = "grid h-7 w-7 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-600 transition-control duration-control hover:bg-zinc-300";
+  const navButton = "grid h-7 w-7 place-items-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors duration-200 hover:bg-slate-700";
   return (
-    <article className="grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-200 p-5" aria-label="Calendário">
+    <article className="col-span-4 grid content-start gap-3 rounded-2xl border border-slate-700 bg-slate-800 p-4 max-md:col-span-12" aria-label="Calendário">
       <div className="flex items-center justify-between gap-2">
-        <strong className="text-small font-bold text-slate-950">{monthLabel(year, month)}</strong>
+        <strong className="text-sm font-bold text-slate-50">{monthLabel(year, month)}</strong>
         <div className="inline-flex items-center gap-1">
           <button type="button" aria-label="Mês anterior" onClick={() => setCursor(new Date(year, month - 1, 1))} className={navButton}><ChevronLeft size={16} aria-hidden="true" /></button>
           <button type="button" aria-label="Próximo mês" onClick={() => setCursor(new Date(year, month + 1, 1))} className={navButton}><ChevronRight size={16} aria-hidden="true" /></button>
         </div>
       </div>
-      <div className="grid grid-cols-ov-calendar gap-0.5 text-center" role="grid" aria-label={monthLabel(year, month)}>
+      <div className="grid grid-cols-7 gap-0.5 text-center" role="grid" aria-label={monthLabel(year, month)}>
         {WEEKDAYS.map((label, index) => <span key={label} className={weekdayTw[isWeekend(index) ? "weekend" : "weekday"]} role="columnheader">{label}</span>)}
         {cells.map((day, index) => {
           const cellState = day === null ? "blank" : isToday(day) ? "today" : isWeekend(index) ? "weekend" : "weekday";
@@ -198,14 +215,14 @@ function CalendarWidget() {
             <span
               key={index}
               role="gridcell"
-              className={"grid h-7 place-items-center rounded-token-sm text-ov-micro tabular-nums " + calendarCellTw[cellState]}
+              className={"grid h-6 place-items-center rounded-lg text-xs tabular-nums " + calendarCellTw[cellState]}
             >
               {day ?? ""}
             </span>
           );
         })}
       </div>
-      <p className="text-ov-micro text-slate-600">Hoje é {today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
+      <p className="text-xs text-slate-300">Hoje é {today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
     </article>
   );
 }
@@ -213,7 +230,7 @@ function CalendarWidget() {
 /** Widgets coloridos da tela inicial: relógio, clima e calendário. */
 export function DashboardWidgets() {
   return (
-    <section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1" aria-label="Seu dia agora">
+    <section className="grid grid-cols-12 gap-4 max-md:grid-cols-1" aria-label="Seu dia agora">
       <ClockWidget />
       <WeatherWidget />
       <CalendarWidget />

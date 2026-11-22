@@ -41,11 +41,12 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
   for (const utility of [
     "grid min-w-0 content-start gap-token",
     "flex flex-wrap gap-1.5 print:hidden",
-    "grid grid-cols-docs-grid items-start gap-4 rw-wide:grid-cols-1",
+    "grid grid-cols-1 items-start gap-4 lg:grid-cols-docs-grid",
+    "grid grid-cols-1 items-start gap-4 lg:grid-cols-docs-generate",
     "m-0 max-h-docs-document overflow-auto whitespace-pre-wrap rounded-docs-card border border-line bg-surface p-docs-pad font-ui text-docs-document text-ink",
     "fixed inset-0 z-docs-editor bg-surface",
     "grid h-full w-full grid-rows-docs-editor bg-surface",
-    "grid grid-cols-docs-variable items-center gap-1.5 ov-tablet:grid-cols-2",
+    "grid grid-cols-2 items-center gap-1.5 md:grid-cols-docs-variable",
     "bg-blue-600 px-brand-pad text-body font-bold text-blue-50",
   ]) {
     assert.ok(docs.includes(utility), `falta a utility ${utility}`);

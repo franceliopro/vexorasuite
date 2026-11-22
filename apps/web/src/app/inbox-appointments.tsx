@@ -4,7 +4,7 @@ import { readablePhone } from "../lib/contact-identity";
 import {useEffect,useRef,useState} from 'react';
 
 /* Padrao TW — o azul vem dos tokens --primary do preset, nunca fixado na classe. */
-const primaryButton="inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-vx-brand transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const primaryButton="inline-flex min-h-9 items-center justify-center gap-2 rounded-token-sm border border-transparent bg-linear-to-br from-blue-50 via-blue-600 to-blue-700 px-4 text-xs font-bold text-blue-900 shadow-token-sm transition-colors hover:from-blue-100 hover:via-blue-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const textButton="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-token-sm px-1.5 text-xs font-bold text-blue-600 transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const fieldsTw="grid gap-3 text-xs text-ink";
 const savedCardTw="grid gap-2 rounded-token border border-line bg-surface p-pad shadow-token";

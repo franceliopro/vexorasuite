@@ -9,7 +9,7 @@ const overviewTw = "grid gap-provider-gap rounded-provider-overview border borde
 const overviewHeadTw = "flex flex-wrap items-center justify-between gap-3";
 const overviewTitleTw = "m-0 text-provider-heading font-extrabold text-slate-950";
 const statusListTw = "m-0 grid list-none gap-2 p-0";
-const statusItemTw = "grid grid-cols-provider-status items-center gap-x-4 gap-y-2 rounded-provider-item border border-gray-200 bg-zinc-100 px-provider-pad py-3 ov-tablet:grid-cols-1";
+const statusItemTw = "grid grid-cols-1 items-center gap-x-4 gap-y-2 rounded-provider-item border border-gray-200 bg-zinc-100 px-provider-pad py-3 md:grid-cols-provider-status";
 const statusMainTw = "flex min-w-0 items-center gap-2.5";
 const statusNameTw = "overflow-hidden text-ellipsis whitespace-nowrap text-body text-slate-950";
 const statusPillTw = "inline-flex items-center rounded-provider-pill px-provider-pill-x py-provider-pill-y font-display text-provider-pill font-extrabold tracking-provider-pill whitespace-nowrap";
@@ -89,7 +89,7 @@ export function ProviderConnections() {
             </div>
             <p className={statusDetailTw}>{configured ? (probe ? probe.message + (probe.checkedAt ? " · verificado agora" : "") : "Verificação pendente…") : "Nenhuma chave cadastrada"}</p>
             <p className={statusOriginTw}>{configured && origin ? "Chave: " + origin : "Sem chave"}{connection.needsRepair ? " · Cadastre novamente" : ""}</p>
-            <button type="button" className={`${textButton} justify-self-end ov-tablet:justify-self-start`} onClick={()=>{ setProvider(connection.provider); setKey(""); setNotice(""); setEditing(true); }}>{connection.configured ? "Trocar chave" : "Adicionar chave"}</button>
+            <button type="button" className={`${textButton} justify-self-start md:justify-self-end`} onClick={()=>{ setProvider(connection.provider); setKey(""); setNotice(""); setEditing(true); }}>{connection.configured ? "Trocar chave" : "Adicionar chave"}</button>
           </li>;
         })}</ul>
       </section>

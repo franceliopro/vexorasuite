@@ -744,7 +744,7 @@ function dictateAiRequest(){
     variables[config.variable||"resposta"]=resolveSimulationText(config.value||"",variables);
     step=follow(step,step.options[0]||"");continue;
    }
-   if(kind==="condition"){step=follow(step,(variables[config.variable||""]||"")===(config.value||"")?"Sim":"Não");continue;}
+   if(kind==="condition"){step=follow(step,variables[config.variable||""]===config.value?"Sim":"Não");continue;}
    if(kind==="text"&&step.options.length===1){
     if(step.message)messages.push(resolveSimulationText(step.message,variables));
     step=follow(step,step.options[0]!);continue;
@@ -981,10 +981,10 @@ function dictateAiRequest(){
  <div className="absolute -right-2 -top-2 z-flow-node-actions"><button type="button" className={canvasNodeQuickButton} aria-label={`Ações de ${step.title}`} aria-haspopup="dialog" onClick={event=>{const rect=event.currentTarget.getBoundingClientRect();setBlockMenu({id:step.id,x:rect.left,y:rect.bottom})}}><Ellipsis size={15} aria-hidden="true"/></button></div>
  <div className={canvasNodeBody}><span className={canvasInputPort} data-flow-input-port/>
  {step.kind==="condition"?inlineCondition===step.id?<div className="grid gap-2" onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineCondition(null)}}}>
-  <label className="grid gap-1 text-ink">Informação<input autoFocus list="chatbot-condition-variables" maxLength={160} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).variable||""} onChange={event=>updateCondition(step.id,"variable",event.target.value)}/></label>
+  <label className="grid gap-1 text-ink">Informação<input autoFocus list="chatbot-condition-variables" maxLength={40} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).variable||""} onChange={event=>updateCondition(step.id,"variable",event.target.value)}/></label>
   <label className="grid gap-1 text-ink">É igual a<input maxLength={500} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).value||""} onChange={event=>updateCondition(step.id,"value",event.target.value)}/></label>
   <button type="button" className={canvasNodeQuickButton} onClick={()=>setInlineCondition(null)}>Concluir</button>
- </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&stepConfig(step).value?`Se ${flowVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a ${stepConfig(step).value}`:"Definir condição"}</button>
+ </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&typeof stepConfig(step).value==="string"?`Se ${flowVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a “${stepConfig(step).value}”`:"Definir condição"}</button>
  :inlineMessage===step.id?<textarea autoFocus rows={3} maxLength={4000} aria-label={`Mensagem de ${step.title}`} className="w-full select-text rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value={step.message} onChange={event=>updateStep({message:event.target.value})} onBlur={()=>setInlineMessage(null)} onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineMessage(null)}}}/>
  :["text","buttons","input.text","input.cpf"].includes(step.kind||"")&&!step.action?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineMessage(step.id)}}>{step.message||"Escrever mensagem"}</button>
  :<p className={canvasNodeSummary} data-flow-node-summary>{nodeSummary(step)}</p>}

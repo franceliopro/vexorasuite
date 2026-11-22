@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Provisionador de sites · Véxora</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Provisionador de sites</h1>
+          <p class="subtitle">
+            Operação do projeto <strong>Estúdio de Sites</strong>
+          </p>
+        </div>
+        <span class="badge" id="mode-badge"
+          >Modo simulação · nenhum recurso real é criado</span
+        >
+      </header>
+
+      <section class="panel" aria-labelledby="form-title">
+        <h2 id="form-title">Novo pedido</h2>
+        <form id="request-form" novalidate>
+          <div class="grid">
+            <label>
+              <span>requestId</span>
+              <input
+                id="requestId"
+                name="requestId"
+                required
+                autocomplete="off"
+                placeholder="vx-1001"
+              />
+            </label>
+            <label>
+              <span>tenantId</span>
+              <input
+                id="tenantId"
+                name="tenantId"
+                required
+                autocomplete="off"
+                placeholder="tenant-a"
+              />
+            </label>
+            <label>
+              <span>slug</span>
+              <input
+                id="slug"
+                name="slug"
+                required
+                autocomplete="off"
+                placeholder="alto-araguaia-imoveis"
+              />
+            </label>
+            <label>
+              <span>domínio</span>
+              <input
+                id="domain"
+                name="domain"
+                required
+                autocomplete="off"
+                placeholder="exemplo.com.br"
+              />
+            </label>
+            <label>
+              <span>tipo</span>
+              <select id="type" name="type" required>
+                <option value="php-mysql">PHP puro + MySQL</option>
+                <option value="nextjs">Next.js</option>
+              </select>
+            </label>
+            <label id="php-version-field">
+              <span>versão do PHP</span>
+              <select id="phpVersion" name="phpVersion"></select>
+            </label>
+            <label>
+              <span>quota GB (opcional)</span>
+              <input
+                id="quotaGb"
+                name="quotaGb"
+                type="number"
+                min="1"
+                step="1"
+                autocomplete="off"
+              />
+            </label>
+            <label>
+              <span>origem (opcional)</span>
+              <input
+                id="source"
+                name="source"
+                autocomplete="off"
+                placeholder="valuehost"
+              />
+            </label>
+          </div>
+
+          <div class="actions">
+            <button type="submit" id="dry-run-button">Gerar dry-run</button>
+            <button type="button" id="status-button" class="secondary">
+              Consultar status
+            </button>
+            <button type="button" id="apply-button" class="secondary" disabled>
+              Aplicar
+            </button>
+            <button type="button" id="rollback-button" class="danger" disabled>
+              Reverter
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="plan-title">
+        <h2 id="plan-title">Plano do dry-run</h2>
+        <p class="hint">
+          O plano não altera nada. A aplicação exige aprovação explícita.
+        </p>
+        <label class="approval" id="approval-label">
+          <input type="checkbox" id="approved" />
+          <span>Li o plano e aprovo a aplicação em modo simulação</span>
+        </label>
+        <div id="plan-output" class="output" role="status" aria-live="polite">
+          Nenhum plano gerado.
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="status-title">
+        <h2 id="status-title">Status do pedido</h2>
+        <div id="status-output" class="output" role="status" aria-live="polite">
+          Nenhum pedido consultado.
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="result-title">
+        <h2 id="result-title">Resultado da operação</h2>
+        <div id="result-output" class="output" role="alert" aria-live="polite">
+          Nenhuma operação executada.
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

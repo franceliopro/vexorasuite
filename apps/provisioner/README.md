@@ -4,13 +4,22 @@ Serviço interno de operação do projeto Dokploy `Estúdio de Sites`. **Este es
 
 ## Rotas
 
-| Método | Rota | Finalidade |
-|---|---|---|
-| `GET` | `/health` | Verificação simples do processo |
-| `POST` | `/provision/dry-run` | Valida e devolve o plano, sem aplicar |
-| `POST` | `/provision/apply` | Marca o job como aplicado na simulação |
-| `GET` | `/provision/:requestId/status` | Estado real do job em memória |
-| `POST` | `/provision/:requestId/rollback` | Marca o job como revertido |
+| Método | Rota                             | Finalidade                                     |
+| ------ | -------------------------------- | ---------------------------------------------- |
+| `GET`  | `/`                              | GUI web (simulação)                            |
+| `GET`  | `/styles.css`, `/app.js`         | Arquivos estáticos da GUI                      |
+| `GET`  | `/health`                        | Verificação simples do processo                |
+| `GET`  | `/meta`                          | Metadados: modo, versões PHP e versões legadas |
+| `POST` | `/provision/dry-run`             | Valida e devolve o plano, sem aplicar          |
+| `POST` | `/provision/apply`               | Marca o job como aplicado na simulação         |
+| `GET`  | `/provision/:requestId/status`   | Estado real do job em memória                  |
+| `POST` | `/provision/:requestId/rollback` | Marca o job como revertido                     |
+
+## GUI web
+
+A GUI é servida pelo próprio processo na raiz (`/`). Ela preenche o pedido, gera o `dry-run`, mostra o plano e os avisos, exige uma caixa de aprovação explícita antes de habilitar `apply`, consulta o `status` e oferece `rollback` com confirmação. As versões PHP vêm de `/meta`, então a lista da tela acompanha a API.
+
+Nada na GUI executa recursos reais: o selo de modo simulação aparece no topo e o `status` sempre traz `tls: "pending"`.
 
 ## Contrato mínimo
 

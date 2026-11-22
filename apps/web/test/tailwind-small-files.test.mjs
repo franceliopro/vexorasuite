@@ -162,7 +162,7 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
       "shadow-token-sm", "shadow-token-lg",
     ],
     "src/app/dashboard-widgets.tsx": [
-      "grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1",
+      "grid grid-cols-1 gap-ov-section md:grid-cols-2 lg:grid-cols-3",
       "rounded-token-xl border border-gray-200", "bg-blue-50", "bg-zinc-200",
       "bg-zinc-300", "text-blue-800", "text-slate-600", "text-slate-950",
       "bg-blue-700", "text-blue-50", "text-amber-600", "grid-cols-ov-calendar",
@@ -171,7 +171,7 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
     "src/app/contact-profile-panel.tsx": [
       "w-ib-profile-collapsed", "h-ib-profile-avatar w-ib-profile-avatar",
       "grid-cols-ib-profile-field-row", "max-w-ib-profile-control", "bg-ib-avatar",
-      "text-ib-instagram", "ib-desktop:grid-cols-2", "bg-blue-50", "text-blue-800",
+      "text-ib-instagram", "lg:grid-cols-2", "bg-blue-50", "text-blue-800",
       "border-red-600", "bg-red-100", "text-red-600", "rounded-token",
     ],
     "src/app/inboxes-management.tsx": [

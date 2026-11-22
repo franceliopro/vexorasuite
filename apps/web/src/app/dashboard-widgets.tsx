@@ -213,7 +213,7 @@ function CalendarWidget() {
 /** Widgets coloridos da tela inicial: relógio, clima e calendário. */
 export function DashboardWidgets() {
   return (
-    <section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1" aria-label="Seu dia agora">
+    <section className="grid grid-cols-1 gap-ov-section md:grid-cols-2 lg:grid-cols-3" aria-label="Seu dia agora">
       <ClockWidget />
       <WeatherWidget />
       <CalendarWidget />

@@ -76,8 +76,9 @@ test("platform admin workspace uses preset utilities", () => {
     "text-ink-secondary",
     "text-blue-800",
     "text-red-600",
-    "rw-wide:",
-    "ov-tablet:",
+    "max-lg:grid-cols-1",
+    "max-md:flex-col",
+    "max-md:grid-cols-2",
     "grid-rows-docs-editor",
     "grid-cols-catalog-grid",
   ]) {

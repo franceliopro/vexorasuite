@@ -22,7 +22,12 @@ function classValues(source) {
       values.push(match[1]);
       continue;
     }
-    for (const literal of match[2].matchAll(/(["'])([^"']*)\1/g)) values.push(literal[2]);
+    for (const literal of match[2].matchAll(/(["'`])([^"'`]*)\1/g)) values.push(literal[2]);
+    for (const template of match[2].matchAll(/`([^`]*)`/g)) {
+      for (const token of template[1].split(/\s+/)) {
+        if (/^[a-z][a-z0-9-]+$/i.test(token) && !constants.has(token)) values.push(token);
+      }
+    }
     for (const [name, value] of constants) {
       if (new RegExp(`\\b${name}\\b`).test(match[2])) values.push(value);
     }

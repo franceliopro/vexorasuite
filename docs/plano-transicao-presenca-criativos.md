@@ -181,3 +181,39 @@ Regras obrigatórias:
 - Não mesclar o PR `#773`.
 - Não prometer publicação, pagamento, entrega ou integração ativa a partir de configuração.
 - Não mexer no núcleo financeiro, CRM, atendimento, documentos, orçamento, assinaturas ou workflows nesta transição.
+
+## 10. Adendo — provisionador já existente (infraestrutura do proprietário)
+
+**Origem:** informado pelo proprietário em 2026-11-22. **Não está neste repositório:** file manager, phpMyAdmin, MySQL e o script de criação já operam fora do checkout. Nada aqui afirma que estão publicados ou funcionando sem evidência.
+
+### O que já existe
+
+- File manager para arquivos dos clientes.
+- phpMyAdmin para administração de banco.
+- Script de provisionamento em desenvolvimento.
+- Proposta de interface gráfica para receber dados e criar: pasta do usuário, banco de dados, domínio e migração do cliente desde outro provedor.
+
+### Ajuste ao plano
+
+A Fase 4 deixa de ser “criar host” e passa a ser **integrar o provisionador existente**:
+
+1. Transformar o script em API idempotente com `dry-run`, `apply`, `status` e `rollback`.
+2. A interface gráfica chama essa API; a Véxora chama a interface por webhook assinado, após aprovação humana.
+3. Entrada: `tenantId`, slug, domínio, tipo de site (estático / PHP-MySQL / Next.js), versão do PHP, quota, plano e origem da migração.
+4. Saída: pasta criada, banco/usuário (senha só em cofre), vhost escrito, pendência de DNS, status de TLS e URL de health-check.
+5. Isolamento: pasta, banco, usuário de banco e credenciais por cliente; phpMyAdmin sem login global.
+6. Publicação só é marcada na Véxora depois de health-check real; nunca por configuração.
+
+### Migração do provedor de origem
+
+Não é one-click. Checklist mínimo: dump e arquivos → ambiente temporário → URLs/caminhos/config → TLS temporário → teste de formulários/login/e-mail → TTL baixo → troca de DNS → confirmação HTTPS → monitoramento. WordPress exige search-replace serializado; PHP puro e Next.js têm checklists próprios. Cuidar também de e-mails transacionais, cron, certificados e redirecionamentos.
+
+### Relação com o que já está no repositório
+
+- `docs/sites-cloudflare-deploy.md` descreve publicação estática via Cloudflare Pages; `docs/isolated-hosts.md` descreve domínios isolados e verificação TXT.
+- `docs/implementation-register.md` e `docs/production-readiness.md` não confirmam publicação real, TLS ou domínio ativo.
+- `docs/isolated-sites-and-platform-admin.md` registra provisionamento de departamentos/pipelines por pacote — não confundir com provisionamento de host.
+
+### Decisões pendentes
+
+Linguagem do script; tipo dos sites atuais; significado exato de “puxar o cliente” (arquivos+banco ou conta inteira); provedor de origem; estratégia de cofre de senhas; quem assina a troca de DNS.

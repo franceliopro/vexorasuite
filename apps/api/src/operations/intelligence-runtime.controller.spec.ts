@@ -18,7 +18,7 @@ describe('scoped publication',()=>{
  const c=new IntelligenceRuntimeController(prisma);
  const status=await c.status(req);
  expect(status.active).toBe(true);
- expect(status.publications).toEqual([{key:'department:dept',scope:undefined,active:true,revision:'scoped',flowName:'Scoped'}]);
+ expect(status.publications).toEqual([{key:'department:dept',scope:undefined,active:true,revision:'scoped',flowName:'Scoped',draftMatchesPublication:false}]);
  });
  it('publishes and pauses one department without replacing other contexts',async()=>{
  const f=fixture();await f.c.publish(req,{departmentId});

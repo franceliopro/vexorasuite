@@ -21,6 +21,16 @@ describe('Intelligence runtime',()=>{
  it('hands off with history preserved',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});x.inbound.content='1';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.conversation.update.mock.calls[0][0].data).toMatchObject({handlingMode:'HUMAN',departmentId:'support',assigneeId:null});});
  it('creates an internal handoff context without sending it to the customer',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'input',variables:{}}});x.flow.steps=[{id:'input',title:'Problema',kind:'input.text',config:'{"variable":"solicitacao"}',message:'Descreva',options:['Continuar'],transitions:{Continuar:'handoff'}},{id:'handoff',title:'Suporte',message:'',options:[],action:'human.handoff',config:'{"departmentKey":"SUPORTE"}'}];x.inbound.content='Sem sinal no rastreador';await x.service.receive(x.channel,'conversation','inbound');const internal=x.tx.message.create.mock.calls.map((call:any)=>call[0].data).find((data:any)=>data.direction==='INTERNAL');expect(internal).toEqual(expect.objectContaining({direction:'INTERNAL',senderName:'Contexto do atendimento'}));expect(internal.content).toContain('Sem sinal no rastreador');expect(x.waha.sendText).not.toHaveBeenCalledWith(expect.anything(),expect.anything(),expect.stringContaining('Contexto do transbordo'));});
  it('honors explicit human requests',async()=>{const x=setup();x.inbound.content='atendente';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.conversation.update.mock.calls[0][0].data.handlingMode).toBe('HUMAN');});
+ it('sends the configured handoff message with the conversation variables', async () => {
+  const x = setup({botState:{flow:'INTELLIGENCE',revision:'r1',stepId:'menu',variables:{}}});
+  const handoff = x.flow.steps.find((step: { id: string }) => step.id === 'handoff')!;
+  handoff.message = 'A equipe da {{empresa}} continua o atendimento.';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.waha.sendText).toHaveBeenCalledTimes(1);
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.anything(), expect.any(String), 'A equipe da Empresa continua o atendimento.');
+  expect(x.tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({action:'engine.processed',details:expect.objectContaining({visitedSteps:[{id:'menu',title:'Menu'},{id:'handoff',title:'Suporte'}],visitedEdges:[{from:'menu',option:'Suporte',to:'handoff'}],waitingStepId:null})})}));
+ });
  it('uses the inbox department as the default fallback for explicit human requests',async()=>{const x=setup({departmentId:'admin'});x.inbound.content='atendente';x.channel.settings={inboxRouting:{mode:'AUTOMATION',departmentId:'admin',targetType:'DEPARTMENT'}};x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:'Empresa',integrations:{intelligencePublished:x.published,intelligencePublications:{'department:admin':x.published}}});x.tx.department.findFirst.mockImplementation(async({where}:any)=>where.id==='admin'?{id:'admin',name:'Administrativo',key:'ADMINISTRATIVO'}:{id:'support',name:'Suporte',key:'SUPORTE'});await x.service.receive(x.channel,'conversation','inbound');const handoff=x.tx.conversation.update.mock.calls.find((call:any)=>call[0].data.handlingMode==='HUMAN');expect(handoff?.[0].data).toMatchObject({handlingMode:'HUMAN',departmentId:'admin',assigneeId:null});expect(x.waha.sendText).toHaveBeenCalledWith(expect.objectContaining({provider:'WAHA'}),expect.any(String),expect.stringContaining('Administrativo'));});
  it('pauses legacy replies and degrades to human with a single notice',async()=>{const x=setup();x.published.active=false;expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.tx.message.create).toHaveBeenCalled();});
  it('rejects channels outside binding by degrading to human, never silent',async()=>{const x=setup();x.flow.channelIds=['other'];expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);});
@@ -110,6 +120,16 @@ describe('explicit human handoff destinations',()=>{
 });
 
 describe('persistent preferred name',()=>{
+ it('starts the configured flow without asking for a name when disabled',async()=>{
+  const x=setup();
+  x.flow.askPreferredName=false;
+  x.flow.welcome='';
+  x.flow.steps=[{id:'start',kind:'text',title:'Mensagem',message:'Olá! Como posso ajudar?',options:[]}];
+  x.conversation.contact.metadata={};
+  await x.service.receive(x.channel,'conversation','inbound');
+  expect(x.waha.sendText).toHaveBeenCalledTimes(1);
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.anything(),expect.any(String),'Olá! Como posso ajudar?');
+ });
  it('does not save a phone number as a preferred name when the contact answers sim',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',awaitingName:true}});x.conversation.contact.name='5511999999999';x.conversation.contact.metadata={};x.inbound.content='sim';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.contact.update).not.toHaveBeenCalled();expect(x.tx.conversation.update.mock.calls[0][0].data.botState.awaitingName).toBe(true)});
  it('asks before a new contact proceeds to the workflow',async()=>{const x=setup();x.conversation.contact.metadata={};await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.message.create.mock.calls[0][0].data.content).toContain('Como gostaria de ser chamado');expect(x.tx.conversation.update.mock.calls[0][0].data.botState.awaitingName).toBe(true)});
  it('saves a chosen name with unrelated CRM metadata preserved',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',awaitingName:true}});x.conversation.contact.metadata={notes:'Preservar'};x.inbound.content='Aninha';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.contact.update).toHaveBeenCalledWith(expect.objectContaining({data:{metadata:{notes:'Preservar',novo_nome:'Aninha'}}}));expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.novo_nome).toBe('Aninha')});

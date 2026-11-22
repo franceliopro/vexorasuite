@@ -5,6 +5,7 @@ import {publicationKey,RuntimeScope} from './runtime-scope';
 import { isSchedulerWorkerAlive } from '../common/worker-health';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { Prisma } from '../generated/prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
@@ -39,13 +40,15 @@ export class IntelligenceRuntimeController {
   async status(@Req() req: AuthenticatedRequest) {
     this.authorize(req);
     const tenant = await this.prisma.tenant.findUniqueOrThrow({ where: { id: req.user.tenantId }, select: { integrations: true } });
-    const published = object(object(tenant.integrations).intelligencePublished);
+    const root = object(tenant.integrations);
+    const published = object(root.intelligencePublished);
+    const draftMatches = (publication: any) => Boolean(publication?.flow && root.chatbotDraft && isDeepStrictEqual(publication.flow, root.chatbotDraft));
     const executions = await this.prisma.auditLog.findMany({ where: { tenantId: req.user.tenantId, action: 'engine.processed' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, createdAt: true, details: true } });
-    const publications=Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,raw]:[string,any])=>{const p=object(raw);return {key,scope:p.scope,active:p.source === 'ui' && p.active === true,revision:p.revision,flowName:p.flow?.name};});
+    const publications=Object.entries(object(object(tenant.integrations).intelligencePublications)).map(([key,raw]:[string,any])=>{const p=object(raw);return {key,scope:p.scope,active:p.source === 'ui' && p.active === true,revision:p.revision,flowName:p.flow?.name,draftMatchesPublication:draftMatches(p)};});
     const defaultActive=published.source === 'ui' && published.active === true;
     const active=defaultActive||publications.some(publication=>publication.active);
     const workerAlive = await isSchedulerWorkerAlive(this.prisma as any);
-    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, llmExecution: true, scheduler: { mode: (process.env.SCHEDULER_MODE || 'in-process'), workerAlive } };
+    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, draftMatchesPublication: draftMatches(published), llmExecution: true, scheduler: { mode: (process.env.SCHEDULER_MODE || 'in-process'), workerAlive } };
   }
   @Get('destinations')
   async destinations(@Req() req:AuthenticatedRequest){

@@ -61,8 +61,14 @@ const customerMarkTw = "grid size-8.5 flex-none place-items-center rounded-catal
 const customerNameTw = "block text-ink";
 const customerSlugTw = "text-fm-meta text-ink-secondary";
 const planSelectTw = "min-h-ctl-sm max-w-55 rounded-token-sm border border-line bg-surface-2 text-docs-meta text-ink";
-const editorSectionTw = "vx-dialog grid grid-rows-docs-editor";
-const editorBodyTw = "vx-dialog-body min-h-0 overflow-y-auto px-5 py-4";
+const dialogBackdropTw = "fixed inset-0 z-ib-dialog grid animate-vx-scrim-in place-items-center bg-overlay-soft p-vx-dialog-pad backdrop-blur-sm";
+const dialogSectionTw = "relative z-ib-dialog-inner flex max-h-ib-dialog w-ib-dialog animate-vx-in flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg";
+const dialogHeadingTw = "mb-3.5 flex min-w-0 flex-none items-center gap-3 pr-10";
+const dialogIconTw = "grid size-ib-avatar-sm flex-none place-items-center rounded-ib-dialog-icon border border-blue-600/20 bg-blue-50 text-blue-800";
+const dialogCloseTw = "absolute right-3 top-3 z-10 grid size-ctl-sm place-items-center rounded-ib-dialog-icon border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
+const dialogFooterTw = "mt-0 flex flex-none justify-end gap-2 border-t border-line pt-3";
+const editorSectionTw = "relative z-ib-dialog-inner grid max-h-ib-dialog w-ib-dialog animate-vx-in grid-rows-docs-editor overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg";
+const editorBodyTw = "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4";
 const editorGridTw = "grid grid-cols-2 gap-2.5 rw-wide:grid-cols-1";
 const fieldTw = "grid gap-1.25";
 const fieldLabelTw = "font-display text-asaas-label font-bold text-ink-secondary";
@@ -202,7 +208,12 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
           </tbody></table></div>
         </div>
       )}
-      {confirmArchive && <div className="vx-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmArchive(null); }}><section className="vx-dialog" role="dialog" aria-modal="true" aria-label="Arquivar plano"><header className="vx-dialog-heading"><div><h2>Arquivar plano</h2><p>Empresas vinculadas continuam no plano arquivado; novos não poderão ser contratados.</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={() => setConfirmArchive(null)}><X size={16} aria-hidden="true" /></button></header><footer className="vx-dialog-footer"><button type="button" className={secondaryTw} onClick={() => setConfirmArchive(null)}>Voltar</button><button type="button" className={dangerTw} onClick={() => { void archive(confirmArchive); }}>Arquivar</button></footer></section></div>}
+      {confirmArchive && <div className={dialogBackdropTw} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmArchive(null); }}>
+        <section className={dialogSectionTw} role="dialog" aria-modal="true" aria-label="Arquivar plano">
+          <header className={dialogHeadingTw}><div className="min-w-0"><h2 className="truncate">Arquivar plano</h2><p>Empresas vinculadas continuam no plano arquivado; novos não poderão ser contratados.</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" onClick={() => setConfirmArchive(null)}><X size={16} aria-hidden="true" /></button></header>
+          <footer className={dialogFooterTw}><button type="button" className={secondaryTw} onClick={() => setConfirmArchive(null)}>Voltar</button><button type="button" className={dangerTw} onClick={() => { void archive(confirmArchive); }}>Arquivar</button></footer>
+        </section>
+      </div>}
     </section>
   );
 }
@@ -217,9 +228,9 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
   const setLimit = (key: string, value: any) => setDraft({ ...draft, limits: { ...draft.limits, [key]: value } });
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="vx-dialog-backdrop" role="presentation" style={{ zIndex: 2100 }} onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className={dialogBackdropTw} role="presentation" style={{ zIndex: 2100 }} onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <section className={editorSectionTw} role="dialog" aria-modal="true" aria-label={editing ? "Editar plano" : "Novo plano"} style={{ width: "min(880px, calc(100vw - 28px))", maxHeight: "88dvh", display: "grid", gridTemplateRows: "auto minmax(0,1fr) auto" }}>
-        <header className="vx-dialog-heading"><span className="vx-dialog-icon"><CircleDollarSign size={18} aria-hidden="true" /></span><div><h2>{editing ? "Editar plano" : "Novo plano / pacote"}</h2><p>{editing ? "Alterações passam a valer na próxima atribuição." : "Defina nome, preço, ciclo e limites."}</p></div><button type="button" className="vx-dialog-close" aria-label="Fechar" onClick={onClose}><X size={17} aria-hidden="true" /></button></header>
+        <header className={dialogHeadingTw}><span className={dialogIconTw}><CircleDollarSign size={18} aria-hidden="true" /></span><div className="min-w-0"><h2 className="truncate">{editing ? "Editar plano" : "Novo plano / pacote"}</h2><p>{editing ? "Alterações passam a valer na próxima atribuição." : "Defina nome, preço, ciclo e limites."}</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" onClick={onClose}><X size={17} aria-hidden="true" /></button></header>
         <div className={editorBodyTw}>
           <div className={editorGridTw}>
             <label className={fieldTw}><span className={fieldLabelTw}>Nome</span><input className={fieldControlTw} autoFocus value={draft.name} onChange={e => upd({ name: e.target.value })} placeholder="Só Sites" /></label>
@@ -250,7 +261,7 @@ function Editor({ draft, setDraft, editing, onClose, onSave, saving }: { draft: 
           </fieldset>
           <div className={flagsTw}><label className={checkTw}><input type="checkbox" checked={draft.isActive} onChange={e => upd({ isActive: e.target.checked })} /> <span>Plano ativo</span></label><label className={checkTw}><input type="checkbox" checked={draft.isPublic} onChange={e => upd({ isPublic: e.target.checked })} /> <span>Visível no catálogo público</span></label></div>
         </div>
-        <footer className="vx-dialog-footer"><button type="button" className={secondaryTw} onClick={onClose}>Cancelar</button><button type="button" className={primaryTw} disabled={saving || !draft.name.trim() || !draft.code.trim()} onClick={() => void onSave()}>{saving ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />} Salvar</button></footer>
+        <footer className={dialogFooterTw}><button type="button" className={secondaryTw} onClick={onClose}>Cancelar</button><button type="button" className={primaryTw} disabled={saving || !draft.name.trim() || !draft.code.trim()} onClick={() => void onSave()}>{saving ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Save size={15} aria-hidden="true" />} Salvar</button></footer>
       </section>
     </div>,
     document.body,

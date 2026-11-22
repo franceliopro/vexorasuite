@@ -151,7 +151,18 @@ try{
  await triggerText.fill("orçamento");
  await page.getByRole("button",{name:"Testar gatilho",exact:true}).click();
  await expect(board.locator("[data-flow-node].ring-accent")).toHaveCount(1);
- console.log("Chatbot: canvas interaction, guided setup and keyword-triggered simulation OK");
+ page.once("dialog", dialog=>dialog.accept());
+ await page.getByRole("button",{name:"Novo fluxo",exact:true}).click();
+ await expect(setup.getByRole("combobox",{name:/Quando/})).toHaveValue("first_message");
+ await setup.getByRole("button",{name:"Verificar condição",exact:true}).click();
+ const condition=board.locator("[data-flow-node]").filter({has:page.getByRole("button",{name:"Verificar condição",exact:false})});
+ await condition.getByRole("textbox",{name:"Informação",exact:true}).fill("departamento");
+ await condition.getByRole("textbox",{name:"É igual a",exact:true}).fill("Financeiro");
+ await condition.getByRole("button",{name:"Concluir",exact:true}).click();
+ await expect(board.getByRole("button",{name:"Se Departamento é igual a “Financeiro”",exact:true})).toBeVisible();
+ await expect(board.getByRole("button",{name:"Sim",exact:true})).toBeVisible();
+ await expect(board.getByRole("button",{name:"Não",exact:true})).toBeVisible();
+ console.log("Chatbot: canvas interaction, guided triggers and inline condition editing OK");
 }finally{
  await browser?.close();
  server.kill("SIGTERM");

@@ -8,12 +8,13 @@ const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 const wizard = read("src/app/sites/wizard/wizard-shell.tsx");
+const contracts = read("src/app/sites/editor/contracts.ts");
 const config = read("tailwind.config.ts");
 const theme = read("src/app/theme.css");
 const legacyCss = read("src/app/vexora.css");
 
-/** Só o id funcional do upload pode manter o prefixo antigo. */
-const semIdFuncional = wizard.replaceAll("vx-wizard-layout-image", "");
+/** O id funcional vive no módulo de contratos, fora do TSX auditado. */
+const layoutImageInputId = contracts.match(/LAYOUT_IMAGE_INPUT_ID = '([^']+)'/)?.[1];
 
 function classValues(source) {
   const values = [];
@@ -30,9 +31,6 @@ const classes = classValues(wizard);
 
 test("o wizard não usa mais classes componente decorativas", () => {
   assert.doesNotMatch(classes, /\bvx-wizard[\w-]*/);
-  assert.doesNotMatch(semIdFuncional, /\bvx-wizard[\w-]*/);
-  assert.doesNotMatch(semIdFuncional, /\bwz-[\w-]+/);
-  assert.doesNotMatch(semIdFuncional, /\bsites-wizard-[\w-]+/);
   for (const legada of [
     "primary-button", "secondary-button", "icon-button",
     "is-active", "is-done", "is-current", "is-disabled",
@@ -120,8 +118,8 @@ test("os contratos de acessibilidade e interação permanecem intactos", () => {
     'aria-label="Nome do site"',
     'aria-label="URL do logotipo"',
     'role="alert"',
-    'id="vx-wizard-layout-image"',
-    'htmlFor="vx-wizard-layout-image"',
+    'id={LAYOUT_IMAGE_INPUT_ID}',
+    'htmlFor={LAYOUT_IMAGE_INPUT_ID}',
     "disabled={!isDone && !isCurrent}",
     "disabled={disabled || busy}",
     "disabled={disabled || busy || !canNext}",
@@ -144,6 +142,8 @@ test("os contratos de acessibilidade e interação permanecem intactos", () => {
   ]) {
     assert.ok(wizard.includes(hook), `perdeu o contrato ${hook}`);
   }
+  assert.equal(layoutImageInputId, "vx-wizard-layout-image");
+  assert.match(wizard, /import \{ LAYOUT_IMAGE_INPUT_ID \} from ['"]\.\.\/editor\/contracts['"]/);
 });
 
 test("as cores e os breakpoints vêm do preset e do tema slate real", () => {

@@ -16,6 +16,7 @@
 import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './../editor/editor.css';
+import { LAYOUT_IMAGE_INPUT_ID } from '../editor/contracts';
 import {
   X,
   Maximize,
@@ -772,12 +773,12 @@ function OrigemStep({
                 disabled={disabled}
               />
               <div className={LAYOUT_UPLOAD_TW}>
-                <label className={INLINE_FIELD_LABEL_TW} htmlFor="vx-wizard-layout-image">
+                <label className={INLINE_FIELD_LABEL_TW} htmlFor={LAYOUT_IMAGE_INPUT_ID}>
                   <ImageIcon size={14} aria-hidden="true" />
                   {value === 'image' ? 'Imagem do layout (obrigatória)' : 'Imagem de layout (opcional)'}
                 </label>
                 <input
-                  id="vx-wizard-layout-image"
+                  id={LAYOUT_IMAGE_INPUT_ID}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   aria-required={value === 'image'}

@@ -16,6 +16,9 @@ const sources = Object.fromEntries(
   Object.entries(files).map(([name, file]) => [name, read(file)]),
 );
 
+const contracts = read('src/app/sites/editor/contracts.ts');
+const contractValue = (name) => contracts.match(new RegExp(`${name} = '([^']+)'`))?.[1];
+
 const UTILITY_HINT =
   /(?:^|\s)(?:flex|grid|inline-flex|absolute|relative|fixed|block|hidden|peer|truncate|overflow|bg-|text-|border|rounded|p-|px-|py-|m-|mx-|my-|w-|h-|min-|max-|gap-|items-|justify|shadow|font-|cursor|opacity|disabled:|hover:|z-|animate-|transition|leading-)/;
 
@@ -122,11 +125,16 @@ test("os contratos de testid, ids, ARIA e roles permanecem intactos", () => {
   // O hook legado vx-inspector-ai-feedback vira data-testid: o contrato do
   // guard de permissoes continua reconhecendo o feedback sem voltar a ser
   // uma classe CSS componente.
-  const expectedTestIds = { canvas: [], shell: [], inspector: ["vx-inspector-ai-feedback"] };
+  const expectedTestIds = { canvas: [], shell: [], inspector: ["INSPECTOR_AI_FEEDBACK_TEST_ID"] };
   for (const [name, source] of Object.entries(sources)) {
-    const testIds = [...source.matchAll(/data-testid=["']([^"']+)["']/g)].map((match) => match[1]);
+    const testIds = [
+      ...[...source.matchAll(/data-testid=["']([^"']+)["']/g)].map((match) => match[1]),
+      ...[...source.matchAll(/data-testid=\{([A-Z_]+)\}/g)].map((match) => match[1]),
+    ];
     assert.deepEqual(testIds, expectedTestIds[name], `${name} perdeu data-testid`);
   }
+  assert.equal(contractValue('INSPECTOR_AI_FEEDBACK_TEST_ID'), 'vx-inspector-ai-feedback');
+  assert.equal(contractValue('EDITOR_PAGE_ID'), 'vx-editor-page');
 
   const canvas = sources.canvas;
   for (const token of [
@@ -141,7 +149,7 @@ test("os contratos de testid, ids, ARIA e roles permanecem intactos", () => {
   const shell = sources.shell;
   for (const token of [
     'role="application"', 'aria-label="Editor de sites Véxora"',
-    'htmlFor="vx-editor-page"', 'id="vx-editor-page"',
+    'htmlFor={EDITOR_PAGE_ID}', 'id={EDITOR_PAGE_ID}',
     'aria-label="Fechar editor"', 'aria-label="Minimizar editor"',
     'role="group"', 'aria-label="Dispositivo de preview"',
     'aria-label={`Preview ${d}`}', 'role="status"', 'aria-live="polite"',
@@ -153,7 +161,7 @@ test("os contratos de testid, ids, ARIA e roles permanecem intactos", () => {
   const inspector = sources.inspector;
   for (const token of [
     'aria-label="Propriedades do bloco"', 'id="vexora-ai-prompt"',
-    'data-testid="vx-inspector-ai-feedback"',
+    'data-testid={INSPECTOR_AI_FEEDBACK_TEST_ID}',
     "role={aiFeedback.error ? 'alert' : 'status'}", 'aria-live="polite"',
     "aria-label={aiPanelOpen ? 'Fechar assistente de IA' : 'Abrir assistente de IA'}",
     "setAiPanelOpen(true)", "controlsDisabled", "readOnly", "aiBusy",

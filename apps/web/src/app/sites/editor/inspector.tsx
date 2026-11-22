@@ -21,6 +21,7 @@ import {
   Minimize,
 } from 'lucide-react';
 import { StyleInspector } from './style-inspector';
+import { INSPECTOR_AI_FEEDBACK_TEST_ID } from './contracts';
 import './editor.css';
 
 const INSPECTOR = 'flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-slate-700';
@@ -330,7 +331,7 @@ export function Inspector({
             </form>
             {aiFeedback ? (
               <div
-                data-testid="vx-inspector-ai-feedback"
+                data-testid={INSPECTOR_AI_FEEDBACK_TEST_ID}
                 className={INSPECTOR_FEEDBACK_KIND[aiFeedback.error ? 'error' : 'ok']}
                 role={aiFeedback.error ? 'alert' : 'status'}
                 aria-live="polite"

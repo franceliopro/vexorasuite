@@ -398,7 +398,7 @@ function buildIframeHtml(doc: SiteDocument): string {
         if (!el) return;
         var rect = el.getBoundingClientRect();
         indicator = document.createElement('div');
-        indicator.setAttribute('data-vx-dnd-indicator', 'true');
+        indicator.setAttribute('data-drop-indicator', 'true');
         indicator.style.position = 'absolute';
         indicator.style.zIndex = '2147483647';
         indicator.style.pointerEvents = 'none';
@@ -409,7 +409,7 @@ function buildIframeHtml(doc: SiteDocument): string {
           indicator.style.width = rect.width + 'px';
           indicator.style.height = rect.height + 'px';
           indicator.style.border = '2px dashed var(--primary, #0e7a5c)';
-          indicator.style.background = 'rgba(14, 122, 92, 0.12)';
+          indicator.style.background = 'var(--primary-soft, rgba(14, 122, 92, 0.12))';
         } else {
           var top = position === 'before' ? rect.top : rect.bottom - 3;
           indicator.style.left = (rect.left + window.scrollX) + 'px';

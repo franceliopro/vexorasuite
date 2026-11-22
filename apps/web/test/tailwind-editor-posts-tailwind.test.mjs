@@ -24,6 +24,7 @@ const paths = {
 const sources = Object.fromEntries(
   Object.entries(paths).map(([name, file]) => [name, read(file)]),
 );
+const contracts = read("src/app/sites/editor/contracts.ts");
 
 const UTILITY_HINT =
   /(?:^|\s)(?:flex|grid|inline|fixed|absolute|relative|block|hidden|peer|truncate|overflow|bg-|text-|border|rounded|p-|px-|py-|m-|mx-|my-|w-|h-|min-|max-|gap-|items-|justify|shadow|font-|cursor|opacity|disabled:|hover:|focus:|group|z-|animate-|transition|leading-|resize|placeholder:|basis-|list-|tabular|underline|outline|place-|space)/;
@@ -132,6 +133,10 @@ test("estados resolvem mapas ou helpers com classes completas", () => {
 });
 
 test("contratos funcionais dos editores e posts permanecem", () => {
+  assert.ok(contracts.includes("EDITOR_PAGE_ID = 'vx-editor-page'"));
+  assert.ok(contracts.includes("INSPECTOR_AI_FEEDBACK_TEST_ID = 'vx-inspector-ai-feedback'"));
+  assert.match(sources.shell, /import \{ EDITOR_PAGE_ID \} from ['"]\.\/contracts['"]/);
+  assert.match(sources.inspector, /import \{ INSPECTOR_AI_FEEDBACK_TEST_ID \} from ['"]\.\/contracts['"]/);
   const expected = {
     post: [
       'role="toolbar"', '"aria-multiline": "true"', "data-vx-post-content",
@@ -146,17 +151,17 @@ test("contratos funcionais dos editores e posts permanecem", () => {
     ],
     canvas: [
       "createPortal(", "srcDoc={frameHtml}", "postMessage", "onSelectNode",
-      "onDragOver", "onDrop", 'title="canvas"', 'data-vx-dnd-indicator',
+      "onDragOver", "onDrop", 'title="canvas"', 'data-drop-indicator',
       'sandbox="allow-same-origin allow-scripts"', 'aria-label={`Preview do site',
     ],
     shell: [
-      'role="application"', 'htmlFor="vx-editor-page"', 'id="vx-editor-page"',
+      'role="application"', 'htmlFor={EDITOR_PAGE_ID}', 'id={EDITOR_PAGE_ID}',
       'aria-label="Dispositivo de preview"', "<Palette", "<LayerTree", "<Canvas",
       "<Inspector", "onSave", "onPublish", "onClose", "readOnly", "saving", "publishing",
     ],
     inspector: [
       'aria-label="Propriedades do bloco"', 'id="vexora-ai-prompt"',
-      'data-testid="vx-inspector-ai-feedback"', 'role={aiFeedback.error ? \'alert\' : \'status\'}',
+      'data-testid={INSPECTOR_AI_FEEDBACK_TEST_ID}', 'role={aiFeedback.error ? \'alert\' : \'status\'}',
       "onPropChange(", "onStyleChange", "onAIChange(", "<StyleInspector",
     ],
     window: [

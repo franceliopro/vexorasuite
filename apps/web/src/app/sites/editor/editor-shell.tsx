@@ -29,6 +29,7 @@ import {
   BLOCK_TYPES,
 } from '../[siteId]/edit/nodes/registry';
 import { Canvas } from './canvas';
+import { EDITOR_PAGE_ID } from './contracts';
 import {
   createHistory,
   pushHistory,
@@ -407,11 +408,11 @@ export function EditorShell({
         </div>
 
         <div className={SHELL_TOPBAR_SECTION}>
-          <label htmlFor="vx-editor-page" className={SHELL_PAGE_LABEL}>
+          <label htmlFor={EDITOR_PAGE_ID} className={SHELL_PAGE_LABEL}>
             Página
           </label>
           <select
-            id="vx-editor-page"
+            id={EDITOR_PAGE_ID}
             className={SHELL_PAGE_SELECT}
             value={activePageSlug}
             onChange={(event) => setActivePageSlug(event.target.value)}

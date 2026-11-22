@@ -12,6 +12,7 @@ const read = (file) => fs.readFileSync(path.join(root, "apps/web", file), "utf8"
 
 const page = read("src/app/page.tsx");
 const wizard = read("src/app/sites/wizard/wizard-shell.tsx");
+const contracts = read("src/app/sites/editor/contracts.ts");
 
 /**
  * Extrai só literais que são classes: strings em className, constantes TW e
@@ -146,6 +147,8 @@ test("os contratos funcionais da home permanecem", () => {
 });
 
 test("os contratos funcionais do wizard permanecem", () => {
+  assert.ok(contracts.includes("LAYOUT_IMAGE_INPUT_ID = 'vx-wizard-layout-image'"));
+  assert.match(wizard, /import \{ LAYOUT_IMAGE_INPUT_ID \} from ['"]\.\.\/editor\/contracts['"]/);
   for (const hook of [
     'role="region"',
     'aria-label="Assistente de criação de site minimizado"',
@@ -163,8 +166,8 @@ test("os contratos funcionais do wizard permanecem", () => {
     'aria-label="Nome do site"',
     'aria-label="URL do logotipo"',
     'role="alert"',
-    'id="vx-wizard-layout-image"',
-    'htmlFor="vx-wizard-layout-image"',
+    'id={LAYOUT_IMAGE_INPUT_ID}',
+    'htmlFor={LAYOUT_IMAGE_INPUT_ID}',
     "disabled={!isDone && !isCurrent}",
     "disabled={disabled || busy}",
     "disabled={disabled || busy || !canNext}",

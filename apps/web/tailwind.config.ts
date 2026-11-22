@@ -106,6 +106,9 @@ const config: Config = {
         "provider-offline-ink": "#713F12",
         "provider-configured-bg": "#DBEAFE",
         "provider-configured-ink": "#1E3A8A",
+        /* Contornos do curso de onboarding (legado .course-*). */
+        "course-done-line": "var(--vx-ok-soft)",
+        "course-cert-line": "var(--primary-strong)",
         "provider-alert-line": "rgba(229,72,77,.42)",
         "provider-alert-ink": "#C2494E",
         /* Tons dos gráficos do Financeiro: dados do dashboard, não tema. */
@@ -218,6 +221,10 @@ const config: Config = {
       },
       backgroundImage: {
         "catalog-icon": "linear-gradient(150deg,var(--primary-soft),var(--s1))",
+        /* Fundos do curso de onboarding (legado .course-*). */
+        "course-hero": "linear-gradient(155deg,var(--primary-soft),var(--s1) 55%)",
+        "course-progress": "linear-gradient(90deg,var(--primary),var(--primary-strong))",
+        "course-certificate": "linear-gradient(160deg,var(--primary-soft),var(--s1) 60%)",
         /** Wash da página: o ajuste "mais frio e sutil" vive no tema, não no JSX. */
         "vx-page": "var(--vx-core-page-wash)",
         "vx-brand-mark": "var(--vx-core-brand-mark)",
@@ -292,6 +299,10 @@ const config: Config = {
         topbar: "1.12",
       },
       borderRadius: {
+        /* Cantos do curso de onboarding (legado .course-*). */
+        "course-hero": "20px",
+        "course-card": "16px",
+        "course-certificate": "22px",
         /* Cantos do cartão de lembretes (legado 18px/14px/12px). */
         "reminder-card": "18px",
         "reminder-icon": "14px",
@@ -457,6 +468,17 @@ const config: Config = {
         "profile-name": "13px",
         "profile-email": "11px",
         "profile-avatar": "13px",
+        /* Textos do curso de onboarding (legado .course-*). */
+        "course-title": ["22px", { lineHeight: "1.25" }],
+        "course-hero-copy": ["13px", { lineHeight: "1.5" }],
+        "course-card-title": ["14.5px", { lineHeight: "1.3" }],
+        "course-copy": "12.5px",
+        "course-points": "11.5px",
+        "course-meta": "10.5px",
+        "course-progress": "11px",
+        "course-eyebrow": "11px",
+        "course-cert-title": ["19px", { lineHeight: "1.2" }],
+        "course-name": ["26px", { lineHeight: "1.2" }],
         /* Textos do cartão de lembretes. */
         "reminder-title": ["18px", { lineHeight: "1.2" }],
         "reminder-desc": "12.5px",
@@ -592,6 +614,7 @@ const config: Config = {
       },
       letterSpacing: {
         "nav-section": ".13em",
+        "course-eyebrow": ".14em",
         "brand-badge": ".22em",
         "ov-tight": "-0.045em",
         "ov-wide": ".08em",
@@ -633,6 +656,20 @@ const config: Config = {
         "profile-popover-inset": "12px",
         "profile-popover-bottom": "78px",
         "catalog-eyebrow-rule": "18px",
+        /* Medidas do curso de onboarding (legado .course-*). */
+        "course-gap": "18px",
+        "course-hero-pad": "22px",
+        "course-track-w": "180px",
+        "course-track-h": "8px",
+        "course-card-pad": "16px",
+        "course-duration-gap": "5px",
+        "course-badge-x": "10px",
+        "course-badge-y": "4px",
+        "course-point-gap": "3px",
+        "course-inner-y": "34px",
+        "course-inner-x": "30px",
+        "course-icon": "34px",
+        "course-cert-icon": "44px",
         "catalog-search-basis": "320px",
         "catalog-card-y": "14px",
         "catalog-card-x": "16px",
@@ -1019,6 +1056,10 @@ const config: Config = {
         /* Larguras dos textos e do aviso da página de planos. */
         "plans-copy": "520px",
         "plans-notice": "640px",
+        /* Larguras do curso de onboarding (legado .course-*). */
+        course: "980px",
+        "course-copy": "62ch",
+        "course-certificate": "560px",
         "catalog-search": "420px",
         content: "1520px",
         tabs: "1500px",
@@ -1160,11 +1201,13 @@ const config: Config = {
       transitionProperty: {
         shell: "width, margin-left",
         control: "background-color, border-color, transform",
+        course: "width",
         stroke: "stroke-dashoffset",
         fill: "width",
       },
       transitionDuration: {
         control: "160ms",
+        course: "140ms",
         ring: "600ms",
         bar: "300ms",
       },

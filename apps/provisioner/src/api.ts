@@ -1,13 +1,48 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   createServer,
   type IncomingMessage,
   type Server,
   type ServerResponse,
 } from "node:http";
+import { fileURLToPath } from "node:url";
+import { isLegacyPhpVersion, PHP_VERSIONS } from "./php-versions.js";
 import { JobStore } from "./store.js";
 import { ProvisionerError } from "./types.js";
 
 const MAX_BODY_BYTES = 64 * 1024;
+const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
+
+/** Rotas estáticas da GUI: apenas estes arquivos são servidos, nunca o diretório inteiro. */
+const STATIC_FILES: Record<string, { file: string; contentType: string }> = {
+  "/": { file: "index.html", contentType: "text/html; charset=utf-8" },
+  "/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
+  "/app.js": {
+    file: "app.js",
+    contentType: "text/javascript; charset=utf-8",
+  },
+};
+
+function sendStatic(response: ServerResponse, pathname: string): boolean {
+  const target = STATIC_FILES[pathname];
+  if (!target) return false;
+  try {
+    const body = readFileSync(join(PUBLIC_DIR, target.file));
+    response.writeHead(200, {
+      "content-type": target.contentType,
+      "content-length": Buffer.byteLength(body),
+      "cache-control": "no-store",
+    });
+    response.end(body);
+  } catch {
+    sendJson(response, 404, {
+      error: "Arquivo da GUI não encontrado",
+      code: "not_found",
+    });
+  }
+  return true;
+}
 
 function sendJson(
   response: ServerResponse,
@@ -90,6 +125,19 @@ async function handle(
 
   if (method === "GET" && url.pathname === "/health") {
     sendJson(response, 200, { ok: true, mode: "simulation" });
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/meta") {
+    sendJson(response, 200, {
+      mode: "simulation",
+      phpVersions: PHP_VERSIONS,
+      legacyVersions: PHP_VERSIONS.filter(isLegacyPhpVersion),
+    });
+    return;
+  }
+
+  if (method === "GET" && sendStatic(response, url.pathname)) {
     return;
   }
 

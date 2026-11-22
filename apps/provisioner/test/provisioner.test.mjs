@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { once } from "node:events";
 import { after, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   PHP_VERSIONS,
   JobStore,
@@ -141,6 +143,97 @@ describe("provisionador em modo simulação", () => {
       server.close();
       await once(server, "close");
     }
+  });
+});
+
+describe("GUI web do provisionador", () => {
+  async function withServer(run) {
+    const server = createProvisionerServer();
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    try {
+      await run(`http://127.0.0.1:${address.port}`);
+    } finally {
+      server.close();
+      await once(server, "close");
+    }
+  }
+
+  it("serve a página na raiz com o selo de simulação e o formulário", async () => {
+    await withServer(async (base) => {
+      const response = await fetch(`${base}/`);
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get("content-type") ?? "", /text\/html/);
+      const html = await response.text();
+      assert.ok(html.includes("<title>Provisionador de sites"));
+      assert.ok(html.includes("Modo simulação"));
+      for (const id of [
+        "requestId",
+        "tenantId",
+        "slug",
+        "domain",
+        "type",
+        "phpVersion",
+        "quotaGb",
+        "source",
+        "dry-run-button",
+        "apply-button",
+        "rollback-button",
+        "approved",
+      ]) {
+        assert.ok(html.includes(`id="${id}"`), `a GUI perdeu o campo ${id}`);
+      }
+    });
+  });
+
+  it("serve apenas os arquivos estáticos declarados", async () => {
+    await withServer(async (base) => {
+      for (const [path, type] of [
+        ["/styles.css", /text\/css/],
+        ["/app.js", /javascript/],
+      ]) {
+        const response = await fetch(`${base}${path}`);
+        assert.equal(response.status, 200);
+        assert.match(response.headers.get("content-type") ?? "", type);
+        assert.ok((await response.text()).length > 0);
+      }
+
+      const missing = await fetch(`${base}/../package.json`);
+      assert.equal(missing.status, 404);
+    });
+  });
+
+  it("publica metadados com as 17 versões PHP e as legadas", async () => {
+    await withServer(async (base) => {
+      const response = await fetch(`${base}/meta`);
+      assert.equal(response.status, 200);
+      const meta = await response.json();
+      assert.equal(meta.mode, "simulation");
+      assert.deepEqual(meta.phpVersions, PHP_VERSIONS);
+      assert.deepEqual(
+        meta.legacyVersions,
+        PHP_VERSIONS.filter(isLegacyPhpVersion),
+      );
+    });
+  });
+
+  it("exige aprovação explícita antes de habilitar o apply", async () => {
+    const js = readFileSync(
+      fileURLToPath(new URL("../public/app.js", import.meta.url)),
+      "utf8",
+    );
+    assert.ok(js.includes('byId("approved").checked'));
+    assert.ok(
+      js.includes("Aprovação explícita é obrigatória antes de aplicar."),
+    );
+    assert.ok(
+      js.includes("disabled = false") && js.includes("disabled = true"),
+    );
+    assert.ok(js.includes("/provision/dry-run"));
+    assert.ok(js.includes("/provision/apply"));
+    assert.ok(js.includes("window.confirm"));
   });
 });
 

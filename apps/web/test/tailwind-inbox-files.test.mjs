@@ -21,7 +21,7 @@ const bannedExact = new Set([
   'content-card', 'settings-card', 'primary-button',
   'secondary-button', 'text-button', 'icon-button', 'vx-spin',
 ]);
-const allowedVariants = new Set(['ib-narrow:', 'ib-grid:', 'ib-grid-ficha:', 'ov-laptop:', 'rw-laptop:']);
+const allowedVariants = new Set(['ib-narrow:', 'ov-laptop:', 'rw-laptop:']);
 
 function tokensFromClassValue(value) {
   return value.split(/\s+/).filter(Boolean);

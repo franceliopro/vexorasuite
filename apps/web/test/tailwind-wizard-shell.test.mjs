@@ -57,15 +57,15 @@ test("o wizard usa utilities literais do preset, sem remendos", () => {
 
   for (const utility of [
     "fixed inset-0 flex min-h-0 flex-col bg-zinc-50 font-ui text-slate-950",
-    "fixed left-1/2 top-1/2 flex min-h-0 -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-token border border-gray-200 bg-zinc-50 font-ui text-slate-950 shadow-token-lg",
+    "fixed left-1/2 top-1/2 flex min-h-0 -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-gray-200 bg-zinc-50 font-ui text-slate-950 shadow-lg",
     "fixed bottom-6 left-1/2 flex -translate-x-1/2 gap-2",
     "flex shrink-0 gap-1.5 overflow-x-auto border-b border-gray-200 bg-zinc-100 px-4 py-3",
-    "min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50 px-12 pb-8 pt-7 ov-laptop:px-10 ov-tablet:px-6 ov-mobile:px-4",
-    "grid grid-cols-3 gap-3.5 ov-laptop:grid-cols-2 ov-mobile:grid-cols-1",
-    "grid grid-cols-5 gap-3.5 ov-tablet:grid-cols-3 ov-mobile:grid-cols-2",
+    "min-h-0 flex-1 overflow-y-auto overscroll-contain bg-zinc-50 px-4 pb-8 pt-7 sm:px-6 md:px-10 lg:px-12",
+    "grid grid-cols-1 gap-3.5 sm:grid-cols-2 md:grid-cols-3",
+    "grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-5",
     "bg-blue-600 px-5 py-2 text-sm font-bold text-blue-950",
-    "bg-emerald-100 px-2.5 py-1 text-sm font-semibold text-emerald-600",
-    "border border-emerald-600 bg-emerald-100 p-4",
+    "bg-blue-50 px-2.5 py-1 text-sm font-semibold text-blue-700",
+    "border border-blue-700 bg-blue-50 p-4",
     "text-sm text-red-600",
     "animate-spin",
   ]) {

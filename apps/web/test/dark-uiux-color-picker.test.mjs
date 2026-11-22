@@ -22,12 +22,21 @@ const layout = read("src/app/layout.tsx");
 
 test("os tokens dark continuam slate e shell consome tokens, nunca blue-dark", () => {
   for (const token of [
-    "--bg:#0F172A",
-    "--s1:#1E293B",
-    "--s2:#334155",
-    "--tx:#F8FAFC",
-    "--sb-bg:#020617",
-    "--sb-tx:#F8FAFC",
+    "--bg-base:#020617",
+    "--bg-surface:#0F172A",
+    "--bg-elevated:#1E293B",
+    "--bg-hover:rgb(30 41 59 / .6)",
+    "--border:#1E293B",
+    "--border-light:#334155",
+    "--text-main:#F8FAFC",
+    "--text-muted:#94A3B8",
+    "--text-dim:#64748B",
+    "--bg:var(--bg-base)",
+    "--s1:var(--bg-surface)",
+    "--s2:var(--bg-elevated)",
+    "--tx:var(--text-main)",
+    "--sb-bg:var(--bg-surface)",
+    "--sb-tx:var(--text-main)",
   ]) {
     assert.ok(vexora.includes(token), `o dark deve manter ${token}`);
   }
@@ -48,6 +57,26 @@ test("os tokens dark continuam slate e shell consome tokens, nunca blue-dark", (
   const mainArea = theme.match(/\.main-area \{[^}]*\}/)?.[0] ?? "";
   assert.doesNotMatch(mainArea, /#[0-9a-fA-F]{3,8}/, "main-area não define cor fixa");
   assert.equal(mainArea.includes("background"), false, "main-area herda --bg do body");
+
+  /* Hierarquia: main mais escura, filhos diretos na cor da sidebar, cards e
+     hover um tom mais claro. Nenhuma cor fixa nas regras de profundidade. */
+  for (const rule of [
+    ":root[data-theme=dark] .main-area{background-color:var(--bg-base)}",
+    ":root[data-theme=dark] .main-area>*{background-color:var(--bg-surface)}",
+    ":root[data-theme=dark] .page-content>*{background-color:var(--bg-elevated)}",
+    ":root[data-theme=dark] .page-content>*:hover{background-color:var(--bg-hover)}",
+  ]) {
+    assert.ok(vexora.includes(rule), `falta a regra de profundidade: ${rule}`);
+  }
+
+  /* Existem três blocos `:root[data-theme=dark]` no legado. O último vence,
+     então ele também precisa reaplicar os aliases — senão os tokens voltam
+     aos tons antigos e a paleta nova só existe no primeiro bloco. */
+  const section62 = vexora.slice(vexora.indexOf("/* ===== 62."));
+  const lastDark = section62.slice(0, section62.indexOf("\n}", section62.indexOf(":root[data-theme=dark]{")));
+  for (const token of ["--bg:var(--bg-base)", "--s1:var(--bg-surface)", "--s2:var(--bg-elevated)", "--tx:var(--text-main)", "--sb-bg:var(--bg-surface)"]) {
+    assert.ok(lastDark.includes(token), `o bloco dark final reaplicou ${token}`);
+  }
 });
 
 test("só a navegação da sidebar esconde a barra; as demais usam tokens", () => {

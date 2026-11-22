@@ -143,16 +143,16 @@ test("avatares e copiloto não têm tokens legados, arbitrários, hex ou importa
 test("avatares e copiloto usam utilities Tailwind padrão", () => {
   for (const util of [
     "inline-grid h-5 w-5 flex-none place-items-center rounded-full",
-    "bg-slate-200 font-extrabold tracking-tight text-slate-800",
+    "bg-zinc-200 font-extrabold tracking-tight text-slate-800",
     "grid h-7 w-7 flex-none place-items-center rounded-full bg-blue-100 text-xs font-bold",
     "relative block h-full w-full overflow-hidden rounded-full",
   ]) {
     assert.ok(avatars.includes(util), `inbox-avatars sem "${util}"`);
   }
   for (const util of [
-    "rounded-lg border border-slate-200 bg-slate-50",
+    "rounded-lg border border-gray-200 bg-slate-50",
     "dark:border-slate-700 dark:bg-slate-900",
-    "min-h-9 rounded-lg border border-slate-200 bg-white",
+    "min-h-9 rounded-lg border border-gray-200 bg-white",
     "min-h-4 items-center rounded-full bg-blue-100",
     "max-w-md text-xs",
   ]) {

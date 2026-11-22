@@ -248,7 +248,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
   const outOfSlaNote = outOfSla || staleWaiting;
 
   return (
-    <section className="grid grid-cols-2 gap-5 ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
+    <section className="grid grid-cols-2 gap-5 bg-transparent hover:bg-transparent ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
       <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-100 p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 ov-laptop:col-span-1" data-testid="ov-hero">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
           <div className="grid min-w-0 content-start gap-4">

@@ -39,7 +39,7 @@ export function ProviderConnections() {
   const [probes,setProbes] = useState<Record<string,Probe>>({});
   const [provider,setProvider] = useState('openrouter');
   const [key,setKey] = useState('');
-  const [editing,setEditing]=useState(false),[usage,setUsage]=useState<any>(null),[usageLoading,setUsageLoading]=useState(true),[usageError,setUsageError]=useState(''),[usageAttempt,setUsageAttempt]=useState(0);
+  const [editingProvider,setEditingProvider]=useState<string|null>(null),[usage,setUsage]=useState<any>(null),[usageLoading,setUsageLoading]=useState(true),[usageError,setUsageError]=useState(''),[usageAttempt,setUsageAttempt]=useState(0);
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState('');
   const [error,setError] = useState('');
@@ -62,7 +62,7 @@ export function ProviderConnections() {
       const response=await fetch('/api/backend/assistant/provider-connections',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({provider,key:key.trim()})});
       const data=await response.json();
       if(!response.ok)throw Error(data.message||'Não foi possível salvar a chave.');
-      setKey('');setEditing(false);setConnections(data.connections);setRuntime(data);setNotice('Chave protegida salva para esta empresa. A validade é confirmada pelo provedor durante o uso.');
+      setKey('');setEditingProvider(null);setConnections(data.connections);setRuntime(data);setNotice('Chave protegida salva para esta empresa. A validade é confirmada pelo provedor durante o uso.');
     } catch(error) {setError(error instanceof Error?error.message:'Falha ao salvar a chave.');}
     finally {setBusy(false);}
   }
@@ -79,6 +79,7 @@ export function ProviderConnections() {
         <ul className={statusListTw}>{connections.map(connection => {
           const probe = probes[connection.provider];
           const configured = connection.configured;
+          const editing = editingProvider === connection.provider;
           const state: string = !configured ? "is-off" : probe?.status === "connected" ? "is-connected" : probe?.status === "rejected" ? "is-rejected" : probe?.status === "offline" ? "is-offline" : "is-configured";
           const label = !configured ? "SEM CHAVE" : probe?.status === "connected" ? "CONECTADA" : probe?.status === "rejected" ? "REJEITADA/EXPIRADA" : probe?.status === "offline" ? "OFFLINE" : "CONFIGURADA";
           const origin = connection.source === 'tenant' ? "desta empresa" : connection.source === 'server' ? "do servidor" : "";
@@ -89,7 +90,12 @@ export function ProviderConnections() {
             </div>
             <p className={statusDetailTw}>{configured ? (probe ? probe.message + (probe.checkedAt ? " · verificado agora" : "") : "Verificação pendente…") : "Nenhuma chave cadastrada"}</p>
             <p className={statusOriginTw}>{configured && origin ? "Chave: " + origin : "Sem chave"}{connection.needsRepair ? " · Cadastre novamente" : ""}</p>
-            <button type="button" className={`${textButton} justify-self-start md:justify-self-end`} onClick={()=>{ setProvider(connection.provider); setKey(""); setNotice(""); setEditing(true); }}>{connection.configured ? "Trocar chave" : "Adicionar chave"}</button>
+            <button type="button" className={`${textButton} justify-self-start md:justify-self-end`} aria-expanded={editing} onClick={()=>{ setProvider(connection.provider); setKey(""); setNotice(""); setError(""); setEditingProvider(editing ? null : connection.provider); }}>{connection.configured ? "Trocar chave" : "Adicionar chave"}</button>
+            {editing?<form className="col-span-full grid gap-3 rounded-token-sm border border-gray-200 bg-zinc-100 p-provider-pad" onSubmit={save}>
+              <label className={fieldTw}>Chave de API para {labels[connection.provider]||connection.provider}<input type="password" name="ai-provider-key" autoComplete="new-password" value={key} minLength={12} maxLength={512} required disabled={busy} onChange={event=>setKey(event.target.value)} placeholder="Insira a chave neste campo protegido"/></label>
+              <p className={noteTw}>A chave fica nesta empresa e não é exibida novamente. A validade é confirmada pelo provedor durante o uso.</p>
+              <div className="flex flex-wrap gap-2"><button className={primaryButton} type="submit" disabled={busy||key.trim().length<12}>{busy?'Salvando…':'Salvar chave'}</button><button type="button" className={secondaryButton} onClick={()=>{setEditingProvider(null);setKey('')}}>Cancelar</button></div>
+            </form>:null}
           </li>;
         })}</ul>
       </section>
@@ -103,12 +109,6 @@ export function ProviderConnections() {
       <p className={noteTw}>LLM local: {runtime.local?.llmConfigured?'endereço configurado':'ainda não configurado'}. Voz Whisper/Kokoro: {runtime.local?.voiceConfigured?'endereço configurado':'ainda não configurada'}. Modelos locais precisam estar instalados. Vídeos por templates usam FFmpeg.</p>
       {usageLoading?<p role="status">Consultando cotas do OpenRouter…</p>:null}{usageError?<div role="alert"><p>{usageError}</p><button type="button" className={secondaryButton} onClick={()=>setUsageAttempt(value=>value+1)}>Tentar novamente</button></div>:null}
       {usage?.configured&&<div role={usage.low||usage.incident?'alert':'status'} className={usage.low||usage.incident?warningTw:"grid gap-1.5"}><strong className={usage.low||usage.incident?warningTitleTw:"text-body font-bold text-slate-950"}>OpenRouter · cotas e créditos</strong>{usage.available?<><p>Cota gratuita: {usage.free?usage.free.remaining+' de '+usage.free.limit+' solicitações restantes hoje (UTC)':'não informada pelo provedor'}. Limite de crédito da chave: {usage.keyCreditsRemaining===null?'sem limite informado':'US$ '+usage.keyCreditsRemaining.toFixed(2)+' restantes'}. {usage.budget&&'Orçamento: US$ '+usage.budget.remaining.toFixed(2)+' restantes.'}</p><small>O limite da chave não representa necessariamente o saldo da conta.</small></>:<p>{usage.message}</p>}{(usage.low||usage.incident)&&<p>A cota está baixa ou houve bloqueio recente. Mantenha local → grátis; habilite contingência paga apenas se desejar, escolhendo seus modelos de menor custo.</p>}<a href="https://openrouter.ai/settings/credits" target="_blank" rel="noreferrer" className={usage.low||usage.incident?warningLinkTw:"text-blue-600 font-bold underline underline-offset-2"}>Consultar saldo na OpenRouter</a></div>}
-      <button type="button" className={secondaryButton} aria-expanded={editing} onClick={()=>{setEditing(v=>!v);setKey('')}}>{editing?'Cancelar edição':'Editar conexão / permissões'}</button>{editing&&<form className="grid gap-3 rounded-token-sm border border-gray-200 p-provider-pad pt-3" onSubmit={save}>
-        <label className={fieldTw}>Provedor da conexão<select value={provider} disabled={busy} onChange={event=>{setProvider(event.target.value);setKey('');setNotice('');}}>{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-        <label className={fieldTw}>Chave de API<input type="password" name="ai-provider-key" autoComplete="new-password" value={key} minLength={12} maxLength={512} required disabled={busy} onChange={event=>setKey(event.target.value)} placeholder="Insira a chave neste campo protegido"/></label>
-        <p className={noteTw}>Somente administradores podem salvar esta conexão. Use uma chave já criada na sua conta do provedor.</p>
-        <button className={primaryButton} type="submit" disabled={busy||key.trim().length<12}>{busy?'Salvando…':'Salvar chave'}</button>
-      </form>}
     </> : !error && <p role="status">Verificando conexões…</p>}
     {notice&&<p role="status" className="text-body text-emerald-600">{notice}</p>}{error&&<p role="alert" className="text-body text-red-600">{error}</p>}
   </section>;

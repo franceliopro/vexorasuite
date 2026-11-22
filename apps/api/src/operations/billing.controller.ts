@@ -68,6 +68,8 @@ export class BillingController {
     }
     const code = typeof input?.planCode === "string" ? input.planCode.trim().toLowerCase() : "";
     if (!/^[a-z0-9_-]{2,40}$/.test(code)) throw new BadRequestException("Plano inválido.");
+    // O plano personalizado é contratado com a Véxora: nunca gera cobrança automática.
+    if (code === "personalizado") throw new BadRequestException("O plano personalizado é contratado com a Véxora. Fale com o comercial.");
     const tenant = await this.prisma.tenant.findUniqueOrThrow({
       where: { id: req.user.tenantId },
       select: { id: true, name: true, kind: true, integrations: true, planId: true },

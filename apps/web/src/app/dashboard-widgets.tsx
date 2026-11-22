@@ -257,7 +257,7 @@ function CalendarWidget() {
 /** Widgets coloridos da tela inicial: relógio, clima e calendário. */
 export function DashboardWidgets() {
   return (
-    <section className="grid grid-cols-12 gap-4 bg-transparent hover:bg-transparent max-md:grid-cols-1" aria-label="Seu dia agora">
+    <section className="grid grid-cols-12 gap-4 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 max-md:grid-cols-1" aria-label="Seu dia agora">
       <ClockWidget />
       <WeatherWidget />
       <CalendarWidget />

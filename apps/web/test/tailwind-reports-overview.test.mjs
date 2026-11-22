@@ -137,7 +137,7 @@ test("utilitários Tailwind padrão estão presentes nos dois arquivos", () => {
   for (const util of ["rounded-xl", "shadow-sm", "flex-1", "gap-3", "xl:grid-cols-6"]) {
     assert.ok(reports.includes(util), `reports-workspace sem o utilitário "${util}"`);
   }
-  for (const util of ["grid-cols-1", "min-w-0", "text-xs", "bg-zinc-100", "border-gray-200", "text-slate-600"]) {
+  for (const util of ["grid-cols-1", "min-w-0", "text-xs", "bg-zinc-200", "border-gray-200", "text-slate-600"]) {
     assert.ok(overview.includes(util), `overview-intelligence sem o utilitário "${util}"`);
   }
   for (const util of ["rounded-2xl", "rounded-lg", "gap-5", "grid-cols-2", "sm:grid-cols-1"]) {

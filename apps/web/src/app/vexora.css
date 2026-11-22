@@ -74,11 +74,10 @@
 }
 /* Hierarquia ancorada em .page-content: a main mantém a cor do tema e a
    .page-content não pinta fundo, herdando essa cor nos três temas. Filhos de
-   1º grau recebem a cor da sidebar (configurável pela empresa, inclusive
-   azul); netos e o hover desses filhos sobem um tom com --sb-on. No dark,
-   --sb-on é exatamente --bg-elevated e a sidebar é --bg-surface. */
-:root{--layer-child:var(--sb-bg);--layer-nested:var(--sb-on)}
-:root[data-theme=dark]{--layer-child:var(--bg-surface);--layer-nested:var(--bg-elevated)}
+   1º grau e netos/hover usam as camadas do próprio tema — claras no light e
+   no híbrido, escuras no dark — e NÃO herdam a cor da sidebar: no híbrido a
+   sidebar é escura/configurável, mas o conteúdo continua claro. */
+:root{--layer-child:var(--bg-surface);--layer-nested:var(--bg-elevated)}
 :root[data-theme=dark] .main-area{background-color:var(--bg-base)}
 .page-content{background:transparent}
 .page-content>*{background-color:var(--layer-child)}

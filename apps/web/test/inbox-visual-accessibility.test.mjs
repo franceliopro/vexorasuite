@@ -45,3 +45,38 @@ test("message links are safe and remain readable inside bubbles", () => {
   assert.match(inbox, /className=\{messageLinkTw\} href=\{href\} target="_blank" rel="noopener noreferrer"/);
   assert.match(inbox, /const messageLinkTw="break-words [^"]+"/);
 });
+
+test("inbox list tools stay outside the scrollable list and remain accessible", () => {
+  const listMount = inbox.indexOf("<ConversationList conversations={visibleConversations}");
+  const tools = inbox.indexOf('data-testid="inbox-list-tools"');
+  assert.ok(listMount > 0 && tools > listMount, "o rodapé de ferramentas vem depois da lista rolável");
+  assert.ok(inbox.indexOf("</aside>") > tools, "o rodapé permanece dentro do aside da lista");
+
+  for (const hook of [
+    'data-testid="inbox-phone-tools"',
+    'data-testid="inbox-phone-trigger"',
+    'aria-label="Iniciar conversa por telefone"',
+    'title="Iniciar conversa por telefone"',
+    'data-testid="inbox-phone-input"',
+    'data-testid="inbox-phone-conversar"',
+    'aria-label="Número para conversar"',
+    'role="status"',
+    'data-testid="inbox-search-filters"',
+    'data-testid="inbox-search-trigger"',
+    'aria-label="Buscar conversas"',
+    'title="Buscar conversas"',
+    'testId="inbox-search-popover"',
+    'data-testid="inbox-filter-clear"',
+  ]) {
+    assert.ok(inbox.includes(hook), `ferramenta da lista sem ${hook}`);
+  }
+
+  for (const field of ["tag", "name", "phone", "network", "keyword", "protocol"]) {
+    assert.ok(inbox.includes(`data-testid="inbox-filter-${field}"`), `filtro ${field} ausente`);
+    const label = { tag: "tag", name: "nome", phone: "número", network: "rede social", keyword: "palavra-chave", protocol: "protocolo" }[field];
+    assert.ok(inbox.includes(`aria-label="Filtrar por ${label}"`), `filtro ${field} sem nome acessível`);
+  }
+
+  assert.match(inbox, /<div data-testid="inbox-list-tools" className="flex flex-none shrink-0 flex-wrap items-center gap-1\.5 border-t border-gray-200 px-3 py-2">/);
+  assert.match(inbox, /side="top" className="grid w-72 gap-2 rounded-lg border border-gray-200 bg-zinc-100 p-2\.5 shadow-xl"/);
+});

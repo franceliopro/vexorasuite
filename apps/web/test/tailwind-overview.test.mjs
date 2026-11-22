@@ -14,6 +14,7 @@ const layout = read("src/app/layout.tsx");
 const overview = read("src/app/overview-intelligence.tsx");
 const widgets = read("src/app/dashboard-widgets.tsx");
 const onboarding = read("src/app/onboarding-checklist.tsx");
+const welcome = read("src/app/dashboard-welcome.tsx");
 const page = read("src/app/page.tsx");
 const visualRegression = read("e2e/inbox-visual-regression.mjs");
 const supportCollaboration = read("e2e/support-collaboration-browser.mjs");
@@ -123,7 +124,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.equal(colunasIrma.length, 4, "as quatro seções devem dividir a grade 50/50");
   assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
 
-  // Widgets em colunas proporcionais (3/5/4) e uma coluna no mobile; onboarding em 2 passos.
+  // Widgets em colunas proporcionais (3/4/5) e uma coluna no mobile; onboarding em 2 passos.
   assert.match(widgets, /<section className="grid grid-cols-12 gap-4 max-md:grid-cols-1"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
@@ -149,6 +150,25 @@ test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
   ]) {
     assert.ok(escopo.includes(token), `a Visão geral deve usar ${token}`);
   }
+});
+
+test("o bloco de boas-vindas traz vídeo opcional e atalhos úteis", () => {
+  assert.match(page, /import \{ DashboardWelcome \} from "\.\/dashboard-welcome";/);
+  assert.match(page, /<DashboardWelcome onNavigate=/);
+  for (const token of [
+    'aria-label="Comece por aqui"',
+    'aria-label="Alterar vídeo de boas-vindas"',
+    'aria-label="Link do YouTube do vídeo de boas-vindas"',
+    "Atalhos úteis",
+    "vx:welcome-video", "youtubeEmbed", "youtube.com/embed/",
+    "Abrir atendimento", "CRM comercial", "Relatórios", "Documentos",
+    "bg-sky-400/20 text-sky-700", "bg-violet-400/20 text-violet-700",
+    "bg-amber-400/20 text-amber-700", "bg-emerald-400/20 text-emerald-700",
+  ]) {
+    assert.ok(welcome.includes(token), `o bloco de boas-vindas perdeu ${token}`);
+  }
+  assert.doesNotMatch(welcome, /\[[a-z-]+:\s*[^]\s]+\]/);
+  assert.doesNotMatch(welcome, /className=\{`/);
 });
 
 test("nenhuma classe da Visão geral termina em -card nem herda .content-card", () => {

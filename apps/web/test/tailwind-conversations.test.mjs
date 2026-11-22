@@ -67,7 +67,7 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     "min-h-4 items-center",
     "h-5 w-5",
     "place-items-center rounded-full",
-    "from-slate-700 to-slate-900",
+    "from-blue-600 to-blue-800",
     // Avatares e copiloto migrados para utilities Tailwind padrão com dark slate.
     "inline-grid h-5 w-5 flex-none place-items-center rounded-full",
     "bg-zinc-200 font-extrabold tracking-tight text-slate-800",
@@ -444,4 +444,33 @@ test("a lista, a supervisão e o composer alinham os filhos em uma linha só", (
   ]) {
     assert.ok(workspace.includes(hook), `hook ausente: ${hook}`);
   }
+});
+
+test("o rodapé da lista usa utilities literais e filtra sem tocar no backend", () => {
+  const values = classValues(workspace);
+  for (const utility of [
+    "flex flex-none shrink-0 flex-wrap items-center gap-1.5 border-t border-gray-200 px-3 py-2",
+    "inline-flex min-h-7 items-center gap-1.5 rounded-md border border-gray-200 px-2 text-xs font-bold text-slate-600 hover:bg-zinc-300",
+    "grid w-72 gap-2 rounded-lg border border-gray-200 bg-zinc-100 p-2.5 shadow-xl",
+    "grid max-h-96 w-80 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-zinc-100 p-2.5 shadow-xl",
+    "grid grid-cols-2 gap-2",
+    "w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950",
+    "inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-2 text-xs font-bold text-blue-900 transition-colors hover:bg-blue-700",
+  ]) {
+    assert.ok(values.includes(utility), `falta a utility ${utility} no rodapé da lista`);
+  }
+
+  for (const token of [
+    "conversations={visibleConversations}",
+    "() => filterInboxConversations(conversations, inboxListFilters, serviceProtocol?.code || \"\", selectedId)",
+    "function loosePhoneMatch(",
+    "value.replace(/\\D/g, \"\")",
+    "const EMPTY_INBOX_LIST_FILTERS: InboxListFilters =",
+  ]) {
+    assert.ok(workspace.includes(token), `contrato do filtro local ausente: ${token}`);
+  }
+  assert.ok(workspace.indexOf('data-testid="inbox-list-tools"') > workspace.indexOf("conversations={visibleConversations}"));
+  // A filtragem é pura e local: nenhuma requisição nova sai do helper.
+  const helper = workspace.slice(workspace.indexOf("function filterInboxConversations("), workspace.indexOf("type QuickReply ="));
+  assert.doesNotMatch(helper, /fetch\(|api<|setInterval\(/);
 });

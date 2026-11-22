@@ -235,6 +235,15 @@ test("os contratos funcionais da lista de conversas permanecem intactos", () => 
   }
 });
 
+test("a lista continua sem estado de busca: filtros e telefone vivem no workspace", () => {
+  const workspace = fs.readFileSync(path.join(WEB, "src", "app", "inbox-workspace.tsx"), "utf8");
+  assert.doesNotMatch(listRaw, /useState|onChange=|inbox-filter-/);
+  assert.match(listRaw, /export function ConversationList\(\{ conversations, conversationsLoading, selectedId, queueView, onSelect \}/);
+  assert.match(workspace, /<ConversationList conversations=\{visibleConversations\}/);
+  assert.match(workspace, /data-testid="inbox-list-tools"/);
+  assert.ok(workspace.indexOf('data-testid="inbox-list-tools"') > workspace.indexOf("<ConversationList conversations={visibleConversations}"));
+});
+
 test("os contratos funcionais e2e do Track permanecem intactos", () => {
   for (const token of [
     'role={menuItem ? "menuitem" : undefined}',

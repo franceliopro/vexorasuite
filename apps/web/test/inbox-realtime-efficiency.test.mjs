@@ -73,3 +73,15 @@ test("WhatsApp receipts never move backwards", () => {
 test("inbox does not keep a duplicate assignee loader", () => {
   assert.doesNotMatch(source, /setAssignees|loadAssignees/);
 });
+
+test("local list filters keep the queue and realtime loaders untouched", () => {
+  assert.match(source, /const visibleConversations = useMemo\(/);
+  assert.match(source, /filterInboxConversations\(conversations, inboxListFilters/);
+  assert.match(source, /<ConversationList conversations=\{visibleConversations\}/);
+  assert.match(source, /const rows = await api<Conversation\[\]>\("\/api\/backend\/conversations\?view=" \+ queueView\)/);
+  assert.match(source, /data-testid="inbox-queue-button"/);
+  assert.match(source, /aria-pressed=\{queueView === item\.id\}/);
+  assert.match(conversationList, /data-testid="conversation-list"/);
+  // Nenhum filtro local cria um novo ciclo de atualização em segundo plano.
+  assert.doesNotMatch(source, /setInterval\(\(\)\s*=>\s*\{\s*void (?:setInboxListFilters|loadConversations)/);
+});

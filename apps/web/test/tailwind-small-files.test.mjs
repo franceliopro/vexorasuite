@@ -165,16 +165,18 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
     ],
     "src/app/dashboard-widgets.tsx": [
       "grid grid-cols-12 gap-4 max-md:grid-cols-1",
-      "col-span-3", "col-span-5", "col-span-4", "max-md:col-span-12",
-      "bg-linear-to-br from-slate-800 to-slate-900", "bg-linear-to-br from-slate-900 to-slate-800",
-      "rounded-2xl border border-slate-700", "bg-slate-800", "bg-slate-700",
-      "text-blue-200", "text-slate-300", "text-slate-50",
+      "col-span-3", "col-span-4", "col-span-5", "max-md:col-span-12",
+      "bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600",
+      "bg-linear-to-br from-indigo-50 to-blue-100",
+      "bg-linear-to-br from-violet-50 to-blue-100",
+      "rounded-2xl border border-white/40", "bg-white/20", "text-slate-50",
+      "text-blue-200", "text-slate-100", "text-slate-300",
       "bg-blue-600", "text-amber-300", "grid-cols-7",
       "role=\"grid\"",
     ],
     "src/app/contact-profile-panel.tsx": [
       "w-13", "h-12 w-12",
-      "grid-cols-2", "max-w-md", "bg-linear-to-br from-slate-700 to-slate-900",
+      "grid-cols-2", "max-w-md", "bg-linear-to-br from-blue-600 to-blue-800",
       "text-fuchsia-400", "lg:grid-cols-2", "bg-slate-800", "text-blue-200",
       "border-red-700", "bg-red-900/40", "text-red-200", "rounded-xl",
     ],
@@ -238,8 +240,9 @@ test("dashboard-widgets preserva relógio, clima e calendário", () => {
     "dateTime={now.toISOString()}", 'role="grid"', 'role="columnheader"',
     'role="gridcell"', "window.setInterval", "window.localStorage",
     "/api/backend/auth/organization", "geocoding-api.open-meteo.com",
-    "api.open-meteo.com/v1/forecast", "vx:weather-city", "weatherFor",
-    "saveCity", "setCursor",
+    "api.open-meteo.com/v1/forecast", "vx:weather-city", "vx:weather-bg",
+    "aria-label=\"Alterar fundo do clima\"", "WEATHER_BACKGROUNDS",
+    "weatherFor", "saveCity", "setCursor",
   ]) {
     assert.ok(source.includes(token), `dashboard-widgets perdeu ${token}`);
   }

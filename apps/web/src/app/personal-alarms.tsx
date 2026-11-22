@@ -6,6 +6,23 @@ type Alarm = { id: string; title: string; time: string; date?: string; weekdays?
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const iconButtonTw = "inline-grid size-9 place-items-center rounded-token-sm border border-line bg-surface text-ink shadow-token-sm transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const cardTw = "grid min-w-0 gap-3 rounded-token border border-line bg-surface p-pad text-ink shadow-token-sm";
+const summaryIconTw = "mr-2 inline-flex place-items-center align-middle text-blue-600";
+const formTw = "mt-3 grid gap-2.5 rounded-xl border border-line bg-surface-2 p-3";
+const formGridTw = "grid grid-cols-1 gap-2.5 sm:grid-cols-3";
+const wideTw = "col-span-full";
+const weekdaysTw = "col-span-full border-0 p-0";
+const weekdayTw = "min-h-8 min-w-11 rounded-full border border-line bg-surface px-3 text-body font-bold text-ink-secondary transition-colors hover:border-line-strong hover:text-ink";
+const weekdayActiveTw = "min-h-8 min-w-11 rounded-full border border-blue-600 bg-blue-600 px-3 text-body font-bold text-blue-50";
+const weekdayLegendTw = "mb-1.5 text-body font-bold text-ink-secondary";
+const listTw = "mt-3 grid list-none gap-2 p-0";
+const itemTw = "flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5";
+const itemOffTw = "flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5 opacity-60";
+const toggleTw = "grid size-10 flex-none place-items-center rounded-lg border border-blue-600 bg-blue-50 text-blue-800 transition-transform hover:-translate-y-px";
+const toggleOffTw = "grid size-10 flex-none place-items-center rounded-lg border border-line bg-surface-2 text-ink-secondary transition-transform hover:-translate-y-px";
+const itemCopyTw = "grid min-w-0 flex-1 gap-0.5";
+const removeTw = "inline-grid size-8 place-items-center rounded-token-sm border border-line bg-surface text-ink shadow-token-sm transition-colors hover:bg-hover";
+const emptyTw = "mx-0.5 mt-3 text-2xs leading-relaxed text-ink-secondary";
 const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36);
 const ymd = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -93,13 +110,13 @@ export function PersonalAlarms() {
   }
 
   return (
-    <details className="content-card settings-card">
-      <summary><span className="settings-card-summary-icon"><AlarmClock size={16} aria-hidden="true" /></span> Alarmes pessoais</summary>
+    <details className={cardTw}>
+      <summary><span className={summaryIconTw}><AlarmClock size={16} aria-hidden="true" /></span> Alarmes pessoais</summary>
       <p>Desperta na hora exata, com o nome do compromisso em voz alta (quando o navegador permitir) e toque contínuo. Funciona no navegador/PWA aberto.</p>
 
-      <form className="alarms-form" onSubmit={(event) => { event.preventDefault(); addAlarm(); }}>
-        <div className="alarms-form-grid">
-          <label className="alarms-form-wide">Nome do alarme
+      <form className={formTw} onSubmit={(event) => { event.preventDefault(); addAlarm(); }}>
+        <div className={formGridTw}>
+          <label className={wideTw}>Nome do alarme
             <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} placeholder="Ex.: Reunião semanal com o cliente" autoComplete="off" />
           </label>
           <label>Horário
@@ -116,14 +133,14 @@ export function PersonalAlarms() {
               <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
             </label>
           ) : (
-            <fieldset className="alarms-weekdays">
-              <legend>Dias da semana</legend>
+            <fieldset className={weekdaysTw}>
+              <legend className={weekdayLegendTw}>Dias da semana</legend>
               <div>
                 {WEEKDAYS.map((label, day) => (
                   <button
                     key={label}
                     type="button"
-                    className={"alarms-weekday" + (weekdays.includes(day) ? " is-active" : "")}
+                    className={weekdays.includes(day) ? weekdayActiveTw : weekdayTw}
                     aria-pressed={weekdays.includes(day)}
                     onClick={() => toggleWeekday(day)}
                   >
@@ -142,12 +159,12 @@ export function PersonalAlarms() {
       {notice ? <p role="status">{notice}</p> : null}
 
       {loaded && alarms.length ? (
-        <ul className="alarms-list" aria-label="Alarmes configurados">
+        <ul className={listTw} aria-label="Alarmes configurados">
           {alarms.map((alarm) => (
-            <li key={alarm.id} className={"alarms-item" + (alarm.enabled ? "" : " is-off")}>
+            <li key={alarm.id} className={alarm.enabled ? itemTw : itemOffTw}>
               <button
                 type="button"
-                className="alarms-toggle"
+                className={alarm.enabled ? toggleTw : toggleOffTw}
                 role="switch"
                 aria-checked={alarm.enabled}
                 aria-label={(alarm.enabled ? "Desativar" : "Ativar") + " o alarme " + alarm.title}
@@ -155,13 +172,13 @@ export function PersonalAlarms() {
               >
                 <BellRing size={17} aria-hidden="true" />
               </button>
-              <div className="alarms-item-copy">
+              <div className={itemCopyTw}>
                 <strong>{alarm.title}</strong>
                 <small><b>{alarm.time}</b> · {describe(alarm)}</small>
               </div>
               <button
                 type="button"
-                className={iconButtonTw + " alarms-remove"}
+                className={removeTw} data-testid="alarms-remove"
                 aria-label={"Excluir o alarme " + alarm.title}
                 onClick={() => void save(alarms.filter((item) => item.id !== alarm.id))}
               >
@@ -171,7 +188,7 @@ export function PersonalAlarms() {
           ))}
         </ul>
       ) : null}
-      {loaded && !alarms.length ? <p className="alarms-empty">Nenhum alarme ainda. Crie o primeiro acima — por exemplo: toda quinta às 16h, “Check-in com a equipe”.</p> : null}
+      {loaded && !alarms.length ? <p className={emptyTw}>Nenhum alarme ainda. Crie o primeiro acima — por exemplo: toda quinta às 16h, “Check-in com a equipe”.</p> : null}
     </details>
   );
 }

@@ -86,22 +86,21 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
   for (const utility of [
     "grid-cols-2", "col-span-2", "ov-laptop:col-span-1", "grid-cols-1",
     "grid-cols-3", "xl:grid-cols-6", "sm:grid-cols-2",
-    "gap-ov-section", "ov-laptop:grid-cols-1", "ov-tablet:grid-cols-1",
-    "ov-mobile:grid-cols-1", "grid-cols-ov-hero-body", "grid-cols-ov-team-row",
-    "grid-cols-ov-activity-row", "grid-cols-ov-topics", "grid-cols-ov-step",
-    "grid-cols-ov-calendar", "grid-cols-ov-dock", "gap-x-ov-dock-gap",
-    "pb-ov-dock-pb", "min-h-ov-dock-btn", "min-h-ov", "h-ov-ring",
-    "w-ov-ring-tile", "max-w-ov-sub", "max-w-ov-heading", "text-ov-hero",
-    "text-ov-kpi", "text-ov-clock", "text-ov-weather", "text-ov-onboarding",
-    "text-ov-micro", "text-ov-label", "text-ov-sub", "tracking-ov-wider",
-    "stroke-ov", "transition-stroke", "duration-ring", "transition-control",
+    "gap-5", "ov-laptop:grid-cols-1", "sm:grid-cols-1",
+    "lg:grid-cols-2", "gap-4", "gap-3", "md:grid-cols-2",
+    "grid-cols-ov-step", "grid-cols-ov-calendar", "grid-cols-ov-dock", "gap-x-ov-dock-gap",
+    "pb-ov-dock-pb", "min-h-ov-dock-btn", "min-h-ov", "h-20",
+    "w-20", "max-w-md", "max-w-lg", "text-2xl",
+    "text-sm", "text-xs", "text-ov-clock", "text-ov-weather", "text-ov-onboarding",
+    "text-ov-micro", "text-ov-label", "text-slate-950", "tracking-ov-wider",
+    "stroke-blue-600", "transition-all", "duration-300", "transition-control",
     "duration-control", "transition-fill", "duration-bar", "ease-token",
     "rounded-token-lg", "rounded-token-xl", "border-gray-200", "bg-zinc-100",
     "bg-zinc-200", "bg-zinc-300", "bg-blue-50", "bg-blue-600", "bg-indigo-950",
-    "text-blue-900", "text-indigo-400", "bg-emerald-600", "bg-amber-600",
+    "text-blue-900", "text-indigo-400", "bg-blue-700", "bg-amber-600",
     "bg-red-100", "text-red-600", "shadow-vx-brand", "hover:bg-indigo-900",
     "disabled:cursor-not-allowed", "disabled:opacity-50",
-    "ov-tablet:h-ov-ring-sm", "ov-tablet:w-ov-ring-photo-sm",
+    "md:h-16", "md:w-16", "h-14", "w-14",
   ]) {
     assert.ok(components.includes(utility) || page.includes(utility), `a Visão geral deve usar ${utility}`);
   }
@@ -113,17 +112,17 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.match(theme, /@custom-variant ov-laptop \(@media \(max-width: 900px\)\);/);
 
   // A grade externa é de 2 colunas; apenas hero e KPIs ocupam as duas.
-  assert.match(overview, /<section className="grid grid-cols-2 gap-ov-section ov-laptop:grid-cols-1"/);
+  assert.match(overview, /<section className="grid grid-cols-2 gap-5 ov-laptop:grid-cols-1"/);
   assert.match(overview, /data-testid="ov-hero"/);
-  assert.match(overview, /col-span-2 grid gap-ov-section[^>]*data-testid="ov-hero"/);
+  assert.match(overview, /col-span-2 grid gap-5[^>]*data-testid="ov-hero"/);
   // O CTA do alerta não estica com a coluna: largura só do conteúdo.
   assert.match(overview, /inline-flex min-h-9[^"]*justify-self-start" onClick=\{onOpenQueue\}>Abrir a fila/);
-  assert.match(overview, /col-span-2 grid grid-cols-3 gap-ov-section ov-laptop:col-span-1 ov-mobile:grid-cols-1 xl:grid-cols-6/);
+  assert.match(overview, /col-span-2 grid grid-cols-3 gap-5 ov-laptop:col-span-1 sm:grid-cols-1 xl:grid-cols-6/);
 
   // Equipe/Atividade e Gráfico/Tópicos são quatro colunas irmãs de 50%.
-  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-token-lg[^"]*">/g) || [];
+  const colunasIrma = overview.match(/<article className="grid content-start gap-4 rounded-2xl[^"]*">/g) || [];
   assert.equal(colunasIrma.length, 4, "as quatro seções devem dividir a grade 50/50");
-  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-token-lg/);
+  assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
 
   // Widgets em 3 colunas iguais; onboarding em 2 passos por linha no tablet.
   assert.match(widgets, /<section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1"/);
@@ -146,7 +145,7 @@ test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
   for (const token of [
     "text-slate-950", "text-slate-600", "text-slate-400",
     "bg-zinc-100", "bg-zinc-200", "bg-zinc-300", "border-gray-200",
-    "bg-blue-50", "bg-blue-600", "bg-indigo-950", "bg-emerald-600",
+    "bg-blue-50", "bg-blue-600", "bg-indigo-950", "bg-blue-700",
     "bg-amber-600", "bg-red-100",
   ]) {
     assert.ok(escopo.includes(token), `a Visão geral deve usar ${token}`);

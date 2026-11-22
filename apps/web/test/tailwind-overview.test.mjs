@@ -83,6 +83,30 @@ test("overview.css não define componentes, apenas utilities e variáveis de tem
   assert.doesNotMatch(semDerivados, /color-mix\(/);
 });
 
+test("overview.css reemite todos os breakpoints padrão usados no produto", () => {
+  // A reemissão plain vem depois do CSS legado. Se um breakpoint não for
+  // registrado aqui, só a utility base (ex.: .grid-cols-1/.hidden) é emitida
+  // e ela vence a variante responsiva em camada de theme.css.
+  const breakpoints = {
+    sm: "(width >= 40rem)",
+    md: "(width >= 48rem)",
+    lg: "(width >= 64rem)",
+    xl: "(width >= 80rem)",
+    "2xl": "(width >= 96rem)",
+    "max-sm": "(width < 40rem)",
+    "max-md": "(width < 48rem)",
+    "max-lg": "(width < 64rem)",
+    "max-xl": "(width < 80rem)",
+    "max-2xl": "(width < 96rem)",
+  };
+  for (const [variant, media] of Object.entries(breakpoints)) {
+    assert.ok(
+      styles.includes(`@custom-variant ${variant} (@media ${media});`),
+      `overview.css perdeu ${variant}: a utility responsiva ficaria sem efeito`,
+    );
+  }
+});
+
 test("as utilities da Visão geral continuam presentes no JSX", () => {
   for (const utility of [
     "grid-cols-2", "col-span-2", "ov-laptop:col-span-1", "grid-cols-1",

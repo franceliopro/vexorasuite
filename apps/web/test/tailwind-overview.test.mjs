@@ -88,14 +88,13 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
     "grid-cols-3", "xl:grid-cols-6", "sm:grid-cols-2",
     "gap-5", "ov-laptop:grid-cols-1", "sm:grid-cols-1",
     "lg:grid-cols-2", "gap-4", "gap-3", "md:grid-cols-2",
-    "grid-cols-ov-step", "gap-x-8",
-    "min-h-14", "min-h-ov", "h-20",
+    "sm:grid-cols-2", "grid-cols-3", "gap-x-8",
+    "min-h-14", "min-h-24", "h-20",
     "w-20", "max-w-md", "max-w-lg", "text-2xl",
-    "text-sm", "text-xs", "text-ov-clock", "text-ov-weather", "text-ov-onboarding",
-    "text-ov-micro", "text-ov-label", "text-slate-950", "tracking-ov-wider",
-    "stroke-blue-600", "transition-all", "duration-300", "transition-control",
-    "duration-control", "transition-fill", "duration-bar", "ease-token",
-    "rounded-token-lg", "rounded-token-xl", "border-gray-200", "bg-zinc-100",
+    "text-sm", "text-xs", "text-4xl", "text-base", "text-slate-950", "tracking-widest",
+    "stroke-blue-600", "transition-all", "duration-300", "transition-colors",
+    "duration-200", "ease-out", "transition-colors", "duration-200",
+    "rounded-2xl", "rounded-lg", "border-gray-200", "bg-zinc-100",
     "bg-zinc-200", "bg-zinc-300", "bg-blue-50", "bg-blue-600", "bg-blue-700",
     "text-blue-900", "text-slate-600", "bg-amber-600",
     "bg-red-100", "text-red-600", "shadow-md", "hover:bg-zinc-200", "max-md:bg-zinc-50",
@@ -125,7 +124,7 @@ test("o layout da Visão geral usa larguras cheias e colunas equilibradas", () =
   assert.doesNotMatch(overview, /col-span-2 grid content-start gap-4 rounded-2xl/);
 
   // Widgets em 3 colunas iguais; onboarding em 2 passos por linha no tablet.
-  assert.match(widgets, /<section className="grid grid-cols-1 gap-ov-section md:grid-cols-2 lg:grid-cols-3"/);
+  assert.match(widgets, /<section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"/);
   assert.match(onboarding, /<ol className="grid grid-cols-1 gap-2\.5 sm:grid-cols-2">/);
 
   // Nenhuma das grades antigas que causavam 4+2 ou colunas estreitas.

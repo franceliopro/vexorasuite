@@ -65,9 +65,9 @@ test("a Conversa usa só utilities do preset, sem remendos", () => {
     "text-xs tabular-nums",
     "h-2 w-2 rounded-full bg-blue-700 ring-2 ring-blue-100",
     "min-h-4 items-center",
-    "h-ib-mark w-ib-mark",
-    "place-items-center rounded-ib-channel",
-    "bg-ib-avatar text-ib-avatar-fallback",
+    "h-5 w-5",
+    "place-items-center rounded-full",
+    "from-slate-700 to-slate-900",
     // Avatares e copiloto migrados para utilities Tailwind padrão com dark slate.
     "inline-grid h-5 w-5 flex-none place-items-center rounded-full",
     "bg-slate-200 font-extrabold tracking-tight text-slate-800",
@@ -225,12 +225,12 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     assert.ok(profile.includes(token), `a ficha deve manter ${token}`);
   }
   for (const utility of [
-    "w-ib-profile-collapsed",
-    "h-ib-profile-avatar w-ib-profile-avatar",
-    "grid-cols-ib-profile-field-row",
-    "max-w-ib-profile-control",
-    "bg-ib-avatar",
-    "text-ib-instagram",
+    "w-13",
+    "h-12 w-12",
+    "grid-cols-2",
+    "max-w-md",
+    "bg-slate-900",
+    "text-fuchsia-400",
     "lg:grid-cols-2",
   ]) {
     assert.ok(values.includes(utility), `falta a utility ${utility}`);

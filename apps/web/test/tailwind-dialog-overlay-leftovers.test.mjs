@@ -39,7 +39,7 @@ const sources = [
 ];
 
 test("os dois arquivos não usam mais classes componente de diálogo/overlay", () => {
-  // `p-vx-dialog-pad` é um token do preset; só as classes componente são proibidas.
+  // Overlays e diálogos usam utilities padrão (slate real), sem tokens de componente.
   const legacyDialog = /(?:^|[\s"'`])vx-dialog(?:-backdrop|-body|-close|-footer|-heading|-icon|-wide)?(?=[\s"'`]|$)/;
   for (const [name, source, classes] of sources) {
     assert.doesNotMatch(source, legacyDialog, `${name}: vx-dialog residual`);
@@ -65,13 +65,13 @@ test("as classes migradas são strings literárias completas do preset", () => {
   }
 
   for (const utility of [
-    "fixed inset-0 z-ib-dialog grid animate-vx-scrim-in place-items-center bg-overlay-soft p-vx-dialog-pad backdrop-blur-sm",
-    "relative z-ib-dialog-inner flex max-h-ib-dialog w-ib-dialog animate-vx-in flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg",
+    "fixed inset-0 z-50 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm",
+    "relative z-10 flex max-h-dvh w-full max-w-lg flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50",
     "mb-3.5 flex min-w-0 flex-none items-center gap-3 pr-10",
-    "grid size-ib-avatar-sm flex-none place-items-center rounded-ib-dialog-icon border border-blue-600/20 bg-blue-50 text-blue-800",
-    "absolute right-3 top-3 z-10 grid size-ctl-sm place-items-center rounded-ib-dialog-icon border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink",
+    "grid size-10 flex-none place-items-center rounded-xl border border-blue-600/20 bg-blue-50 text-blue-800",
+    "absolute right-3 top-3 z-10 grid size-ctl-sm place-items-center rounded-xl border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink",
     "mt-0 flex flex-none justify-end gap-2 border-t border-line pt-3",
-    "relative z-ib-dialog-inner grid max-h-ib-dialog w-ib-dialog animate-vx-in grid-rows-docs-editor overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg",
+    "relative z-10 grid max-h-dvh w-full max-w-4xl grid-rows-docs-editor overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50",
     "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4",
   ]) {
     assert.ok(adminClasses.includes(utility), `falta a utility do diálogo: ${utility}`);
@@ -85,7 +85,8 @@ test("as classes migradas são strings literárias completas do preset", () => {
 });
 
 test("as camadas dos overlays permanecem acima do shell e abaixo das janelas fullscreen", () => {
-  assert.equal((admin.match(/z-ib-dialog\b/g) ?? []).length >= 2, true);
+  assert.equal((admin.match(/\bz-50\b/g) ?? []).length, 1);
+  assert.equal((admin.match(/\bz-10\b/g) ?? []).length >= 2, true);
   assert.ok(admin.includes("zIndex: 2100"), "o editor de plano perdeu a camada 2100");
   assert.ok(alarms.includes('zIndex: "var(--z-reminder, 9500)"'), "o alarme perdeu a camada --z-reminder");
 });

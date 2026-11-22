@@ -216,7 +216,7 @@ test("a ficha do contato usa só utilities TW e hooks estáveis", () => {
     assert.ok(profile.includes(token), `a ficha deve manter ${token}`);
   }
   for (const utility of [
-    "w-14",
+    "w-13",
     "h-12 w-12",
     "grid-cols-2",
     "max-w-md",

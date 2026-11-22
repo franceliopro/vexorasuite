@@ -169,7 +169,7 @@ test("os quatro arquivos mantêm as utilities Tailwind reconhecidas", () => {
       "role=\"grid\"",
     ],
     "src/app/contact-profile-panel.tsx": [
-      "w-14", "h-12 w-12",
+      "w-13", "h-12 w-12",
       "grid-cols-2", "max-w-md", "bg-linear-to-br from-slate-700 to-slate-900",
       "text-fuchsia-400", "lg:grid-cols-2", "bg-slate-800", "text-blue-200",
       "border-red-700", "bg-red-900/40", "text-red-200", "rounded-xl",

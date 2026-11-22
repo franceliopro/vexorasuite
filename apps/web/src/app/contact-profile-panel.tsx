@@ -395,7 +395,7 @@ export function ContactProfilePanel({
       data-testid="contact-profile"
       data-collapsed={expanded ? "false" : "true"}
       data-bare={bare ? "true" : "false"}
-      className={"flex min-w-0 flex-col overflow-hidden " + (bare ? "" : "rounded-xl border border-slate-700 bg-slate-900 shadow-lg") + (!expanded ? " w-14" : "")}
+      className={"flex min-w-0 flex-col overflow-hidden " + (bare ? "" : "rounded-xl border border-slate-700 bg-slate-900 shadow-lg") + (!expanded ? " w-13" : "")}
     >
       {bare ? null : (
       <div data-testid="contact-profile-heading" className={"flex flex-none items-center gap-2.5 border-b border-slate-700 " + (expanded ? "px-3 pb-1.5 pt-3" : "justify-center p-2")}>

@@ -20,6 +20,18 @@ const SiteEditorWindow = dynamic(() => import("./sites/site-editor-window"), {
 
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const workspaceTw = "grid gap-token";
+const headingTw = "flex flex-wrap items-start justify-between gap-4";
+const subtitleTw = "mt-1 max-w-crm-copy text-body leading-relaxed text-ink-secondary";
+const statusPillTw = "inline-flex min-h-6 items-center gap-1 rounded-full bg-blue-50 px-2.5 text-2xs font-bold text-blue-800";
+const statusMutedTw = "inline-flex min-h-6 items-center gap-1 rounded-full bg-surface-3 px-2.5 text-2xs font-bold text-ink-secondary";
+const cardTw = "grid min-w-0 gap-2 rounded-token border border-line bg-surface p-pad text-ink shadow-token-sm";
+const emptyTw = "grid place-items-center gap-2 rounded-token border border-line bg-surface px-6 py-10 text-center text-ink shadow-token-sm";
+const siteGridTw = "grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-3";
+const siteCardTw = "flex min-w-0 flex-col gap-2 rounded-token border border-line bg-surface p-pad text-ink shadow-token-sm";
+const siteHeadTw = "flex items-center gap-2";
+const sitePillsTw = "mt-1 flex flex-wrap gap-2";
+const siteActionsTw = "mt-auto flex flex-wrap gap-2 pt-2";
 
 type SiteSummary = {
   id: string;
@@ -203,11 +215,11 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
   }, []);
 
   return (
-    <section className="simple-workspace">
-      <header className="page-heading">
+    <section className={workspaceTw}>
+      <header className={headingTw}>
         <div>
           <h1>Sites</h1>
-          <p className="page-subtitle">Crie a presença digital da sua empresa: site institucional, landing page, blog, imobiliária ou loja.</p>
+          <p className={subtitleTw}>Crie a presença digital da sua empresa: site institucional, landing page, blog, imobiliária ou loja.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button type="button" className={secondaryTw} onClick={() => setAttempt((value) => value + 1)} disabled={loading}>
@@ -222,14 +234,14 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         </div>
       </header>
 
-      {notice ? <p role="status" className="status-pill">{notice}</p> : null}
+      {notice ? <p role="status" className={statusPillTw}>{notice}</p> : null}
       {actionError ? (
         <p role="alert" style={{ color: "var(--danger, #b42318)", margin: "0 0 16px" }}>
           <AlertCircle size={15} aria-hidden="true" /> {actionError}
         </p>
       ) : null}
       {error ? (
-        <div role="alert" className="content-card">
+        <div role="alert" className={cardTw}>
           <p>{error}</p>
           <button type="button" className={secondaryTw} onClick={() => setAttempt((value) => value + 1)}>
             Tentar novamente
@@ -244,7 +256,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       ) : null}
 
       {!loading && !error && sites.length === 0 ? (
-        <div className="content-card" style={{ textAlign: "center", padding: "40px 24px" }}>
+        <div className={emptyTw}>
           <Globe size={30} aria-hidden="true" />
           <h2>Nenhum site ainda</h2>
           <p>Comece pelo assistente: escolha criar do zero, clonar um link ou importar um ZIP.</p>
@@ -259,25 +271,25 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       ) : null}
 
       {!loading && sites.length > 0 ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16, marginTop: 8 }}>
+        <div className={siteGridTw}>
           {sites.map((site) => (
-            <article key={site.id} className="content-card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <article key={site.id} className={siteCardTw}>
+              <div className={siteHeadTw}>
                 <Globe size={18} aria-hidden="true" />
                 <strong style={{ fontSize: 16 }}>{site.name}</strong>
               </div>
               <small style={{ opacity: 0.8 }}>{KIND_LABEL[site.kind] || site.kind}</small>
               <small style={{ opacity: 0.7 }}>Endereço interno: /{site.slug}</small>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
-                <span className="status-pill">{DOMAIN_LABEL[site.domainStatus] || site.domainStatus}</span>
-                <span className="status-pill muted">{site.published ? "Publicado" : "Rascunho"}</span>
+              <div className={sitePillsTw}>
+                <span className={statusPillTw}>{DOMAIN_LABEL[site.domainStatus] || site.domainStatus}</span>
+                <span className={statusMutedTw}>{site.published ? "Publicado" : "Rascunho"}</span>
               </div>
               {site.domain ? <small style={{ opacity: 0.8 }}>Domínio: {site.domain}</small> : null}
               <small style={{ opacity: 0.6 }}>Atualizado em {dateBR(site.updatedAt)}</small>
               <p style={{ margin: "8px 0 0", fontSize: 12, opacity: 0.75 }}>
                 Editor visual, domínio próprio e publicação via Cloudflare no editor.
               </p>
-              <div style={{ marginTop: "auto", paddingTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className={siteActionsTw}>
                 {canManage ? (
                   <button type="button" className={primaryTw} onClick={() => setEditingSite(site)}>
                     <Pencil size={15} aria-hidden="true" /> Abrir editor

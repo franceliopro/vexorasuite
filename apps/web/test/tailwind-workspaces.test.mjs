@@ -76,3 +76,22 @@ test("os contratos dos workspaces permanecem intactos", () => {
     'aria-checked={alarm.enabled}', 'aria-label="Alarmes configurados"', "Criar alarme",
   ]) assert.ok(alarms.includes(token), `alarmes perdeu ${token}`);
 });
+
+test("a página de planos do cliente usa só utilities do preset", () => {
+  const planClasses = classValues(plans);
+  for (const forbidden of [/\bclient-plans?(?:-[\w-]+)?\b/, /\bis-(?:featured|current|off)\b/, /color-mix\(/, /#[0-9a-fA-F]{3,8}\b/]) {
+    const match = planClasses.match(forbidden);
+    assert.equal(match, null, `classe legada ou remendo em planos: ${match?.[0]}`);
+  }
+  for (const utility of [
+    "grid gap-4",
+    "grid grid-cols-plans gap-3.5",
+    "relative grid gap-2.25 rounded-token-lg border border-line bg-surface p-plans-card-pad",
+    "border-blue-600 ring-4 ring-blue-100",
+    "bg-blue-50",
+    "inline-flex items-center gap-1 rounded-cf-tag bg-blue-600 px-plans-badge-x py-plans-badge-y",
+    "font-display text-plans-price font-extrabold tabular-nums text-ink",
+  ]) {
+    assert.ok(plans.includes(utility), `falta a utility de planos ${utility}`);
+  }
+});

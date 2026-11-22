@@ -85,6 +85,16 @@ export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0
 export function isPreferredName(value: string): boolean {
   return /^[\p{L}][\p{L} .’'-]{0,79}$/u.test(value);
 }
+export function matchesChatbotTrigger(triggers: RuntimeFlow['triggers'], text: string, direct: boolean): boolean {
+  const normalizedText = normalize(text);
+  return Array.isArray(triggers) && triggers.some(trigger => {
+    if (trigger?.kind === 'message') return true;
+    if (trigger?.kind === 'dm') return direct;
+    if (trigger?.kind !== 'keyword' || typeof trigger.keyword !== 'string') return false;
+    const keyword = normalize(trigger.keyword);
+    return Boolean(keyword) && normalizedText === keyword;
+  });
+}
 export function selectedOption(step: RuntimeStep, text: string, variables?: Record<string,string>): string | undefined {
   const value = normalize(text);
   if (/^[1-9]\d*$/.test(value)) return step.options[Number(value) - 1];

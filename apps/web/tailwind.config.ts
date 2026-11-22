@@ -109,6 +109,16 @@ const config: Config = {
         /* Contornos do curso de onboarding (legado .course-*). */
         "course-done-line": "var(--vx-ok-soft)",
         "course-cert-line": "var(--primary-strong)",
+        /* Tons dos ícones de setor (legado .department-card-icon.tone-*). */
+        "dept-blue": "var(--vx-accent-soft)",
+        "dept-blue-ink": "var(--accent2)",
+        "dept-amber": "var(--vx-warn-soft)",
+        "dept-amber-ink": "var(--warn)",
+        "dept-violet": "var(--vx-core-selection)",
+        "dept-violet-ink": "var(--primary-strong)",
+        "dept-slate": "var(--s3)",
+        "dept-slate-ink": "var(--tx2)",
+        "dept-avatar-ink": "#FFFFFF",
         "provider-alert-line": "rgba(229,72,77,.42)",
         "provider-alert-ink": "#C2494E",
         /* Tons dos gráficos do Financeiro: dados do dashboard, não tema. */
@@ -225,6 +235,7 @@ const config: Config = {
         "course-hero": "linear-gradient(155deg,var(--primary-soft),var(--s1) 55%)",
         "course-progress": "linear-gradient(90deg,var(--primary),var(--primary-strong))",
         "course-certificate": "linear-gradient(160deg,var(--primary-soft),var(--s1) 60%)",
+        "dept-avatar": "linear-gradient(150deg,var(--primary-soft),var(--primary-strong))",
         /** Wash da página: o ajuste "mais frio e sutil" vive no tema, não no JSX. */
         "vx-page": "var(--vx-core-page-wash)",
         "vx-brand-mark": "var(--vx-core-brand-mark)",
@@ -303,6 +314,13 @@ const config: Config = {
         "course-hero": "20px",
         "course-card": "16px",
         "course-certificate": "22px",
+        /* Cantos dos cartões de setor (legado .department-*). */
+        "dept-card": "18px",
+        "dept-icon": "13px",
+        "dept-pill": "99px",
+        "dept-details": "12px",
+        "dept-options": "10px",
+        "dept-field": "10px",
         /* Cantos do cartão de lembretes (legado 18px/14px/12px). */
         "reminder-card": "18px",
         "reminder-icon": "14px",
@@ -445,6 +463,11 @@ const config: Config = {
         "flow-node-selected": "0 0 0 2px var(--primary),0 18px 40px -18px var(--primary)",
         "flow-start": "0 3px 16px -4px rgba(0,0,0,.18)",
         "flow-port": "0 0 0 3px var(--primary-soft)",
+        /* Relevo dos ícones e avatares de setor (legado .department-*). */
+        "dept-icon": "inset 0 0 0 1px var(--ln)",
+        "dept-blue": "inset 0 0 0 1px var(--vx-accent-soft)",
+        "dept-amber": "inset 0 0 0 1px var(--vx-warn-soft)",
+        "dept-violet": "inset 0 0 0 1px var(--vx-core-selection)",
       },
       fontFamily: {
         inherit: "inherit",
@@ -479,6 +502,23 @@ const config: Config = {
         "course-eyebrow": "11px",
         "course-cert-title": ["19px", { lineHeight: "1.2" }],
         "course-name": ["26px", { lineHeight: "1.2" }],
+        /* Textos dos cartões de setor (legado .department-*). */
+        "dept-heading": "15px",
+        "dept-heading-copy": "12px",
+        "dept-count": "11.5px",
+        "dept-card-title": "14px",
+        "dept-card-sub": "10.5px",
+        "dept-status": "9.5px",
+        "dept-module": "10px",
+        "dept-people": "11px",
+        "dept-avatar": "9px",
+        "dept-agenda": "11.5px",
+        "dept-agenda-sub": "10.5px",
+        "dept-summary": "12px",
+        "dept-details": "11px",
+        "dept-option": "12px",
+        "dept-field": "12.5px",
+        "dept-legend": "11px",
         /* Textos do cartão de lembretes. */
         "reminder-title": ["18px", { lineHeight: "1.2" }],
         "reminder-desc": "12.5px",
@@ -635,6 +675,13 @@ const config: Config = {
         "fin-label": ".08em",
         "fin-wide": ".09em",
         "fin-wider": ".14em",
+        /* Tracking dos títulos e rótulos de setores (legado .department-*). */
+        "dept-heading": "-.01em",
+        "dept-card-title": "-.01em",
+        "dept-card-sub": ".05em",
+        "dept-status": ".07em",
+        "dept-avatar": ".02em",
+        "dept-legend": ".04em",
 
       },
       spacing: {
@@ -656,6 +703,36 @@ const config: Config = {
         "profile-popover-inset": "12px",
         "profile-popover-bottom": "78px",
         "catalog-eyebrow-rule": "18px",
+        /* Medidas dos cartões de setor (legado .department-*). */
+        "dept-heading-gap": "14px",
+        "dept-heading-copy": "3px",
+        "dept-count-h": "28px",
+        "dept-count-x": "12px",
+        "dept-card-pad": "16px",
+        "dept-card-gap": "12px",
+        "dept-grid-gap": "14px",
+        "dept-grid-col": "290px",
+        "dept-head-gap": "11px",
+        "dept-icon": "46px",
+        "dept-status-h": "22px",
+        "dept-status-x": "10px",
+        "dept-module-h": "22px",
+        "dept-module-x": "9px",
+        "dept-modules-gap": "5px",
+        "dept-avatar": "30px",
+        "dept-avatar-gap": "8px",
+        "dept-agenda-pad": "8px",
+        "dept-details-pad": "12px",
+        "dept-summary-h": "38px",
+        "dept-options-col": "180px",
+        "dept-options-gap": "4px",
+        "dept-options-pad": "8px",
+        "dept-field-h": "33px",
+        "dept-field-x": "12px",
+        "dept-agenda-x": "10px",
+        "dept-legend-x": "6px",
+        "dept-toggle-x": "4px",
+        "dept-toggle-y": "6px",
         /* Medidas do curso de onboarding (legado .course-*). */
         "course-gap": "18px",
         "course-hero-pad": "22px",
@@ -872,6 +949,9 @@ const config: Config = {
         "modules": "repeat(auto-fill,minmax(170px,1fr))",
         "catalog-grid": "repeat(auto-fill,minmax(min(100%,300px),1fr))",
         "catalog-card": "auto minmax(0,1fr) auto auto",
+        /* Grades dos cartões e das opções de setor (legado .department-*). */
+        "dept-grid": "repeat(auto-fill,minmax(min(100%,290px),1fr))",
+        "dept-options": "repeat(auto-fill,minmax(min(100%,180px),1fr))",
         /* Grades da página de conexões. */
         "channels-inbox": "repeat(auto-fit,minmax(min(100%,270px),1fr))",
         "channels-google": "repeat(auto-fit,minmax(min(100%,280px),1fr))",
@@ -1040,6 +1120,7 @@ const config: Config = {
         /* Alturas do seletor de imagens e do lightbox do gerenciador. */
         "fm-picker-grid": "420px",
         "fm-lightbox-img": "74vh",
+        "dept-options": "260px",
         "phone-frame": "min(760px,92dvh)",
         /* Alturas dos painéis do Financeiro. */
         "fin-matches": "220px",
@@ -1056,6 +1137,10 @@ const config: Config = {
         /* Larguras dos textos e do aviso da página de planos. */
         "plans-copy": "520px",
         "plans-notice": "640px",
+        /* Larguras dos cartões de setor (legado .department-*). */
+        "dept-heading": "54ch",
+        "dept-form": "920px",
+        "dept-number": "220px",
         /* Larguras do curso de onboarding (legado .course-*). */
         course: "980px",
         "course-copy": "62ch",
@@ -1198,18 +1283,26 @@ const config: Config = {
         "flow-tip": "70",
         "flow-quick-actions": "4",
       },
+      filter: {
+        "dept-inactive": "saturate(.6)",
+      },
+      opacity: {
+        "dept-inactive": ".68",
+      },
       transitionProperty: {
         shell: "width, margin-left",
         control: "background-color, border-color, transform",
         course: "width",
         stroke: "stroke-dashoffset",
         fill: "width",
+        "dept-card": "transform,box-shadow,border-color",
       },
       transitionDuration: {
         control: "160ms",
         course: "140ms",
         ring: "600ms",
         bar: "300ms",
+        dept: "160ms",
       },
       transitionTimingFunction: {
         token: "var(--ease)",

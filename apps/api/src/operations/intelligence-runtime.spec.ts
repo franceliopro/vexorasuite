@@ -120,6 +120,16 @@ describe('explicit human handoff destinations',()=>{
 });
 
 describe('persistent preferred name',()=>{
+ it('starts the configured flow without asking for a name when disabled',async()=>{
+  const x=setup();
+  x.flow.askPreferredName=false;
+  x.flow.welcome='';
+  x.flow.steps=[{id:'start',kind:'text',title:'Mensagem',message:'Olá! Como posso ajudar?',options:[]}];
+  x.conversation.contact.metadata={};
+  await x.service.receive(x.channel,'conversation','inbound');
+  expect(x.waha.sendText).toHaveBeenCalledTimes(1);
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.anything(),expect.any(String),'Olá! Como posso ajudar?');
+ });
  it('does not save a phone number as a preferred name when the contact answers sim',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',awaitingName:true}});x.conversation.contact.name='5511999999999';x.conversation.contact.metadata={};x.inbound.content='sim';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.contact.update).not.toHaveBeenCalled();expect(x.tx.conversation.update.mock.calls[0][0].data.botState.awaitingName).toBe(true)});
  it('asks before a new contact proceeds to the workflow',async()=>{const x=setup();x.conversation.contact.metadata={};await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.message.create.mock.calls[0][0].data.content).toContain('Como gostaria de ser chamado');expect(x.tx.conversation.update.mock.calls[0][0].data.botState.awaitingName).toBe(true)});
  it('saves a chosen name with unrelated CRM metadata preserved',async()=>{const x=setup({botState:{flow:'INTELLIGENCE',revision:'r1',awaitingName:true}});x.conversation.contact.metadata={notes:'Preservar'};x.inbound.content='Aninha';await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.contact.update).toHaveBeenCalledWith(expect.objectContaining({data:{metadata:{notes:'Preservar',novo_nome:'Aninha'}}}));expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.novo_nome).toBe('Aninha')});

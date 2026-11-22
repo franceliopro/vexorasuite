@@ -6,10 +6,11 @@ import { PrismaService } from "../prisma/prisma.service";
 import { randomBytes } from "node:crypto";
 
 type DraftStep = { action?: "asaas.customer.lookup" | "asaas.payment.lookup" | "asaas.payment.pix" | "asaas.payment.boleto" | "human.handoff"; kind?: string; config?: string; id: string; title: string; message: string; options: string[]; transitions?: Record<string,string>; position?: { x:number; y:number } };
-type Draft = { name:string; welcome:string; steps:DraftStep[]; channelIds?:string[]; triggers?:{kind:"message"|"dm"|"keyword";keyword?:string}[] };
+type Draft = { name:string; welcome:string; askPreferredName?:boolean; steps:DraftStep[]; channelIds?:string[]; triggers?:{kind:"message"|"dm"|"keyword";keyword?:string}[] };
 export function validDraft(value: unknown): value is Draft {
  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
  const v=value as Partial<Draft>;
+ if (v.askPreferredName!==undefined && typeof v.askPreferredName!=="boolean") return false;
  if (typeof v.name!=="string" || !v.name.trim() || v.name.length>120 || typeof v.welcome!=="string" || v.welcome.length>4000 || !Array.isArray(v.steps) || v.steps.length>100) return false;
  if(v.channelIds!==undefined && (!Array.isArray(v.channelIds) || v.channelIds.length>30 || v.channelIds.some(id=>typeof id!=="string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) || new Set(v.channelIds).size!==v.channelIds.length))return false;
  if(v.triggers!==undefined && (!Array.isArray(v.triggers) || v.triggers.length>10 || v.triggers.some(t=>!t || !["message","dm","keyword"].includes(t.kind) || (t.kind==="keyword" && (typeof t.keyword!=="string" || !t.keyword.trim() || t.keyword.length>120)))))return false;

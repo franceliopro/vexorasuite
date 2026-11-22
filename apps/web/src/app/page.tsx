@@ -336,7 +336,7 @@ export default function HomePage() {
   }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
   type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean;fontScalePercent?:number;sidebarBackground?:string;sidebarForeground?:string;sidebarHover?:string};
-  const defaultBrandAssets:BrandAssets={primaryColor:"#1D4ED8",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
+  const defaultBrandAssets:BrandAssets={primaryColor:"#4F46E5",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
   const brandApplyRef = useRef<((themeName: string) => void) | null>(null);
   const [theme, setTheme] = useState<ThemeMode>("hybrid");
   const [themeReady,setThemeReady]=useState(false);

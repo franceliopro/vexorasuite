@@ -82,9 +82,9 @@ function waitTone(minutes: number): "mint" | "amber" | "coral" {
 
 /** Cores das medidas de espera — as mesmas dos três temas, via preset. */
 function waitToneClasses(tone: "mint" | "amber" | "coral"): string {
-  if (tone === "mint") return "bg-blue-100 text-blue-800";
-  if (tone === "amber") return "bg-amber-100 text-amber-600";
-  return "bg-red-100 text-red-600";
+  if (tone === "mint") return "bg-blue-100 text-blue-800 dark:bg-blue-400/15 dark:text-blue-300";
+  if (tone === "amber") return "bg-amber-100 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300";
+  return "bg-red-100 text-red-600 dark:bg-red-400/15 dark:text-red-300";
 }
 
 function waitText(minutes: number): string {
@@ -150,7 +150,7 @@ function chartGeometry(values: number[], average: number[]) {
 function ClientAvatar({
   id,
   name,
-  className = "relative grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-800",
+  className = "relative grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-sky-400",
 }: { id?: string | null; name: string; className?: string }) {
   const [src, setSrc] = useState<string | null>(id ? `/api/backend/contacts/${id}/avatar` : null);
   useEffect(() => { setSrc(id ? `/api/backend/contacts/${id}/avatar` : null); }, [id]);
@@ -168,10 +168,10 @@ function WaitRing({ minutes, id, name }: { minutes: number; id: string | null; n
   return (
     <span className="relative grid h-20 w-20 flex-none place-items-center md:h-16 md:w-16" aria-hidden="true">
       <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 84 84">
-        <circle className="fill-none stroke-blue-100 stroke-2" cx="42" cy="42" r={radius} />
-        <circle className="fill-none stroke-blue-600 stroke-2 transition-all duration-300 ease-out" cx="42" cy="42" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} />
+        <circle className="fill-none stroke-blue-100 stroke-2 dark:stroke-slate-700" cx="42" cy="42" r={radius} />
+        <circle className="fill-none stroke-blue-600 stroke-2 transition-all duration-300 ease-out dark:stroke-sky-400" cx="42" cy="42" r={radius} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} />
       </svg>
-      <ClientAvatar id={id} name={name} className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-blue-50 text-xs font-extrabold text-blue-800 md:h-12 md:w-12" />
+      <ClientAvatar id={id} name={name} className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-blue-50 text-xs font-extrabold text-blue-800 dark:bg-slate-800 dark:text-sky-400 md:h-12 md:w-12" />
     </span>
   );
 }
@@ -199,27 +199,27 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
         </defs>
         {ticks.map((tick) => {
           const value = geometry.maxValue * tick;
-          return <line key={tick} x1={CHART_PAD} x2={CHART_WIDTH - CHART_PAD} y1={geometry.y(value)} y2={geometry.y(value)} className="fill-none stroke-gray-200 stroke-1" />;
+          return <line key={tick} x1={CHART_PAD} x2={CHART_WIDTH - CHART_PAD} y1={geometry.y(value)} y2={geometry.y(value)} className="fill-none stroke-gray-200 stroke-1 dark:stroke-slate-700" />;
         })}
         <path d={geometry.area} fill="url(#vxHourlyFill)" />
-        <path d={geometry.averageLine} className="fill-none stroke-slate-400 stroke-2" strokeDasharray="5 5" />
-        <path d={geometry.line} className="fill-none stroke-blue-600 stroke-2" stroke="url(#vxHourlyStroke)" />
+        <path d={geometry.averageLine} className="fill-none stroke-slate-400 stroke-2 dark:stroke-slate-500" strokeDasharray="5 5" />
+        <path d={geometry.line} className="fill-none stroke-blue-600 stroke-2 dark:stroke-sky-400" stroke="url(#vxHourlyStroke)" />
         {peak !== null ? (
           <g>
-            <line x1={geometry.x(peak)} x2={geometry.x(peak)} y1={geometry.y(values[peak]) + 8} y2={geometry.y(0)} className="stroke-blue-600 stroke-1" />
-            <circle cx={geometry.x(peak)} cy={geometry.y(values[peak])} r="6.5" className="fill-blue-600 stroke-none" />
+            <line x1={geometry.x(peak)} x2={geometry.x(peak)} y1={geometry.y(values[peak]) + 8} y2={geometry.y(0)} className="stroke-blue-600 stroke-1 dark:stroke-sky-400" />
+            <circle cx={geometry.x(peak)} cy={geometry.y(values[peak])} r="6.5" className="fill-blue-600 stroke-none dark:fill-sky-400" />
           </g>
         ) : null}
         {[0, 6, 12, 18, 23].map((index) => (
-          <text key={index} x={geometry.x(index)} y={CHART_HEIGHT - 8} textAnchor={index === 0 ? "start" : index === 23 ? "end" : "middle"} className="fill-slate-400 text-xs">
+          <text key={index} x={geometry.x(index)} y={CHART_HEIGHT - 8} textAnchor={index === 0 ? "start" : index === 23 ? "end" : "middle"} className="fill-slate-400 text-xs dark:fill-slate-500">
             {hourly.labels[index]}
           </text>
         ))}
       </svg>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-0 w-4 border-t-2 border-blue-600" />Últimas 24 h · {total} {total === 1 ? "atendimento" : "atendimentos"}</span>
-        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-0 w-4 border-t-2 border-dashed border-slate-400" />Média dos 7 dias anteriores</span>
-        {peak !== null ? <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 font-bold text-blue-800"><Sparkles size={13} aria-hidden="true" />Pico às {hourly.labels[peak]}: {hourly.peakValue}</span> : null}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-0 w-4 border-t-2 border-blue-600 dark:border-sky-400" />Últimas 24 h · {total} {total === 1 ? "atendimento" : "atendimentos"}</span>
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-0 w-4 border-t-2 border-dashed border-slate-400 dark:border-slate-500" />Média dos 7 dias anteriores</span>
+        {peak !== null ? <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 font-bold text-blue-800 dark:bg-sky-400/15 dark:text-sky-400"><Sparkles size={13} aria-hidden="true" />Pico às {hourly.labels[peak]}: {hourly.peakValue}</span> : null}
       </div>
     </div>
   );
@@ -249,11 +249,11 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
 
   return (
     <section className="grid grid-cols-2 gap-5 bg-white hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900 ov-laptop:grid-cols-1" aria-label="Inteligência da operação">
-      <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-200 p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 ov-laptop:col-span-1" data-testid="ov-hero">
+      <article className="relative col-span-2 grid gap-5 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-200 p-5 text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50 ov-laptop:col-span-1" data-testid="ov-hero">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
           <div className="grid min-w-0 content-start gap-4">
-            <h2 className="max-w-md text-2xl font-semibold text-slate-950 sm:text-xl">{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
-            <p className="max-w-lg text-sm text-slate-600">
+            <h2 className="max-w-md text-2xl font-semibold text-slate-950 dark:text-slate-50 sm:text-xl">{waitingTotal ? `${waitingTotal} ${waitingTotal === 1 ? "conversa espera" : "conversas esperam"} por uma pessoa` : "Nenhuma conversa esperando agora"}</h2>
+            <p className="max-w-lg text-sm text-slate-600 dark:text-slate-400">
               {waitingTotal
                 ? oldest !== null && oldest > 0
                   ? `A mais antiga espera há ${waitText(oldest)}. O anel fecha quando o SLA de 15 minutos termina.`
@@ -264,125 +264,125 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
           </div>
           <div className="flex flex-wrap items-start justify-end gap-2 md:justify-start">
             {(waiting?.items || []).slice(0, 3).map((item) => (
-              <button type="button" className="grid w-28 flex-none justify-items-center gap-1 rounded-2xl border border-gray-200 bg-zinc-200 px-2 py-3.5 text-center transition-all duration-200 hover:-translate-y-px hover:bg-zinc-300" key={item.id} onClick={onOpenQueue} title={`${item.contactName} · espera ${waitText(item.waitingMinutes)}`}>
+              <button type="button" className="grid w-28 flex-none justify-items-center gap-1 rounded-2xl border border-gray-200 bg-zinc-200 px-2 py-3.5 text-center transition-all duration-200 hover:-translate-y-px hover:bg-zinc-300 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" key={item.id} onClick={onOpenQueue} title={`${item.contactName} · espera ${waitText(item.waitingMinutes)}`}>
                 <WaitRing minutes={item.waitingMinutes} id={item.contactId} name={item.contactName} />
-                <b className="w-full truncate text-sm font-bold text-slate-950">{item.contactName}</b>
-                <small className="block w-full truncate text-xs font-semibold text-slate-600">{contactLine(item.contactPhone, item.contactHandle) || (item.channel ? platformLabel(item.channel) : "Sem telefone")}</small>
+                <b className="w-full truncate text-sm font-bold text-slate-950 dark:text-slate-50">{item.contactName}</b>
+                <small className="block w-full truncate text-xs font-semibold text-slate-600 dark:text-slate-400">{contactLine(item.contactPhone, item.contactHandle) || (item.channel ? platformLabel(item.channel) : "Sem telefone")}</small>
                 <span className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums ${waitToneClasses(waitTone(item.waitingMinutes))}`}>{waitText(item.waitingMinutes)}</span>
               </button>
             ))}
             {!waitingTotal ? (
-              <div className="grid justify-items-center gap-1 rounded-2xl border border-dashed border-gray-200 bg-zinc-200 p-4 text-center">
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-blue-50 text-blue-800"><Sparkles size={22} aria-hidden="true" /></span>
-                <strong className="text-sm font-bold text-slate-950">Tudo atendido</strong>
-                <small className="text-xs text-slate-600">Sem conversas aguardando uma pessoa.</small>
+              <div className="grid justify-items-center gap-1 rounded-2xl border border-dashed border-gray-200 bg-zinc-200 p-4 text-center dark:border-slate-700 dark:bg-slate-800">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-blue-50 text-blue-800 dark:bg-sky-400/15 dark:text-sky-400"><Sparkles size={22} aria-hidden="true" /></span>
+                <strong className="text-sm font-bold text-slate-950 dark:text-slate-50">Tudo atendido</strong>
+                <small className="text-xs text-slate-600 dark:text-slate-400">Sem conversas aguardando uma pessoa.</small>
               </div>
             ) : null}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 pt-3 text-xs text-slate-600">
-          <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-blue-100 text-blue-800" />Até 2 min</span>
-          <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-amber-100 text-amber-600" />De 2 a 5 min</span>
-          <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-red-100 text-red-600" />Acima de 5 min</span>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-slate-400">Anel cheio: 10 min</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 pt-3 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">
+          <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-400/15 dark:text-blue-300" />Até 2 min</span>
+          <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300" />De 2 a 5 min</span>
+          <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-red-100 text-red-600 dark:bg-red-400/15 dark:text-red-300" />Acima de 5 min</span>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-slate-400 dark:text-slate-500">Anel cheio: 10 min</span>
         </div>
       </article>
 
       <div className="col-span-2 grid grid-cols-3 gap-5 ov-laptop:col-span-1 sm:grid-cols-1 xl:grid-cols-6" role="group" aria-label="Resumo da operação">
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-slate-600">Conversas abertas</span>
-          <strong className="text-2xl font-semibold tabular-nums text-slate-950">{data?.openConversations ?? "—"}</strong>
-          <em className={`inline-flex items-center gap-1.5 text-xs font-semibold ${outOfSlaNote ? "text-red-600" : "text-slate-600"}`}>{outOfSlaNote ? <><span className="inline-block h-2 w-2 rounded-full bg-red-600" aria-hidden="true" />{outOfSlaNote} fora do SLA</> : <><span className="inline-block h-2 w-2 rounded-full bg-blue-700" aria-hidden="true" />Nenhuma fora do SLA</>}</em>
+        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Conversas abertas</span>
+          <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{data?.openConversations ?? "—"}</strong>
+          <em className={`inline-flex items-center gap-1.5 text-xs font-semibold ${outOfSlaNote ? "text-red-600 dark:text-red-300" : "text-slate-600 dark:text-slate-400"}`}>{outOfSlaNote ? <><span className="inline-block h-2 w-2 rounded-full bg-red-600 dark:bg-red-400" aria-hidden="true" />{outOfSlaNote} fora do SLA</> : <><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />Nenhuma fora do SLA</>}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-slate-600">Contatos</span>
-          <strong className="text-2xl font-semibold tabular-nums text-slate-950">{data?.contacts ?? "—"}</strong>
-          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"><span className="inline-block h-2 w-2 rounded-full bg-blue-700" aria-hidden="true" />{data?.contactsNewWeek ? `${data.contactsNewWeek} novos esta semana` : "Cadastros desta empresa"}</em>
+        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Contatos</span>
+          <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{data?.contacts ?? "—"}</strong>
+          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{data?.contactsNewWeek ? `${data.contactsNewWeek} novos esta semana` : "Cadastros desta empresa"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-slate-600">Agentes ativos</span>
-          <strong className="text-2xl font-semibold tabular-nums text-slate-950">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small className="text-xs font-semibold text-slate-600"> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
-          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"><span className="inline-block h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />{agentsPaused === 1 ? "1 em pausa" : agentsPaused > 1 ? `${agentsPaused} em pausa` : "Todos ativos"}</em>
+        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Agentes ativos</span>
+          <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{agentsTotal !== null ? <>{data?.activeAgents ?? 0}<small className="text-xs font-semibold text-slate-600"> de {agentsTotal}</small></> : (data?.activeAgents ?? "—")}</strong>
+          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500" aria-hidden="true" />{agentsPaused === 1 ? "1 em pausa" : agentsPaused > 1 ? `${agentsPaused} em pausa` : "Todos ativos"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-slate-600">Atendimentos finalizados</span>
-          <strong className="text-2xl font-semibold tabular-nums text-slate-950">{data?.completedConversations ?? "-"}</strong>
-          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"><span className="inline-block h-2 w-2 rounded-full bg-blue-700" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
+        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Atendimentos finalizados</span>
+          <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{data?.completedConversations ?? "-"}</strong>
+          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{kpis ? `${kpis.resolvedByAiPercent}% resolvidos pela IA` : "Sem dados ainda"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-slate-600">Receita do mês</span>
-          <strong className="text-2xl font-semibold tabular-nums text-slate-950">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
-          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"><span className="inline-block h-2 w-2 rounded-full bg-blue-700" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
+        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Receita do mês</span>
+          <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
+          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
         </article>
-        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-800">
-          <span className="text-xs font-semibold text-slate-600">1ª resposta</span>
-          <strong className="text-2xl font-semibold tabular-nums text-slate-950">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
-          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"><span className="inline-block h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />Média dos últimos 30 dias</em>
+        <article className="grid min-w-0 content-start gap-2 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">1ª resposta</span>
+          <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{kpis && kpis.firstResponseSeconds !== null && kpis.firstResponseSeconds !== undefined ? formatResponseTime(kpis.firstResponseSeconds) : "-"}</strong>
+          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-500" aria-hidden="true" />Média dos últimos 30 dias</em>
         </article>
       </div>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
-        <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">Equipe agora</h2><p className="mt-0.5 text-xs text-slate-600">Quem está atendendo neste momento</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600"><Users size={13} aria-hidden="true" />{team.length}</span></header>
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Equipe agora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Quem está atendendo neste momento</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200"><Users size={13} aria-hidden="true" />{team.length}</span></header>
         {team.length ? (
           <ul className="grid gap-3">
             {team.map((member) => (
               <li key={member.id} className="flex items-center gap-2.5">
-                <span className="relative grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-800">
+                <span className="relative grid h-10 w-10 flex-none place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-sky-400">
                   {member.initials || initialsOf(member.name)}
-                  <i className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-200 ${member.presence === "paused" ? "bg-amber-600" : "bg-blue-700"}`} aria-hidden="true" />
+                  <i className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-200 dark:border-slate-900 ${member.presence === "paused" ? "bg-amber-600 dark:bg-amber-400" : "bg-blue-700 dark:bg-blue-400"}`} aria-hidden="true" />
                 </span>
-                <span className="grid min-w-0"><b className="truncate text-xs font-bold text-slate-950">{member.name}</b><small className="truncate text-xs text-slate-600">{member.departmentName || (member.presence === "paused" ? "Em pausa" : "Atendimento")}</small></span>
-                <span className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-300" aria-hidden="true"><i className="block h-full rounded-full bg-blue-600" style={{ width: `${Math.max(6, Math.min(100, member.loadPercent))}%` }} /></span>
-                <span className="text-right text-xs font-bold tabular-nums text-slate-950">{member.openCount}</span>
+                <span className="grid min-w-0"><b className="truncate text-xs font-bold text-slate-950 dark:text-slate-50">{member.name}</b><small className="truncate text-xs text-slate-600 dark:text-slate-400">{member.departmentName || (member.presence === "paused" ? "Em pausa" : "Atendimento")}</small></span>
+                <span className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-300 dark:bg-slate-800" aria-hidden="true"><i className="block h-full rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${Math.max(6, Math.min(100, member.loadPercent))}%` }} /></span>
+                <span className="text-right text-xs font-bold tabular-nums text-slate-950 dark:text-slate-50">{member.openCount}</span>
               </li>
             ))}
           </ul>
-        ) : <p className="py-6 text-center text-xs text-slate-600">Nenhum atendente com conversa aberta agora.</p>}
-        <p className="border-t border-gray-200 pt-2.5 text-xs text-slate-600">Véxora Intelligence Engine · IA · {kpis ? `${kpis.resolvedByAi} ${kpis.resolvedByAi === 1 ? "conversa resolvida" : "conversas resolvidas"} pela IA` : "sem dados ainda"}</p>
+        ) : <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">Nenhum atendente com conversa aberta agora.</p>}
+        <p className="border-t border-gray-200 pt-2.5 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">Véxora Intelligence Engine · IA · {kpis ? `${kpis.resolvedByAi} ${kpis.resolvedByAi === 1 ? "conversa resolvida" : "conversas resolvidas"} pela IA` : "sem dados ainda"}</p>
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
         <header className="flex flex-wrap items-start justify-between gap-3">
-          <div><h2 className="text-base font-semibold text-slate-950">Atividade recente</h2><p className="mt-0.5 text-xs text-slate-600">Movimentações da sua operação</p></div>
-          <button type="button" className="inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
+          <div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Atividade recente</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Movimentações da sua operação</p></div>
+          <button type="button" className="inline-flex min-h-8 items-center justify-center gap-2 px-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-zinc-200 hover:text-blue-700 dark:text-sky-400 dark:hover:bg-slate-800 dark:hover:text-sky-300" onClick={onOpenQueue}>Ver atendimento <ArrowRight size={13} aria-hidden="true" /></button>
         </header>
         {recent.length ? (
           <ul className="grid gap-3">
             {recent.slice(0, 6).map((item) => (
               <li className="flex items-center gap-2.5" key={item.id}>
-                <ClientAvatar id={item.contact.id ?? null} name={item.contact.name} className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-blue-800" />
-                <span className="grid min-w-0"><b className="truncate text-xs font-bold text-slate-950">{item.contact.name}</b><small className="block truncate text-xs text-slate-600">{contactLine(item.contact.phone, item.contact.handle) || (item.channel ? platformLabel(item.channel) : "")}{contactLine(item.contact.phone, item.contact.handle) ? " · " : ""}{recentLabel(item)}</small></span>
+                <ClientAvatar id={item.contact.id ?? null} name={item.contact.name} className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-blue-800 dark:bg-slate-800 dark:text-sky-400" />
+                <span className="grid min-w-0"><b className="truncate text-xs font-bold text-slate-950 dark:text-slate-50">{item.contact.name}</b><small className="block truncate text-xs text-slate-600 dark:text-slate-400">{contactLine(item.contact.phone, item.contact.handle) || (item.channel ? platformLabel(item.channel) : "")}{contactLine(item.contact.phone, item.contact.handle) ? " · " : ""}{recentLabel(item)}</small></span>
                 <time className="text-xs tabular-nums text-slate-400">{clock(item.updatedAt)}</time>
               </li>
             ))}
           </ul>
-        ) : <p className="py-6 text-center text-xs text-slate-600">Os atendimentos desta empresa aparecerão aqui.</p>}
+        ) : <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">Os atendimentos desta empresa aparecerão aqui.</p>}
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
         <header className="flex flex-wrap items-start justify-between gap-3">
-          <div><h2 className="text-base font-semibold text-slate-950">Atendimentos por hora</h2><p className="mt-0.5 text-xs text-slate-600">Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
+          <div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Atendimentos por hora</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Últimas 24 horas. A linha tracejada é a média dos 7 dias anteriores.</p></div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 dark:bg-sky-400/15 dark:text-sky-400"><Sparkles size={13} aria-hidden="true" />Tempo real</span>
         </header>
-        {hourly ? <HourlyChart hourly={hourly} /> : <p className="py-6 text-center text-xs text-slate-600">Aguardando os primeiros atendimentos.</p>}
+        {hourly ? <HourlyChart hourly={hourly} /> : <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">Aguardando os primeiros atendimentos.</p>}
       </article>
 
-      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900">
-        <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">Do que as pessoas falam</h2><p className="mt-0.5 text-xs text-slate-600">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600">Top {topics.length || 0}</span></header>
+      <article className="grid content-start gap-4 rounded-2xl border border-gray-200 bg-zinc-200 p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
+        <header className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">Do que as pessoas falam</h2><p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">Assuntos dos últimos 30 dias</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-300 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Top {topics.length || 0}</span></header>
         {topics.length ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {topics.map((topic) => {
               const channel = topic.channel || "";
               return (
               <div className="grid min-w-0 content-start gap-1.5" key={topic.label}>
-                <div className="flex items-center justify-between gap-2"><span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-950"><i className="inline-block h-2 w-2 flex-none rounded-full bg-blue-600" />{topic.label}{channel ? <small className="text-xs font-bold uppercase tracking-wide text-slate-400">{platformLabel(channel)}</small> : null}</span><b className="text-xs font-bold tabular-nums text-slate-950">{topic.percent}%</b></div>
-                <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-300"><i className="block h-full rounded-full bg-blue-600" style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
-                <small className="text-xs text-slate-600">{topic.count} {topic.count === 1 ? "conversa" : "conversas"}</small>
+                <div className="flex items-center justify-between gap-2"><span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-950 dark:text-slate-50"><i className="inline-block h-2 w-2 flex-none rounded-full bg-blue-600 dark:bg-blue-400" />{topic.label}{channel ? <small className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">{platformLabel(channel)}</small> : null}</span><b className="text-xs font-bold tabular-nums text-slate-950 dark:text-slate-50">{topic.percent}%</b></div>
+                <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-300 dark:bg-slate-800"><i className="block h-full rounded-full bg-blue-600 dark:bg-blue-500" style={{ width: `${Math.max(6, (topic.percent / topicMax) * 100)}%` }} /></span>
+                <small className="text-xs text-slate-600 dark:text-slate-400">{topic.count} {topic.count === 1 ? "conversa" : "conversas"}</small>
               </div>
               );
             })}
           </div>
-        ) : <p className="py-6 text-center text-xs text-slate-600">Os assuntos aparecem aqui conforme as conversas chegam.</p>}
+        ) : <p className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">Os assuntos aparecem aqui conforme as conversas chegam.</p>}
       </article>
 
     </section>

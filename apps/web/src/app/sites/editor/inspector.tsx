@@ -7,7 +7,7 @@
  * Inclui caixa de prompt da IA (lógica aiEditNode já existe no programador).
  * Consume shared-types (SiteNode, BlockPropSchema). Sem tipos próprios.
  * Estados: vazio (sem nó selecionado), desabilitado (sem permissão), loading.
- * Classes CSS em editor.css (tokens Véxora, sem hex direto).
+ * Estilos em utilities Tailwind literais do preset (tokens Véxora, sem hex direto).
  */
 
 import { useCallback, useEffect, useState } from 'react';

@@ -58,20 +58,22 @@ test("os tokens dark continuam slate e shell consome tokens, nunca blue-dark", (
   assert.doesNotMatch(mainArea, /#[0-9a-fA-F]{3,8}/, "main-area não define cor fixa");
   assert.equal(mainArea.includes("background"), false, "main-area herda --bg do body");
 
-  /* Hierarquia ancorada em .page-content: main escura, .page-content sem
-     preenchimento, filhos na cor da sidebar e netos/hover um tom mais claro.
-     Nenhuma cor fixa nas regras de profundidade. */
+  /* Hierarquia ancorada em .page-content: a main segue o tema, o conteúdo não
+     pinta fundo e as camadas vêm do tema, não da sidebar. No híbrido a sidebar
+     é escura, mas main e filhos continuam claros. */
   for (const rule of [
     ":root[data-theme=dark] .main-area{background-color:var(--bg-base)}",
     ".page-content{background:transparent}",
     ".page-content>*{background-color:var(--layer-child)}",
     ".page-content>*:hover{background-color:var(--layer-nested)}",
     ".page-content>*>*{background-color:var(--layer-nested)}",
-    ":root[data-theme=dark]{--layer-child:var(--bg-surface);--layer-nested:var(--bg-elevated)}",
-    ":root{--layer-child:var(--sb-bg);--layer-nested:var(--sb-on)}",
+    ":root{--layer-child:var(--bg-surface);--layer-nested:var(--bg-elevated)}",
   ]) {
     assert.ok(vexora.includes(rule), `falta a regra de profundidade: ${rule}`);
   }
+  const hybrid = vexora.match(/:root\[data-theme=hybrid\]\{[^}]*\}/)?.[0] ?? "";
+  assert.doesNotMatch(hybrid, /--layer-child|--layer-nested/, "o híbrido não pode escurecer as camadas do conteúdo");
+  assert.doesNotMatch(vexora, /--layer-child:var\(--sb-bg\)/, "filhos do conteúdo não podem herdar a sidebar");
 
   /* Existem três blocos `:root[data-theme=dark]` no legado. O último vence,
      então ele também precisa reaplicar os aliases — senão os tokens voltam

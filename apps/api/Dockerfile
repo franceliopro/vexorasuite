@@ -3,8 +3,7 @@ RUN apk add --no-cache openssl font-dejavu
 WORKDIR /workspace
 
 FROM base AS dependencies
-ENV COREPACK_HOME=/corepack
-RUN corepack enable
+RUN npm install --global pnpm@12.22.0
 COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/package.json
 RUN pnpm install --no-frozen-lockfile

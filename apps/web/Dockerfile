@@ -3,8 +3,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /workspace
 
 FROM base AS dependencies
-ENV COREPACK_HOME=/corepack
-RUN corepack enable
+RUN npm install --global pnpm@12.22.0
 COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/package.json
 RUN pnpm install --no-frozen-lockfile

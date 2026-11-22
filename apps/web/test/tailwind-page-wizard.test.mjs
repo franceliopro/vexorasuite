@@ -37,7 +37,7 @@ const wizardClasses = classValues(wizard);
 const allClasses = [pageClasses, wizardClasses].join("\n");
 
 /** Prefixos legados proibidos; variantes liberadas são removidas antes da checagem. */
-const ALLOWED_VARIANTS = new Set(["ib-narrow:", "ov-laptop:", "rw-laptop:"]);
+const ALLOWED_VARIANTS = new Set(["ib-narrow:", "ov-laptop:", "ov-tablet:", "rw-laptop:"]);
 const LEGACY_SEGMENTS = /(^|-)(vx-rich|vx-post|vx-gallery|platform-admin|design-approval|vx|ov|ib|rw|auth|alarm)-/;
 const LEGACY_EXACT = /(^|-)(content-card|settings-card|primary-button|secondary-button|text-button|icon-button|vx-spin)(-|$)/;
 
@@ -72,7 +72,7 @@ test("as utilities TW padrão estão presentes nos dois arquivos", () => {
     "text-slate-600", "bg-blue-600", "hover:bg-blue-700", "text-blue-950",
     "text-blue-700", "bg-blue-50", "border-amber-600", "bg-amber-100",
     "text-red-600", "text-sm", "text-xs", "font-bold", "shadow-md",
-    "max-md:grid", "max-md:border-gray-200", "max-md:bg-zinc-50", "z-40",
+    "ov-tablet:grid", "ov-tablet:border-gray-200", "ov-tablet:bg-zinc-50", "z-40",
   ]) {
     assert.ok(pageClasses.split(/\s+/).includes(utility), `falta na home: ${utility}`);
   }

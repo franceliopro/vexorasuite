@@ -51,7 +51,7 @@ test("a home mantém as utilities e os marcadores funcionais", () => {
   for (const marker of [
     'className="sidebar-collapse"', 'className="persistent-module-tabs"',
     'data-testid={active === "Visão geral" ? "ov-dock" : undefined}',
-    'fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-cols-4 max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1',
+    'fixed inset-x-0 bottom-0 z-40 hidden ov-tablet:grid ov-tablet:grid-cols-4 ov-tablet:justify-center ov-tablet:gap-x-8 ov-tablet:border-t ov-tablet:border-gray-200 ov-tablet:bg-zinc-50 ov-tablet:px-3 ov-tablet:pb-2 ov-tablet:pt-1',
     "Recolher menu", "Instalar Véxora", "workspaceTabs", "sidebarCollapsed", "applyBrandAll",
     "#1D4ED8", 'aria-controls="mobile-navigation-menu"', 'id="mobile-navigation-menu"',
     'aria-labelledby="sidebar-color-title"', 'id="sidebar-color-title"',
@@ -65,7 +65,7 @@ test("a home mantém as utilities e os marcadores funcionais", () => {
     "text-xs", "tracking-widest", "bg-blue-50", "rounded-2xl",
     "shadow-lg", "z-50", "border-amber-600", "bg-amber-100", "text-amber-600",
     "border-blue-700", "bg-transparent", "text-blue-700", "text-red-600",
-    "max-md:grid-cols-4", "max-md:pb-2", "z-40", "max-md:grid",
+    "ov-tablet:grid-cols-4", "ov-tablet:pb-2", "z-40", "ov-tablet:grid",
   ]) assert.ok(classes.includes(utility), `falta a utility ${utility}`);
 });
 

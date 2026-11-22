@@ -22,9 +22,9 @@ function timeShortLabel(value: string | undefined, now = new Date()): string {
 
 /** Tons de presença: utilities do preset, escolhidas pelos dados da conversa. */
 const presenceToneTw = {
-  overdue: "bg-ib-coral",
+  overdue: "bg-red-500",
   live: "bg-blue-600",
-  idle: "bg-ib-amber",
+  idle: "bg-amber-500",
 } as const;
 
 type PresenceTone = keyof typeof presenceToneTw;
@@ -47,7 +47,7 @@ const tickToneTw: Record<OutboundMark["tone"], string> = {
   failed: "font-extrabold text-red-600",
   sent: "text-slate-600",
   delivered: "text-slate-950",
-  read: "text-ib-read",
+  read: "text-green-500",
 };
 
 function outboundMark(status: string | undefined): OutboundMark | null {
@@ -83,13 +83,13 @@ export function ConversationList({ conversations, conversationsLoading, selected
         return (
           <button
             key={item.id}
-            className={"relative flex w-full flex-wrap content-start items-start gap-x-ib-gap gap-y-1 border-b border-l-2 border-line px-3.5 py-2.5 text-left transition-colors duration-control ease-token hover:bg-zinc-200" + (selected ? " border-l-blue-600 bg-blue-50 shadow-ib-selected" : " border-l-transparent")}
+            className={"relative flex w-full flex-wrap content-start items-start gap-x-2 gap-y-1 border-b border-l-2 border-gray-200 px-3.5 py-2.5 text-left transition-colors duration-200 ease-in-out hover:bg-zinc-200" + (selected ? " border-l-blue-600 bg-blue-50 ring-1 ring-blue-500" : " border-l-transparent")}
             onClick={() => onSelect(item)}
             aria-pressed={selected}
           >
-            <span className="relative mt-0.5 inline-grid h-ib-avatar w-ib-avatar flex-none self-start">
+            <span className="relative mt-0.5 inline-grid h-11 w-11 flex-none self-start">
               <ContactAvatar contact={item.contact} />
-              {presence ? <span className={"absolute -bottom-0.5 -right-0.5 h-ib-presence w-ib-presence rounded-full border-2 border-zinc-100 " + presenceToneTw[presence]} aria-hidden="true" /> : null}
+              {presence ? <span className={"absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-zinc-100 " + presenceToneTw[presence]} aria-hidden="true" /> : null}
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="flex min-w-0 items-center">
@@ -98,19 +98,19 @@ export function ConversationList({ conversations, conversationsLoading, selected
                   <ChannelMark channel={item.channel || item.contact.source || "WHATSAPP"} />
                   <ChannelMark kind="agent" mode={item.handlingMode} channel={String(item.botState?.mode || item.botState?.provider || (item.handlingMode === "BOT" ? "BOT" : ""))} />
                 </span>
-                <span className="ml-auto flex-none text-ib-time tabular-nums text-slate-400">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
+                <span className="ml-auto flex-none text-xs tabular-nums text-slate-400">{timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
               </span>
-              <small className="flex min-w-0 items-center gap-1 text-ib-micro text-slate-600">
-                {mark ? <span className={"flex-none text-ib-tick tabular-nums " + tickToneTw[mark.tone]} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}
+              <small className="flex min-w-0 items-center gap-1 text-xs text-slate-600">
+                {mark ? <span className={"flex-none text-xs tabular-nums " + tickToneTw[mark.tone]} role="img" aria-label={mark.label}>{mark.glyph}</span> : null}
                 <span className="block min-w-0 truncate">{previewText}</span>
               </small>
               {item.isOverdue ? (
-                <span className="inline-flex items-center gap-1 text-ib-time font-ib text-red-600"><AlarmClock size={11} /> Atrasado · sem assistência</span>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600"><AlarmClock size={11} /> Atrasado · sem assistência</span>
               ) : (!item.assignee && item.status === "OPEN" ? (
-                <span className="mt-0.5 inline-flex w-max items-center gap-1.5 text-ib-time font-ib text-emerald-600"><span className="h-ib-newdot w-ib-newdot rounded-full bg-emerald-600 shadow-ib-newdot" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
+                <span className="mt-0.5 inline-flex w-max items-center gap-1.5 text-xs font-semibold text-blue-700"><span className="h-2 w-2 rounded-full bg-blue-700 ring-2 ring-blue-100" aria-hidden="true" /> Nova há {timeShortLabel(item.lastMessageAt || item.createdAt)}</span>
               ) : null)}
             </span>
-            {tags.length ? <span className="m-0 flex w-full flex-none flex-wrap gap-1">{tags.map((tag, index) => <span key={tag.name + index} className="inline-flex min-h-ib-tag items-center gap-0.5 rounded-ib-entry bg-blue-50 px-1.5 text-ib-micro font-bold text-blue-800" style={{ backgroundColor: tag.color, color: tagForeground(tag.color), borderColor: "color-mix(in srgb, " + tag.color + " 82%, #334155)" }}>{tag.name}</span>)}</span> : null}
+            {tags.length ? <span className="m-0 flex w-full flex-none flex-wrap gap-1">{tags.map((tag, index) => <span key={tag.name + index} className="inline-flex min-h-4 items-center gap-0.5 rounded-lg bg-blue-50 px-1.5 text-xs font-bold text-blue-800" style={{ backgroundColor: tag.color, color: tagForeground(tag.color) }}>{tag.name}</span>)}</span> : null}
           </button>
         );
       })}

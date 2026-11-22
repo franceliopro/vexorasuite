@@ -103,41 +103,41 @@ test('os 3 arquivos do editor usam utilities TW literais, sem remendos', () => {
 
 test('utilidades básicas permanecem literais em cada arquivo', () => {
   for (const utility of [
-    'flex h-dvh min-h-0 flex-col bg-surface-page font-ui text-ink',
-    'flex h-14 flex-none items-center justify-between gap-2.5 border-b border-line bg-surface px-4',
-    'inline-flex h-control items-center gap-2 rounded-token-sm border-0 bg-brand px-4 text-sm font-bold text-brand-contrast',
+    'flex h-dvh min-h-0 flex-col bg-slate-900 font-sans text-slate-50',
+    'flex h-14 flex-none items-center justify-between gap-2.5 border-b border-slate-700 bg-slate-800 px-4',
+    'inline-flex h-9 items-center gap-2 rounded-md border-0 bg-blue-600 px-4 text-sm font-bold text-white',
     'flex min-h-0 flex-1 overflow-hidden',
-    'flex w-80 flex-none flex-col overflow-hidden border-r border-line bg-surface',
-    'relative min-w-0 flex-1 overflow-hidden bg-surface-2',
-    'flex w-85 flex-none flex-col overflow-hidden border-l border-line bg-surface',
-    'max-w-55 rounded-token-sm border border-line bg-surface px-2 py-1 text-body text-ink',
-    'bg-blue-50 text-blue-600',
+    'flex w-80 flex-none flex-col overflow-hidden border-r border-slate-700 bg-slate-800',
+    'relative min-w-0 flex-1 overflow-hidden bg-slate-900',
+    'flex w-80 flex-none flex-col overflow-hidden border-l border-slate-700 bg-slate-800',
+    'max-w-64 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-50',
+    'bg-slate-700 text-slate-50',
   ]) assert.ok(classes.shell.includes(utility), `shell perdeu ${utility}`);
 
   for (const utility of [
-    'flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-line',
-    'inline-flex h-7.5 w-7.5 flex-none items-center justify-center rounded-token-sm border border-line bg-surface-2 text-ink-secondary',
-    'w-full rounded-token-sm border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder:text-ink-muted',
+    'flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-slate-700',
+    'inline-flex h-7.5 w-7.5 flex-none items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200',
+    'w-full rounded-md border border-slate-700 bg-slate-800 px-3.5 py-2 text-sm text-slate-50 placeholder:text-slate-400',
     'peer hidden',
-    'relative h-5 w-10 rounded-full border border-line bg-line transition-control duration-control peer-checked:border-brand peer-checked:bg-brand',
-    'flex flex-col items-center gap-2.5 p-10 text-center text-sm text-ink-secondary',
-    'w-full min-h-18 resize-y rounded-token-sm border border-line bg-surface px-3.5 py-2 text-sm text-ink',
+    'relative h-5 w-10 rounded-full border border-slate-600 bg-slate-600 transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600',
+    'flex flex-col items-center gap-2.5 p-10 text-center text-sm text-slate-200',
+    'w-full min-h-24 resize-y rounded-md border border-slate-700 bg-slate-800 px-3.5 py-2 text-sm text-slate-50',
   ]) assert.ok(classes.inspector.includes(utility), `inspector perdeu ${utility}`);
 
   for (const utility of [
-    'fixed inset-0 z-10000 flex flex-col bg-surface-page text-ink',
-    'fixed bottom-6 left-1/2 z-10001 flex -translate-x-1/2 items-center gap-2 rounded-token border border-line bg-surface p-1.5 shadow-token-lg',
-    'inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink',
-    'flex flex-wrap items-center gap-2 border-b border-line bg-surface py-2.5 group-open/settings:border-b-0',
-    'min-w-56 rounded-token-sm border border-line bg-surface-page px-2.5 py-2 text-body text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none',
-    'max-h-42',
+    'fixed inset-0 z-50 flex flex-col bg-slate-900 text-slate-50',
+    'fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 p-1.5 shadow-lg',
+    'inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-800 px-4 text-sm font-bold text-slate-50',
+    'flex flex-wrap items-center gap-2 border-b border-slate-700 bg-slate-800 py-2.5 group-open/settings:border-b-0',
+    'min-w-64 rounded-md border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-50 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none',
+    'max-h-64',
   ]) assert.ok(classes.window.includes(utility), `window perdeu ${utility}`);
 });
 
 test('variantes e estados resolvem mapas/helpers de literais completas', () => {
   assert.match(files.shell, /const SHELL_NOTICE_KIND: Record<'info' \| 'ok' \| 'bad', string> = \{/);
-  assert.match(files.shell, /className=\{`\$\{SHELL_NOTICE\} \$\{SHELL_NOTICE_KIND\[noticeKind\]\}`\}/);
-  assert.match(files.shell, /d === device \? SHELL_DEVICE_BUTTON_ACTIVE : ''/);
+  assert.match(files.shell, /className=\{SHELL_NOTICE_KIND\[noticeKind\]\}/);
+  assert.match(files.shell, /SHELL_DEVICE_BUTTON_CLASS\[d === device \? 'active' : 'idle'\]/);
   assert.match(files.inspector, /const INSPECTOR_FEEDBACK_KIND: Record<'ok' \| 'error', string> = \{/);
   assert.match(files.inspector, /INSPECTOR_FEEDBACK_KIND\[aiFeedback\.error \? 'error' : 'ok'\]/);
   assert.match(files.window, /aiMessage\.error \? aiStatusErrorClass : aiStatusOkClass/);

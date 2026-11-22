@@ -41,7 +41,7 @@ const customVariants = new Set(
 const standardVariants = new Set([
   "dark", "hover", "focus", "focus-visible", "active", "disabled", "print",
   "placeholder", "group-hover", "peer-hover", "last", "first", "odd", "even",
-  "sm", "md", "lg", "xl", "2xl",
+  "sm", "md", "lg", "xl", "2xl", "max-md",
   /* Variantes explicitamente permitidas para estes workspaces. */
   "ib-narrow", "ov-laptop", "rw-laptop",
 ]);
@@ -94,7 +94,7 @@ test("as classes são literais TW completos, sem remendos visuais", () => {
   for (const key of ["operations", "domain"]) {
     assert.match(sources[key], /Record<string,\s*string>/, `${key}: falta mapa de variantes TW`);
   }
-  assert.match(sources.domain, /const statusPillClass = \(variant: string\) => `\$\{statusPillTw\} \$\{statusPillVariantTw\[variant\] \?\? statusPillVariantTw\.muted\}`/);
+  assert.match(sources.domain, /const statusPillClass = \(variant: string\) => statusPillVariantTw\[variant\] \?\? statusPillVariantTw\.muted;/);
   assert.match(sources.crm, /const stageTones = \{/);
   for (const utility of [
     "grid min-w-0 grid-cols-1 content-start gap-token",

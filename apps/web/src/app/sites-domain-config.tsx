@@ -44,76 +44,73 @@ const DOMAIN_PLACEHOLDER = "seusite.com.br";
 const CNAME_TARGET = "static.vexorasuite.com.br";
 
 /* TW utility-first: cores e medidas vêm do preset e dos tokens de tema. */
-const rootTw = "grid min-w-0 gap-token rounded-token border border-gray-200 bg-zinc-100 p-pad shadow-token";
+const rootTw = "grid min-w-0 gap-4 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-lg";
 const headTw = "flex flex-wrap items-start gap-3";
-const iconTw = "grid size-10 shrink-0 place-items-center rounded-token bg-blue-50 text-blue-800";
-const titleTw = "text-h3 font-bold text-slate-950";
-const subTw = "text-small text-slate-600";
-const noPermTw = "flex items-start gap-2 rounded-token-sm border border-red-600 bg-red-100 p-3 text-small text-red-600";
-const stepsTw = "grid grid-cols-2 gap-2 p-0 list-none md:grid-cols-4";
-const stepTw = "flex items-center gap-2 text-small font-semibold text-slate-600";
-const stepBadgeTw = "grid size-6 shrink-0 place-items-center rounded-full bg-zinc-200 text-h6 font-bold text-slate-950";
+const iconTw = "grid size-10 shrink-0 place-items-center rounded-lg bg-slate-800 text-slate-50";
+const titleTw = "text-xl font-bold text-slate-50";
+const subTw = "text-sm text-slate-200";
+const noPermTw = "flex items-start gap-2 rounded-md border border-red-600 bg-red-950 p-3 text-sm text-red-200";
+const stepsTw = "grid grid-cols-2 gap-2 p-0 list-none max-md:grid-cols-4";
 const stepLabelTw = "min-w-0";
-const stepStateTw: Record<string, string> = {
-  current: "text-blue-800",
-  done: "text-emerald-600",
-  pending: "text-slate-600 opacity-70",
+const stepClassTw: Record<string, string> = {
+  current: "flex items-center gap-2 text-sm font-semibold text-slate-50",
+  done: "flex items-center gap-2 text-sm font-semibold text-emerald-300",
+  pending: "flex items-center gap-2 text-sm font-semibold text-slate-200 opacity-70",
 };
-const stepBadgeStateTw: Record<string, string> = {
-  current: "bg-blue-600 text-blue-50",
-  done: "bg-emerald-100 text-emerald-600",
-  pending: "bg-zinc-200 text-slate-600",
+const stepBadgeClassTw: Record<string, string> = {
+  current: "grid size-6 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-blue-50",
+  done: "grid size-6 shrink-0 place-items-center rounded-full bg-emerald-600 text-xs font-bold text-white",
+  pending: "grid size-6 shrink-0 place-items-center rounded-full bg-slate-700 text-xs font-bold text-slate-200",
 };
-const stepClass = (state: string) => `${stepTw} ${stepStateTw[state] ?? stepStateTw.pending}`;
-const stepBadgeClass = (state: string) => `${stepBadgeTw} ${stepBadgeStateTw[state] ?? stepBadgeStateTw.pending}`;
-const errorTw = "flex items-start gap-3 rounded-token-sm border border-red-600 bg-red-100 p-3 text-slate-950";
+const stepClass = (state: string) => stepClassTw[state] ?? stepClassTw.pending;
+const stepBadgeClass = (state: string) => stepBadgeClassTw[state] ?? stepBadgeClassTw.pending;
+const errorTw = "flex items-start gap-3 rounded-md border border-red-600 bg-red-950 p-3 text-slate-50";
 const fieldBlockTw = "grid gap-3";
 const fieldLabelTw = "grid gap-1";
-const fieldTagTw = "text-small font-bold text-slate-950";
+const fieldTagTw = "text-sm font-bold text-slate-50";
 const inputGroupTw = "flex flex-wrap items-center gap-2";
-const inputTw = "min-h-control min-w-0 flex-1 rounded-token-sm border border-gray-200 bg-zinc-50 px-3 text-body text-slate-950 outline-hidden placeholder:text-slate-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-50";
-const inputAlertTw = "shrink-0 text-red-600";
-const inputOkTw = "shrink-0 text-emerald-600";
-const errorTextTw = "text-small text-red-600";
-const fieldHintTw = "text-small text-slate-600";
-const statusRowTw = "grid grid-cols-1 gap-3 md:grid-cols-2";
-const statusCardTw = "grid gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3";
+const inputTw = "min-h-9 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 text-sm text-slate-50 outline-hidden placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/30";
+const inputAlertTw = "shrink-0 text-red-400";
+const inputOkTw = "shrink-0 text-emerald-400";
+const errorTextTw = "text-sm text-red-400";
+const fieldHintTw = "text-sm text-slate-200";
+const statusRowTw = "grid grid-cols-1 gap-3 max-md:grid-cols-2";
+const statusCardTw = "grid gap-2 rounded-md border border-slate-700 bg-slate-800 p-3";
 const statusHeadTw = "flex flex-wrap items-center gap-2";
-const statusNameTw = "text-small font-bold text-slate-950";
-const statusPillTw = "inline-flex items-center rounded-full px-2 py-1 text-h6 font-bold";
+const statusNameTw = "text-sm font-bold text-slate-50";
 const statusPillVariantTw: Record<string, string> = {
-  muted: "bg-zinc-200 text-slate-600",
-  ok: "bg-emerald-100 text-emerald-600",
-  bad: "bg-red-100 text-red-600",
+  muted: "inline-flex items-center rounded-full bg-slate-700 px-2 py-1 text-xs font-bold text-slate-200",
+  ok: "inline-flex items-center rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white",
+  bad: "inline-flex items-center rounded-full bg-red-600 px-2 py-1 text-xs font-bold text-white",
 };
-const statusPillClass = (variant: string) => `${statusPillTw} ${statusPillVariantTw[variant] ?? statusPillVariantTw.muted}`;
-const statusDescTw = "text-small text-slate-600";
+const statusPillClass = (variant: string) => statusPillVariantTw[variant] ?? statusPillVariantTw.muted;
+const statusDescTw = "text-sm text-slate-200";
 const recordsTw = "grid gap-2";
-const recordsTitleTw = "text-h3 font-bold text-slate-950";
-const recordsHintTw = "text-small text-slate-600";
-const recordsTableTw = "w-full border-collapse text-small text-slate-950";
-const recordsTypeTw = "font-bold text-slate-950";
+const recordsTitleTw = "text-xl font-bold text-slate-50";
+const recordsHintTw = "text-sm text-slate-200";
+const recordsTableTw = "w-full border-collapse text-sm text-slate-50";
+const recordsTypeTw = "font-bold text-slate-50";
 const recordsValueTw = "flex flex-wrap items-center gap-2";
-const recordsEmptyTw = "p-3 text-center text-slate-600";
+const recordsEmptyTw = "p-3 text-center text-slate-200";
 const instructionsTw = "grid gap-2";
-const instructionsTitleTw = "text-h3 font-bold text-slate-950";
-const instructionsListTw = "grid list-decimal gap-1 pl-5 text-small text-slate-600";
-const cnameBoxTw = "flex flex-wrap items-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3";
-const cnameLabelTw = "text-small font-bold text-slate-950";
-const cnameValueTw = "min-w-0 flex-1 break-all font-mono text-small";
+const instructionsTitleTw = "text-xl font-bold text-slate-50";
+const instructionsListTw = "grid list-decimal gap-1 pl-5 text-sm text-slate-200";
+const cnameBoxTw = "flex flex-wrap items-center gap-2 rounded-md border border-slate-700 bg-slate-800 p-3";
+const cnameLabelTw = "text-sm font-bold text-slate-50";
+const cnameValueTw = "min-w-0 flex-1 break-all font-mono text-sm";
 const progressTw = "flex flex-wrap items-center gap-3";
-const progressTrackTw = "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200";
+const progressTrackTw = "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-700";
 const progressBarTw = "block h-full rounded-full bg-blue-600 transition-all duration-300";
-const progressPctTw = "text-small font-bold tabular-nums text-slate-950";
+const progressPctTw = "text-sm font-bold tabular-nums text-slate-50";
 const doneTw = "grid place-items-center gap-2 text-center";
-const doneIconTw = "text-emerald-600";
-const doneTitleTw = "text-h2 font-bold text-slate-950";
-const doneSubTw = "text-small text-slate-600";
+const doneIconTw = "text-emerald-400";
+const doneTitleTw = "text-2xl font-bold text-slate-50";
+const doneSubTw = "text-sm text-slate-200";
 const actionsTw = "flex flex-wrap items-center justify-end gap-2";
-const footerTw = "flex flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-3";
-const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-brand-pad font-bold text-body text-blue-950 transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
-const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-200 px-brand-pad font-bold text-body text-slate-950 shadow-token-sm transition-colors hover:border-gray-300 hover:bg-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
-const iconButtonTw = "grid size-control shrink-0 place-items-center rounded-token-sm border border-gray-200 bg-zinc-100 text-slate-950 shadow-token-sm transition-colors hover:bg-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const footerTw = "flex flex-wrap items-center justify-end gap-2 border-t border-slate-700 pt-3";
+const primaryTw = "inline-flex min-h-9 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const secondaryTw = "inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-800 px-4 text-sm font-bold text-slate-50 shadow-sm transition-colors hover:border-slate-600 hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+const iconButtonTw = "grid size-9 shrink-0 place-items-center rounded-md border border-slate-700 bg-slate-800 text-slate-50 shadow-sm transition-colors hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 
 
 export function SiteDomainConfig({

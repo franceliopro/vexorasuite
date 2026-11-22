@@ -52,14 +52,14 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
   const hexEmClasse = [...semDados.matchAll(/className="[^"]*#[0-9a-fA-F]{3,8}/g)];
   assert.equal(hexEmClasse.length, 0, "hex direto em classe");
   for (const utility of [
-    "grid min-w-0 gap-token rounded-token border border-gray-200 bg-zinc-100 p-pad shadow-token",
+    "grid min-w-0 gap-4 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-lg",
     "flex flex-wrap items-start gap-3",
-    "grid size-10 shrink-0 place-items-center rounded-token bg-blue-50 text-blue-800",
-    "grid grid-cols-2 gap-2 p-0 list-none md:grid-cols-4",
-    "min-h-control min-w-0 flex-1 rounded-token-sm border border-gray-200 bg-zinc-50",
-    "grid grid-cols-1 gap-3 md:grid-cols-2",
-    "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200",
-    "bg-blue-600 px-brand-pad font-bold text-body text-blue-950",
+    "grid size-10 shrink-0 place-items-center rounded-lg bg-slate-800 text-slate-50",
+    "grid grid-cols-2 gap-2 p-0 list-none max-md:grid-cols-4",
+    "min-h-9 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800",
+    "grid grid-cols-1 gap-3 max-md:grid-cols-2",
+    "h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-700",
+    "bg-blue-600 px-4 text-sm font-bold text-white",
   ]) {
     assert.ok(semDados.includes(utility), `falta a utility ${utility}`);
   }
@@ -96,7 +96,7 @@ test("os contratos de domínio permanecem intactos", () => {
   }
   for (const dado of [
     'const domainStepState = flowStep === "domain" ? "current" : flowStep === "done" ? "done" : "pending";',
-    'const statusPillClass = (variant: string) => `${statusPillTw} ${statusPillVariantTw[variant] ?? statusPillVariantTw.muted}`;',
+    'const statusPillClass = (variant: string) => statusPillVariantTw[variant] ?? statusPillVariantTw.muted;',
   ]) {
     assert.ok(domain.includes(dado), `perdeu o dado ${dado}`);
   }

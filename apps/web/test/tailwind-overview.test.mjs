@@ -210,8 +210,8 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
     [welcome, 'aria-label="Comece por aqui"'],
   ]) {
     assert.ok(source.includes(label), `a seção ${label} perdeu o rótulo`);
-    assert.ok(source.includes("bg-white"), `a seção ${label} não é branca no claro/híbrido`);
-    assert.ok(source.includes("dark:bg-slate-900"), `a seção ${label} não usa slate-900 no dark`);
+    assert.ok(source.includes("rounded-xl border border-gray-200 bg-white p-5"), `a seção ${label} não tem borda/padding de card no claro`);
+    assert.ok(source.includes("dark:border-slate-800 dark:bg-slate-900"), `a seção ${label} não tem borda de card no dark`);
   }
 
   // As grades de widgets e de inteligência são transparentes: quem pinta fundo

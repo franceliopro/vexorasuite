@@ -67,6 +67,15 @@ test("os tokens dark continuam slate e shell consome tokens, nunca blue-dark", (
   ]) {
     assert.ok(vexora.includes(rule), `falta a regra de superfície: ${rule}`);
   }
+  assert.ok(
+    vexora.includes("--vx-core-topbar-bg:var(--bg-surface)"),
+    "a topbar deve ser opaca na cor de superfície do tema",
+  );
+  assert.doesNotMatch(
+    vexora,
+    /\.topbar\{[^}]*background:color-mix\(in srgb,var\(--bg\) (?:84|92)%,transparent\)/,
+    "a topbar não pode voltar a ser translúcida no mobile",
+  );
   assert.doesNotMatch(vexora, /--layer-child|--layer-nested/, "não pode haver tokens de camada intermediária");
   assert.doesNotMatch(
     vexora,

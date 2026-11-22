@@ -675,7 +675,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         ].filter(Boolean).join('\n');
         await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'INTERNAL', status: 'SENT', content: context, contentType: 'text', senderName: 'Contexto do atendimento', metadata: { kind: 'handoff_context', reason, sourceMessageId: inbound.id, departmentId, assigneeId, scopeKey } } });
       }
-      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedStepIds, waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
+      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedSteps: visitedStepIds.map(id => ({ id, title: flow.steps.find(item => item.id === id)?.title || id })), waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
     }, { timeout: 120000 });
     if (!result) return false;

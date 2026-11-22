@@ -434,7 +434,7 @@ export function ContactProfilePanel({
             {statusPill ? statusPill : status ? (
               <span
                 className={
-                  pillTw + " " + (["RESOLVED", "CLOSED"].includes(status) ? "bg-emerald-100 text-emerald-600" : "bg-blue-50 text-blue-800")
+                  pillTw + " " + (["RESOLVED", "CLOSED"].includes(status) ? "bg-blue-50 text-blue-800" : "bg-blue-50 text-blue-800")
                 }
               >
                 {status === "RESOLVED"
@@ -448,7 +448,7 @@ export function ContactProfilePanel({
             ) : null}
             {finalization ? (
               <span
-                className={pillTw + " " + (finalization.outcome === "WON" ? "bg-emerald-100 text-emerald-600" : "bg-blue-50 text-blue-800")}
+                className={pillTw + " " + (finalization.outcome === "WON" ? "bg-blue-50 text-blue-800" : "bg-blue-50 text-blue-800")}
               >
                 {finalization.outcome === "WON"
                   ? "Cliente · Ganho"
@@ -525,7 +525,7 @@ export function ContactProfilePanel({
           <div className={"grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4" + (bare ? " flex-none overflow-visible pt-3.5" : "")}>
             {tab === "dados" ? (
               <>
-                                <div className="grid gap-4 ib-desktop:grid-cols-2">
+                                <div className="grid gap-4 lg:grid-cols-2">
                                   <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
                   <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><UserRound size={12} /> Campos personalizados</strong>
                   {fieldDefinitions.map((field) => (
@@ -608,7 +608,7 @@ export function ContactProfilePanel({
                   <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
                     <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><UserRound size={12} /> Cadastro financeiro</strong>
                     <span
-                      className={pillTw + " " + (asaas.status === "ACTIVE" ? "bg-emerald-100 text-emerald-600" : "bg-blue-50 text-blue-800")}
+                      className={pillTw + " " + (asaas.status === "ACTIVE" ? "bg-blue-50 text-blue-800" : "bg-blue-50 text-blue-800")}
                     >
                       {asaasStatusLabel(asaas.status)}
                     </span>
@@ -637,7 +637,7 @@ export function ContactProfilePanel({
                   <section className="grid min-w-0 gap-2 border-b border-line px-3 pb-4">
                   <strong className="flex items-center gap-1.5 text-ib-profile-section font-bold text-slate-950"><Link2 size={12} /> Identidades de atendimento</strong>
                   <p className="mb-2 mt-0.5 text-ib-profile-label text-slate-600">Os números vinculados preservam o mesmo contato e todo o histórico.</p>
-                  {identities.length ? <div className="grid gap-2">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="flex items-center gap-2 rounded-ib-profile-card border border-line bg-zinc-200 p-2" key={identity.id}><span className="grid h-ib-profile-icon w-ib-profile-icon flex-none place-items-center rounded-ib-entry bg-blue-50 text-blue-800" aria-hidden="true">{isWaha ? <WhatsAppGlyph size={18} /> : <Link2 size={18}/>}</span><span className="grid min-w-0 gap-0.5"><b className="truncate text-ib-profile-body text-slate-950">{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small className="text-ib-profile-copy text-slate-600">{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className={pillSmallTw + " bg-emerald-100 text-emerald-600"}>Ativo</span></div>})}</div> : <small className="text-ib-profile-copy text-slate-600">Nenhuma identidade sincronizada ainda.</small>}
+                  {identities.length ? <div className="grid gap-2">{identities.map((identity) => {const isWaha = identity.provider.toUpperCase().startsWith("WAHA") || identity.provider.toUpperCase().includes("WHATSAPP"); return <div className="flex items-center gap-2 rounded-ib-profile-card border border-line bg-zinc-200 p-2" key={identity.id}><span className="grid h-ib-profile-icon w-ib-profile-icon flex-none place-items-center rounded-ib-entry bg-blue-50 text-blue-800" aria-hidden="true">{isWaha ? <WhatsAppGlyph size={18} /> : <Link2 size={18}/>}</span><span className="grid min-w-0 gap-0.5"><b className="truncate text-ib-profile-body text-slate-950">{readablePhone(identity.phone, identity.externalId) || "Identidade vinculada"}</b><small className="text-ib-profile-copy text-slate-600">{isWaha ? "WhatsApp" : identity.provider}{identity.displayName ? " · " + identity.displayName : ""}</small></span><span className={pillSmallTw + " bg-blue-50 text-blue-800"}>Ativo</span></div>})}</div> : <small className="text-ib-profile-copy text-slate-600">Nenhuma identidade sincronizada ainda.</small>}
                   <form className="grid max-w-ib-profile-copy grid-cols-ib-profile-identity gap-2.5 ib-narrow:grid-cols-1" onSubmit={bindIdentity}>
                     <label>Provedor<select className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={identityProvider} onChange={(e) => setIdentityProvider(e.target.value)}><option value="WAHA">WhatsApp</option><option value="ZERNIO:INSTAGRAM">Instagram</option><option value="ZERNIO:FACEBOOK">Facebook</option></select></label>
                     <label>Número atual<input className="min-h-ib-profile-field w-full max-w-ib-profile-control rounded-ib-profile-field border border-line bg-zinc-100 px-2 py-0.5 text-ib-profile-field text-slate-950 placeholder:text-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="tel" inputMode="tel" value={identityPhone} onChange={(e) => setIdentityPhone(e.target.value)} placeholder="+55 (11) 99999-9999" /></label>

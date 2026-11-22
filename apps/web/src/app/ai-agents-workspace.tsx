@@ -66,7 +66,7 @@ const routingCardTw = "grid gap-2.5 rounded-xl border border-line bg-surface-2 p
 const routingListTw = "grid gap-2";
 const routingItemTw = "flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5";
 const flowGlyphTw = "shrink-0 text-blue-800";
-const checkboxGroupTw = "grid min-w-0 gap-2 rounded-xl border border-line bg-surface-2 p-3";
+const checkboxGroupTw = "mt-3 grid min-w-0 gap-2 rounded-xl border border-line bg-surface-2 p-3";
 const fieldHintTw = "m-0 text-small leading-relaxed text-ink-secondary";
 const moduleGridTw = "flex flex-wrap gap-1.5";
 const moduleOptionTw = "inline-flex min-h-8 items-center gap-2 rounded-full border border-line bg-surface px-3 text-small font-semibold text-ink transition-colors hover:border-line-strong";
@@ -76,7 +76,8 @@ const prohibitionsActionsTw = "flex flex-wrap items-start gap-3";
 const freePresetTw = "mb-3.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-600 bg-blue-50 p-3.5";
 const freePresetTextTw = "grid gap-0.5";
 const subtleCardTw = "grid gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5";
-const modelGroupTw = "grid min-w-0 gap-3 rounded-xl border border-line bg-surface-2 px-3.5 py-3";
+const modelGroupTw = "mt-3 grid min-w-0 gap-3 rounded-xl border border-line bg-surface-2 px-3.5 py-3";
+const fieldsetSpacingTw = "mt-3";
 const modelPresetsTw = "flex flex-wrap gap-2";
 const assistantPanelTw = "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg";
 const assistantHeadTw = "flex items-center justify-between border-b border-line px-4 py-3";
@@ -421,7 +422,7 @@ export function AiAgentsWorkspace() {
           <p className={adminNoteTw}>Para aplicar a sugestão grátis (Web Designer = gemini-3.8-flash e geral = gemini-3.5-flash-lite), cadastre a chave do Gemini em <strong>Conexões de IA</strong> (aistudio.google.com → API Keys).</p>
         ) : null}
         <div className={adminFieldsTw}>
-          {(["stt","tts"] as const).map(kind=>{const value=kind==="stt"?globalStt:globalTts;const set=kind==="stt"?setGlobalStt:setGlobalTts;return <fieldset key={kind}><legend>{kind==="stt"?"Entrada de voz da assistente":"Saída de voz da assistente"}</legend><select aria-label={kind} value={value.provider} onChange={e=>set({provider:e.target.value,model:voiceModel(kind,e.target.value)})}><option value="browser">Navegador · sem LLM</option><option value="local">Whisper/Kokoro · servidor local</option><option value="openai">OpenAI · chave protegida</option></select><AiVoiceModelPicker label={"Modelo "+kind} kind={kind} provider={value.provider} value={value.model} models={catalog.models||[]} onChange={model=>set(v=>({...v,model,voice:undefined}))}/>{kind==="tts"&&<TtsVoicePicker provider={value.provider} model={value.model} value={value.voice||""} voices={catalog.voiceOptions||[]} onChange={voice=>setGlobalTts(v=>({...v,voice:voice||undefined}))}/>}</fieldset>})}
+          {(["stt","tts"] as const).map(kind=>{const value=kind==="stt"?globalStt:globalTts;const set=kind==="stt"?setGlobalStt:setGlobalTts;return <fieldset key={kind} className={fieldsetSpacingTw}><legend>{kind==="stt"?"Entrada de voz da assistente":"Saída de voz da assistente"}</legend><select aria-label={kind} value={value.provider} onChange={e=>set({provider:e.target.value,model:voiceModel(kind,e.target.value)})}><option value="browser">Navegador · sem LLM</option><option value="local">Whisper/Kokoro · servidor local</option><option value="openai">OpenAI · chave protegida</option></select><AiVoiceModelPicker label={"Modelo "+kind} kind={kind} provider={value.provider} value={value.model} models={catalog.models||[]} onChange={model=>set(v=>({...v,model,voice:undefined}))}/>{kind==="tts"&&<TtsVoicePicker provider={value.provider} model={value.model} value={value.voice||""} voices={catalog.voiceOptions||[]} onChange={voice=>setGlobalTts(v=>({...v,voice:voice||undefined}))}/>}</fieldset>})}
           <label>Nome padrão<input value={assistantName} onChange={e => setAssistantName(e.target.value)}/></label>
           <label>Comando de ativação<input value={wakeWord} onChange={e => setWakeWord(e.target.value)}/></label>
           <label>Ativação<select value={activation} onChange={e => setActivation(e.target.value)}><option>Clique ou texto</option><option>Ditado por clique</option></select></label>
@@ -440,7 +441,7 @@ export function AiAgentsWorkspace() {
               });
             };
             const missing = catalog.models && model && model !== "openrouter/free" && !models.some(entry => entry.provider === provider && entry.id === model);
-            return <fieldset key={index}>
+            return <fieldset key={index} className={fieldsetSpacingTw}>
               <legend>Contingência {index + 1} · opcional</legend>
               <label>Provedor<select value={provider} onChange={event => setFallback(event.target.value, "")}>
                 <option value="">Sem contingência</option>
@@ -468,7 +469,7 @@ export function AiAgentsWorkspace() {
       <div className={adminFieldsTw}>
         <label>Agente<select value={selected} onChange={e=>{setSelected(e.target.value);setTestResponse(null);setTestError("");setTestVoiceStatus("");setTestAudio(null);setTestAudioUrl("");setTranscription("");}}>{agents.map(item=><option key={item.id} value={item.id}>{item.name}{item.enabled?" · habilitado":" · desabilitado"}</option>)}</select></label>
         {agent&&<p className={adminNoteTw}>Modelo: {agent.llm?.model||primaryModel.model||"não configurado"} · Status: {agent.enabled?"disponível para fluxos":"ainda desabilitado"}</p>}
-        <fieldset><legend>Teste de áudio</legend>
+        <fieldset className={fieldsetSpacingTw}><legend>Teste de áudio</legend>
           <label>Texto para testar a voz<textarea rows={2} maxLength={1500} value={voiceTestText} onChange={e=>setVoiceTestText(e.target.value)}/></label>
           <button type="button" className={secondaryTw} disabled={!agent||!voiceTestText.trim()} onClick={()=>void playAgentTestVoice(voiceTestText)}>Testar voz</button>
           {testAudioUrl&&<><p>Voz sintética gerada para teste.</p><audio controls src={testAudioUrl} onPlay={()=>setTestVoiceStatus("Reproduzindo voz…")} onEnded={()=>setTestVoiceStatus("Voz concluída.")} onError={()=>setTestVoiceStatus("O navegador não conseguiu reproduzir o áudio.")}/><a className={secondaryTw} href={testAudioUrl} download="teste-voz-vexora.mp3">Baixar áudio do teste</a><button type="button" className={secondaryTw} disabled={transcribing||!testAudio} onClick={()=>{if(testAudio)void transcribePreview(testAudio)}}>Transcrever áudio gerado</button></>}

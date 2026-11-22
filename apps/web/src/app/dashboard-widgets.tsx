@@ -7,6 +7,22 @@ import {
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MONTH_NAMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+/* Estados visuais em literais completas: a classe aplicada nunca é montada por interpolação. */
+const weatherCardTw: Record<string, string> = {
+  day: "grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-200 p-5",
+  night: "grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 bg-zinc-300 p-5",
+};
+const weekdayTw: Record<string, string> = {
+  weekend: "text-ov-micro font-bold uppercase text-blue-700",
+  weekday: "text-ov-micro font-bold uppercase text-slate-400",
+};
+const calendarCellTw: Record<string, string> = {
+  blank: "invisible",
+  today: "bg-blue-600 font-bold text-blue-900",
+  weekend: "text-blue-700",
+  weekday: "text-slate-950",
+};
 const fullDate = () => {
   const now = new Date();
   return `Hoje é ${now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`;
@@ -116,7 +132,7 @@ function WeatherWidget() {
   const Icon = info?.Icon ?? CloudSun;
   const night = state.isDay === false;
   return (
-    <article className={`grid min-h-ov content-start gap-4 rounded-token-xl border border-gray-200 p-5 ${night ? "bg-zinc-300" : "bg-zinc-200"}`} aria-label="Clima agora">
+    <article className={weatherCardTw[night ? "night" : "day"]} aria-label="Clima agora">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <span className="text-ov-label font-bold uppercase tracking-ov-wider text-slate-600">Clima{state.city ? ` · ${state.city}` : ""}</span>
         <span className="inline-flex items-center gap-1.5 text-amber-600">
@@ -127,7 +143,7 @@ function WeatherWidget() {
       {editing ? (
         <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); saveCity(); }}>
           <input autoFocus value={draftCity} onChange={(event) => setDraftCity(event.target.value)} aria-label="Cidade para o clima" placeholder="Ex.: Rondonópolis, MT" />
-          <button type="submit" className="inline-flex min-h-control items-center rounded-token-sm bg-blue-600 px-3 text-small font-bold text-blue-900 transition-control duration-control hover:bg-blue-700">Salvar</button>
+          <button type="submit" className="inline-flex min-h-control items-center rounded-token-sm bg-blue-700 px-3 text-small font-bold text-blue-50 transition-control duration-control hover:bg-blue-700">Salvar</button>
         </form>
       ) : null}
       {state.status === "loading" ? <p className="text-small text-slate-600">Buscando o tempo…</p> : null}
@@ -175,18 +191,14 @@ function CalendarWidget() {
         </div>
       </div>
       <div className="grid grid-cols-ov-calendar gap-0.5 text-center" role="grid" aria-label={monthLabel(year, month)}>
-        {WEEKDAYS.map((label, index) => <span key={label} className={`text-ov-micro font-bold uppercase ${isWeekend(index) ? "text-emerald-600" : "text-slate-400"}`} role="columnheader">{label}</span>)}
+        {WEEKDAYS.map((label, index) => <span key={label} className={weekdayTw[isWeekend(index) ? "weekend" : "weekday"]} role="columnheader">{label}</span>)}
         {cells.map((day, index) => {
-          const classes = ["grid h-7 place-items-center rounded-token-sm text-ov-micro tabular-nums"];
-          if (day === null) classes.push("invisible");
-          if (isToday(day)) classes.push("bg-blue-600 font-bold text-blue-900");
-          else if (day !== null && isWeekend(index)) classes.push("text-emerald-600");
-          else classes.push("text-slate-950");
+          const cellState = day === null ? "blank" : isToday(day) ? "today" : isWeekend(index) ? "weekend" : "weekday";
           return (
             <span
               key={index}
               role="gridcell"
-              className={classes.join(" ")}
+              className={"grid h-7 place-items-center rounded-token-sm text-ov-micro tabular-nums " + calendarCellTw[cellState]}
             >
               {day ?? ""}
             </span>
@@ -201,7 +213,7 @@ function CalendarWidget() {
 /** Widgets coloridos da tela inicial: relógio, clima e calendário. */
 export function DashboardWidgets() {
   return (
-    <section className="grid grid-cols-3 gap-ov-section ov-tablet:grid-cols-2 ov-mobile:grid-cols-1" aria-label="Seu dia agora">
+    <section className="grid grid-cols-1 gap-ov-section md:grid-cols-2 lg:grid-cols-3" aria-label="Seu dia agora">
       <ClockWidget />
       <WeatherWidget />
       <CalendarWidget />

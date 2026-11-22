@@ -493,7 +493,7 @@ function dictateAiRequest(){
  }
  useEffect(()=>{void loadAiAgents()},[]);
  const [scopeDepartment,setScopeDepartment]=useState(""),[scopeUser,setScopeUser]=useState("");
- const [runtimeState,setRuntime]=useState<{publications?:{key:string;active:boolean;revision?:string;flowName?:string;draftMatchesPublication?:boolean}[];active:boolean;revision?:string;draftMatchesPublication?:boolean;executions?:{id:string;createdAt:string;details:{decision?:string;tokensUsed?:number;revision?:string;scopeKey?:string;visitedEdges?:{from:string;option:string;to:string}[];visitedSteps?:{id:string;title:string}[];waitingStepId?:string|null}}[]}>({active:false});
+ const [runtimeState,setRuntime]=useState<{publications?:{key:string;active:boolean;revision?:string;flowName?:string;draftMatchesPublication?:boolean}[];active:boolean;revision?:string;draftMatchesPublication?:boolean;executions?:{id:string;createdAt:string;details:{decision?:string;tokensUsed?:number;revision?:string;scopeKey?:string;conversationId?:string;visitedEdges?:{from:string;option:string;to:string}[];visitedSteps?:{id:string;title:string}[];waitingStepId?:string|null}}[]}>({active:false});
  const selectedScopeKey=scopeUser?"user:"+scopeUser+(scopeDepartment?":department:"+scopeDepartment:""):scopeDepartment?"department:"+scopeDepartment:"default";
   useEffect(()=>{void loadPublicPage();},[selectedScopeKey]);
   useEffect(()=>{let cancelled=false;fetch("/api/backend/auth/bot-host",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(!cancelled&&d?.botHost)setBotHostInfo({botHost:String(d.botHost),note:String(d.note||"")})}).catch(()=>{});return()=>{cancelled=true}},[]);
@@ -513,12 +513,17 @@ function dictateAiRequest(){
  useEffect(()=>{void loadRuntime()},[]);
  const [executionHistoryOpen,setExecutionHistoryOpen]=useState(false);
  const [selectedExecutionId,setSelectedExecutionId]=useState<string|null>(null);
+ const [followedConversation,setFollowedConversation]=useState<string|null>(null);
  const [executionRefreshError,setExecutionRefreshError]=useState(false);
  useEffect(()=>{
   if(!executionHistoryOpen)return;
   const controller=new AbortController();
   let timer:ReturnType<typeof setTimeout>;
+  let refreshing=false;
   async function refreshExecutions(){
+   if(refreshing||controller.signal.aborted)return;
+   clearTimeout(timer);
+   refreshing=true;
    try{
     const response=await fetch("/api/backend/chatbot/runtime",{cache:"no-store",signal:AbortSignal.any([controller.signal,AbortSignal.timeout(12000)])});
     if(!response.ok)throw Error("Execuções indisponíveis");
@@ -531,11 +536,14 @@ function dictateAiRequest(){
    }catch{
     if(!controller.signal.aborted)setExecutionRefreshError(true);
    }finally{
+    refreshing=false;
     if(!controller.signal.aborted)timer=setTimeout(refreshExecutions,5000);
    }
   }
+  const source=new EventSource("/api/backend/events");
+  source.addEventListener("conversation.updated",refreshExecutions);
   void refreshExecutions();
-  return()=>{controller.abort();clearTimeout(timer)};
+  return()=>{source.close();controller.abort();clearTimeout(timer)};
  },[executionHistoryOpen]);
  async function runtimeAction(action:"publish"|"stop"){
   setRuntimeBusy(true);
@@ -655,7 +663,7 @@ function dictateAiRequest(){
  useEffect(()=>{let live=true;setReady(false);setLoadError("");fetch("/api/backend/channels",{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(data=>{if(live)setChannels(Array.isArray(data)?data:[])}).catch(()=>{if(live)setChannelNotice("Não foi possível carregar os canais vinculados.")});fetch("/api/backend/chatbot/draft",{cache:"no-store",signal:AbortSignal.timeout(15000)}).then(async r=>{if(!r.ok)throw Error("Não foi possível recuperar o fluxo salvo. Tente novamente antes de editar.");return r.json()}).then(data=>{if(!live)return;const legacyTemplate=data?.draft?.name==="Fluxo Suporte+Financeiro";const loaded:Flow=!legacyTemplate&&data?.draft&&Array.isArray(data.draft.steps)?{...data.draft,steps:data.draft.steps.map((step:Step)=>({...step,config:step.config&&typeof step.config!=="string"?JSON.stringify(step.config):step.config}))}:structuredClone(emptyFlow);setFlow(loaded);setSelected(loaded.steps[0]?.id||"");setLastSaved(JSON.stringify(loaded));writeTenantCache(tenantId,"chatbot-draft",loaded);setReady(true);setNotice(legacyTemplate?"Rascunho antigo removido. Comece pelo Gatilho.":data?.draft?"":"Comece adicionando um bloco.");}).catch(error=>{if(live)setLoadError(error instanceof Error?error.message:"Falha ao carregar o fluxo")});return()=>{live=false}},[tenantId,loadAttempt]);
  useEffect(()=>{if(!ready||flowSerialized===lastSaved)return;writeTenantCache(tenantId,"chatbot-draft-recovery",flow);let timer:ReturnType<typeof setTimeout>;const attempt=()=>{if(saveInFlight.current){timer=setTimeout(attempt,500);return;}void save(flow,true)};timer=setTimeout(attempt,1500);return()=>clearTimeout(timer)},[flow,flowSerialized,lastSaved,ready]);
  useEffect(()=>{if(!ready||flowSerialized===lastSaved)return;const prevent=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue=""};window.addEventListener("beforeunload",prevent);return()=>window.removeEventListener("beforeunload",prevent)},[flow,flowSerialized,lastSaved,ready]);
- const selectedExecution=executionHistoryOpen?runtimeState.executions?.find(execution=>execution.id===selectedExecutionId):undefined;
+ const selectedExecution=executionHistoryOpen?runtimeState.executions?.find(execution=>followedConversation?execution.details.conversationId===followedConversation:execution.id===selectedExecutionId):undefined;
  const canHighlightExecution=Boolean(selectedExecution?.details.visitedEdges&&runtime.draftMatchesPublication&&flowSerialized===lastSaved&&selectedExecution.details.revision===runtime.revision&&(selectedExecution.details.scopeKey||"default")===selectedScopeKey);
  const highlightedNodes=canHighlightExecution?selectedExecution?.details.visitedSteps?.map(step=>step.id)||[]:studioPanel==="test"?testNodes:[];
  const highlightedEdges=canHighlightExecution?selectedExecution?.details.visitedEdges||[]:studioPanel==="test"?testEdges:[];
@@ -954,8 +962,9 @@ function dictateAiRequest(){
    {executionRefreshError?<p role="status" className="text-flow-help text-ink-secondary">Não foi possível atualizar o histórico. Tentando novamente…</p>:null}
    {runtimeState.executions?.length?<ul className="grid gap-2">{runtimeState.executions.map(execution=><li key={execution.id} className="rounded-token-sm border border-line p-2">
     <time dateTime={execution.createdAt} className="text-flow-help text-ink-secondary">{new Date(execution.createdAt).toLocaleString("pt-BR")}</time>
-    {execution.details.visitedEdges&&execution.details.visitedSteps?.length?<button type="button" className={canvasNodeQuickButton} aria-pressed={selectedExecutionId===execution.id} onClick={()=>setSelectedExecutionId(previous=>previous===execution.id?null:execution.id)}>Ver no canvas</button>:null}
-    {selectedExecutionId===execution.id&&!canHighlightExecution?<p className="text-flow-help text-ink-secondary">O canvas precisa mostrar a mesma publicação desta execução.</p>:null}
+    {execution.details.visitedEdges&&execution.details.visitedSteps?.length?<button type="button" className={canvasNodeQuickButton} aria-pressed={!followedConversation&&selectedExecutionId===execution.id} onClick={()=>{setFollowedConversation(null);setSelectedExecutionId(previous=>!followedConversation&&previous===execution.id?null:execution.id)}}>Ver no canvas</button>:null}
+    {execution.details.conversationId&&execution.details.visitedEdges?.length?<button type="button" className={canvasNodeQuickButton} aria-pressed={followedConversation===execution.details.conversationId} onClick={()=>{const conversationId=execution.details.conversationId!;setSelectedExecutionId(null);setFollowedConversation(previous=>previous===conversationId?null:conversationId)}}>{followedConversation===execution.details.conversationId?"Parar de acompanhar":"Acompanhar conversa"}</button>:null}
+    {selectedExecution?.id===execution.id&&!canHighlightExecution?<p className="text-flow-help text-ink-secondary">O canvas precisa mostrar a mesma publicação desta execução.</p>:null}
     {execution.details.visitedSteps?.length?<ol className="mt-1 list-decimal space-y-1 pl-5">{execution.details.visitedSteps.map((step,index)=><li key={index}>{step.title}{index===execution.details.visitedSteps!.length-1&&execution.details.waitingStepId===step.id?<span className="ml-2 text-flow-help text-ink-secondary">Aguardando resposta</span>:null}</li>)}</ol>:<p className="text-flow-help text-ink-secondary">Sem percurso registrado.</p>}
    </li>)}</ul>:<p className="text-flow-help text-ink-secondary">Nenhuma execução disponível.</p>}
   </div>

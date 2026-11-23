@@ -33,6 +33,9 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - PR #1132:.documentação do HUB de Sites; PR #1134: correção dos quatro sites; PRs #1133 e #1135: sincronização de `main`.
 - Validação local da rodada visual: 571/571 testes, `tsc --noEmit` limpo e `git diff --check` limpo.
 - CI do GitHub Actions: Build and type-check, Private SearXNG runtime, validate, Container (api) e Container (web) com `SUCCESS` nos PRs de documentação.
+- PR #1183: Stripe e InfinitePay tenant-scoped preservando Asaas; PR #1184: sincronização de `main` preservando as duas histórias (`foundation` é ancestral de `main`).
+- Varredura rápida em 2026-11-23: 500/500 testes estáticos do Web, typecheck/lint de API e Web limpos, 4/4 specs de provedores de pagamento e 5/5 testes estáticos das rotas de pagamento. Nenhuma cobrança real foi feita.
+- Piloto Rastreabem: build estático de 9 páginas e auditoria reproduzível de links/assets com `sites/rastreabem/scripts/audit-links.cjs` — 10 arquivos HTML, 171 referências locais, zero quebrados. Isso não é publicação.
 
 ## 2. O que está em construção
 
@@ -68,6 +71,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 
 - [x] As 7 páginas do HTML original foram convertidas para MDX em `sites/rastreabem/`, com menu gerado por `content/navigation.ts` e saída estática (`output: 'export'`). O workflow `site-rastreabem.yml` valida typecheck e build.
 - [x] Preview local e em endereço temporário: `python -m http.server 3105` serviu `sites/rastreabem/out` com HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/images/1.jpg`; o túnel `https://vexora-rastreabem.loca.lt` devolveu HTTP 200 com o HTML da home em 2026-11-23. Endereço temporário, não publicação definitiva.
+- [x] Auditoria estática reproduzível no workflow `site-rastreabem.yml` (`scripts/audit-links.cjs`): 10 arquivos HTML, 171 referências locais, zero links/assets quebrados em 2026-11-23.
 - [ ] Publicação em Cloudflare Pages e domínio final: sem credenciais, sem `apply` e sem evidência no ar. Ver `docs/site-rastreabem-mdx.md` e `docs/checklist-entrega-sites-artes.md`.
 
 ## 6. Fontes

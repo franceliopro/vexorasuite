@@ -31,7 +31,7 @@ export class ZernioService {
     return received.length === expected.length && timingSafeEqual(received, expected);
   }
 
-  async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; idempotencyKey?: string; allowPartialFailure?: boolean } = {}, tenantId?: string): Promise<T> {
+  async request<T = unknown>(path: string, options: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; idempotencyKey?: string; allowPartialFailure?: boolean } = {}, tenantId?: string): Promise<T> {
     assertSocialRequest(path,options.method??'GET');
     const apiKey = await this.resolveApiKey(tenantId);
     if (!apiKey) {

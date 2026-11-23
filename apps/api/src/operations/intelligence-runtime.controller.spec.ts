@@ -29,6 +29,23 @@ describe('scoped publication',()=>{
  expect(f.root().intelligencePublications['department:'+departmentId].active).toBe(false);
  expect(f.root().intelligencePublications['department:other'].active).toBe(true);
  });
+ it('activates one named flow without replacing the default, and enforces the company quota',async()=>{
+ const f=fixture(),root=f.root();
+ root.businessFlows={offer:{draft:{...root.chatbotDraft,name:'Oferta',triggers:[{kind:'keyword',keyword:'Eu quero'}]}},welcome:{draft:{...root.chatbotDraft,name:'Boas-vindas',triggers:[{kind:'first_message'}]}}};
+ f.tx.tenant.findUniqueOrThrow.mockImplementation(async()=>({integrations:f.root(),entitlements:{modules:['AUTOMATION'],bots:3}}));
+ await expect(f.c.publish(req,{flowId:'offer'})).resolves.toMatchObject({key:'automation:offer',active:true});
+ expect(f.root().intelligencePublished.revision).toBe('default');
+ await expect(f.c.publish(req,{flowId:'welcome'})).rejects.toThrow('Seu plano permite 3 chatbots ativos');
+ await f.c.stop(req,{flowId:'offer'});
+ await expect(f.c.publish(req,{flowId:'welcome'})).resolves.toMatchObject({key:'automation:welcome',active:true});
+ expect(f.root().intelligencePublications['automation:offer'].active).toBe(false);
+ });
+ it('rejects competing keywords for the same channel and destination',async()=>{
+ const f=fixture(),root=f.root();
+ root.businessFlows={a:{draft:{...root.chatbotDraft,triggers:[{kind:'keyword',keyword:'Eu quero'}]}},b:{draft:{...root.chatbotDraft,triggers:[{kind:'keyword',keyword:'  EU QUERO  '}]}}};
+ await f.c.publish(req,{flowId:'a'});
+ await expect(f.c.publish(req,{flowId:'b'})).rejects.toThrow('mesmo gatilho');
+ });
  it('publishes a direct attendant specialization within one department',async()=>{
  const f=fixture();await f.c.publish(req,{departmentId,userId});
  expect(f.root().intelligencePublications['user:'+userId+':department:'+departmentId].scope).toEqual({departmentId,userId});

@@ -1,3 +1,4 @@
+import {selectMessageAutomation} from './runtime-scope';
 import {publicationKey,selectPublication,scopedPresetInstructions} from './runtime-scope';
 
 describe('runtime scope',()=>{
@@ -26,5 +27,28 @@ describe('runtime scope',()=>{
  it('includes only this departments instructions and matching direct specialization',()=>{
  const context={businessPresets:{a:{departmentId:'link',agentInstructions:'Link only'},b:{departmentId:'tracking',agentInstructions:'Tracking only'},c:{userId:'ana',preset:'FINANCE',agentInstructions:'Ana finance'},d:{userId:'ana',preset:'SUPPORT',agentInstructions:'Ana support'},e:{userId:'bob',agentInstructions:'Bob'}}};
  expect(scopedPresetInstructions(context,{departmentId:'link',userId:'ana'},'FINANCE')).toBe('Link only\nAna finance');
+ });
+});
+
+describe('named message automations',()=>{
+ const root={intelligencePublications:{
+  'automation:welcome':{active:true,source:'ui',revision:'welcome',flow:{channelIds:['whatsapp'],triggers:[{kind:'first_message'}]}},
+  'automation:offer':{active:true,source:'ui',revision:'offer',flow:{channelIds:['instagram'],triggers:[{kind:'keyword',keyword:'Eu quero'}]}},
+  'automation:default':{active:true,source:'ui',revision:'default',flow:{channelIds:['instagram'],triggers:[{kind:'message'}]}},
+ }};
+ it('routes first WhatsApp messages and Instagram words to different active flows',()=>{
+  expect(selectMessageAutomation(root,{},{channelId:'whatsapp',text:'Olá',firstMessage:true})?.key).toBe('automation:welcome');
+  expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'EU QUERO',firstMessage:true})?.key).toBe('automation:offer');
+  expect(selectMessageAutomation(root,{},{channelId:'whatsapp',text:'Eu quero',firstMessage:false})).toBeNull();
+ });
+ it('does not let the general keyword intercept a department inbox',()=>{
+  const department=root.intelligencePublications['automation:default'];
+  const scoped={intelligencePublications:{...root.intelligencePublications,'automation:support':{...department,scope:{departmentId:'support'}}}};
+  const event={channelId:'instagram',text:'Eu quero',firstMessage:false,requiredScopeKey:'department:support'};
+  expect(selectMessageAutomation(scoped,{departmentId:'support'},event)?.key).toBe('automation:support');
+ });
+ it('continues the same published automation when awaiting a reply',()=>{
+  expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'azul',firstMessage:false,previousKey:'automation:offer',previousRevision:'offer'})?.key).toBe('automation:offer');
+  expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'azul',firstMessage:false})?.key).toBe('automation:default');
  });
 });

@@ -1,6 +1,8 @@
 # Véxora Suite — Modelos de produto e integrações
 
-Este documento é a fonte de contexto para futuras implantações da Véxora Suite. Ele registra o modelo operacional comum da plataforma, os próximos provedores financeiros e o primeiro produto vertical que será construído sobre o mesmo Core.
+Este documento registra o modelo operacional comum da plataforma e serve de contexto histórico.
+
+> **Partes superadas:** o item Studio Visual (§10) foi retirado com o criador de sites, e a FAETER (§5) deixou de ser o primeiro vertical. O estado atual dos sistemas verticais está em `docs/plano-transicao-presenca-criativos.md` §13; o estado do produto está em `docs/implementation-status.md`.
 
 ## 1. Modelo operacional da Véxora
 

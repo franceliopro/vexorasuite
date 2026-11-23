@@ -238,6 +238,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const namedSelection = !keepsLegacy && channelAutomations.length ? selectMessageAutomation(root,runtimeScope,{
         channelId:channel.id,text:inbound.content,firstMessage:firstAutomationInbound?.id===inbound.id,
         previousKey:resumable?previous.scopeKey:undefined,previousRevision:resumable?previous.revision:undefined,
+        requiredScopeKey:entry.mode==="AUTOMATION"&&!conversation.assigneeId&&(conversation.departmentId||null)===entry.departmentId?publicationKey({departmentId:entry.departmentId}):undefined,
       }) : null;
       const selection=namedSelection||legacySelection;
       if(!selection&&channelAutomations.length)return {messages:[],handled:true,handoff:false};
@@ -264,7 +265,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       if (previous.flow === 'ASAAS') return null;
       let flow = published.flow;
       const findStep = (id: string | undefined) => id === '__start__' ? flow.steps.find(s => s.id === 'menu') || flow.steps[0] : flow.steps.find(s => s.id === id);
-      const active = previous.flow === 'INTELLIGENCE' && previous.revision === published.revision && (previous.scopeKey||'default')===scopeKey;
+      const active = previous.flow === 'INTELLIGENCE' && previous.revision === published.revision && (previous.scopeKey||'default')===scopeKey && (!isAutomationPublicationKey(scopeKey)||previous.completed!==true);
       // dm = conversa direta (grupo já foi descartado acima) — vale para WAHA e ZERNIO.
       const firstInbound = firstAutomationInbound ?? (!active && flow.triggers?.some(trigger => trigger?.kind === 'first_message')
         ? await tx.message.findFirst({

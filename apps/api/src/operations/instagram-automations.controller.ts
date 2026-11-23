@@ -72,6 +72,8 @@ export class InstagramAutomationsController {
         channelId: channel.id,
         channelName: channel.name,
         trigger: typeof row.trigger === 'string' ? row.trigger : 'comment',
+        mediaId: typeof row.platformPostId === 'string' && row.platformPostId ? row.platformPostId : null,
+        postId: typeof row.postId === 'string' && row.postId ? row.postId : null,
         postTitle: typeof row.postTitle === 'string' ? row.postTitle : null,
         keywords: Array.isArray(row.keywords) ? row.keywords.filter(word => typeof word === 'string') : [],
         active: row.isActive === true,

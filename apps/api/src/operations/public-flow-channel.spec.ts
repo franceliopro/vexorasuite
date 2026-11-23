@@ -6,7 +6,7 @@ import { PublicFlowController } from "./public-flow.controller";
 function makeController(steps: object[], googleAccess?: GoogleAccessService) {
   const transaction = jest.fn().mockRejectedValue(new Error("temporarily unavailable"));
   const findMany = jest.fn().mockResolvedValue([{ accountId: "agenda-account", calendarId: "agenda-id" }]);
-  const controller = new PublicFlowController({ $transaction: transaction, calendarAssignment: { findMany } } as unknown as PrismaService, {} as EventsService, undefined, googleAccess);
+  const controller = new PublicFlowController({ $transaction: transaction, calendarAssignment: { findMany }, department: { findFirst: jest.fn().mockResolvedValue({ id: "support" }) } } as unknown as PrismaService, {} as EventsService, undefined, googleAccess);
   jest.spyOn(controller as unknown as { resolve: () => Promise<object> }, "resolve").mockResolvedValue({
     flow: { name: "Atendimento", steps },
     tenant: { id: "tenant", entitlements: { modules: ["CALENDAR"] } },
@@ -91,7 +91,7 @@ describe("Chatbot web channel", () => {
       ], { token } as unknown as GoogleAccessService);
       const answer = await controller.message("e".repeat(48), {}, {});
       expect(answer.messages).toEqual(["Horário livre."]);
-      expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { tenantId: "tenant", departmentId: "support", department: { isActive: true } } }));
+      expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { tenantId: "tenant", departmentId: "support" } }));
       expect(token).toHaveBeenCalledWith("tenant", "agenda-account", "calendar");
       expect(provider).toHaveBeenCalledTimes(1);
     } finally {

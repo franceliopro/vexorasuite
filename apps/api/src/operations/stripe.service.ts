@@ -17,6 +17,7 @@ type StripeSettings = {
 const STRIPE_API = "https://api.stripe.com/v1";
 const SIGNATURE_TOLERANCE_SECONDS = 300;
 const SUPPORTED_EVENTS = new Set([
+  "checkout.session.completed",
   "payment_intent.succeeded",
   "payment_intent.payment_failed",
   "payment_intent.canceled",
@@ -136,13 +137,14 @@ export class StripeService {
     }
   }
 
-  private async request<T>(tenantId: string, path: string, body?: URLSearchParams, method: "GET" | "POST" = "POST"): Promise<T> {
+  private async request<T>(tenantId: string, path: string, body?: URLSearchParams, method: "GET" | "POST" = "POST", idempotencyKey?: string): Promise<T> {
     const { key } = await this.credentials(tenantId);
     const response = await fetch(STRIPE_API + path, {
       method,
       headers: {
         authorization: `Bearer ${key}`,
         "user-agent": "VexoraSuite",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         ...(method === "POST" ? { "content-type": "application/x-www-form-urlencoded" } : {}),
       },
       ...(method === "POST" ? { body: (body || new URLSearchParams()).toString() } : {}),
@@ -218,6 +220,63 @@ export class StripeService {
     };
   }
 
+  async createHostedCheckout(tenantId: string, input: { paymentId?: unknown }) {
+    const paymentId = firstString(input.paymentId);
+    if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(paymentId)) {
+      throw new BadRequestException("Informe um pagamento local válido.");
+    }
+    const payment = await this.prisma.payment.findFirst({
+      where: { id: paymentId, tenantId, provider: { in: paymentProviderAliases("STRIPE") }, status: "PENDING" },
+      select: { id: true, amount: true, externalId: true, invoiceUrl: true, environment: true },
+    });
+    if (!payment) throw new BadRequestException("Pagamento local pendente não encontrado para esta empresa.");
+    const { environment } = await this.credentials(tenantId);
+    const localEnvironment = environment === "LIVE" ? "PRODUCTION" : "SANDBOX";
+    if (payment.externalId?.startsWith("cs_") && payment.invoiceUrl && payment.environment === localEnvironment) {
+      return { paymentId, url: payment.invoiceUrl, environment };
+    }
+    if (payment.externalId) throw new BadRequestException("Este pagamento já possui uma cobrança Stripe.");
+    const amount = amountToCents(payment.amount);
+    if (amount < 50) throw new BadRequestException("O valor mínimo do Stripe é 50 centavos.");
+    const home = publicAppOrigin() + "/";
+    const body = new URLSearchParams({
+      mode: "payment",
+      success_url: home,
+      cancel_url: home,
+      "payment_method_types[0]": "card",
+      "line_items[0][price_data][currency]": "brl",
+      "line_items[0][price_data][unit_amount]": String(amount),
+      "line_items[0][price_data][product_data][name]": "Pagamento Véxora",
+      "line_items[0][quantity]": "1",
+      client_reference_id: paymentId,
+    });
+    const session = await this.request<{ id?: string; url?: string; livemode?: boolean }>(
+      tenantId, "/checkout/sessions", body, "POST", "vexora-hosted-" + paymentId,
+    );
+    const externalId = firstString(session.id);
+    const url = firstString(session.url);
+    if (!externalId.startsWith("cs_") || !/^https:\/\/checkout\.stripe\.com\//.test(url) || session.livemode !== (environment === "LIVE")) {
+      throw new ServiceUnavailableException("O Stripe não confirmou um link de checkout válido.");
+    }
+    const changed = await this.prisma.payment.updateMany({
+      where: { id: paymentId, tenantId, status: "PENDING", externalId: null },
+      data: { externalId, invoiceUrl: url, environment: localEnvironment },
+    });
+    if (!changed.count) {
+      const current = await this.prisma.payment.findFirst({
+        where: { id: paymentId, tenantId, status: "PENDING", externalId, environment: localEnvironment },
+        select: { invoiceUrl: true },
+      });
+      if (current?.invoiceUrl !== url) throw new BadRequestException("O pagamento mudou durante a criação do checkout.");
+      return { paymentId, url, environment };
+    }
+    await this.prisma.auditLog.create({ data: {
+      tenantId, action: "payment.provider_created", entityType: "payment", entityId: paymentId,
+      details: { provider: "STRIPE", externalId, environment, checkout: "hosted" },
+    } });
+    return { paymentId, url, environment };
+  }
+
   async verifyWebhook(tenantId: string, rawBody: Buffer, signature: string | undefined) {
     const settings = await this.settings(tenantId);
     if (settings.enabled !== true || !settings.webhookSecretEncrypted) {
@@ -239,6 +298,16 @@ export class StripeService {
     if (!eventId || !SUPPORTED_EVENTS.has(type)) return null;
     const data = objectOf(event.data);
     const object = objectOf(data.object);
+    if (type === "checkout.session.completed") {
+      if (object.payment_status !== "paid" || object.currency !== "brl" ||
+          !Number.isSafeInteger(object.amount_total) || typeof object.livemode !== "boolean" ||
+          !firstString(object.id).startsWith("cs_")) return null;
+      return settleProviderPayment(this.prisma, tenantId, {
+        provider: "STRIPE", externalId: object.id, status: "PAID", event: type,
+        environment: object.livemode ? "LIVE" : "TEST", amountCents: object.amount_total,
+        details: { eventId, livemode: object.livemode },
+      });
+    }
     const externalId = type === "charge.refunded" ? firstString(object.payment_intent) : firstString(object.id);
     if (!externalId) return null;
     const amountCents = type === "charge.refunded" ? object.amount_refunded : (object.amount_received ?? object.amount);

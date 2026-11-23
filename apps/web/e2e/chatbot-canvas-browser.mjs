@@ -279,6 +279,8 @@ try{
  await page.getByRole("combobox",{name:"Status do pagamento",exact:true}).selectOption({label:"Pago"});
  await page.getByRole("button",{name:"Reiniciar teste",exact:true}).click();
  await expect(page.getByText("Pagamento confirmado no teste.",{exact:true}).last()).toBeVisible();
+ await picker.selectOption({label:"Oferta de teste"});
+ await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
  await page.getByRole("button",{name:"Criar com IA",exact:true}).click();
  const assistant=page.getByRole("dialog",{name:"Assistente de fluxo"});
  await expect(assistant.getByRole("combobox",{name:"O que fazer"})).toHaveValue("adjust");

@@ -355,7 +355,7 @@ export class PublicFlowController {
             } else if (title && title.length <= 180) {
               const options = ["Confirmar horário", "Voltar"];
               const selected = body?.choice;
-              const chosen = selected
+              const chosen = userText === undefined ? -1 : selected
                 ? selected.stepId === step.id && (selected.index === 0 || selected.index === 1) ? selected.index : -1
                 : optionIndex(options, userText ?? "");
               if (chosen === -1) {

@@ -1152,7 +1152,22 @@ function dictateAiRequest(){
   </select> : <input maxLength={500} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).value||""} onChange={event=>updateCondition(step.id,"value",event.target.value)}/>}</label>
   <button type="button" className={canvasNodeQuickButton} onClick={()=>setInlineCondition(null)}>Concluir</button>
  </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&typeof stepConfig(step).value==="string"?`Se ${conditionVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a “${conditionValueOptions(stepConfig(step).variable||"").find(([value])=>value===stepConfig(step).value)?.[1]||stepConfig(step).value}”`:"Definir condição"}</button>
- :inlineMessage===step.id?<textarea autoFocus rows={3} maxLength={4000} aria-label={`Mensagem de ${step.title}`} className="w-full select-text rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value={step.message} onChange={event=>updateStep({message:event.target.value})} onBlur={()=>setInlineMessage(null)} onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineMessage(null)}}}/>
+ :inlineMessage===step.id?<div className="grid gap-2" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setInlineMessage(null)}} onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineMessage(null)}}}>
+  <textarea autoFocus rows={3} maxLength={4000} aria-label={`Mensagem de ${step.title}`} className="w-full select-text rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value={step.message} onChange={event=>updateStep({message:event.target.value})}/>
+  {flow.steps.some(item=>item.kind==="payment.status")&&!step.message.includes("{{pagamento_link}}")?<button type="button" className={canvasNodeQuickButton} disabled={step.message.length>3982} onClick={event=>{
+   const editor=event.currentTarget.parentElement?.querySelector("textarea");
+   const position=editor?.selectionStart??step.message.length;
+   const end=editor?.selectionEnd??position;
+   const link="{{pagamento_link}}";
+   const prefix=step.message.slice(0,position);
+   const separator=prefix&&!/\s$/.test(prefix)?" ":"";
+   const next=prefix+separator+link+step.message.slice(end);
+   if(next.length>4000)return;
+   editor?.focus();
+   updateStep({message:next});
+   requestAnimationFrame(()=>editor?.setSelectionRange(position+separator.length+link.length,position+separator.length+link.length));
+  }}>Inserir link de pagamento</button>:null}
+ </div>
  :["text","buttons","input.text","input.cpf"].includes(step.kind||"")&&!step.action?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineMessage(step.id)}}>{step.message||"Escrever mensagem"}</button>
  :step.kind==="task.reminder"?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>editCanvasNode(step.id)}>{stepConfig(step).title ? `${stepConfig(step).title} · em ${stepConfig(step).minutes||"?"} min` : "Configurar título e prazo"}</button>
  :<p className={canvasNodeSummary} data-flow-node-summary>{nodeSummary(step)}</p>}

@@ -1,16 +1,19 @@
+import { GoogleAccessService } from "./google-access.service";
 import { EventsService } from "./events.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicFlowController } from "./public-flow.controller";
 
-function makeController(steps: object[]) {
+function makeController(steps: object[], googleAccess?: GoogleAccessService) {
   const transaction = jest.fn().mockRejectedValue(new Error("temporarily unavailable"));
-  const controller = new PublicFlowController({ $transaction: transaction } as unknown as PrismaService, {} as EventsService);
+  const findMany = jest.fn().mockResolvedValue([{ accountId: "agenda-account", calendarId: "agenda-id" }]);
+  const controller = new PublicFlowController({ $transaction: transaction, calendarAssignment: { findMany }, department: { findFirst: jest.fn().mockResolvedValue({ id: "support" }) } } as unknown as PrismaService, {} as EventsService, undefined, googleAccess);
   jest.spyOn(controller as unknown as { resolve: () => Promise<object> }, "resolve").mockResolvedValue({
     flow: { name: "Atendimento", steps },
-    tenant: { id: "tenant" },
+    tenant: { id: "tenant", entitlements: { modules: ["CALENDAR"] } },
+    calendarDepartmentId: "support",
     scopeKey: "default",
   });
-  return { controller, transaction };
+  return { controller, transaction, findMany };
 }
 
 describe("Chatbot web channel", () => {
@@ -71,6 +74,29 @@ describe("Chatbot web channel", () => {
     expect(stale).toMatchObject({ choiceStepId: "menu", options: ["Sim", "Sim"] });
     const answer = await controller.message(token, { sessionId, text: "Sim", choice: { stepId: "menu", index: 1 } }, {});
     expect(answer).toMatchObject({ messages: ["Segunda saída."], finished: true });
+  });
+
+  it("queries only the published department calendar and uses availability in the web flow", async () => {
+    const token = jest.fn().mockResolvedValue("test-access");
+    const provider = jest.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ calendars: { "agenda-id": { busy: [] } } }));
+    try {
+      const start = new Date(Date.now() + 86_400_000).toISOString();
+      const { controller, findMany } = makeController([
+        { id: "availability", kind: "calendar.availability", config: JSON.stringify({ start, minutes: "30" }),
+          options: ["Continuar"], transitions: { Continuar: "condition" } },
+        { id: "condition", kind: "condition", config: '{"variable":"agenda_disponivel","value":"sim"}',
+          options: ["Sim", "Não"], transitions: { Sim: "free", Não: "fallback" } },
+        { id: "free", kind: "text", message: "Horário livre." },
+        { id: "fallback", kind: "text", message: "Não consegui confirmar." },
+      ], { token } as unknown as GoogleAccessService);
+      const answer = await controller.message("e".repeat(48), {}, {});
+      expect(answer.messages).toEqual(["Horário livre."]);
+      expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { tenantId: "tenant", departmentId: "support" } }));
+      expect(token).toHaveBeenCalledWith("tenant", "agenda-account", "calendar");
+      expect(provider).toHaveBeenCalledTimes(1);
+    } finally {
+      provider.mockRestore();
+    }
   });
 
   it("keeps the conversation open when the handoff fails", async () => {

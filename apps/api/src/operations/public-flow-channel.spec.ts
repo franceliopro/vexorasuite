@@ -31,6 +31,28 @@ describe("Chatbot web channel", () => {
     expect(transaction).not.toHaveBeenCalled();
   });
 
+  it("continues the waiting step, renders its option labels and follows the exact choice", async () => {
+    const { controller } = makeController([
+      { id: "name", kind: "input.text", message: "Qual seu nome?", config: '{"variable":"nome"}',
+        options: ["Continuar"], transitions: { Continuar: "menu" } },
+      { id: "menu", kind: "buttons", message: "Qual setor?",
+        options: ["Financeiro novo", "Financeiro", "Usar {{nome}}"],
+        transitions: { "Financeiro novo": "new", Financeiro: "existing", "Usar {{nome}}": "custom" } },
+      { id: "new", kind: "text", message: "Nova cobrança." },
+      { id: "existing", kind: "text", message: "Cobrança existente." },
+      { id: "custom", kind: "text", message: "Olá, {{nome}}." },
+    ]);
+    const token = "c".repeat(48);
+    const { sessionId } = await controller.message(token, {}, {});
+    const menu = await controller.message(token, { sessionId, text: "Ana" }, {});
+    expect(menu).toMatchObject({ options: ["Financeiro novo", "Financeiro", "Usar Ana"] });
+    const ambiguous = await controller.message(token, { sessionId, text: "Finan" }, {});
+    expect(ambiguous.finished).not.toBe(true);
+    expect(ambiguous).toMatchObject({ options: ["Financeiro novo", "Financeiro", "Usar Ana"] });
+    const answer = await controller.message(token, { sessionId, text: "Financeiro" }, {});
+    expect(answer).toMatchObject({ messages: ["Cobrança existente."], finished: true });
+  });
+
   it("keeps the conversation open when the handoff fails", async () => {
     const { controller, transaction } = makeController([{ id: "handoff", kind: "human.handoff" }]);
     const result = await controller.message("b".repeat(48), {}, {});

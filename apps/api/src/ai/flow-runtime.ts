@@ -5,7 +5,7 @@ export type RuntimeStep = {
   position?: { x: number; y: number };
 };
 export type RuntimeFlow = {
-  name: string; welcome: string; steps: RuntimeStep[]; channelIds?: string[];
+  name: string; welcome: string; askPreferredName?: boolean; steps: RuntimeStep[]; channelIds?: string[];
   triggers?: { kind: 'message' | 'dm' | 'keyword'; keyword?: string }[];
 };
 export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'contact.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition'];
@@ -20,6 +20,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
   const errors: string[] = [];
   if (!value || typeof value !== 'object' || Array.isArray(value)) return ['Fluxo inválido'];
   const f = value as RuntimeFlow;
+  if (f.askPreferredName !== undefined && typeof f.askPreferredName !== "boolean") errors.push("Configuração de nome preferido inválida");
   if (typeof f.name !== 'string' || !f.name.trim() || f.name.length > 120 || typeof f.welcome !== 'string' || f.welcome.length > 4000) errors.push('Nome ou saudação inválidos');
   if (!Array.isArray(f.steps) || !f.steps.length || f.steps.length > 100) return [...errors, 'Use entre 1 e 100 blocos'];
   if (!Array.isArray(f.channelIds) || !f.channelIds.length || f.channelIds.length > 30 || f.channelIds.some(id => typeof id !== 'string') || new Set(f.channelIds).size !== f.channelIds.length) errors.push('Selecione canais válidos, sem duplicação');

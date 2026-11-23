@@ -15,6 +15,44 @@ function setup(overrides: Record<string,unknown> = {}) {
 }
 describe('Intelligence runtime',()=>{
  it.each([
+  { provider: 'STRIPE', local: 'SANDBOX', confirmed: 'LIVE', url: 'https://checkout.stripe.com/example' },
+  { provider: 'INFINITEPAY', local: 'PRODUCTION', confirmed: 'PRODUCTION', url: 'https://checkout.infinitepay.io/example' },
+ ])('generates and renders the link for the latest scoped payment (%j)', async ({ provider, local, confirmed, url }) => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const createHostedCheckout = jest.fn().mockResolvedValue({ url, environment: confirmed });
+  const createLink = jest.fn().mockResolvedValue({ url, environment: confirmed });
+  const service = new IntelligenceRuntimeService(x.prisma, x.events, x.waha, x.zernio, { generate: jest.fn() } as any,
+   undefined, undefined, undefined, { createHostedCheckout } as any, { createLink } as any);
+  x.tx.payment = { findFirst: jest.fn().mockResolvedValue({
+   id: 'latest-payment', status: 'PENDING', environment: local, externalId: null, invoiceUrl: null,
+  }) };
+  x.flow.steps.splice(1, 0,
+   { id: 'payment', kind: 'payment.status', title: 'Pagamento', message: '', options: ['Continuar'],
+    transitions: { Continuar: 'reply' }, config: JSON.stringify({ provider, createHostedLink: 'true' }) },
+   { id: 'reply', kind: 'text', title: 'Link', message: 'Link: {{pagamento_link}}', options: ['Continuar'], transitions: { Continuar: 'handoff' } },
+  );
+  x.flow.steps[0].transitions.Suporte = 'payment';
+  x.inbound.content = '1';
+  await service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.tx.payment.findFirst).toHaveBeenCalledTimes(1);
+  expect(x.tx.payment.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+   where: expect.objectContaining({
+    tenantId: 'tenant', conversationId: 'conversation', contactId: 'contact',
+    ...(provider === 'STRIPE' ? { OR: [{ environment: 'PRODUCTION' }, { status: 'PENDING', externalId: null }] } : { environment: 'PRODUCTION' }),
+   }),
+   orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  }));
+  if (provider === 'STRIPE') {
+   expect(createHostedCheckout).toHaveBeenCalledWith('tenant', { paymentId: 'latest-payment' }, 'LIVE');
+   expect(createLink).not.toHaveBeenCalled();
+  } else {
+   expect(createLink).toHaveBeenCalledWith('tenant', { paymentId: 'latest-payment' });
+   expect(createHostedCheckout).not.toHaveBeenCalled();
+  }
+  expect(x.tx.message.create).toHaveBeenCalledWith({ data: expect.objectContaining({ content: 'Link: ' + url }) });
+ });
+
+ it.each([
   { provider: 'STRIPE', finance: true, payment: { status: 'PAID', invoiceUrl: 'https://checkout.stripe.com/example' }, expected: 'PAID', link: '' },
   { provider: 'INFINITEPAY', finance: true, payment: { status: 'PENDING', invoiceUrl: 'https://checkout.infinitepay.io/example' }, expected: 'PENDING', link: 'https://checkout.infinitepay.io/example' },
   { provider: 'INFINITEPAY', finance: true, payment: { status: 'PENDING', invoiceUrl: 'http://invalid.example/' }, expected: 'PENDING', link: '' },
@@ -26,7 +64,7 @@ describe('Intelligence runtime',()=>{
    name: 'Empresa', entitlements: { modules: finance ? ['FINANCE'] : ['AUTOMATION'], finance },
    integrations: { intelligencePublished: x.published },
   });
-  x.tx.payment = { findFirst: jest.fn().mockResolvedValue(payment) };
+  x.tx.payment = { findFirst: jest.fn().mockResolvedValue(payment ? { ...payment, environment: 'PRODUCTION' } : null) };
   x.flow.steps.splice(1, 0, {
    id: 'payment', kind: 'payment.status', title: 'Pagamento', message: '', options: ['Continuar'],
    transitions: { Continuar: 'handoff' }, config: JSON.stringify({ provider }),
@@ -42,7 +80,7 @@ describe('Intelligence runtime',()=>{
   expect(x.tx.payment.findFirst).toHaveBeenCalledWith({
    where: { tenantId: 'tenant', conversationId: 'conversation', contactId: 'contact', provider: { in: expect.arrayContaining([provider]) }, environment: 'PRODUCTION' },
    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-   select: { status: true, invoiceUrl: true },
+   select: { id: true, status: true, invoiceUrl: true, externalId: true, environment: true },
   });
  });
 

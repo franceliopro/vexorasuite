@@ -442,6 +442,17 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           skills.push('calendar.availability');
           return available ? 'sim' : 'não';
         };
+        const latestPayment = (provider: "STRIPE" | "INFINITEPAY", includeStripeDraft = false) => tx.payment.findFirst({
+          where: {
+            tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
+            provider: { in: paymentProviderAliases(provider) },
+            ...(includeStripeDraft
+              ? { OR: [{ environment: 'PRODUCTION' }, { status: 'PENDING', externalId: null }] }
+              : { environment: 'PRODUCTION' }),
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: { id: true, status: true, invoiceUrl: true, externalId: true, environment: true },
+        });
         for (let count = 0; step && count < 10; count++) {
           if (count > 0 || visitedStepIds.at(-1) !== step.id) visitedStepIds.push(step.id);
           const createReminder = async (ownerId: string | null, requestedTitle: string, minutes: number, source: 'chatbot' | 'agent', stepId: string) => {
@@ -482,17 +493,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             const provider = canonicalPaymentProvider(config.provider);
             if (resolveEntitlements(tenant.entitlements).finance && (provider === 'STRIPE' || provider === 'INFINITEPAY')) {
               const createLink = config.createHostedLink === 'true' && Boolean(provider === 'STRIPE' ? this.stripe : this.infinitePay);
-              const payment = await tx.payment.findFirst({
-                where: {
-                  tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
-                  provider: { in: paymentProviderAliases(provider) },
-                  ...(createLink && provider === 'STRIPE'
-                    ? { OR: [{ environment: 'PRODUCTION' }, { status: 'PENDING', externalId: null }] }
-                    : { environment: 'PRODUCTION' }),
-                },
-                orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-                select: { id: true, status: true, invoiceUrl: true, externalId: true, environment: true },
-              });
+              const payment = await latestPayment(provider, createLink && provider === 'STRIPE');
               variables.pagamento_status = payment?.environment === 'PRODUCTION' ? payment.status : 'não encontrado';
               if (payment?.environment === 'PRODUCTION' && payment.status === 'PENDING' && payment.invoiceUrl) {
                 try {
@@ -581,7 +582,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               const knowledgeDocuments = Array.isArray(assistant.knowledgeDocuments) ? assistant.knowledgeDocuments.filter((doc: any) => doc && typeof doc.name === 'string' && typeof doc.content === 'string').slice(0, 10) : [];
               const companyKnowledge = interpolateVariables(String(assistant.companyKnowledge || '').slice(0, 30000),variables);
               const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+interpolateVariables(doc.content.slice(0, 8000),variables)).join('').slice(0, 40000);
-              const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize','task.reminder','calendar.availability'].includes(id) && (id!=='task.reminder'||(conversation.assigneeId&&resolveEntitlements(tenant.entitlements).modules.includes('TASKS'))) && (id!=='calendar.availability'||(this.googleAccess && resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR')))):[];
+              const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize','task.reminder','calendar.availability','payment.status'].includes(id) && (id!=='task.reminder'||(conversation.assigneeId&&resolveEntitlements(tenant.entitlements).modules.includes('TASKS'))) && (id!=='calendar.availability'||(this.googleAccess && resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR'))) && (id!=='payment.status'||resolveEntitlements(tenant.entitlements).finance)):[];
               const crmCatalog:any[]=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{id:true,name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>typeof stage?.id==='string').map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
               const systemPrompt = [
@@ -601,7 +602,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                 skillInstructionsForAgent(object(tenant.integrations), agent.allowedActions),
                 'Estrutura da empresa para orientar o atendimento, sem expor identificadores: '+JSON.stringify(ecosystem).slice(0,7000),
                 'Mantenha o escopo e recuse solicitações fora dele.'
-              ].join('\n')+research+'\nAções permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+(permittedActions.includes('task.reminder')?'\nPara um pedido claro de retorno, use {"type":"reminder","title":"título breve","minutes":30}. O lembrete é interno e vai ao atendente da conversa. Não afirme que a tarefa foi registrada.':'')+(permittedActions.includes('calendar.availability')?'\nSomente quando o cliente indicar um horário futuro com data, hora, fuso e duração, consulte {"type":"check_calendar","start":"data ISO com fuso","minutes":30}. Caso falte um dado, peça ao cliente. Consultar não agenda o compromisso.':'')+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
+              ].join('\n')+research+'\nAções permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+(permittedActions.includes('task.reminder')?'\nPara um pedido claro de retorno, use {"type":"reminder","title":"título breve","minutes":30}. O lembrete é interno e vai ao atendente da conversa. Não afirme que a tarefa foi registrada.':'')+(permittedActions.includes('calendar.availability')?'\nSomente quando o cliente indicar um horário futuro com data, hora, fuso e duração, consulte {"type":"check_calendar","start":"data ISO com fuso","minutes":30}. Caso falte um dado, peça ao cliente. Consultar não agenda o compromisso.':'')+(permittedActions.includes('payment.status')?'\nSe o cliente pedir o status do pagamento e indicar Stripe ou InfinitePay, use {"type":"check_payment","provider":"STRIPE"} ou {"type":"check_payment","provider":"INFINITEPAY"}. Se o provedor não estiver claro, pergunte.':'')+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
 
               const generated = await withTimeout(this.ai.generate([
                 { role: 'system', content: systemPrompt },
@@ -614,8 +615,25 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               const actions=Array.isArray(parsedAgent?.actions)?parsedAgent.actions.slice(0,3):[];
               let reminderAttempted = false;
               let availabilityReply: string | undefined;
+              let paymentReply: string | undefined;
               for(const action of actions){
                 if(!action||typeof action!=='object')continue;
+                if (action.type === 'check_payment' && permittedActions.includes('payment.status') && paymentReply === undefined) {
+                  const provider = canonicalPaymentProvider(action.provider);
+                  if (provider === 'STRIPE' || provider === 'INFINITEPAY') {
+                    const payment = await latestPayment(provider);
+                    variables.pagamento_status = payment?.status || 'não encontrado';
+                    skills.push('payment.status');
+                    const replies: Partial<Record<string, string>> = {
+                      PAID: 'O pagamento foi confirmado.',
+                      PENDING: 'O pagamento ainda está pendente.',
+                      CANCELLED: 'A cobrança foi cancelada.',
+                      OVERDUE: 'A cobrança está vencida.',
+                    };
+                    paymentReply = payment ? (Object.hasOwn(replies, payment.status) ? replies[payment.status] : 'Não consegui confirmar o status do pagamento.')
+                      : 'Não encontrei um pagamento desse provedor nesta conversa.';
+                  }
+                }
                 if (action.type === 'check_calendar' && permittedActions.includes('calendar.availability') && availabilityReply === undefined) {
                   const availability = typeof action.start === 'string' && typeof action.minutes === 'number'
                     ? await checkAvailability(action.start.trim(), action.minutes) : 'indisponível';
@@ -659,7 +677,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                   break;
                 }
               }
-              messages.push(availabilityReply ?? reply);
+              messages.push([paymentReply, availabilityReply].filter(Boolean).join('\n') || reply);
               if (step.options.length) messages.push(step.options.map((o,i)=>`${i+1}. ${interpolateVariables(o,variables)}`).join('\n'));
               skills.push('agent.respond');
               state = { flow: 'INTELLIGENCE', revision: published.revision, stepId: step.id, variables, completed: false };

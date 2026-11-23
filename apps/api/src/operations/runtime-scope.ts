@@ -35,13 +35,14 @@ function automationScopePriority(publication: ScopedPublication, scope: RuntimeS
 
 export function selectMessageAutomation(
  root: Record<string,any>, scope: RuntimeScope,
- event: {channelId:string;text:string;firstMessage:boolean;previousKey?:string;previousRevision?:string},
+ event: {channelId:string;text:string;firstMessage:boolean;previousKey?:string;previousRevision?:string;requiredScopeKey?:string},
 ) {
  const candidates = Object.entries(record(root.intelligencePublications))
   .filter(([key]) => isAutomationPublicationKey(key))
   .flatMap(([key,raw]) => {
    const publication = raw as ScopedPublication | null;
    if (!publication?.active || publication.source !== 'ui' || !publication.flow?.channelIds?.includes(event.channelId)) return [];
+   if (event.requiredScopeKey && publicationKey(publication.scope) !== event.requiredScopeKey) return [];
    const scopePriority = automationScopePriority(publication, scope);
    if (!scopePriority) return [];
    if (key === event.previousKey && publication.revision === event.previousRevision) return [{key,publication,scopePriority,priority:4}];

@@ -63,6 +63,8 @@ try{
   return {zoom:matrix.a,x:Math.round(matrix.e),y:Math.round(matrix.f)};
  });
  await expect(canvas).toBeVisible();
+ await expect(page.getByRole("button",{name:"Mostrar ou ocultar blocos"})).toHaveAttribute("aria-expanded","false");
+ await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);
  await fit.click();
  await expect(node).toBeInViewport();
  const initial=await camera();

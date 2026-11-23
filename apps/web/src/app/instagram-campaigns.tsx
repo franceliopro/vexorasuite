@@ -8,6 +8,8 @@ type Campaign = {
   channelName: string;
   trigger: string;
   postTitle: string | null;
+  mediaId: string | null;
+  postId: string | null;
   keywords: string[];
   active: boolean;
   delaySeconds: number;
@@ -231,7 +233,13 @@ export function InstagramCampaigns() {
       {data?.accounts.length && !data.providerUnavailable && !data.campaigns.length && !data.drafts.length ? <p>Nenhuma campanha encontrada nas contas conectadas.</p> : null}
       {data?.campaigns.length ? <ul className="grid gap-2">{data.campaigns.map(campaign => <li key={campaign.id} className="grid gap-2 rounded-token-sm border border-line bg-surface-2 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2"><strong>{campaign.name}</strong><span className="text-small text-ink-secondary">{campaign.active ? "Ativa" : "Pausada"}</span></div>
-        <p className="text-small text-ink-secondary">{campaign.channelName} · {labels[campaign.trigger] || campaign.trigger}{campaign.postTitle ? " · " + campaign.postTitle : ""}</p>
+        <p className="text-small text-ink-secondary">{campaign.channelName} · {labels[campaign.trigger] || campaign.trigger}</p>
+        {["comment", "story_reply"].includes(campaign.trigger) ? <p className="text-small text-ink-secondary">
+          {campaign.postTitle || (campaign.mediaId || campaign.postId
+            ? campaign.trigger === "story_reply" ? "Story específico" : "Publicação específica"
+            : campaign.trigger === "story_reply" ? "Qualquer Story" : "Qualquer publicação ou Reel")}
+          {campaign.mediaId ? " · ID " + campaign.mediaId : ""}
+        </p> : null}
         <p className="text-small">{campaign.keywords.length ? campaign.keywords.join(", ") : "Sem filtro de palavra-chave"} · {campaign.delaySeconds ? "Atraso de " + campaign.delaySeconds + " s" : "Resposta imediata"}</p>
         <button type="button" disabled={changingStatus !== null} className="w-fit rounded-token-sm border border-line bg-surface px-3 py-2 font-semibold hover:bg-hover disabled:opacity-60" onClick={() => void changeCampaignStatus(campaign.id, !campaign.active)}>
           {changingStatus === campaign.id ? "Atualizando…" : campaign.active ? "Pausar campanha" : "Retomar campanha"}

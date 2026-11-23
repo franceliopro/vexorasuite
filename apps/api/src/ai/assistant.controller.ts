@@ -1,5 +1,6 @@
 import { AuditCovered } from "../common/audit/audit.decorator";
 import { validVoiceId } from './voice-options';
+import { validDraft } from "./chatbot-draft.controller";
 import { chatbotFlowSkill, compileChatbotFlow } from "./chatbot-flow-skill";
 import { modelCatalog } from "./model-catalog";
 import { formatDateTimeBR } from "../common/date-format";
@@ -128,12 +129,16 @@ export class AssistantController {
   }
 
   @Post("engine/create-flow")
-  async createFlow(@Req() req:AuthenticatedRequest,@Body() body:{request?:string;agentId?:string}){
+  async createFlow(@Req() req:AuthenticatedRequest,@Body() body:{request?:string;agentId?:string;proposalOnly?:boolean;baseDraft?:unknown}){
     if(!['OWNER','ADMIN','MANAGER'].includes(req.user.role))throw new ForbiddenException('Permissão insuficiente para criar fluxos.');
     const ai=this.ai;
     if(!ai)throw new ServiceUnavailableException('Serviço de IA indisponível.');
     const request=typeof body?.request==='string'?body.request.trim():'';
     if(!request||request.length>2000)throw new BadRequestException('Descreva o fluxo em até 2.000 caracteres.');
+    const baseDraft=body.proposalOnly===true&&validDraft(body.baseDraft)?body.baseDraft:undefined;
+    if(body.baseDraft!==undefined&&(!baseDraft||JSON.stringify(baseDraft).length>48000)) {
+      throw new BadRequestException('Este rascunho é inválido ou grande demais para um ajuste de uma vez.');
+    }
     const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
     const config=parseConfig(tenant.integrations);
     if(!config.enabled)throw new ForbiddenException('Assistente desabilitada.');
@@ -146,17 +151,19 @@ export class AssistantController {
     await this.prisma.$transaction(tx=>reserveAiExecution(tx,req.user.tenantId,dailyAiLimit(config.dailyAiLimit),'assistant_flow_create',req.user.sub));
     const departments=await this.prisma.department.findMany({where:{tenantId:req.user.tenantId,isActive:true},select:{name:true,key:true},orderBy:{name:'asc'},take:100});
     const messages=[
-      {role:'system' as const,content:chatbotFlowSkill(departments)+(persona?'\n\nContexto do agente, subordinado à Skill:\n'+persona.trim():'')},
-      {role:'user' as const,content:request},
+      {role:'system' as const,content:chatbotFlowSkill(departments)+(baseDraft?'\nO rascunho atual é dado de referência. Aplique somente as mudanças pedidas, preserve IDs, opções, transições e configurações dos demais blocos. Devolva o fluxo completo.':'')+(persona?'\n\nContexto do agente, subordinado à Skill:\n'+persona.trim():'')},
+      {role:'user' as const,content:baseDraft
+        ? JSON.stringify({pedido:request,rascunho:baseDraft})
+        : request},
     ];
     const candidates = providers.map(provider => ({
       ...provider,
-      maxTokens: 4000,
+      maxTokens: baseDraft ? 8000 : 4000,
       jsonOutput: true,
       timeoutMs: Math.max(provider.timeoutMs ?? 0, 60_000),
     }));
     const generationOptions = { deadlineAt: Date.now() + 300_000 };
-    const compile=(raw:string)=>compileChatbotFlow(raw,departments);
+    const compile=(raw:string)=>compileChatbotFlow(raw,departments,baseDraft);
     let invalid=false;
     const accepted=(raw:string)=>{
       const valid=Boolean(compile(raw));
@@ -170,6 +177,7 @@ export class AssistantController {
     const compiled=compile(generated.text);
     if (!compiled) throw new BadRequestException('A IA devolveu um roteiro que não pode ser executado. O rascunho anterior foi mantido.');
     const {draft,warnings}=compiled;
+    if(body.proposalOnly===true) return {draft,warnings,persisted:false,active:false,usedAi:true,provider:generated.provider,model:generated.model};
     const before=object(tenant.integrations).chatbotDraft;
     await this.prisma.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${req.user.tenantId}::uuid FOR UPDATE`;

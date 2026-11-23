@@ -688,8 +688,11 @@ function dictateAiRequest(){
   void refreshExecutions();
   return()=>{source.close();controller.abort();clearTimeout(timer)};
  },[executionHistoryOpen]);
+ const [publishErrors,setPublishErrors]=useState<string[]>([]);
+ useEffect(()=>setPublishErrors([]),[runtimeKey]);
  async function runtimeAction(action:"publish"|"stop",activateSeparately=false){
   setRuntimeBusy(true);
+  setPublishErrors([]);
   try{
    let flowId=libraryId;
    if(action==="publish"){
@@ -705,7 +708,11 @@ function dictateAiRequest(){
    }
    const response=await fetch("/api/backend/chatbot/runtime/"+action,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...(flowId?{flowId}:{}),...(scopeDepartment?{departmentId:scopeDepartment}:{}),...(scopeUser?{userId:scopeUser}:{})})});
    const data=await response.json();
-   if(!response.ok)throw new Error(Array.isArray(data.errors)?data.errors.join("; "):typeof data.message==="string"?data.message:"Operação recusada");
+   if(!response.ok){
+    const errors=Array.isArray(data.errors)?data.errors.filter((error:unknown):error is string=>typeof error==="string"):[];
+    if(action==="publish"&&errors.length){setPublishErrors(errors);setNotice("");return;}
+    throw new Error(typeof data.message==="string"?data.message:"Operação recusada");
+   }
    const status=await fetch("/api/backend/chatbot/runtime",{cache:"no-store"});if(status.ok)setRuntime(await status.json());setNotice(action==="publish"?"Fluxo publicado para o destino escolhido e os canais selecionados.":"Publicação pausada para este destino.");
   }catch(error){setNotice(error instanceof Error?error.message:"Falha no motor")}finally{setRuntimeBusy(false)}
  }
@@ -772,12 +779,10 @@ function dictateAiRequest(){
  }
  const nodeRefs=useRef(new Map<string,HTMLDivElement>());
  const nodeToReveal=useRef<string|null>(null);
- useLayoutEffect(()=>{
-  if(!nodeToReveal.current)return;
-  const node=nodeRefs.current.get(nodeToReveal.current);
+ function revealCanvasNode(id:string){
+  const node=nodeRefs.current.get(id);
   const canvas=scrollRef.current;
   if(!node||!canvas)return;
-  nodeToReveal.current=null;
   const area=canvas.getBoundingClientRect();
   const block=node.getBoundingClientRect();
   const revealOffset=(start:number,end:number,min:number,max:number)=>{
@@ -790,6 +795,14 @@ function dictateAiRequest(){
   const dx=revealOffset(block.left,block.right,area.left+inset,area.right-inset);
   const dy=revealOffset(block.top,block.bottom,area.top+inset,area.bottom-inset);
   if(dx||dy)setView(current=>({...current,x:current.x+dx,y:current.y+dy}));
+ }
+ useLayoutEffect(()=>{
+  const id=nodeToReveal.current;
+  if(!id)return;
+  nodeToReveal.current=null;
+  revealCanvasNode(id);
+ // The node is available after the block is added to the canvas.
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  },[flow.steps]);
  const setNodeRef=(id:string)=>(el:HTMLDivElement|null)=>{if(el)nodeRefs.current.set(id,el);else nodeRefs.current.delete(id)};
  const [nodeBoxes,setNodeBoxes]=useState<Record<string,{x:number;y:number;w:number;h:number;inputY:number|null;outputY:Record<string,number>}>>({});
@@ -1130,6 +1143,19 @@ function dictateAiRequest(){
  <button type="button" className={canvasPaletteButton} onClick={()=>{deleteStep(blockMenu.id);setBlockMenu(null)}}>Excluir bloco</button></>:null}</>}
  </div></div>,document.body)}
  <datalist id="chatbot-condition-variables">{[...textVariables].map(([key,label])=><option key={key} value={key} label={label}/>)}</datalist>
+ {publishErrors.length?<div role="alert" className="grid gap-2 rounded-token-sm border border-line bg-surface p-3 text-ink">
+  <strong>Corrija estes itens para publicar</strong>
+  <ul className="grid gap-1">
+   {publishErrors.map((error,index)=>{
+    const separator=error.indexOf(":");
+    const step=separator>0?flow.steps.find(item=>item.id===error.slice(0,separator)):undefined;
+    return <li key={index}>{step?<button type="button" className="text-left underline" onClick={()=>{
+     editCanvasNode(step.id);
+     requestAnimationFrame(()=>{scrollRef.current?.scrollIntoView({block:"nearest"});revealCanvasNode(step.id);});
+    }}>{step.title||"Bloco"} · {error.slice(separator+1).trim()}</button>:error}</li>;
+   })}
+  </ul>
+ </div>:null}
  <div className={canvasCommandMenu} data-flow-command-menu><button type="button" className={canvasCommandButton} onClick={undoFlow} data-tip="Desfazer (Ctrl+Z)" aria-label="Desfazer"><Undo2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={redoFlow} data-tip="Refazer (Ctrl+Shift+Z)" aria-label="Refazer"><Redo2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={openFlowAssistant} data-tip="Criar com IA — descreva e a IA monta o fluxo" aria-label="Criar com IA"><Sparkles size={19}/></button><button type="button" className={canvasCommandButton} onClick={newFlow}><FilePlus2 size={17} aria-hidden="true"/>Novo fluxo</button><details className={canvasMore}>
    <summary className={canvasMoreSummary}><Ellipsis size={19} aria-hidden="true"/> Mais ações</summary>
    <div className={canvasMoreActions} onClick={event=>{if(event.target instanceof Element&&event.target.closest("button"))event.currentTarget.parentElement?.removeAttribute("open")}}>

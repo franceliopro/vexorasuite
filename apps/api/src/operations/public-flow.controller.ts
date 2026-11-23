@@ -300,8 +300,28 @@ export class PublicFlowController {
       if (!current) { session.completed = true; return { messages: ["Encerramos por aqui. Até logo! 🙂"], finished: true }; }
       return runStep(current, text);
     };
+    let visitedThisTurn = 0;
     const runStep = async (step: PublicStep, userText?: string): Promise<{ messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string }> => {
       const kind = String(step.kind || "text");
+      if (++visitedThisTurn > 100) {
+        session.completed = true;
+        return { messages: ["Não consegui continuar por este caminho."], finished: true };
+      }
+      if (kind === "payment.status" || kind === "calendar.availability" || kind === "calendar.book") {
+        // A sessão pública ainda não tem o contexto autenticado da conversa exigido por estas integrações.
+        if (kind === "payment.status") {
+          session.variables.pagamento_status = "indisponível";
+          session.variables.pagamento_link = "";
+        } else if (kind === "calendar.availability") {
+          session.variables.agenda_disponivel = "indisponível";
+        } else {
+          session.variables.agenda_reserva = "indisponível";
+        }
+        const next = advance(step);
+        if (next) return runStep(next);
+        session.completed = true;
+        return { messages: ["Não consegui confirmar essa informação por aqui."], finished: true };
+      }
       if (kind === "trigger") {
         const next = advance(step);
         return next ? runStep(next) : { messages: [render({ ...step, message: String(flow.welcome || "Olá! Como podemos ajudar?") })] };
@@ -388,18 +408,25 @@ export class PublicFlowController {
       if (kind === "department.route") {
         const config = parseConfig(step);
         const ok = await finishWithHandoff(String(config.departmentKey || "") || undefined, "department_route");
+        if (!ok) { session.stepId = step.id; return { messages: ["O encaminhamento falhou. Envie outra mensagem para tentar novamente."] }; }
         session.completed = true;
         return { messages: ["Perfeito! Encaminhei sua solicitação para a equipe responsável. Em breve alguém continuará por aqui."], finished: true, handoff: true };
       }
       if (handoffKinds.has(kind)) {
         const config = parseConfig(step);
         const departmentKey = ["human.handoff", "assignment"].includes(kind) ? String(config.departmentKey || "") || undefined : undefined;
-        await finishWithHandoff(departmentKey, kind);
+        if (!await finishWithHandoff(departmentKey, kind)) {
+          session.stepId = step.id;
+          return { messages: ["O encaminhamento falhou. Envie outra mensagem para tentar novamente."] };
+        }
         session.completed = true;
         return { messages: ["Certo! Vou encaminhar para nossa equipe continuar com você por aqui."], finished: true, handoff: true };
       }
       // Bloco desconhecido: nunca trava — encaminha para a equipe.
-      await finishWithHandoff(undefined, "unsupported_step");
+      if (!await finishWithHandoff(undefined, "unsupported_step")) {
+        session.stepId = step.id;
+        return { messages: ["O encaminhamento falhou. Envie outra mensagem para tentar novamente."] };
+      }
       session.completed = true;
       return { messages: ["Vou encaminhar para nossa equipe continuar com você."], finished: true, handoff: true };
     };

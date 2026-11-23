@@ -202,7 +202,7 @@ p { margin-top: .85rem; }
 .header { background: #000; border-bottom: 1px solid var(--border); }
 .header-inner { display: flex; gap: 1.25rem; align-items: center; justify-content: space-between; padding-block: 1rem; }
 .brand img { width: 9.5rem; height: auto; }
-.header nav { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+.header nav { flex-wrap: wrap; gap: .5rem 1.5rem; }
 .header nav a { text-decoration: none; font-weight: 650; }
 .header nav a:hover, [aria-current="page"] { text-decoration: underline !important; text-underline-offset: .3rem; }
 .hero { background: var(--dark); color: #fff; padding-block: clamp(3rem, 8vw, 6.5rem); }

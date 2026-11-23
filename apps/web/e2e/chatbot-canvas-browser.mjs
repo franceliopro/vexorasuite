@@ -17,6 +17,7 @@ const draft={name:"Fluxo de teste",welcome:"Bem-vindo",triggers:[{kind:"message"
 let browser;
 let preservedDraft=false;
 let publishedFlowId=null;
+ let rejectPublication=true;
 let conversationContinued=false;
 let teamUpdated=false;
 try{
@@ -47,7 +48,10 @@ try{
    preservedDraft=route.request().postDataJSON()?.draft?.steps?.some(step=>step.kind==="condition");
    return route.fulfill({json:{saved:true,id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}});
   }
-  if(path==="/chatbot/runtime/publish"){publishedFlowId=route.request().postDataJSON().flowId;return route.fulfill({json:{active:true}});}
+  if(path==="/chatbot/runtime/publish"){
+   if(rejectPublication){rejectPublication=false;return route.fulfill({status:400,json:{errors:["left: conecte todas as saídas"]}});}
+   publishedFlowId=route.request().postDataJSON().flowId;return route.fulfill({json:{active:true}});
+  }
   const fixtures={
    "/business-templates":{flows:{"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb":{draft:{...draft,name:"Oferta de teste"}},
     "dddddddd-dddd-4ddd-8ddd-dddddddddddd":{draft:{...draft,name:"Pagamento de teste",triggers:[{kind:"message"}],steps:[
@@ -277,6 +281,9 @@ try{
  await expect(picker).toHaveValue("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
  await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
  assert.equal(preservedDraft,true);
+ await page.getByRole("button",{name:"Ativar automação",exact:true}).click();
+ await page.getByRole("button",{name:"Bloco à esquerda · conecte todas as saídas",exact:true}).click();
+ await expect(board.getByRole("textbox",{name:"Mensagem de Bloco à esquerda",exact:true})).toBeInViewport();
  await page.getByRole("button",{name:"Ativar automação",exact:true}).click();
  await expect.poll(()=>publishedFlowId).toBe("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
  await picker.selectOption({label:"Pagamento de teste"});

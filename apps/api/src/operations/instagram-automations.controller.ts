@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, Post, Query, ServiceUnavailableException, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -79,6 +79,27 @@ export class InstagramAutomationsController {
       }];
     });
     return { accounts, campaigns, drafts };
+  }
+
+  @Post('campaigns/:id/pause')
+  async pauseCampaign(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    this.authorize(req);
+    const tenantId = req.user.tenantId;
+    const { campaigns, providerUnavailable } = await this.campaigns(req);
+    if (providerUnavailable) throw new ServiceUnavailableException('Não foi possível consultar o Instagram.');
+    const campaign = campaigns.find(item => item.id === id);
+    if (!campaign) throw new NotFoundException('Campanha não encontrada nesta empresa.');
+    if (!campaign.active) return { id, active: false };
+
+    const result = record(await this.zernio.request<unknown>(
+      '/comment-automations/' + encodeURIComponent(id),
+      { method: 'PATCH', body: JSON.stringify({ isActive: false }) },
+      tenantId,
+    ));
+    if (record(result.automation).isActive !== false) {
+      throw new ServiceUnavailableException('O Instagram não confirmou a pausa. Atualize a lista para verificar.');
+    }
+    return { id, active: false };
   }
 
   @Get('campaigns/media')

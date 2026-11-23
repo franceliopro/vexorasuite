@@ -121,7 +121,7 @@ describe("Chatbot web channel", () => {
       ], access);
       transaction.mockImplementation(async run => run({ $queryRaw: jest.fn() }));
       const token = "f".repeat(48);
-      const prompt = await controller.message(token, {}, {});
+      const prompt = await controller.message(token, { text: "Confirmar horário", choice: { stepId: "book", index: 0 } }, {});
       expect(prompt).toMatchObject({ options: ["Confirmar horário", "Voltar"], choiceStepId: "book" });
       expect(provider).not.toHaveBeenCalled();
       const answer = await controller.message(token, { sessionId: prompt.sessionId, text: "Confirmar horário", choice: { stepId: "book", index: 0 } }, {});

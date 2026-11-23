@@ -372,7 +372,31 @@ export function ChatbotWorkspace({tenantId}:{tenantId:string}){
  const [businessFlows,setBusinessFlows]=useState<Record<string,{draft:Flow}>>({}),[libraryId,setLibraryId]=useState("");
  async function refreshLibrary(){const r=await fetch("/api/backend/business-templates",{cache:"no-store"});if(r.ok)setBusinessFlows((await r.json()).flows||{});}
  useEffect(()=>{setBusinessFlows({});setLibraryId("");void refreshLibrary();},[tenantId]);
- function loadLibrary(id=libraryId){const item=businessFlows[id];if(!item)return;setLibraryId(id);if(!window.confirm("Carregar este fluxo no editor? Guarde o fluxo atual na biblioteca se desejar preservá-lo."))return;const next=structuredClone(item.draft);setFlow(next as Flow);setSelected(next.steps[0]?.id||"");setSimulationStep(null);setPreview([]);setNotice("Fluxo carregado como rascunho. Revise destinos, canais e integrações antes de publicar.");}
+ const [switchingFlow,setSwitchingFlow]=useState(false);
+ async function loadLibrary(id=libraryId){
+  const item=businessFlows[id];
+  if(!item||switchingFlow||id===libraryId)return;
+  setSwitchingFlow(true);
+  try{
+   const pendingSave=activeSave.current;
+   if(pendingSave)await pendingSave;
+   const current=flushDraft.current.flow;
+   const savedCurrent=businessFlows[libraryId]?.draft;
+   if((current.steps.length||savedCurrent)&&JSON.stringify(current)!==JSON.stringify(savedCurrent)){
+    const editableId=/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(libraryId)?libraryId:"";
+    const response=await fetch(editableId?"/api/backend/business-templates/"+encodeURIComponent(editableId):"/api/backend/business-templates/save-flow",{method:editableId?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({draft:current})});
+    if(!response.ok)throw Error("Não foi possível guardar o fluxo aberto. Ele continua no editor.");
+   }
+   const next=structuredClone(item.draft);
+   historyRef.current={past:[],future:[],last:JSON.stringify(next),suppress:false};
+   setLibraryId(id);setFlow(next);setSelected("");setEditorOpen(false);
+   setSimulationStep(null);setPreview([]);setTestNodes([]);setTestEdges([]);setConnectFrom(null);setConnectOption("");
+   setInlineMessage(null);setInlineCondition(null);setInlineTriggerOpen(false);setOptionEditor(null);setBlockMenu(null);
+   setNotice("Editando "+next.name+".");
+   void refreshLibrary().catch(()=>{});
+  }catch(error){setNotice(error instanceof Error?error.message:"Não foi possível trocar de fluxo.");}
+  finally{setSwitchingFlow(false);}
+ }
  async function deleteLibrary(id:string){if(!window.confirm("Excluir este fluxo salvo? O rascunho atual e o fluxo publicado não serão alterados."))return;try{const response=await fetch("/api/backend/business-templates/"+encodeURIComponent(id),{method:"DELETE"});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.message||"Não foi possível excluir o fluxo.");if(libraryId===id)setLibraryId("");await refreshLibrary();setNotice("Fluxo removido da biblioteca.");}catch(e){setNotice(e instanceof Error?e.message:"Falha ao excluir.");}}
  async function storeLibrary(){const suggested=flow.name||"Meu chatbot";const name=window.prompt("Nome para salvar este fluxo",suggested);if(!name?.trim())return;const draft={...flow,name:name.trim()};try{const endpoint=libraryId?"/api/backend/business-templates/"+encodeURIComponent(libraryId):"/api/backend/business-templates/save-flow";const r=await fetch(endpoint,{method:libraryId?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({draft})});if(!r.ok)throw Error("Não foi possível guardar o fluxo.");setFlow(draft);await refreshLibrary();setNotice(libraryId?"Fluxo sobrescrito na biblioteca desta empresa.":"Fluxo salvo na biblioteca desta empresa.");}catch(e){setNotice(e instanceof Error?e.message:"Falha ao guardar.");}}
  const [flow,setFlow]=useState<Flow>(emptyFlow),[selected,setSelected]=useState(""),[preview,setPreview]=useState<string[]>([]),[notice,setNotice]=useState("");
@@ -896,7 +920,7 @@ function dictateAiRequest(){
  }
  function moveNode(id:string,x:number,y:number){setFlow(f=>({...f,steps:f.steps.map(step=>step.id===id?{...step,position:{x,y}}:step)}));}
  function save(snapshot=flow,automatic=false){if(!ready||saveInFlight.current)return Promise.resolve(false);saveInFlight.current=true;setSavingRemote(true);const task=(async()=>{try{const response=await fetch("/api/backend/chatbot/draft",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({draft:snapshot}),signal:AbortSignal.timeout(15000)});if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(typeof error.message==="string"?error.message:"Não foi possível salvar. Sua cópia de recuperação foi mantida neste navegador.")}writeTenantCache(tenantId,"chatbot-draft",snapshot);setLastSaved(JSON.stringify(snapshot));setSavedAt(new Date().toLocaleTimeString("pt-BR"));if(!automatic)setNotice("Fluxo salvo no servidor. Publicar aplica esta versão aos canais.");return true}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar o fluxo. Tente novamente.");return false}finally{saveInFlight.current=false;setSavingRemote(false)}})();activeSave.current=task;return task}
- function newFlow(){if(flow.steps.length&&!window.confirm("Substituir o rascunho atual por um fluxo vazio? A versão publicada continuará ativa até uma nova publicação."))return;setFlow({...structuredClone(emptyFlow),welcome:"",askPreferredName:false,triggers:[{kind:"first_message"}]});setSelected("");setEditorOpen(false);setLeftCollapsed(true);setPreview([]);setSimulationStep(null);setInlineMessage(null);setInlineCondition(null);setInlineTriggerOpen(false);setOptionEditor(null);setNotice("Escolha o que inicia o fluxo e adicione a primeira ação.")}
+ function newFlow(){if(flow.steps.length&&!window.confirm("Substituir o rascunho atual por um fluxo vazio? A versão publicada continuará ativa até uma nova publicação."))return;setFlow({...structuredClone(emptyFlow),welcome:"",askPreferredName:false,triggers:[{kind:"first_message"}]});setLibraryId("");setSelected("");setEditorOpen(false);setLeftCollapsed(true);setPreview([]);setSimulationStep(null);setInlineMessage(null);setInlineCondition(null);setInlineTriggerOpen(false);setOptionEditor(null);setNotice("Escolha o que inicia o fluxo e adicione a primeira ação.")}
  function editCanvasNode(id:string){
   setBlockMenu(null);
   if(id==="__trigger__"){setInlineTriggerOpen(true);return;}
@@ -951,6 +975,15 @@ function dictateAiRequest(){
  <button type="button" className={canvasPaletteButton} onClick={()=>{deleteStep(blockMenu.id);setBlockMenu(null)}}>Excluir bloco</button></>:null}</>}
  </div></div>,document.body)}
  <datalist id="chatbot-condition-variables">{flowVariables.map(([key,label])=><option key={key} value={key} label={label}/>)}</datalist>
+ <div className="grid min-w-0 gap-2 rounded-xl border border-line bg-surface p-3 text-ink">
+  <label className={canvasInspectorLabel}>Fluxo aberto
+   <select className="w-full min-w-0 rounded-token-sm border border-line bg-surface-2 px-2 py-2 text-ink" disabled={switchingFlow} value={libraryId} onChange={event=>void loadLibrary(event.target.value)}>
+    {!libraryId?<option value="">Rascunho atual · {flow.name||"Chatbot"}</option>:null}
+    {Object.entries(businessFlows).map(([id,item])=><option key={id} value={id}>{item.draft.name||"Fluxo sem nome"}</option>)}
+   </select>
+  </label>
+  {switchingFlow?<small role="status" className="text-ink-secondary">Guardando e abrindo o fluxo…</small>:null}
+ </div>
  <div className={canvasCommandMenu} data-flow-command-menu><button type="button" className={canvasCommandButton} onClick={undoFlow} data-tip="Desfazer (Ctrl+Z)" aria-label="Desfazer"><Undo2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={redoFlow} data-tip="Refazer (Ctrl+Shift+Z)" aria-label="Refazer"><Redo2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={()=>setAiCreateOpen(true)} data-tip="Criar com IA — descreva e a IA monta o fluxo" aria-label="Criar com IA"><Sparkles size={19}/></button><button type="button" className={canvasCommandButton} onClick={newFlow}><FilePlus2 size={17} aria-hidden="true"/>Novo fluxo</button><details className={canvasMore}>
    <summary className={canvasMoreSummary}><Ellipsis size={19} aria-hidden="true"/> Mais ações</summary>
    <div className={canvasMoreActions} onClick={event=>{if(event.target instanceof Element&&event.target.closest("button"))event.currentTarget.parentElement?.removeAttribute("open")}}>

@@ -53,6 +53,7 @@ try{
   };
   return route.fulfill({json:fixtures[path]??{}});
  });
+ await page.addInitScript(()=>localStorage.setItem("vexora-flow-panels-v1",JSON.stringify({left:false,right:false,auto:false})));
  await page.goto(origin+"/?module=Chatbots");
  const canvas=page.getByRole("region",{name:/Canvas do fluxo/});
  const board=canvas.locator("[data-flow-board]");

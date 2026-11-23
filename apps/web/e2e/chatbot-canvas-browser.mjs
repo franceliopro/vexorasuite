@@ -72,14 +72,17 @@ try{
   return {zoom:matrix.a,x:Math.round(matrix.e),y:Math.round(matrix.f)};
  });
  await expect(canvas).toBeVisible();
- await expect(page.getByRole("button",{name:"Mostrar ou ocultar blocos"})).toHaveAttribute("aria-expanded","false");
  const libraryToggle=page.getByRole("button",{name:"Mostrar ou ocultar blocos"});
- await libraryToggle.click();
+ await expect(libraryToggle).toHaveAttribute("aria-expanded","true");
+ for(const name of ["Conversar","Decidir","Atender"]){
+  await expect(page.getByRole("heading",{name,exact:true})).toBeVisible();
+ }
  await expect(page.getByRole("button",{name:"Fazer pergunta",exact:true})).toBeVisible();
  await expect(page.getByRole("button",{name:"Definir variável",exact:true})).toBeHidden();
  await page.getByText("Mais blocos",{exact:true}).click();
  await expect(page.getByRole("button",{name:"Definir variável",exact:true})).toBeVisible();
  await libraryToggle.click();
+ await expect(libraryToggle).toHaveAttribute("aria-expanded","false");
  await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);
  const trigger=board.getByRole("button",{name:"Quando…",exact:true});
  await trigger.click();

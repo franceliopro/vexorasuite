@@ -37,7 +37,7 @@ O que faz sentido na Véxora — nesta ordem:
 O que do Tomik NÃO recomendo copiar: autopilot total cego (publica sem revisão) — a Véxora perde a confiança do cliente na primeira legenda ridícula; e "DNA de voz" por crawling sem consentimento explícito — risco de direito autoral e de reputação.
 
 ### O que decido eu, por empresa, na hora de criar
-Campo na criação de empresa (como a escolha de segmento hoje): **Produto** → `Véxora completa` | `Véxora Sites (site + posts + imóveis + ajustes)` | `Robô em tela cheia para o site` (só chat/bot — caso mais estreito). Isso define entitlements, papel máximo e o link de administração inicial que vai no e-mail de boas-vindas: `app.vexorasuite.com.br/sites` com sessão limitada.
+**Histórico — não implementar:** a opção `Véxora Sites (site + posts + imóveis + ajustes)` na criação de empresa foi retirada com o criador de sites com IA. Sites passam pelo HUB da Véxora, com aprovação e versionamento separados da criação do tenant; o site em si vive em Next.js/MDX fora do core.
 
 ## Item 6 — Administração Véxora: planos, preços, pacotes e clientes
 

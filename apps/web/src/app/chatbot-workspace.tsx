@@ -817,7 +817,9 @@ function dictateAiRequest(){
     step=follow(step,step.options[0]||"");continue;
    }
    if(kind==="task.reminder"){
-    variables.lembrete_criado=config.title?.trim()?"sim":"não";
+    const minutes=Number(config.minutes);
+    const title=resolveSimulationText(config.title||"",variables).trim();
+    variables.lembrete_criado=title&&Number.isInteger(minutes)&&minutes>=1&&minutes<=43200?"sim":"não";
     step=follow(step,step.options[0]||"");continue;
    }
    if(kind==="condition"){step=follow(step,variables[config.variable||""]===config.value?"Sim":"Não");continue;}
@@ -1104,6 +1106,7 @@ function dictateAiRequest(){
  </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&typeof stepConfig(step).value==="string"?`Se ${flowVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a “${stepConfig(step).value}”`:"Definir condição"}</button>
  :inlineMessage===step.id?<textarea autoFocus rows={3} maxLength={4000} aria-label={`Mensagem de ${step.title}`} className="w-full select-text rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value={step.message} onChange={event=>updateStep({message:event.target.value})} onBlur={()=>setInlineMessage(null)} onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineMessage(null)}}}/>
  :["text","buttons","input.text","input.cpf"].includes(step.kind||"")&&!step.action?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineMessage(step.id)}}>{step.message||"Escrever mensagem"}</button>
+ :step.kind==="task.reminder"?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>editCanvasNode(step.id)}>{stepConfig(step).title ? `${stepConfig(step).title} · em ${stepConfig(step).minutes||"?"} min` : "Configurar título e prazo"}</button>
  :<p className={canvasNodeSummary} data-flow-node-summary>{nodeSummary(step)}</p>}
  {waitingNode===step.id?<span className="block font-semibold text-ink">Aguardando resposta</span>:null}</div>
  <div className={canvasOutputs} data-flow-outputs>{step.options.map((option,j)=><div className="flex items-center gap-1" key={j}><button type="button" data-option={option} className={`${canvasOutputButton} ${connectFrom===step.id&&connectOption===option?canvasOutputConnecting:""}`} data-connecting={connectFrom===step.id&&connectOption===option?"true":undefined} onClick={()=>{setConnectFrom(step.id);setConnectOption(option);setSelected(step.id)}} title={`Conectar: ${option}`}><span className="min-w-0 break-words">{option}</span><i className={canvasOutputPort} aria-hidden="true"/></button>{step.kind==="buttons"?<button type="button" className={canvasNodeQuickButton} aria-label={`Editar opção ${option}`} onClick={()=>setOptionEditor({stepId:step.id,original:option,label:option})}>Editar</button>:null}{!targetFor(step,option)?<button type="button" className={canvasNodeQuickButton} title="Adicionar próximo passo" aria-label={`Adicionar próximo passo após ${option}`} onClick={event=>{const rect=event.currentTarget.getBoundingClientRect();setBlockMenu({id:step.id,option,x:rect.left,y:rect.bottom})}}>+</button>:null}</div>)}

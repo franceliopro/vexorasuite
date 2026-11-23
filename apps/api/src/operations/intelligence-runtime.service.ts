@@ -428,12 +428,12 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'task.reminder') {
-            const ownerId = conversation.assigneeId;
+            const ownerId = config.reminderUserId || conversation.assigneeId;
             const title = interpolateVariables(config.title || '', variables).trim().slice(0, 180);
             const minutes = Number(config.minutes);
             variables.lembrete_criado = 'não';
             const allowed = resolveEntitlements(tenant.entitlements).modules.includes('TASKS');
-            if (allowed && ownerId && title && Number.isInteger(minutes) && minutes >= 1 && minutes <= 43200) {
+            if (allowed && ownerId && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(ownerId) && title && Number.isInteger(minutes) && minutes >= 1 && minutes <= 43200) {
               const member = await tx.membership.findFirst({
                 where: { tenantId: channel.tenantId, userId: ownerId, user: { isActive: true } },
                 select: { userId: true },

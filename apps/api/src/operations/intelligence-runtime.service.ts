@@ -1,3 +1,5 @@
+import { calendarIsAvailable } from "./calendar-availability";
+import { GoogleAccessService } from "./google-access.service";
 import { resolveEntitlements } from "../auth/entitlements";
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {inboxRouting} from "./inbox-routing";
@@ -47,7 +49,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
   private fallbackTicking = false;
   private running = false;
 
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService, @Optional() private readonly googleAccess?: GoogleAccessService) {}
 
   onModuleInit() {
     if (process.env.NODE_ENV === 'test') return;
@@ -445,6 +447,37 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             const value=interpolateVariables(config.value!,variables);
             variables[config.variable!] = isDocumentField(config.variable!) ? documentDigits(value) : value;
             if(config.variable==='novo_nome'&&config.value==='{{nome_identificado}}'&&isPreferredName(value))await savePreferredName(value);
+            step = followStep(step, step.options[0]!); continue;
+          }
+          if (type === 'calendar.availability') {
+            variables.agenda_disponivel = 'indisponível';
+            const start = interpolateVariables(config.start || '', variables).trim();
+            const from = new Date(start);
+            const minutes = Number(config.minutes);
+            const timezoneProvided = /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start);
+            if (this.googleAccess && resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR') &&
+                timezoneProvided && Number.isFinite(from.getTime()) && from.getTime() > Date.now() &&
+                Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440) {
+              const userId = runtimeScope.userId;
+              const departmentId = runtimeScope.departmentId;
+              const criteria = [...(userId ? [{ userId }] : []), ...(departmentId ? [{ departmentId }] : [])];
+              const assignments = criteria.length ? await tx.calendarAssignment.findMany({
+                where: { tenantId: channel.tenantId, OR: criteria },
+                select: { userId: true, accountId: true, calendarId: true },
+              }) : [];
+              const personal = userId ? assignments.filter(row => row.userId === userId) : [];
+              const relevant = personal.length ? personal : assignments;
+              const calendars = [...new Map(relevant.map(row => [JSON.stringify([row.accountId, row.calendarId]), row])).values()];
+              if (calendars.length === 1) {
+                const { accountId, calendarId } = calendars[0]!;
+                const to = new Date(from.getTime() + minutes * 60_000);
+                const available = await calendarIsAvailable(this.googleAccess, channel.tenantId, accountId, calendarId, from, to).catch(() => null);
+                if (available !== null) {
+                  variables.agenda_disponivel = available ? 'sim' : 'não';
+                  skills.push('calendar.availability');
+                }
+              }
+            }
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'task.reminder') {

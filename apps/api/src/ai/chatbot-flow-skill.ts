@@ -76,7 +76,7 @@ export function compileChatbotFlow(raw: string, departments: Department[], baseD
     } else if (kind === 'input.text' || kind === 'variable' || kind === 'condition') {
       const variable = config?.variable;
       if (typeof variable !== 'string') return;
-      const field = variable.replace(/^\{\{\s*([\w]+)\s*\}\}$/,'$1');
+      const field = variable.replace(/^\{\{\s*([\w.-]+)\s*\}\}$/,'$1');
       if (Object.hasOwn(Object.prototype,field)) return;
       steps.push({...step,kind,config:JSON.stringify({variable:field,...(kind!=='input.text'?{value:config?.value}:original?.config&&object(parse(original.config))?.validation==='preferred-name'?{validation:'preferred-name'}:{})})});
     } else return;

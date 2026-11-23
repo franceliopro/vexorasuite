@@ -81,6 +81,18 @@ describe('Instagram campaigns', () => {
     expect(provider).toHaveBeenCalledTimes(2);
   });
 
+  it('lists active stories only for an Instagram account connected to the tenant', async () => {
+    const { controller, provider } = fixture(1);
+    await expect(controller.campaignMedia(request, 'foreign', undefined, 'story')).rejects.toThrow('indisponível');
+    expect(provider).not.toHaveBeenCalled();
+    provider.mockResolvedValue({ data: [{ id: '123', mediaType: 'VIDEO', timestamp: '2026-11-23T14:00:00Z' }, { id: '456', expired: true }] });
+    await expect(controller.campaignMedia(request, 'channel', undefined, 'story')).resolves.toEqual({
+      posts: [{ id: '123', caption: 'Vídeo', date: '2026-11-23T14:00:00Z' }],
+      nextCursor: null,
+    });
+    expect(provider).toHaveBeenCalledWith('/accounts/mine/instagram/stories', {}, 'tenant');
+  });
+
   it('prevents updating an automation belonging to another account', async () => {
     const { controller, provider } = fixture(1);
     provider.mockResolvedValue({ automations: [

@@ -47,6 +47,14 @@ describe('named message automations',()=>{
   const event={channelId:'instagram',text:'Eu quero',firstMessage:false,requiredScopeKey:'department:support'};
   expect(selectMessageAutomation(scoped,{departmentId:'support'},event)?.key).toBe('automation:support');
  });
+ it('prefers the current department over a general keyword while keeping an ongoing automation',()=>{
+  const department=root.intelligencePublications['automation:default'];
+  const scoped={intelligencePublications:{...root.intelligencePublications,'automation:support':{...department,scope:{departmentId:'support'}}}};
+  const event={channelId:'instagram',text:'Eu quero',firstMessage:false};
+  expect(selectMessageAutomation(scoped,{departmentId:'support'},event)?.key).toBe('automation:support');
+  expect(selectMessageAutomation(scoped,{departmentId:'sales'},event)?.key).toBe('automation:offer');
+  expect(selectMessageAutomation(scoped,{departmentId:'support'},{...event,previousKey:'automation:offer',previousRevision:'offer'})?.key).toBe('automation:offer');
+ });
  it('continues the same published automation when awaiting a reply',()=>{
   expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'azul',firstMessage:false,previousKey:'automation:offer',previousRevision:'offer'})?.key).toBe('automation:offer');
   expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'azul',firstMessage:false})?.key).toBe('automation:default');

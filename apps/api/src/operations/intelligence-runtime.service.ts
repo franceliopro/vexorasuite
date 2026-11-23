@@ -415,6 +415,30 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           step = flow.steps.find(s => s.id === 'menu') || flow.steps[0];
           if (!active && flow.welcome) messages.push(interpolateVariables(flow.welcome,variables));
         }
+        const checkAvailability = async (start: string, minutes: number): Promise<'sim' | 'não' | 'indisponível'> => {
+          const from = new Date(start);
+          const timezoneProvided = /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start);
+          if (!this.googleAccess || !resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR') ||
+              !timezoneProvided || !Number.isFinite(from.getTime()) || from.getTime() <= Date.now() ||
+              !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) return 'indisponível';
+          const { userId, departmentId } = runtimeScope;
+          const criteria = [...(userId ? [{ userId }] : []), ...(departmentId ? [{ departmentId }] : [])];
+          if (!criteria.length) return 'indisponível';
+          const assignments = await tx.calendarAssignment.findMany({
+            where: { tenantId: channel.tenantId, OR: criteria },
+            select: { userId: true, accountId: true, calendarId: true },
+          });
+          const personal = userId ? assignments.filter(row => row.userId === userId) : [];
+          const relevant = personal.length ? personal : assignments;
+          const calendars = [...new Map(relevant.map(row => [JSON.stringify([row.accountId, row.calendarId]), row])).values()];
+          if (calendars.length !== 1) return 'indisponível';
+          const { accountId, calendarId } = calendars[0]!;
+          const to = new Date(from.getTime() + minutes * 60_000);
+          const available = await calendarIsAvailable(this.googleAccess, channel.tenantId, accountId, calendarId, from, to).catch(() => null);
+          if (available === null) return 'indisponível';
+          skills.push('calendar.availability');
+          return available ? 'sim' : 'não';
+        };
         for (let count = 0; step && count < 10; count++) {
           if (count > 0 || visitedStepIds.at(-1) !== step.id) visitedStepIds.push(step.id);
           const createReminder = async (ownerId: string | null, requestedTitle: string, minutes: number, source: 'chatbot' | 'agent', stepId: string) => {
@@ -450,34 +474,8 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'calendar.availability') {
-            variables.agenda_disponivel = 'indisponível';
             const start = interpolateVariables(config.start || '', variables).trim();
-            const from = new Date(start);
-            const minutes = Number(config.minutes);
-            const timezoneProvided = /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start);
-            if (this.googleAccess && resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR') &&
-                timezoneProvided && Number.isFinite(from.getTime()) && from.getTime() > Date.now() &&
-                Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440) {
-              const userId = runtimeScope.userId;
-              const departmentId = runtimeScope.departmentId;
-              const criteria = [...(userId ? [{ userId }] : []), ...(departmentId ? [{ departmentId }] : [])];
-              const assignments = criteria.length ? await tx.calendarAssignment.findMany({
-                where: { tenantId: channel.tenantId, OR: criteria },
-                select: { userId: true, accountId: true, calendarId: true },
-              }) : [];
-              const personal = userId ? assignments.filter(row => row.userId === userId) : [];
-              const relevant = personal.length ? personal : assignments;
-              const calendars = [...new Map(relevant.map(row => [JSON.stringify([row.accountId, row.calendarId]), row])).values()];
-              if (calendars.length === 1) {
-                const { accountId, calendarId } = calendars[0]!;
-                const to = new Date(from.getTime() + minutes * 60_000);
-                const available = await calendarIsAvailable(this.googleAccess, channel.tenantId, accountId, calendarId, from, to).catch(() => null);
-                if (available !== null) {
-                  variables.agenda_disponivel = available ? 'sim' : 'não';
-                  skills.push('calendar.availability');
-                }
-              }
-            }
+            variables.agenda_disponivel = await checkAvailability(start, Number(config.minutes));
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'task.reminder') {
@@ -541,7 +539,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               const knowledgeDocuments = Array.isArray(assistant.knowledgeDocuments) ? assistant.knowledgeDocuments.filter((doc: any) => doc && typeof doc.name === 'string' && typeof doc.content === 'string').slice(0, 10) : [];
               const companyKnowledge = interpolateVariables(String(assistant.companyKnowledge || '').slice(0, 30000),variables);
               const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+interpolateVariables(doc.content.slice(0, 8000),variables)).join('').slice(0, 40000);
-              const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize','task.reminder'].includes(id) && (id!=='task.reminder'||(conversation.assigneeId&&resolveEntitlements(tenant.entitlements).modules.includes('TASKS')))):[];
+              const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize','task.reminder','calendar.availability'].includes(id) && (id!=='task.reminder'||(conversation.assigneeId&&resolveEntitlements(tenant.entitlements).modules.includes('TASKS'))) && (id!=='calendar.availability'||(this.googleAccess && resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR')))):[];
               const crmCatalog:any[]=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{id:true,name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>typeof stage?.id==='string').map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
               const systemPrompt = [
@@ -561,7 +559,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                 skillInstructionsForAgent(object(tenant.integrations), agent.allowedActions),
                 'Estrutura da empresa para orientar o atendimento, sem expor identificadores: '+JSON.stringify(ecosystem).slice(0,7000),
                 'Mantenha o escopo e recuse solicitações fora dele.'
-              ].join('\n')+research+'\nAções permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+(permittedActions.includes('task.reminder')?'\nPara um pedido claro de retorno, use {"type":"reminder","title":"título breve","minutes":30}. O lembrete é interno e vai ao atendente da conversa. Não afirme que a tarefa foi registrada.':'')+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
+              ].join('\n')+research+'\nAções permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+(permittedActions.includes('task.reminder')?'\nPara um pedido claro de retorno, use {"type":"reminder","title":"título breve","minutes":30}. O lembrete é interno e vai ao atendente da conversa. Não afirme que a tarefa foi registrada.':'')+(permittedActions.includes('calendar.availability')?'\nSomente quando o cliente indicar um horário futuro com data, hora, fuso e duração, consulte {"type":"check_calendar","start":"data ISO com fuso","minutes":30}. Caso falte um dado, peça ao cliente. Consultar não agenda o compromisso.':'')+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
 
               const generated = await withTimeout(this.ai.generate([
                 { role: 'system', content: systemPrompt },
@@ -573,8 +571,17 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               const reply=typeof parsedAgent?.reply==='string'?parsedAgent.reply.slice(0,4000):generated.text.slice(0,4000);
               const actions=Array.isArray(parsedAgent?.actions)?parsedAgent.actions.slice(0,3):[];
               let reminderAttempted = false;
+              let availabilityReply: string | undefined;
               for(const action of actions){
                 if(!action||typeof action!=='object')continue;
+                if (action.type === 'check_calendar' && permittedActions.includes('calendar.availability') && availabilityReply === undefined) {
+                  const availability = typeof action.start === 'string' && typeof action.minutes === 'number'
+                    ? await checkAvailability(action.start.trim(), action.minutes) : 'indisponível';
+                  variables.agenda_disponivel = availability;
+                  availabilityReply = availability === 'sim' ? 'O horário consultado está livre.'
+                    : availability === 'não' ? 'O horário consultado está ocupado. Você tem outro horário em mente?'
+                    : 'Não consegui confirmar esse horário na agenda. Podemos conferir a data, a hora e a duração?';
+                }
                 if (action.type === 'reminder' && permittedActions.includes('task.reminder') && !reminderAttempted &&
                     typeof action.title === 'string' && typeof action.minutes === 'number') {
                   reminderAttempted = true;
@@ -610,7 +617,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                   break;
                 }
               }
-              messages.push(reply);
+              messages.push(availabilityReply ?? reply);
               if (step.options.length) messages.push(step.options.map((o,i)=>`${i+1}. ${interpolateVariables(o,variables)}`).join('\n'));
               skills.push('agent.respond');
               state = { flow: 'INTELLIGENCE', revision: published.revision, stepId: step.id, variables, completed: false };

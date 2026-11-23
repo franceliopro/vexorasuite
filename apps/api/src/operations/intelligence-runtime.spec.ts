@@ -15,6 +15,47 @@ function setup(overrides: Record<string,unknown> = {}) {
 }
 describe('Intelligence runtime',()=>{
  it.each([
+  { allowed: true, busy: [], expected: 'O horário consultado está livre.' },
+  { allowed: true, busy: [{}], expected: 'O horário consultado está ocupado.' },
+  { allowed: false, busy: [], expected: 'Vou conferir.' },
+ ])('uses the real calendar result only for agents with explicit permission (%j)', async ({ allowed, busy, expected }) => {
+  const x = setup({ departmentId: 'support', botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const originalOllamaOrigin = process.env.OLLAMA_BASE_URL;
+  process.env.OLLAMA_BASE_URL = 'http://localhost:11434';
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ calendars: { team: { busy } } })));
+  try {
+   x.tx.auditLog.count = jest.fn().mockResolvedValue(0);
+   x.tx.calendarAssignment = { findMany: jest.fn().mockResolvedValue([{ userId: null, accountId: 'account', calendarId: 'team' }]) };
+   x.tx.tenant.findUniqueOrThrow.mockResolvedValue({
+    name: 'Empresa', entitlements: { modules: ['CALENDAR'] },
+    integrations: { intelligencePublished: x.published, assistant: { enabled: true, agents: [{
+     id: 'sales', enabled: true, bindings: { inboxes: ['channel'] }, llm: { provider: 'ollama', model: 'test' },
+     allowedActions: allowed ? ['calendar.availability'] : [],
+    }] } },
+   });
+   const token = jest.fn().mockResolvedValue('calendar-token');
+   const start = new Date(Date.now() + 3600000).toISOString();
+   const generate = jest.fn().mockResolvedValue({ model: 'test', usage: { totalTokens: 10 }, text: JSON.stringify({
+    reply: 'Vou conferir.', actions: [{ type: 'check_calendar', start, minutes: 30 }],
+   }) });
+   const service = new IntelligenceRuntimeService(x.prisma, x.events, x.waha, x.zernio, { generate } as any, undefined, undefined, { token } as any);
+   x.flow.steps.splice(1, 0, {
+    id: 'agent', kind: 'agent', title: 'Agente', message: '', options: [], config: JSON.stringify({ agentId: 'sales' }),
+   });
+   x.flow.steps[0].transitions.Suporte = 'agent';
+   x.inbound.content = '1';
+   await service.receive(x.channel, 'conversation', 'inbound');
+   expect(generate).toHaveBeenCalled();
+   expect(token).toHaveBeenCalledTimes(allowed ? 1 : 0);
+   expect(x.tx.message.create).toHaveBeenCalledWith({ data: expect.objectContaining({ content: expect.stringContaining(expected) }) });
+  } finally {
+   fetchMock.mockRestore();
+   if (originalOllamaOrigin === undefined) delete process.env.OLLAMA_BASE_URL;
+   else process.env.OLLAMA_BASE_URL = originalOllamaOrigin;
+  }
+ });
+
+ it.each([
   { modules: ['CALENDAR'], matches: 1, busy: [], expected: 'sim' },
   { modules: ['CALENDAR'], matches: 1, busy: [{}], expected: 'não' },
   { modules: ['CALENDAR'], matches: 2, busy: [], expected: 'indisponível' },

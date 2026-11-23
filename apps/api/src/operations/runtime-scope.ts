@@ -51,5 +51,5 @@ export function selectMessageAutomation(
     ? Math.max(score,trigger.kind==='keyword'?3:trigger.kind==='first_message'?2:1) : score,0);
    return priority ? [{key,publication,scopePriority,priority}] : [];
   });
- return candidates.sort((a,b)=>b.priority-a.priority||b.scopePriority-a.scopePriority||a.key.localeCompare(b.key))[0] ?? null;
+ return candidates.sort((a,b)=>Number(b.priority===4)-Number(a.priority===4)||b.scopePriority-a.scopePriority||b.priority-a.priority||a.key.localeCompare(b.key))[0] ?? null;
 }

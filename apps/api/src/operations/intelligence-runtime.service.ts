@@ -1,4 +1,4 @@
-import { calendarIsAvailable } from "./calendar-availability";
+import { bookCalendarSlot, calendarIsAvailable } from "./calendar-availability";
 import { GoogleAccessService } from "./google-access.service";
 import { InfinitePayService } from "./infinitepay.service";
 import { StripeService } from "./stripe.service";
@@ -418,15 +418,15 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           step = flow.steps.find(s => s.id === 'menu') || flow.steps[0];
           if (!active && flow.welcome) messages.push(interpolateVariables(flow.welcome,variables));
         }
-        const checkAvailability = async (start: string, minutes: number): Promise<'sim' | 'não' | 'indisponível'> => {
+        const resolveCalendarSlot = async (start: string, minutes: number) => {
           const from = new Date(start);
           const timezoneProvided = /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start);
           if (!this.googleAccess || !resolveEntitlements(tenant.entitlements).modules.includes('CALENDAR') ||
               !timezoneProvided || !Number.isFinite(from.getTime()) || from.getTime() <= Date.now() ||
-              !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) return 'indisponível';
+              !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) return null;
           const { userId, departmentId } = runtimeScope;
           const criteria = [...(userId ? [{ userId }] : []), ...(departmentId ? [{ departmentId }] : [])];
-          if (!criteria.length) return 'indisponível';
+          if (!criteria.length) return null;
           const assignments = await tx.calendarAssignment.findMany({
             where: { tenantId: channel.tenantId, OR: criteria },
             select: { userId: true, accountId: true, calendarId: true },
@@ -434,9 +434,15 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           const personal = userId ? assignments.filter(row => row.userId === userId) : [];
           const relevant = personal.length ? personal : assignments;
           const calendars = [...new Map(relevant.map(row => [JSON.stringify([row.accountId, row.calendarId]), row])).values()];
-          if (calendars.length !== 1) return 'indisponível';
+          if (calendars.length !== 1) return null;
           const { accountId, calendarId } = calendars[0]!;
           const to = new Date(from.getTime() + minutes * 60_000);
+          return { accountId, calendarId, from, to };
+        };
+        const checkAvailability = async (start: string, minutes: number): Promise<'sim' | 'não' | 'indisponível'> => {
+          const slot = await resolveCalendarSlot(start, minutes);
+          if (!this.googleAccess || !slot) return 'indisponível';
+          const { accountId, calendarId, from, to } = slot;
           const available = await calendarIsAvailable(this.googleAccess, channel.tenantId, accountId, calendarId, from, to).catch(() => null);
           if (available === null) return 'indisponível';
           skills.push('calendar.availability');
@@ -513,6 +519,22 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                 }
               }
               skills.push('payment.status');
+            }
+            step = followStep(step, step.options[0]!); continue;
+          }
+          if (type === 'calendar.book') {
+            const start = interpolateVariables(config.start || '', variables).trim();
+            const title = interpolateVariables(config.title || '', variables).trim();
+            const slot = await resolveCalendarSlot(start, Number(config.minutes));
+            variables.agenda_reserva = 'indisponível';
+            if (this.googleAccess && slot && title && title.length <= 180) {
+              const lockKey = JSON.stringify(['chatbot-calendar', slot.calendarId === 'primary' ? slot.accountId : slot.calendarId]);
+              await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+              const bookingKey = JSON.stringify([channel.tenantId, conversationId, scopeKey, published.revision, step.id, slot.from.toISOString(), slot.to.toISOString()]);
+              variables.agenda_reserva = await bookCalendarSlot(
+                this.googleAccess, channel.tenantId, slot.accountId, slot.calendarId, slot.from, slot.to, title, bookingKey,
+              ).catch(() => 'indisponível');
+              skills.push('calendar.book');
             }
             step = followStep(step, step.options[0]!); continue;
           }

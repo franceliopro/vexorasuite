@@ -1037,7 +1037,7 @@ const config: Config = {
         "phone-close-top": "max(14px, env(safe-area-inset-top))",
         "phone-close-right": "max(16px, env(safe-area-inset-right))",
         /* Medidas do canvas do fluxo (compartilhadas por inset, gap e padding). */
-        "flow-shell": "clamp(640px,calc(100dvh - 190px),1000px)",
+        "flow-shell": "clamp(640px, calc(100dvh - 170px), 1200px)",
         "flow-rail": "44px",
         "flow-panel": "14px",
         "flow-panel-gap": "12px",
@@ -1200,8 +1200,8 @@ const config: Config = {
         /* Prévia do local no mapa do Calendário. */
         "calendar-map": "clamp(180px, 38dvh, 320px)",
         /* Alturas do canvas do fluxo. */
-        "flow-shell": "clamp(640px,calc(100dvh - 190px),1000px)",
-        "flow-shell-fullscreen": "calc(100% - 52px)",
+        "flow-shell": "clamp(640px, calc(100dvh - 170px), 1200px)",
+        "flow-shell-fullscreen": "max(640px, calc(100dvh - 96px))",
         "flow-stage-mobile": "70dvh",
         "flow-handle": "72px",
         "flow-minimap": "128px",

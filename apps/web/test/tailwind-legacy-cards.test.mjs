@@ -119,7 +119,7 @@ test("a migração não usa remendos visuais", () => {
 test("todas as classes migradas são literais completos do preset", () => {
   assert.ok(classes.includes("rounded-token border border-line bg-surface p-pad text-ink shadow-token-sm"));
   assert.ok(classes.includes("min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600"));
-  assert.ok(classes.includes("size-9 place-items-center rounded-token-sm border border-line bg-surface"));
+  assert.ok(classes.includes("grid gap-3 rounded-token-sm border border-line bg-surface-2 p-pad"));
   assert.ok(classes.includes("grid grid-cols-1 gap-token lg:grid-cols-2"));
 });
 
@@ -151,9 +151,12 @@ test("os contratos de empresas, modelos e alarmes permanecem intactos", () => {
 
 test("os contratos de sites e conteúdo permanecem intactos", () => {
   for (const token of [
-    "/api/backend/sites", "/api/backend/sites/import/url", 'role="status"', 'role="alert"',
-    "animate-spin", "canEdit={canManage}", "Criar meu primeiro site", "Abrir editor", "Excluir",
+    "/api/backend/sites/hub/requests", 'role="status"', 'role="alert"',
+    "animate-spin", "Registrar pedido", "Registrar preview", "Solicitar publicação",
   ]) assert.ok(sources.sites.includes(token), `sites perdeu ${token}`);
+  for (const token of [
+    "wizard-shell", "site-editor-window", "sites/editor/", "Criar meu primeiro site", "Abrir editor",
+  ]) assert.ok(!sources.sites.includes(token), `sites ainda referencia legado: ${token}`);
   for (const token of [
     "/api/backend/drive-manager/", "/api/backend/creative-references/", 'role="dialog"',
     'aria-modal="true"', 'data-testid="marketing-drive-pick"',

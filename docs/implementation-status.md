@@ -63,6 +63,11 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Envio real de WhatsApp/e-mail, confirmação de cobrança pelo provedor e publicação de sites.
 - Aceite ponta a ponta com aparelho de WhatsApp e contas reais de e-mail.
 
+## 7. Piloto Rastreabem — site em Next.js/MDX
+
+- [x] As 7 páginas do HTML original foram convertidas para MDX em `sites/rastreabem/`, com menu gerado por `content/navigation.ts` e saída estática (`output: 'export'`). O workflow `site-rastreabem.yml` valida typecheck e build.
+- [ ] Preview em endereço temporário e publicação em Cloudflare Pages: ainda sem evidência no ar. Ver `docs/site-rastreabem-mdx.md`.
+
 ## 6. Fontes
 
 - `docs/plano-transicao-presenca-criativos.md` — HUB de Sites (§12) e sistemas verticais (§13).

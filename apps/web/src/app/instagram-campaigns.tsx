@@ -125,6 +125,10 @@ export function InstagramCampaigns() {
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
+    if (supportsMedia && form.mediaScope !== "all" && !/^[0-9]{1,40}$/.test(form.mediaId.trim())) {
+      setNotice({ text: "Escolha uma publicação ou informe o ID numérico da mídia.", error: true });
+      return;
+    }
     setSaving(true);
     setNotice(null);
     try {
@@ -197,7 +201,7 @@ export function InstagramCampaigns() {
                 <option value="id">{form.trigger === "story_reply" ? "Informar o ID do Story" : "Informar o ID da publicação"}</option>
               </select></label> : null}
               {form.trigger === "comment" && form.mediaScope === "list" ? <div className="grid gap-2">
-                <label className="grid gap-1">Publicação ou Reel<select required className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)}>
+                <label className="grid gap-1">Publicação ou Reel<select className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)}>
                   <option value="">Escolha uma publicação</option>
                   {posts.map(post => <option key={post.id} value={post.id}>{post.date ? post.date.split("-").reverse().join("/") + " · " : ""}{post.caption || "Publicação sem legenda"}</option>)}
                 </select></label>
@@ -206,7 +210,7 @@ export function InstagramCampaigns() {
                 {mediaStatus === "error" ? <button type="button" className="w-fit underline" onClick={() => setPage(current => ({ ...current }))}>Falha na consulta. Tentar novamente</button> : null}
                 {mediaStatus === "ready" && nextCursor ? <button type="button" className="w-fit underline" onClick={() => setPage({ cursor: nextCursor })}>Carregar publicações anteriores</button> : null}
               </div> : null}
-              {supportsMedia && form.mediaScope === "id" ? <label className="grid gap-1">{form.trigger === "story_reply" ? "ID do Story" : "ID da publicação no Instagram"}<input required inputMode="numeric" pattern="[0-9]{1,40}" className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)} /></label> : null}
+              {supportsMedia && form.mediaScope === "id" ? <label className="grid gap-1">{form.trigger === "story_reply" ? "ID do Story" : "ID da publicação no Instagram"}<input inputMode="numeric" className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)} /></label> : null}
               <label className="grid gap-1">Link da oferta<input type="url" maxLength={2000} className={fieldClass} value={form.link} onChange={event => update("link", event.target.value)} placeholder="https://…" /></label>
               {supportsDelay ? <label className="grid gap-1">Atraso em segundos<input type="number" min={0} max={86400} step={1} className={fieldClass} value={form.delaySeconds} onChange={event => update("delaySeconds", event.target.value)} placeholder="0 para enviar na hora" /></label> : null}
             </div>

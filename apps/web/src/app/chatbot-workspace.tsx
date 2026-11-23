@@ -1061,16 +1061,6 @@ function dictateAiRequest(){
  <button type="button" className={canvasPaletteButton} onClick={()=>{deleteStep(blockMenu.id);setBlockMenu(null)}}>Excluir bloco</button></>:null}</>}
  </div></div>,document.body)}
  <datalist id="chatbot-condition-variables">{conditionVariables.map(([key,label])=><option key={key} value={key} label={label}/>)}</datalist>
- <div className="grid min-w-0 gap-2 rounded-xl border border-line bg-surface p-3 text-ink">
-  <label className={canvasInspectorLabel}>Fluxo aberto
-   <select className="w-full min-w-0 rounded-token-sm border border-line bg-surface-2 px-2 py-2 text-ink" disabled={switchingFlow} value={libraryId} onChange={event=>void loadLibrary(event.target.value)}>
-    {!libraryId?<option value="">Rascunho atual · {flow.name||"Chatbot"}</option>:null}
-    {Object.entries(businessFlows).map(([id,item])=><option key={id} value={id}>{item.draft.name||"Fluxo sem nome"}{runtimeState.publications?.some(publication=>publication.flowId===id&&publication.active)?" · Ativo":""}</option>)}
-   </select>
-  </label>
-  {typeof runtimeState.botLimit==="number"?<small className="text-ink-secondary">{runtimeState.activeBots??0} de {runtimeState.botLimit} chatbots ativos</small>:null}
-  {switchingFlow?<small role="status" className="text-ink-secondary">Guardando e abrindo o fluxo…</small>:null}
- </div>
  <div className={canvasCommandMenu} data-flow-command-menu><button type="button" className={canvasCommandButton} onClick={undoFlow} data-tip="Desfazer (Ctrl+Z)" aria-label="Desfazer"><Undo2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={redoFlow} data-tip="Refazer (Ctrl+Shift+Z)" aria-label="Refazer"><Redo2 size={19}/></button><button type="button" className={canvasCommandButton} onClick={()=>setAiCreateOpen(true)} data-tip="Criar com IA — descreva e a IA monta o fluxo" aria-label="Criar com IA"><Sparkles size={19}/></button><button type="button" className={canvasCommandButton} onClick={newFlow}><FilePlus2 size={17} aria-hidden="true"/>Novo fluxo</button><details className={canvasMore}>
    <summary className={canvasMoreSummary}><Ellipsis size={19} aria-hidden="true"/> Mais ações</summary>
    <div className={canvasMoreActions} onClick={event=>{if(event.target instanceof Element&&event.target.closest("button"))event.currentTarget.parentElement?.removeAttribute("open")}}>
@@ -1099,7 +1089,16 @@ function dictateAiRequest(){
   </div>
  </section>:null}
   <div className={canvasStageBar}>
-   <strong className={canvasPanelTitleStrong}>Fluxo do chatbot</strong>
+ <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-ink">
+  <label className="flex min-w-0 flex-wrap items-center gap-2 font-semibold">Fluxo aberto
+   <select className="min-w-0 max-w-full rounded-token-sm border border-line bg-surface-2 px-2 py-1 text-ink" disabled={switchingFlow} value={libraryId} onChange={event=>void loadLibrary(event.target.value)}>
+    {!libraryId?<option value="">Rascunho atual · {flow.name||"Chatbot"}</option>:null}
+    {Object.entries(businessFlows).map(([id,item])=><option key={id} value={id}>{item.draft.name||"Fluxo sem nome"}{runtimeState.publications?.some(publication=>publication.flowId===id&&publication.active)?" · Ativo":""}</option>)}
+   </select>
+  </label>
+  {typeof runtimeState.botLimit==="number"?<small className="text-ink-secondary">{runtimeState.activeBots??0} de {runtimeState.botLimit} chatbots ativos</small>:null}
+  {switchingFlow?<small role="status" className="text-ink-secondary">Guardando e abrindo o fluxo…</small>:null}
+ </div>
    <div className={canvasStageBarGroup} role="group" aria-label="Controles do canvas">
     <button type="button" className={canvasStageButton} onClick={()=>zoomBy(-10)} aria-label="Diminuir zoom" title="Diminuir zoom"><ZoomOut size={17}/></button>
     <span className={canvasStageZoom}>{Math.round(zoom)}%</span>

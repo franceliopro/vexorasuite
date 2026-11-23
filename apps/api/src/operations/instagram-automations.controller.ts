@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -79,6 +79,34 @@ export class InstagramAutomationsController {
       }];
     });
     return { accounts, campaigns, drafts };
+  }
+
+  @Get('campaigns/media')
+  async campaignMedia(@Req() req: AuthenticatedRequest, @Query('channelId') channelId: string, @Query('cursor') cursor?: string) {
+    this.authorize(req);
+    const tenantId = req.user.tenantId;
+    const { connectedAccounts } = await this.connected(tenantId);
+    const account = [...connectedAccounts.entries()].find(([, channel]) => channel.id === channelId);
+    if (!account) throw new BadRequestException('Conta Instagram indisponível nesta empresa.');
+    const query = new URLSearchParams({ limit: '25' });
+    if (cursor) query.set('cursor', cursor);
+    const result = record(await this.zernio.request<unknown>(
+      '/accounts/' + encodeURIComponent(account[0]) + '/posts?' + query.toString(), {}, tenantId,
+    ));
+    const posts: unknown[] = Array.isArray(result.posts) ? result.posts : [];
+    const pagination = record(result.pagination);
+    return {
+      posts: posts.flatMap(value => {
+        const post = record(value);
+        if (post.platform !== 'instagram' || typeof post.id !== 'string' || !/^[0-9]{1,40}$/.test(post.id)) return [];
+        return [{
+          id: post.id,
+          caption: typeof post.message === 'string' ? post.message.slice(0, 110) : '',
+          date: typeof post.createdTime === 'string' ? post.createdTime.slice(0, 10) : '',
+        }];
+      }),
+      nextCursor: pagination.hasMore === true && typeof pagination.nextCursor === 'string' ? pagination.nextCursor : null,
+    };
   }
 
   @Post('campaigns/drafts')

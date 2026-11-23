@@ -303,6 +303,16 @@ try{
  await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
  await assistant.getByRole("button",{name:"Aplicar ao canvas",exact:true}).click();
  await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco ajustado pela IA"})).toBeVisible();
+ page.once("dialog",dialog=>dialog.accept());
+ await page.getByRole("button",{name:"Novo fluxo",exact:true}).click();
+ await setup.getByRole("button",{name:"Oferecer opções",exact:true}).click();
+ await board.getByRole("button",{name:"Adicionar opção",exact:true}).click();
+ const option=board.getByRole("textbox",{name:"Texto da opção",exact:true});
+ await option.fill("Usar nome ");
+ await board.getByRole("combobox",{name:"Inserir variável na opção",exact:true}).selectOption({label:"Nome do cliente"});
+ await expect(option).toHaveValue("Usar nome {{nome}}");
+ await board.getByRole("button",{name:"Aplicar",exact:true}).click();
+ await expect(board.getByRole("button",{name:"Usar nome {{nome}}",exact:true})).toBeVisible();
  console.log("Chatbot: canvas, inline editing and saved-flow switching OK");
 }finally{
  await browser?.close();

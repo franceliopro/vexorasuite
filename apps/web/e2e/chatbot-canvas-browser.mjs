@@ -71,7 +71,7 @@ try{
     agents:[{id:"agent-qa",name:"Atendente recém-criado"}],
    }:{departments:[],agents:[]},
    "/crm/pipelines":[],
-   "/crm/custom-fields":[{id:"placa",label:"Placa do veículo",enabled:true}],
+   "/crm/custom-fields":[{id:"veiculo.placa-1",label:"Placa do veículo",enabled:true}],
    "/assistant/config":{agents:[]},
    "/channels":[{id:"test-channel",name:"WhatsApp de teste",provider:"WAHA"}],
    "/conversations/mentions":[],
@@ -212,7 +212,7 @@ try{
  await message.fill("Olá! Vamos preparar seu orçamento.");
  await message.evaluate(input=>input.setSelectionRange(3,3));
  await board.getByRole("combobox",{name:"Inserir variável",exact:true}).selectOption({label:"Placa do veículo"});
- await expect(message).toHaveValue("Olá{{placa}}! Vamos preparar seu orçamento.");
+ await expect(message).toHaveValue("Olá{{veiculo.placa-1}}! Vamos preparar seu orçamento.");
  await message.fill("Olá! Vamos preparar seu orçamento.");
  await message.press("Escape");
  await expect(board.getByRole("button",{name:"Olá! Vamos preparar seu orçamento."})).toBeVisible();
@@ -230,6 +230,10 @@ try{
  await expect(setup.getByRole("combobox",{name:/Quando/})).toHaveValue("first_message");
  await setup.getByRole("button",{name:"Verificar condição",exact:true}).click();
  const condition=board.locator("[data-flow-node]").filter({has:page.getByRole("button",{name:"Verificar condição",exact:false})});
+ await condition.getByRole("combobox",{name:"Informação",exact:true}).fill("veiculo.placa-1");
+ await condition.getByRole("textbox",{name:"É igual a",exact:true}).fill("ABC1D23");
+ await condition.getByRole("button",{name:"Concluir",exact:true}).click();
+ await board.getByRole("button",{name:"Se Placa do veículo é igual a “ABC1D23”",exact:true}).click();
  await condition.getByRole("combobox",{name:"Informação",exact:true}).fill("departamento");
  await condition.getByRole("textbox",{name:"É igual a",exact:true}).fill("Financeiro");
  await condition.getByRole("button",{name:"Concluir",exact:true}).click();

@@ -314,10 +314,12 @@ Todos os quatro serão **recriados com sistema próprio**. O download dos arquiv
 
 | Site citado                         | Estado na origem | Destino             | Estratégia                                                         |
 | ----------------------------------- | ---------------- | ------------------- | ------------------------------------------------------------------ |
-| Imobiliária (Alto Araguaia Imóveis) | WordPress        | PHP puro ou Next.js | Extrair imóveis, textos e mídia do banco/arquivos; recriar sem CMS |
-| Rastreabem                          | WordPress        | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS                                  |
-| SOS Alto Araguaia                   | WordPress        | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS                                  |
-| Morbeck x Carvalhinho               | WordPress        | PHP puro ou Next.js | Extrair conteúdo; recriar sem CMS                                  |
+| Imobiliária (Alto Araguaia Imóveis) | WordPress        | Next.js            | Extrair imóveis, textos e mídia do banco/arquivos; recriar em MDX, sem CMS |
+| Rastreabem                          | WordPress        | Next.js            | Extrair conteúdo; recriar em MDX, sem CMS                          |
+| SOS Alto Araguaia                   | WordPress        | Next.js            | Extrair conteúdo; recriar em MDX, sem CMS                          |
+| Morbeck x Carvalhinho               | WordPress        | Next.js            | Extrair conteúdo; recriar em MDX, sem CMS                          |
+
+**Nota:** “sem CMS” vale para estes quatro sites, que serão editados em MDX no GitHub. Sites dinâmicos futuros podem usar o template de CMS descrito em §12.3; isso não altera a decisão destes quatro.
 
 **Site infectado:** nenhum arquivo do WordPress comprometido é reaproveitado como código. Somente dados saneados previamente revisados. Não reutilizar templates, plugins, uploads executáveis ou credenciais antigas sem inspeção.
 
@@ -325,7 +327,7 @@ Rastreabem permanece como referência de cliente/segmento, não como identidade 
 
 ### 11.5.1 Escolha PHP puro × Next.js
 
-A decisão é por site, com este critério declarado pelo proprietário: **se Next.js for mais leve e mais simples, usar Next.js; se não, usar PHP puro.**
+Critério histórico declarado pelo proprietário: **se Next.js for mais leve e mais simples, usar Next.js; se não, usar PHP puro.** A decisão final foi registrada em §12: **Next.js para os quatro sites**; o texto abaixo permanece como registro do racional da avaliação.
 
 - **Next.js**: preferido para sites estáticos ou com pouco dinamismo e sem necessidade de banco por site.
 - **PHP puro**: preferido quando houver lógica de banco, formulários ou integrações que o sistema próprio precise manipular diretamente.
@@ -337,7 +339,7 @@ A decisão é por site, com este critério declarado pelo proprietário: **se Ne
 2. Inventariar o material recebido: conteúdo, mídia, redirecionamentos, formulários e credenciais antigas.
 3. Reduzir TTL de DNS.
 4. Extrair e sane conteúdo e dados; **descartar código, plugins e templates WordPress**.
-5. Recriar o site no sistema próprio (PHP puro ou Next.js) em ambiente temporário no Dokploy.
+5. Recriar o site no sistema próprio (Next.js/MDX, conforme §12) em ambiente temporário no Dokploy.
 6. Emitir TLS temporário e testar páginas, formulários e login no host temporário.
 7. Registrar aprovação humana na Véxora.
 8. Trocar DNS na Valuehost (o proprietário autoriza e executa).
@@ -459,3 +461,14 @@ Regras comuns:
 - **SOS Alto Araguaia:** nível A.
 
 A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica assim resolvida: **Next.js para os quatro sites**.
+
+### 12.5 Template de CMS para sites dinâmicos
+
+Não criar um CMS artesanal por site. Criar **um template versionado no GitHub**, com presets por vertical e instância por empresa.
+
+- Base: CMS headless self-hosted de código aberto (Directus, Strapi ou Payload) + Postgres.
+- Presets: `conteudo` (posts/páginas), `imoveis` (imóveis, fotos, filtros) e `produtos` (catálogo editorial).
+- Cada instância expõe API tenant-scoped; o site Next.js consome essa API e o HUB registra pedido, aprovação, versão e auditoria.
+- Novo site = escolher preset, subir instância a partir do mesmo template e apontar o front para a API.
+- E-commerce: o CMS fornece conteúdo e catálogo editorial; carrinho, estoque, pedidos e pagamentos ficam em motor de comércio externo. O CMS não vira checkout.
+- O template é replicável com `docker compose` + dump/seed, sem copiar credenciais entre empresas.

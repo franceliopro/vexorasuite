@@ -234,6 +234,7 @@ export class PublicFlowController {
     const session: Session = sessions.get(key) ?? { variables: {}, stepId: null, completed: false, history: [], lastUserText: "", lastAt: 0, messages: 0, createdAt: Date.now() };
     const text = typeof body?.text === "string" ? body.text.trim().slice(0, 1000) : "";
     if (session.messages >= MAX_MESSAGES) { sessions.delete(key); return { sessionId, finished: true, handoff: false, messages: ["Esta conversa atingiu o limite de mensagens. Se precisar, fale com nossa equipe pelos canais de atendimento."] }; }
+    if (session.completed) return { sessionId, finished: true, messages: [] };
     session.messages += 1;
     session.lastAt = Date.now();
     session.lastUserText = text;
@@ -302,6 +303,7 @@ export class PublicFlowController {
     };
     let visitedThisTurn = 0;
     const runStep = async (step: PublicStep, userText?: string): Promise<{ messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string }> => {
+      session.stepId = step.id;
       const kind = String(step.kind || "text");
       if (++visitedThisTurn > 100) {
         session.completed = true;
@@ -350,8 +352,9 @@ export class PublicFlowController {
       }
       if (kind === "buttons" || kind === "quick-reply" || kind === "text") {
         const options = Array.isArray(step.options) ? step.options : [];
+        const labels = options.map(option => interpolate(option, session.variables).trim() || option);
         if (userText !== undefined && options.length) {
-          const index = optionIndex(options, String(userText));
+          const index = optionIndex(labels, String(userText));
           if (index >= 0) {
             const key = options[index]!;
             session.variables["ultima_opcao"] = key;
@@ -361,7 +364,7 @@ export class PublicFlowController {
           }
           if (userText.trim()) {
             session.history.push({ role: "user", content: String(userText).slice(0, 300) });
-            return { messages: ["Escolha uma das opções abaixo.",render(step)].filter(Boolean), options };
+            return { messages: ["Escolha uma das opções abaixo.",render(step)].filter(Boolean), options: labels };
           }
         }
         if (userText === undefined && options.length === 0) {
@@ -371,7 +374,7 @@ export class PublicFlowController {
         }
         const message = render(step);
         session.history.push({ role: "assistant", content: message.slice(0, 400) });
-        return { messages: message ? [message] : [], options };
+        return { messages: message ? [message] : [], options: labels };
       }
       if (kind === "condition") {
         const config = parseConfig(step);
@@ -442,7 +445,12 @@ export class PublicFlowController {
       const wanted = normalized(raw).replace(/^[0-9]+[.)]?\s*/, "").trim();
       const byNumber = /^[0-9]+$/.test(raw.trim()) ? Number(raw.trim()) - 1 : -1;
       if (byNumber >= 0 && byNumber < options.length) return byNumber;
-      return options.findIndex((option) => normalized(option) === wanted || normalized(option).startsWith(wanted) && wanted.length >= 3);
+      const names = options.map(normalized);
+      const exact = names.indexOf(wanted);
+      if (exact >= 0) return names.lastIndexOf(wanted) === exact ? exact : -1;
+      if (wanted.length < 3) return -1;
+      const prefix = names.findIndex(name => name.startsWith(wanted));
+      return prefix >= 0 && names.filter(name => name.startsWith(wanted)).length === 1 ? prefix : -1;
     };
     const agentTurn = async (step: PublicStep, userText: string | undefined, fallback: string): Promise<{ messages: string[]; options?: string[]; finished?: boolean }> => {
       const options = Array.isArray(step.options) && step.options.length ? step.options : undefined;
@@ -481,6 +489,7 @@ export class PublicFlowController {
       return { messages: [safe], options };
     };
     const result = await outcome();
+    if (result.finished) session.completed = true;
     sessions.set(key, session);
     if (sessions.size > 4000) { for (const [k, v] of sessions) { if (Date.now() - v.lastAt > SESSION_TTL_MS) sessions.delete(k); } }
     const stepIndex = session.stepId ? steps.findIndex((step) => step?.id === session.stepId) : 0;

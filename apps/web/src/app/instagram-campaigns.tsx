@@ -14,7 +14,7 @@ type Campaign = {
   stats: { sent: number | null; read: number | null; clicks: number | null };
 };
 type Draft = { id: string; name: string; trigger: string; keyword: string; mediaId: string };
-type Campaigns = { accounts: { id: string; name: string }[]; campaigns: Campaign[]; drafts: Draft[] };
+type Campaigns = { accounts: { id: string; name: string }[]; campaigns: Campaign[]; drafts: Draft[]; providerUnavailable?: boolean };
 const emptyDraft = { name: "", channelId: "", trigger: "comment", mediaId: "", keyword: "", message: "", link: "", delaySeconds: "" };
 const fieldClass = "w-full rounded-token-sm border border-line bg-surface px-3 py-2 text-ink";
 
@@ -117,7 +117,8 @@ export function InstagramCampaigns() {
         <div className="flex flex-wrap items-center justify-between gap-2"><strong>{draft.name}</strong><span className="text-small text-ink-secondary">Rascunho</span></div>
         <p className="text-small text-ink-secondary">{labels[draft.trigger]}{draft.keyword ? " · " + draft.keyword : ""}{draft.mediaId ? " · Mídia " + draft.mediaId : ""}</p>
       </li>)}</ul> : null}
-      {data?.accounts.length && !data.campaigns.length && !data.drafts.length ? <p>Nenhuma campanha encontrada nas contas conectadas.</p> : null}
+      {data?.providerUnavailable ? <p role="alert">O Instagram está indisponível para consulta. Você ainda pode salvar rascunhos.</p> : null}
+      {data?.accounts.length && !data.providerUnavailable && !data.campaigns.length && !data.drafts.length ? <p>Nenhuma campanha encontrada nas contas conectadas.</p> : null}
       {data?.campaigns.length ? <ul className="grid gap-2">{data.campaigns.map(campaign => <li key={campaign.id} className="grid gap-2 rounded-token-sm border border-line bg-surface-2 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2"><strong>{campaign.name}</strong><span className="text-small text-ink-secondary">{campaign.active ? "Ativa" : "Pausada"}</span></div>
         <p className="text-small text-ink-secondary">{campaign.channelName} · {labels[campaign.trigger] || campaign.trigger}{campaign.postTitle ? " · " + campaign.postTitle : ""}</p>

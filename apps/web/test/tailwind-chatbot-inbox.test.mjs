@@ -64,7 +64,7 @@ test("chatbot e inbox usam so utilities, sem remendos", () => {
 test("os contratos de chatbot e inbox permanecem intactos", () => {
   for (const token of [
     "loadCrmPipelines()", "loadAiAgents()", "loadRuntime()", "Tentar novamente", "chatbot-delete-block",
-    "Criar fluxo", "Abrir no celular", "Reiniciar teste", "Guardar c\u00f3pia do fluxo atual",
+    "Gerar proposta", "Aplicar ao canvas", "Abrir no celular", "Reiniciar teste", "Guardar c\u00f3pia do fluxo atual",
   ]) assert.ok(chatbot.includes(token), `chatbot perdeu ${token}`);
   for (const token of [
     'data-testid="inbox-composer-input"', 'data-testid="composer-icon-button"',

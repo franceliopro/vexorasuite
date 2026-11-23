@@ -10,7 +10,9 @@ function setup() {
     findFirst: jest.fn().mockResolvedValue({ id: paymentId, amount: 25, externalId: null, invoiceUrl: null, environment: "SANDBOX" }),
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),
   };
-  const prisma = { payment, auditLog: { create: jest.fn() } };
+  const auditLog = { create: jest.fn() };
+  const message = { create: jest.fn() };
+  const prisma = { payment, auditLog, message, $transaction: (callback: (tx: { payment: typeof payment; auditLog: typeof auditLog }) => unknown) => callback({ payment, auditLog }) };
   const stripe = new StripeService(prisma as unknown as PrismaService);
   const providers = stripe as unknown as {
     credentials: (tenantId: string) => Promise<{ key: string; environment: "TEST" | "LIVE" }>;
@@ -46,6 +48,20 @@ describe("Stripe hosted checkout", () => {
     credentials.mockResolvedValue({ key: "placeholder", environment: "TEST" });
     await expect(stripe.createHostedCheckout("tenant", { paymentId }, "LIVE")).rejects.toThrow("produção");
     expect(provider).not.toHaveBeenCalled();
+  });
+
+  it("settles a paid session using its verified amount and tenant", async () => {
+    const { stripe, payment } = setup();
+    const local = { id: paymentId, tenantId: "tenant", status: "PENDING", amount: 25, environment: "PRODUCTION", conversationId: "conversation" };
+    payment.findFirst.mockResolvedValueOnce(local).mockResolvedValueOnce({ ...local, status: "PAID" });
+    await expect(stripe.settleWebhook("tenant", {
+      id: "evt_paid", type: "checkout.session.completed",
+      data: { object: { id: sessionId, payment_status: "paid", amount_total: 2500, currency: "brl", livemode: true } },
+    })).resolves.toMatchObject({ paid: true });
+    expect(payment.findFirst).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: { tenantId: "tenant", provider: { in: expect.arrayContaining(["STRIPE"]) }, externalId: sessionId },
+    }));
+    expect(payment.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { status: "PAID" } }));
   });
 
   it("ignores unconfirmed Checkout completion events", async () => {

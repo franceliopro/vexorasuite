@@ -15,6 +15,77 @@ function setup(overrides: Record<string,unknown> = {}) {
 }
 describe('Intelligence runtime',()=>{
  it.each([
+  { provider: 'STRIPE', finance: true, payment: { status: 'PAID' }, expected: 'PAID' },
+  { provider: 'INFINITEPAY', finance: true, payment: null, expected: 'não encontrado' },
+  { provider: 'INFINITEPAY', finance: false, payment: { status: 'PAID' }, expected: 'indisponível' },
+ ])('scopes payment lookups to the conversation and Finance entitlement (%j)', async ({ provider, finance, payment, expected }) => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  x.tx.tenant.findUniqueOrThrow.mockResolvedValue({
+   name: 'Empresa', entitlements: { modules: finance ? ['FINANCE'] : ['AUTOMATION'], finance },
+   integrations: { intelligencePublished: x.published },
+  });
+  x.tx.payment = { findFirst: jest.fn().mockResolvedValue(payment) };
+  x.flow.steps.splice(1, 0, {
+   id: 'payment', kind: 'payment.status', title: 'Pagamento', message: '', options: ['Continuar'],
+   transitions: { Continuar: 'handoff' }, config: JSON.stringify({ provider }),
+  });
+  x.flow.steps[0].transitions.Suporte = 'payment';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.pagamento_status).toBe(expected);
+  if (!finance) {
+   expect(x.tx.payment.findFirst).not.toHaveBeenCalled();
+   return;
+  }
+  expect(x.tx.payment.findFirst).toHaveBeenCalledWith({
+   where: { tenantId: 'tenant', conversationId: 'conversation', contactId: 'contact', provider: { in: expect.arrayContaining([provider]) }, environment: 'PRODUCTION' },
+   orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+   select: { status: true },
+  });
+ });
+
+ it.each([
+  { allowed: true, busy: [], expected: 'O horário consultado está livre.' },
+  { allowed: true, busy: [{}], expected: 'O horário consultado está ocupado.' },
+  { allowed: false, busy: [], expected: 'Vou conferir.' },
+ ])('uses the real calendar result only for agents with explicit permission (%j)', async ({ allowed, busy, expected }) => {
+  const x = setup({ departmentId: 'support', botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const originalOllamaOrigin = process.env.OLLAMA_BASE_URL;
+  process.env.OLLAMA_BASE_URL = 'http://localhost:11434';
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ calendars: { team: { busy } } })));
+  try {
+   x.tx.auditLog.count = jest.fn().mockResolvedValue(0);
+   x.tx.calendarAssignment = { findMany: jest.fn().mockResolvedValue([{ userId: null, accountId: 'account', calendarId: 'team' }]) };
+   x.tx.tenant.findUniqueOrThrow.mockResolvedValue({
+    name: 'Empresa', entitlements: { modules: ['CALENDAR'] },
+    integrations: { intelligencePublished: x.published, assistant: { enabled: true, agents: [{
+     id: 'sales', enabled: true, bindings: { inboxes: ['channel'] }, llm: { provider: 'ollama', model: 'test' },
+     allowedActions: allowed ? ['calendar.availability'] : [],
+    }] } },
+   });
+   const token = jest.fn().mockResolvedValue('calendar-token');
+   const start = new Date(Date.now() + 3600000).toISOString();
+   const generate = jest.fn().mockResolvedValue({ model: 'test', usage: { totalTokens: 10 }, text: JSON.stringify({
+    reply: 'Vou conferir.', actions: [{ type: 'check_calendar', start, minutes: 30 }],
+   }) });
+   const service = new IntelligenceRuntimeService(x.prisma, x.events, x.waha, x.zernio, { generate } as any, undefined, undefined, { token } as any);
+   x.flow.steps.splice(1, 0, {
+    id: 'agent', kind: 'agent', title: 'Agente', message: '', options: [], config: JSON.stringify({ agentId: 'sales' }),
+   });
+   x.flow.steps[0].transitions.Suporte = 'agent';
+   x.inbound.content = '1';
+   await service.receive(x.channel, 'conversation', 'inbound');
+   expect(generate).toHaveBeenCalled();
+   expect(token).toHaveBeenCalledTimes(allowed ? 1 : 0);
+   expect(x.tx.message.create).toHaveBeenCalledWith({ data: expect.objectContaining({ content: expect.stringContaining(expected) }) });
+  } finally {
+   fetchMock.mockRestore();
+   if (originalOllamaOrigin === undefined) delete process.env.OLLAMA_BASE_URL;
+   else process.env.OLLAMA_BASE_URL = originalOllamaOrigin;
+  }
+ });
+
+ it.each([
   { modules: ['CALENDAR'], matches: 1, busy: [], expected: 'sim' },
   { modules: ['CALENDAR'], matches: 1, busy: [{}], expected: 'não' },
   { modules: ['CALENDAR'], matches: 2, busy: [], expected: 'indisponível' },

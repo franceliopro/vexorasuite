@@ -43,7 +43,13 @@ try{
   }
   if(path==="/chatbot/runtime/publish"){publishedFlowId=route.request().postDataJSON().flowId;return route.fulfill({json:{active:true}});}
   const fixtures={
-   "/business-templates":{flows:{"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb":{draft:{...draft,name:"Oferta de teste"}}}},
+   "/business-templates":{flows:{"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb":{draft:{...draft,name:"Oferta de teste"}},
+    "dddddddd-dddd-4ddd-8ddd-dddddddddddd":{draft:{...draft,name:"Pagamento de teste",triggers:[{kind:"message"}],steps:[
+     {id:"payment",kind:"payment.status",title:"Consultar pagamento",message:"",config:'{"provider":"STRIPE"}',options:["Continuar"],transitions:{Continuar:"check"}},
+     {id:"check",kind:"condition",title:"Pagamento confirmado?",message:"",config:'{"variable":"pagamento_status","value":"PAID"}',options:["Sim","Não"],transitions:{Sim:"paid","Não":"pending"}},
+     {id:"paid",kind:"text",title:"Confirmado",message:"Pagamento confirmado no teste.",options:[]},
+     {id:"pending",kind:"text",title:"Pendente",message:"Pagamento ainda não confirmado no teste.",options:[]},
+    ]}}}},
    "/auth/me":{
     user:{id:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",name:"Operador",email:"qa@example.test",isPlatformAdmin:true,mustChangePassword:false},
     tenant:{id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",name:"Empresa de teste",slug:"qa",kind:"CLIENT"},
@@ -254,6 +260,14 @@ try{
  assert.equal(preservedDraft,true);
  await page.getByRole("button",{name:"Ativar automação",exact:true}).click();
  await expect.poll(()=>publishedFlowId).toBe("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+ await picker.selectOption({label:"Pagamento de teste"});
+ await expect(picker).toHaveValue("dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+ await page.getByRole("button",{name:"Testar o fluxo agora",exact:true}).click();
+ await expect(page.getByText("Pagamento ainda não confirmado no teste.",{exact:true}).last()).toBeVisible();
+ await page.getByText("Simular resultados das integrações",{exact:true}).click();
+ await page.getByRole("combobox",{name:"Status do pagamento",exact:true}).selectOption({label:"Pago"});
+ await page.getByRole("button",{name:"Reiniciar teste",exact:true}).click();
+ await expect(page.getByText("Pagamento confirmado no teste.",{exact:true}).last()).toBeVisible();
  console.log("Chatbot: canvas, inline editing and saved-flow switching OK");
 }finally{
  await browser?.close();

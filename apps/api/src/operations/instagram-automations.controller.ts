@@ -93,7 +93,7 @@ export class InstagramAutomationsController {
 
     const result = record(await this.zernio.request<unknown>(
       '/comment-automations/' + encodeURIComponent(id),
-      { method: 'PATCH', body: JSON.stringify({ isActive: false }) },
+      { method: 'PATCH', body: { isActive: false } },
       tenantId,
     ));
     if (record(result.automation).isActive !== false) {

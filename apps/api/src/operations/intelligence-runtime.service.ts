@@ -476,6 +476,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
           }
           if (type === 'payment.status') {
             variables.pagamento_status = 'indisponível';
+            variables.pagamento_link = '';
             const provider = canonicalPaymentProvider(config.provider);
             if (resolveEntitlements(tenant.entitlements).finance && (provider === 'STRIPE' || provider === 'INFINITEPAY')) {
               const payment = await tx.payment.findFirst({
@@ -484,9 +485,17 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                   provider: { in: paymentProviderAliases(provider) }, environment: 'PRODUCTION',
                 },
                 orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-                select: { status: true },
+                select: { status: true, invoiceUrl: true },
               });
               variables.pagamento_status = payment?.status || 'não encontrado';
+              if (payment?.status === 'PENDING' && payment.invoiceUrl) {
+                try {
+                  const url = new URL(payment.invoiceUrl);
+                  if (url.protocol === 'https:' && !url.username && !url.password) {
+                    variables.pagamento_link = url.href;
+                  }
+                } catch { /* An invalid saved URL must never be sent to the customer. */ }
+              }
               skills.push('payment.status');
             }
             step = followStep(step, step.options[0]!); continue;

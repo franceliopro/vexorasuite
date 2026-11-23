@@ -1,5 +1,6 @@
 import { calendarIsAvailable } from "./calendar-availability";
 import { GoogleAccessService } from "./google-access.service";
+import { StripeService } from "./stripe.service";
 import { canonicalPaymentProvider, paymentProviderAliases } from "./payment-providers";
 import { resolveEntitlements } from "../auth/entitlements";
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
@@ -50,7 +51,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
   private fallbackTicking = false;
   private running = false;
 
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService, @Optional() private readonly googleAccess?: GoogleAccessService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService, @Optional() private readonly googleAccess?: GoogleAccessService, @Optional() private readonly stripe?: StripeService) {}
 
   onModuleInit() {
     if (process.env.NODE_ENV === 'test') return;
@@ -495,6 +496,24 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                     variables.pagamento_link = url.href;
                   }
                 } catch { /* An invalid saved URL must never be sent to the customer. */ }
+              }
+              if (provider === 'STRIPE' && config.createHostedLink === 'true' && this.stripe &&
+                  !variables.pagamento_link && (!payment || payment.status === 'PENDING')) {
+                const pending = await tx.payment.findFirst({
+                  where: {
+                    tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
+                    provider: { in: paymentProviderAliases('STRIPE') }, status: 'PENDING', externalId: null,
+                  },
+                  orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+                  select: { id: true },
+                });
+                if (pending) {
+                  const checkout = await this.stripe.createHostedCheckout(channel.tenantId, { paymentId: pending.id }, 'LIVE').catch(() => null);
+                  if (checkout?.environment === 'LIVE') {
+                    variables.pagamento_link = checkout.url;
+                    variables.pagamento_status = 'PENDING';
+                  }
+                }
               }
               skills.push('payment.status');
             }

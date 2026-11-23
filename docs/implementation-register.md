@@ -1,6 +1,5 @@
 # Registro consolidado de implementação
 
-> **Registro histórico.** A fonte canônica de estado é `docs/implementation-status.md`. Uma seção marcada como “entregue” aqui pode ter sido substituída por decisão posterior; é o caso da Home de apresentação e do criador de sites com IA.
 Fontes consultadas: histórico acessível das conversas Auditar e integrar chatbot Véxora (01a17e53-3451-7200-8d42-75c478349ff7 e 01a17bc4-f7e4-7033-8d95-13c71de9af3b), esta conversa, 22 documentos em docs/ e issues abertas #17, #30, #32, #34, #35, #36 e #37.
 
 Este registro substitui checklists antigos como fonte de estado, sem apagar os documentos históricos. Um documento antigo pode descrever uma limitação que já foi resolvida em commits posteriores.
@@ -32,7 +31,8 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Testes de isolamento, políticas de senha, acesso por URL e criação concorrente na CI.
 
 ## Entregue no PR #180: Home de apresentação
-- Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
+
+> **Removida posteriormente.** A apresentação com papel de parede foi retirada a pedido do produto; a inicial é a Visão geral e o logo leva para ela. O conteúdo abaixo é histórico.- Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
 - Imagem e cor de fundo independentes para desktop/celular; logo pequeno centralizado por padrão.
 - Ajustar, preencher, centralizar, estender, ampliar e lado a lado; prévia, aplicação, edição com clique duplo/toque duplo e exclusão.
 - Armazenamento privado por empresa, validação de imagem e controle de revisões concorrentes.

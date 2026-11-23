@@ -375,7 +375,7 @@ test("o avatar do cabeçalho tem tamanho próprio e o header alinha os blocos", 
   assert.ok(workspace.includes('data-testid="thread-mobile-actions" className="hidden items-center gap-2 ib-narrow:flex"'));
   assert.ok(workspace.includes('bg-white text-blue-800'), "badge ativo das filas com bolinha branca");
   assert.ok(workspace.includes('bg-blue-100 text-blue-800 ring-1 ring-blue-600'), "badge inativo das filas mantém o contraste");
-  assert.ok(workspace.includes('data-testid="thread-finalize-button" aria-label="Finalizar atendimento" className="grid size-8 place-items-center rounded-lg bg-blue-600 text-blue-900'), "Finalizar com ícone claro sobre azul");
+  assert.ok(workspace.includes('data-testid="thread-finalize-button" aria-label="Finalizar atendimento" className="grid size-8 place-items-center rounded-lg bg-blue-600 text-white'), "Finalizar com ícone claro sobre azul");
   for (const hook of ['data-testid="thread-heading"', 'aria-controls="thread-header-actions"', 'id="thread-header-actions"', 'data-testid="thread-primary-actions"', 'data-testid="thread-header-actions"', 'data-testid="thread-mobile-actions"']) {
     assert.ok(workspace.includes(hook), `o cabeçalho deve manter ${hook}`);
   }
@@ -465,7 +465,7 @@ test("o rodapé da lista usa utilities literais e filtra sem tocar no backend", 
     "grid max-h-96 w-80 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-zinc-100 p-2.5 shadow-xl",
     "grid grid-cols-2 gap-2",
     "w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-slate-950",
-    "inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-2 text-xs font-bold text-blue-900 transition-colors hover:bg-blue-700",
+    "inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-2 text-xs font-bold text-white transition-colors hover:bg-blue-700",
   ]) {
     assert.ok(values.includes(utility), `falta a utility ${utility} no rodapé da lista`);
   }

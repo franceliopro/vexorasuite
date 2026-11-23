@@ -109,7 +109,7 @@ export class OverviewController {
      select:{subject:true,channel:true,department:{select:{name:true}}},
    }), [] as TopicRow[]),
    optional(() => this.prisma.conversation.count({where:{...scope,status:{in:DONE_STATUSES},handlingMode:'BOT' as const}}), 0),
-   optional(() => this.prisma.payment.findMany({where:{tenantId,status:{in:['RECEIVED','CONFIRMED']}},select:{amount:true}}), [] as Array<{amount:unknown}>),
+   optional(() => this.prisma.payment.findMany({where:{tenantId,status:{in:['RECEIVED','CONFIRMED']},createdAt:{gte:monthAgo}},select:{amount:true}}), [] as Array<{amount:unknown}>),
    optional(() => this.prisma.conversation.findMany({
      where:{...scope,createdAt:{gte:monthAgo}},
      orderBy:{createdAt:'desc'},
@@ -176,11 +176,12 @@ const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&type
     };
   });
 
+  const localHour = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hourCycle: 'h23' });
   const hourlyValues = Array<number>(24).fill(0);
   const previousBuckets = Array<number>(24).fill(0);
   for (const row of hourRows) {
     const createdAt = new Date(row.createdAt);
-    const hour = createdAt.getUTCHours();
+    const hour = Number(localHour.format(createdAt));
     if (createdAt >= dayAgo) hourlyValues[hour] = (hourlyValues[hour] || 0) + 1;
     else previousBuckets[hour] = (previousBuckets[hour] || 0) + 1;
   }
@@ -240,7 +241,7 @@ const socialUsernameOf=(contact:any):string=>{const meta=contact?.metadata&&type
    completedConversations,
    contacts,
    contactsNewWeek,
-   activeAgents:agents.filter((a:any)=>a.enabled===true).length,
+   activeAgents:agents.filter((a:any)=>a.enabled===true && Array.isArray(a.bindings?.inboxes) && a.bindings.inboxes.length>0).length,
    recent:recent.map((item:any) => ({ id: item.id, status: item.status, updatedAt: item.updatedAt, createdAt: item.createdAt, handlingMode: item.handlingMode, channel: channelLabel(item.channel), contact: { name: displayContactName(item.contact?.name, item.contact?.metadata), id: item.contact?.id || null, phone: item.contact?.phone || null, handle: socialUsernameOf(item.contact) } })),
    scope:admin?'tenant':'assigned_and_team',
    updatedAt:new Date().toISOString(),

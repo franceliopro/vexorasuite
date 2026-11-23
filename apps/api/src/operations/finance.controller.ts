@@ -3,6 +3,8 @@ import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { AsaasService } from "./asaas.service";
+import { PaymentRecordsService } from "./payment-records.service";
+import { canonicalPaymentProvider, paymentProviderAliases } from "./payment-providers";
 
 const PAID = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAID"]);
 const EXCLUDED = new Set(["REFUNDED", "CANCELLED", "DELETED"]);
@@ -10,7 +12,11 @@ const money = (value: unknown) => Number(value || 0);
 @Controller("finance")
 @UseGuards(AuthGuard)
 export class FinanceController {
-  constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly asaas: AsaasService,
+    private readonly payments: PaymentRecordsService,
+  ) {}
 
   @Get("executive")
   async executive(@Req() req:AuthenticatedRequest,@Query("months") raw?:string,@Query("from") from?:string,@Query("to") to?:string,@Query("all") all?:string){
@@ -55,8 +61,15 @@ export class FinanceController {
   }
 
   @Get("dashboard")
-  async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string, @Query("from") start?: string, @Query("to") end?: string, @Query("all") all?: string) {
+  async dashboard(@Req() req: AuthenticatedRequest, @Query("months") period?: string, @Query("from") start?: string, @Query("to") end?: string, @Query("all") all?: string, @Query("provider") providerRaw?: string) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    const requestedProvider = providerRaw || "ASAAS";
+    let providerFilter: { in: string[] } | undefined;
+    if (requestedProvider.toLowerCase() !== "all") {
+      const canonical = canonicalPaymentProvider(requestedProvider);
+      if (!canonical) throw new ForbiddenException("Provedor financeiro inválido.");
+      providerFilter = { in: paymentProviderAliases(canonical) };
+    }
     const months = [1, 2, 3, 6, 12].includes(Number(period)) ? Number(period) : 1;
     const now = new Date();
     const validDate = (s: string | undefined) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
@@ -66,7 +79,7 @@ export class FinanceController {
     if (all !== "true" && until.getTime() - from.getTime() > 366 * 86400000) throw new ForbiddenException("Selecione um intervalo de até 366 dias.");
     const bucketCount = all === "true" ? Math.max(1, now.getUTCFullYear() - 2000 + 1) : start ? Math.min(13, (until.getUTCFullYear() - from.getUTCFullYear()) * 12 + until.getUTCMonth() - from.getUTCMonth() + 1) : months;
     const payments = await this.prisma.payment.findMany({
-      where: { tenantId: req.user.tenantId, createdAt: { gte: from, lte: until }, provider: "ASAAS" },
+      where: { tenantId: req.user.tenantId, createdAt: { gte: from, lte: until }, ...(providerFilter ? { provider: providerFilter } : {}) },
       select: { id: true, amount: true, status: true, environment: true, createdAt: true, contactId: true },
       orderBy: { createdAt: "desc" },
       take: 10000,
@@ -128,5 +141,14 @@ export class FinanceController {
   createSubscription(@Req() req: AuthenticatedRequest, @Body() body: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; billingType?: unknown }) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
     return this.asaas.createSubscription(req.user.tenantId, { ...(body || {}), userId: req.user.sub });
+  }
+
+  /** Registro local para Stripe/InfinitePay. Asaas continua no fluxo existente. */
+  @Post("payments")
+  createPaymentRecord(@Req() req: AuthenticatedRequest, @Body() body: {
+    provider?: unknown; contactId?: unknown; conversationId?: unknown; amount?: unknown; description?: unknown;
+  }) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.payments.create(req.user.tenantId, req.user.sub, body || {});
   }
 }

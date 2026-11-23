@@ -67,7 +67,14 @@ export function isAllowedCorsOrigin(requestOrigin: string | undefined, allowedOr
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
   // The web proxy accepts up to 22 MiB, including the base64 overhead of audio and attachments.
-  app.useBodyParser("json", { limit: "22mb" });
+  // Stripe requires the exact bytes received to verify its HMAC. Keep a copy before
+  // any JSON parsing/serialization so the webhook never signs a re-serialized payload.
+  app.useBodyParser("json", {
+    limit: "22mb",
+    verify: (request: any, _response: any, buffer: Buffer) => {
+      request.rawBody = Buffer.from(buffer);
+    },
+  } as any);
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new GlobalExceptionFilter());
   // Behind Dokploy/Traefik the real client address comes in X-Forwarded-For. Without this the

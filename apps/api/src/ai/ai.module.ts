@@ -13,6 +13,7 @@ import { AssistantAutomationService } from "./assistant-automation.service";
 import { AssistantAutomationController } from "./assistant-automation.controller";
 import { ReportsController } from "../operations/reports.controller";
 import { FinanceController } from "../operations/finance.controller";
+import { PaymentRecordsService } from "../operations/payment-records.service";
 import { AsaasService } from "../operations/asaas.service";
 import { ReportExportService } from "./report-export.service";
 import { ReportExportController } from "./report-export.controller";
@@ -31,6 +32,6 @@ import { PublicDesignApprovalsController } from "./public-design-approvals.contr
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 import { WahaService } from "../operations/waha.service";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, ReportExportService, AiService, GoogleCalendarController, WahaService], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, PaymentRecordsService, ReportExportService, AiService, GoogleCalendarController, WahaService], exports: [AiService] })
 export class AiModule {}
 

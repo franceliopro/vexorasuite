@@ -1,0 +1,56 @@
+name: Site Rastreabem
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/rastreabem/**"
+      - ".github/workflows/site-rastreabem.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/rastreabem/**"
+      - ".github/workflows/site-rastreabem.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-rastreabem-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and type-check site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sites/rastreabem
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Build static site
+        run: pnpm build
+
+      - name: Verify static output
+        run: test -f out/index.html && test -f out/rastreamento/index.html && test -f out/gestao-de-frotas/index.html && test -f out/rastreacard/index.html && test -f out/lp-info/index.html && test -f out/politica-de-privacidade/index.html && test -f out/termos-e-condicoes/index.html

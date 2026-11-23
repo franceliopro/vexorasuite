@@ -74,6 +74,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   if (!response.ok) throw new Error(data.message || "Não foi possível salvar a ficha agora. Tente novamente; se o problema continuar, avise a administração.");
   return data as T;
 }
+const profileAction = "inline-flex min-h-8 items-center rounded-md border border-line bg-surface px-2.5 text-xs font-semibold text-ink hover:bg-hover";
+
 export function ContactProfilePanel({
   contact,
   conversationId,
@@ -86,6 +88,8 @@ export function ContactProfilePanel({
   hideToggle = false,
   bare = false,
   statusPill,
+  onOpenAppointments,
+  onOpenBilling,
 }: {
   contact: ContactProfileData;
   conversationId: string;
@@ -98,6 +102,8 @@ export function ContactProfilePanel({
   hideToggle?: boolean;
   bare?: boolean;
   statusPill?: ReactNode;
+  onOpenAppointments?: () => void;
+  onOpenBilling?: () => void;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
@@ -525,85 +531,17 @@ export function ContactProfilePanel({
           <div className={"grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4" + (bare ? " flex-none overflow-visible pt-3.5" : "")}>
             {tab === "dados" ? (
               <>
-                                <div className="grid gap-4 lg:grid-cols-2">
-                                  <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
-                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><UserRound size={12} /> Campos personalizados</strong>
-                  {fieldDefinitions.map((field) => (
-                    <label className="grid max-w-lg grid-cols-2 items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300" key={field.id}>
-                      <span>{field.name}</span>
-                      {field.type === "SELECT" ? (
-                        <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                          value={String(fields[field.key] ?? "")}
-                          onChange={(e) =>
-                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
-                          }
-                        >
-                          <option value="">Selecione...</option>
-                          {field.options.map((option) => (
-                            <option key={option}>{option}</option>
-                          ))}
-                        </select>
-                      ) : field.type === "CHECKBOX" ? (
-                        <input className="h-4 w-4 flex-none accent-blue-600"
-                          type="checkbox"
-                          checked={Boolean(fields[field.key])}
-                          onChange={(e) =>
-                            setFields((current) => ({ ...current, [field.key]: e.target.checked }))
-                          }
-                        />
-                      ) : (
-                        <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                          type={
-                            field.type === "NUMBER"
-                              ? "number"
-                              : field.type === "DATE"
-                                ? "date"
-                                : "text"
-                          }
-                          value={String(fields[field.key] ?? "")}
-                          onChange={(e) =>
-                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
-                          }
-                        />
-                      )}
-                    </label>
-                  ))}
-                  <form className="grid gap-2" onSubmit={createField}>
-                    <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                      value={fieldDraftName}
-                      onChange={(e) => setFieldDraftName(e.target.value)}
-                      placeholder="Criar novo campo"
-                      maxLength={80}
-                    />
-                    <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                      value={fieldDraftType}
-                      onChange={(e) => setFieldDraftType(e.target.value as ProfileFieldDef["type"])}
-                    >
-                      <option value="TEXT">Texto</option>
-                      <option value="NUMBER">Número</option>
-                      <option value="DATE">Data</option>
-                      <option value="SELECT">Lista de opções</option>
-                      <option value="CHECKBOX">Sim / não</option>
-                    </select>
-                    {fieldDraftType === "SELECT" ? (
-                      <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                        value={fieldDraftOptions}
-                        onChange={(e) => setFieldDraftOptions(e.target.value)}
-                        placeholder="Opções separadas por vírgula"
-                      />
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={
-                        !fieldDraftName.trim() ||
-                        (fieldDraftType === "SELECT" && !fieldDraftOptions.trim())
-                      }
-                    >
-                      <Plus size={13} /> Criar campo
-                    </button>
-                  </form>
-                  <small className="text-xs text-slate-600 dark:text-slate-300">Os valores ficam na ficha do contato e podem ser usados por automações e processos.</small>
-                </section>
+                                {onOpenAppointments || onOpenBilling ? (
+                  <section className="grid gap-2 border-b border-line px-3 pb-4" aria-label="Ações do contato">
+                    <h3 className="flex items-center gap-1.5 text-xs font-bold text-ink"><CalendarDays size={12} aria-hidden="true" /> Ações do contato</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {onOpenAppointments ? <button type="button" className={profileAction} onClick={onOpenAppointments}>Agendamentos</button> : null}
+                      {onOpenBilling ? <button type="button" className={profileAction} onClick={onOpenBilling}>Cobranças</button> : null}
+                    </div>
+                  </section>
+                ) : null}
+                <div className="grid gap-4">
+                                  
                 {asaas?.customerId ? (
                   <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
                     <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><UserRound size={12} /> Cadastro financeiro</strong>
@@ -699,14 +637,86 @@ export function ContactProfilePanel({
                      </div>
                    )}
                  </section>
-                 <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
-                   <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><CalendarDays size={12} /> Calendário e cobrança</strong>
-                   <div className="grid justify-items-center gap-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-3 py-5 text-center">
-                     <b className="text-sm">Nada agendado ainda</b>
-                     <p className="m-0 max-w-xs text-xs text-slate-600 dark:text-slate-300">Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
-                   </div>
-                 </section>
+                 
                 </div>
+              <section className="grid min-w-0 gap-2 border-t border-line pt-3 px-3 pb-4">
+                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><UserRound size={12} /> Campos personalizados</strong>
+                  {fieldDefinitions.map((field) => (
+                    <label className="grid max-w-lg grid-cols-2 items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300" key={field.id}>
+                      <span>{field.name}</span>
+                      {field.type === "SELECT" ? (
+                        <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                          value={String(fields[field.key] ?? "")}
+                          onChange={(e) =>
+                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
+                          }
+                        >
+                          <option value="">Selecione...</option>
+                          {field.options.map((option) => (
+                            <option key={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field.type === "CHECKBOX" ? (
+                        <input className="h-4 w-4 flex-none accent-blue-600"
+                          type="checkbox"
+                          checked={Boolean(fields[field.key])}
+                          onChange={(e) =>
+                            setFields((current) => ({ ...current, [field.key]: e.target.checked }))
+                          }
+                        />
+                      ) : (
+                        <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                          type={
+                            field.type === "NUMBER"
+                              ? "number"
+                              : field.type === "DATE"
+                                ? "date"
+                                : "text"
+                          }
+                          value={String(fields[field.key] ?? "")}
+                          onChange={(e) =>
+                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
+                          }
+                        />
+                      )}
+                    </label>
+                  ))}
+                  <form className="grid gap-2" onSubmit={createField}>
+                    <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                      value={fieldDraftName}
+                      onChange={(e) => setFieldDraftName(e.target.value)}
+                      placeholder="Criar novo campo"
+                      maxLength={80}
+                    />
+                    <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                      value={fieldDraftType}
+                      onChange={(e) => setFieldDraftType(e.target.value as ProfileFieldDef["type"])}
+                    >
+                      <option value="TEXT">Texto</option>
+                      <option value="NUMBER">Número</option>
+                      <option value="DATE">Data</option>
+                      <option value="SELECT">Lista de opções</option>
+                      <option value="CHECKBOX">Sim / não</option>
+                    </select>
+                    {fieldDraftType === "SELECT" ? (
+                      <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                        value={fieldDraftOptions}
+                        onChange={(e) => setFieldDraftOptions(e.target.value)}
+                        placeholder="Opções separadas por vírgula"
+                      />
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={
+                        !fieldDraftName.trim() ||
+                        (fieldDraftType === "SELECT" && !fieldDraftOptions.trim())
+                      }
+                    >
+                      <Plus size={13} /> Criar campo
+                    </button>
+                  </form>
+                  <small className="text-xs text-slate-600 dark:text-slate-300">Os valores ficam na ficha do contato e podem ser usados por automações e processos.</small>
+                </section>
               </>
             ) : null}
             {tab === "notas" ? (

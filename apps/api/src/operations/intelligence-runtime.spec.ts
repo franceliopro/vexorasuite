@@ -15,6 +15,47 @@ function setup(overrides: Record<string,unknown> = {}) {
 }
 describe('Intelligence runtime',()=>{
  it.each([
+  { permission: true, finance: true, provider: 'STRIPE', status: 'PAID', expected: 'O pagamento foi confirmado.' },
+  { permission: true, finance: true, provider: 'INFINITEPAY', status: 'PENDING', expected: 'O pagamento ainda está pendente.' },
+  { permission: false, finance: true, provider: 'STRIPE', status: 'PAID', expected: 'Vou conferir.' },
+  { permission: true, finance: false, provider: 'INFINITEPAY', status: 'PAID', expected: 'Vou conferir.' },
+ ])('limits agent payment queries to enabled Finance access (%j)', async ({ permission, finance, provider, status, expected }) => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const originalOllamaOrigin = process.env.OLLAMA_BASE_URL;
+  process.env.OLLAMA_BASE_URL = 'http://localhost:11434';
+  try {
+   x.tx.auditLog.count = jest.fn().mockResolvedValue(0);
+   x.tx.payment = { findFirst: jest.fn().mockResolvedValue({ status }) };
+   x.tx.tenant.findUniqueOrThrow.mockResolvedValue({
+    name: 'Empresa', entitlements: { modules: finance ? ['FINANCE'] : ['AUTOMATION'], finance },
+    integrations: { intelligencePublished: x.published, assistant: { enabled: true, agents: [{
+     id: 'sales', enabled: true, bindings: { inboxes: ['channel'] }, llm: { provider: 'ollama', model: 'test' },
+     allowedActions: permission ? ['payment.status'] : [],
+    }] } },
+   });
+   const generate = jest.fn().mockResolvedValue({ model: 'test', usage: { totalTokens: 10 }, text: JSON.stringify({
+    reply: 'Vou conferir.', actions: [{ type: 'check_payment', provider }],
+   }) });
+   const service = new IntelligenceRuntimeService(x.prisma, x.events, x.waha, x.zernio, { generate } as any);
+   x.flow.steps.splice(1, 0, {
+    id: 'agent', kind: 'agent', title: 'Agente', message: '', options: [], config: JSON.stringify({ agentId: 'sales' }),
+   });
+   x.flow.steps[0].transitions.Suporte = 'agent';
+   x.inbound.content = '1';
+   await service.receive(x.channel, 'conversation', 'inbound');
+   expect(generate).toHaveBeenCalled();
+   expect(x.tx.payment.findFirst).toHaveBeenCalledTimes(permission && finance ? 1 : 0);
+   if (permission && finance) expect(x.tx.payment.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+    where: { tenantId: 'tenant', conversationId: 'conversation', contactId: 'contact', provider: { in: expect.arrayContaining([provider]) }, environment: 'PRODUCTION' },
+   }));
+   expect(x.tx.message.create).toHaveBeenCalledWith({ data: expect.objectContaining({ content: expected }) });
+  } finally {
+   if (originalOllamaOrigin === undefined) delete process.env.OLLAMA_BASE_URL;
+   else process.env.OLLAMA_BASE_URL = originalOllamaOrigin;
+  }
+ });
+
+ it.each([
   { provider: 'STRIPE', local: 'SANDBOX', confirmed: 'LIVE', url: 'https://checkout.stripe.com/example' },
   { provider: 'INFINITEPAY', local: 'PRODUCTION', confirmed: 'PRODUCTION', url: 'https://checkout.infinitepay.io/example' },
  ])('generates and renders the link for the latest scoped payment (%j)', async ({ provider, local, confirmed, url }) => {

@@ -39,8 +39,8 @@ export function InstagramCampaigns() {
   const [mediaStatus, setMediaStatus] = useState<"loading" | "ready" | "error">("loading");
   const [activating, setActivating] = useState<string | null>(null);
   const [activationError, setActivationError] = useState<{ id: string; message: string } | null>(null);
-  const [pausing, setPausing] = useState<string | null>(null);
-  const [pauseError, setPauseError] = useState<string | null>(null);
+  const [changingStatus, setChangingStatus] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<{ id: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
   const update = (field: keyof typeof emptyDraft, value: string) => {
@@ -96,23 +96,28 @@ export function InstagramCampaigns() {
     }
   }
 
-  async function pauseCampaign(id: string) {
-    if (pausing) return;
-    setPausing(id);
-    setPauseError(null);
+  async function changeCampaignStatus(id: string, active: boolean) {
+    if (changingStatus) return;
+    setChangingStatus(id);
+    setStatusError(null);
     try {
-      const response = await fetch("/api/backend/chatbot/instagram/campaigns/" + encodeURIComponent(id) + "/pause", { method: "POST" });
-      if (!response.ok) throw new Error("Falha ao pausar a campanha");
+      const response = await fetch("/api/backend/chatbot/instagram/campaigns/" + encodeURIComponent(id) + "/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active }),
+      });
       const result = await response.json();
-      if (result.active !== false) throw new Error("Pausa não confirmada");
+      if (!response.ok || result.active !== active) {
+        throw new Error(typeof result?.message === "string" ? result.message : "O Instagram não confirmou a mudança.");
+      }
       setData(current => current ? {
         ...current,
-        campaigns: current.campaigns.map(campaign => campaign.id === id ? { ...campaign, active: false } : campaign),
+        campaigns: current.campaigns.map(campaign => campaign.id === id ? { ...campaign, active } : campaign),
       } : current);
-    } catch {
-      setPauseError(id);
+    } catch (error) {
+      setStatusError({ id, message: error instanceof Error && error.name === "Error" ? error.message : "Não foi possível confirmar a mudança de status." });
     } finally {
-      setPausing(null);
+      setChangingStatus(null);
       setAttempt(value => value + 1);
     }
   }
@@ -219,10 +224,10 @@ export function InstagramCampaigns() {
         <div className="flex flex-wrap items-center justify-between gap-2"><strong>{campaign.name}</strong><span className="text-small text-ink-secondary">{campaign.active ? "Ativa" : "Pausada"}</span></div>
         <p className="text-small text-ink-secondary">{campaign.channelName} · {labels[campaign.trigger] || campaign.trigger}{campaign.postTitle ? " · " + campaign.postTitle : ""}</p>
         <p className="text-small">{campaign.keywords.length ? campaign.keywords.join(", ") : "Sem filtro de palavra-chave"} · {campaign.delaySeconds ? "Atraso de " + campaign.delaySeconds + " s" : "Resposta imediata"}</p>
-        {campaign.active ? <button type="button" disabled={pausing !== null} className="w-fit rounded-token-sm border border-line bg-surface px-3 py-2 font-semibold hover:bg-hover disabled:opacity-60" onClick={() => void pauseCampaign(campaign.id)}>
-          {pausing === campaign.id ? "Pausando…" : "Pausar campanha"}
-        </button> : null}
-        {pauseError === campaign.id && campaign.active ? <p role="alert">O Instagram não confirmou a pausa. Confira o status e tente novamente.</p> : null}
+        <button type="button" disabled={changingStatus !== null} className="w-fit rounded-token-sm border border-line bg-surface px-3 py-2 font-semibold hover:bg-hover disabled:opacity-60" onClick={() => void changeCampaignStatus(campaign.id, !campaign.active)}>
+          {changingStatus === campaign.id ? "Atualizando…" : campaign.active ? "Pausar campanha" : "Retomar campanha"}
+        </button>
+        {statusError?.id === campaign.id ? <p role="alert">{statusError.message}</p> : null}
         <dl className="flex flex-wrap gap-4 text-small">
           <div><dt>Enviadas</dt><dd>{campaign.stats.sent ?? "—"}</dd></div>
           <div><dt>Lidas</dt><dd>{campaign.stats.read ?? "—"}</dd></div>

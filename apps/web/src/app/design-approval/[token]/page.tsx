@@ -6,7 +6,7 @@ const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 r
 const secondaryDangerTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-red-600 shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
 const pageTw = "grid min-h-dvh place-items-center bg-surface-page p-4 text-ink";
 const cardTw = "grid w-full max-w-3xl justify-items-center gap-4 rounded-token-lg border border-line bg-surface p-4 text-ink shadow-token-lg sm:p-5";
-const headerTw = "grid w-full gap-1 rounded-token-sm px-4 py-5 text-white";
+const headerTw = "grid w-full gap-1 rounded-token-sm bg-blue-600 px-4 py-5 text-white";
 const slideTw = "grid gap-1.5 overflow-hidden rounded-token-sm border border-line bg-surface-2 p-1.5";
 const channelBaseTw = "flex cursor-pointer items-start gap-2 rounded-token-sm border px-3 py-2.5 text-body transition-colors";
 const channelOnTw = "border-blue-600 bg-blue-50 text-ink";
@@ -46,7 +46,10 @@ export default function DesignApprovalPage({ params }: { params: Promise<{ token
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data?.message || "Não foi possível aprovar.");
-      setDone(withPublish ? "Publicado com sucesso nas contas escolhidas! 🎉" : "Design aprovado! Ele espera por você em Marketing → Calendário editorial.");
+      const status = String(data?.status || "");
+      if (status === "PUBLISHED") setDone("Publicação confirmada nas contas escolhidas.");
+      else if (status === "PUBLISH_REQUESTED") setDone("Solicitação de publicação enviada. A confirmação da rede ainda não chegou; acompanhe em Marketing → Calendário editorial.");
+      else setDone("Design aprovado! Ele espera por você em Marketing → Calendário editorial.");
       setDecision("approve");
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível aprovar."); } finally { setBusy(false); }
   };
@@ -70,7 +73,7 @@ export default function DesignApprovalPage({ params }: { params: Promise<{ token
   return (
     <main className={pageTw}>
       <section className={cardTw}>
-        <header className={headerTw} style={{ background: `linear-gradient(135deg, ${payload.brand}, color-mix(in srgb, ${payload.brand} 55%, #000))` }}>
+        <header className={headerTw}>
           <small className="text-2xs font-bold uppercase tracking-wide">{payload.company || "Véxora Design"} · {payload.format === "STORIES" ? "Stories" : "Carrossel"} · {payload.slides} lâminas</small>
           <h1 className="text-h1 font-extrabold tracking-tight">{payload.title}</h1>
           {published && <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-2xs font-bold text-emerald-600">Já publicado</span>}

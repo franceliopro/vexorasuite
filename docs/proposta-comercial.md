@@ -27,7 +27,7 @@ Três ideias simples sustentam tudo:
 | **Marketing** | Criações com IA (artes, legendas, calendário de postagens), biblioteca de referências, publicação assistida, prévia antes de ir ao ar | Presença respeitável nas redes sem contratar social media |
 | **Financeiro (Asaas)** | Cobranças e inadimplência na mesma ficha do cliente, sincronização automática, régua de cobrança | Cobrar vira rotina, não confronto |
 | **Relatórios** | Painel executivo pronto para impressão: atendimento, equipe, IA, CRM/vendas, financeiro, canais e redes; exporta CSV com um clique e PDF pelo navegador | A reunião de resultados tem dados em vez de opinião |
-| **Sites (novo)** | Site completo montado por IA a partir da área de negócio (clínica, advocacia, imobiliária, estética, rastreamento, escola…): páginas, textos, galeria, imóveis, blog, formulários de captura e domínio próprio com DNS verificado | A empresa tem site profissional sem designer nem programador |
+| **Sites (novo)** | Site em Next.js/MDX versionado no GitHub, revisado e aprovado no HUB antes de qualquer publicação; o painel mostra o status real de deploy, domínio e DNS, que dependem de credenciais e evidência no ar | A empresa acompanha a entrega por etapas verificáveis, sem afirmar publicação antes da confirmação |
 | **Planos e preços** | Catálogo visível para o cliente com todos os módulos e limites de cada plano, MRR do lado do cliente para a administração Véxora | Você vende o que combinou; o cliente sabe o que comprou |
 
 ## 3. Para quem a Véxora atende — e por que cada porte ganha
@@ -80,7 +80,7 @@ Três ideias simples sustentam tudo:
 - **Isolamento real entre empresas**: auditado em CI — nenhuma credencial, ficha ou conhecimento atravessa a fronteira de um tenant para outro.
 - **IA auditada**: cada ação da IA tem trilha com quem pediu, o que decidiu e o que foi entregue.
 - **Relatórios prontos**: o diretor imprime a reunião do mês em PDF direto do navegador, com um clique.
-- **Sites com IA publicada**: de uma descrição em texto para site no ar, com formulário de captura de leads, domínio próprio e DNS verificável pelo painel.
+- **Sites com HUB de entrega**: o pedido gera um preview versionado, a aprovação registra a versão e o histórico, e a publicação só é marcada como concluída quando houver evidência no ar.
 - **Publicação assistida**: Marketing cria, pré-visualiza e só publica com a sua aprovação.
 - **Conexão desacoplada**: conectar um WhatsApp ou Instagram não liga atendimento sozinho — você decide o que aquela inbox alimenta (atendimento, IA, chatbot, site).
 

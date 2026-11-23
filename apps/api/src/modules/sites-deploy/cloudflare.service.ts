@@ -12,6 +12,7 @@ export class CloudflareService {
   private readonly token: string;
   private readonly accountId: string;
   private readonly baseUrl = 'https://api.cloudflare.com/client/v4';
+  private readonly requestTimeoutMs = 20_000;
 
   constructor() {
     this.token = process.env.CLOUDFLARE_API_TOKEN ?? '';
@@ -42,7 +43,7 @@ export class CloudflareService {
     if (body) {
       init.body = isForm ? body : JSON.stringify(body);
     }
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(this.requestTimeoutMs) });
     const json: any = await res.json().catch(() => ({}));
     if (!res.ok || json?.success === false) {
       const msg = json?.errors?.map((e: any) => e.message).join('; ') || res.statusText;
@@ -93,6 +94,7 @@ export class CloudflareService {
       method: 'POST',
       headers: this.headers(),
       body: form,
+      signal: AbortSignal.timeout(this.requestTimeoutMs),
     });
     const json: any = await res.json().catch(() => ({}));
     if (!res.ok || json?.success === false) {

@@ -1152,7 +1152,7 @@ const REPORTS_CSS = `
    aqui só permanecem as regras de papel, com seletores data-print. */
 @media print{
   @page{size:A4;margin:13mm 12mm}
-  html,body{height:auto !important;overflow:visible !important;background:#fff !important}
+  html,body{height:auto !important;overflow:visible !important;background:Canvas !important;color:CanvasText !important}
   aside,header,nav,.mobile-sidebar-backdrop,.operation-notices,.workspace-alerts,.sidebar,.topbar,.persistent-module-tabs,.side-nav,.ai-assistant-panel,.ai-assistant-trigger,.crm-workspace > .crm-heading,.crm-workspace > .crm-command-bar,.crm-workspace > .settings-feedback,.crm-workspace > .crm-form,[data-print~="no-print"]{display:none !important}
   .suite-app{display:block !important;min-height:0 !important;height:auto !important}
   .main-area{display:block !important;height:auto !important;overflow:visible !important;margin:0 !important;padding:0 !important}
@@ -1163,16 +1163,16 @@ const REPORTS_CSS = `
     display:block;
     --s1:#ffffff;--s2:#f6f7f5;--s3:#eaece7;--hover:#eaece7;
     --tx:#14171a;--tx2:#454f47;--ln:#D8DEE9;--ln2:#c3c8bd;
-    --primary:#4338CA;--primary-ink:#0B2740;--primary-contrast:#ffffff;--primary-soft:#E7EFFC;
+    --primary:#4338CA;--primary-ink:#0B2740;--primary-contrast:Canvas;--primary-soft:#E7EFFC;
     --ok:#4338CA;--bad:#B4402E;--warn:#9A5B09;--accent2:#2C7BC4;--ln-soft:#D8DEE9;
-    background:#fff !important;color:#14171a !important;
+    background:Canvas !important;color:CanvasText !important;
     font-size:10.5pt;gap:8pt !important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
   }
   [data-print~="print-cover"]{display:flex !important;align-items:center;gap:12pt;padding-bottom:10pt;margin-bottom:12pt;border-bottom:2.5pt solid #4338CA;break-after:avoid}
   [data-print~="panel"],[data-print~="panels"]{display:block !important}
   [data-print~="panel"] > * + *{margin-top:8pt}
-  [data-print~="card"]{box-shadow:none !important;border:1pt solid #D8DEE9 !important;background:#fff !important;break-inside:avoid;page-break-inside:avoid;padding:9pt 11pt !important}
+  [data-print~="card"]{box-shadow:none !important;border:1pt solid #D8DEE9 !important;background:Canvas !important;break-inside:avoid;page-break-inside:avoid;padding:9pt 11pt !important}
   [data-print~="card-head"]{margin-bottom:6pt}
   [data-print~="card-title"]{font-size:10.5pt}
   [data-print~="card-hint"]{display:none}

@@ -15,7 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsService } from './events.service';
 import { WahaService } from './waha.service';
 import { ZernioService } from './zernio.service';
-import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables, isPreferredName } from '../ai/flow-runtime';
+import { RuntimeFlow, RuntimeStep, normalize, renderStep, selectedOption, settings, interpolateVariables, isPreferredName, matchesChatbotTrigger } from '../ai/flow-runtime';
 import { JobLeaseService } from '../common/job-lease.service';
 import { schedulersEnabled } from '../common/scheduler-mode';
 import { isSchedulerWorkerAlive, INTELLIGENCE_LEASE } from '../common/worker-health';
@@ -249,7 +249,14 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const findStep = (id: string | undefined) => id === '__start__' ? flow.steps.find(s => s.id === 'menu') || flow.steps[0] : flow.steps.find(s => s.id === id);
       const active = previous.flow === 'INTELLIGENCE' && previous.revision === published.revision && (previous.scopeKey||'default')===scopeKey;
       // dm = conversa direta (grupo já foi descartado acima) — vale para WAHA e ZERNIO.
-      const triggerMatched = Array.isArray(flow.triggers) && flow.triggers.some(t => t.kind === 'message' || t.kind === 'dm' || (t.kind === 'keyword' && normalize(inbound.content) === normalize(t.keyword || '')));
+      const firstInbound = !active && flow.triggers?.some(trigger => trigger?.kind === 'first_message')
+        ? await tx.message.findFirst({
+          where: { tenantId: channel.tenantId, conversationId, direction: 'INBOUND' },
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+          select: { id: true },
+        })
+        : null;
+      const triggerMatched = matchesChatbotTrigger(flow.triggers, inbound.content, true, firstInbound?.id === inbound.id);
       if (!active && !triggerMatched) { this.logger.warn(`Gatilho do fluxo "${flow.name}" não correspondeu à mensagem ${inbound.id} (canal ${channel.id}, provider ${channel.provider})`); return { messages: [], handled: true, handoff: false }; }
       let step: RuntimeStep | undefined = flow.steps.find(s => s.id === (active ? previous.stepId : 'menu')) || flow.steps[0];
       if (!step) return null;

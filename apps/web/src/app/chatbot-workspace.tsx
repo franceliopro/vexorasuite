@@ -434,6 +434,9 @@ export function ChatbotWorkspace({tenantId}:{tenantId:string}){
  const [moveMode,setMoveMode]=useState(true);
  const [studioPanel,setStudioPanel]=useState<"nodes"|"settings"|"test">("settings");
  const [leftCollapsed,setLeftCollapsed]=useState(true);
+ useEffect(()=>{
+  setLeftCollapsed(!window.matchMedia("(min-width: 1280px)").matches);
+ },[]);
  const [rightCollapsed,setRightCollapsed]=useState(false);
  const [autoHidePanels,setAutoHidePanels]=useState(false);
  const [showGrid,setShowGrid]=useState(true);
@@ -939,7 +942,7 @@ function dictateAiRequest(){
  }
  function moveNode(id:string,x:number,y:number){setFlow(f=>({...f,steps:f.steps.map(step=>step.id===id?{...step,position:{x,y}}:step)}));}
  function save(snapshot=flow,automatic=false){if(!ready||saveInFlight.current)return Promise.resolve(false);saveInFlight.current=true;setSavingRemote(true);const task=(async()=>{try{const response=await fetch("/api/backend/chatbot/draft",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({draft:snapshot}),signal:AbortSignal.timeout(15000)});if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(typeof error.message==="string"?error.message:"Não foi possível salvar. Sua cópia de recuperação foi mantida neste navegador.")}writeTenantCache(tenantId,"chatbot-draft",snapshot);setLastSaved(JSON.stringify(snapshot));setSavedAt(new Date().toLocaleTimeString("pt-BR"));if(!automatic)setNotice("Fluxo salvo no servidor. Publicar aplica esta versão aos canais.");return true}catch(error){setNotice(error instanceof Error?error.message:"Falha ao salvar o fluxo. Tente novamente.");return false}finally{saveInFlight.current=false;setSavingRemote(false)}})();activeSave.current=task;return task}
- function newFlow(){if(flow.steps.length&&!window.confirm("Substituir o rascunho atual por um fluxo vazio? A versão publicada continuará ativa até uma nova publicação."))return;setFlow({...structuredClone(emptyFlow),welcome:"",askPreferredName:false,triggers:[{kind:"first_message"}]});setLibraryId("");setSelected("");setEditorOpen(false);setLeftCollapsed(true);setPreview([]);setSimulationStep(null);setInlineMessage(null);setInlineCondition(null);setInlineTriggerOpen(false);setOptionEditor(null);setNotice("Escolha o que inicia o fluxo e adicione a primeira ação.")}
+ function newFlow(){if(flow.steps.length&&!window.confirm("Substituir o rascunho atual por um fluxo vazio? A versão publicada continuará ativa até uma nova publicação."))return;setFlow({...structuredClone(emptyFlow),welcome:"",askPreferredName:false,triggers:[{kind:"first_message"}]});setLibraryId("");setSelected("");setEditorOpen(false);setPreview([]);setSimulationStep(null);setInlineMessage(null);setInlineCondition(null);setInlineTriggerOpen(false);setOptionEditor(null);setNotice("Escolha o que inicia o fluxo e adicione a primeira ação.")}
  function editCanvasNode(id:string){
   setBlockMenu(null);
   if(id==="__trigger__"){setInlineTriggerOpen(true);return;}

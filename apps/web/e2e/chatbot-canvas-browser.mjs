@@ -18,6 +18,7 @@ let browser;
 let preservedDraft=false;
 let publishedFlowId=null;
 let conversationContinued=false;
+let teamUpdated=false;
 try{
  for(let attempt=0;attempt<60;attempt++){
   try{if((await fetch(origin)).ok)break;}catch{}
@@ -53,7 +54,10 @@ try{
     ...(conversationContinued?[{id:"execution-2",createdAt:"2026-11-22T15:00:05.000Z",details:{revision:"r1",scopeKey:"default",conversationId:"conversation-1",visitedSteps:[{id:"left",title:"Bloco à esquerda"},{id:"right",title:"Bloco à direita"}],visitedEdges:[{from:"left",option:"Outra saída",to:"right"}],waitingStepId:null}}]:[]),
     {id:"execution-1",createdAt:"2026-11-22T15:00:00.000Z",details:{revision:"r1",scopeKey:"default",conversationId:"conversation-1",visitedSteps:[{id:"left",title:"Bloco à esquerda"},{id:"right",title:"Bloco à direita"}],visitedEdges:[{from:"left",option:"Continuar",to:"right"}],waitingStepId:"right"}},
    ]},
-   "/chatbot/runtime/destinations":{departments:[],agents:[]},
+   "/chatbot/runtime/destinations":teamUpdated?{
+    departments:[{id:"department-qa",key:"qa-new",name:"Setor recém-criado",members:["agent-qa"]}],
+    agents:[{id:"agent-qa",name:"Atendente recém-criado"}],
+   }:{departments:[],agents:[]},
    "/crm/pipelines":[],
    "/assistant/config":{agents:[]},
    "/channels":[{id:"test-channel",name:"WhatsApp de teste",provider:"WAHA"}],
@@ -81,6 +85,16 @@ try{
  await expect(page.getByRole("button",{name:"Definir variável",exact:true})).toBeHidden();
  await page.getByText("Mais blocos",{exact:true}).click();
  await expect(page.getByRole("button",{name:"Definir variável",exact:true})).toBeVisible();
+ await page.locator("summary").filter({hasText:/^Departamentos$/}).click();
+ await page.locator("summary").filter({hasText:/^Atendentes$/}).click();
+ const newDepartment=page.getByRole("button",{name:"Setor recém-criado",exact:true});
+ const newAttendant=page.getByRole("button",{name:"Atendente recém-criado",exact:true});
+ await expect(newDepartment).toHaveCount(0);
+ await expect(newAttendant).toHaveCount(0);
+ teamUpdated=true;
+ await page.evaluate(()=>window.dispatchEvent(new Event("vexora:team-updated")));
+ await expect(newDepartment).toBeVisible();
+ await expect(newAttendant).toBeVisible();
  await libraryToggle.click();
  await expect(libraryToggle).toHaveAttribute("aria-expanded","false");
  await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);

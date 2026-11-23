@@ -14,6 +14,33 @@ function setup(overrides: Record<string,unknown> = {}) {
  return {service:new IntelligenceRuntimeService(prisma,events,waha,zernio,{generate:jest.fn()} as any),tx,prisma,events,waha,zernio,channel:{id:'channel',tenantId:'tenant',provider:'WAHA'} as any,conversation,inbound,published,flow};
 }
 describe('Intelligence runtime',()=>{
+ it.each(['2','Financeiro'])('routes the WhatsApp menu response %s to the same destination', async response => {
+  const x = setup();
+  x.flow.steps = [
+   { id: 'menu', kind: 'condition', title: 'Canal', message: '', config: '{"variable":"canal_atendimento","value":"whatsapp"}',
+     options: ['Sim','Não'], transitions: { Sim: 'sectors', Não: 'web' } },
+   { id: 'sectors', kind: 'buttons', title: 'Setor', message: 'Com quem deseja falar?',
+     options: ['Atendimento','Financeiro','Comercial'], transitions: { Atendimento: 'service', Financeiro: 'finance', Comercial: 'sales' } },
+   { id: 'service', kind: 'text', title: 'Atendimento', message: 'Resposta do atendimento.', options: [] },
+   { id: 'finance', kind: 'text', title: 'Financeiro', message: 'Resposta do financeiro.', options: [] },
+   { id: 'sales', kind: 'text', title: 'Comercial', message: 'Resposta do comercial.', options: [] },
+   { id: 'web', kind: 'text', title: 'Web', message: 'Resposta da página pública.', options: [] },
+  ];
+
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.anything(), expect.any(String),
+   'Com quem deseja falar?\n\n1. Atendimento\n2. Financeiro\n3. Comercial');
+  x.conversation.botState = x.tx.conversation.update.mock.calls[0][0].data.botState;
+  expect(x.conversation.botState).toMatchObject({ stepId: 'sectors', variables: { canal_atendimento: 'whatsapp' } });
+
+  x.inbound.id = 'reply';
+  x.inbound.content = response;
+  x.waha.sendText.mockClear();
+  await x.service.receive(x.channel, 'conversation', 'reply');
+  expect(x.waha.sendText).toHaveBeenCalledTimes(1);
+  expect(x.waha.sendText).toHaveBeenCalledWith(expect.anything(), expect.any(String), 'Resposta do financeiro.');
+ });
+
  it.each([
   { permission: true, finance: true, provider: 'STRIPE', status: 'PAID', expected: 'O pagamento foi confirmado.' },
   { permission: true, finance: true, provider: 'INFINITEPAY', status: 'PENDING', expected: 'O pagamento ainda está pendente.' },

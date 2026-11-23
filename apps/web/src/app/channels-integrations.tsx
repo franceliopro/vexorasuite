@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AsaasSettings } from "./asaas-settings";
+import { PaymentProvidersSettings } from "./payment-providers-settings";
 import { VexoraDialog } from "./vexora-dialog";
 import {
   AlertCircle,
@@ -312,6 +313,7 @@ export function ChannelsIntegrations(){
   </div>
   <EmailMailboxSettings /><GmailOAuthMailboxSettings />
   <AsaasSettings canConfigureAsaas={true} />
+  <PaymentProvidersSettings canConfigure={true} />
   <div className={sectionTw}><div className={sectionHeadingTw}><span className={providerMarkTw}><GoogleGlyph size={19}/></span><div><h2 className={sectionHeadingTitleTw}>Google</h2><p>Agenda e Drive ficam disponíveis nesta mesma área de conexões.</p></div><span className={metricTw}>{googleConnections.length}</span></div><div className={googleGridTw}>{(["calendar","drive"] as const).map(service=>{const rows=googleConnections.filter(account=>account.scopes.toLowerCase().includes(service));const isCalendar=service==="calendar";return <article className={googleCardTw} key={service}><div className={sectionHeadingTw}><span className={inboxPlatformTw} style={{color:isCalendar?"#4285F4":"#0F9D58"}}>{isCalendar?<CalendarDays size={22}/>:<HardDrive size={22}/>}</span><div><h3 className={sectionHeadingTitleTw}>{isCalendar?"Google Agenda":"Google Drive"}</h3><p>{rows.length?"Conta conectada":"Nenhuma conta conectada"}</p></div></div>{rows.length?<div className={connectedListTw}>{rows.map(account=><div className={googleAccountTw} key={account.id}><strong>{account.email}</strong>{account.renewable===false?<small className={renewableWarningTw}>Sem autorização offline: a sincronização pode parar. Clique em Reconectar.</small>:null}<div className={googleAccountActionsTw}><button type="button" className={secondaryButton} disabled={googleBusy||!googleConfig?.configured} onClick={()=>void connectGoogle(service)}>Reconectar</button><button type="button" className={secondaryButton} disabled={googleBusy} onClick={()=>void forgetGoogleService(account.id,service)}>Desconectar</button></div></div>)}</div>:null}<button type="button" className={primaryButton} disabled={googleBusy||!googleConfig?.configured||!googleConfig.encryptionConfigured} onClick={()=>void connectGoogle(service)}>{rows.length?"Conectar outra conta":"Conectar "+(isCalendar?"Agenda":"Drive")}</button></article>})}</div></div>
  {templateCatalog&&<VexoraDialog open title="Templates aprovados" subtitle={templateCatalog.channelName} onClose={()=>setTemplateCatalog(null)}>
     {templateCatalog.templates.length?<ul>{templateCatalog.templates.map(template=><li key={template.name+"/"+template.language}><strong>{template.name}</strong> · {template.language}{template.category?" · "+template.category:""}</li>)}</ul>:<p>Nenhum template aprovado encontrado neste número.</p>}

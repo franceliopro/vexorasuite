@@ -46,6 +46,13 @@ import { AsaasController } from "./asaas.controller";
 import { AsaasService } from "./asaas.service";
 import { AsaasWebhookController } from "./asaas-webhook.controller";
 import { AsaasCustomerSyncScheduler } from "./asaas-customer-sync.scheduler";
+import { StripeController } from "./stripe.controller";
+import { StripeService } from "./stripe.service";
+import { StripeWebhookController } from "./stripe-webhook.controller";
+import { InfinitePayController } from "./infinitepay.controller";
+import { InfinitePayService } from "./infinitepay.service";
+import { InfinitePayWebhookController } from "./infinitepay-webhook.controller";
+import { PaymentRecordsService } from "./payment-records.service";
 import { ReportsController } from "./reports.controller";
 import { FinanceController } from "./finance.controller";
 import { ServiceProtocolsController } from "./service-protocols.controller";
@@ -69,8 +76,8 @@ import { MailModule } from "../mail/mail.module";
   // AuthGuard is applied directly to controllers in this module. Register JwtModule
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule, EventsModule],
-  controllers: [TrackController, TrackIngestController, InboxesController,CopilotController, PublicFlowController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, RemindersController, DemoController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, ZernioConnectionsController, InstagramAutomationsController, DepartmentsController, AsaasController, AsaasWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController, McpController, DocumentsController, BillingController, BillingWebhookController, MetaWebhookController, CatalogController],
-  providers: [TrackService, JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService, MetaService],
+  controllers: [TrackController, TrackIngestController, InboxesController,CopilotController, PublicFlowController, NotificationSettingsController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, RemindersController, DemoController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, ZernioConnectionsController, InstagramAutomationsController, DepartmentsController, AsaasController, AsaasWebhookController, StripeController, StripeWebhookController, InfinitePayController, InfinitePayWebhookController, ReportsController, SupervisionController, FinanceController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController, McpController, DocumentsController, BillingController, BillingWebhookController, MetaWebhookController, CatalogController],
+  providers: [TrackService, JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, StripeService, InfinitePayService, PaymentRecordsService, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService, MetaService],
   exports: [WahaService, ZernioService, JobLeaseService],
 })
 export class OperationsModule {}

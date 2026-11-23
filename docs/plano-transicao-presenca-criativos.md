@@ -231,7 +231,7 @@ As seis perguntas acima foram respondidas pelo proprietário e estão consolidad
 | Acesso ao Docker   | Socket do Docker montado no serviço provisionador                                                                                                                                                |
 | Projeto Dokploy    | `Estúdio de Sites`; serviço `Base` com MariaDB 11, phpMyAdmin e Filebrowser (via Docker)                                                                                                         |
 | Sites atuais       | Todos os quatro rodam WordPress na origem, mas **nenhum WordPress será trazido**: os sites serão recriados com sistema próprio                                                                   |
-| Destino dos sites  | PHP puro ou Next.js, conforme avaliação de simplicidade e peso; decisão por site ainda pendente                                                                                                  |
+| Destino dos sites  | Decisão registrada em §12: Next.js para os quatro sites                                                                                                                                              |
 | Migração           | O proprietário baixa arquivos e banco na Valuehost e sobe para o nosso servidor; somente conteúdo/dados são aproveitados, não o código WordPress. E-mail fica na Zoho Mail e está fora de escopo |
 | Provedor de origem | Valuehost; o proprietário controla tudo, inclusive DNS                                                                                                                                           |
 | Cofre de senhas    | Ainda não existe; adotar Docker secrets como primeiro passo                                                                                                                                      |
@@ -381,8 +381,81 @@ Implementação:
 **Ainda pendentes (bloqueiam o primeiro `apply` real):**
 
 - Slugs e domínios reais dos quatro sites.
-- Tipo escolhido por site (PHP puro ou Next.js), após a avaliação de simplicidade.
+- Tipo escolhido por site: resolvido em §12 — Next.js para os quatro sites.
 - Contratos reais dos endpoints internos de administração do MariaDB e do Filebrowser (formato de criação de usuário, escopo e remoção).
 - Formato efetivo e política de rotação dos Docker secrets, incluindo quem provisiona os secrets de senha por site.
 - Chave e escopo do webhook assinado (global do provisionador ou por tenant) e a identidade do aprovador enviada pela Véxora.
 - Disponibilidade real das imagens das 17 versões PHP e compatibilidade com o MariaDB 11, mesmo com todas habilitadas no contrato.
+
+## 12. Novo serviço de sites da Véxora — HUB (decisão de 2026-11-23)
+
+**Status:** decisão do proprietário. Substitui o criador de sites com IA descrito nas fases iniciais deste documento. Nada aqui afirma publicação, domínio ativo ou integração funcionando sem evidência.
+
+A Véxora deixa de gerar sites por prompt e passa a ser **gestora** do processo: pedido, preview, aprovação, publicação, versão, histórico e auditoria. A execução — esqueleto Next.js, conteúdo e hospedagem — fica fora do core.
+
+### 12.1 Topologia adotada
+
+```text
+HUB Véxora (tenant, pedido, aprovação, auditoria)
+        → GitHub (template + MDX + imagens por tenant)
+        → Cloudflare Pages (build estático)
+        → Domínio do cliente (DNS/TLS na Cloudflare)
+        → Formulários → API tenant-scoped da Véxora
+```
+
+- O HUB não renderiza HTML do site e não hospeda página.
+- Um repositório por empresa, derivado de um template base Next.js + MDX.
+- `output: 'export'` como padrão: a saída é uma pasta estática, replicável em qualquer host.
+- Cloudflare Images/R2 são evolução opcional; a versão inicial mantém imagens em `public/images/` no repositório.
+- Nenhuma credencial ou sessão de produção é copiada entre empresas.
+
+### 12.2 Edição e menu
+
+O esqueleto (header, sidebar, footer) vive em componentes do template. O conteúdo vive em arquivos `.mdx`. O menu é gerado de uma fonte única (`content/navigation.ts`), com `label`, `slug`, `ordem` e `pai`. Trocar o nome de um item do menu exige **uma** edição; nenhuma página HTML precisa ser aberta.
+
+Exemplo mínimo:
+
+```ts
+export const navigation = [
+  { label: "Início", slug: "/" },
+  { label: "Serviços", slug: "/servicos" },
+  { label: "Contato", slug: "/contato" },
+];
+```
+
+Cada página contém só o miolo:
+
+```mdx
+---
+title: Serviços
+---
+
+Conteúdo da página...
+```
+
+### 12.3 Sites dinâmicos
+
+"Dinâmico" não significa voltar a WordPress/PHP. Significa que o conteúdo muda sem edição manual de HTML. A arquitetura divide em três níveis:
+
+| Nível | Exemplos | Como é entregue |
+| ----- | -------- | --------------- |
+| A — conteúdo | blog, portal de notícias, institucional | Next.js estático/ISR + MDX ou CMS externo; busca e filtros no cliente ou via API |
+| B — consulta a dados | imobiliária com busca e filtros | Next.js + API externa por tenant; sem banco no site; filtros por query params |
+| C — transação | e-commerce, área autenticada | Next.js + backend de comércio externo (catálogo, estoque, pedidos, pagamentos); a Véxora registra pedido, aprovação, versão e auditoria, não executa pagamento |
+
+Regras comuns:
+
+- Nenhum MySQL por site; dados ficam em serviço externo tenant-scoped.
+- Busca com índice próprio quando o volume justificar; filtros pequenos resolvem no cliente.
+- Preços, estoque e disponibilidade vêm da API, nunca de arquivo estático.
+- Publicação só é marcada como concluída após health-check 2xx no domínio final.
+- O HUB distingue `configurado`, `executado`, `confirmado` e `falhou`; não afirma venda, pagamento ou publicação por flag de configuração.
+
+### 12.4 Conversão dos quatro sites
+
+- **Rastreabem:** origem WordPress; a aparência é replicada em MDX, sem trazer PHP, plugins ou tema executável.
+- **Morbeck x Carvalhinho:** ~40 páginas convertidas em MDX com menu automático.
+- **Alto Araguaia Imóveis:** nível B, com busca/filtros via API externa.
+- **SOS Alto Araguaia:** nível A.
+
+A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica assim resolvida: **Next.js para os quatro sites**.

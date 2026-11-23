@@ -1,5 +1,6 @@
 # Especificação UI/UX — Configuração de domínio próprio (Cloudflare for SaaS)
 
+> **Histórico — produto substituído.** Este documento descreve o configuração de domínio próprio dentro do assistente de sites do criador de sites com IA, retirado do produto em 2026-11-23. O serviço atual é o HUB da Véxora (docs/plano-transicao-presenca-criativos.md §12), que não gera HTML nem hospeda página. Não implementar o que está aqui sem nova decisão.
 **Produto:** Véxora Sites — etapa do assistente de criação de sites
 **Arquivo de referência:** `apps/web/src/app/sites-domain-config.tsx`
 **Status:** pronto para integrar com os endpoints de deploy (backend em paralelo pelo VexoraProgramador)

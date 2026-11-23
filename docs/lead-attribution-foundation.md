@@ -2,7 +2,9 @@
 
 ## Objetivo
 
-Criar uma fundação única, multi-tenant e auditável para identificar como um prospect conheceu a empresa, por qual ação converteu e quais campanhas influenciaram oportunidades e vendas. A captura deve ser reaproveitável por CRM, WhatsApp, SMS, áudio, chamadas de IA, Landing Pages, Google Ads e Social Media.
+Criar uma fundação única, multi-tenant e auditável para identificar como um prospect conheceu a empresa, por qual ação converteu e quais campanhas influenciaram oportunidades e vendas. A captura deve ser reaproveitável por CRM, WhatsApp e formulários de sites.
+
+> **Escopo atual:** SMS, áudio/chamadas de IA, Google Ads e publicação em redes sociais não fazem parte do produto. Seções abaixo que citam esses canais são históricas.
 
 ## Princípios de produto e dados
 

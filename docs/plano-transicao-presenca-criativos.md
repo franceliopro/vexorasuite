@@ -230,9 +230,9 @@ As seis perguntas acima foram respondidas pelo proprietário e estão consolidad
 | Proxy              | Traefik interno do Dokploy                                                                                                                                                                       |
 | Acesso ao Docker   | Socket do Docker montado no serviço provisionador                                                                                                                                                |
 | Projeto Dokploy    | `Estúdio de Sites`; serviço `Base` com MariaDB 11, phpMyAdmin e Filebrowser (via Docker)                                                                                                         |
-| Sites atuais       | Todos os quatro rodam WordPress na origem, mas **nenhum WordPress será trazido**: os sites serão recriados com sistema próprio                                                                   |
-| Destino dos sites  | Decisão registrada em §12: Next.js para os quatro sites                                                                                                                                              |
-| Migração           | O proprietário baixa arquivos e banco na Valuehost e sobe para o nosso servidor; somente conteúdo/dados são aproveitados, não o código WordPress. E-mail fica na Zoho Mail e está fora de escopo |
+| Sites atuais       | Rastreabem: HTML pronto. Morbeck: WordPress. Alto Araguaia: PHP com CMS próprio, fora do ar. SOS: portal grande sob avaliação. Nenhum código legado será trazido                                |
+| Destino dos sites  | Decisão registrada em §12: Next.js para os três do ciclo inicial; Alto Araguaia com CMS headless; SOS sob avaliação                                                                                |
+| Migração           | Origem por site: HTML, export WordPress ou dump do CMS PHP. Somente conteúdo/dados saneados são aproveitados; nenhum código legado é implantado. E-mail fica na Zoho Mail e está fora de escopo |
 | Provedor de origem | Valuehost; o proprietário controla tudo, inclusive DNS                                                                                                                                           |
 | Cofre de senhas    | Ainda não existe; adotar Docker secrets como primeiro passo                                                                                                                                      |
 | Linguagem          | Node.js + TypeScript é a recomendação do plano; confirmar antes de escrever o primeiro arquivo de código                                                                                         |
@@ -310,16 +310,16 @@ Saída típica:
 
 ### 11.5 Plano dos quatro sites
 
-Todos os quatro serão **recriados com sistema próprio**. O download dos arquivos serve para resgatar conteúdo, imagens e dados; o código WordPress — inclusive o do site infectado — não é implantado no nosso servidor.
+Três sites entram no ciclo inicial de recriação com sistema próprio. O download dos arquivos serve para resgatar conteúdo, imagens e dados; o código WordPress — inclusive o do site infectado — não é implantado no nosso servidor. O SOS Alto Araguaia fica **sob avaliação** e fora deste ciclo.
 
 | Site citado                         | Estado na origem | Destino             | Estratégia                                                         |
 | ----------------------------------- | ---------------- | ------------------- | ------------------------------------------------------------------ |
-| Imobiliária (Alto Araguaia Imóveis) | WordPress        | Next.js            | Extrair imóveis, textos e mídia do banco/arquivos; recriar em MDX, sem CMS |
-| Rastreabem                          | WordPress        | Next.js            | Extrair conteúdo; recriar em MDX, sem CMS                          |
-| SOS Alto Araguaia                   | WordPress        | Next.js            | Extrair conteúdo; recriar em MDX, sem CMS                          |
-| Morbeck x Carvalhinho               | WordPress        | Next.js            | Extrair conteúdo; recriar em MDX, sem CMS                          |
+| Rastreabem                          | HTML completo já pronto | Next.js/MDX   | Converter o HTML em MDX como piloto de aprendizado e do template base |
+| Morbeck x Carvalhinho               | WordPress, ~40 páginas | Next.js/MDX     | Exportar páginas e mídia; converter em MDX com menu automático    |
+| Imobiliária (Alto Araguaia Imóveis) | PHP com CMS próprio do proprietário (antes WordPress), hoje fora do ar | Next.js + Directus (preset `imoveis`) | Recuperar dump/export do CMS, mapear campos e importar para API; modelo do proprietário é a base visual |
+| SOS Alto Araguaia                   | Portal de notícias, 2–5 GB de arquivos | Sob avaliação | Manter fora do ciclo inicial; medir storage, banda e tráfego antes de decidir |
 
-**Nota:** “sem CMS” vale para estes quatro sites, que serão editados em MDX no GitHub. Sites dinâmicos futuros podem usar o template de CMS descrito em §12.3; isso não altera a decisão destes quatro.
+**Nota:** MDX vale para Rastreabem e Morbeck x Carvalhinho. O Alto Araguaia Imóveis é dinâmico e usa CMS headless (§12.5); o SOS Alto Araguaia está sob avaliação, sem decisão de migração.
 
 **Site infectado:** nenhum arquivo do WordPress comprometido é reaproveitado como código. Somente dados saneados previamente revisados. Não reutilizar templates, plugins, uploads executáveis ou credenciais antigas sem inspeção.
 
@@ -327,7 +327,7 @@ Rastreabem permanece como referência de cliente/segmento, não como identidade 
 
 ### 11.5.1 Escolha PHP puro × Next.js
 
-Critério histórico declarado pelo proprietário: **se Next.js for mais leve e mais simples, usar Next.js; se não, usar PHP puro.** A decisão final foi registrada em §12: **Next.js para os quatro sites**; o texto abaixo permanece como registro do racional da avaliação.
+Critério histórico declarado pelo proprietário: **se Next.js for mais leve e mais simples, usar Next.js; se não, usar PHP puro.** A decisão final registrada em §12 é **Next.js para Rastreabem, Morbeck x Carvalhinho e Alto Araguaia Imóveis**; o SOS Alto Araguaia segue sob avaliação. O texto abaixo permanece como registro do racional da avaliação.
 
 - **Next.js**: preferido para sites estáticos ou com pouco dinamismo e sem necessidade de banco por site.
 - **PHP puro**: preferido quando houver lógica de banco, formulários ou integrações que o sistema próprio precise manipular diretamente.
@@ -455,12 +455,12 @@ Regras comuns:
 
 ### 12.4 Conversão dos quatro sites
 
-- **Rastreabem:** origem WordPress; a aparência é replicada em MDX, sem trazer PHP, plugins ou tema executável.
-- **Morbeck x Carvalhinho:** ~40 páginas convertidas em MDX com menu automático.
-- **Alto Araguaia Imóveis:** nível B, com busca/filtros via API externa. O site atual está fora do ar; a fonte é o **modelo próprio já feito pelo proprietário**, não uma migração de WordPress. Não há dump, tema, plugin ou credencial antiga a transportar; o modelo vira a base do template Next.js/MDX e recebe apenas o que faltar.
-- **SOS Alto Araguaia:** nível A.
+- **Rastreabem:** o proprietário já tem o HTML completo; a conversão para MDX é o piloto de aprendizado e do template base.
+- **Morbeck x Carvalhinho:** origem WordPress, ~40 páginas convertidas em MDX com menu automático.
+- **Alto Araguaia Imóveis:** nível B. Já foi WordPress, hoje é PHP com CMS próprio do proprietário e está fora do ar. A fonte dos imóveis é o que for recuperável desse CMS (dump ou export); o modelo feito pelo proprietário é a base visual. Destino: Next.js + Directus com preset `imoveis`, busca e filtros via API — não é site somente em MDX.
+- **SOS Alto Araguaia:** portal de notícias grande, com 2–5 GB de arquivos, em grande parte mídia. Migrar não é simples conversão: exige plano de storage/CDN, redirecionamentos e import incremental. Decisão: **sob avaliação**, fora do ciclo inicial; manter o site atual com backup até medir espaço, banda e tráfego.
 
-A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica assim resolvida: **Next.js para os quatro sites**.
+A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica assim resolvida: **Next.js para Rastreabem, Morbeck x Carvalhinho e Alto Araguaia Imóveis**; o SOS Alto Araguaia fica sob avaliação, sem mudança de hospedagem decidida.
 
 ### 12.5 Template de CMS para sites dinâmicos
 
@@ -520,7 +520,8 @@ Não criar um sistema novo por segmento. Usar os mesmos núcleos com vocabulári
 ### 13.6 Ordem de implantação proposta
 
 1. HUB de Sites e template base Next.js/MDX (em andamento).
-2. Piloto do CMS headless para o Alto Araguaia Imóveis, a partir do modelo do proprietário — sem migração de WordPress, pois o site atual está fora do ar.
+2. Piloto do CMS headless para o Alto Araguaia Imóveis: recuperar o que for possível do CMS PHP do proprietário e usar o modelo dele como base visual. O site já foi WordPress, mas a fonte atual é PHP.
 3. Módulo Escola de Música (agenda, presença, saldo de aulas e cobrança recorrente).
 4. Módulo Escola com provas/notas/vídeo/login de aluno.
 5. Segmentos Estética e Delivery por cima dos mesmos núcleos.
+6. SOS Alto Araguaia: fora do ciclo inicial; reavaliar com medição de storage, banda e tráfego antes de qualquer migração.

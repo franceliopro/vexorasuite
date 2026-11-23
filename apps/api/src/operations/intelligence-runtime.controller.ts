@@ -56,7 +56,7 @@ export class IntelligenceRuntimeController {
     const defaultActive=published.source === 'ui' && published.active === true;
     const active=defaultActive||publications.some(publication=>publication.active);
     const workerAlive = await isSchedulerWorkerAlive(this.prisma as any);
-    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, botLimit:resolveEntitlements(tenant.entitlements).bots, draftMatchesPublication: draftMatches(published), llmExecution: true, scheduler: { mode: (process.env.SCHEDULER_MODE || 'in-process'), workerAlive } };
+    return { engine: 'Véxora Intelligence Engine', active, revision: published.source === 'ui' ? published.revision || null : null, publishedAt: published.source === 'ui' ? published.publishedAt || null : null, flowName: published.source === 'ui' ? published.flow?.name || null : null, executableKinds, executableActions, executions, publications, defaultActive, activeBots: Number(defaultActive)+publications.filter(item=>item.active).length, botLimit:resolveEntitlements(tenant.entitlements).bots, draftMatchesPublication: draftMatches(published), llmExecution: true, scheduler: { mode: (process.env.SCHEDULER_MODE || 'in-process'), workerAlive } };
   }
   @Get('destinations')
   async destinations(@Req() req:AuthenticatedRequest){

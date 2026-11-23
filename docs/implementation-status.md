@@ -66,7 +66,8 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 ## 7. Piloto Rastreabem — site em Next.js/MDX
 
 - [x] As 7 páginas do HTML original foram convertidas para MDX em `sites/rastreabem/`, com menu gerado por `content/navigation.ts` e saída estática (`output: 'export'`). O workflow `site-rastreabem.yml` valida typecheck e build.
-- [ ] Preview em endereço temporário e publicação em Cloudflare Pages: ainda sem evidência no ar. Ver `docs/site-rastreabem-mdx.md`.
+- [x] Preview local e em endereço temporário: `python -m http.server 3105` serviu `sites/rastreabem/out` com HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/images/1.jpg`; o túnel `https://vexora-rastreabem.loca.lt` devolveu HTTP 200 com o HTML da home em 2026-11-23. Endereço temporário, não publicação definitiva.
+- [ ] Publicação em Cloudflare Pages e domínio final: sem credenciais, sem `apply` e sem evidência no ar. Ver `docs/site-rastreabem-mdx.md` e `docs/checklist-entrega-sites-artes.md`.
 
 ## 6. Fontes
 

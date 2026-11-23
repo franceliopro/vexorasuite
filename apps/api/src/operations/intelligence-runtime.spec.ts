@@ -1,4 +1,3 @@
-import * as aiProviders from '../ai/economical-providers';
 import { compileChatbotFlow } from '../ai/chatbot-flow-skill';
 import { IntelligenceRuntimeService } from './intelligence-runtime.service';
 function setup(overrides: Record<string,unknown> = {}) {
@@ -21,7 +20,8 @@ describe('Intelligence runtime',()=>{
   { allowed: false, busy: [], expected: 'Vou conferir.' },
  ])('uses the real calendar result only for agents with explicit permission (%j)', async ({ allowed, busy, expected }) => {
   const x = setup({ departmentId: 'support', botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
-  const provider = jest.spyOn(aiProviders, 'economicalProviders').mockReturnValue([{ provider: 'ollama', model: 'test', apiKey: 'test' }]);
+  const originalOllamaOrigin = process.env.OLLAMA_BASE_URL;
+  process.env.OLLAMA_BASE_URL = 'http://localhost:11434';
   const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ calendars: { team: { busy } } })));
   try {
    x.tx.auditLog.count = jest.fn().mockResolvedValue(0);
@@ -29,7 +29,7 @@ describe('Intelligence runtime',()=>{
    x.tx.tenant.findUniqueOrThrow.mockResolvedValue({
     name: 'Empresa', entitlements: { modules: ['CALENDAR'] },
     integrations: { intelligencePublished: x.published, assistant: { enabled: true, agents: [{
-     id: 'sales', enabled: true, bindings: { inboxes: ['channel'] },
+     id: 'sales', enabled: true, bindings: { inboxes: ['channel'] }, llm: { provider: 'ollama', model: 'test' },
      allowedActions: allowed ? ['calendar.availability'] : [],
     }] } },
    });
@@ -50,7 +50,8 @@ describe('Intelligence runtime',()=>{
    expect(x.tx.message.create).toHaveBeenCalledWith({ data: expect.objectContaining({ content: expect.stringContaining(expected) }) });
   } finally {
    fetchMock.mockRestore();
-   provider.mockRestore();
+   if (originalOllamaOrigin === undefined) delete process.env.OLLAMA_BASE_URL;
+   else process.env.OLLAMA_BASE_URL = originalOllamaOrigin;
   }
  });
 

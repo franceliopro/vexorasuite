@@ -99,6 +99,39 @@ describe("Chatbot web channel", () => {
     }
   });
 
+  it("waits for explicit web confirmation before booking the department calendar", async () => {
+    const access = { token: jest.fn().mockResolvedValue("test-access") } as unknown as GoogleAccessService;
+    const provider = jest.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(Response.json({ calendars: { "agenda-id": { busy: [] } } }))
+      .mockImplementationOnce(async (_url, init) => {
+        const event = JSON.parse(String(init?.body));
+        expect(event.summary).toBe("Consulta");
+        return Response.json({ id: event.id, status: "confirmed" });
+      });
+    try {
+      const start = new Date(Date.now() + 86_400_000).toISOString();
+      const { controller, transaction } = makeController([
+        { id: "book", kind: "calendar.book", config: JSON.stringify({ start, minutes: "30", title: "Consulta" }),
+          options: ["Continuar"], transitions: { Continuar: "result" } },
+        { id: "result", kind: "condition", config: '{"variable":"agenda_reserva","value":"confirmado"}',
+          options: ["Sim", "Não"], transitions: { Sim: "success", Não: "fallback" } },
+        { id: "success", kind: "text", message: "Reserva confirmada." },
+        { id: "fallback", kind: "text", message: "Reserva não confirmada." },
+      ], access);
+      transaction.mockImplementation(async run => run({ $queryRaw: jest.fn() }));
+      const token = "f".repeat(48);
+      const prompt = await controller.message(token, { text: "Confirmar horário", choice: { stepId: "book", index: 0 } }, {});
+      expect(prompt).toMatchObject({ options: ["Confirmar horário", "Voltar"], choiceStepId: "book" });
+      expect(provider).not.toHaveBeenCalled();
+      const answer = await controller.message(token, { sessionId: prompt.sessionId, text: "Confirmar horário", choice: { stepId: "book", index: 0 } }, {});
+      expect(answer.messages).toEqual(["Reserva confirmada."]);
+      expect(provider).toHaveBeenCalledTimes(3);
+    } finally {
+      provider.mockRestore();
+    }
+  });
+
   it("keeps the conversation open when the handoff fails", async () => {
     const { controller, transaction } = makeController([{ id: "handoff", kind: "human.handoff" }]);
     const result = await controller.message("b".repeat(48), {}, {});

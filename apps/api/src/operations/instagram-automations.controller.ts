@@ -159,25 +159,40 @@ export class InstagramAutomationsController {
     return result;
   }
 
-  @Post('campaigns/:id/pause')
-  async pauseCampaign(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  @Post('campaigns/:id/status')
+  async changeCampaignStatus(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: unknown) {
     this.authorize(req);
+    const active = record(body).active;
+    if (typeof active !== 'boolean') throw new BadRequestException('Informe o status da campanha.');
     const tenantId = req.user.tenantId;
-    const { campaigns, providerUnavailable } = await this.campaigns(req);
-    if (providerUnavailable) throw new ServiceUnavailableException('Não foi possível consultar o Instagram.');
-    const campaign = campaigns.find(item => item.id === id);
-    if (!campaign) throw new NotFoundException('Campanha não encontrada nesta empresa.');
-    if (!campaign.active) return { id, active: false };
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${tenantId}::uuid FOR UPDATE`;
+      const { campaigns, drafts, providerUnavailable } = await this.campaigns(req);
+      if (providerUnavailable) throw new ServiceUnavailableException('Não foi possível consultar o Instagram.');
+      const campaign = campaigns.find(item => item.id === id);
+      if (!campaign) throw new NotFoundException('Campanha não encontrada nesta empresa.');
+      if (campaign.active === active) return { id, active };
 
-    const result = record(await this.zernio.request<unknown>(
-      '/comment-automations/' + encodeURIComponent(id),
-      { method: 'PATCH', body: { isActive: false } },
-      tenantId,
-    ));
-    if (record(result.automation).isActive !== false) {
-      throw new ServiceUnavailableException('O Instagram não confirmou a pausa. Atualize a lista para verificar.');
-    }
-    return { id, active: false };
+      if (active) {
+        const tenant = await tx.tenant.findUniqueOrThrow({
+          where: { id: tenantId }, select: { entitlements: true },
+        });
+        const activeCount = campaigns.filter(item => item.active).length;
+        const pendingCount = drafts.filter(draft => record(draft).activationPending === true).length;
+        if (activeCount + pendingCount >= resolveEntitlements(tenant.entitlements).bots) {
+          throw new ConflictException('O limite de campanhas ativas do plano foi atingido.');
+        }
+      }
+      const result = record(await this.zernio.request<unknown>(
+        '/comment-automations/' + encodeURIComponent(id),
+        { method: 'PATCH', body: { isActive: active } },
+        tenantId,
+      ));
+      if (record(result.automation).isActive !== active) {
+        throw new ServiceUnavailableException('O Instagram não confirmou a mudança. Atualize a lista para verificar.');
+      }
+      return { id, active };
+    }, { timeout: 75000 });
   }
 
   @Get('campaigns/media')

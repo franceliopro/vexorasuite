@@ -3,14 +3,14 @@
 > **Histórico — produto substituído.** Este documento descreve o configuração de domínio próprio dentro do assistente de sites do criador de sites com IA, retirado do produto em 2026-11-23. O serviço atual é o HUB da Véxora (docs/plano-transicao-presenca-criativos.md §12), que não gera HTML nem hospeda página. Não implementar o que está aqui sem nova decisão.
 **Produto:** Véxora Sites — etapa do assistente de criação de sites
 **Arquivo de referência:** `apps/web/src/app/sites-domain-config.tsx`
-**Status:** pronto para integrar com os endpoints de deploy (backend em paralelo pelo VexoraProgramador)
+**Status:** histórico. A implementação atual em `sites-domain-config.tsx` é uma simulação visual: não executa deploy, não altera DNS, não emite certificado e não publica. A publicação real pertence ao HUB de Sites e depende de evidência 2xx no domínio final.
 **Público:** empresa cliente — somente usuários com permissão de domínio
 
 ---
 
 ## 1. Objetivo
 
-Tela/etapa do wizard em que o usuário informa o domínio próprio, verifica DNS/SSL e dispara o deploy do site publicado no domínio, com instruções para configurar CNAME/ANAME na Cloudflare e erro com retry.
+Tela/etapa do wizard em que o usuário informa o domínio próprio e vê uma simulação da verificação de DNS/SSL e do deploy, com instruções ilustrativas para configurar CNAME/ANAME na Cloudflare. Nenhuma operação externa é executada nesta tela.
 
 ---
 
@@ -28,11 +28,11 @@ Tela/etapa do wizard em que o usuário informa o domínio próprio, verifica DNS
 | Etapa | Estado | O que acontece |
 |---|---|---|
 | 1. Domínio | `domain` | Usuário digita o domínio; validação de formato ao clicar em "Validar domínio". |
-| 2. DNS | `dns` / `pending` | Verificação de DNS iniciada; polling a cada 4s. |
-| 2. SSL | `ssl` / `pending` | SSL/TLS provisionado após DNS confirmado. |
-| 2. Erro | `error` | Falha de DNS/SSL ou deploy; exibe mensagem + botão "Tentar novamente". |
-| 3. Deploy | `deploy` | Barra de progresso 0→100%; site sendo publicado. |
-| 4. Concluído | `done` | Sucesso; opções "Fechar" e "Ver site publicado". |
+| 2. DNS | `dns` / `pending` | Simulação de verificação de DNS; polling a cada 4s. |
+| 2. SSL | `ssl` / `pending` | Simulação de provisionamento de SSL/TLS. |
+| 2. Erro | `error` | Falha simulada de DNS/SSL ou deploy; exibe mensagem + botão "Tentar novamente". |
+| 3. Deploy | `deploy` | Barra de progresso 0→100%; animação de simulação, nenhum deploy executado. |
+| 4. Concluído | `done` | Simulação concluída; opções "Fechar" e "Abrir endereço informado". Nenhum site publicado. |
 
 Estados de DNS/SSL: `idle` (—), `pending` (Verificando…), `verified` (Verificado), `error` (Erro).
 
@@ -43,7 +43,7 @@ Estados de DNS/SSL: `idle` (—), `pending` (Verificando…), `verified` (Verifi
 ```
 ┌─────────────────────────────────────────────┐
 │ [Globe]  Conectar domínio próprio            │
-│    Publique o site <slug> no seu domínio,…   │
+│    Simulação do domínio do site <slug>…      │
 ├─────────────────────────────────────────────┤
 │ [banner de permissão, se não houver permissão]│
 ├─────────────────────────────────────────────┤
@@ -57,15 +57,15 @@ Estados de DNS/SSL: `idle` (—), `pending` (Verificando…), `verified` (Verifi
 │    Endereço que os visitantes usarão…       │
 │  (erro: "Digite um domínio válido…")        │
 │                                             │
-│  [Voltar ao domínio] [Publicar no domínio]  │
+│  [Voltar ao domínio] [Simular publicação]   │
 └─────────────────────────────────────────────┘
 ```
 
 No passo DNS/SSL são exibidos:
 - Dois cards de status: DNS e SSL (pílulas `is-muted` / `is-ok` / `is-bad`).
 - Tabela de registros DNS (Tipo, Nome, Valor) com botão copiar.
-- Caixa de instruções Cloudflare com o destino `static.vexorasuite.com.br` (exemplo, do registro de implementação).
-- Botões "Verificar agora" e "Publicar no domínio".
+- Caixa de instruções Cloudflare com o destino `static.vexorasuite.com.br` (exemplo ilustrativo).
+- Botões "Verificar agora" e "Simular publicação".
 
 ---
 
@@ -86,7 +86,7 @@ No passo DNS/SSL são exibidos:
 | Contexto | Texto |
 |---|---|
 | Título | Conectar domínio próprio |
-| Subtítulo | Publique o site {slug} no seu domínio, com deploy via Cloudflare. |
+| Subtítulo | Simulação da conexão de domínio do site {slug}. Nada é publicado, nenhum DNS é alterado e nenhum certificado é emitido. |
 | Label do campo | Seu domínio |
 | Placeholder | seusite.com.br |
 | Hint | Exemplo: loja.suaempresa.com.br. O domínio deve ser de sua titularidade. |
@@ -99,10 +99,10 @@ No passo DNS/SSL são exibidos:
 | Título registros | Registros a configurar na Cloudflare |
 | Destino CNAME/ANAME | static.vexorasuite.com.br |
 | Botão verificar | Verificar agora |
-| Botão publicar | Publicar no domínio / Publicando… |
-| Progresso | Publicando no domínio próprio… / {pct}% |
-| Sucesso | Domínio conectado — o site {slug} está publicado com SSL ativo. |
-| Erro global | Não foi possível completar a configuração. + Tentar novamente |
+| Botão publicar | Simular publicação / Simulando publicação… |
+| Progresso | Simulação de publicação / {pct}% — nenhum deploy executado. |
+| Sucesso | Simulação concluída — nenhum domínio conectado, nenhum certificado emitido e nenhum site publicado. A publicação real exige o HUB e 2xx no domínio final. |
+| Erro global | Não foi possível completar a simulação. + Tentar novamente |
 | Sem permissão | Você não tem permissão para configurar domínios nesta empresa. |
 
 Todos os textos acima com dados entre chaves `{}` são exemplos rotulados; substituir pelos valores reais da sessão.
@@ -111,11 +111,11 @@ Todos os textos acima com dados entre chaves `{}` são exemplos rotulados; subst
 
 ## 7. Contrato de integração (a definir com o backend)
 
-Os endpoints abaixo ainda não existem neste checkout; os caminhos são placeholders marcados com `TODO` no componente:
+Os endpoints abaixo não existem e não são chamados pela tela atual; os caminhos são placeholders históricos marcados com `TODO` no componente. Não implementá-los como prova de publicação: a confirmação real exige HUB + 2xx no domínio final.
 
 - `POST /api/backend/sites/:siteId/domain` — corpo `{ domain }`; valida e armazena o domínio.
 - `GET /api/backend/sites/:siteId/domain/verify` — retorna `{ dns: status, ssl: status, records: [{type,name,value}] }`.
-- `POST /api/backend/sites/:siteId/domain/deploy` — dispara o deploy via Cloudflare.
+- `POST /api/backend/sites/:siteId/domain/deploy` — histórico; não existe nem é chamado pela tela de simulação.
 - `POST /api/backend/sites/:siteId/domain/retry` — retry após erro (ou reuso do verify).
 
 O middleware existente (`apps/web/src/middleware.ts`) já resolve Host externo → `/sites/<slug>` via `GET /api/public/sites/resolve?host=`.
@@ -135,4 +135,4 @@ O middleware existente (`apps/web/src/middleware.ts`) já resolve Host externo �
 
 - Implementação dos endpoints de domínio (responsável: VexoraProgramador).
 - Integração real com a API da Cloudflare (chaves/tokens da plataforma).
-- Publicação de conteúdo; o deploy só é afirmado após confirmação do backend.
+- Publicação de conteúdo; nenhuma publicação é afirmada nesta tela. A confirmação real depende do HUB de Sites e de resposta 2xx no domínio final.

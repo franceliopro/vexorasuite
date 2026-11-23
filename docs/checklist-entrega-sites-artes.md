@@ -21,6 +21,15 @@ Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morb
 - [ ] **Formulários e integrações** atuais, incluindo o destino dos e-mails (Zoho Mail fica fora da migração).
 - [ ] **Credenciais antigas** que precisam ser invalidadas ou substituídas.
 
+## 1.1 HUB de Sites — insumos e credenciais pendentes
+
+- [ ] **Domínio definitivo por site** e aprovador nomeado para cada pedido/publicação.
+- [ ] **Repositório GitHub por tenant/site** (ou autorização para criá-lo a partir do template) e token com escopo mínimo para o fluxo operacional externo.
+- [ ] **Conta/token Cloudflare Pages** e acesso DNS/TLS quando a publicação for executada; sem isso, o HUB só registra pedido/preview/aprovação.
+- [ ] **Briefing de artes por peça:** objetivo, canal/formato, identidade visual, texto/matéria-prima aprovados, prazo, aprovador e destino/publicador.
+- [ ] **Credenciais Stripe e InfinitePay** (chaves, webhook secret/handle e ambiente sandbox/produção) quando os adaptadores forem implementados; sem credenciais, não validar cobrança real.
+- [ ] **Evidência no ar** para qualquer afirmação de publicação, domínio ativo, TLS, pagamento ou integração funcionando.
+
 ## 2. Infraestrutura do provisionador
 
 - [ ] Contrato real dos endpoints internos de administração do **MariaDB 11** (criação de banco/usuário, escopo e remoção).

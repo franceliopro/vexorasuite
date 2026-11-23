@@ -281,6 +281,15 @@ try{
  await expect(page.getByText("Pagamento confirmado no teste.",{exact:true}).last()).toBeVisible();
  await picker.selectOption({label:"Oferta de teste"});
  await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
+ await page.getByRole("button",{name:"Testar o fluxo agora",exact:true}).click();
+ const simulatedConversation=page.getByRole("log",{name:"Conversa simulada com o robô"});
+ await expect(simulatedConversation.getByRole("button",{name:"Outra saída",exact:true})).toBeVisible();
+ await page.getByRole("combobox",{name:"Simular como",exact:true}).selectOption("whatsapp");
+ await expect(simulatedConversation.getByText("2. Outra saída",{exact:true})).toBeVisible();
+ await expect(simulatedConversation.getByRole("button",{name:"Outra saída",exact:true})).toHaveCount(0);
+ await page.getByRole("textbox",{name:"Resposta do cliente",exact:true}).fill("2");
+ await page.getByRole("button",{name:"Enviar resposta",exact:true}).click();
+ await expect(simulatedConversation.getByText("Fim",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Criar com IA",exact:true}).click();
  const assistant=page.getByRole("dialog",{name:"Assistente de fluxo"});
  await expect(assistant.getByRole("combobox",{name:"O que fazer"})).toHaveValue("adjust");

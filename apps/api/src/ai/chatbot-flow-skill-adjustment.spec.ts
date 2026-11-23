@@ -44,7 +44,7 @@ describe("Blocos de integração em propostas novas", () => {
     ],
   });
 
-  it.each([
+  it.each<[string, Record<string, string | number>, Record<string, string>]>([
     ["payment.status", { provider: "infinitepay" }, { provider: "INFINITEPAY" }],
     ["calendar.availability", { start: "{{horario}}", minutes: 30 }, { start: "{{horario}}", minutes: "30" }],
     ["calendar.book", { start: "{{horario}}", minutes: 30, title: "Atendimento" }, { start: "{{horario}}", minutes: "30", title: "Atendimento" }],

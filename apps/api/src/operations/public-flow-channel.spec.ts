@@ -33,6 +33,9 @@ describe("Chatbot web channel", () => {
 
   it("continues the waiting step, renders its option labels and follows the exact choice", async () => {
     const { controller } = makeController([
+      { id: "channel", kind: "condition", config: '{"variable":"canal_atendimento","value":"web"}',
+        options: ["Sim", "Não"], transitions: { Sim: "name", Não: "other-channel" } },
+      { id: "other-channel", kind: "text", message: "Este é outro canal." },
       { id: "name", kind: "input.text", message: "Qual seu nome?", config: '{"variable":"nome"}',
         options: ["Continuar"], transitions: { Continuar: "menu" } },
       { id: "menu", kind: "buttons", message: "Qual setor?",
@@ -43,7 +46,9 @@ describe("Chatbot web channel", () => {
       { id: "custom", kind: "text", message: "Olá, {{nome}}." },
     ]);
     const token = "c".repeat(48);
-    const { sessionId } = await controller.message(token, {}, {});
+    const initial = await controller.message(token, {}, {});
+    expect(initial.messages).toEqual(["Qual seu nome?"]);
+    const { sessionId } = initial;
     const menu = await controller.message(token, { sessionId, text: "Ana" }, {});
     expect(menu).toMatchObject({ options: ["Financeiro novo", "Financeiro", "Usar Ana"] });
     const ambiguous = await controller.message(token, { sessionId, text: "Finan" }, {});

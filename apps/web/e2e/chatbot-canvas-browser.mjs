@@ -230,6 +230,10 @@ try{
  await expect(setup.getByRole("combobox",{name:/Quando/})).toHaveValue("first_message");
  await setup.getByRole("button",{name:"Verificar condição",exact:true}).click();
  const condition=board.locator("[data-flow-node]").filter({has:page.getByRole("button",{name:"Verificar condição",exact:false})});
+ await condition.getByRole("combobox",{name:"Informação",exact:true}).fill("canal_atendimento");
+ const channelValue=condition.getByRole("combobox",{name:"É igual a",exact:true});
+ await channelValue.selectOption({label:"Chatbot web"});
+ await expect(channelValue).toHaveValue("web");
  await condition.getByRole("combobox",{name:"Informação",exact:true}).fill("veiculo.placa-1");
  await condition.getByRole("textbox",{name:"É igual a",exact:true}).fill("ABC1D23");
  await condition.getByRole("button",{name:"Concluir",exact:true}).click();

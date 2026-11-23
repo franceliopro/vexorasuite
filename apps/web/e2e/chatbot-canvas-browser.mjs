@@ -184,6 +184,12 @@ try{
  await expect(board.getByRole("button",{name:"Se Departamento é igual a “Financeiro”",exact:true})).toBeVisible();
  await expect(board.getByRole("button",{name:"Sim",exact:true})).toBeVisible();
  await expect(board.getByRole("button",{name:"Não",exact:true})).toBeVisible();
+ const zoomBeforeAdding=(await camera()).zoom;
+ await board.getByRole("button",{name:"Adicionar próximo passo após Sim",exact:true}).click();
+ await page.getByRole("dialog",{name:"Adicionar próximo passo"}).getByRole("button",{name:"Enviar mensagem",exact:true}).click();
+ const newMessage=board.getByRole("textbox",{name:"Mensagem de Enviar mensagem",exact:true});
+ await expect(newMessage).toBeInViewport();
+ assert.equal((await camera()).zoom,zoomBeforeAdding);
  console.log("Chatbot: canvas interaction, guided triggers and inline condition editing OK");
 }finally{
  await browser?.close();

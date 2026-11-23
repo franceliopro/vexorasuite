@@ -621,6 +621,26 @@ function dictateAiRequest(){
   if(pointers.current.delete(event.pointerId)&&!pointers.current.size)setPanning(false);
  }
  const nodeRefs=useRef(new Map<string,HTMLDivElement>());
+ const nodeToReveal=useRef<string|null>(null);
+ useLayoutEffect(()=>{
+  if(!nodeToReveal.current)return;
+  const node=nodeRefs.current.get(nodeToReveal.current);
+  const canvas=scrollRef.current;
+  if(!node||!canvas)return;
+  nodeToReveal.current=null;
+  const area=canvas.getBoundingClientRect();
+  const block=node.getBoundingClientRect();
+  const revealOffset=(start:number,end:number,min:number,max:number)=>{
+   if(end-start>max-min)return (min+max-start-end)/2;
+   if(start<min)return min-start;
+   if(end>max)return max-end;
+   return 0;
+  };
+  const inset=16;
+  const dx=revealOffset(block.left,block.right,area.left+inset,area.right-inset);
+  const dy=revealOffset(block.top,block.bottom,area.top+inset,area.bottom-inset);
+  if(dx||dy)setView(current=>({...current,x:current.x+dx,y:current.y+dy}));
+ },[flow.steps]);
  const setNodeRef=(id:string)=>(el:HTMLDivElement|null)=>{if(el)nodeRefs.current.set(id,el);else nodeRefs.current.delete(id)};
  const [nodeBoxes,setNodeBoxes]=useState<Record<string,{x:number;y:number;w:number;h:number;inputY:number|null;outputY:Record<string,number>}>>({});
  useLayoutEffect(()=>{
@@ -840,7 +860,7 @@ function dictateAiRequest(){
   });
   setNotice("");
  }
- function duplicateStep(id:string){const source=flow.steps.find(step=>step.id===id);if(!source)return;const copyId="etapa-"+Date.now();setFlow(f=>({...f,steps:[...f.steps,{...source,id:copyId,title:source.title+" (cópia)",transitions:{},position:{x:(source.position?.x??100)+45,y:(source.position?.y??100)+100}}]}));setSelected(copyId);setStudioPanel("settings");setEditorOpen(true);setNotice("Bloco duplicado sem conexões. Configure os destinos e salve.");}
+ function duplicateStep(id:string){const source=flow.steps.find(step=>step.id===id);if(!source)return;const copyId="etapa-"+Date.now();nodeToReveal.current=copyId;setFlow(f=>({...f,steps:[...f.steps,{...source,id:copyId,title:source.title+" (cópia)",transitions:{},position:{x:(source.position?.x??100)+45,y:(source.position?.y??100)+100}}]}));setSelected(copyId);setStudioPanel("settings");setEditorOpen(true);setNotice("Bloco duplicado sem conexões. Configure os destinos e salve.");}
  function deleteStep(id:string){if(!window.confirm("Excluir este bloco e remover as conexões que apontam para ele?"))return;setFlow(f=>({...f,steps:f.steps.filter(step=>step.id!==id).map(step=>({...step,transitions:Object.fromEntries(Object.entries(step.transitions||{}).filter(([,target])=>target!==id))}))}));if(selected===id){setSelected("");setEditorOpen(false)}setNotice("Bloco removido do rascunho. Salve para confirmar.");}
  const minimapUnits = useMemo(() => {
    const boxes = [
@@ -902,7 +922,7 @@ function dictateAiRequest(){
   }
   return position;
  }
- function add(kind="text",title="Nova mensagem",destination?:Record<string,string>,after?:{id:string;option:string},position?:{x:number;y:number}){if(flow.steps.length>=100){setNotice("Use até 100 blocos por fluxo.");return;}const id="etapa-"+crypto.randomUUID();const action=(["asaas.customer.lookup","asaas.payment.lookup","asaas.payment.pix","asaas.payment.boleto","human.handoff","crm.stage.move","crm.finalize"].includes(kind)?kind:undefined) as Step["action"];const step:Step={id,kind,title,message:destination?"":"",config:destination?JSON.stringify(destination):kind==="tag"?JSON.stringify({name:"Nova tag",color:"#6258df"}):kind==="input.text"?JSON.stringify({variable:"novo_nome"}):["condition","variable"].includes(kind)?JSON.stringify({variable:"novo_nome",value:""}):undefined,options:kind==="buttons"?[]:kind==="condition"?["Sim","Não"]:["assignment","department.route","human.handoff","asaas.payment.lookup","agent","crm.finalize"].includes(kind)?[]:["Continuar"],...(action?{action}:{}),position:position??newNodePosition(after)};setFlow(f=>({...f,steps:[...f.steps.map(source=>after&&source.id===after.id?{...source,transitions:{...source.transitions,[after.option]:id}}:source),step]}));setSelected(id);setStudioPanel("settings");setEditorOpen(true);setRightCollapsed(false);if(["text","buttons","input.text","input.cpf"].includes(kind)){setEditorOpen(false);setInlineMessage(id);}else if(kind==="condition"){setEditorOpen(false);setInlineCondition(id);}setNotice("Bloco adicionado ao rascunho.");}
+ function add(kind="text",title="Nova mensagem",destination?:Record<string,string>,after?:{id:string;option:string},position?:{x:number;y:number}){if(flow.steps.length>=100){setNotice("Use até 100 blocos por fluxo.");return;}const id="etapa-"+crypto.randomUUID();const action=(["asaas.customer.lookup","asaas.payment.lookup","asaas.payment.pix","asaas.payment.boleto","human.handoff","crm.stage.move","crm.finalize"].includes(kind)?kind:undefined) as Step["action"];const step:Step={id,kind,title,message:destination?"":"",config:destination?JSON.stringify(destination):kind==="tag"?JSON.stringify({name:"Nova tag",color:"#6258df"}):kind==="input.text"?JSON.stringify({variable:"novo_nome"}):["condition","variable"].includes(kind)?JSON.stringify({variable:"novo_nome",value:""}):undefined,options:kind==="buttons"?[]:kind==="condition"?["Sim","Não"]:["assignment","department.route","human.handoff","asaas.payment.lookup","agent","crm.finalize"].includes(kind)?[]:["Continuar"],...(action?{action}:{}),position:position??newNodePosition(after)};nodeToReveal.current=id;setFlow(f=>({...f,steps:[...f.steps.map(source=>after&&source.id===after.id?{...source,transitions:{...source.transitions,[after.option]:id}}:source),step]}));setSelected(id);setStudioPanel("settings");setEditorOpen(true);setRightCollapsed(false);if(["text","buttons","input.text","input.cpf"].includes(kind)){setEditorOpen(false);setInlineMessage(id);}else if(kind==="condition"){setEditorOpen(false);setInlineCondition(id);}setNotice("Bloco adicionado ao rascunho.");}
  const libraryQuery=librarySearch.trim().toLowerCase();
  const triggerFields=<div className="grid gap-2">
    <label className={canvasInspectorLabel}>Quando…

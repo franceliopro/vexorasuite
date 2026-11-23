@@ -26,9 +26,11 @@ function parse(raw: string): unknown {
   try { return JSON.parse(fences[0]![1]!); } catch { return undefined; }
 }
 
-export function compileChatbotFlow(raw: string, departments: Department[]) {
+export function compileChatbotFlow(raw: string, departments: Department[], baseDraft?: Parameters<typeof validDraft>[0]) {
+  const base = validDraft(baseDraft) ? baseDraft : undefined;
+  const existing = new Map(base?.steps.map(step => [step.id, step]));
   const plan = object(parse(raw));
-  if (!plan || !Array.isArray(plan.steps) || !plan.steps.length || plan.steps.length > 20) return;
+  if (!plan || !Array.isArray(plan.steps) || !plan.steps.length || plan.steps.length > (base ? 100 : 20)) return;
   const steps: RuntimeStep[] = [];
   const warnings: string[] = [];
   const pending = new Set<string>();
@@ -47,7 +49,10 @@ export function compileChatbotFlow(raw: string, departments: Department[]) {
     let config = object(node.config);
     if (typeof node.config === 'string') config = object(parse(node.config));
     if (node.config !== undefined && !config) return;
-    if (kind === 'preferred-name') {
+    const original = existing.get(id);
+    if (original && (original.kind ?? original.action) === kind && !['text','buttons','input.text','variable','condition'].includes(String(kind))) {
+      steps.push({...original,...step});
+    } else if (kind === 'preferred-name') {
       if (options.length !== 1 || !connections[options[0]] || Object.keys(connections).length !== 1) return;
       const next = connections[options[0]]!;
       const choose = id+'-escolha', keep = id+'-manter', enter = id+'-digitar';
@@ -73,7 +78,7 @@ export function compileChatbotFlow(raw: string, departments: Department[]) {
       if (typeof variable !== 'string') return;
       const field = variable.replace(/^\{\{\s*([\w]+)\s*\}\}$/,'$1');
       if (Object.hasOwn(Object.prototype,field)) return;
-      steps.push({...step,kind,config:JSON.stringify({variable:field,...(kind!=='input.text'?{value:config?.value}:{})})});
+      steps.push({...step,kind,config:JSON.stringify({variable:field,...(kind!=='input.text'?{value:config?.value}:original?.config&&object(parse(original.config))?.validation==='preferred-name'?{validation:'preferred-name'}:{})})});
     } else return;
   }
   // The messaging engine gives "menu" priority; reserve it for the first
@@ -86,7 +91,7 @@ export function compileChatbotFlow(raw: string, departments: Department[]) {
     for (const step of steps) for (const option of step.options) if (step.transitions?.[option]==='menu') step.transitions[option]=replacement;
     if (pending.delete('menu')) pending.add(replacement);
   }
-  const draft = {name:plan.name,welcome:plan.welcome ?? '',channelIds:[],triggers:[{kind:'message'}],steps:steps.map((step,index)=>({...step,position:{x:80+(index%3)*340,y:100+Math.floor(index/3)*260}}))};
+  const draft = {name:plan.name,welcome:plan.welcome ?? '',channelIds:base?.channelIds??[],triggers:base?.triggers??[{kind:'message'}],askPreferredName:base?.askPreferredName,steps:steps.map((step,index)=>({...step,position:existing.get(step.id)?.position??{x:80+(index%3)*340,y:100+Math.floor(index/3)*260}}))};
   if (!validDraft(draft)) return;
   const validation = {...draft,channelIds:['draft'],steps:draft.steps.map(step=>pending.has(step.id)?{...step,config:'{"targetMode":"QUEUE"}'}:step)};
   if (validateRuntimeFlow(validation).length) return;

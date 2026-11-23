@@ -78,7 +78,7 @@ test("o diálogo de IA preserva contratos, acessibilidade e ações", () => {
     'aria-label="Fechar"', 'aria-pressed={aiDictating}',
     'htmlFor="chatbot-ai-request-input"', 'id="chatbot-ai-request-input"',
     'role="status"', 'role="alert"', "dictateAiRequest", "createFlowWithAi()",
-    "Criar chatbot com IA", "Ditar", "Parar ditado", "Cancelar", "Criar fluxo",
+    "Assistente de fluxo", "Ditar", "Parar ditado", "Cancelar", "Gerar proposta", "Aplicar ao canvas",
     "Ctrl+Enter cria", "aiRequest.trim()", "setAiCreateOpen(false)",
   ]) {
     assert.ok(dialog.includes(token), `diálogo perdeu ${token}`);

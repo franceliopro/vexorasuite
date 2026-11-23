@@ -128,6 +128,7 @@ export class InstagramAutomationsController {
               profileId: profile.profileId,
               accountId: account[0],
               name,
+              isActive: true,
               trigger: draft.trigger,
               keywords: draft.keyword ? [draft.keyword] : [],
               matchMode: 'contains',

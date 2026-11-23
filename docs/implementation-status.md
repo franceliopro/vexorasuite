@@ -42,6 +42,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - PR #1187: intake estruturado de briefing e correção da linguagem de domínio simulado; CI verde em `Build and type-check`, `Private SearXNG runtime`, `validate`, `Container (api)` e `Container (web)`; merge `a5e13d7bf0c117f99e7e1c93713c2085e49f9132`.
 - PR #1188: sync `foundation/bootstrap-monorepo` → `main` preservando as duas histórias; merge `de1ec15f6eb1124b1d2345ae64c2fe92c0029cca`, mesclado com head esperada `db118c1534112dd92bade26e32c8db9b9e8c220d` e todos os cinco checks verdes. Após o merge, `git merge-base --is-ancestor origin/foundation/bootstrap-monorepo origin/main` retornou `0`.
 - Varredura de processo em 2026-11-23: `docs/especificacao-ui-dominio-cloudflare.md` foi alinhado à simulação (sem promessa de deploy, DNS ou SSL reais). Nenhum item foi promovido a “entregue” por configuração, rascunho ou flag.
+- Modelo preenchível `docs/modelo-insumos-sites-artes.md` ligado pelo checklist: reúne os campos exigidos por site, por peça e para cobrança real. É apenas um formulário para o proprietário; preenchê-lo não publica site, gera arte nem cobra cliente.
 
 ## 2. O que está em construção
 

@@ -5,6 +5,8 @@
 
 A Véxora registra o pedido, a aprovação, a publicação e a auditoria. A execução de sites e criativos fica fora da Véxora e depende de acesso e insumos que o proprietário ainda não enviou. Enquanto isso, o provisionador continua em `simulation`; nenhum recurso real foi criado.
 
+**Modelo pronto para enviar:** `docs/modelo-insumos-sites-artes.md` reúne, em blocos copiáveis, todos os campos exigidos por site e por peça. Preencher e devolver esse arquivo é a forma mais rápida de destravar as seções 1, 1.1 e 3 abaixo.
+
 ## 1. Sites — um bloco por site
 
 Preencher para cada um dos quatro sites (Alto Araguaia Imóveis, Rastreabem, SOS Alto Araguaia, Morbeck x Carvalhinho):

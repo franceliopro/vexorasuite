@@ -60,7 +60,7 @@ function canvasDirection(key:string,distance:number){
 type Step = { kind?:string; config?:string; action?: "asaas.customer.lookup"|"asaas.payment.lookup"|"asaas.payment.pix"|"asaas.payment.boleto"|"human.handoff"|"crm.stage.move"|"crm.finalize"; id:string; title:string; message:string; options:string[]; transitions?:Record<string,string>; position?:{x:number;y:number} };
 type Flow = { name:string; welcome:string; askPreferredName?:boolean; steps:Step[]; channelIds?:string[]; triggers?:{kind:"message"|"keyword"|"dm"|"first_message";keyword?:string}[] };
 type Channel = {id:string;name:string;provider:string;platform?:string;status:string};
-const flowVariables=[["nome","Nome do cliente"],["novo_nome","Como o cliente prefere ser chamado"],["atendente","Atendente"],["departamento","Departamento"],["empresa","Empresa"],["razao_social","Razão social"],["cnpj","CNPJ"],["endereco_completo","Endereço completo"],["endereco","Endereço"],["telefone","Telefone"],["email","E-mail"],["protocolo","Protocolo do atendimento"],["saudacao","Saudação"],["despedida","Despedida"]] as const;
+const flowVariables=[["nome","Nome do cliente"],["novo_nome","Como o cliente prefere ser chamado"],["atendente","Atendente"],["departamento","Departamento"],["empresa","Empresa"],["razao_social","Razão social"],["cnpj","CNPJ"],["endereco_completo","Endereço completo"],["endereco","Endereço"],["telefone","Telefone"],["email","E-mail"],["protocolo","Protocolo do atendimento"],["saudacao","Saudação"],["despedida","Despedida"],["nome_identificado","Nome identificado"],["origem","Origem do contato"],["pipeline","Pipeline do CRM"],["etapa","Etapa do CRM"]] as const;
 const integrationResults = {
  agenda_reserva: { label: "Resultado do agendamento", values: [["confirmado","Confirmado"],["ocupado","Ocupado"],["indisponível","Não foi possível confirmar"]] },
  agenda_disponivel: { label: "Horário disponível", values: [["sim","Livre"],["não","Ocupado"],["indisponível","Não foi possível consultar"]] },
@@ -481,6 +481,29 @@ export function ChatbotWorkspace({tenantId}:{tenantId:string}){
   setSelected(aiProposal.draft.steps[0]?.id||"");
   setAiCreateOpen(false);setAiProposal(null);
   setNotice("Proposta aplicada ao rascunho. Teste o fluxo antes de publicar.");
+ }
+ const [customVariables,setCustomVariables]=useState<readonly (readonly [string,string])[]>([]);
+ useEffect(()=>{
+  const controller=new AbortController();
+  const refresh=()=>void fetch("/api/backend/crm/custom-fields",{cache:"no-store",signal:controller.signal})
+   .then(async response=>response.ok?await response.json():null)
+   .then(data=>{
+    if(controller.signal.aborted||!Array.isArray(data))return;
+    setCustomVariables(data.flatMap(field=>{
+     if(field?.enabled===false||typeof field?.id!=="string"||typeof field?.label!=="string")return [];
+     const token=field.id.trim().replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^([^\p{L}_])/u,"_$1").slice(0,40);
+     return /^[\w-]+$/.test(token)?[[token,field.label] as const]:[];
+    }));
+   }).catch(()=>undefined);
+  refresh();
+  window.addEventListener("focus",refresh);
+  return()=>{controller.abort();window.removeEventListener("focus",refresh);};
+ },[tenantId]);
+ const textVariables=new Map<string,string>([...conditionVariables,["pagamento_link","Link de pagamento"]]);
+ for(const [key,label] of customVariables)if(!textVariables.has(key))textVariables.set(key,label);
+ for(const step of flow.steps){
+  const key=stepConfig(step).variable;
+  if(["input.text","input.cpf","variable"].includes(step.kind||"")&&key&&/^[a-zA-Z][\w]{0,39}$/.test(key)&&!textVariables.has(key))textVariables.set(key,key);
  }
  const importInputRef=useRef<HTMLInputElement|null>(null);
 const aiRecognition=useRef<{stop:()=>void}|null>(null);
@@ -1188,6 +1211,22 @@ function dictateAiRequest(){
  </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&typeof stepConfig(step).value==="string"?`Se ${conditionVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a “${conditionValueOptions(stepConfig(step).variable||"").find(([value])=>value===stepConfig(step).value)?.[1]||stepConfig(step).value}”`:"Definir condição"}</button>
  :inlineMessage===step.id?<div className="grid gap-2" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setInlineMessage(null)}} onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineMessage(null)}}}>
   <textarea autoFocus rows={3} maxLength={4000} aria-label={`Mensagem de ${step.title}`} className="w-full select-text rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value={step.message} onChange={event=>updateStep({message:event.target.value})}/>
+  <label className="grid gap-1 text-flow-help font-semibold">Inserir variável
+   <select className="min-w-0 rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value="" onChange={event=>{
+    const key=event.target.value;if(!key)return;
+    const editor=event.currentTarget.closest("label")?.parentElement?.querySelector("textarea");
+    const start=editor?.selectionStart??step.message.length;
+    const end=editor?.selectionEnd??start;
+    const token="{{"+key+"}}";
+    const next=step.message.slice(0,start)+token+step.message.slice(end);
+    if(next.length>4000)return;
+    updateStep({message:next});editor?.focus();
+    requestAnimationFrame(()=>editor?.setSelectionRange(start+token.length,start+token.length));
+   }}>
+    <option value="">Escolher dado</option>
+    {[...textVariables].map(([key,label])=><option key={key} value={key}>{label}</option>)}
+   </select>
+  </label>
   {flow.steps.some(item=>item.kind==="payment.status")&&!step.message.includes("{{pagamento_link}}")?<button type="button" className={canvasNodeQuickButton} disabled={step.message.length>3982} onClick={event=>{
    const editor=event.currentTarget.parentElement?.querySelector("textarea");
    const position=editor?.selectionStart??step.message.length;

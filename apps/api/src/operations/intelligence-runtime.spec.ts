@@ -119,6 +119,20 @@ describe('explicit human handoff destinations',()=>{
  it('does not resend outbox messages with an existing delivery claim',async()=>{const x=setup();x.tx.message.findFirst.mockImplementation(async({where}:any)=>where.status?{id:'out',status:'QUEUED',metadata:{deliveryState:'SENDING'}}:x.inbound);await x.service.receive(x.channel,'conversation','inbound');expect(x.waha.sendText).not.toHaveBeenCalled();});
 });
 
+describe('conversation-start trigger',()=>{
+ it.each([true,false])('only starts on the first inbound message (%s)',async(first)=>{
+  const x=setup();
+  x.flow.triggers=[{kind:'first_message'}];
+  x.flow.welcome='';
+  x.flow.steps=[{id:'start',kind:'text',title:'Mensagem',message:'Bem-vindo',options:[]}];
+  const lookup=x.tx.message.findFirst.getMockImplementation();
+  x.tx.message.findFirst.mockImplementation(async(args:any)=>args.orderBy
+   ? {id:first?x.inbound.id:'earlier-message'}
+   : lookup(args));
+  await x.service.receive(x.channel,'conversation','inbound');
+  expect(x.waha.sendText).toHaveBeenCalledTimes(first?1:0);
+ });
+});
 describe('persistent preferred name',()=>{
  it('starts the configured flow without asking for a name when disabled',async()=>{
   const x=setup();

@@ -6,7 +6,7 @@ export type RuntimeStep = {
 };
 export type RuntimeFlow = {
   name: string; welcome: string; askPreferredName?: boolean; steps: RuntimeStep[]; channelIds?: string[];
-  triggers?: { kind: 'message' | 'dm' | 'keyword'; keyword?: string }[];
+  triggers?: { kind: 'message' | 'dm' | 'keyword' | 'first_message'; keyword?: string }[];
 };
 export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'contact.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition'];
 export const executableActions = ['human.handoff', 'asaas.payment.lookup', 'crm.stage.move', 'crm.finalize'];
@@ -24,7 +24,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
   if (typeof f.name !== 'string' || !f.name.trim() || f.name.length > 120 || typeof f.welcome !== 'string' || f.welcome.length > 4000) errors.push('Nome ou saudação inválidos');
   if (!Array.isArray(f.steps) || !f.steps.length || f.steps.length > 100) return [...errors, 'Use entre 1 e 100 blocos'];
   if (!Array.isArray(f.channelIds) || !f.channelIds.length || f.channelIds.length > 30 || f.channelIds.some(id => typeof id !== 'string') || new Set(f.channelIds).size !== f.channelIds.length) errors.push('Selecione canais válidos, sem duplicação');
-  if (!Array.isArray(f.triggers) || !f.triggers.length || f.triggers.length > 10 || f.triggers.some(t => !t || !['message','dm','keyword'].includes(t.kind) || (t.kind === 'keyword' && (typeof t.keyword !== 'string' || !t.keyword.trim() || t.keyword.length > 120)))) errors.push('Configure um gatilho válido');
+  if (!Array.isArray(f.triggers) || !f.triggers.length || f.triggers.length > 10 || f.triggers.some(t => !t || !['message','dm','keyword','first_message'].includes(t.kind) || (t.kind === 'keyword' && (typeof t.keyword !== 'string' || !t.keyword.trim() || t.keyword.length > 120)))) errors.push('Configure um gatilho válido');
   const ids = new Set<string>();
   for (const s of f.steps) {
     if (!s || typeof s.id !== 'string' || !/^[\w-]{1,80}$/.test(s.id) || ids.has(s.id)) { errors.push('Identificador de bloco inválido ou repetido'); continue; }
@@ -84,6 +84,17 @@ export function validateRuntimeFlow(value: unknown): string[] {
 export const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
 export function isPreferredName(value: string): boolean {
   return /^[\p{L}][\p{L} .’'-]{0,79}$/u.test(value);
+}
+export function matchesChatbotTrigger(triggers: RuntimeFlow['triggers'], text: string, direct: boolean, firstMessage = false): boolean {
+  const normalizedText = normalize(text);
+  return Array.isArray(triggers) && triggers.some(trigger => {
+    if (trigger?.kind === 'message') return true;
+    if (trigger?.kind === 'dm') return direct;
+    if (trigger?.kind === 'first_message') return firstMessage;
+    if (trigger?.kind !== 'keyword' || typeof trigger.keyword !== 'string') return false;
+    const keyword = normalize(trigger.keyword);
+    return Boolean(keyword) && normalizedText === keyword;
+  });
 }
 export function selectedOption(step: RuntimeStep, text: string, variables?: Record<string,string>): string | undefined {
   const value = normalize(text);

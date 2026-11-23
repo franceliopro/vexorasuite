@@ -57,12 +57,14 @@ export function InstagramCampaigns() {
   };
   const needsKeyword = form.trigger !== "story_mention";
   const supportsMedia = form.trigger === "comment" || form.trigger === "story_reply";
+  const isStoryReply = form.trigger === "story_reply";
   const supportsDelay = form.trigger !== "live_comment";
 
   useEffect(() => {
-    if (!open || !mediaOpen || !form.channelId || form.trigger !== "comment" || form.mediaScope !== "list") return;
+    if (!open || !mediaOpen || !form.channelId || !supportsMedia || form.mediaScope !== "list") return;
     const controller = new AbortController();
     const params = new URLSearchParams({ channelId: form.channelId });
+    if (isStoryReply) params.set("kind", "story");
     if (page.cursor) params.set("cursor", page.cursor);
     setMediaStatus("loading");
     void fetch("/api/backend/chatbot/instagram/campaigns/media?" + params.toString(), { signal: controller.signal })
@@ -78,7 +80,7 @@ export function InstagramCampaigns() {
       })
       .catch(() => { if (!controller.signal.aborted) setMediaStatus("error"); });
     return () => controller.abort();
-  }, [open, mediaOpen, form.channelId, form.trigger, form.mediaScope, page]);
+  }, [open, mediaOpen, form.channelId, supportsMedia, isStoryReply, form.mediaScope, page]);
 
   async function activateDraft(id: string) {
     if (activating) return;
@@ -195,20 +197,22 @@ export function InstagramCampaigns() {
           {needsKeyword ? <label className="grid gap-1">Com esta palavra ou frase<input required maxLength={120} className={fieldClass} value={form.keyword} onChange={event => update("keyword", event.target.value)} placeholder="Eu quero" /></label> : null}
           <label className="grid gap-1">Enviar esta mensagem privada<textarea required rows={3} maxLength={form.link.trim() ? 640 : 1000} className={fieldClass} value={form.message} onChange={event => update("message", event.target.value)} /></label>
           <details onToggle={event => setMediaOpen(event.currentTarget.open)}>
-            <summary className="cursor-pointer text-small font-semibold">Publicação específica, link e atraso</summary>
+            <summary className="cursor-pointer text-small font-semibold">{isStoryReply ? "Story específico, link e atraso" : "Publicação específica, link e atraso"}</summary>
             <div className="mt-2 grid gap-3">
               {supportsMedia ? <label className="grid gap-1">Onde aplicar<select className={fieldClass} value={form.mediaScope} onChange={event => update("mediaScope", event.target.value)}>
                 <option value="all">{form.trigger === "story_reply" ? "Qualquer Story" : "Qualquer publicação ou Reel"}</option>
-                {form.trigger === "comment" ? <option value="list">Escolher uma publicação da conta</option> : null}
+                <option value="list">{isStoryReply ? "Escolher um Story ativo" : "Escolher uma publicação da conta"}</option>
                 <option value="id">{form.trigger === "story_reply" ? "Informar o ID do Story" : "Informar o ID da publicação"}</option>
               </select></label> : null}
-              {form.trigger === "comment" && form.mediaScope === "list" ? <div className="grid gap-2">
-                <label className="grid gap-1">Publicação ou Reel<select className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)}>
-                  <option value="">Escolha uma publicação</option>
-                  {posts.map(post => <option key={post.id} value={post.id}>{post.date ? post.date.split("-").reverse().join("/") + " · " : ""}{post.caption || "Publicação sem legenda"}</option>)}
+              {supportsMedia && form.mediaScope === "list" ? <div className="grid gap-2">
+                <label className="grid gap-1">{isStoryReply ? "Story ativo" : "Publicação ou Reel"}<select className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)}>
+                  <option value="">{isStoryReply ? "Escolha um Story" : "Escolha uma publicação"}</option>
+                  {posts.map(post => <option key={post.id} value={post.id}>{post.date ? (isStoryReply
+                    ? (Number.isFinite(Date.parse(post.date)) ? new Date(post.date).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "")
+                    : post.date.split("-").reverse().join("/")) + " · " : ""}{post.caption || "Publicação sem legenda"}{isStoryReply ? " · " + post.id.slice(-6) : ""}</option>)}
                 </select></label>
-                {!form.channelId ? <p>Escolha primeiro a conta do Instagram.</p> : mediaStatus === "loading" ? <p role="status">Buscando publicações…</p> : null}
-                {mediaStatus === "ready" && !posts.length ? <p>Nenhuma publicação encontrada. Se você tiver o ID da mídia, selecione a opção de informá-lo acima.</p> : null}
+                {!form.channelId ? <p>Escolha primeiro a conta do Instagram.</p> : mediaStatus === "loading" ? <p role="status">{isStoryReply ? "Buscando Stories…" : "Buscando publicações…"}</p> : null}
+                {mediaStatus === "ready" && !posts.length ? <p>{isStoryReply ? "Nenhum Story ativo encontrado." : "Nenhuma publicação encontrada."} Se você tiver o ID da mídia, pode informá-lo acima.</p> : null}
                 {mediaStatus === "error" ? <button type="button" className="w-fit underline" onClick={() => setPage(current => ({ ...current }))}>Falha na consulta. Tentar novamente</button> : null}
                 {mediaStatus === "ready" && nextCursor ? <button type="button" className="w-fit underline" onClick={() => setPage({ cursor: nextCursor })}>Carregar publicações anteriores</button> : null}
               </div> : null}

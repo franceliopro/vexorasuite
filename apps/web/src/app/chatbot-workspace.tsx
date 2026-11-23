@@ -644,7 +644,6 @@ function dictateAiRequest(){
   fitCanvas();
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[flow.steps]);
- useEffect(()=>{if(fullScreen){setEditorOpen(true);setStudioPanel("settings");setLeftCollapsed(false);setRightCollapsed(false);}},[fullScreen]);
  useEffect(()=>{if(!fullScreen)return;const releaseScroll=acquireBodyScrollLock();const escape=(event:KeyboardEvent)=>{if(event.key==="Escape")setFullScreen(false)};document.addEventListener("keydown",escape);return()=>{releaseScroll();document.removeEventListener("keydown",escape)}},[fullScreen]);
  function toggleFullScreen(){setFullScreen(value=>!value)}
  function fitCanvas(){
@@ -660,8 +659,8 @@ function dictateAiRequest(){
   setView({zoom:scale*100,x:canvas.clientWidth/2-(minX+width/2)*scale,y:canvas.clientHeight/2-(minY+height/2)*scale});
  }
 
- useEffect(()=>{try{const saved=window.localStorage.getItem("vexora-flow-panels-v1");if(saved){const state=JSON.parse(saved) as {left?:boolean;right?:boolean;auto?:boolean};setLeftCollapsed(!!state.left);setRightCollapsed(!!state.right);setAutoHidePanels(!!state.auto)}else if(matchMedia("(max-width:760px)").matches)setLeftCollapsed(true)}catch{}},[]);
- useEffect(()=>{try{window.localStorage.setItem("vexora-flow-panels-v1",JSON.stringify({left:leftCollapsed,right:rightCollapsed,auto:autoHidePanels}))}catch{}},[leftCollapsed,rightCollapsed,autoHidePanels]);
+ useEffect(()=>{try{const saved=window.localStorage.getItem("vexora-flow-panels-v1");if(saved){const state=JSON.parse(saved) as {right?:boolean;auto?:boolean};setRightCollapsed(!!state.right);setAutoHidePanels(!!state.auto)}}catch{}},[]);
+ useEffect(()=>{try{window.localStorage.setItem("vexora-flow-panels-v1",JSON.stringify({right:rightCollapsed,auto:autoHidePanels}))}catch{}},[rightCollapsed,autoHidePanels]);
  useEffect(()=>{let live=true;setReady(false);setLoadError("");fetch("/api/backend/channels",{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(data=>{if(live)setChannels(Array.isArray(data)?data:[])}).catch(()=>{if(live)setChannelNotice("Não foi possível carregar os canais vinculados.")});fetch("/api/backend/chatbot/draft",{cache:"no-store",signal:AbortSignal.timeout(15000)}).then(async r=>{if(!r.ok)throw Error("Não foi possível recuperar o fluxo salvo. Tente novamente antes de editar.");return r.json()}).then(data=>{if(!live)return;const legacyTemplate=data?.draft?.name==="Fluxo Suporte+Financeiro";const loaded:Flow=!legacyTemplate&&data?.draft&&Array.isArray(data.draft.steps)?{...data.draft,steps:data.draft.steps.map((step:Step)=>({...step,config:step.config&&typeof step.config!=="string"?JSON.stringify(step.config):step.config}))}:structuredClone(emptyFlow);setFlow(loaded);setSelected(loaded.steps[0]?.id||"");setLastSaved(JSON.stringify(loaded));writeTenantCache(tenantId,"chatbot-draft",loaded);setReady(true);setNotice(legacyTemplate?"Rascunho antigo removido. Comece pelo Gatilho.":data?.draft?"":"Comece adicionando um bloco.");}).catch(error=>{if(live)setLoadError(error instanceof Error?error.message:"Falha ao carregar o fluxo")});return()=>{live=false}},[tenantId,loadAttempt]);
  useEffect(()=>{if(!ready||flowSerialized===lastSaved)return;writeTenantCache(tenantId,"chatbot-draft-recovery",flow);let timer:ReturnType<typeof setTimeout>;const attempt=()=>{if(saveInFlight.current){timer=setTimeout(attempt,500);return;}void save(flow,true)};timer=setTimeout(attempt,1500);return()=>clearTimeout(timer)},[flow,flowSerialized,lastSaved,ready]);
  useEffect(()=>{if(!ready||flowSerialized===lastSaved)return;const prevent=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue=""};window.addEventListener("beforeunload",prevent);return()=>window.removeEventListener("beforeunload",prevent)},[flow,flowSerialized,lastSaved,ready]);

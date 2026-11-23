@@ -53,6 +53,7 @@ try{
   };
   return route.fulfill({json:fixtures[path]??{}});
  });
+ await page.addInitScript(()=>localStorage.setItem("vexora-flow-panels-v1",JSON.stringify({left:false,right:false,auto:false})));
  await page.goto(origin+"/?module=Chatbots");
  const canvas=page.getByRole("region",{name:/Canvas do fluxo/});
  const board=canvas.locator("[data-flow-board]");
@@ -64,6 +65,13 @@ try{
  });
  await expect(canvas).toBeVisible();
  await expect(page.getByRole("button",{name:"Mostrar ou ocultar blocos"})).toHaveAttribute("aria-expanded","false");
+ const libraryToggle=page.getByRole("button",{name:"Mostrar ou ocultar blocos"});
+ await libraryToggle.click();
+ await expect(page.getByRole("button",{name:"Fazer pergunta",exact:true})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Definir variável",exact:true})).toBeHidden();
+ await page.getByText("Mais blocos",{exact:true}).click();
+ await expect(page.getByRole("button",{name:"Definir variável",exact:true})).toBeVisible();
+ await libraryToggle.click();
  await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);
  const trigger=board.getByRole("button",{name:"Quando…",exact:true});
  await trigger.click();

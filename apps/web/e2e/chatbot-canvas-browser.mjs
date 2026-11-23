@@ -65,6 +65,7 @@ try{
     agents:[{id:"agent-qa",name:"Atendente recém-criado"}],
    }:{departments:[],agents:[]},
    "/crm/pipelines":[],
+   "/crm/custom-fields":[{id:"placa",label:"Placa do veículo",enabled:true}],
    "/assistant/config":{agents:[]},
    "/channels":[{id:"test-channel",name:"WhatsApp de teste",provider:"WAHA"}],
    "/conversations/mentions":[],
@@ -203,7 +204,11 @@ try{
  const message=board.getByRole("textbox",{name:"Mensagem de Enviar mensagem"});
  await expect(message).toBeVisible();
  await message.fill("Olá! Vamos preparar seu orçamento.");
- await message.press("Tab");
+ await message.evaluate(input=>input.setSelectionRange(3,3));
+ await board.getByRole("combobox",{name:"Inserir variável",exact:true}).selectOption({label:"Placa do veículo"});
+ await expect(message).toHaveValue("Olá{{placa}}! Vamos preparar seu orçamento.");
+ await message.fill("Olá! Vamos preparar seu orçamento.");
+ await message.press("Escape");
  await expect(board.getByRole("button",{name:"Olá! Vamos preparar seu orçamento."})).toBeVisible();
  await page.getByRole("button",{name:"Testar o fluxo agora"}).click();
  const triggerText=page.getByRole("textbox",{name:"Mensagem que ativa o teste"});

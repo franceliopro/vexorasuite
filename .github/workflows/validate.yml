@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - foundation/bootstrap-monorepo
+      # A proteção de main exige estes checks no PR de sync; sem isto eles
+      # nunca disparam e o merge fica permanentemente bloqueado.
+      - main
   push:
     branches:
       - main

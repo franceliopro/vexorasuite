@@ -27,7 +27,7 @@ Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morb
 - [ ] **Repositório GitHub por tenant/site** (ou autorização para criá-lo a partir do template) e token com escopo mínimo para o fluxo operacional externo.
 - [ ] **Conta/token Cloudflare Pages** e acesso DNS/TLS quando a publicação for executada; sem isso, o HUB só registra pedido/preview/aprovação.
 - [ ] **Briefing de artes por peça:** objetivo, canal/formato, identidade visual, texto/matéria-prima aprovados, prazo, aprovador e destino/publicador.
-- [ ] **Credenciais Stripe e InfinitePay** (chaves, webhook secret/handle e ambiente sandbox/produção) quando os adaptadores forem implementados; sem credenciais, não validar cobrança real.
+- [ ] **Credenciais Stripe e InfinitePay** (chaves, webhook secret/handle e ambiente sandbox/produção). Adaptadores já implementados no PR #1183; sem credenciais, webhook registrado e evidência do provedor, não validar cobrança real.
 - [ ] **Evidência no ar** para qualquer afirmação de publicação, domínio ativo, TLS, pagamento ou integração funcionando.
 
 ## 2. Infraestrutura do provisionador

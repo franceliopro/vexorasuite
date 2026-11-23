@@ -72,6 +72,11 @@ try{
  await expect(board.getByRole("checkbox",{name:"WhatsApp de teste"})).toBeVisible();
  await trigger.click();
  await expect(trigger).toHaveAttribute("aria-expanded","false");
+ await trigger.click({button:"right"});
+ await page.getByRole("dialog",{name:"Ações do bloco"}).getByRole("button",{name:"Editar gatilho"}).click();
+ await expect(trigger).toHaveAttribute("aria-expanded","true");
+ await trigger.click();
+ await expect(trigger).toHaveAttribute("aria-expanded","false");
  await fit.click();
  await expect(node).toBeInViewport();
  const initial=await camera();

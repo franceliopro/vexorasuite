@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Véxora Sites — etapa de configuração de domínio próprio (deploy via Cloudflare for SaaS).
+ * Véxora Sites — simulação visual da etapa de domínio próprio. Nada aqui executa deploy,
+ * altera DNS emite certificado ou publica conteúdo; a publicação real pertence ao HUB.
  *
  * Padrão visual: tokens de design (`docs/design-tokens.md`), classes de botão/dialog
  * de `vexora.css` e ícones `lucide-react`. O componente é um painel/card que cabe
@@ -207,19 +208,19 @@ export function SiteDomainConfig({
       if (simulated.dns === "verified" && simulated.ssl === "verified") {
         stopPoll();
         setFlowStep("ssl");
-        setNotice("DNS e SSL verificados. Pronto para publicar.");
+        setNotice("Simulação: DNS e SSL marcados como verificados. Nada foi publicado.");
         setNoticeKind("ok");
       } else if (simulated.dns === "error" || simulated.ssl === "error") {
         stopPoll();
         setFlowStep("error");
-        setNotice("Falha na verificação de DNS/SSL. Confira os registros e tente novamente.");
+        setNotice("Falha simulada na verificação de DNS/SSL. Nenhum registro foi alterado.");
         setNoticeKind("bad");
       }
     } catch {
       stopPoll();
       setFlowStep("error");
       setNoticeKind("bad");
-      setNotice("Não foi possível consultar o status de DNS/SSL.");
+      setNotice("Não foi possível simular a consulta de DNS/SSL.");
     }
   }, [siteId, stopPoll, simulateDnsSsl]);
 
@@ -233,7 +234,7 @@ export function SiteDomainConfig({
     if (!domainIsValid()) return;
     setBusy(true);
     setFlowStep("domain");
-    setNotice("Validando domínio…");
+    setNotice("Validando formato do domínio…");
     setNoticeKind("info");
     try {
       // TODO: substituir pelo endpoint real do backend (ex.: POST /api/backend/sites/:id/domain)
@@ -244,7 +245,7 @@ export function SiteDomainConfig({
       await new Promise((r) => setTimeout(r, 600)); // placeholder
       setFlowStep("dns");
       setDnsStatus("pending");
-      setNotice("Domínio válido. Iniciando verificação de DNS…");
+      setNotice("Domínio informado. Iniciando simulação de DNS…");
       setNoticeKind("info");
       void startDnsPoll();
     } catch (e) {
@@ -268,7 +269,7 @@ export function SiteDomainConfig({
     setBusy(true);
     setFlowStep("deploy");
     setDeployProgress(0);
-    setNotice("Publicando no domínio próprio…");
+    setNotice("Simulando publicação no domínio próprio…");
     setNoticeKind("info");
     try {
       // TODO: substituir pelo endpoint real (ex.: POST /api/backend/sites/:id/domain/deploy)
@@ -279,7 +280,7 @@ export function SiteDomainConfig({
       }
       stopPoll();
       setFlowStep("done");
-      setNotice("Site publicado no domínio próprio com sucesso.");
+      setNotice("Simulação concluída. Nenhum site foi publicado; a publicação real exige o HUB de Sites e evidência 2xx no domínio final.");
       setNoticeKind("ok");
       void onSuccess?.();
     } catch (e) {
@@ -340,8 +341,10 @@ export function SiteDomainConfig({
         <div>
           <h2 className={titleTw}>Conectar domínio próprio</h2>
           <p className={subTw}>
-            Publique o site <strong>{siteSlug}</strong> no seu domínio, com deploy via
-            Cloudflare. Somente usuários com permissão de domínio podem concluir esta etapa.
+            Simulação da conexão de domínio do site <strong>{siteSlug}</strong>. Nesta tela
+            nada é publicado, nenhum DNS é alterado e nenhum certificado é emitido. A
+            publicação real acontece no HUB de Sites e só é confirmada após resposta 2xx
+            no domínio final.
           </p>
         </div>
       </header>
@@ -389,7 +392,7 @@ export function SiteDomainConfig({
         <div role="alert" className={errorTw}>
           <AlertCircle size={17} aria-hidden="true" />
           <div>
-            <strong>Não foi possível completar a configuração.</strong>
+            <strong>Não foi possível completar a simulação.</strong>
             <p>{notice}</p>
           </div>
           <button type="button" className={primaryTw} disabled={busy} onClick={() => {
@@ -485,7 +488,7 @@ export function SiteDomainConfig({
             <p className={recordsHintTw}>
               Em seu painel da Cloudflare, crie os registros abaixo no domínio{" "}
               <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code>. Após criar, aguarde a
-              verificação automática (pode levar alguns minutos).
+              verificação simulada nesta tela. Nenhuma consulta é feita à Cloudflare.
             </p>
             <table className={recordsTableTw} aria-label="Registros DNS">
               <thead>
@@ -542,8 +545,9 @@ export function SiteDomainConfig({
                 <strong>{CNAME_TARGET}</strong>. Desative o proxy ("DNS apenas") até a verificação passar.
               </li>
               <li>
-                Salve o registro e aguarde. A Véxora confere o DNS automaticamente e avisa quando
-                estiver válido. Você pode clicar em <strong>Verificar agora</strong> a qualquer momento.
+                Na publicação real, você criaria o registro e aguardaria a propagação. Aqui a
+                verificação é apenas ilustrativa; use <strong>Verificar agora</strong> para repetir
+                a simulação. Nenhuma consulta externa é executada.
               </li>
             </ol>
             <div className={cnameBoxTw}>
@@ -575,7 +579,7 @@ export function SiteDomainConfig({
                   onClick={deploy}
                 >
                   {busy ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
-                  {busy ? "Publicando…" : "Publicar no domínio"}
+                  {busy ? "Publicando…" : "Simular publicação"}
                 </button>
               )}
             </div>
@@ -587,8 +591,8 @@ export function SiteDomainConfig({
       {flowStep === "deploy" && (
         <section className={fieldBlockTw} aria-label="Passo 3 — Deploy">
           <div className={fieldLabelTw}>
-            <span className={fieldTagTw}>Publicando</span>
-            <span>Seu site está sendo ativado no domínio próprio.</span>
+            <span className={fieldTagTw}>Simulação de publicação</span>
+            <span>Nesta simulação, nenhum deploy real está em andamento.</span>
           </div>
           <div className={progressTw}>
             <div className={progressTrackTw} role="progressbar" aria-valuenow={deployProgress} aria-valuemin={0} aria-valuemax={100}>
@@ -597,8 +601,8 @@ export function SiteDomainConfig({
             <span className={progressPctTw}>{deployProgress}%</span>
           </div>
           <p className={fieldHintTw}>
-            O deploy costuma levar menos de um minuto. Você será avisado quando o site estiver
-            acessível em <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code>.
+            Esta é apenas uma animação de progresso: nenhum deploy foi executado e nenhum
+            endereço foi verificado. O domínio informado foi <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code>.
           </p>
         </section>
       )}
@@ -609,10 +613,11 @@ export function SiteDomainConfig({
           <div className={doneIconTw}>
             <CheckCircle2 size={32} aria-hidden="true" />
           </div>
-          <h3 className={doneTitleTw}>Domínio conectado</h3>
+          <h3 className={doneTitleTw}>Simulação concluída</h3>
           <p className={doneSubTw}>
-            O site <strong>{siteSlug}</strong> está publicado no domínio{" "}
-            <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code> com SSL ativo.
+            Nenhum domínio foi conectado, nenhum certificado foi emitido e nenhum site foi
+            publicado. O endereço informado foi <code>{domain.trim() || DOMAIN_PLACEHOLDER}</code>.
+            A publicação real exige o HUB de Sites e resposta 2xx no domínio final.
           </p>
           <div className={actionsTw}>
             <button type="button" className={secondaryTw} onClick={onClose}>
@@ -625,7 +630,7 @@ export function SiteDomainConfig({
                 window.open(`https://${domain.trim() || DOMAIN_PLACEHOLDER}`, "_blank");
               }}
             >
-              <ExternalLink size={14} aria-hidden="true" /> Ver site publicado
+              <ExternalLink size={14} aria-hidden="true" /> Abrir endereço informado
             </button>
           </div>
         </section>
@@ -654,7 +659,7 @@ export function SiteDomainConfig({
           </button>
           {dnsStatus === "verified" && sslStatus === "verified" && (
             <button type="button" className={primaryTw} disabled={busy || noPermission} onClick={deploy}>
-              Publicar no domínio
+              Simular publicação
             </button>
           )}
         </footer>

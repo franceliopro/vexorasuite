@@ -23,6 +23,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | Financeiro, Asaas, WhatsApp e e-mail | [x] / [~] | Contratos e código presentes. Agendamento e envio são registrados como `agendado`/`enviado`; `confirmado` exige evidência do provedor. |
 | Stripe e InfinitePay | [~] | Adaptadores tenant-scoped, credenciais criptografadas, rotas autenticadas, webhooks e UI implementados; Asaas e aliases preservados. Stripe verifica assinatura v1 com corpo cru; InfinitePay só confirma após `payment_check`. Sem credenciais, webhooks registrados ou evidência externa: nenhuma cobrança real foi validada. |
 | HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
+| Intake de briefing criativo | [~] | Endpoint e UI tenant-scoped exigem objetivo, canal/formato, identidade, fonte aprovada, prazo, aprovador e destino; registram evento de auditoria em `creative_briefs`. Não gera, aprova, publica nem entrega peça. Ainda sem briefing preenchido pelo proprietário. |
 | Template Next.js/MDX | [ ] | Definido como padrão, com `output: 'export'`, conteúdo em `.mdx` e menu em `content/navigation.ts`. Ainda sem site publicado. |
 | Directus + Postgres (imobiliária) | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
 | Sistemas verticais | [ ] | Escola de Música, Escola com provas/notas, Estética e Delivery registrados em §13. Nenhum módulo implantado. |
@@ -36,6 +37,8 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - PR #1183: Stripe e InfinitePay tenant-scoped preservando Asaas; PR #1184: sincronização de `main` preservando as duas histórias (`foundation` é ancestral de `main`).
 - Varredura rápida em 2026-11-23: 500/500 testes estáticos do Web, typecheck/lint de API e Web limpos, 4/4 specs de provedores de pagamento e 5/5 testes estáticos das rotas de pagamento. Nenhuma cobrança real foi feita.
 - Piloto Rastreabem: build estático de 9 páginas e auditoria reproduzível de links/assets com `sites/rastreabem/scripts/audit-links.cjs` — 10 arquivos HTML, 171 referências locais, zero quebrados. Isso não é publicação.
+- Intake de briefing criativo: seis blocos obrigatórios com validação no servidor, tenant isolation, migração e histórico de eventos; UI em Marketing → Briefings. Nenhuma peça é produzida ou publicada.
+- Correção de honesty: `sites-domain-config.tsx` deixou de afirmar publicação, domínio conectado e SSL ativo — a tela agora diz explicitamente que tudo é simulação e que a confirmação real depende do HUB e de 2xx no domínio final.
 
 ## 2. O que está em construção
 

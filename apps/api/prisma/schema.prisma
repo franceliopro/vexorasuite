@@ -116,6 +116,7 @@ model Tenant {
   propertyApplications PropertyApplication[]
   propertyScopes       PropertyScope[]
   siteHubRequests      SiteHubRequest[]
+  creativeBriefs       CreativeBrief[]
 
   @@map("tenants")
 }
@@ -1282,4 +1283,45 @@ enum SiteHubStatus {
   PUBLISH_REQUESTED
   PUBLISHED
   FAILED
+}
+
+/// Intake estruturado de briefing criativo. Registra insumos aprovados, sem
+/// gerar, aprovar, publicar ou entregar peça alguma.
+model CreativeBrief {
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  title          String
+  objective      String
+  channelFormat  String              @map("channel_format")
+  identity       String
+  approvedSource String              @map("approved_source")
+  deadline       DateTime            @db.Date
+  approver       String
+  destination    String
+  status         String              @default("RECEIVED")
+  createdBy      String              @map("created_by") @db.Uuid
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  events         CreativeBriefEvent[]
+
+  @@index([tenantId, createdAt])
+  @@map("creative_briefs")
+}
+
+model CreativeBriefEvent {
+  id        String       @id @default(uuid()) @db.Uuid
+  briefId   String       @map("brief_id") @db.Uuid
+  tenantId  String       @map("tenant_id") @db.Uuid
+  action    String
+  details   Json         @default("{}")
+  actorId   String?      @map("actor_id") @db.Uuid
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  brief     CreativeBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("creative_brief_events")
 }

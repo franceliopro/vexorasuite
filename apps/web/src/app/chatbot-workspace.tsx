@@ -67,6 +67,9 @@ const integrationResults = {
  pagamento_status: { label: "Status do pagamento", values: [["PAID","Pago"],["PENDING","Pendente"],["CANCELLED","Cancelado"],["OVERDUE","Vencido"],["não encontrado","Sem cobrança"],["indisponível","Consulta indisponível"]] },
 } as const;
 const conditionVariables = [...flowVariables, ...Object.entries(integrationResults).map(([key, result])=>[key,result.label] as const)];
+function conditionValueOptions(variable: string): ReadonlyArray<readonly [string,string]> {
+ return Object.hasOwn(integrationResults,variable) ? integrationResults[variable as keyof typeof integrationResults].values : [];
+}
 const simulationContext: Record<string,string> = { nome: "Cliente de teste", novo_nome: "Cliente de teste", atendente: "Atendente de teste", departamento: "Atendimento", empresa: "Véxora Suite", razao_social: "Véxora Suite Tecnologia Ltda.", cnpj: "00.000.000/0001-00", endereco_completo: "Av. Brasil, 1000 · Cuiabá/MT", endereco: "Av. Brasil, 1000 · Cuiabá/MT", telefone: "+55 (65) 99999-9999", email: "cliente@teste.local", protocolo: "AT-2026-TESTE01", saudacao: "Olá!", despedida: "Até logo!" };
 function resolveSimulationText(value: string, variables = simulationContext): string { return value.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key: string) => variables[key] ?? ""); }
 type NodeTone = "start" | "message" | "choice" | "input" | "logic" | "ai" | "asaas" | "transfer" | "crm" | "tag" | "end" | "finish" | "default";
@@ -1045,7 +1048,6 @@ function dictateAiRequest(){
  <button type="button" className={canvasPaletteButton} onClick={()=>{deleteStep(blockMenu.id);setBlockMenu(null)}}>Excluir bloco</button></>:null}</>}
  </div></div>,document.body)}
  <datalist id="chatbot-condition-variables">{conditionVariables.map(([key,label])=><option key={key} value={key} label={label}/>)}</datalist>
- {Object.entries(integrationResults).map(([key,result])=><datalist key={key} id={"chatbot-values-"+key}>{result.values.map(([value,label])=><option key={value} value={value} label={label}/>)}</datalist>)}
  <div className="grid min-w-0 gap-2 rounded-xl border border-line bg-surface p-3 text-ink">
   <label className={canvasInspectorLabel}>Fluxo aberto
    <select className="w-full min-w-0 rounded-token-sm border border-line bg-surface-2 px-2 py-2 text-ink" disabled={switchingFlow} value={libraryId} onChange={event=>void loadLibrary(event.target.value)}>
@@ -1143,9 +1145,13 @@ function dictateAiRequest(){
  <div className={canvasNodeBody}><span className={canvasInputPort} data-flow-input-port/>
  {step.kind==="condition"?inlineCondition===step.id?<div className="grid gap-2" onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineCondition(null)}}}>
   <label className="grid gap-1 text-ink">Informação<input autoFocus list="chatbot-condition-variables" maxLength={40} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).variable||""} onChange={event=>updateCondition(step.id,"variable",event.target.value)}/></label>
-  <label className="grid gap-1 text-ink">É igual a<input list={Object.hasOwn(integrationResults,stepConfig(step).variable||"")?"chatbot-values-"+stepConfig(step).variable:undefined} maxLength={500} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).value||""} onChange={event=>updateCondition(step.id,"value",event.target.value)}/></label>
+  <label className="grid gap-1 text-ink">É igual a{conditionValueOptions(stepConfig(step).variable||"").length ? <select className="w-full min-w-0 rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).value||""} onChange={event=>updateCondition(step.id,"value",event.target.value)}>
+   <option value="">Escolha um resultado</option>
+   {stepConfig(step).value&&!conditionValueOptions(stepConfig(step).variable||"").some(([value])=>value===stepConfig(step).value)?<option value={stepConfig(step).value}>{stepConfig(step).value}</option>:null}
+   {conditionValueOptions(stepConfig(step).variable||"").map(([value,label])=><option key={value} value={value}>{label}</option>)}
+  </select> : <input maxLength={500} className="w-full min-w-0 select-text rounded-token-sm border border-line bg-surface px-2 py-1" value={stepConfig(step).value||""} onChange={event=>updateCondition(step.id,"value",event.target.value)}/>}</label>
   <button type="button" className={canvasNodeQuickButton} onClick={()=>setInlineCondition(null)}>Concluir</button>
- </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&typeof stepConfig(step).value==="string"?`Se ${conditionVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a “${stepConfig(step).value}”`:"Definir condição"}</button>
+ </div>:<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineCondition(step.id)}}>{stepConfig(step).variable&&typeof stepConfig(step).value==="string"?`Se ${conditionVariables.find(([key])=>key===stepConfig(step).variable)?.[1]||stepConfig(step).variable} é igual a “${conditionValueOptions(stepConfig(step).variable||"").find(([value])=>value===stepConfig(step).value)?.[1]||stepConfig(step).value}”`:"Definir condição"}</button>
  :inlineMessage===step.id?<textarea autoFocus rows={3} maxLength={4000} aria-label={`Mensagem de ${step.title}`} className="w-full select-text rounded-token-sm border border-line bg-surface px-2 py-1 text-ink" value={step.message} onChange={event=>updateStep({message:event.target.value})} onBlur={()=>setInlineMessage(null)} onKeyDown={event=>{if(event.key==="Escape"){event.stopPropagation();setInlineMessage(null)}}}/>
  :["text","buttons","input.text","input.cpf"].includes(step.kind||"")&&!step.action?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>{setSelected(step.id);setInlineMessage(step.id)}}>{step.message||"Escrever mensagem"}</button>
  :step.kind==="task.reminder"?<button type="button" className={`${canvasNodeSummary} block w-full text-left hover:underline`} data-flow-node-summary onClick={()=>editCanvasNode(step.id)}>{stepConfig(step).title ? `${stepConfig(step).title} · em ${stepConfig(step).minutes||"?"} min` : "Configurar título e prazo"}</button>

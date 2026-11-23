@@ -198,12 +198,30 @@ export class InstagramAutomationsController {
   }
 
   @Get('campaigns/media')
-  async campaignMedia(@Req() req: AuthenticatedRequest, @Query('channelId') channelId: string, @Query('cursor') cursor?: string) {
+  async campaignMedia(@Req() req: AuthenticatedRequest, @Query('channelId') channelId: string, @Query('cursor') cursor?: string, @Query('kind') kind?: string) {
     this.authorize(req);
     const tenantId = req.user.tenantId;
     const { connectedAccounts } = await this.connected(tenantId);
     const account = [...connectedAccounts.entries()].find(([, channel]) => channel.id === channelId);
     if (!account) throw new BadRequestException('Conta Instagram indisponível nesta empresa.');
+    if (kind === 'story') {
+      const result = record(await this.zernio.request<unknown>(
+        '/accounts/' + encodeURIComponent(account[0]) + '/instagram/stories', {}, tenantId,
+      ));
+      if (!Array.isArray(result.data)) throw new ServiceUnavailableException('Não foi possível consultar os Stories.');
+      return {
+        posts: result.data.flatMap(value => {
+          const story = record(value);
+          if (typeof story.id !== 'string' || !/^[0-9]{1,40}$/.test(story.id) || story.expired === true) return [];
+          return [{
+            id: story.id,
+            caption: story.mediaType === 'VIDEO' ? 'Vídeo' : story.mediaType === 'IMAGE' ? 'Foto' : 'Story',
+            date: typeof story.timestamp === 'string' ? story.timestamp : '',
+          }];
+        }),
+        nextCursor: null,
+      };
+    }
     const query = new URLSearchParams({ limit: '25' });
     if (cursor) query.set('cursor', cursor);
     const result = record(await this.zernio.request<unknown>(

@@ -45,10 +45,10 @@ describe("Chatbot web channel", () => {
     const token = "c".repeat(48);
     const { sessionId } = await controller.message(token, {}, {});
     const menu = await controller.message(token, { sessionId, text: "Ana" }, {});
-    expect(menu.options).toEqual(["Financeiro novo", "Financeiro", "Usar Ana"]);
+    expect(menu).toMatchObject({ options: ["Financeiro novo", "Financeiro", "Usar Ana"] });
     const ambiguous = await controller.message(token, { sessionId, text: "Finan" }, {});
     expect(ambiguous.finished).not.toBe(true);
-    expect(ambiguous.options).toEqual(menu.options);
+    expect(ambiguous).toMatchObject({ options: ["Financeiro novo", "Financeiro", "Usar Ana"] });
     const answer = await controller.message(token, { sessionId, text: "Financeiro" }, {});
     expect(answer).toMatchObject({ messages: ["Cobrança existente."], finished: true });
   });

@@ -9,6 +9,8 @@ type InfinitePaySettings = { enabled?: boolean; handle?: string; apiKeyEncrypted
 
 const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
 
+class CheckoutRequestRejected extends ServiceUnavailableException {}
+
 /** O webhook não tem assinatura; paid:true só é aceito após /payment_check com valor original conferido. */
 export function infinitepayPaymentApproved(check: unknown, expectedAmountCents: number): boolean {
   const result = objectOf(check);
@@ -95,9 +97,13 @@ export class InfinitePayService {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       this.logger.warn(`InfinitePay recusou ${path}: ${response.status}`);
-      throw new ServiceUnavailableException(response.status === 403
+      const message = response.status === 403
         ? "A API Key e a InfiniteTag pertencem a contas diferentes."
-        : "A InfinitePay não conseguiu concluir a operação.");
+        : "A InfinitePay não conseguiu concluir a operação.";
+      if (path === "/links" && [400, 401, 403, 422].includes(response.status)) {
+        throw new CheckoutRequestRejected(message);
+      }
+      throw new ServiceUnavailableException(message);
     }
     return objectOf(payload) as T;
   }
@@ -124,9 +130,13 @@ export class InfinitePayService {
     if (!paymentId) throw new BadRequestException("Informe o pagamento local vinculado.");
     const payment = await this.prisma.payment.findFirst({
       where: { id: paymentId, tenantId, provider: { in: paymentProviderAliases("INFINITEPAY") }, status: "PENDING" },
-      select: { id: true, amount: true, externalId: true },
+      select: { id: true, amount: true, externalId: true, invoiceUrl: true },
     });
     if (!payment) throw new BadRequestException("Pagamento local pendente não encontrado para esta empresa.");
+    if (payment.externalId === payment.id && payment.invoiceUrl) {
+      return { paymentId, url: payment.invoiceUrl, orderNsu: payment.id, slug: null, status: "PENDING", environment: "PRODUCTION" };
+    }
+    if (payment.externalId) throw new BadRequestException("Esta cobrança já tem uma solicitação de link InfinitePay.");
     const cents = amountToCents(payment.amount);
     if (cents < 100) throw new BadRequestException("O valor mínimo da InfinitePay é R$ 1,00.");
     const credentials = await this.credentials(tenantId);
@@ -152,13 +162,36 @@ export class InfinitePayService {
     if (customerName || customerEmail) {
       payload.customer = { ...(customerName ? { name: customerName.slice(0, 120) } : {}), ...(customerEmail ? { email: customerEmail.slice(0, 160) } : {}) };
     }
-    const result = await this.request<{ url?: string; link?: string; checkout_url?: string; slug?: string }>("/links", payload, credentials.apiKey);
-    const url = firstString(result.url || result.link || result.checkout_url);
-    if (!url) throw new ServiceUnavailableException("A InfinitePay não devolveu um link de pagamento utilizável.");
-    await this.prisma.payment.updateMany({
+    const reserved = await this.prisma.payment.updateMany({
       where: { id: payment.id, tenantId, status: "PENDING", externalId: null },
-      data: { externalId: orderNsu, invoiceUrl: url, environment: "PRODUCTION" },
+      data: { externalId: orderNsu, environment: "PRODUCTION" },
     });
+    if (!reserved.count) throw new BadRequestException("Já existe uma solicitação de link para esta cobrança.");
+
+    const result = await this.request<{ url?: string; link?: string; checkout_url?: string; slug?: string }>(
+      "/links", payload, credentials.apiKey,
+    ).catch(async error => {
+      if (error instanceof CheckoutRequestRejected) {
+        await this.prisma.payment.updateMany({
+          where: { id: payment.id, tenantId, status: "PENDING", externalId: orderNsu, invoiceUrl: null },
+          data: { externalId: null },
+        });
+      }
+      throw error;
+    });
+    let url: string;
+    try {
+      const parsed = new URL(firstString(result.url || result.link || result.checkout_url));
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Invalid checkout URL");
+      url = parsed.href;
+    } catch {
+      throw new ServiceUnavailableException("A InfinitePay não devolveu um link de pagamento utilizável.");
+    }
+    const saved = await this.prisma.payment.updateMany({
+      where: { id: payment.id, tenantId, status: "PENDING", externalId: orderNsu },
+      data: { invoiceUrl: url },
+    });
+    if (!saved.count) throw new BadRequestException("A cobrança mudou durante a criação do link.");
     await this.prisma.auditLog.create({
       data: {
         tenantId,

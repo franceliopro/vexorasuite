@@ -9,13 +9,11 @@ A Véxora registra o pedido, a aprovação, a publicação e a auditoria. A exec
 
 Preencher para cada um dos quatro sites (Alto Araguaia Imóveis, Rastreabem, SOS Alto Araguaia, Morbeck x Carvalhinho):
 
-Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morbeck x Carvalhinho ainda é WordPress com ~40 páginas; Alto Araguaia Imóveis é PHP com CMS próprio e está fora do ar; SOS Alto Araguaia está sob avaliação e fora do ciclo inicial.
-
 - [ ] **Slug definitivo** usado em pasta, banco e vhost.
 - [ ] **Domínio real** no qual o site deve responder.
-- [ ] **Tipo de destino:** `nextjs` ou `php-mysql`, conforme a avaliação de simplicidade e peso.
-- [ ] **Versão do PHP**, quando aplicável. A GUI oferece `5.2` a `8.6`; `5.x`/`7.x` exigem aviso no `dry-run` e confirmação explícita, nunca são padrão.
-- [ ] **Dump do banco e arquivos baixados da Valuehost** e enviados para o servidor. Somente conteúdo e dados são reaproveitados; nenhum código, plugin, template ou upload executável do WordPress é implantado.
+- [x] **Tipo de destino resolvido:** Next.js para Rastreabem, Morbeck x Carvalhinho e Alto Araguaia Imóveis; sem opção `php-mysql` neste ciclo. SOS Alto Araguaia segue sob avaliação.
+- [x] **Versão do PHP:** não se aplica aos três sites do ciclo inicial.
+- [ ] **Origem por site:** HTML de Rastreabem; export/dump do WordPress de Morbeck; dump/export do CMS PHP do Alto Araguaia. Somente conteúdo saneado é reaproveitado — nenhum tema, plugin, upload executável ou credencial antiga é implantado.
 - [ ] **Mídia e documentos** necessários, com direitos de uso confirmados.
 - [ ] **Redirecionamentos** antigos que precisam ser preservados.
 - [ ] **Formulários e integrações** atuais, incluindo o destino dos e-mails (Zoho Mail fica fora da migração).

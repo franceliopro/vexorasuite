@@ -46,9 +46,9 @@ test("perfil, sites e conteudo usam so utilities, sem remendos", () => {
   for (const utility of [
     "min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600",
     "border border-line bg-surface-2 px-4 text-body font-bold text-ink",
-    "min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-blue-600",
-    "min-h-8 items-center justify-center gap-2 rounded-token-sm px-1.5 text-body font-bold text-red-600",
-    "size-9 place-items-center rounded-token-sm border border-line bg-surface",
+    "grid grid-cols-1 gap-token md:grid-cols-2",
+    "grid grid-cols-1 gap-token lg:grid-cols-2",
+    "min-h-control w-full rounded-token-sm border border-line bg-surface-2 px-3 text-body text-ink",
     "animate-spin",
   ]) {
     assert.ok(screens.join("\n").includes(utility), `falta a utility ${utility}`);
@@ -84,10 +84,15 @@ test("os contratos de perfil, sites e conteudo permanecem intactos", () => {
     "/api/backend/profile", 'role="status"', 'role="alert"', "Tentar novamente", "Salvar perfil",
   ]) assert.ok(profile.includes(token), `perfil perdeu ${token}`);
   for (const token of [
-    "/api/backend/sites", "/api/backend/sites/import/url", "/api/backend/sites/import/html",
-    "/api/backend/sites/import/zip", 'role="status"', 'role="alert"', "animate-spin",
-    "Criar meu primeiro site", "Abrir editor", "Excluir",
+    "/api/backend/sites/hub/requests", '/preview`', '/decision`',
+    '/publish-request`', '/publish-confirm`', 'role="status"', 'role="alert"',
+    "animate-spin", "Registrar pedido", "Registrar preview", "Solicitar publicação",
+    "Verificar e confirmar", "Ver versões e histórico",
   ]) assert.ok(sites.includes(token), `sites perdeu ${token}`);
+  for (const token of [
+    "wizard/wizard-shell", "site-editor-window", "sites/editor/", "sites/preview/",
+    "/api/backend/sites/import/", "Criar meu primeiro site", "Abrir editor",
+  ]) assert.ok(!sites.includes(token), `sites ainda referencia legado: ${token}`);
   for (const token of [
     "/api/backend/drive-manager/", "/api/backend/creative-references/", 'role="dialog"',
     'aria-modal="true"', "marketing-drive-pick", "marketing-drive-library-action",

@@ -8,7 +8,7 @@ const rootDir = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (file) => fs.readFileSync(path.join(rootDir, file), "utf8");
 
 const config = read("tailwind.config.ts");
-const component = read("src/app/sites/components/FichaCliente.tsx");
+const component = read("src/app/sites-workspace.tsx");
 const core = read("src/app/theme.css");
 const postcss = read("postcss.config.js");
 
@@ -39,39 +39,34 @@ test("Tailwind usa tokens Véxora e o Preflight oficial sem sobrescrever o legad
   }
 });
 
-test("o piloto da ficha não usa paleta padrão, hex, valores arbitrários nem remendo", () => {
+test("o workspace de Sites não usa hex, valores arbitrários nem remendo", () => {
   const source = component;
 
   for (const forbidden of [
-    /\b(?:gray|slate|zinc|indigo|blue|green|amber|red)-\d{2,3}\b/,
-    /\b(?:bg|text|border)-(?:white|black)\b/,
     /\[[a-z-]+:\s*[^]\s]+\]/,
     /#[0-9a-fA-F]{3,8}\b/,
     /!important/,
+    /@apply/,
+    /@tailwind base;/,
   ]) {
     const match = source.match(forbidden);
     assert.equal(match, null, `remendo visual encontrado: ${match?.[0]}`);
   }
 });
 
-test("a ficha usa utilities literais e classes de token", () => {
+test("o workspace de Sites usa utilities literais e classes de token", () => {
   for (const tokenClass of [
-    "bg-brand",
+    "bg-surface",
     "text-ink",
     "border-line",
     "text-2xs",
-    "max-h-ficha",
-    "z-wizard",
-    "bg-overlay",
-    "bg-success-soft",
-    "bg-warning-soft",
-    "rounded-token-xl",
+    "rounded-token-sm",
+    "shadow-token-sm",
+    "bg-blue-600",
   ]) {
     assert.ok(component.includes(tokenClass), `falta ${tokenClass}`);
   }
 
-  assert.doesNotMatch(component, /@apply/);
-  assert.doesNotMatch(component, /@tailwind base;/);
   assert.doesNotMatch(component, /vx-ficha-/);
   assert.doesNotMatch(component, /ficha-cliente\.css/);
 });

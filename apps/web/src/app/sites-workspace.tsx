@@ -186,7 +186,7 @@ function RequestCard({
             type="button"
             className={secondaryTw}
             disabled={busy !== null || !previewUrl.trim()}
-            onClick={() => void run(`/${request.id}/preview`, { previewUrl: previewUrl.trim(), commitSha: commitSha.trim() || undefined }, "Preview registrado como nova versão.")}
+            onClick={() => void run("preview", `/${request.id}/preview`, { previewUrl: previewUrl.trim(), commitSha: commitSha.trim() || undefined }, "Preview registrado como nova versão.")}
           >
             {busy === "preview" ? <Loader2 className="animate-spin" size={15} aria-hidden="true" /> : null}
             Registrar preview
@@ -206,7 +206,7 @@ function RequestCard({
               type="button"
               className={primaryTw}
               disabled={busy !== null}
-              onClick={() => void run(`/${request.id}/decision`, { decision: "APPROVED", note: note.trim() || undefined }, "Pedido aprovado.")}
+              onClick={() => void run("decision-approve", `/${request.id}/decision`, { decision: "APPROVED", note: note.trim() || undefined }, "Pedido aprovado.")}
             >
               Aprovar
             </button>
@@ -214,7 +214,7 @@ function RequestCard({
               type="button"
               className={secondaryTw}
               disabled={busy !== null}
-              onClick={() => void run(`/${request.id}/decision`, { decision: "REJECTED", note: note.trim() || undefined }, "Pedido rejeitado.")}
+              onClick={() => void run("decision-reject", `/${request.id}/decision`, { decision: "REJECTED", note: note.trim() || undefined }, "Pedido rejeitado.")}
             >
               Rejeitar
             </button>
@@ -234,7 +234,7 @@ function RequestCard({
             type="button"
             className={primaryTw}
             disabled={busy !== null || !domain.trim()}
-            onClick={() => void run(`/${request.id}/publish-request`, { targetDomain: domain.trim() }, "Solicitação de publicação registrada; ainda sem evidência no ar.")}
+            onClick={() => void run("publish-request", `/${request.id}/publish-request`, { targetDomain: domain.trim() }, "Solicitação de publicação registrada; ainda sem evidência no ar.")}
           >
             Solicitar publicação
           </button>
@@ -249,7 +249,7 @@ function RequestCard({
             type="button"
             className={primaryTw}
             disabled={busy !== null}
-            onClick={() => void run(`/${request.id}/publish-confirm`, {}, "Publicação confirmada após resposta 2xx do domínio.")}
+            onClick={() => void run("publish-confirm", `/${request.id}/publish-confirm`, {}, "Publicação confirmada após resposta 2xx do domínio.")}
           >
             Verificar e confirmar
           </button>

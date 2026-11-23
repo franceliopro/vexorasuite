@@ -860,7 +860,7 @@ function dictateAiRequest(){
   });
   setNotice("");
  }
- function duplicateStep(id:string){const source=flow.steps.find(step=>step.id===id);if(!source)return;const copyId="etapa-"+crypto.randomUUID();nodeToReveal.current=copyId;setFlow(f=>({...f,steps:[...f.steps,{...source,id:copyId,title:source.title+" (cópia)",transitions:{},position:{x:(source.position?.x??100)+45,y:(source.position?.y??100)+100}}]}));setSelected(copyId);setStudioPanel("settings");setEditorOpen(true);setNotice("Bloco duplicado sem conexões. Configure os destinos e salve.");}
+ function duplicateStep(id:string){const source=flow.steps.find(step=>step.id===id);if(!source)return;const copyId="etapa-"+Date.now();nodeToReveal.current=copyId;setFlow(f=>({...f,steps:[...f.steps,{...source,id:copyId,title:source.title+" (cópia)",transitions:{},position:{x:(source.position?.x??100)+45,y:(source.position?.y??100)+100}}]}));setSelected(copyId);setStudioPanel("settings");setEditorOpen(true);setNotice("Bloco duplicado sem conexões. Configure os destinos e salve.");}
  function deleteStep(id:string){if(!window.confirm("Excluir este bloco e remover as conexões que apontam para ele?"))return;setFlow(f=>({...f,steps:f.steps.filter(step=>step.id!==id).map(step=>({...step,transitions:Object.fromEntries(Object.entries(step.transitions||{}).filter(([,target])=>target!==id))}))}));if(selected===id){setSelected("");setEditorOpen(false)}setNotice("Bloco removido do rascunho. Salve para confirmar.");}
  const minimapUnits = useMemo(() => {
    const boxes = [

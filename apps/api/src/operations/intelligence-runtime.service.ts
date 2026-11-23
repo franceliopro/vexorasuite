@@ -1,5 +1,6 @@
 import { calendarIsAvailable } from "./calendar-availability";
 import { GoogleAccessService } from "./google-access.service";
+import { canonicalPaymentProvider, paymentProviderAliases } from "./payment-providers";
 import { resolveEntitlements } from "../auth/entitlements";
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {inboxRouting} from "./inbox-routing";
@@ -471,6 +472,23 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             const value=interpolateVariables(config.value!,variables);
             variables[config.variable!] = isDocumentField(config.variable!) ? documentDigits(value) : value;
             if(config.variable==='novo_nome'&&config.value==='{{nome_identificado}}'&&isPreferredName(value))await savePreferredName(value);
+            step = followStep(step, step.options[0]!); continue;
+          }
+          if (type === 'payment.status') {
+            variables.pagamento_status = 'indisponível';
+            const provider = canonicalPaymentProvider(config.provider);
+            if (resolveEntitlements(tenant.entitlements).finance && (provider === 'STRIPE' || provider === 'INFINITEPAY')) {
+              const payment = await tx.payment.findFirst({
+                where: {
+                  tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
+                  provider: { in: paymentProviderAliases(provider) }, environment: 'PRODUCTION',
+                },
+                orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+                select: { status: true },
+              });
+              variables.pagamento_status = payment?.status || 'não encontrado';
+              skills.push('payment.status');
+            }
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'calendar.availability') {

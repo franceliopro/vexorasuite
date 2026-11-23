@@ -15,6 +15,36 @@ function setup(overrides: Record<string,unknown> = {}) {
 }
 describe('Intelligence runtime',()=>{
  it.each([
+  { provider: 'STRIPE', finance: true, payment: { status: 'PAID' }, expected: 'PAID' },
+  { provider: 'INFINITEPAY', finance: true, payment: null, expected: 'não encontrado' },
+  { provider: 'INFINITEPAY', finance: false, payment: { status: 'PAID' }, expected: 'indisponível' },
+ ])('scopes payment lookups to the conversation and Finance entitlement (%j)', async ({ provider, finance, payment, expected }) => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  x.tx.tenant.findUniqueOrThrow.mockResolvedValue({
+   name: 'Empresa', entitlements: { modules: finance ? ['FINANCE'] : ['AUTOMATION'], finance },
+   integrations: { intelligencePublished: x.published },
+  });
+  x.tx.payment = { findFirst: jest.fn().mockResolvedValue(payment) };
+  x.flow.steps.splice(1, 0, {
+   id: 'payment', kind: 'payment.status', title: 'Pagamento', message: '', options: ['Continuar'],
+   transitions: { Continuar: 'handoff' }, config: JSON.stringify({ provider }),
+  });
+  x.flow.steps[0].transitions.Suporte = 'payment';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.pagamento_status).toBe(expected);
+  if (!finance) {
+   expect(x.tx.payment.findFirst).not.toHaveBeenCalled();
+   return;
+  }
+  expect(x.tx.payment.findFirst).toHaveBeenCalledWith({
+   where: { tenantId: 'tenant', conversationId: 'conversation', contactId: 'contact', provider: { in: expect.arrayContaining([provider]) }, environment: 'PRODUCTION' },
+   orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+   select: { status: true },
+  });
+ });
+
+ it.each([
   { allowed: true, busy: [], expected: 'O horário consultado está livre.' },
   { allowed: true, busy: [{}], expected: 'O horário consultado está ocupado.' },
   { allowed: false, busy: [], expected: 'Vou conferir.' },

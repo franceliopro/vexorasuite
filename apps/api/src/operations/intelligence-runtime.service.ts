@@ -415,6 +415,26 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         }
         for (let count = 0; step && count < 10; count++) {
           if (count > 0 || visitedStepIds.at(-1) !== step.id) visitedStepIds.push(step.id);
+          const createReminder = async (ownerId: string | null, requestedTitle: string, minutes: number, source: 'chatbot' | 'agent', stepId: string) => {
+            const title = requestedTitle.trim().slice(0, 180);
+            if (!resolveEntitlements(tenant.entitlements).modules.includes('TASKS') ||
+                !ownerId || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(ownerId) ||
+                !title || !Number.isInteger(minutes) || minutes < 1 || minutes > 43200) return false;
+            const member = await tx.membership.findFirst({
+              where: { tenantId: channel.tenantId, userId: ownerId, user: { isActive: true } }, select: { userId: true },
+            });
+            if (!member) return false;
+            const task = await tx.workTask.create({ data: {
+              tenantId: channel.tenantId, title, assigneeId: member.userId, createdById: member.userId,
+              contactId: conversation.contactId, conversationId, dueAt: new Date(Date.now() + minutes * 60_000),
+            } });
+            await tx.auditLog.create({ data: {
+              tenantId: channel.tenantId, action: 'task.created', entityType: 'workTask', entityId: task.id,
+              details: { title, assigneeId: member.userId, contactId: conversation.contactId, conversationId, source, stepId },
+            } });
+            skills.push('task.reminder');
+            return true;
+          };
           const type = step.action || step.kind || 'buttons';
           const config = settings(step);
           if (type === 'text' && step.options.length === 1) {
@@ -428,31 +448,8 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'task.reminder') {
-            const ownerId = config.reminderUserId || conversation.assigneeId;
-            const title = interpolateVariables(config.title || '', variables).trim().slice(0, 180);
-            const minutes = Number(config.minutes);
-            variables.lembrete_criado = 'não';
-            const allowed = resolveEntitlements(tenant.entitlements).modules.includes('TASKS');
-            if (allowed && ownerId && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(ownerId) && title && Number.isInteger(minutes) && minutes >= 1 && minutes <= 43200) {
-              const member = await tx.membership.findFirst({
-                where: { tenantId: channel.tenantId, userId: ownerId, user: { isActive: true } },
-                select: { userId: true },
-              });
-              if (member) {
-                const task = await tx.workTask.create({
-                  data: {
-                    tenantId: channel.tenantId, title, assigneeId: member.userId, createdById: member.userId,
-                    contactId: conversation.contact.id, conversationId, dueAt: new Date(Date.now() + minutes * 60_000),
-                  },
-                });
-                await tx.auditLog.create({ data: {
-                  tenantId: channel.tenantId, action: 'task.created', entityType: 'workTask', entityId: task.id,
-                  details: { title, assigneeId: member.userId, contactId: conversation.contact.id, conversationId, source: 'chatbot', stepId: step.id },
-                } });
-                variables.lembrete_criado = 'sim';
-                skills.push('task.reminder');
-              }
-            }
+            const title = interpolateVariables(config.title || '', variables);
+            variables.lembrete_criado = await createReminder(config.reminderUserId || conversation.assigneeId, title, Number(config.minutes), 'chatbot', step.id) ? 'sim' : 'não';
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'condition') {
@@ -511,7 +508,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               const knowledgeDocuments = Array.isArray(assistant.knowledgeDocuments) ? assistant.knowledgeDocuments.filter((doc: any) => doc && typeof doc.name === 'string' && typeof doc.content === 'string').slice(0, 10) : [];
               const companyKnowledge = interpolateVariables(String(assistant.companyKnowledge || '').slice(0, 30000),variables);
               const documentKnowledge = knowledgeDocuments.map((doc: any) => '\nDocumento de referência — '+doc.name.slice(0, 180)+':\n'+interpolateVariables(doc.content.slice(0, 8000),variables)).join('').slice(0, 40000);
-              const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize'].includes(id)):[];
+              const permittedActions=Array.isArray(agent.allowedActions)?agent.allowedActions.filter((id:string)=>['crm.tag.apply','crm.pipeline.move','crm.deal.finalize','task.reminder'].includes(id) && (id!=='task.reminder'||(conversation.assigneeId&&resolveEntitlements(tenant.entitlements).modules.includes('TASKS')))):[];
               const crmCatalog:any[]=permittedActions.includes('crm.pipeline.move')&&conversation.departmentId?await tx.crmPipeline.findMany({where:{tenantId:channel.tenantId,departmentId:conversation.departmentId,enabled:true},select:{id:true,name:true,stages:true}}):[];
               const crmOptions=crmCatalog.map((pipeline:any)=>({name:pipeline.name,stages:Array.isArray(pipeline.stages)?pipeline.stages.filter((stage:any)=>typeof stage?.id==='string').map((stage:any)=>({id:stage.id,label:stage.label||stage.name||stage.id})):[]}));
               const systemPrompt = [
@@ -531,7 +528,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                 skillInstructionsForAgent(object(tenant.integrations), agent.allowedActions),
                 'Estrutura da empresa para orientar o atendimento, sem expor identificadores: '+JSON.stringify(ecosystem).slice(0,7000),
                 'Mantenha o escopo e recuse solicitações fora dele.'
-              ].join('\n')+research+'\nAções de CRM permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
+              ].join('\n')+research+'\nAções permitidas: '+JSON.stringify({actions:permittedActions,pipelines:crmOptions,lossReasons:['Preço/Condição','Sem interesse','Sem retorno','Concorrência','Inatividade']}).slice(0,6000)+(permittedActions.includes('task.reminder')?'\nPara um pedido claro de retorno, use {"type":"reminder","title":"título breve","minutes":30}. O lembrete é interno e vai ao atendente da conversa. Não afirme que a tarefa foi registrada.':'')+'\nResponda somente JSON {"reply":"resposta cordial","actions":[]}. Em actions use apenas as ações explicitamente permitidas. Aplique tag ou mova etapa somente mediante intenção clara. Registre ganho/perda somente diante de confirmação direta e inequívoca do cliente; nunca deduza. Não invente pipeline. Máximo 3 ações.';
 
               const generated = await withTimeout(this.ai.generate([
                 { role: 'system', content: systemPrompt },
@@ -542,8 +539,14 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               try { parsedAgent=JSON.parse(generated.text); } catch { /* Older providers may return plain text; never execute inferred actions from malformed output. */ }
               const reply=typeof parsedAgent?.reply==='string'?parsedAgent.reply.slice(0,4000):generated.text.slice(0,4000);
               const actions=Array.isArray(parsedAgent?.actions)?parsedAgent.actions.slice(0,3):[];
+              let reminderAttempted = false;
               for(const action of actions){
                 if(!action||typeof action!=='object')continue;
+                if (action.type === 'reminder' && permittedActions.includes('task.reminder') && !reminderAttempted &&
+                    typeof action.title === 'string' && typeof action.minutes === 'number') {
+                  reminderAttempted = true;
+                  variables.lembrete_criado = await createReminder(conversation.assigneeId, action.title, action.minutes, 'agent', step.id) ? 'sim' : 'não';
+                }
                 if(action.type==='tag'&&permittedActions.includes('crm.tag.apply')&&typeof action.name==='string'&&action.name.trim()&&action.name.length<=40){
                   const latest=await lockedContact(tx,channel.tenantId,conversation.contactId),profile=contactMetadata(latest.metadata),tags:any[]=Array.isArray(profile.tags)?profile.tags:[];
                   const name=action.name.trim(),color=typeof action.color==='string'&&/^#[a-f\d]{6}$/i.test(action.color)?action.color:'#5865da';

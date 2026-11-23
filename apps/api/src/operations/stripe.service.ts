@@ -220,7 +220,7 @@ export class StripeService {
     };
   }
 
-  async createHostedCheckout(tenantId: string, input: { paymentId?: unknown }) {
+  async createHostedCheckout(tenantId: string, input: { paymentId?: unknown }, expectedEnvironment?: "LIVE") {
     const paymentId = firstString(input.paymentId);
     if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(paymentId)) {
       throw new BadRequestException("Informe um pagamento local válido.");
@@ -231,6 +231,7 @@ export class StripeService {
     });
     if (!payment) throw new BadRequestException("Pagamento local pendente não encontrado para esta empresa.");
     const { environment } = await this.credentials(tenantId);
+    if (expectedEnvironment && environment !== expectedEnvironment) throw new ForbiddenException("O Chatbot só gera links Stripe em produção.");
     const localEnvironment = environment === "LIVE" ? "PRODUCTION" : "SANDBOX";
     if (payment.externalId?.startsWith("cs_") && payment.invoiceUrl && payment.environment === localEnvironment) {
       return { paymentId, url: payment.invoiceUrl, environment };

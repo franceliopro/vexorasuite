@@ -1,36 +1,31 @@
 # Véxora Suite
 
-Plataforma SaaS modular e multiempresa, reconstruída em repositório e implantação separados da Véxora Matriz.
+Plataforma SaaS modular e multiempresa, desenvolvida em repositório e ambiente separados da Véxora Matriz.
 
-## Objetivos da primeira fase
+## Onde estamos (2026-11-23)
 
-1. Estabelecer fundação segura, testável e reproduzível.
-2. Implementar a experiência web/PWA e API com contratos explícitos.
-3. Validar isolamento multi-tenant, autenticação, auditoria e observabilidade.
-4. Entregar primeiro o fluxo operacional da Rastreabem, incluindo WhatsApp e atendimento em tempo real.
-5. Expandir depois por módulos reutilizáveis (Escola, Clínica e outros segmentos).
+- Núcleo de atendimento multi-tenant: Inbox, canais, CRM, tarefas, agenda, Financeiro/Asaas, relatórios e auditoria. Há implementação e testes no repositório; aceite com conversa real, aparelho e provedores externos ainda pendente.
+- Interface web/PWA responsiva com temas Slate, Claro e Híbrido alinhados ao mock de referência, superfície única de fundo e navegação lateral fixa.
+- Workspace de IA com agentes no topo em largura total, abas reais de configuração e execução condicionada a `enabled` e vínculos de inbox. O texto público distingue simulação de execução real.
+- Serviço de Sites em transição: o criador com IA foi substituído pelo **HUB da Véxora**, que governa pedido, preview, aprovação, versão e auditoria. O HUB não gera HTML e não hospeda página.
+- Sites em Next.js/MDX no GitHub, entrega via Cloudflare Pages. Nenhuma publicação, domínio ativo ou integração é afirmada sem evidência no ar.
 
-## Arquitetura inicial
+## Onde vamos chegar
 
-- Monorepo TypeScript.
-- Web: Next.js + React.
-- API: NestJS, modular monolith e OpenAPI.
-- Banco: PostgreSQL + Prisma ORM.
-- Jobs: trabalhadores dedicados para webhooks e tarefas periódicas, com leases no PostgreSQL.
-- Realtime: eventos persistidos antes da publicação e recuperação após reconexão.
-- Integrações: adapters por provedor; WAHA inicialmente para WhatsApp.
-- Infraestrutura: Docker, CI, backups e observabilidade.
+1. HUB de Sites e template base Next.js/MDX com menu gerado de `content/navigation.ts`.
+2. CMS headless self-hosted (Directus + Postgres) como piloto do Alto Araguaia Imóveis.
+3. Sistemas verticais nativos: Escola de Música, Escola com provas/notas, Estética e Delivery, reaproveitando CRM, agenda, Financeiro/Asaas, WhatsApp/e-mail e auditoria.
+4. SOS Alto Araguaia: fora do ciclo inicial, sob avaliação de storage, banda e tráfego.
 
-## Princípios de segurança e operação
+## O que não faz parte do produto
 
-- A Véxora Matriz e seu repositório/ambiente permanecem intactos.
-- Nenhum segredo no frontend ou no Git; usar variáveis e secrets do ambiente.
-- Toda operação de negócio deve verificar tenant, usuário e permissões no backend.
-- Isolamento de dados por tenant, com testes de acesso cruzado.
-- Integrações e eventos devem ser idempotentes, auditáveis e resilientes a retries.
-- Não migrar o domínio oficial da Rastreabem antes da validação e autorização explícita.
-- Alterações de produção devem passar por revisão e aprovação.
+Criador de sites com IA e seu editor visual legado, Home de apresentação com papel de parede, conector WordPress, telefonia/SMS, anúncios pagos, publicação social automática, vídeo automático, FAETER como primeiro vertical e PHP por site.
 
-## Desenvolvimento
+## Documentação
 
-Consulte `docs/architecture.md` e `docs/roadmap.md`. Os primeiros commits estabelecem a base; a aplicação funcional será entregue em etapas pequenas e verificáveis.
+- Estado atual e prioridades: `docs/implementation-status.md` (fonte canônica de status).
+- Arquitetura do HUB de Sites e dos sistemas verticais: `docs/plano-transicao-presenca-criativos.md` (§12 e §13).
+- Regras de contexto e permissões: `docs/platform-and-client-contexts.md`.
+- Arquitetura do monorepo: `docs/architecture.md`.
+- Registro histórico de entregas: `docs/implementation-register.md`.
+- Insumos pendentes de sites e artes: `docs/checklist-entrega-sites-artes.md`.

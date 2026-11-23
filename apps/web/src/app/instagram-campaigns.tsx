@@ -14,7 +14,7 @@ type Campaign = {
   stats: { sent: number | null; read: number | null; clicks: number | null };
 };
 type InstagramPost = { id: string; caption: string; date: string };
-type Draft = { id: string; name: string; trigger: string; keyword: string; mediaId: string };
+type Draft = { id: string; name: string; trigger: string; keyword: string; mediaId: string; activationPending?: boolean };
 type Campaigns = { accounts: { id: string; name: string }[]; campaigns: Campaign[]; drafts: Draft[]; providerUnavailable?: boolean };
 const emptyDraft = { name: "", channelId: "", trigger: "comment", mediaId: "", keyword: "", message: "", link: "", delaySeconds: "" };
 const fieldClass = "w-full rounded-token-sm border border-line bg-surface px-3 py-2 text-ink";
@@ -37,6 +37,8 @@ export function InstagramCampaigns() {
   const [mediaOpen, setMediaOpen] = useState(false);
   const [page, setPage] = useState<{ cursor: string | null }>({ cursor: null });
   const [mediaStatus, setMediaStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [activating, setActivating] = useState<string | null>(null);
+  const [activationError, setActivationError] = useState<{ id: string; message: string } | null>(null);
   const [pausing, setPausing] = useState<string | null>(null);
   const [pauseError, setPauseError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -75,6 +77,24 @@ export function InstagramCampaigns() {
       .catch(() => { if (!controller.signal.aborted) setMediaStatus("error"); });
     return () => controller.abort();
   }, [open, mediaOpen, form.channelId, form.trigger, page]);
+
+  async function activateDraft(id: string) {
+    if (activating) return;
+    setActivating(id);
+    setActivationError(null);
+    try {
+      const response = await fetch("/api/backend/chatbot/instagram/campaigns/drafts/" + encodeURIComponent(id) + "/activate", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) {
+        setActivationError({ id, message: typeof result?.message === "string" ? result.message : "Não foi possível ativar a campanha." });
+      }
+    } catch {
+      setActivationError({ id, message: "Não foi possível confirmar a ativação. Confira o status e tente novamente." });
+    } finally {
+      setActivating(null);
+      setAttempt(value => value + 1);
+    }
+  }
 
   async function pauseCampaign(id: string) {
     if (pausing) return;
@@ -186,8 +206,12 @@ export function InstagramCampaigns() {
         </form>
       </details> : null}
       {data?.drafts.length ? <ul aria-label="Rascunhos do Instagram" className="grid gap-2">{data.drafts.map(draft => <li key={draft.id} className="rounded-token-sm border border-line bg-surface-2 p-3">
-        <div className="flex flex-wrap items-center justify-between gap-2"><strong>{draft.name}</strong><span className="text-small text-ink-secondary">Rascunho</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-2"><strong>{draft.name}</strong><span className="text-small text-ink-secondary">{draft.activationPending ? "Aguardando confirmação" : "Rascunho"}</span></div>
         <p className="text-small text-ink-secondary">{labels[draft.trigger]}{draft.keyword ? " · " + draft.keyword : ""}{draft.mediaId ? " · Mídia " + draft.mediaId : ""}</p>
+        <button type="button" disabled={activating !== null} className="mt-2 w-fit rounded-token-sm border border-line bg-surface px-3 py-2 font-semibold hover:bg-hover disabled:opacity-60" onClick={() => void activateDraft(draft.id)}>
+          {activating === draft.id ? "Verificando…" : draft.activationPending ? "Verificar ativação" : "Ativar campanha"}
+        </button>
+        {activationError?.id === draft.id ? <p role="alert">{activationError.message}</p> : null}
       </li>)}</ul> : null}
       {data?.providerUnavailable ? <p role="alert">O Instagram está indisponível para consulta. Você ainda pode salvar rascunhos.</p> : null}
       {data?.accounts.length && !data.providerUnavailable && !data.campaigns.length && !data.drafts.length ? <p>Nenhuma campanha encontrada nas contas conectadas.</p> : null}

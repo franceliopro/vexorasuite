@@ -173,6 +173,13 @@ async function main() {
     // Public route has no session; a 404 (not 401 and not 500) proves it reached the service.
     expect("POST /api/public/sites/:id/forms/:block/submit to unknown site", (await call(baseUrl, "POST", `/api/public/sites/${routeId}/forms/bloco/submit`, { values: { nome: "Teste" } })).status, 404);
 
+    // Stripe e InfinitePay: rotas autenticadas e tenant-scoped, registradas no OperationsModule.
+    expect("GET /api/integrations/stripe without token", (await call(baseUrl, "GET", "/api/integrations/stripe")).status, 401);
+    expect("POST /api/integrations/stripe/checkout without token", (await call(baseUrl, "POST", "/api/integrations/stripe/checkout", {})).status, 401);
+    expect("GET /api/integrations/infinitepay without token", (await call(baseUrl, "GET", "/api/integrations/infinitepay")).status, 401);
+    expect("POST /api/integrations/infinitepay/checkout without token", (await call(baseUrl, "POST", "/api/integrations/infinitepay/checkout", {})).status, 401);
+    expect("POST /api/finance/payments without token", (await call(baseUrl, "POST", "/api/finance/payments", {})).status, 401);
+
     // Sanity: unknown routes still answer 404, so the 401s above are meaningful.
     expect("GET /api/rota-inexistente", (await call(baseUrl, "GET", "/api/rota-inexistente")).status, 404);
 

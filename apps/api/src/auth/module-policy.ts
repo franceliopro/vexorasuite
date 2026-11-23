@@ -78,7 +78,7 @@ export function routeModules(path: string, method: string): string[] {
   // Criador, editor, domínio e publicação exigem o módulo SITES (igual ao menu da UI).
   if (/^sites(?:\/|$)/.test(p)) return ["SITES"];
   if (/^mail(?:\/|$)/.test(p)) return ["EMAIL"];
-  if (/^finance|^asaas/.test(p)) return ["FINANCE"];
+  if (/^finance|^asaas|^integrations\/(?:asaas|stripe|infinitepay)(?:\/|$)/.test(p)) return ["FINANCE"];
   if (
     /^assistant\/automations|^marketing|^creative-references|^drive-manager/.test(
       p,

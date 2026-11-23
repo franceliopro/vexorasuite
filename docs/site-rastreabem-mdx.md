@@ -9,7 +9,8 @@ Este documento registra o primeiro site convertido para o novo serviço de sites
 - [x] Menu gerado por `content/navigation.ts`.
 - [x] Assets do site original em `public/` (imagens, fonte Montserrat e dois vídeos).
 - [x] Comportamentos preservados: carrossel, galeria de veículos, menu mobile e demonstrações em vídeo.
-- [x] Build estático com `output: 'export'` e `trailingSlash: true` (7 páginas geradas).
+- [x] Build estático com `output: 'export'` e `trailingSlash: true` (9 páginas geradas em 2026-11-23).
+- [x] Auditoria de links/assets locais: 10 arquivos HTML, 171 referências verificadas, zero quebrados — executada por `scripts/audit-links.cjs` e pelo workflow `site-rastreabem.yml`.
 - [ ] Publicação em Cloudflare Pages e verificação do domínio final — depende de evidência no ar.
 
 ## O que não foi alterado
@@ -24,10 +25,11 @@ cd sites/rastreabem
 pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
+node scripts/audit-links.cjs out
 pnpm start        # http://localhost:3105
 ```
 
-O GitHub Actions valida o piloto no workflow `site-rastreabem.yml`.
+O GitHub Actions valida o piloto no workflow `site-rastreabem.yml`: typecheck, build, presença das páginas e auditoria de links/assets locais. A auditoria resolve caminhos absolutos (`/images/...`) a partir da raiz exportada e falha se alguma referência local não existir.
 
 ## Limites
 

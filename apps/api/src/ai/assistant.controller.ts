@@ -112,6 +112,7 @@ export class AssistantController {
       { id: "calendar.event.create", name: "Criar agendamento", category: "Agenda", cost: "external", implemented: false, permission: "calendar.write", confirmationRequired: true },
       { id: "crm.contact.update", name: "Atualizar campo do contato", category: "CRM", cost: "zero", implemented: false, permission: "contacts.write" },
       { id: "crm.pipeline.move", name: "Mover oportunidade no CRM", category: "CRM", cost: "zero", implemented: true, permission: "crm.write" },
+      { id: "calendar.availability", name: "Consultar horário na agenda", category: "Agenda", cost: "zero", implemented: true, permission: "calendar.read" },
       { id: "task.reminder", name: "Criar lembrete para o atendente", category: "Tarefas", cost: "zero", implemented: true, permission: "tasks.write" },
       { id: "crm.deal.finalize", name: "Registrar ganho ou perda", category: "CRM", cost: "zero", implemented: true, permission: "crm.write" },
       { id: "chatbot.flow.trigger", name: "Acionar fluxo de chatbot", category: "Automação", cost: "zero", implemented: false, permission: "automation.execute" },

@@ -235,6 +235,7 @@ export class PublicFlowController {
     const text = typeof body?.text === "string" ? body.text.trim().slice(0, 1000) : "";
     if (session.messages >= MAX_MESSAGES) { sessions.delete(key); return { sessionId, finished: true, handoff: false, messages: ["Esta conversa atingiu o limite de mensagens. Se precisar, fale com nossa equipe pelos canais de atendimento."] }; }
     if (session.completed) return { sessionId, finished: true, messages: [] };
+    session.variables.canal_atendimento = "web";
     session.messages += 1;
     session.lastAt = Date.now();
     session.lastUserText = text;

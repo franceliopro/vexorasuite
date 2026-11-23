@@ -161,6 +161,16 @@ try{
  await minimap.click();
  await expect(page.getByRole("navigation",{name:"Mapa do fluxo"})).toHaveCount(0);
 
+ const beforeWheel=await camera();
+ const zoomArea=await canvas.boundingBox();
+ assert(zoomArea);
+ await page.mouse.move(zoomArea.x+zoomArea.width/2,zoomArea.y+zoomArea.height/2);
+ await page.mouse.wheel(0,-120);
+ await expect.poll(async()=> (await camera()).zoom).toBeGreaterThan(beforeWheel.zoom);
+ const afterWheel=await camera();
+ await page.mouse.wheel(0,120);
+ await expect.poll(async()=> (await camera()).zoom).toBeLessThan(afterWheel.zoom);
+ await fit.click();
  const beforeZoom=await camera();
  await page.getByRole("button",{name:"Aumentar zoom"}).click();
  await expect.poll(async()=> (await camera()).zoom).toBeGreaterThan(beforeZoom.zoom);

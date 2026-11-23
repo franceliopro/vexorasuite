@@ -1,6 +1,6 @@
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {inboxRouting} from "./inbox-routing";
-import {selectPublication,scopedPresetInstructions,publicationKey,RuntimeScope} from './runtime-scope';
+import {selectPublication,selectMessageAutomation,isAutomationPublicationKey,scopedPresetInstructions,publicationKey,RuntimeScope} from './runtime-scope';
 import { ConversationDistributionService } from "./conversation-distribution.service";
 import { searxngSearch } from "../ai/local-services";
 import { documentDigits, isDocumentField } from "../common/documents";
@@ -223,9 +223,26 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         await tx.conversation.update({where:{id:conversation.id},data:{departmentId:entry.departmentId}});
       }
       let runtimeScope:RuntimeScope={departmentId:conversation.departmentId||null,userId:conversation.assigneeId||null};
-      const selection=selectPublication(root,runtimeScope);
+      const legacySelection=selectPublication(root,runtimeScope);
+      const resumable = previous.flow === 'INTELLIGENCE' && previous.completed !== true;
+      const keepsLegacy = resumable && legacySelection?.publication.active && previous.revision === legacySelection.publication.revision && (previous.scopeKey || 'default') === legacySelection.key;
+      const channelAutomations = Object.entries(object(root.intelligencePublications))
+        .filter(([key, value]) => isAutomationPublicationKey(key) && object(value).active === true && object(value).flow?.channelIds?.includes(channel.id));
+      const firstAutomationInbound = !keepsLegacy && channelAutomations.some(([, value]) => object(value).flow?.triggers?.some((trigger: {kind?:string}) => trigger?.kind === 'first_message'))
+        ? await tx.message.findFirst({
+          where: { tenantId: channel.tenantId, conversationId, direction: 'INBOUND' },
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+          select: { id: true },
+        })
+        : null;
+      const namedSelection = !keepsLegacy && channelAutomations.length ? selectMessageAutomation(root,runtimeScope,{
+        channelId:channel.id,text:inbound.content,firstMessage:firstAutomationInbound?.id===inbound.id,
+        previousKey:resumable?previous.scopeKey:undefined,previousRevision:resumable?previous.revision:undefined,
+      }) : null;
+      const selection=namedSelection||legacySelection;
+      if(!selection&&channelAutomations.length)return {messages:[],handled:true,handoff:false};
       if(!selection){const degraded=await degradeToHuman('no_publication');return {messages:degraded,handled:true,handoff:true,assigned:true};}
-      if(entry.mode==="AUTOMATION"&&!conversation.assigneeId&&(conversation.departmentId||null)===entry.departmentId&&selection.key!==publicationKey({departmentId:entry.departmentId})){const degraded=await degradeToHuman('automation_publication_missing');return {messages:degraded,handled:true,handoff:true,assigned:true};}
+      if(entry.mode==="AUTOMATION"&&!conversation.assigneeId&&(conversation.departmentId||null)===entry.departmentId&&(isAutomationPublicationKey(selection.key)?publicationKey(selection.publication.scope):selection.key)!==publicationKey({departmentId:entry.departmentId})){const degraded=await degradeToHuman('automation_publication_missing');return {messages:degraded,handled:true,handoff:true,assigned:true};}
       let {key:scopeKey,publication:published}=selection;
       if(conversation.assigneeId&&scopeKey==='default')return null;
       if(scopeKey!=='default'&&!await this.validContext(tx,channel.tenantId,runtimeScope)){const degraded=await degradeToHuman('invalid_scope');return {messages:degraded,handled:true,handoff:true,assigned:true};}
@@ -249,13 +266,13 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       const findStep = (id: string | undefined) => id === '__start__' ? flow.steps.find(s => s.id === 'menu') || flow.steps[0] : flow.steps.find(s => s.id === id);
       const active = previous.flow === 'INTELLIGENCE' && previous.revision === published.revision && (previous.scopeKey||'default')===scopeKey;
       // dm = conversa direta (grupo já foi descartado acima) — vale para WAHA e ZERNIO.
-      const firstInbound = !active && flow.triggers?.some(trigger => trigger?.kind === 'first_message')
+      const firstInbound = firstAutomationInbound ?? (!active && flow.triggers?.some(trigger => trigger?.kind === 'first_message')
         ? await tx.message.findFirst({
           where: { tenantId: channel.tenantId, conversationId, direction: 'INBOUND' },
           orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
           select: { id: true },
         })
-        : null;
+        : null);
       const triggerMatched = matchesChatbotTrigger(flow.triggers, inbound.content, true, firstInbound?.id === inbound.id);
       if (!active && !triggerMatched) { this.logger.warn(`Gatilho do fluxo "${flow.name}" não correspondeu à mensagem ${inbound.id} (canal ${channel.id}, provider ${channel.provider})`); return { messages: [], handled: true, handoff: false }; }
       let step: RuntimeStep | undefined = flow.steps.find(s => s.id === (active ? previous.stepId : 'menu')) || flow.steps[0];
@@ -730,7 +747,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       if(inboxRouting(currentChannel.settings).revision!==claimed.inboxRoutingRevision||inboxRouting(currentChannel.settings).mode==="HUMAN")throw new Error("Inbox routing changed");
       channel = currentChannel;
       const conversation = await this.prisma.conversation.findFirstOrThrow({ where: { id: conversationId, tenantId: channel.tenantId, channelConnectionId: channel.id }, include: { contact: true } });
-      if (!handoff&&claimed.hasRuntimeScope&&((conversation.departmentId||null)!==(claimed.runtimeScope.departmentId||null)||(conversation.assigneeId||null)!==(claimed.runtimeScope.userId||null)||selectPublication(deliveryRoot,{departmentId:conversation.departmentId,userId:conversation.assigneeId})?.key!==claimed.scopeKey))throw new Error('Context changed');
+      if (!handoff&&claimed.hasRuntimeScope&&((conversation.departmentId||null)!==(claimed.runtimeScope.departmentId||null)||(conversation.assigneeId||null)!==(claimed.runtimeScope.userId||null)||(!isAutomationPublicationKey(claimed.scopeKey)&&selectPublication(deliveryRoot,{departmentId:conversation.departmentId,userId:conversation.assigneeId})?.key!==claimed.scopeKey)))throw new Error('Context changed');
       if ((conversation.assigneeId && (handoff ? conversation.assigneeId !== claimed.handoffAssigneeId : conversation.assigneeId !== claimed.runtimeScope.userId)) || (conversation.handlingMode === 'HUMAN' && !handoff) || conversation.deletedAt || conversation.archivedAt || ['CLOSED','RESOLVED'].includes(conversation.status)) throw new Error('Conversation taken over or finalized');
       let providerMessageId: string | null = null;
       if (channel.provider === 'WAHA') {

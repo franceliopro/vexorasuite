@@ -80,7 +80,7 @@ export class PublicDesignApprovalsController {
     const row = await this.findByToken(token);
     const details = obj(row.details);
     const status = String(details.status || "DRAFT");
-    if (status === "PUBLISHED" || status === "APPROVED") return { ok: true, status, note: "Este design já foi aprovado." };
+    if (status === "PUBLISHED" || status === "PUBLISH_REQUESTED" || status === "APPROVED") return { ok: true, status, note: "Este design já foi aprovado." };
     const decision = body?.decision === "reject" ? "reject" : "approve";
     const nextDetails = { ...details, status: decision === "reject" ? "REJECTED" : "APPROVED", reviewedAt: new Date().toISOString() };
 
@@ -95,9 +95,19 @@ export class PublicDesignApprovalsController {
       const carousel = obj(details.carousel) as unknown as Carousel;
       const payload = { content: String(carousel.caption || carousel.title || ""), platforms, mediaItems, publishNow: true };
       const response = await this.zernio.request<any>("/posts", { method: "POST", body: payload, idempotencyKey: "design-approval-" + row.entityId }, row.tenantId);
-      const publication = { requestedAt: new Date().toISOString(), publishNow: true, response: response?.post || response };
-      await this.prisma.auditLog.update({ where: { id: row.id }, data: { details: { ...nextDetails, status: "PUBLISHED", channels: platformSummary(platforms), publication } as Prisma.InputJsonValue } });
-      return { ok: true, status: "PUBLISHED" };
+      const postRef = response?.post ?? response;
+      const postId = postRef && typeof postRef === "object" ? (postRef.id ?? postRef.postId ?? postRef.externalId ?? null) : null;
+      const confirmed = typeof postId === "string" || typeof postId === "number";
+      const publication = {
+        requestedAt: new Date().toISOString(),
+        publishNow: true,
+        confirmed,
+        postId: confirmed ? String(postId) : null,
+        response: confirmed ? postRef : null,
+      };
+      const nextStatus = confirmed ? "PUBLISHED" : "PUBLISH_REQUESTED";
+      await this.prisma.auditLog.update({ where: { id: row.id }, data: { details: { ...nextDetails, status: nextStatus, channels: platformSummary(platforms), publication } as Prisma.InputJsonValue } });
+      return { ok: true, status: nextStatus, confirmed, note: confirmed ? undefined : "Publicação solicitada; a rede ainda não confirmou o envio." };
     }
     await this.prisma.auditLog.update({ where: { id: row.id }, data: { details: nextDetails as Prisma.InputJsonValue } });
     return { ok: true, status: nextDetails.status };

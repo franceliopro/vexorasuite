@@ -233,6 +233,10 @@ export class InstagramAutomationsController {
     const delaySeconds=metric(input.delaySeconds??0);
     if(!name||name.length>120||!['comment','story_reply','story_mention','live_comment'].includes(trigger)||!message||message.length>(link?640:1000))throw new BadRequestException('Confira o nome, o evento e a mensagem da campanha.');
     if(trigger!=='story_mention'&&(!keyword||keyword.length>120))throw new BadRequestException('Informe a palavra-chave da campanha.');
+    const scope = text(input.mediaScope);
+    if ((scope === 'list' || scope === 'id') && !mediaId) {
+      throw new BadRequestException('Escolha uma publicação ou informe o ID da mídia.');
+    }
     if(mediaId&&(!/^[0-9]{1,40}$/.test(mediaId)||trigger==='story_mention'||trigger==='live_comment'))throw new BadRequestException('Informe um ID de mídia válido para este evento.');
     if(delaySeconds===null||delaySeconds>86400||(delaySeconds>0&&trigger==='live_comment'))throw new BadRequestException('Atraso inválido para este evento.');
     if(link){

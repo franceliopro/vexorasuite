@@ -162,6 +162,11 @@ export class SitesDeployService {
       },
     });
 
+    // Só marca o site como LIVE quando há evidência de que o domínio está ativo.
+    if (active && site.domainStatus !== 'LIVE') {
+      await this.prisma.site.update({ where: { id: siteId }, data: { domainStatus: 'LIVE' } });
+    }
+
     return {
       domain: domainRecord.domain,
       status: active ? 'ACTIVE' : 'VERIFYING',
@@ -252,10 +257,19 @@ export class SitesDeployService {
         },
       });
 
-      await this.prisma.site.update({
-        where: { id: siteId },
-        data: { domainStatus: 'LIVE' },
-      });
+      // Upload no Pages não prova DNS ativo. LIVE fica reservado ao verifyDomain
+      // com evidência da API da Cloudflare; sem domínio, o status permanece o atual.
+      const uploadedDomainStatus = !domainRecord
+        ? site.domainStatus
+        : domainRecord.status === 'ACTIVE'
+          ? 'LIVE'
+          : 'VERIFYING';
+      if (uploadedDomainStatus !== site.domainStatus) {
+        await this.prisma.site.update({
+          where: { id: siteId },
+          data: { domainStatus: uploadedDomainStatus },
+        });
+      }
 
       return { deploymentId: deployment.id, status: 'DEPLOYED', url: cfDeployment.url, idempotent: false };
     } catch (e: any) {

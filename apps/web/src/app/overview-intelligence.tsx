@@ -164,7 +164,7 @@ function ClientAvatar({
 function WaitRing({ minutes, id, name }: { minutes: number; id: string | null; name: string }) {
   const radius = 33;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(1, Math.max(0.05, minutes / 10));
+  const progress = Math.min(1, Math.max(0.05, minutes / 15));
   return (
     <span className="relative grid h-20 w-20 flex-none place-items-center md:h-16 md:w-16" aria-hidden="true">
       <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 84 84">
@@ -203,7 +203,7 @@ function HourlyChart({ hourly }: { hourly: NonNullable<OverviewSnapshot["hourly"
         })}
         <path d={geometry.area} fill="url(#vxHourlyFill)" />
         <path d={geometry.averageLine} className="fill-none stroke-slate-400 stroke-2 dark:stroke-slate-500" strokeDasharray="5 5" />
-        <path d={geometry.line} className="fill-none stroke-blue-600 stroke-2 dark:stroke-sky-400" stroke="url(#vxHourlyStroke)" />
+        <path d={geometry.line} className="fill-none" stroke="url(#vxHourlyStroke)" strokeWidth={2} />
         {peak !== null ? (
           <g>
             <line x1={geometry.x(peak)} x2={geometry.x(peak)} y1={geometry.y(values[peak]) + 8} y2={geometry.y(0)} className="stroke-blue-600 stroke-1 dark:stroke-sky-400" />
@@ -244,7 +244,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
   const agentsTotal = data?.agentsTotal ?? null;
   const agentsPaused = team.filter((member) => member.presence === "paused").length;
   const staleWaiting = (waiting?.items || []).filter((item) => item.waitingMinutes > 5).length;
-  const outOfSla = (waiting?.items || []).filter((item) => item.waitingMinutes >= 10).length;
+  const outOfSla = (waiting?.items || []).filter((item) => item.waitingMinutes >= 15).length;
   const outOfSlaNote = outOfSla || staleWaiting;
 
   return (
@@ -284,7 +284,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
           <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-400/15 dark:text-blue-300" />Até 2 min</span>
           <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300" />De 2 a 5 min</span>
           <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-red-100 text-red-600 dark:bg-red-400/15 dark:text-red-300" />Acima de 5 min</span>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-slate-400 dark:text-slate-500">Anel cheio: 10 min</span>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-slate-400 dark:text-slate-500">Anel cheio: 15 min</span>
         </div>
       </article>
 
@@ -312,7 +312,7 @@ export function OverviewIntelligence({ data, onOpenQueue }: { data: OverviewSnap
         <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Receita do mês</span>
           <strong className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">{kpis && kpis.revenue > 0 ? `R$ ${kpis.revenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "-"}</strong>
-          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Asaas ainda sem dados"}</em>
+          <em className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400"><span className="inline-block h-2 w-2 rounded-full bg-blue-700 dark:bg-blue-400" aria-hidden="true" />{kpis ? `${kpis.payments} ${kpis.payments === 1 ? "pagamento confirmado" : "pagamentos confirmados"}` : "Pagamentos ainda sem dados"}</em>
         </article>
         <article className="grid min-w-0 content-start gap-2 rounded-xl border border-gray-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50">
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">1ª resposta</span>

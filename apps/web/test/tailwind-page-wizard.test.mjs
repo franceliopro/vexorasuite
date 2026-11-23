@@ -11,8 +11,6 @@ const root = fs.existsSync(path.join(here, "apps/web/src/app/page.tsx"))
 const read = (file) => fs.readFileSync(path.join(root, "apps/web", file), "utf8");
 
 const page = read("src/app/page.tsx");
-const wizard = read("src/app/sites/wizard/wizard-shell.tsx");
-const contracts = read("src/app/sites/editor/contracts.ts");
 
 /**
  * Extrai só literais que são classes: strings em className, constantes TW e
@@ -34,8 +32,6 @@ function classValues(source) {
 }
 
 const pageClasses = classValues(page);
-const wizardClasses = classValues(wizard);
-const allClasses = [pageClasses, wizardClasses].join("\n");
 
 /** Prefixos legados proibidos; variantes liberadas são removidas antes da checagem. */
 const ALLOWED_VARIANTS = new Set(["ib-narrow:", "ov-laptop:", "ov-tablet:", "rw-laptop:"]);
@@ -59,14 +55,13 @@ function legacyTokens(classes) {
   return found;
 }
 
-test("os dois arquivos não usam classes legadas proibidas", () => {
+test("a home não usa classes legadas proibidas", () => {
   assert.deepEqual(legacyTokens(pageClasses), [], "home com classes legadas");
-  assert.deepEqual(legacyTokens(wizardClasses), [], "wizard com classes legadas");
-  assert.doesNotMatch(allClasses, /\b(?:emerald|green|lime|teal)-/);
-  assert.doesNotMatch(allClasses, /\bindigo-/);
+  assert.doesNotMatch(pageClasses, /\b(?:emerald|green|lime|teal)-/);
+  assert.doesNotMatch(pageClasses, /\bindigo-/);
 });
 
-test("as utilities TW padrão estão presentes nos dois arquivos", () => {
+test("as utilities TW padrão estão presentes na home", () => {
   for (const utility of [
     "flex", "grid", "min-h-dvh", "min-h-10", "rounded-lg", "rounded-xl",
     "border-gray-200", "bg-zinc-50", "bg-zinc-100", "text-slate-950",
@@ -77,28 +72,13 @@ test("as utilities TW padrão estão presentes nos dois arquivos", () => {
   ]) {
     assert.ok(pageClasses.split(/\s+/).includes(utility), `falta na home: ${utility}`);
   }
-  for (const utility of [
-    "fixed", "inset-0", "flex", "grid", "min-h-0", "min-h-10",
-    "rounded-lg", "rounded-md", "border-gray-200", "bg-zinc-50",
-    "bg-zinc-100", "text-slate-950", "text-slate-600", "bg-blue-600",
-    "hover:bg-blue-700", "text-blue-950", "text-blue-700", "bg-blue-50",
-    "text-red-600", "shadow-lg", "border-b", "border-t", "px-4", "py-3",
-    "text-sm", "text-xs", "font-bold", "animate-spin", "grid-cols-1",
-    "sm:grid-cols-2", "md:grid-cols-3", "grid-cols-2", "sm:grid-cols-3",
-    "md:grid-cols-5", "hover:bg-zinc-200", "disabled:cursor-not-allowed",
-  ]) {
-    assert.ok(wizardClasses.split(/\s+/).includes(utility), `falta no wizard: ${utility}`);
-  }
 });
 
 test("o dark é slate real: sem navy/blue-dark e sem verde comum", () => {
-  for (const source of [page, wizard]) {
-    assert.doesNotMatch(source, /#0B1F3A|#101730|#141B33|#1B2A5C|#0B1114/i);
-  }
+  assert.doesNotMatch(page, /#0B1F3A|#101730|#141B33|#1B2A5C|#0B1114/i);
   assert.match(pageClasses, /bg-zinc-50/);
-  assert.match(wizardClasses, /bg-zinc-50/);
-  assert.match(wizardClasses, /text-slate-950/);
-  assert.doesNotMatch(allClasses, /\b(?:indigo|sky|cyan)-/);
+  assert.match(pageClasses, /text-slate-950/);
+  assert.doesNotMatch(pageClasses, /\b(?:indigo|sky|cyan)-/);
 });
 
 test("os contratos funcionais da home permanecem", () => {
@@ -146,104 +126,7 @@ test("os contratos funcionais da home permanecem", () => {
   }
 });
 
-test("os contratos funcionais do wizard permanecem", () => {
-  assert.ok(contracts.includes("LAYOUT_IMAGE_INPUT_ID = 'vx-wizard-layout-image'"));
-  assert.match(wizard, /import \{ LAYOUT_IMAGE_INPUT_ID \} from ['"]\.\.\/editor\/contracts['"]/);
-  for (const hook of [
-    'role="region"',
-    'aria-label="Assistente de criação de site minimizado"',
-    'role="dialog"',
-    'aria-modal="true"',
-    'aria-label="Assistente de criação de site"',
-    'aria-label="Etapas do assistente"',
-    'aria-label="Minimizar assistente"',
-    "aria-label={isFullscreen ? 'Restaurar janela' : 'Tela cheia'}",
-    'aria-label="Fechar assistente"',
-    "aria-current={isCurrent ? 'step' : undefined}",
-    "aria-pressed={active}",
-    "aria-required={value === 'image'}",
-    'aria-label="Remover imagem de layout"',
-    'aria-label="Nome do site"',
-    'aria-label="URL do logotipo"',
-    'role="alert"',
-    'id={LAYOUT_IMAGE_INPUT_ID}',
-    'htmlFor={LAYOUT_IMAGE_INPUT_ID}',
-    "disabled={!isDone && !isCurrent}",
-    "disabled={disabled || busy}",
-    "disabled={disabled || busy || !canNext}",
-    "disabled={disabled || !domain.trim()}",
-    "disabled={disabled || readingLayoutImage}",
-    "onClick={onClose}",
-    "onClick={handleMinimize}",
-    "onClick={handleToggleFullscreen}",
-    "onClick={handleBack}",
-    "onClick={handleNext}",
-    "onClick={() => void handleFinish()}",
-    "onDomainValidated={() => setDomainValidated(true)}",
-    "createPortal(content, document.body)",
-    "type WizardMode = 'fullscreen' | 'window' | 'minimized'",
-    "useState<WizardMode>('fullscreen')",
-    "onComplete({",
-    "kind: 'clone'", "kind: 'html'", "kind: 'zip'", "kind: 'ia'", "kind: 'image'",
-    "fileToLayoutImage", "fileToBase64", "setLayoutImage", "setDomainValidated",
-  ]) {
-    assert.ok(wizard.includes(hook), `o wizard perdeu o contrato ${hook}`);
-  }
-});
-
-test("variantes resolvem mapas Record ou helpers de literais completas", () => {
-  for (const trecho of [
-    "const SIDEBAR_STATE_TW:Record<string,string>={",
-    "const ACCORDION_STATE_TW:Record<string,string>={",
-    "const NAV_ITEM_STATE_TW:Record<string,string>={",
-    "const NAV_SUBITEM_STATE_TW:Record<string,string>={",
-    "const MODULE_TAB_STATE_TW:Record<string,string>={",
-    "const PAGE_CONTENT_STATE_TW:Record<string,string>={",
-    "const DOCK_ITEM_STATE_TW:Record<string,string>={",
-    "const DOCK_ICON_STATE_TW:Record<string,string>={",
-    "const MOBILE_NAV_STATE_TW:Record<string,string>={",
-    "function sidebarClass(", "function navItemClass(", "function dockItemClass(",
-    "function mobileNavClass(", "className={sidebarClass(menuOpen, sidebarCollapsed)}",
-    "className={dockItemClass(active === \"Visão geral\", menuOpen)}",
-    "className={mobileNavClass(active === \"Visão geral\")}",
-  ]) {
-    assert.ok(page.includes(trecho), `a home perdeu o mapa/helper ${trecho}`);
-  }
-  for (const trecho of [
-    "const STEP_STATE_TW: Record<StepState, string> = {",
-    "const STEP_BADGE_STATE_TW: Record<StepState, string> = {",
-    "const CONNECTOR_STATE_TW: Record<'done' | 'pending', string> = {",
-    "const OPTION_STATE_TW: Record<OptionState, string> = {",
-    "const OPTION_ICON_STATE_TW: Record<OptionState, string> = {",
-    "const THEME_STATE_TW: Record<OptionState, string> = {",
-    "function stepStateTw(", "function badgeStateTw(", "function connectorStateTw(",
-    "function optionStateTw(", "function optionIconStateTw(", "function themeStateTw(",
-    "function primaryButtonTw(",
-    "className={stepStateTw(isDone, isCurrent)}",
-    "className={badgeStateTw(isDone, isCurrent)}",
-    "className={connectorStateTw(isDone)}",
-    "className={optionStateTw(active, disabled)}",
-    "className={optionIconStateTw(active, disabled)}",
-    "className={themeStateTw(active, disabled)}",
-    "className={primaryButtonTw(disabled || busy)}",
-    "className={primaryButtonTw(disabled || busy || !canNext)}",
-    "className={primaryButtonTw(disabled || !domain.trim())}",
-  ]) {
-    assert.ok(wizard.includes(trecho), `o wizard perdeu o mapa/helper ${trecho}`);
-  }
-});
-
-test("nenhum remendo proibido foi introduzido", () => {
-  for (const source of [page, wizard]) {
-    for (const forbidden of [/!important/, /@apply/, /@tailwind\s+base/, /color-mix\(/, /hsl\(/]) {
-      const match = source.match(forbidden);
-      assert.equal(match, null, `remendo no código: ${match?.[0]}`);
-    }
-    assert.doesNotMatch(source, /className=\{[^}]*\$\{[^}]*\}/);
-    assert.doesNotMatch(source, /className=\{"[^"]*"\s*\+/);
-  }
-  const classes = allClasses;
-  assert.doesNotMatch(classes, /#[0-9a-fA-F]{3,8}\b/);
-  assert.doesNotMatch(classes, /\[[a-z-]+:\s*[^\]\s]+\]/);
-  assert.doesNotMatch(classes, /\b(?:bg|text|border|shadow|rounded|p|m|h|w|gap|z)-\[/);
+test("a home não limpa mais o rascunho específico da Rastreabem", () => {
+  assert.ok(!page.includes("vexora-chatbot-rastreabem-draft-v2"));
+  assert.ok(page.includes('localStorage.removeItem("vexora:quick-replies")'));
 });

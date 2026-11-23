@@ -233,7 +233,7 @@ export function AiAgentsWorkspace() {
   };
   const [testing,setTesting]=useState(false);
 
-  const [workflowRequest,setWorkflowRequest] = useState("Crie o fluxo de atendimento da Rastreabem com financeiro, suporte, comercial e administrativo.");
+  const [workflowRequest,setWorkflowRequest] = useState("Crie um fluxo de atendimento com financeiro, suporte, comercial e administrativo.");
   const [workflowDraft,setWorkflowDraft] = useState<{title:string;status:string;steps:{id:string;type:string;label:string}[];missing:string[]}|null>(null);
   const [workflowError,setWorkflowError] = useState("");
   const [engineInput,setEngineInput] = useState("Quero pagar minha mensalidade");

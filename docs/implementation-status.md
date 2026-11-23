@@ -22,7 +22,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | Agentes de IA | [x] / [~] | Lista no topo em largura total, cards horizontais, nav ativa `bg-blue-600 text-white`, fieldsets com `mt-5`, PR #1127. Execução exige `agent.enabled` e `bindings.inboxes`; sem isso há handoff, não resposta automática. |
 | Financeiro, Asaas, WhatsApp e e-mail | [x] / [~] | Contratos e código presentes. Agendamento e envio são registrados como `agendado`/`enviado`; `confirmado` exige evidência do provedor. |
 | Stripe e InfinitePay | [ ] | Mapeados; adaptadores ainda não implementados. Validação real depende de credenciais, webhooks e evidência externa. |
-| HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes unitários e boot smoke iniciados na branch `feat/hub-orquestrador-remocoes-pagamentos` (sem PR mesclado). Registra pedido, preview, aprovação, versão, histórico e auditoria; confirmação de publicação só com resposta 2xx no domínio final. Não gera HTML, não hospeda página e não publica por conta própria. |
+| HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
 | Template Next.js/MDX | [ ] | Definido como padrão, com `output: 'export'`, conteúdo em `.mdx` e menu em `content/navigation.ts`. Ainda sem site publicado. |
 | Directus + Postgres (imobiliária) | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
 | Sistemas verticais | [ ] | Escola de Música, Escola com provas/notas, Estética e Delivery registrados em §13. Nenhum módulo implantado. |
@@ -36,7 +36,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 
 ## 2. O que está em construção
 
-1. **HUB de Sites:** pedido, preview, aprovação, versão, histórico e auditoria — sem geração de HTML e sem hospedagem. Implementação inicial em branch; falta PR/CI/merge e UI.
+1. **HUB de Sites:** pedido, preview, aprovação, versão, histórico e auditoria — sem geração de HTML e sem hospedagem. UI inicial entregue; faltam integrações operacionais externas (GitHub/Cloudflare/domínio) com evidência.
 2. **Template de sites Next.js/MDX:** esqueleto em componentes, conteúdo editável em `.mdx`, menu centralizado, saída estática e entrega via Cloudflare Pages.
 3. **Rastreabem:** conversão do HTML já existente em MDX como primeiro piloto de aprendizado do template.
 4. **Alto Araguaia Imóveis:** inventário do CMS PHP atual do proprietário e desenho das collections `imoveis`, `bairros`, `tipos`, `fotos` e `pages` no Directus.

@@ -1,4 +1,10 @@
-﻿export const MODULES = [
+﻿/**
+ * WORDPRESS permanece apenas como chave histórica de negação: product-scope bloqueia
+ * todas as rotas /api/wordpress e os testes/e2e validam que a negação funciona.
+ * Remover a chave faria o bloqueio silencioso e quebraria a política de acesso.
+ * EMAIL continua ativo como módulo do canal de e-mail; não é escopo retired.
+ */
+export const MODULES = [
   "INBOX",
   "CRM",
   "CALENDAR",

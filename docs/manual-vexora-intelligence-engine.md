@@ -25,7 +25,7 @@ A Engine v1 classifica solicitações por regras, sem consumir tokens de LLM, e 
 4. A Engine deve encaminhar ambiguidade à revisão humana. Simulações não enviam mensagens a clientes.
 
 ## 5. Criar um rascunho de fluxo
-1. Descreva: "Crie o fluxo de atendimento da Rastreabem com financeiro, suporte, comercial e administrativo".
+1. Descreva: "Crie um fluxo de atendimento com financeiro, suporte, comercial e administrativo".
 2. Gere o rascunho; revise etapas e pendências.
 3. Preencha destinos reais de equipes, contatos PF/PJ e administrativo antes de planejar a ativação.
 4. A integração Asaas precisa validar identidade e permissões antes de mostrar cobranças.

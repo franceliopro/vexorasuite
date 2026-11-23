@@ -33,3 +33,30 @@ describe("AJustes do assistente no Chatbot", () => {
     });
   });
 });
+
+describe("Blocos de integração em propostas novas", () => {
+  const draftWith = (kind: string, config: Record<string, string | number>) => JSON.stringify({
+    name: "Atendimento",
+    welcome: "Olá!",
+    steps: [
+      { id: "integration", kind, config, options: ["Continuar"], transitions: { Continuar: "next" } },
+      { id: "next", kind: "text", message: "Vamos conferir o resultado.", options: [] },
+    ],
+  });
+
+  it.each([
+    ["payment.status", { provider: "infinitepay" }, { provider: "INFINITEPAY" }],
+    ["calendar.availability", { start: "{{horario}}", minutes: 30 }, { start: "{{horario}}", minutes: "30" }],
+    ["calendar.book", { start: "{{horario}}", minutes: 30, title: "Atendimento" }, { start: "{{horario}}", minutes: "30", title: "Atendimento" }],
+    ["task.reminder", { title: "Retorno", minutes: 10 }, { title: "Retorno", minutes: "10" }],
+  ])("compiles a valid %s block", (kind, input, expected) => {
+    const compiled = compileChatbotFlow(draftWith(kind, input), []);
+    expect(compiled?.draft.steps[0]?.kind).toBe(kind);
+    expect(JSON.parse(compiled?.draft.steps[0]?.config ?? "{}")).toEqual(expected);
+  });
+
+  it("rejects invalid integrations through the flow validator", () => {
+    expect(compileChatbotFlow(draftWith("payment.status", { provider: "unknown" }), [])).toBeUndefined();
+    expect(compileChatbotFlow(draftWith("calendar.book", { start: "{{horario}}", minutes: 30 }), [])).toBeUndefined();
+  });
+});

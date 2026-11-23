@@ -153,7 +153,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.message || "Não foi possível continuar. Tente novamente.");
-    return data as { messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string; progress?: { current: number; total: number } };
+    return data as { messages: string[]; options?: string[]; choiceStepId?: string; finished?: boolean; handoff?: boolean; redirect?: string; progress?: { current: number; total: number } };
   };
 
   const start = async (loaded: PublicFlow) => {

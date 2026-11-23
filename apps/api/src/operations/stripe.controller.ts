@@ -34,6 +34,12 @@ export class StripeController {
     return this.stripe.testConnection(request.user.tenantId);
   }
 
+  @Post("hosted-checkout")
+  createHostedCheckout(@Req() request: AuthenticatedRequest, @Body() input: { paymentId?: unknown }) {
+    this.assertAdmin(request, "criar cobrança");
+    return this.stripe.createHostedCheckout(request.user.tenantId, input);
+  }
+
   @Post("checkout")
   createPayment(@Req() request: AuthenticatedRequest, @Body() input: { paymentId?: unknown; description?: unknown }) {
     this.assertAdmin(request, "criar cobrança");

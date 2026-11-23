@@ -481,16 +481,20 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             variables.pagamento_link = '';
             const provider = canonicalPaymentProvider(config.provider);
             if (resolveEntitlements(tenant.entitlements).finance && (provider === 'STRIPE' || provider === 'INFINITEPAY')) {
+              const createLink = config.createHostedLink === 'true' && Boolean(provider === 'STRIPE' ? this.stripe : this.infinitePay);
               const payment = await tx.payment.findFirst({
                 where: {
                   tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
-                  provider: { in: paymentProviderAliases(provider) }, environment: 'PRODUCTION',
+                  provider: { in: paymentProviderAliases(provider) },
+                  ...(createLink && provider === 'STRIPE'
+                    ? { OR: [{ environment: 'PRODUCTION' }, { status: 'PENDING', externalId: null }] }
+                    : { environment: 'PRODUCTION' }),
                 },
                 orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-                select: { status: true, invoiceUrl: true },
+                select: { id: true, status: true, invoiceUrl: true, externalId: true, environment: true },
               });
-              variables.pagamento_status = payment?.status || 'não encontrado';
-              if (payment?.status === 'PENDING' && payment.invoiceUrl) {
+              variables.pagamento_status = payment?.environment === 'PRODUCTION' ? payment.status : 'não encontrado';
+              if (payment?.environment === 'PRODUCTION' && payment.status === 'PENDING' && payment.invoiceUrl) {
                 try {
                   const url = new URL(payment.invoiceUrl);
                   if (url.protocol === 'https:' && !url.username && !url.password) {
@@ -498,24 +502,13 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                   }
                 } catch { /* An invalid saved URL must never be sent to the customer. */ }
               }
-              if (config.createHostedLink === 'true' && (provider === 'STRIPE' ? this.stripe : this.infinitePay) &&
-                  !variables.pagamento_link && (!payment || payment.status === 'PENDING')) {
-                const pending = await tx.payment.findFirst({
-                  where: {
-                    tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
-                    provider: { in: paymentProviderAliases(provider) }, status: 'PENDING', externalId: null,
-                  },
-                  orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-                  select: { id: true },
-                });
-                if (pending) {
-                  const checkout = await (provider === 'STRIPE'
-                    ? this.stripe?.createHostedCheckout(channel.tenantId, { paymentId: pending.id }, 'LIVE')
-                    : this.infinitePay?.createLink(channel.tenantId, { paymentId: pending.id }))?.catch(() => null);
-                  if (checkout?.environment === 'LIVE' || checkout?.environment === 'PRODUCTION') {
-                    variables.pagamento_link = checkout.url;
-                    variables.pagamento_status = 'PENDING';
-                  }
+              if (createLink && payment?.status === 'PENDING' && !payment.externalId && !payment.invoiceUrl) {
+                const checkout = await (provider === 'STRIPE'
+                  ? this.stripe?.createHostedCheckout(channel.tenantId, { paymentId: payment.id }, 'LIVE')
+                  : this.infinitePay?.createLink(channel.tenantId, { paymentId: payment.id }))?.catch(() => null);
+                if (checkout?.environment === 'LIVE' || checkout?.environment === 'PRODUCTION') {
+                  variables.pagamento_link = checkout.url;
+                  variables.pagamento_status = 'PENDING';
                 }
               }
               skills.push('payment.status');

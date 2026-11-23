@@ -74,6 +74,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   if (!response.ok) throw new Error(data.message || "Não foi possível salvar a ficha agora. Tente novamente; se o problema continuar, avise a administração.");
   return data as T;
 }
+const profileAction = "inline-flex min-h-8 items-center rounded-md border border-line bg-surface px-2.5 text-xs font-semibold text-ink hover:bg-hover";
+
 export function ContactProfilePanel({
   contact,
   conversationId,
@@ -86,6 +88,8 @@ export function ContactProfilePanel({
   hideToggle = false,
   bare = false,
   statusPill,
+  onOpenAppointments,
+  onOpenBilling,
 }: {
   contact: ContactProfileData;
   conversationId: string;
@@ -98,6 +102,8 @@ export function ContactProfilePanel({
   hideToggle?: boolean;
   bare?: boolean;
   statusPill?: ReactNode;
+  onOpenAppointments?: () => void;
+  onOpenBilling?: () => void;
 }) {
   const [tab, setTab] = useState<"dados" | "notas" | "protocolos" | "procedimentos">("dados");
   const [tags, setTags] = useState<Array<{ name: string; color: string }>>([]);
@@ -126,6 +132,7 @@ export function ContactProfilePanel({
   const [procedureTitle, setProcedureTitle] = useState("");
   const [procedureDescription, setProcedureDescription] = useState("");
   const [procedureSteps, setProcedureSteps] = useState("");
+  const [reminderForm, setReminderForm] = useState(false);
   const [procedureDueAt, setProcedureDueAt] = useState("");
   useEffect(() => {
     const meta = contact.metadata || {};
@@ -311,14 +318,15 @@ export function ContactProfilePanel({
   }
   async function createProcedure(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!procedureTitle.trim()) { setError("Informe o nome do procedimento."); return; }
-    const steps = procedureSteps.split("\n").map((value) => value.trim()).filter(Boolean);
-    if (!steps.length) { setError("Inclua pelo menos uma etapa no procedimento."); return; }
+    if (!procedureTitle.trim()) { setError(reminderForm ? "Informe o título do lembrete." : "Informe o nome do procedimento."); return; }
+    if (reminderForm && (!procedureDueAt || !(new Date(procedureDueAt).getTime() > Date.now()))) { setError("Informe um prazo futuro para o lembrete."); return; }
+    const steps = reminderForm ? [] : procedureSteps.split("\n").map((value) => value.trim()).filter(Boolean);
+    if (!reminderForm && !steps.length) { setError("Inclua pelo menos uma etapa no procedimento."); return; }
     setProcedureBusy(true); setError("");
     try {
-      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: procedureTitle.trim(), description: procedureDescription.trim(), contactId: contact.id, dueAt: procedureDueAt ? new Date(procedureDueAt).toISOString() : null, steps }) });
+      await request("/api/backend/tasks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: procedureTitle.trim(), description: procedureDescription.trim(), contactId: contact.id, ...(reminderForm ? { conversationId } : {}), dueAt: procedureDueAt ? new Date(procedureDueAt).toISOString() : null, steps }) });
       const next = await request<Procedure[]>("/api/backend/tasks?status=all&contactId=" + encodeURIComponent(contact.id));
-      setProcedures(next || []); setProcedureForm(false); setProcedureTitle(""); setProcedureDescription(""); setProcedureSteps(""); setProcedureDueAt("");
+      setProcedures(next || []); setProcedureForm(false); setReminderForm(false); setProcedureTitle(""); setProcedureDescription(""); setProcedureSteps(""); setProcedureDueAt("");
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível criar o procedimento."); }
     finally { setProcedureBusy(false); }
   }
@@ -525,85 +533,18 @@ export function ContactProfilePanel({
           <div className={"grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4" + (bare ? " flex-none overflow-visible pt-3.5" : "")}>
             {tab === "dados" ? (
               <>
-                                <div className="grid gap-4 lg:grid-cols-2">
-                                  <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
-                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><UserRound size={12} /> Campos personalizados</strong>
-                  {fieldDefinitions.map((field) => (
-                    <label className="grid max-w-lg grid-cols-2 items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300" key={field.id}>
-                      <span>{field.name}</span>
-                      {field.type === "SELECT" ? (
-                        <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                          value={String(fields[field.key] ?? "")}
-                          onChange={(e) =>
-                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
-                          }
-                        >
-                          <option value="">Selecione...</option>
-                          {field.options.map((option) => (
-                            <option key={option}>{option}</option>
-                          ))}
-                        </select>
-                      ) : field.type === "CHECKBOX" ? (
-                        <input className="h-4 w-4 flex-none accent-blue-600"
-                          type="checkbox"
-                          checked={Boolean(fields[field.key])}
-                          onChange={(e) =>
-                            setFields((current) => ({ ...current, [field.key]: e.target.checked }))
-                          }
-                        />
-                      ) : (
-                        <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                          type={
-                            field.type === "NUMBER"
-                              ? "number"
-                              : field.type === "DATE"
-                                ? "date"
-                                : "text"
-                          }
-                          value={String(fields[field.key] ?? "")}
-                          onChange={(e) =>
-                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
-                          }
-                        />
-                      )}
-                    </label>
-                  ))}
-                  <form className="grid gap-2" onSubmit={createField}>
-                    <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                      value={fieldDraftName}
-                      onChange={(e) => setFieldDraftName(e.target.value)}
-                      placeholder="Criar novo campo"
-                      maxLength={80}
-                    />
-                    <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                      value={fieldDraftType}
-                      onChange={(e) => setFieldDraftType(e.target.value as ProfileFieldDef["type"])}
-                    >
-                      <option value="TEXT">Texto</option>
-                      <option value="NUMBER">Número</option>
-                      <option value="DATE">Data</option>
-                      <option value="SELECT">Lista de opções</option>
-                      <option value="CHECKBOX">Sim / não</option>
-                    </select>
-                    {fieldDraftType === "SELECT" ? (
-                      <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
-                        value={fieldDraftOptions}
-                        onChange={(e) => setFieldDraftOptions(e.target.value)}
-                        placeholder="Opções separadas por vírgula"
-                      />
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={
-                        !fieldDraftName.trim() ||
-                        (fieldDraftType === "SELECT" && !fieldDraftOptions.trim())
-                      }
-                    >
-                      <Plus size={13} /> Criar campo
-                    </button>
-                  </form>
-                  <small className="text-xs text-slate-600 dark:text-slate-300">Os valores ficam na ficha do contato e podem ser usados por automações e processos.</small>
-                </section>
+                                {onOpenAppointments || onOpenBilling ? (
+                  <section className="grid gap-2 border-b border-line px-3 pb-4" aria-label="Ações do contato">
+                    <h3 className="flex items-center gap-1.5 text-xs font-bold text-ink"><CalendarDays size={12} aria-hidden="true" /> Ações do contato</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {onOpenAppointments ? <button type="button" className={profileAction} onClick={onOpenAppointments}>Agendamentos</button> : null}
+                      {onOpenBilling ? <button type="button" className={profileAction} onClick={onOpenBilling}>Cobranças</button> : null}
+                      <button type="button" className={profileAction} onClick={() => { setReminderForm(true); setProcedureForm(true); setProcedureTitle(""); setProcedureDescription(""); setProcedureSteps(""); setProcedureDueAt(""); setError(""); setTab("procedimentos"); }}>Criar lembrete</button>
+                    </div>
+                  </section>
+                ) : null}
+                <div className="grid gap-4 lg:grid-cols-2">
+                                  
                 {asaas?.customerId ? (
                   <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
                     <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><UserRound size={12} /> Cadastro financeiro</strong>
@@ -699,14 +640,86 @@ export function ContactProfilePanel({
                      </div>
                    )}
                  </section>
-                 <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
-                   <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><CalendarDays size={12} /> Calendário e cobrança</strong>
-                   <div className="grid justify-items-center gap-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-3 py-5 text-center">
-                     <b className="text-sm">Nada agendado ainda</b>
-                     <p className="m-0 max-w-xs text-xs text-slate-600 dark:text-slate-300">Quando {leadOrigin ? "o cliente marcar um horário" : "este contato marcar um horário"} ou receber uma cobrança, aparece aqui.</p>
-                   </div>
-                 </section>
+                 
                 </div>
+              <section className="grid min-w-0 gap-2 border-t border-line pt-3 px-3 pb-4">
+                  <strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><UserRound size={12} /> Campos personalizados</strong>
+                  {fieldDefinitions.map((field) => (
+                    <label className="grid max-w-lg grid-cols-2 items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300" key={field.id}>
+                      <span>{field.name}</span>
+                      {field.type === "SELECT" ? (
+                        <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                          value={String(fields[field.key] ?? "")}
+                          onChange={(e) =>
+                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
+                          }
+                        >
+                          <option value="">Selecione...</option>
+                          {field.options.map((option) => (
+                            <option key={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field.type === "CHECKBOX" ? (
+                        <input className="h-4 w-4 flex-none accent-blue-600"
+                          type="checkbox"
+                          checked={Boolean(fields[field.key])}
+                          onChange={(e) =>
+                            setFields((current) => ({ ...current, [field.key]: e.target.checked }))
+                          }
+                        />
+                      ) : (
+                        <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                          type={
+                            field.type === "NUMBER"
+                              ? "number"
+                              : field.type === "DATE"
+                                ? "date"
+                                : "text"
+                          }
+                          value={String(fields[field.key] ?? "")}
+                          onChange={(e) =>
+                            setFields((current) => ({ ...current, [field.key]: e.target.value }))
+                          }
+                        />
+                      )}
+                    </label>
+                  ))}
+                  <form className="grid gap-2" onSubmit={createField}>
+                    <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                      value={fieldDraftName}
+                      onChange={(e) => setFieldDraftName(e.target.value)}
+                      placeholder="Criar novo campo"
+                      maxLength={80}
+                    />
+                    <select className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                      value={fieldDraftType}
+                      onChange={(e) => setFieldDraftType(e.target.value as ProfileFieldDef["type"])}
+                    >
+                      <option value="TEXT">Texto</option>
+                      <option value="NUMBER">Número</option>
+                      <option value="DATE">Data</option>
+                      <option value="SELECT">Lista de opções</option>
+                      <option value="CHECKBOX">Sim / não</option>
+                    </select>
+                    {fieldDraftType === "SELECT" ? (
+                      <input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600"
+                        value={fieldDraftOptions}
+                        onChange={(e) => setFieldDraftOptions(e.target.value)}
+                        placeholder="Opções separadas por vírgula"
+                      />
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={
+                        !fieldDraftName.trim() ||
+                        (fieldDraftType === "SELECT" && !fieldDraftOptions.trim())
+                      }
+                    >
+                      <Plus size={13} /> Criar campo
+                    </button>
+                  </form>
+                  <small className="text-xs text-slate-600 dark:text-slate-300">Os valores ficam na ficha do contato e podem ser usados por automações e processos.</small>
+                </section>
               </>
             ) : null}
             {tab === "notas" ? (
@@ -762,16 +775,17 @@ export function ContactProfilePanel({
             ) : null}
             {tab === "procedimentos" ? (
               <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">
-                <div className="flex items-center justify-between gap-2"><strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><CheckCircle2 size={12} /> Procedimentos do cliente</strong><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" onClick={() => setProcedureForm((value) => !value)}><Plus size={13} /> Novo</button></div>
+                <div className="flex items-center justify-between gap-2"><strong className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-50"><CheckCircle2 size={12} /> Procedimentos e lembretes</strong><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" onClick={() => { setReminderForm(false); setProcedureForm((value) => !value); }}><Plus size={13} /> Novo</button></div>
                 <p className="m-0 text-xs text-slate-600 dark:text-slate-300">Checklist operacional deste cliente. As tarefas internas da empresa ficam no módulo Tarefas.</p>
-                {procedureForm ? <form className="grid gap-2" onSubmit={createProcedure}><label>Nome do procedimento<input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder="Ex.: Documentação de contratação" autoFocus /></label><label>Descrição<textarea className="w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 p-2 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label><label>Etapas — uma por linha<textarea className="w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 p-2 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label><label>Prazo<input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="datetime-local" value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="flex flex-wrap justify-end gap-2"><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-colors hover:bg-blue-600 disabled:opacity-50" disabled={procedureBusy}>{procedureBusy ? "Criando…" : "Criar procedimento"}</button></div></form> : null}
+                {procedureForm ? <form className="grid gap-2" onSubmit={createProcedure}><label>{reminderForm ? "Título do lembrete" : "Nome do procedimento"}<input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureTitle} onChange={(event) => setProcedureTitle(event.target.value)} maxLength={180} placeholder={reminderForm ? "Ex.: Retornar sobre a proposta" : "Ex.: Documentação de contratação"} autoFocus /></label><label>Descrição<textarea className="w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 p-2 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureDescription} onChange={(event) => setProcedureDescription(event.target.value)} maxLength={5000} rows={3} placeholder="Contexto ou instruções para a equipe" /></label>{!reminderForm ? <label>Etapas — uma por linha<textarea className="w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 p-2 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" value={procedureSteps} onChange={(event) => setProcedureSteps(event.target.value)} rows={5} placeholder={"Conferir documentos\nEnviar proposta\nRegistrar retorno"} /></label> : null}<label>Prazo<input className="min-h-7 w-full max-w-md rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-600" type="datetime-local" required={reminderForm} value={procedureDueAt} onChange={(event) => setProcedureDueAt(event.target.value)} /></label><div className="flex flex-wrap justify-end gap-2"><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" onClick={() => setProcedureForm(false)}>Cancelar</button><button type="submit" className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-colors hover:bg-blue-600 disabled:opacity-50" disabled={procedureBusy}>{procedureBusy ? "Criando…" : reminderForm ? "Salvar lembrete" : "Criar procedimento"}</button></div></form> : null}
                 {procedures.map((procedure) => (
                   <article className="grid gap-2 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 p-3" key={procedure.id}>
                     <div className="flex items-center justify-between gap-2"><b className="text-sm text-slate-800 dark:text-slate-50">{procedure.title}</b><span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">{procedure.progress}%</span></div>
                     {procedure.description ? <p className="m-0 text-xs text-slate-600 dark:text-slate-300">{procedure.description}</p> : null}
-                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"><span className="block h-full bg-blue-600" style={{ width: procedure.progress + "%" }} /></div>
+                    {procedure.dueAt ? <p className="m-0 text-xs text-ink-secondary"><time dateTime={procedure.dueAt}>{new Date(procedure.dueAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</time></p> : null}
+                    {procedure.steps.length ? <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"><span className="block h-full bg-blue-600" style={{ width: procedure.progress + "%" }} /></div> : null}
                     <div className="grid gap-1.5">{procedure.steps.map((step) => <label key={step.id} className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-50"><input type="checkbox" className="h-4 w-4 flex-none accent-blue-600" checked={step.done} disabled={procedureBusy || procedure.status === "DONE"} onChange={() => void toggleProcedure(procedure, step)} /><span>{step.label}</span></label>)}</div>
-                    <div className="flex items-center justify-between gap-2">{procedure.status === "DONE" ? <><span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-200"><CheckCircle2 size={12} /> Finalizado</span><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" disabled={procedureBusy} onClick={() => void reopenProcedure(procedure)}>Reabrir</button></> : <button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" disabled={procedureBusy || procedure.progress < 100} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> Finalizar procedimento</button>}</div>
+                    <div className="flex items-center justify-between gap-2">{procedure.status === "DONE" ? <><span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-200"><CheckCircle2 size={12} /> Finalizado</span><button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" disabled={procedureBusy} onClick={() => void reopenProcedure(procedure)}>Reabrir</button></> : <button type="button" className="inline-flex min-h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-bold text-blue-700 transition-colors dark:text-slate-50 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50" disabled={procedureBusy || (procedure.steps.length > 0 && procedure.progress < 100)} onClick={() => void finishProcedure(procedure)}><CheckCircle2 size={14} /> {procedure.steps.length ? "Finalizar procedimento" : "Concluir lembrete"}</button>}</div>
                   </article>
                 ))}
                 {!procedures.length ? <p className="m-0 text-xs text-slate-600 dark:text-slate-300">Nenhum procedimento personalizado registrado para este cliente.</p> : null}

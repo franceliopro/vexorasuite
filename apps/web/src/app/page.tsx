@@ -533,7 +533,12 @@ export default function HomePage() {
       <main className="main-area">
         <header className="topbar">
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
-          <div className="breadcrumbs"><span>Véxora Suite</span>{active&&<><span className={crumbSlashTw}>/</span><strong>{active}</strong></>}</div>
+          <div className="breadcrumbs">
+            <span>Véxora Suite</span>
+            {active ? <><span className={crumbSlashTw} aria-hidden="true">/</span>{active === "Atendimento"
+              ? <h1 className="m-0 truncate font-display text-base font-bold leading-tight text-ink">{active}</h1>
+              : <strong>{active}</strong>}</> : null}
+          </div>
           <div className="topbar-actions">
             {moduleVisible("Atendimento")&&session&&<MentionNotifications key={session.tenant.id+":"+session.user.id} tenantId={session.tenant.id} userId={session.user.id}/>}
             <PwaControls tenantId={session?.tenant.id||""} userId={session?.user.id||""}/>

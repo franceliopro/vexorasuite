@@ -148,7 +148,7 @@ test("o perfil preserva testids, abas, endpoints e ações", () => {
     'Dados', 'Anotações', 'Protocolos', 'Procedimentos', 'Salvar ficha',
     'Concluir', 'Alterar', 'Vincular novo canal', 'Criar campo',
     'Campos personalizados', 'Identidades de atendimento', 'Origem do lead',
-    'Calendário e cobrança', 'Procedimentos do cliente',
+    'Ações do contato', 'Procedimentos e lembretes', 'Criar lembrete',
     'Nenhuma identidade sincronizada ainda.',
     'Nenhuma conversa registrada para este contato.',
     'Nenhum procedimento personalizado registrado para este cliente.',

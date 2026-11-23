@@ -13,6 +13,7 @@ type Campaign = {
   delaySeconds: number;
   stats: { sent: number | null; read: number | null; clicks: number | null };
 };
+type InstagramPost = { id: string; caption: string; date: string };
 type Draft = { id: string; name: string; trigger: string; keyword: string; mediaId: string };
 type Campaigns = { accounts: { id: string; name: string }[]; campaigns: Campaign[]; drafts: Draft[]; providerUnavailable?: boolean };
 const emptyDraft = { name: "", channelId: "", trigger: "comment", mediaId: "", keyword: "", message: "", link: "", delaySeconds: "" };
@@ -31,12 +32,47 @@ export function InstagramCampaigns() {
   const [data, setData] = useState<Campaigns | null>(null);
   const [error, setError] = useState(false);
   const [form, setForm] = useState(emptyDraft);
+  const [posts, setPosts] = useState<InstagramPost[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [page, setPage] = useState<{ cursor: string | null }>({ cursor: null });
+  const [mediaStatus, setMediaStatus] = useState<"loading" | "ready" | "error">("loading");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
-  const update = (field: keyof typeof emptyDraft, value: string) => setForm(current => ({ ...current, [field]: value }));
+  const update = (field: keyof typeof emptyDraft, value: string) => {
+    if (field === "channelId" || field === "trigger") {
+      setPosts([]);
+      setNextCursor(null);
+      setPage({ cursor: null });
+      setForm(current => ({ ...current, [field]: value, mediaId: "" }));
+      return;
+    }
+    setForm(current => ({ ...current, [field]: value }));
+  };
   const needsKeyword = form.trigger !== "story_mention";
   const supportsMedia = form.trigger === "comment" || form.trigger === "story_reply";
   const supportsDelay = form.trigger !== "live_comment";
+
+  useEffect(() => {
+    if (!open || !mediaOpen || !form.channelId || form.trigger !== "comment") return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({ channelId: form.channelId });
+    if (page.cursor) params.set("cursor", page.cursor);
+    setMediaStatus("loading");
+    void fetch("/api/backend/chatbot/instagram/campaigns/media?" + params.toString(), { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error("Publicações indisponíveis");
+        const result = await response.json();
+        if (!Array.isArray(result.posts)) throw new Error("Resposta inválida");
+        const incoming: InstagramPost[] = result.posts;
+        if (controller.signal.aborted) return;
+        setPosts(current => page.cursor ? [...new Map([...current, ...incoming].map(post => [post.id, post])).values()] : incoming);
+        setNextCursor(typeof result.nextCursor === "string" ? result.nextCursor : null);
+        setMediaStatus("ready");
+      })
+      .catch(() => { if (!controller.signal.aborted) setMediaStatus("error"); });
+    return () => controller.abort();
+  }, [open, mediaOpen, form.channelId, form.trigger, page]);
 
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,6 +93,9 @@ export function InstagramCampaigns() {
       const result = await response.json();
       if (!response.ok) throw new Error(typeof result?.message === "string" ? result.message : "Não foi possível salvar o rascunho.");
       setForm(emptyDraft);
+      setPosts([]);
+      setNextCursor(null);
+      setPage({ cursor: null });
       setNotice({ text: "Rascunho salvo.", error: false });
       setAttempt(value => value + 1);
     } catch (failure) {
@@ -101,10 +140,20 @@ export function InstagramCampaigns() {
           </select></label>
           {needsKeyword ? <label className="grid gap-1">Com esta palavra ou frase<input required maxLength={120} className={fieldClass} value={form.keyword} onChange={event => update("keyword", event.target.value)} placeholder="Eu quero" /></label> : null}
           <label className="grid gap-1">Enviar esta mensagem privada<textarea required rows={3} maxLength={form.link.trim() ? 640 : 1000} className={fieldClass} value={form.message} onChange={event => update("message", event.target.value)} /></label>
-          <details>
+          <details onToggle={event => setMediaOpen(event.currentTarget.open)}>
             <summary className="cursor-pointer text-small font-semibold">Publicação específica, link e atraso</summary>
             <div className="mt-2 grid gap-3">
-              {supportsMedia ? <label className="grid gap-1">ID da publicação ou Story<input inputMode="numeric" pattern="[0-9]{1,40}" className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)} placeholder="Em branco para qualquer publicação do tipo escolhido" /></label> : null}
+              {form.trigger === "comment" && form.channelId ? <div className="grid gap-2">
+                <label className="grid gap-1">Publicação ou Reel<select className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)}>
+                  <option value="">Qualquer publicação</option>
+                  {posts.map(post => <option key={post.id} value={post.id}>{post.date ? post.date.split("-").reverse().join("/") + " · " : ""}{post.caption || "Publicação sem legenda"}</option>)}
+                </select></label>
+                {mediaStatus === "loading" ? <p role="status">Buscando publicações…</p> : null}
+                {mediaStatus === "ready" && !posts.length ? <p>Nenhuma publicação encontrada.</p> : null}
+                {mediaStatus === "error" ? <button type="button" className="w-fit underline" onClick={() => setPage(current => ({ ...current }))}>Falha na consulta. Tentar novamente</button> : null}
+                {mediaStatus === "ready" && nextCursor ? <button type="button" className="w-fit underline" onClick={() => setPage({ cursor: nextCursor })}>Carregar publicações anteriores</button> : null}
+              </div> : null}
+              {form.trigger === "story_reply" ? <label className="grid gap-1">ID do Story<input inputMode="numeric" pattern="[0-9]{1,40}" className={fieldClass} value={form.mediaId} onChange={event => update("mediaId", event.target.value)} placeholder="Em branco para qualquer publicação do tipo escolhido" /></label> : null}
               <label className="grid gap-1">Link da oferta<input type="url" maxLength={2000} className={fieldClass} value={form.link} onChange={event => update("link", event.target.value)} placeholder="https://…" /></label>
               {supportsDelay ? <label className="grid gap-1">Atraso em segundos<input type="number" min={0} max={86400} step={1} className={fieldClass} value={form.delaySeconds} onChange={event => update("delaySeconds", event.target.value)} placeholder="0 para enviar na hora" /></label> : null}
             </div>

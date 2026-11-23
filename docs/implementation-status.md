@@ -74,14 +74,15 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Envio real de WhatsApp/e-mail, confirmação de cobrança pelo provedor e publicação de sites.
 - Aceite ponta a ponta com aparelho de WhatsApp e contas reais de e-mail.
 
-## 7. Piloto Rastreabem — site em Next.js/MDX
+## 6. Piloto Rastreabem — site em Next.js/MDX
 
-- [x] As 7 páginas do HTML original foram convertidas para MDX em `sites/rastreabem/`, com menu gerado por `content/navigation.ts` e saída estática (`output: 'export'`). O workflow `site-rastreabem.yml` valida typecheck e build.
+- [x] As páginas do HTML original foram convertidas para MDX em `sites/rastreabem/`, com menu gerado por `content/navigation.ts` e saída estática (`output: 'export'`). O workflow `site-rastreabem.yml` valida typecheck e build.
 - [x] Preview local e em endereço temporário: `python -m http.server 3105` serviu `sites/rastreabem/out` com HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/images/1.jpg`; o túnel `https://vexora-rastreabem.loca.lt` devolveu HTTP 200 com o HTML da home em 2026-11-23. Endereço temporário, não publicação definitiva.
 - [x] Auditoria estática reproduzível no workflow `site-rastreabem.yml` (`scripts/audit-links.cjs`): 10 arquivos HTML, 171 referências locais, zero links/assets quebrados em 2026-11-23.
+- [x] Varredura visual e de processo em 2026-11-23: cabeçalho preto e links da Área do Cliente em nova aba com `rel="noopener noreferrer"` (#1256); menu mobile voltou a responder ao botão após remoção de regra CSS duplicada (#1258); erro de hidratação React #418 em `/lp-info/` eliminado ao alinhar MDX e DOM (#1260). Syncs de `main`: #1257, #1259 e #1261. `npm run build` e a auditoria de links foram repetidos sem regressão. Isso não é publicação.
 - [ ] Publicação em Cloudflare Pages e domínio final: sem credenciais, sem `apply` e sem evidência no ar. Ver `docs/site-rastreabem-mdx.md` e `docs/checklist-entrega-sites-artes.md`.
 
-## 6. Fontes
+## 7. Fontes
 
 - `docs/plano-transicao-presenca-criativos.md` — HUB de Sites (§12) e sistemas verticais (§13).
 - `docs/implementation-register.md` — inventário histórico de entregas, não fonte de estado.

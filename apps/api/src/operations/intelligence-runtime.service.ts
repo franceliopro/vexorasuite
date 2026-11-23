@@ -1,5 +1,6 @@
 import { calendarIsAvailable } from "./calendar-availability";
 import { GoogleAccessService } from "./google-access.service";
+import { InfinitePayService } from "./infinitepay.service";
 import { StripeService } from "./stripe.service";
 import { canonicalPaymentProvider, paymentProviderAliases } from "./payment-providers";
 import { resolveEntitlements } from "../auth/entitlements";
@@ -51,7 +52,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
   private fallbackTicking = false;
   private running = false;
 
-  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService, @Optional() private readonly googleAccess?: GoogleAccessService, @Optional() private readonly stripe?: StripeService) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventsService, private readonly waha: WahaService, private readonly zernio: ZernioService, private readonly ai: AiService, @Optional() private readonly leases?: JobLeaseService, @Optional() private readonly distribution?: ConversationDistributionService, @Optional() private readonly googleAccess?: GoogleAccessService, @Optional() private readonly stripe?: StripeService, @Optional() private readonly infinitePay?: InfinitePayService) {}
 
   onModuleInit() {
     if (process.env.NODE_ENV === 'test') return;
@@ -497,19 +498,21 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
                   }
                 } catch { /* An invalid saved URL must never be sent to the customer. */ }
               }
-              if (provider === 'STRIPE' && config.createHostedLink === 'true' && this.stripe &&
+              if (config.createHostedLink === 'true' && (provider === 'STRIPE' ? this.stripe : this.infinitePay) &&
                   !variables.pagamento_link && (!payment || payment.status === 'PENDING')) {
                 const pending = await tx.payment.findFirst({
                   where: {
                     tenantId: channel.tenantId, conversationId, contactId: conversation.contactId,
-                    provider: { in: paymentProviderAliases('STRIPE') }, status: 'PENDING', externalId: null,
+                    provider: { in: paymentProviderAliases(provider) }, status: 'PENDING', externalId: null,
                   },
                   orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
                   select: { id: true },
                 });
                 if (pending) {
-                  const checkout = await this.stripe.createHostedCheckout(channel.tenantId, { paymentId: pending.id }, 'LIVE').catch(() => null);
-                  if (checkout?.environment === 'LIVE') {
+                  const checkout = await (provider === 'STRIPE'
+                    ? this.stripe?.createHostedCheckout(channel.tenantId, { paymentId: pending.id }, 'LIVE')
+                    : this.infinitePay?.createLink(channel.tenantId, { paymentId: pending.id }))?.catch(() => null);
+                  if (checkout?.environment === 'LIVE' || checkout?.environment === 'PRODUCTION') {
                     variables.pagamento_link = checkout.url;
                     variables.pagamento_status = 'PENDING';
                   }

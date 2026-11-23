@@ -1,3 +1,4 @@
+import { calendarIsAvailable } from "./calendar-availability";
 import { GoogleAccessService } from "./google-access.service";
 import { BadGatewayException, BadRequestException, Controller, ForbiddenException, Get, Param, Post, Patch, Delete, Body, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
@@ -56,15 +57,7 @@ export class GoogleCalendarController {
     const duration = to.getTime() - from.getTime();
     if (!(duration > 0 && duration <= 86400_000)) throw new BadRequestException("Selecione um intervalo de até 24 horas.");
     await this.accessible(req, accountId, calendarId);
-    const result = await this.google(req, accountId, "freeBusy", {
-      method: "POST",
-      body: JSON.stringify({ timeMin: from.toISOString(), timeMax: to.toISOString(), items: [{ id: calendarId }] }),
-    }) as { calendars?: Record<string, { busy?: unknown[]; errors?: unknown[] }> };
-    const calendar = result.calendars && Object.hasOwn(result.calendars, calendarId) ? result.calendars[calendarId] : undefined;
-    if (!calendar || calendar.errors?.length || !Array.isArray(calendar.busy)) {
-      throw new BadGatewayException("Não foi possível confirmar a disponibilidade desta agenda.");
-    }
-    return { available: calendar.busy.length === 0 };
+    return { available: await calendarIsAvailable(this.access, req.user.tenantId, accountId, calendarId, from, to) };
   }
 
   @Get(":accountId/events")

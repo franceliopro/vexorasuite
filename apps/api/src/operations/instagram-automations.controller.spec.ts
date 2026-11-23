@@ -11,7 +11,7 @@ function fixture(bots: number) {
   let integrations = { instagramCampaignDrafts: { [draftId]: draft } };
   const tenant = {
     findUniqueOrThrow: jest.fn(async () => ({ integrations, entitlements: { modules: ['AUTOMATION'], bots } })),
-    update: jest.fn(async ({ data }) => { integrations = data.integrations; }),
+    update: jest.fn(async ({ data }: { data: { integrations: typeof integrations } }) => { integrations = data.integrations; }),
   };
   const tx = { $queryRaw: jest.fn(), tenant };
   const db = {

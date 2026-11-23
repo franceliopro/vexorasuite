@@ -53,9 +53,12 @@ export class InstagramAutomationsController {
     ]);
     const drafts=Object.entries(record(record(tenant.integrations).instagramCampaignDrafts)).map(([id,value])=>({...record(value),id}));
     if (!profile||!connectedAccounts.size) return { accounts: [], campaigns: [], drafts };
-    const result = record(await this.zernio.request<unknown>(
+    const accounts = [...connectedAccounts.values()];
+    const providerData = await this.zernio.request<unknown>(
       '/comment-automations?profileId=' + encodeURIComponent(profile.profileId), {}, tenantId,
-    ));
+    ).catch(() => null);
+    if (providerData === null) return { accounts, campaigns: [], drafts, providerUnavailable: true };
+    const result = record(providerData);
     const rows: unknown[] = Array.isArray(result.automations) ? result.automations : [];
     const campaigns = rows.flatMap(raw => {
       const row = record(raw);
@@ -75,7 +78,7 @@ export class InstagramAutomationsController {
         stats: { sent: metric(stats.dmsSent), read: metric(stats.read), clicks: metric(stats.linkClicks) },
       }];
     });
-    return { accounts: [...connectedAccounts.values()], campaigns, drafts };
+    return { accounts, campaigns, drafts };
   }
 
   @Post('campaigns/drafts')

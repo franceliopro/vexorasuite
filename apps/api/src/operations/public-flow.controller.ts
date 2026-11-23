@@ -333,10 +333,11 @@ export class PublicFlowController {
               /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start) &&
               Number.isFinite(from.getTime()) && from.getTime() > Date.now() &&
               Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440) {
-            const assignments = await this.prisma.calendarAssignment.findMany({
-              where: { tenantId: tenant.id, departmentId, department: { isActive: true } },
+            const department = await this.prisma.department.findFirst({ where: { tenantId: tenant.id, id: departmentId, isActive: true }, select: { id: true } }).catch(() => null);
+            const assignments = department ? await this.prisma.calendarAssignment.findMany({
+              where: { tenantId: tenant.id, departmentId },
               select: { accountId: true, calendarId: true },
-            }).catch(() => []);
+            }).catch(() => []) : [];
             const calendars = [...new Map(assignments.map(row => [JSON.stringify([row.accountId,row.calendarId]),row])).values()];
             const calendar = calendars.length === 1 ? calendars[0] : undefined;
             if (calendar) {

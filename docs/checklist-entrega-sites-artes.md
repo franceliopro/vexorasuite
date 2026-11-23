@@ -26,7 +26,7 @@ Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morb
 - [ ] **Domínio definitivo por site** e aprovador nomeado para cada pedido/publicação.
 - [ ] **Repositório GitHub por tenant/site** (ou autorização para criá-lo a partir do template) e token com escopo mínimo para o fluxo operacional externo.
 - [ ] **Conta/token Cloudflare Pages** e acesso DNS/TLS quando a publicação for executada; sem isso, o HUB só registra pedido/preview/aprovação.
-- [ ] **Briefing de artes por peça:** objetivo, canal/formato, identidade visual, texto/matéria-prima aprovados, prazo, aprovador e destino/publicador.
+- [ ] **Briefing de artes por peça:** objetivo, canal/formato, identidade visual, texto/matéria-prima aprovados, prazo, aprovador e destino/publicador. O intake estruturado já existe em Marketing → Briefings e valida esses campos, mas continua bloqueado até o proprietário preencher o briefing real de cada peça.
 - [ ] **Credenciais Stripe e InfinitePay** (chaves, webhook secret/handle e ambiente sandbox/produção). Adaptadores já implementados no PR #1183; sem credenciais, webhook registrado e evidência do provedor, não validar cobrança real.
 - [ ] **Evidência no ar** para qualquer afirmação de publicação, domínio ativo, TLS, pagamento ou integração funcionando.
 

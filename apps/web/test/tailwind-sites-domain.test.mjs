@@ -102,6 +102,21 @@ test("os contratos de domínio permanecem intactos", () => {
   }
 });
 
+test("a tela de domínio não afirma publicação real", () => {
+  for (const claim of [
+    "Site publicado no domínio próprio com sucesso.",
+    "está publicado no domínio",
+    "Domínio conectado</h3>",
+    "com SSL ativo",
+    "Ver site publicado",
+  ]) {
+    assert.equal(domain.includes(claim), false, `afirmação de publicação real permaneceu: ${claim}`);
+  }
+  for (const honest of ["Simulação concluída", "Nada foi publicado", "Nenhum domínio foi conectado", "Nenhuma consulta externa é executada"]) {
+    assert.ok(domain.includes(honest), `falta a ressalva ${honest}`);
+  }
+});
+
 test("as cores e escalas usadas pela fatia vêm do preset", () => {
   for (const trecho of [
     'blue: {',

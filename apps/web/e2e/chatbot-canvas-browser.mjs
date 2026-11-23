@@ -242,6 +242,11 @@ try{
  await newMessage.evaluate(input=>input.setSelectionRange(10,10));
  await board.getByRole("button",{name:"Inserir link de pagamento",exact:true}).click();
  await expect(newMessage).toHaveValue("Pague aqui {{pagamento_link}} e confirme.");
+ const connectedPaths=await board.locator("svg g path").count();
+ await condition.locator("[data-flow-node-head]").click({button:"right"});
+ await page.getByRole("dialog",{name:"Ações do bloco"}).getByRole("button",{name:"Inserir mensagem após Sim",exact:true}).click();
+ await expect(board.locator("svg g path")).toHaveCount(connectedPaths+1);
+ await expect(board.getByRole("textbox",{name:"Mensagem de Enviar mensagem",exact:true})).toHaveValue("");
  const picker=page.getByRole("combobox",{name:"Fluxo aberto"});
  await picker.selectOption({label:"Oferta de teste"});
  await expect(picker).toHaveValue("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");

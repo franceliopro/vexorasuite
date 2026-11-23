@@ -1,5 +1,6 @@
 # Especificação UI/UX — Editor Visual de Sites e Wizard Base (Véxora Suite)
 
+> **Histórico — produto substituído.** Este documento descreve o editor visual e wizard de criação de sites do criador de sites com IA, retirado do produto em 2026-11-23. O serviço atual é o HUB da Véxora (docs/plano-transicao-presenca-criativos.md §12), que não gera HTML nem hospeda página. Não implementar o que está aqui sem nova decisão.
 **Produto:** Véxora Sites — Editor visual estilo Elementor/Divi/Crocoblock + wizard de criação
 **Arquitetura:** `docs/vexora-editor-visual-arquitetura.md` (contrato do Orquestrador)
 **Checkout de destino:** `C:/nexora-suite` (novo checkout do programador)

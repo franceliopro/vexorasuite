@@ -6,6 +6,8 @@ Manter: WhatsApp e chat no site; atendimento com bot/IA e transferência humana;
 
 Retirar: telefonia, SMS, disparos sem segmentação, anúncios pagos, WordPress, vídeo automático e publicação social automática/recorrente. Não retomar expansões verticais, troca de motores, integrações adicionais ou BI livre antes do aceite do núcleo.
 
+**Atualização de 2026-11-23:** a restrição a expansões verticais era válida para o aceite do núcleo naquele momento. Os sistemas verticais — Escola de Música, Escola com provas/notas, Estética e Delivery — passaram a fazer parte do roadmap em `docs/plano-transicao-presenca-criativos.md` §13. Eles reaproveitam o núcleo e **não** retomam telefonia, SMS, anúncios, WordPress, vídeo automático nem publicação social automática.
+
 ## Ampliação aprovada de atendimento e CRM
 
 O WhatsApp oficial via Zernio usa a caixa de entrada existente. Templates aprovados e campanhas segmentadas por WhatsApp e e-mail entram no escopo, junto com acompanhamento comercial por eventos do CRM. Usar permissões por empresa, registrar o consentimento por canal, respeitar descadastros e manter histórico por destinatário. Vincular respostas e resultados ao CRM quando houver evidência para a atribuição. A habilitação em uma empresa depende da configuração do canal e da validação do piloto. A limpeza histórica abaixo descreve a aposentadoria do fluxo anterior.

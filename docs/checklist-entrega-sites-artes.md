@@ -9,6 +9,8 @@ A Véxora registra o pedido, a aprovação, a publicação e a auditoria. A exec
 
 Preencher para cada um dos quatro sites (Alto Araguaia Imóveis, Rastreabem, SOS Alto Araguaia, Morbeck x Carvalhinho):
 
+Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morbeck x Carvalhinho ainda é WordPress com ~40 páginas; Alto Araguaia Imóveis é PHP com CMS próprio e está fora do ar; SOS Alto Araguaia está sob avaliação e fora do ciclo inicial.
+
 - [ ] **Slug definitivo** usado em pasta, banco e vhost.
 - [ ] **Domínio real** no qual o site deve responder.
 - [ ] **Tipo de destino:** `nextjs` ou `php-mysql`, conforme a avaliação de simplicidade e peso.

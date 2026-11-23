@@ -199,7 +199,7 @@ p { margin-top: .85rem; }
 .container { width: min(72rem, 100% - 3rem); margin-inline: auto; }
 .skip { position: absolute; top: .5rem; left: 1rem; transform: translateY(-200%); }
 .skip:focus { transform: none; background: white; padding: .5rem 1rem; z-index: 2; }
-.header { background: #fff; border-bottom: 1px solid var(--border); }
+.header { background: #000; border-bottom: 1px solid var(--border); }
 .header-inner { display: flex; gap: 1.25rem; align-items: center; justify-content: space-between; padding-block: 1rem; }
 .brand img { width: 9.5rem; height: auto; }
 .header nav { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }

@@ -18,7 +18,7 @@ import type { Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { resolveEntitlements } from "../auth/entitlements";
-import { calendarIsAvailable } from "./calendar-availability";
+import { bookCalendarSlot, calendarIsAvailable } from "./calendar-availability";
 import { GoogleAccessService } from "./google-access.service";
 import { AiService } from "../ai/ai.service";
 import { economicalProviders } from "../ai/economical-providers";
@@ -309,6 +309,16 @@ export class PublicFlowController {
     };
     let visitedThisTurn = 0;
     let calendarChecks = 0;
+    const resolveCalendar = async (departmentId: string) => {
+      const department = await this.prisma.department.findFirst({
+        where: { tenantId: tenant.id, id: departmentId, isActive: true }, select: { id: true },
+      }).catch(() => null);
+      const assignments = department ? await this.prisma.calendarAssignment.findMany({
+        where: { tenantId: tenant.id, departmentId }, select: { accountId: true, calendarId: true },
+      }).catch(() => []) : [];
+      const calendars = [...new Map(assignments.map(row => [JSON.stringify([row.accountId,row.calendarId]),row])).values()];
+      return calendars.length === 1 ? calendars[0] : undefined;
+    };
     const runStep = async (step: PublicStep, userText?: string): Promise<{ messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string }> => {
       session.stepId = step.id;
       const kind = String(step.kind || "text");
@@ -317,37 +327,54 @@ export class PublicFlowController {
         return { messages: ["Não consegui continuar por este caminho."], finished: true };
       }
       if (kind === "payment.status" || kind === "calendar.availability" || kind === "calendar.book") {
-        // Cobranças e reservas continuam exigindo o contexto da conversa.
         if (kind === "payment.status") {
           session.variables.pagamento_status = "indisponível";
           session.variables.pagamento_link = "";
-        } else if (kind === "calendar.availability") {
+        } else {
           const config = parseConfig(step);
           const start = interpolateVariables(config.start ?? "", session.variables).trim();
           const from = new Date(start);
           const minutes = Number(config.minutes);
           const departmentId = resolved.calendarDepartmentId;
-          session.variables.agenda_disponivel = "indisponível";
+          const resultKey = kind === "calendar.book" ? "agenda_reserva" : "agenda_disponivel";
+          session.variables[resultKey] = "indisponível";
+          const title = interpolateVariables(config.title ?? "", session.variables).trim();
           if (this.googleAccess && departmentId && calendarChecks++ < 3 &&
               resolveEntitlements(tenant.entitlements).modules.includes("CALENDAR") &&
               /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start) &&
               Number.isFinite(from.getTime()) && from.getTime() > Date.now() &&
               Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440) {
-            const department = await this.prisma.department.findFirst({ where: { tenantId: tenant.id, id: departmentId, isActive: true }, select: { id: true } }).catch(() => null);
-            const assignments = department ? await this.prisma.calendarAssignment.findMany({
-              where: { tenantId: tenant.id, departmentId },
-              select: { accountId: true, calendarId: true },
-            }).catch(() => []) : [];
-            const calendars = [...new Map(assignments.map(row => [JSON.stringify([row.accountId,row.calendarId]),row])).values()];
-            const calendar = calendars.length === 1 ? calendars[0] : undefined;
-            if (calendar) {
-              const to = new Date(from.getTime() + minutes * 60_000);
-              const available = await calendarIsAvailable(this.googleAccess, tenant.id, calendar.accountId, calendar.calendarId, from, to).catch(() => null);
-              if (available !== null) session.variables.agenda_disponivel = available ? "sim" : "não";
+            const googleAccess = this.googleAccess;
+            const to = new Date(from.getTime() + minutes * 60_000);
+            if (kind === "calendar.availability") {
+              const calendar = await resolveCalendar(departmentId);
+              if (calendar) {
+                const available = await calendarIsAvailable(googleAccess, tenant.id, calendar.accountId, calendar.calendarId, from, to).catch(() => null);
+                if (available !== null) session.variables[resultKey] = available ? "sim" : "não";
+              }
+            } else if (title && title.length <= 180) {
+              const options = ["Confirmar horário", "Voltar"];
+              const selected = body?.choice;
+              const chosen = selected
+                ? selected.stepId === step.id && (selected.index === 0 || selected.index === 1) ? selected.index : -1
+                : optionIndex(options, userText ?? "");
+              if (chosen === -1) {
+                const message = render(step) || "Confirma o horário " + start.replace("T", " ") + "?";
+                return { messages: [message], options };
+              }
+              if (chosen === 0 && rateLimit("booking:" + token + ":" + ip, 5, 600_000)) {
+                const calendar = await resolveCalendar(departmentId);
+                if (calendar) {
+                  const lockKey = JSON.stringify(["chatbot-calendar", calendar.calendarId === "primary" ? calendar.accountId : calendar.calendarId]);
+                  const bookingKey = JSON.stringify(["public", tenant.id, key, step.id, from.toISOString(), to.toISOString()]);
+                  session.variables[resultKey] = await this.prisma.$transaction(async tx => {
+                    await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+                    return bookCalendarSlot(googleAccess, tenant.id, calendar.accountId, calendar.calendarId, from, to, title, bookingKey);
+                  }, { timeout: 45_000 }).catch(() => "indisponível");
+                }
+              }
             }
           }
-        } else {
-          session.variables.agenda_reserva = "indisponível";
         }
         const next = advance(step);
         if (next) return runStep(next);
@@ -528,7 +555,7 @@ export class PublicFlowController {
     const stepIndex = session.stepId ? steps.findIndex((step) => step?.id === session.stepId) : 0;
     const progress = steps.length ? { current: Math.min(Math.max(stepIndex + 1, 1), steps.length), total: steps.length } : undefined;
     const waiting = findStep(session.stepId ?? undefined);
-    const choiceStepId = result.options?.length && waiting && ["buttons", "quick-reply", "text"].includes(waiting.kind || "text") ? waiting.id : undefined;
+    const choiceStepId = result.options?.length && waiting && ["buttons", "quick-reply", "text", "calendar.book"].includes(waiting.kind || "text") ? waiting.id : undefined;
     return { sessionId, ...result, progress, choiceStepId };
   }
 }

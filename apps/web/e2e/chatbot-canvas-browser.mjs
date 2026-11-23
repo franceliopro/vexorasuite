@@ -207,6 +207,13 @@ try{
  await condition.getByRole("textbox",{name:"É igual a",exact:true}).fill("Financeiro");
  await condition.getByRole("button",{name:"Concluir",exact:true}).click();
  await expect(board.getByRole("button",{name:"Se Departamento é igual a “Financeiro”",exact:true})).toBeVisible();
+ await board.getByRole("button",{name:"Se Departamento é igual a “Financeiro”",exact:true}).click();
+ await condition.getByRole("combobox",{name:"Informação",exact:true}).fill("pagamento_status");
+ const paymentResult=condition.getByRole("combobox",{name:"É igual a",exact:true});
+ await paymentResult.selectOption({label:"Pago"});
+ await expect(paymentResult).toHaveValue("PAID");
+ await condition.getByRole("button",{name:"Concluir",exact:true}).click();
+ await expect(board.getByRole("button",{name:"Se Status do pagamento é igual a “Pago”",exact:true})).toBeVisible();
  await expect(board.getByRole("button",{name:"Sim",exact:true})).toBeVisible();
  await expect(board.getByRole("button",{name:"Não",exact:true})).toBeVisible();
  const zoomBeforeAdding=(await camera()).zoom;

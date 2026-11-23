@@ -62,6 +62,7 @@ type Flow = { name:string; welcome:string; askPreferredName?:boolean; steps:Step
 type Channel = {id:string;name:string;provider:string;platform?:string;status:string};
 const flowVariables=[["nome","Nome do cliente"],["novo_nome","Como o cliente prefere ser chamado"],["atendente","Atendente"],["departamento","Departamento"],["empresa","Empresa"],["razao_social","Razão social"],["cnpj","CNPJ"],["endereco_completo","Endereço completo"],["endereco","Endereço"],["telefone","Telefone"],["email","E-mail"],["protocolo","Protocolo do atendimento"],["saudacao","Saudação"],["despedida","Despedida"],["nome_identificado","Nome identificado"],["origem","Origem do contato"],["pipeline","Pipeline do CRM"],["etapa","Etapa do CRM"]] as const;
 const integrationResults = {
+ canal_atendimento: { label: "Canal de atendimento", values: [["whatsapp","WhatsApp"],["web","Chatbot web"],["instagram","Instagram"],["facebook","Facebook"],["outro","Outro canal"]] },
  agenda_reserva: { label: "Resultado do agendamento", values: [["confirmado","Confirmado"],["ocupado","Ocupado"],["indisponível","Não foi possível confirmar"]] },
  agenda_disponivel: { label: "Horário disponível", values: [["sim","Livre"],["não","Ocupado"],["indisponível","Não foi possível consultar"]] },
  lembrete_criado: { label: "Lembrete criado", values: [["sim","Criado"],["não","Não criado"]] },
@@ -79,7 +80,7 @@ function conditionValueOptions(variable: string): ReadonlyArray<readonly [string
  return Object.hasOwn(integrationResults,variable) ? integrationResults[variable as keyof typeof integrationResults].values : [];
 }
 const simulationContext: Record<string,string> = { nome: "Cliente de teste", novo_nome: "Cliente de teste", atendente: "Atendente de teste", departamento: "Atendimento", empresa: "Véxora Suite", razao_social: "Véxora Suite Tecnologia Ltda.", cnpj: "00.000.000/0001-00", endereco_completo: "Av. Brasil, 1000 · Cuiabá/MT", endereco: "Av. Brasil, 1000 · Cuiabá/MT", telefone: "+55 (65) 99999-9999", email: "cliente@teste.local", protocolo: "AT-2026-TESTE01", saudacao: "Olá!", despedida: "Até logo!" };
-function resolveSimulationText(value: string, variables = simulationContext): string { return value.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key: string) => variables[key] ?? ""); }
+function resolveSimulationText(value: string, variables = simulationContext): string { return value.replace(/\{\{\s*([\w .-]+?)\s*\}\}/g, (_, key: string) => variables[key] ?? ""); }
 type NodeTone = "start" | "message" | "choice" | "input" | "logic" | "ai" | "asaas" | "transfer" | "crm" | "tag" | "end" | "finish" | "default";
 
 const nodeTone = (step: Step): NodeTone => {
@@ -979,7 +980,7 @@ function dictateAiRequest(){
  }
  function restartSimulation(){
   runningSimulationResults.current=simulationResults;
-  const variables={...simulationContext,nome_identificado:simulationContext.nome||""};
+  const variables={...simulationContext,nome_identificado:simulationContext.nome||"",canal_atendimento:simulationChannel};
   const next=simulateBlock(simulationStart(),variables);
   setTestNodes(next.nodes);setTestEdges(next.edges);
   setSimulationVariables(variables);setPreview([resolveSimulationText(flow.welcome,variables),next.message]);setSimulationStep(next.stepId);

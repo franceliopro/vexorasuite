@@ -332,6 +332,9 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         .map(value => value.trim())
         .join(' · ');
       variables.empresa = tenant.name;
+      const platform = String(object(channel.settings).platform ?? '').toLowerCase();
+      variables.canal_atendimento = channel.provider === 'WAHA' || platform === 'whatsapp' ? 'whatsapp'
+        : platform === 'instagram' || platform === 'facebook' ? platform : 'outro';
       variables.razao_social = typeof organization.legalName === 'string' ? organization.legalName.trim() : '';
       variables.cnpj = typeof organization.cnpj === 'string' ? organization.cnpj.trim() : '';
       variables.endereco_completo = address;

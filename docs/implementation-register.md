@@ -31,8 +31,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 - Testes de isolamento, políticas de senha, acesso por URL e criação concorrente na CI.
 
 ## Entregue no PR #180: Home de apresentação
-
-> **Removida posteriormente.** A apresentação com papel de parede foi retirada a pedido do produto; a inicial é a Visão geral e o logo leva para ela. O conteúdo abaixo é histórico.- Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
+- Página inicial sem título e sem indicadores, aberta pelo logo, separada de Visão geral.
 - Imagem e cor de fundo independentes para desktop/celular; logo pequeno centralizado por padrão.
 - Ajustar, preencher, centralizar, estender, ampliar e lado a lado; prévia, aplicação, edição com clique duplo/toque duplo e exclusão.
 - Armazenamento privado por empresa, validação de imagem e controle de revisões concorrentes.
@@ -57,7 +56,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 15. Rate limiting distribuído, retenção, restauração de backup e observabilidade operacional.
 16. Validar cenários reais Google, Zernio, financeiro sandbox, permissões, mobile, teclado/leitor de tela e o piloto Rastreabem.
 17. Revisar a migração de configurações do repositório antigo sem alterar o sistema antigo ou copiar segredos.
-18. Implementar a integração WordPress completa usando sua permissão própria; ainda não entregue.
+18. ~~Implementar a integração WordPress completa usando sua permissão própria; ainda não entregue.~~ **Removida do escopo:** WordPress não será integrado; os sites são recriados em Next.js/MDX ou com CMS headless.
 19. Conferir a implantação no Dokploy por evidência; aprovação de CI não prova atualização do site.
 
 ## Continuidade

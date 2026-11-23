@@ -162,6 +162,14 @@ async function main() {
     expect("POST /api/sites/import/zip without token", (await call(baseUrl, "POST", "/api/sites/import/zip", { contentBase64: "" })).status, 401);
     expect("POST /api/sites/:id/document/ai-edit without token", (await call(baseUrl, "POST", `/api/sites/${routeId}/document/ai-edit`, {})).status, 401);
     expect("GET /api/sites/:id/forms/submissions without token", (await call(baseUrl, "GET", `/api/sites/${routeId}/forms/submissions`)).status, 401);
+    // HUB de Sites: pedido, preview, aprovação, publicação e histórico, todos autenticados e tenant-scoped.
+    expect("GET /api/sites/hub/requests without token", (await call(baseUrl, "GET", "/api/sites/hub/requests")).status, 401);
+    expect("POST /api/sites/hub/requests without token", (await call(baseUrl, "POST", "/api/sites/hub/requests", {})).status, 401);
+    expect("GET /api/sites/hub/requests/:id without token", (await call(baseUrl, "GET", `/api/sites/hub/requests/${routeId}`)).status, 401);
+    expect("POST /api/sites/hub/requests/:id/preview without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/preview`, {})).status, 401);
+    expect("POST /api/sites/hub/requests/:id/decision without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/decision`, {})).status, 401);
+    expect("POST /api/sites/hub/requests/:id/publish-request without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/publish-request`, {})).status, 401);
+    expect("POST /api/sites/hub/requests/:id/publish-confirm without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/publish-confirm`, {})).status, 401);
     // Public route has no session; a 404 (not 401 and not 500) proves it reached the service.
     expect("POST /api/public/sites/:id/forms/:block/submit to unknown site", (await call(baseUrl, "POST", `/api/public/sites/${routeId}/forms/bloco/submit`, { values: { nome: "Teste" } })).status, 404);
 

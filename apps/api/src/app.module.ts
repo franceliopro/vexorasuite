@@ -15,9 +15,10 @@ import { SitesImportModule } from "./modules/sites-import/sites-import.module";
 import { SitesDeployModule } from "./modules/sites-deploy/sites-deploy.module";
 import { SiteEditorModule } from "./modules/site-editor/site-editor.module";
 import { SiteFormsModule } from "./modules/site-forms/site-forms.module";
+import { SiteHubModule } from "./modules/site-hub/site-hub.module";
 
 @Module({
-  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule, SitesImportModule, SitesDeployModule, SiteEditorModule, SiteFormsModule, ],
+  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule, SitesImportModule, SitesDeployModule, SiteEditorModule, SiteFormsModule, SiteHubModule, ],
   controllers: [HealthController],
   providers: [
     RateLimitService,

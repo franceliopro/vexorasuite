@@ -115,6 +115,7 @@ model Tenant {
   siteFolders          SiteFolder[]
   propertyApplications PropertyApplication[]
   propertyScopes       PropertyScope[]
+  siteHubRequests      SiteHubRequest[]
 
   @@map("tenants")
 }
@@ -1194,4 +1195,91 @@ model SiteVersion {
 
   @@index([siteDocumentId])
   @@unique([siteDocumentId, version])
+}
+
+/// HUB de Sites: registra pedido, preview, aprovação, versão, histórico e auditoria.
+/// Não renderiza HTML do site, não hospeda página e não substitui o repositório do site.
+model SiteHubRequest {
+  id           String          @id @default(uuid()) @db.Uuid
+  tenantId     String          @map("tenant_id") @db.Uuid
+  siteId       String?         @map("site_id") @db.Uuid
+  slug         String
+  name         String
+  kind         String          @default("STATIC")
+  status       SiteHubStatus   @default(DRAFT)
+  brief        Json            @default("{}")
+  repository   String?
+  targetDomain String?         @map("target_domain")
+  previewUrl   String?         @map("preview_url")
+  previewSha   String?         @map("preview_sha")
+  createdBy    String          @map("created_by") @db.Uuid
+  decidedBy    String?         @map("decided_by") @db.Uuid
+  decisionNote String?         @map("decision_note")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions     SiteHubVersion[]
+  events       SiteHubEvent[]
+  approvals    SiteHubApproval[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@map("site_hub_requests")
+}
+
+model SiteHubVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  requestId   String   @map("request_id") @db.Uuid
+  version     Int
+  commitSha   String?  @map("commit_sha")
+  previewUrl  String?  @map("preview_url")
+  notes       String?
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  request     SiteHubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, version])
+  @@map("site_hub_versions")
+}
+
+model SiteHubApproval {
+  id          String   @id @default(uuid()) @db.Uuid
+  requestId   String   @map("request_id") @db.Uuid
+  decision    String
+  note        String?
+  decidedBy   String   @map("decided_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  request     SiteHubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, createdAt])
+  @@map("site_hub_approvals")
+}
+
+model SiteHubEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  requestId   String   @map("request_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  action      String
+  details     Json     @default("{}")
+  actorId     String?  @map("actor_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  request     SiteHubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("site_hub_events")
+}
+
+enum SiteHubStatus {
+  DRAFT
+  PREVIEW_READY
+  APPROVED
+  REJECTED
+  PUBLISH_REQUESTED
+  PUBLISHED
+  FAILED
 }

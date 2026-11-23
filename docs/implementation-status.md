@@ -39,6 +39,9 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Piloto Rastreabem: build estático de 9 páginas e auditoria reproduzível de links/assets com `sites/rastreabem/scripts/audit-links.cjs` — 10 arquivos HTML, 171 referências locais, zero quebrados. Isso não é publicação.
 - Intake de briefing criativo: seis blocos obrigatórios com validação no servidor, tenant isolation, migração e histórico de eventos; UI em Marketing → Briefings. Nenhuma peça é produzida ou publicada.
 - Correção de honesty: `sites-domain-config.tsx` deixou de afirmar publicação, domínio conectado e SSL ativo — a tela agora diz explicitamente que tudo é simulação e que a confirmação real depende do HUB e de 2xx no domínio final.
+- PR #1187: intake estruturado de briefing e correção da linguagem de domínio simulado; CI verde em `Build and type-check`, `Private SearXNG runtime`, `validate`, `Container (api)` e `Container (web)`; merge `a5e13d7bf0c117f99e7e1c93713c2085e49f9132`.
+- PR #1188: sync `foundation/bootstrap-monorepo` → `main` preservando as duas histórias; merge `de1ec15f6eb1124b1d2345ae64c2fe92c0029cca`, mesclado com head esperada `db118c1534112dd92bade26e32c8db9b9e8c220d` e todos os cinco checks verdes. Após o merge, `git merge-base --is-ancestor origin/foundation/bootstrap-monorepo origin/main` retornou `0`.
+- Varredura de processo em 2026-11-23: `docs/especificacao-ui-dominio-cloudflare.md` foi alinhado à simulação (sem promessa de deploy, DNS ou SSL reais). Nenhum item foi promovido a “entregue” por configuração, rascunho ou flag.
 
 ## 2. O que está em construção
 

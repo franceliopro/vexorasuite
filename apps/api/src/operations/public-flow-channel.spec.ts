@@ -53,6 +53,21 @@ describe("Chatbot web channel", () => {
     expect(answer).toMatchObject({ messages: ["Cobrança existente."], finished: true });
   });
 
+  it("uses the exact clicked exit even when two buttons render the same label", async () => {
+    const { controller } = makeController([
+      { id: "menu", kind: "buttons", message: "Qual opção?", options: ["Sim", "Sim{{vazio}}"],
+        transitions: { Sim: "first", "Sim{{vazio}}": "second" } },
+      { id: "first", kind: "text", message: "Primeira saída." },
+      { id: "second", kind: "text", message: "Segunda saída." },
+    ]);
+    const token = "d".repeat(48);
+    const { sessionId } = await controller.message(token, {}, {});
+    const stale = await controller.message(token, { sessionId, text: "Sim", choice: { stepId: "previous", index: 1 } }, {});
+    expect(stale).toMatchObject({ choiceStepId: "menu", options: ["Sim", "Sim"] });
+    const answer = await controller.message(token, { sessionId, text: "Sim", choice: { stepId: "menu", index: 1 } }, {});
+    expect(answer).toMatchObject({ messages: ["Segunda saída."], finished: true });
+  });
+
   it("keeps the conversation open when the handoff fails", async () => {
     const { controller, transaction } = makeController([{ id: "handoff", kind: "human.handoff" }]);
     const result = await controller.message("b".repeat(48), {}, {});

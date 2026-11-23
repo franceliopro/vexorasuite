@@ -14,6 +14,31 @@ function setup(overrides: Record<string,unknown> = {}) {
  return {service:new IntelligenceRuntimeService(prisma,events,waha,zernio,{generate:jest.fn()} as any),tx,prisma,events,waha,zernio,channel:{id:'channel',tenantId:'tenant',provider:'WAHA'} as any,conversation,inbound,published,flow};
 }
 describe('Intelligence runtime',()=>{
+ it.each([
+  { modules: ['TASKS'], member: true, created: true },
+  { modules: ['AUTOMATION'], member: true, created: false },
+  { modules: ['TASKS'], member: false, created: false },
+ ])('scopes chatbot reminders to the company and active attendant (%j)', async ({ modules, member, created }) => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const userId = '1e7a3d92-cbf0-4560-b710-60f8e87c6e48';
+  x.conversation.contact.id = 'contact';
+  x.tx.tenant.findUniqueOrThrow.mockResolvedValue({ name: 'Empresa', entitlements: { modules }, integrations: { intelligencePublished: x.published } });
+  x.tx.membership = { findFirst: jest.fn().mockResolvedValue(member ? { userId } : null) };
+  x.tx.workTask = { create: jest.fn().mockResolvedValue({ id: 'task' }) };
+  x.flow.steps.splice(1, 0, {
+   id: 'reminder', kind: 'task.reminder', title: 'Lembrete', message: '', options: ['Continuar'],
+   transitions: { Continuar: 'handoff' }, config: JSON.stringify({ title: 'Acompanhar proposta', minutes: '30', reminderUserId: userId }),
+  });
+  x.flow.steps[0].transitions.Suporte = 'reminder';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.tx.workTask.create).toHaveBeenCalledTimes(created ? 1 : 0);
+  if (created) expect(x.tx.workTask.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+   tenantId: 'tenant', assigneeId: userId, contactId: 'contact', conversationId: 'conversation', dueAt: expect.any(Date),
+  }) });
+  expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.lembrete_criado).toBe(created ? 'sim' : 'não');
+ });
+
  it('persists state, outbox and zero-token audit',async()=>{const x=setup();expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(true);expect(x.waha.sendText).toHaveBeenCalledTimes(2);expect(x.tx.auditLog.create.mock.calls[0][0].data.details.tokensUsed).toBe(0);expect(x.tx.conversation.update.mock.calls[0][0].data.botState.stepId).toBe('menu');});
  it('exposes saved company data as rendered variables',async()=>{const x=setup({departmentId:'support'});x.flow.welcome='{{empresa}} · {{razao_social}} · {{cnpj}} · {{endereco_completo}} · {{departamento}}';x.tx.tenant.findUniqueOrThrow.mockResolvedValue({name:'Empresa',integrations:{organization:{legalName:'Empresa Ltda.',cnpj:'00.000.000/0001-00',address:'Rua Teste, 100',city:'Cuiabá',state:'MT',zipCode:'78000-000'},intelligencePublished:x.published}});await x.service.receive(x.channel,'conversation','inbound');expect(x.tx.message.create.mock.calls[0][0].data.content).toBe('Empresa · Empresa Ltda. · 00.000.000/0001-00 · Rua Teste, 100 · Cuiabá · MT · 78000-000 · Suporte');});
  it('respects human ownership',async()=>{const x=setup({handlingMode:'HUMAN'});expect(await x.service.receive(x.channel,'conversation','inbound')).toBe(false);expect(x.waha.sendText).not.toHaveBeenCalled();});

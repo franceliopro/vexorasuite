@@ -47,7 +47,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
       if (config.targetMode === 'DEPARTMENT' && config.userId) errors.push(`${s.id}: use destino Atendente para atribuição individual`);
       if (s.kind === 'text' && s.options.length > 1) errors.push(`${s.id}: use múltipla escolha para mais de uma saída`);
       if (s.kind === 'agent' && !config.agentId) errors.push(`${s.id}: selecione agentId de um agente configurado`);
-      if (['variable','condition'].includes(s.kind || '') && (!/^[a-zA-Z][\w]{0,39}$/.test(config.variable || '') || typeof config.value !== 'string')) errors.push(`${s.id}: configure variable e value`);
+      if (['variable','condition'].includes(s.kind || '') && (!(s.kind==='condition'?/^[\w.-]{1,80}$/:/^[a-zA-Z][\w]{0,39}$/).test(config.variable || '') || typeof config.value !== 'string')) errors.push(`${s.id}: configure variable e value`);
       if (s.kind === 'condition' && (!s.options.includes('Sim') || !s.options.includes('Não') || s.options.length !== 2)) errors.push(`${s.id}: condição exige saídas Sim e Não`);
       if (s.kind === 'tag' && (!config.name?.trim() || config.name.length > 40 || !/^#[a-f\d]{6}$/i.test(config.color || ''))) errors.push(`${s.id}: configure name e color da tag`);
     } catch { errors.push(`${s.id}: configuração JSON inválida`); }

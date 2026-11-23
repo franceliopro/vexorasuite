@@ -543,7 +543,7 @@ export function ContactProfilePanel({
                     </div>
                   </section>
                 ) : null}
-                <div className="grid gap-4">
+                <div className="grid gap-4 lg:grid-cols-2">
                                   
                 {asaas?.customerId ? (
                   <section className="grid min-w-0 gap-2 border-b border-slate-200 dark:border-slate-700 px-3 pb-4">

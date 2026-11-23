@@ -15,6 +15,40 @@ function setup(overrides: Record<string,unknown> = {}) {
 }
 describe('Intelligence runtime',()=>{
  it.each([
+  { modules: ['CALENDAR'], matches: 1, busy: [], expected: 'sim' },
+  { modules: ['CALENDAR'], matches: 1, busy: [{}], expected: 'não' },
+  { modules: ['CALENDAR'], matches: 2, busy: [], expected: 'indisponível' },
+  { modules: ['AUTOMATION'], matches: 1, busy: [], expected: 'indisponível' },
+ ])('checks only the calendar assigned to the conversation scope (%j)', async ({ modules, matches, busy, expected }) => {
+  const x = setup({ departmentId: 'support', botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  x.tx.tenant.findUniqueOrThrow.mockResolvedValue({ name: 'Empresa', entitlements: { modules }, integrations: { intelligencePublished: x.published } });
+  x.tx.calendarAssignment = { findMany: jest.fn().mockResolvedValue(Array.from({ length: matches }, (_, i) => ({
+   userId: null, accountId: 'account', calendarId: 'team-' + i,
+  }))) };
+  const token = jest.fn().mockResolvedValue('calendar-token');
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ calendars: { 'team-0': { busy } } })));
+  const service = new IntelligenceRuntimeService(x.prisma, x.events, x.waha, x.zernio, { generate: jest.fn() } as any, undefined, undefined, { token } as any);
+  const start = new Date(Date.now() + 3600000).toISOString();
+  x.flow.steps.splice(1, 0, {
+   id: 'availability', kind: 'calendar.availability', title: 'Agenda', message: '', options: ['Continuar'],
+   transitions: { Continuar: 'handoff' }, config: JSON.stringify({ start, minutes: '30' }),
+  });
+  x.flow.steps[0].transitions.Suporte = 'availability';
+  x.inbound.content = '1';
+  try {
+   await service.receive(x.channel, 'conversation', 'inbound');
+   expect(x.tx.conversation.update.mock.calls[0][0].data.botState.variables.agenda_disponivel).toBe(expected);
+   if (modules.includes('CALENDAR')) expect(x.tx.calendarAssignment.findMany).toHaveBeenCalledWith(expect.objectContaining({
+    where: { tenantId: 'tenant', OR: [{ departmentId: 'support' }] },
+   }));
+   if (expected === 'indisponível') expect(token).not.toHaveBeenCalled();
+   else expect(token).toHaveBeenCalledWith('tenant', 'account', 'calendar');
+  } finally {
+   fetchMock.mockRestore();
+  }
+ });
+
+ it.each([
   { modules: ['TASKS'], member: true, created: true },
   { modules: ['AUTOMATION'], member: true, created: false },
   { modules: ['TASKS'], member: false, created: false },

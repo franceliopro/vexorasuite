@@ -219,7 +219,7 @@ export class PublicFlowController {
   @Post(":token/message")
   async message(
     @Param("token") token: string,
-    @Body() body: { sessionId?: unknown; text?: unknown },
+    @Body() body: { sessionId?: unknown; text?: unknown; choice?: { stepId?: unknown; index?: unknown } },
     @Req() request: { ip?: string; headers?: Record<string, string | string[] | undefined> },
   ) {
     sweepSessions();
@@ -354,7 +354,10 @@ export class PublicFlowController {
         const options = Array.isArray(step.options) ? step.options : [];
         const labels = options.map(option => interpolate(option, session.variables).trim() || option);
         if (userText !== undefined && options.length) {
-          const index = optionIndex(labels, String(userText));
+          const selected = body?.choice;
+          const index = selected
+            ? selected.stepId === step.id && typeof selected.index === "number" && Number.isInteger(selected.index) && selected.index >= 0 && selected.index < labels.length ? selected.index : -1
+            : optionIndex(labels, String(userText));
           if (index >= 0) {
             const key = options[index]!;
             session.variables["ultima_opcao"] = key;
@@ -494,6 +497,8 @@ export class PublicFlowController {
     if (sessions.size > 4000) { for (const [k, v] of sessions) { if (Date.now() - v.lastAt > SESSION_TTL_MS) sessions.delete(k); } }
     const stepIndex = session.stepId ? steps.findIndex((step) => step?.id === session.stepId) : 0;
     const progress = steps.length ? { current: Math.min(Math.max(stepIndex + 1, 1), steps.length), total: steps.length } : undefined;
-    return { sessionId, ...result, progress };
+    const waiting = findStep(session.stepId ?? undefined);
+    const choiceStepId = result.options?.length && waiting && ["buttons", "quick-reply", "text"].includes(waiting.kind || "text") ? waiting.id : undefined;
+    return { sessionId, ...result, progress, choiceStepId };
   }
 }

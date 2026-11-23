@@ -9,6 +9,8 @@ type InfinitePaySettings = { enabled?: boolean; handle?: string; apiKeyEncrypted
 
 const INFINITEPAY_API = "https://api.checkout.infinitepay.io";
 
+class CheckoutRequestRejected extends ServiceUnavailableException {}
+
 /** O webhook não tem assinatura; paid:true só é aceito após /payment_check com valor original conferido. */
 export function infinitepayPaymentApproved(check: unknown, expectedAmountCents: number): boolean {
   const result = objectOf(check);
@@ -95,9 +97,13 @@ export class InfinitePayService {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       this.logger.warn(`InfinitePay recusou ${path}: ${response.status}`);
-      throw new ServiceUnavailableException(response.status === 403
+      const message = response.status === 403
         ? "A API Key e a InfiniteTag pertencem a contas diferentes."
-        : "A InfinitePay não conseguiu concluir a operação.");
+        : "A InfinitePay não conseguiu concluir a operação.";
+      if (path === "/links" && [400, 401, 403, 422].includes(response.status)) {
+        throw new CheckoutRequestRejected(message);
+      }
+      throw new ServiceUnavailableException(message);
     }
     return objectOf(payload) as T;
   }
@@ -162,7 +168,17 @@ export class InfinitePayService {
     });
     if (!reserved.count) throw new BadRequestException("Já existe uma solicitação de link para esta cobrança.");
 
-    const result = await this.request<{ url?: string; link?: string; checkout_url?: string; slug?: string }>("/links", payload, credentials.apiKey);
+    const result = await this.request<{ url?: string; link?: string; checkout_url?: string; slug?: string }>(
+      "/links", payload, credentials.apiKey,
+    ).catch(async error => {
+      if (error instanceof CheckoutRequestRejected) {
+        await this.prisma.payment.updateMany({
+          where: { id: payment.id, tenantId, status: "PENDING", externalId: orderNsu, invoiceUrl: null },
+          data: { externalId: null },
+        });
+      }
+      throw error;
+    });
     let url: string;
     try {
       const parsed = new URL(firstString(result.url || result.link || result.checkout_url));

@@ -15,6 +15,7 @@ const draft={name:"Fluxo de teste",welcome:"Bem-vindo",triggers:[{kind:"message"
  {id:"right",kind:"text",title:"Bloco à direita",message:"Fim",options:[],position:{x:300,y:280}},
 ]};
 let browser;
+let preservedDraft=false;
 let conversationContinued=false;
 try{
  for(let attempt=0;attempt<60;attempt++){
@@ -34,7 +35,12 @@ try{
    assert.equal(payload.draft.steps[0].message,"Olá! Vamos preparar seu orçamento.");
    return route.fulfill({json:{matched:payload.text==="orçamento",executed:false,sent:false}});
   }
+  if(path==="/business-templates/save-flow"){
+   preservedDraft=route.request().postDataJSON()?.draft?.steps?.some(step=>step.kind==="condition");
+   return route.fulfill({json:{saved:true,id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}});
+  }
   const fixtures={
+   "/business-templates":{flows:{offer:{draft:{...draft,name:"Oferta de teste"}}}},
    "/auth/me":{
     user:{id:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",name:"Operador",email:"qa@example.test",isPlatformAdmin:true,mustChangePassword:false},
     tenant:{id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",name:"Empresa de teste",slug:"qa",kind:"CLIENT"},
@@ -190,7 +196,12 @@ try{
  const newMessage=board.getByRole("textbox",{name:"Mensagem de Enviar mensagem",exact:true});
  await expect(newMessage).toBeInViewport();
  assert.equal((await camera()).zoom,zoomBeforeAdding);
- console.log("Chatbot: canvas interaction, guided triggers and inline condition editing OK");
+ const picker=page.getByRole("combobox",{name:"Fluxo aberto"});
+ await picker.selectOption({label:"Oferta de teste"});
+ await expect(picker).toHaveValue("offer");
+ await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
+ assert.equal(preservedDraft,true);
+ console.log("Chatbot: canvas, inline editing and saved-flow switching OK");
 }finally{
  await browser?.close();
  server.kill("SIGTERM");

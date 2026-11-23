@@ -457,7 +457,7 @@ Regras comuns:
 
 - **Rastreabem:** origem WordPress; a aparência é replicada em MDX, sem trazer PHP, plugins ou tema executável.
 - **Morbeck x Carvalhinho:** ~40 páginas convertidas em MDX com menu automático.
-- **Alto Araguaia Imóveis:** nível B, com busca/filtros via API externa.
+- **Alto Araguaia Imóveis:** nível B, com busca/filtros via API externa. O site atual está fora do ar; a fonte é o **modelo próprio já feito pelo proprietário**, não uma migração de WordPress. Não há dump, tema, plugin ou credencial antiga a transportar; o modelo vira a base do template Next.js/MDX e recebe apenas o que faltar.
 - **SOS Alto Araguaia:** nível A.
 
 A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica assim resolvida: **Next.js para os quatro sites**.
@@ -472,3 +472,55 @@ Não criar um CMS artesanal por site. Criar **um template versionado no GitHub**
 - Novo site = escolher preset, subir instância a partir do mesmo template e apontar o front para a API.
 - E-commerce: o CMS fornece conteúdo e catálogo editorial; carrinho, estoque, pedidos e pagamentos ficam em motor de comércio externo. O CMS não vira checkout.
 - O template é replicável com `docker compose` + dump/seed, sem copiar credenciais entre empresas.
+
+## 13. Sistemas verticais — separação do serviço de Sites (decisão de 2026-11-23)
+
+Os projetos de operação **não fazem parte do HUB de Sites**. Sites tratam de presença digital (conteúdo, busca, transação editoriais); sistemas verticais tratam de operação do negócio (agenda, presença, alunos, notas, pedidos, cobrança). A fronteira evita que o HUB vire CMS ou sistema de gestão, e evita que cada cliente receba um sistema artesanal novo.
+
+### 13.1 Mapa dos projetos
+
+| Projeto | Onde fica | Núcleos reaproveitados |
+| ------- | --------- | ---------------------- |
+| 4 sites (Rastreabem, Morbeck x Carvalhinho, SOS Alto Araguaia, Alto Araguaia Imóveis) | HUB de Sites + Next.js/MDX + Cloudflare (§12) | template base, menu centralizado, CMS headless opcional |
+| Escola de música | módulo vertical nativo | agenda, CRM (aluno como contato), professores/departamentos, Financeiro/Asaas, WhatsApp/e-mail, auditoria |
+| Escola com provas e notas | módulo vertical nativo | autenticação tenant-scoped, papéis, conteúdo em vídeo, notas em tempo real, cobrança recorrente |
+| Estética | configuração/segmento sobre os núcleos | agenda, profissional, cliente, pacote de sessões, cobrança |
+| Delivery | configuração/segmento sobre os núcleos | CRM, pedidos, Financeiro; checkout em motor de comércio externo |
+
+### 13.2 Escola de música
+
+- **Agendamento:** agenda da Véxora, com professor como atendente/departamento e aluno como contato do CRM. Recorrência por regra determinística; sem IA para decidir horário.
+- **Presença:** registro separado de aluno e professor, com histórico por turma/aula.
+- **Aulas restantes e reposições:** cálculo determinístico a partir do pacote contratado e dos registros de presença. Gráficos mostram saldo e reposições pendentes; não inferem pagamento.
+- **Cobrança recorrente:** Financeiro/Asaas com agendamento; avisos por WhatsApp/e-mail respeitam consentimento e registro. Estados explícitos: `agendado`, `enviado`, `confirmado`, `falhou`. Nunca marcar `pago` sem confirmação do provedor.
+- **Isolamento:** alunos, professores, turmas, mensagens e cobranças por empresa; nenhuma credencial ou sessão copiada da Véxora Matriz.
+
+### 13.3 Escola com provas, notas e vídeo
+
+- **Acesso:** login tenant-scoped, papel `STUDENT`, separado do administrador da plataforma e do OWNER da empresa.
+- **Conteúdo:** vídeo do YouTube por embed; o conteúdo permanece no YouTube, sem cópia ou redistribuição.
+- **Notas:** registro em tempo real pela API do módulo, com atualização ao vivo restrita à turma/empresa do aluno.
+- **Mensalidade:** mesma base de cobrança recorrente do Asaas, com aviso programável por WhatsApp e e-mail. A Véxora registra agendamento e envio; confirmação de pagamento só com evidência do provedor.
+
+### 13.4 Estética e Delivery como segmentos
+
+Não criar um sistema novo por segmento. Usar os mesmos núcleos com vocabulário e configuração próprios:
+
+- **Estética:** profissional substitui professor; cliente substitui aluno; sessões substituem aulas. Agenda, presença, pacote e cobrança reaproveitados; apenas os rótulos e templates de negócio mudam.
+- **Delivery:** pedido, cliente e cobrança reaproveitam CRM e Financeiro. Cardápio, carrinho e checkout, quando existirem, ficam em motor de comércio externo — o mesmo limite registrado para e-commerce em §12.5.
+
+### 13.5 Regras de fronteira
+
+- O HUB de Sites continua sem renderizar HTML, sem hospedar página e sem virar CMS; ele registra pedido, aprovação, versão, histórico e auditoria.
+- O template de CMS de §12.5 serve conteúdo dos sites dinâmicos. Sistemas verticais usam os núcleos transacionais da Véxora; não são alimentados por MDX nem por esse CMS.
+- Cada conexão, credencial, consulta e operação é tenant-scoped.
+- O sistema distingue `configurado`, `executado`, `confirmado`, `ambíguo` e `falhou`. Configurar uma cobrança não é afirmar pagamento; configurar integração não é afirmar envio.
+- Nenhuma afirmação de deploy, domínio ativo, pagamento, publicação ou integração funcionando no ar sem evidência.
+
+### 13.6 Ordem de implantação proposta
+
+1. HUB de Sites e template base Next.js/MDX (em andamento).
+2. Piloto do CMS headless para o Alto Araguaia Imóveis, a partir do modelo do proprietário — sem migração de WordPress, pois o site atual está fora do ar.
+3. Módulo Escola de Música (agenda, presença, saldo de aulas e cobrança recorrente).
+4. Módulo Escola com provas/notas/vídeo/login de aluno.
+5. Segmentos Estética e Delivery por cima dos mesmos núcleos.

@@ -442,7 +442,7 @@ export class PublicFlowController {
       try { return JSON.parse(String(step.config || "{}")) as Record<string, string>; } catch { return {}; }
     };
     const optionIndex = (options: string[], raw: string): number => {
-      const wanted = normalized(raw).replace(/^[0-9]+[.)]?\s*/, "").trim();
+      const wanted = normalized(raw).replace(/^[0-9]+[.)]\s+/, "").trim();
       const byNumber = /^[0-9]+$/.test(raw.trim()) ? Number(raw.trim()) - 1 : -1;
       if (byNumber >= 0 && byNumber < options.length) return byNumber;
       const names = options.map(normalized);

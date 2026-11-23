@@ -1,4 +1,4 @@
-import { isPreferredName } from '../ai/flow-runtime';
+import { isPreferredName, interpolateVariables } from '../ai/flow-runtime';
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {
   BadRequestException,
@@ -17,6 +17,9 @@ import {
 import type { Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
+import { resolveEntitlements } from "../auth/entitlements";
+import { calendarIsAvailable } from "./calendar-availability";
+import { GoogleAccessService } from "./google-access.service";
 import { AiService } from "../ai/ai.service";
 import { economicalProviders } from "../ai/economical-providers";
 import { reserveAiExecution, dailyAiLimit } from "../ai/ai-budget";
@@ -111,6 +114,7 @@ export class PublicFlowController {
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
     @Optional() private readonly ai?: AiService,
+    @Optional() private readonly googleAccess?: GoogleAccessService,
   ) {}
 
   private async resolve(token: string) {
@@ -118,7 +122,7 @@ export class PublicFlowController {
     const tenants = await this.prisma.$queryRaw<{ id: string }[]>`SELECT id FROM tenants WHERE integrations->'publicFlows' ? ${token} LIMIT 1`;
     const tenantId = tenants[0]?.id;
     if (!tenantId) return null;
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, integrations: true } });
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, integrations: true, entitlements: true } });
     if (!tenant) return null;
     const root = object(tenant.integrations);
     const binding = object(object(root.publicFlows)[token]);
@@ -126,7 +130,7 @@ export class PublicFlowController {
     const scopeKey = typeof binding.scopeKey === "string" ? binding.scopeKey : "default";
     const scope: RuntimeScope = scopeKey === "default" ? {} : { departmentId: scopeKey.replace(/^department:/, "") };
     const selection = selectPublication(root, scope);
-    if (!selection || !selection.publication.flow) return null;
+    if (!selection?.publication.active || !selection.publication.flow) return null;
     const flow = selection.publication.flow as any;
     if (!Array.isArray(flow.steps) || !flow.steps.length) return null;
     const brand = object(root.brandSettings);
@@ -135,6 +139,7 @@ export class PublicFlowController {
       tenant,
       root,
       scopeKey,
+      calendarDepartmentId: selection.key === scopeKey ? scope.departmentId : undefined,
       flow,
       theme: {
         backgroundKind: ["default", "solid", "gradient", "image"].includes(String(object(binding.theme).backgroundKind)) ? String(object(binding.theme).backgroundKind) : "default",
@@ -303,6 +308,7 @@ export class PublicFlowController {
       return runStep(current, text);
     };
     let visitedThisTurn = 0;
+    let calendarChecks = 0;
     const runStep = async (step: PublicStep, userText?: string): Promise<{ messages: string[]; options?: string[]; finished?: boolean; handoff?: boolean; redirect?: string }> => {
       session.stepId = step.id;
       const kind = String(step.kind || "text");
@@ -311,12 +317,34 @@ export class PublicFlowController {
         return { messages: ["Não consegui continuar por este caminho."], finished: true };
       }
       if (kind === "payment.status" || kind === "calendar.availability" || kind === "calendar.book") {
-        // A sessão pública ainda não tem o contexto autenticado da conversa exigido por estas integrações.
+        // Cobranças e reservas continuam exigindo o contexto da conversa.
         if (kind === "payment.status") {
           session.variables.pagamento_status = "indisponível";
           session.variables.pagamento_link = "";
         } else if (kind === "calendar.availability") {
+          const config = parseConfig(step);
+          const start = interpolateVariables(config.start ?? "", session.variables).trim();
+          const from = new Date(start);
+          const minutes = Number(config.minutes);
+          const departmentId = resolved.calendarDepartmentId;
           session.variables.agenda_disponivel = "indisponível";
+          if (this.googleAccess && departmentId && calendarChecks++ < 3 &&
+              resolveEntitlements(tenant.entitlements).modules.includes("CALENDAR") &&
+              /T.*(?:Z|[+-]\d{2}:\d{2})$/i.test(start) &&
+              Number.isFinite(from.getTime()) && from.getTime() > Date.now() &&
+              Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440) {
+            const assignments = await this.prisma.calendarAssignment.findMany({
+              where: { tenantId: tenant.id, departmentId, department: { isActive: true } },
+              select: { accountId: true, calendarId: true },
+            }).catch(() => []);
+            const calendars = [...new Map(assignments.map(row => [JSON.stringify([row.accountId,row.calendarId]),row])).values()];
+            const calendar = calendars.length === 1 ? calendars[0] : undefined;
+            if (calendar) {
+              const to = new Date(from.getTime() + minutes * 60_000);
+              const available = await calendarIsAvailable(this.googleAccess, tenant.id, calendar.accountId, calendar.calendarId, from, to).catch(() => null);
+              if (available !== null) session.variables.agenda_disponivel = available ? "sim" : "não";
+            }
+          }
         } else {
           session.variables.agenda_reserva = "indisponível";
         }

@@ -56,7 +56,7 @@ Esses itens têm implementação no repositório; isso não substitui testes ope
 15. Rate limiting distribuído, retenção, restauração de backup e observabilidade operacional.
 16. Validar cenários reais Google, Zernio, financeiro sandbox, permissões, mobile, teclado/leitor de tela e o piloto Rastreabem.
 17. Revisar a migração de configurações do repositório antigo sem alterar o sistema antigo ou copiar segredos.
-18. ~~Implementar a integração WordPress completa usando sua permissão própria; ainda não entregue.~~ **Removida do escopo:** WordPress não será integrado; os sites são recriados em Next.js/MDX ou com CMS headless.
+18. Implementar a integração WordPress completa usando sua permissão própria; ainda não entregue.
 19. Conferir a implantação no Dokploy por evidência; aprovação de CI não prova atualização do site.
 
 ## Continuidade
@@ -99,8 +99,9 @@ O proprietário substituiu as expansões acima pelo escopo de docs/product-focus
 - **Atendimento/UX** (#771/#772, #782, #804): grid do atendimento restaurado (fix em 5 colunas), alinhamento do mic/enviar no composer, dock mobile e tela cheia corrigidos, foto do contato com retry antes de cair nas iniciais, toggle da ficha alinhado e respiro ícones↔placeholder no composer.
 - **Tema** (#774/#776/#798): tema escuro em cinza (não azul); "super poder" da sidebar no híbrido por empresa (fundo/texto/ícones/hover + badge de contraste, persistido via brand-settings); remoção das transparências da sidebar; ícones de rodapé (?/instalar) seguindo a cor da fonte; botão direito na sidebar abre o popover "Cor Modo Híbrido"; ícones do calendário/relógio visíveis no widget.
 
-## Estado atual do criador de Sites (fatiamento 2026-11-20)
+## Estado histórico do criador de Sites (fatiamento 2026-11-20)
 
+> **Substituído em 2026-11-23.** O criador de sites com IA, seu wizard e seu editor visual saíram do produto. O serviço atual é o HUB da Véxora, descrito em `docs/plano-transicao-presenca-criativos.md` §12. Todo o conteúdo desta seção é histórico.
 As seções acima são inventário histórico; a fonte da verdade do criador hoje é o par `SiteDocument` (JSONB) + `apps/api/src/modules/sites-deploy/site-html.ts`. Os blocos legados `BLOCKS_META` em `apps/web/src/app/sites-shared.ts` não são o registry do editor atual.
 
 - **Fatia 1** (#849): API `/api/sites` protegida por `SITES`, listagem/criação no workspace e entrada no wizard em tela cheia.

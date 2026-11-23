@@ -65,6 +65,13 @@ try{
  await expect(canvas).toBeVisible();
  await expect(page.getByRole("button",{name:"Mostrar ou ocultar blocos"})).toHaveAttribute("aria-expanded","false");
  await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);
+ const trigger=board.getByRole("button",{name:"Quando…",exact:true});
+ await trigger.click();
+ await expect(trigger).toHaveAttribute("aria-expanded","true");
+ await expect(board.getByRole("combobox",{name:/Quando/})).toHaveValue("message");
+ await expect(board.getByRole("checkbox",{name:"WhatsApp de teste"})).toBeVisible();
+ await trigger.click();
+ await expect(trigger).toHaveAttribute("aria-expanded","false");
  await fit.click();
  await expect(node).toBeInViewport();
  const initial=await camera();

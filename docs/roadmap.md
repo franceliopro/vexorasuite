@@ -1,50 +1,27 @@
-# Roadmap inicial
+# Roadmap da Véxora (2026-11-23)
 
-## Fase 0 — fundação
-- [x] Criar repositório separado.
-- [x] Registrar decisões arquiteturais e regras de segurança.
-- [ ] Confirmar configuração de deploy e secrets no Dokploy.
-- [ ] Instalar dependências e validar build na CI.
-- [ ] Adicionar health checks e testes mínimos.
+Este roadmap mostra direção e prioridade. O estado de cada item com evidência está em `docs/implementation-status.md`, a fonte canônica.
 
-## Fase 1 — identidade e multi-tenant
-- [ ] Configuração de banco e migrações versionadas.
-- [ ] Organizações/tenants, membros, papéis e permissões.
-- [ ] Autenticação segura e recuperação de sessão.
-- [ ] Testes de isolamento entre tenants e trilha de auditoria.
+## Fase A — Núcleo e interface [x]
 
-## Fase 2 — atendimento Rastreabem
-- [ ] Inbox e conversas persistidas.
-- [ ] Integração WAHA por adapter.
-- [ ] Webhooks autenticados, idempotência e logs de diagnóstico.
-- [ ] Entrega em tempo real com recuperação após reconexão.
-- [ ] Atribuição de atendente, status, tags e histórico.
-- [~] Fluxo WhatsApp -> resposta -> transferência humana -> encerramento; fallback por departamento da inbox implementado, pendente aceite real no Dokploy.
-- [x] Compositor de áudio: gravação real pelo microfone, envio como mídia WAHA e leitura com waveform/progresso no histórico.
+- Monorepo, autenticação tenant-scoped, permissões, auditoria, Inbox, CRM, tarefas, agenda, Financeiro e relatórios com testes e CI.
+- Temas Slate, Claro e Híbrido alinhados ao mock de referência; ajustes de Agentes, Relatórios, Tarefas e relógio claros.
+- Aceite externo (aparelho, provedores e ambiente publicado) continua separado do código entregue.
 
-## Fase 3 — automações e operação
-- [ ] Motor de automação com estados explícitos e cancelamento.
-- [ ] IA opcional, com ativação/desativação respeitada no servidor.
-- [ ] Painéis separados para Suporte, Comercial e Financeiro.
-- [ ] Auditoria visível das ações financeiras enviadas ao cliente.
+## Fase B — Serviço de Sites [em andamento]
 
-## Fase 4 — produtos reutilizáveis
-- [ ] Modelos de produto e provisionamento por configuração.
-- [ ] PWA instalável com UX adaptada por produto/tenant.
-- [ ] Módulos Escola, Clínica e demais segmentos conforme prioridade.
+- HUB da Véxora para pedido, preview, aprovação, versão, histórico e auditoria. Não gera HTML nem hospeda página.
+- Template base em Next.js/MDX no GitHub, `output: 'export'` e Cloudflare Pages.
+- Rastreabem (HTML → MDX) e Morbeck x Carvalhinho (WordPress → MDX) no ciclo inicial.
+- Alto Araguaia Imóveis com CMS headless Directus + Postgres, a partir do modelo e do CMS PHP do proprietário.
+- SOS Alto Araguaia fora do ciclo inicial, sob avaliação de volume e custo.
 
-## Fase 5 — experiência premium e plataforma vertical
-- [ ] Consolidar tokens de design Véxora para tema escuro, híbrido e claro.
-- [ ] Aplicar componentes premium reutilizáveis em Inbox, CRM, Kanban, Financeiro, Studio Visual e portais.
-- [ ] Validar microinterações, cards expansíveis, estados de feedback, acessibilidade, responsividade e `prefers-reduced-motion`.
-- [~] Paridade funcional do Inbox: datas, mídia ampliada, anexos, emoji, áudio, menu contextual e recibos implementados; thumbnails e confirmação com aparelho real ainda aguardam aceite.
-- [ ] Registrar e validar o provisionamento por módulos, White Label, backups, restauração e migração entre servidores Dokploy.
-- [ ] Implantar os modelos verticais Rastreabem e FAETER conforme os blueprints do produto.
+## Fase C — Sistemas verticais [planejado]
 
-O inventário detalhado, a direção de design premium, a FAETER e as integrações financeiras estão em [docs/product-blueprints-and-integrations.md](product-blueprints-and-integrations.md).
-
-Para acompanhar o que já foi implementado, testado e aprovado, consulte o [painel de status de implementação](implementation-status.md). Este roadmap permanece como visão de fases e prioridades; o painel registra evidências e pendências de aceite.
+1. Escola de Música: agenda, presença de aluno e professor, gráficos de aulas restantes/reposições e cobrança recorrente com aviso por WhatsApp/e-mail.
+2. Escola com provas/notas: login de aluno, vídeo do YouTube por embed, notas em tempo real e mensalidade recorrente por WhatsApp/e-mail.
+3. Estética e Delivery como segmentos sobre os mesmos núcleos; checkout em motor de comércio externo.
 
 ## Critério de produção
-Nenhum domínio oficial ou dado do sistema atual será migrado antes de testes de aceite, plano de rollback e autorização explícita.
 
+Nenhum domínio, pagamento, publicação ou integração é considerado ativo por configuração. É exigida evidência no ar e autorização explícita antes de qualquer troca de DNS ou operação externa.

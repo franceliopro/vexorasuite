@@ -1,3 +1,4 @@
+import { resolveEntitlements } from "../auth/entitlements";
 import { WEB_DESIGNER_AGENT_ID } from "../ai/web-designer-agent";
 import {inboxRouting} from "./inbox-routing";
 import {selectPublication,selectMessageAutomation,isAutomationPublicationKey,scopedPresetInstructions,publicationKey,RuntimeScope} from './runtime-scope';
@@ -195,7 +196,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       // The established, identity-checked Asaas dialogue owns its subsequent messages.
       const previous = object(conversation.botState);
       
-      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: channel.tenantId }, select: { name: true, integrations: true } });
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: channel.tenantId }, select: { name: true, integrations: true, entitlements: true } });
       const root=object(tenant.integrations);
       const entry=inboxRouting(channel.settings);
       // Última linha de defesa: quando o motor não consegue processar a conversa,
@@ -424,6 +425,34 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             const value=interpolateVariables(config.value!,variables);
             variables[config.variable!] = isDocumentField(config.variable!) ? documentDigits(value) : value;
             if(config.variable==='novo_nome'&&config.value==='{{nome_identificado}}'&&isPreferredName(value))await savePreferredName(value);
+            step = followStep(step, step.options[0]!); continue;
+          }
+          if (type === 'task.reminder') {
+            const ownerId = conversation.assigneeId;
+            const title = interpolateVariables(config.title || '', variables).trim().slice(0, 180);
+            const minutes = Number(config.minutes);
+            variables.lembrete_criado = 'não';
+            const allowed = resolveEntitlements(tenant.entitlements).modules.includes('TASKS');
+            if (allowed && ownerId && title && Number.isInteger(minutes) && minutes >= 1 && minutes <= 43200) {
+              const member = await tx.membership.findFirst({
+                where: { tenantId: channel.tenantId, userId: ownerId, user: { isActive: true } },
+                select: { userId: true },
+              });
+              if (member) {
+                const task = await tx.workTask.create({
+                  data: {
+                    tenantId: channel.tenantId, title, assigneeId: member.userId, createdById: member.userId,
+                    contactId: conversation.contact.id, conversationId, dueAt: new Date(Date.now() + minutes * 60_000),
+                  },
+                });
+                await tx.auditLog.create({ data: {
+                  tenantId: channel.tenantId, action: 'task.created', entityType: 'workTask', entityId: task.id,
+                  details: { title, assigneeId: member.userId, contactId: conversation.contact.id, conversationId, source: 'chatbot', stepId: step.id },
+                } });
+                variables.lembrete_criado = 'sim';
+                skills.push('task.reminder');
+              }
+            }
             step = followStep(step, step.options[0]!); continue;
           }
           if (type === 'condition') {

@@ -40,6 +40,33 @@ export class GoogleCalendarController {
   async accounts(@Req() req: AuthenticatedRequest) { return this.prisma.googleConnection.findMany({ where: { tenantId: req.user.tenantId, scopes: { contains: "calendar.events" }, NOT: { disabledServices: { has: "calendar" } },  }, select: { id: true, email: true } }); }
   @Get(":accountId/calendars")
   async calendars(@Req() req: AuthenticatedRequest, @Param("accountId") accountId: string) { const data=await this.google(req, accountId, "users/me/calendarList?maxResults=250") as {items?:{id:string}[]};if(req.user.isPlatformAdmin===true||["OWNER","ADMIN"].includes(req.user.role))return data;const teams=await this.prisma.departmentMember.findMany({where:{tenantId:req.user.tenantId,userId:req.user.sub},select:{departmentId:true}});const grants=await this.prisma.calendarAssignment.findMany({where:{tenantId:req.user.tenantId,accountId}});return {...data,items:(data.items||[]).filter(x=>grants.some(g=>g.calendarId===x.id&&(g.userId===req.user.sub||g.departmentId&&teams.some(t=>t.departmentId===g.departmentId))))};}
+  @Get(":accountId/availability")
+  async availability(
+    @Req() req: AuthenticatedRequest,
+    @Param("accountId") accountId: string,
+    @Query("calendarId") calendarId: string,
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+  ) {
+    if (typeof calendarId !== "string" || !calendarId.trim() || calendarId.length > 320) {
+      throw new BadRequestException("Selecione uma agenda.");
+    }
+    const from = new Date(start || "");
+    const to = new Date(end || "");
+    const duration = to.getTime() - from.getTime();
+    if (!(duration > 0 && duration <= 86400_000)) throw new BadRequestException("Selecione um intervalo de até 24 horas.");
+    await this.accessible(req, accountId, calendarId);
+    const result = await this.google(req, accountId, "freeBusy", {
+      method: "POST",
+      body: JSON.stringify({ timeMin: from.toISOString(), timeMax: to.toISOString(), items: [{ id: calendarId }] }),
+    }) as { calendars?: Record<string, { busy?: unknown[]; errors?: unknown[] }> };
+    const calendar = result.calendars && Object.hasOwn(result.calendars, calendarId) ? result.calendars[calendarId] : undefined;
+    if (!calendar || calendar.errors?.length || !Array.isArray(calendar.busy)) {
+      throw new BadGatewayException("Não foi possível confirmar a disponibilidade desta agenda.");
+    }
+    return { available: calendar.busy.length === 0 };
+  }
+
   @Get(":accountId/events")
   async events(@Req() req: AuthenticatedRequest, @Param("accountId") accountId: string, @Query("calendarId") calendarId = "primary", @Query("timeMin") timeMin?: string, @Query("timeMax") timeMax?: string) {
     await this.accessible(req,accountId,calendarId);

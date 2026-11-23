@@ -36,8 +36,10 @@ export function InboxAppointments({contact,onConfirm}:{contact:{id:string;name:s
   if(!title.trim()||!Number.isFinite(from.getTime())||!Number.isFinite(to.getTime())||to<=from||from<new Date()){setError('Informe um título e um horário futuro com término após o início.');return;}
   setBusy(true);setError('');
   try{
-   const fresh=await readDay();if(!mounted.current)return;setEvents(fresh);
-   if(fresh.some(e=>e.transparency!=='transparent'&&new Date(e.start?.dateTime||(e.start?.date?e.start.date+'T00:00:00':'')).getTime()<to.getTime()&&new Date(e.end?.dateTime||(e.end?.date?e.end.date+'T00:00:00':'')).getTime()>from.getTime()))throw Error('Esse intervalo já possui um compromisso. Escolha outro horário.');
+   const interval=new URLSearchParams({calendarId:calendar,start:from.toISOString(),end:to.toISOString()});
+   const availability=await api<{available:boolean}>(encodeURIComponent(account)+'/availability?'+interval);
+   if(!mounted.current)return;
+   if(availability.available!==true)throw Error('Esse intervalo já possui um compromisso. Escolha outro horário.');
    const event=await api<Event>(encodeURIComponent(account)+'/events?'+new URLSearchParams({calendarId:calendar}),{summary:title.trim(),description:('Cliente: '+contact.name+(readablePhone(contact.phone)?'\nTelefone: '+readablePhone(contact.phone):'')+(contact.email?'\nE-mail: '+contact.email:'')+(description.trim()?'\n\n'+description.trim():'')),location:(location.trim()||undefined),start:from.toISOString(),end:to.toISOString(),attendees:(addInvite&&contact.email?[{email:contact.email}]:[])});
    if(!event.id)throw Error('A agenda não confirmou o agendamento. Atualize antes de repetir.');
    if(mounted.current){setSaved({id:event.id,start:from.toISOString(),end:to.toISOString(),title:title.trim()});try{setEvents(await readDay());}catch{setError('Agendamento salvo; não foi possível atualizar a lista.');}}

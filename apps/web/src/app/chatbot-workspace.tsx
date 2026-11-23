@@ -854,7 +854,10 @@ function dictateAiRequest(){
  const highlightedEdges=canHighlightExecution?selectedExecution?.details.visitedEdges||[]:studioPanel==="test"?testEdges:[];
  const traceNodes=canHighlightExecution?highlightedNodes:studioPanel==="test"&&testNodes.length?simulationTrace.nodes:[];
  const traceEdges=canHighlightExecution?highlightedEdges:studioPanel==="test"&&testNodes.length?simulationTrace.edges:[];
- const tracePhase=canHighlightExecution?(runtimeState.executions?.findIndex(execution=>execution.id===selectedExecution?.id)??0)%2:simulationTrace.turn%2;
+ const executionTraceId=canHighlightExecution?selectedExecution?.id:undefined;
+ const [executionTracePhase,setExecutionTracePhase]=useState(0);
+ useEffect(()=>{if(executionTraceId)setExecutionTracePhase(phase=>1-phase)},[executionTraceId]);
+ const tracePhase=canHighlightExecution?executionTracePhase:simulationTrace.turn%2;
  const waitingNode=canHighlightExecution?selectedExecution?.details.waitingStepId:studioPanel==="test"?simulationStep:null;
  const entryIndex=flow.steps.findIndex(step=>step.id==="menu");
  const firstIndex=Math.max(0,entryIndex);

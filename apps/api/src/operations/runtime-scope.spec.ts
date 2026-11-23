@@ -41,6 +41,12 @@ describe('named message automations',()=>{
   expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'EU QUERO',firstMessage:true})?.key).toBe('automation:offer');
   expect(selectMessageAutomation(root,{},{channelId:'whatsapp',text:'Eu quero',firstMessage:false})).toBeNull();
  });
+ it('does not let the general keyword intercept a department inbox',()=>{
+  const department=root.intelligencePublications['automation:default'];
+  const scoped={intelligencePublications:{...root.intelligencePublications,'automation:support':{...department,scope:{departmentId:'support'}}}};
+  const event={channelId:'instagram',text:'Eu quero',firstMessage:false,requiredScopeKey:'department:support'};
+  expect(selectMessageAutomation(scoped,{departmentId:'support'},event)?.key).toBe('automation:support');
+ });
  it('continues the same published automation when awaiting a reply',()=>{
   expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'azul',firstMessage:false,previousKey:'automation:offer',previousRevision:'offer'})?.key).toBe('automation:offer');
   expect(selectMessageAutomation(root,{},{channelId:'instagram',text:'azul',firstMessage:false})?.key).toBe('automation:default');

@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, Post, Query, ServiceUnavailableException, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, HttpException, Controller, ForbiddenException, Get, NotFoundException, Param, Post, Query, ServiceUnavailableException, Req, UseGuards } from '@nestjs/common';
+import { resolveEntitlements } from '../auth/entitlements';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -67,7 +68,7 @@ export class InstagramAutomationsController {
       const stats = record(row.stats);
       return [{
         id: row.id,
-        name: typeof row.name === 'string' ? row.name : 'Campanha',
+        name: typeof row.name === 'string' ? row.name.replace(/ \[Vexora:[a-f0-9-]{36}\]$/, '') : 'Campanha',
         channelId: channel.id,
         channelName: channel.name,
         trigger: typeof row.trigger === 'string' ? row.trigger : 'comment',
@@ -79,6 +80,82 @@ export class InstagramAutomationsController {
       }];
     });
     return { accounts, campaigns, drafts };
+  }
+
+  @Post('campaigns/drafts/:id/activate')
+  async activateDraft(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    this.authorize(req);
+    if (!/^[a-f0-9-]{36}$/.test(id)) throw new NotFoundException('Rascunho não encontrado.');
+    const tenantId = req.user.tenantId;
+    const { profile, connectedAccounts } = await this.connected(tenantId);
+    if (!profile) throw new BadRequestException('Conecte uma conta do Instagram.');
+    const result = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${tenantId}::uuid FOR UPDATE`;
+      const tenant = await tx.tenant.findUniqueOrThrow({
+        where: { id: tenantId }, select: { integrations: true, entitlements: true },
+      });
+      const integrations = record(tenant.integrations);
+      const drafts = record(integrations.instagramCampaignDrafts);
+      const draft = record(drafts[id]);
+      if (typeof draft.name !== 'string') throw new NotFoundException('Rascunho não encontrado.');
+      const account = [...connectedAccounts.entries()].find(([, channel]) => channel.id === draft.channelId);
+      if (!account) throw new BadRequestException('Conta Instagram indisponível nesta empresa.');
+
+      const provider = record(await this.zernio.request<unknown>(
+        '/comment-automations?profileId=' + encodeURIComponent(profile.profileId), {}, tenantId,
+      ));
+      if (!Array.isArray(provider.automations)) throw new ServiceUnavailableException('Não foi possível consultar as campanhas.');
+      const campaigns = provider.automations.map(record).filter(row => row.platform === 'instagram' &&
+        typeof row.accountId === 'string' && connectedAccounts.has(row.accountId));
+      const name = draft.name + ' [Vexora:' + id + ']';
+      let campaign = campaigns.find(row => row.name === name && row.accountId === account[0]);
+      if (!campaign) {
+        if (draft.activationPending === true) return null;
+        const limit = resolveEntitlements(tenant.entitlements).bots;
+        const activeCount = campaigns.filter(row => row.isActive === true).length;
+        const pendingCount = Object.values(drafts).filter(value => {
+          const pending = record(value);
+          return pending.activationPending === true &&
+            !campaigns.some(row => row.name === pending.providerName && row.isActive === true);
+        }).length;
+        if (activeCount + pendingCount >= limit) throw new ConflictException('O limite de campanhas ativas do plano foi atingido.');
+
+        try {
+          const created = record(await this.zernio.request<unknown>('/comment-automations', {
+            method: 'POST',
+            idempotencyKey: id,
+            body: {
+              profileId: profile.profileId,
+              accountId: account[0],
+              name,
+              trigger: draft.trigger,
+              keywords: draft.keyword ? [draft.keyword] : [],
+              matchMode: 'contains',
+              dmMessage: draft.message,
+              dmDelaySeconds: draft.delaySeconds,
+              ...(draft.mediaId ? { platformPostId: draft.mediaId } : {}),
+              ...(draft.link ? { buttons: [{ type: 'url', title: 'Abrir oferta', url: draft.link }] } : {}),
+            },
+          }, tenantId));
+          campaign = record(created.automation);
+        } catch (error) {
+          const response = error instanceof HttpException ? record(error.getResponse()) : {};
+          const status = response.providerStatus;
+          if (typeof status === 'number' && status >= 400 && status < 500) throw error;
+        }
+      }
+
+      const confirmedId = typeof campaign?.id === 'string' ? campaign.id : null;
+      if (confirmedId) delete drafts[id];
+      else drafts[id] = { ...draft, activationPending: true, providerName: name };
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: { integrations: { ...integrations, instagramCampaignDrafts: drafts } as Prisma.InputJsonObject },
+      });
+      return confirmedId ? { id: confirmedId, active: campaign?.isActive === true } : null;
+    }, { timeout: 75000 });
+    if (!result) throw new ServiceUnavailableException('O Instagram ainda não confirmou a ativação. Use Verificar ativação antes de tentar novamente.');
+    return result;
   }
 
   @Post('campaigns/:id/pause')

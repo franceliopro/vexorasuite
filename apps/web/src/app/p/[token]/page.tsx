@@ -2,7 +2,8 @@
 import { use, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Send, RotateCcw, ShieldCheck, Smartphone, Monitor } from "lucide-react";
 
-type Bubble = { id: string; role: "assistant" | "user"; content: string; options?: string[] };
+type ButtonChoice = { stepId: string; index: number };
+type Bubble = { id: string; role: "assistant" | "user"; content: string; options?: string[]; choiceStepId?: string };
 type Theme = { backgroundKind: string; color: string; color2: string; imageUrl: string; headerTitle?: string; headerSubtitle?: string; mode?: string };
 type PublicFlow = { tenantName: string; slug: string; brand: { primaryColor: string; logoLight: string; logoDark: string; logoShape: string; showCompanyName: boolean }; theme: Theme; flow: { name: string; welcome: string; steps: Array<{ id: string }> } };
 
@@ -144,11 +145,11 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeToken]);
 
-  const call = async (text: string) => {
+  const call = async (text: string, choice?: ButtonChoice) => {
     const response = await fetch("/api/backend/public/flows/" + safeToken + "/message", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: sessionRef.current, text }),
+      body: JSON.stringify({ sessionId: sessionRef.current, text, choice }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.message || "Não foi possível continuar. Tente novamente.");
@@ -160,7 +161,7 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
     try {
       const data = await call("");
       const messages = Array.isArray(data.messages) ? data.messages : [];
-      setBubbles((items) => [...items, ...messages.map((content, i) => ({ id: crypto.randomUUID() + i, role: "assistant" as const, content: String(content ?? ""), options: i === messages.length - 1 ? data.options : undefined }))]);
+      setBubbles((items) => [...items, ...messages.map((content, i) => ({ id: crypto.randomUUID() + i, role: "assistant" as const, content: String(content ?? ""), options: i === messages.length - 1 ? data.options : undefined, choiceStepId: i === messages.length - 1 ? data.choiceStepId : undefined }))]);
       if (data.progress) setProgress(data.progress);
       if (data.finished) { setFinished(true); setHandoff(data.handoff === true); }
       if (data.redirect && /^https:\/\//.test(data.redirect)) window.location.assign(data.redirect);
@@ -171,16 +172,16 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
     }
   };
 
-  const send = async (raw?: string) => {
+  const send = async (raw?: string, choice?: ButtonChoice) => {
     const text = (raw ?? input).trim();
     if (!text || busy || finished) return;
     setInput("");
     setBubbles((items) => [...items, { id: crypto.randomUUID(), role: "user", content: text }]);
     setBusy(true);
     try {
-      const data = await call(text);
+      const data = await call(text, choice);
       const messages = Array.isArray(data.messages) ? data.messages : [];
-      setBubbles((items) => [...items, ...messages.map((content, i) => ({ id: crypto.randomUUID() + i, role: "assistant" as const, content: String(content ?? ""), options: i === messages.length - 1 ? data.options : undefined }))]);
+      setBubbles((items) => [...items, ...messages.map((content, i) => ({ id: crypto.randomUUID() + i, role: "assistant" as const, content: String(content ?? ""), options: i === messages.length - 1 ? data.options : undefined, choiceStepId: i === messages.length - 1 ? data.choiceStepId : undefined }))]);
       if (data.progress) setProgress(data.progress);
       if (data.finished) { setFinished(true); setHandoff(data.handoff === true); }
       if (data.redirect && /^https:\/\//.test(data.redirect)) window.location.assign(data.redirect);
@@ -244,12 +245,12 @@ export default function PublicFlowPage({ params }: { params: Promise<{ token: st
           <div className={taglineTw}><span className={taglineTextTw}>{page.tenantName.toUpperCase().split(" ").join(" · ")}</span></div>
 
           <div className={messagesTw} ref={scrollRef} aria-live="polite">
-            {bubbles.map((bubble) => (
+            {bubbles.map((bubble, bubbleIndex) => (
               <div key={bubble.id} className={bubbleTw + " " + (bubbleRoleTw[bubble.role] ?? bubbleRoleTw.assistant)}>
                 <p className={bubbleCopyTw}>{bubble.content}</p>
                 {bubble.options && bubble.options.length ? (
                   <div className={optionsTw}>
-                    {bubble.options.map((option) => <button key={option} type="button" disabled={busy || finished} onClick={() => void send(option)} className={optionTw}>{option}</button>)}
+                    {bubble.options.map((option,index) => <button key={index} type="button" disabled={busy || finished || bubbleIndex !== bubbles.length - 1} onClick={() => void send(option, bubble.choiceStepId ? {stepId:bubble.choiceStepId,index} : undefined)} className={optionTw}>{option}</button>)}
                   </div>
                 ) : null}
               </div>

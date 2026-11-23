@@ -72,7 +72,7 @@ test("os contratos da aprovacao publica permanecem intactos", () => {
   for (const token of [
     "/api/backend/public/design-approvals/", "/slide/", 'role="status"', 'role="alert"',
     "Rejeitar", "Aprovar e publicar agora", "Aprovar (publicar no sistema)",
-    "Publicado com sucesso nas contas escolhidas!", "Design rejeitado.",
+    "Publicação confirmada nas contas escolhidas.", "Solicitação de publicação enviada.", "Design rejeitado.",
     "Nenhuma rede Zernio conectada ainda", "Já publicado", "Legenda da publicação",
     "selected[c.id]", "Object.values(selected).every(v => !v)", "publishNow", "animate-spin",
   ]) {

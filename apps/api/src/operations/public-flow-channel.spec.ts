@@ -1,4 +1,4 @@
-import { EventsService } from "../events/events.service";
+import { EventsService } from "./events.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PublicFlowController } from "./public-flow.controller";
 

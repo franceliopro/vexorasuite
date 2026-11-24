@@ -13,7 +13,7 @@ const workspace = read("src/app/sites-workspace.tsx");
 test("o painel de anúncios fica na Aba Sites e usa apenas a API da plataforma", () => {
   assert.ok(workspace.includes('import { SiteSubmissionsPanel } from "./site-submissions-panel";'));
   assert.ok(workspace.includes("<SiteSubmissionsPanel canManage={canManage} />"));
-  assert.ok(panel.includes('"/api/backend/sites/hub/submissions'));
+  assert.ok(panel.includes("`/api/backend/sites/hub/submissions"));
   assert.ok(!panel.includes("DIRECTUS_TOKEN"));
   assert.ok(!panel.includes("DIRECTUS_URL"));
 });

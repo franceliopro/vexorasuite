@@ -19,7 +19,7 @@ images:
   - "/images/gallery/g5.webp"
 features: ["Área de lazer", "3 quartos", "2 banheiros", "2 vagas"]
 featured: false
-sample: false
+sample: true
 summary: "Casa moderna de 180 m² com área de lazer em Alto Araguaia."
 ---
 

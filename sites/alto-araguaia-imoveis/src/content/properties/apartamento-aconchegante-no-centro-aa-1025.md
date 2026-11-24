@@ -18,7 +18,7 @@ images:
   - "/images/gallery/g2.webp"
 features: ["2 quartos", "1 banheiro", "1 vaga", "Centro"]
 featured: false
-sample: false
+sample: true
 summary: "Apartamento de 70 m² no centro de Alto Araguaia para alugar."
 ---
 

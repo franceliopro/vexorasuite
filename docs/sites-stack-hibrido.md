@@ -42,7 +42,8 @@ A regra que evita dois bancos disputando a verdade: **cada campo tem um dono**.
 | **Véxora** | estado do pedido, versões, aprovação, publicação, evidência e auditoria |
 
 As taxonomias (`category`, `purpose`, `location`) moram **no Directus**. O
-snapshot publicado leva a lista ao Astro para montar os filtros. A Tina não
+snapshot publicado em Markdown leva a lista ao Astro para montar os filtros. A
+Tina não
 mantém cópia; se um bloco precisar de um rótulo, referencia o id.
 
 ## Como o build monta o site
@@ -50,12 +51,12 @@ mantém cópia; se um bloco precisar de um rótulo, referencia o id.
 ```text
 GitHub (páginas editadas na Tina)   ─┐
                                     ├─→ astro build → dist/ → Cloudflare Pages
-GitHub (snapshot JSON do Directus)  ─┘
+GitHub (snapshot MD do Directus)    ─┘
 ```
 
 1. A Tina salva páginas como arquivos no repositório.
-2. Um Flow do Directus commita `src/content/data/properties.json` com imóveis
-   e taxonomias aprovados.
+2. Um Flow do Directus grava `src/content/properties/<slug>.md` com os imóveis
+   aprovados; o frontmatter replica as taxonomias do Directus.
 3. O GitHub Actions roda `check → build → audit`.
 4. O Cloudflare Pages builda a branch de produção e publica o `dist/`.
 5. A Véxora só marca `PUBLISHED` após **HTTP 2xx** verificado no domínio final.

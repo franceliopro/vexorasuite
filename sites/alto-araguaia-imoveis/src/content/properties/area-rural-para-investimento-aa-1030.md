@@ -16,7 +16,7 @@ images:
   - "/images/gallery/g4.webp"
 features: ["420 ha", "Área de investimento", "Acesso regional"]
 featured: true
-sample: false
+sample: true
 summary: "Área rural de 420 hectares em Alto Garças para investimento."
 ---
 

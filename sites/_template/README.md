@@ -94,8 +94,9 @@ variáveis próprias. Nenhuma credencial é compartilhada entre empresas.
 
 As páginas são arquivos no Git, editáveis na Tina. No Alto Araguaia Imóveis, os
 dados dinâmicos (imóveis, usuários, submissões) ficam no **Directus** no
-Dokploy; um Flow gera o snapshot `src/content/data/properties.json` no repositório
-e o Astro lê esse arquivo no build. Os demais sites são 100% Git-native.
+Dokploy; um Flow grava o snapshot como arquivos
+`src/content/properties/*.md` e o Astro lê a coleção no build. Os demais sites
+são 100% Git-native.
 Veja `docs/sites-stack-hibrido.md`, `docs/directus-imoveis-contract.md`,
 `docs/cloudflare-site-deploy.md` e `docs/deployment-dokploy.md`.
 

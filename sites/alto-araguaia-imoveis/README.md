@@ -39,7 +39,7 @@ O painel de busca segue os campos do site publicado:
 
 ## Conteúdo
 
-- Imóveis: `src/content/properties/` — 8 anúncios reais `AA-1024` a `AA-1031`, com `sample: false`.
+- Imóveis: `src/content/properties/` — 8 anúncios de exemplo `AA-1024` a `AA-1031`, migrados do site público e ainda não validados como ofertas reais (`sample: true`).
 - Páginas: `src/content/pages/` — conteúdo textual validado por Content Collections.
 - Identidade, canais e navegação: `src/data/site.config.ts`.
 - Imagens locais: `public/images/` (hero, campo rural, fotos de cards e galeria).

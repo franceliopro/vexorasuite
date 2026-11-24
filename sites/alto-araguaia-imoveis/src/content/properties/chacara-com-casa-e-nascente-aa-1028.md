@@ -18,7 +18,7 @@ images:
   - "/images/gallery/g1.webp"
 features: ["12 ha", "Nascente", "Casa", "3 quartos"]
 featured: true
-sample: false
+sample: true
 summary: "Chácara com 12 hectares, casa e nascente em Santa Rita do Araguaia - GO."
 ---
 

@@ -9,7 +9,7 @@ Decisão do proprietário (atualizada em 24/11/2026): **Cloudflare Pages + Dokpl
 - **Dados dinâmicos do Alto Araguaia Imóveis** (imóveis, usuários, permissões, submissões e mídia): Directus self-hosted no Dokploy/VPS.
 - **Véxora**: gerente do processo (pedido, preview, aprovação, publicação, evidência); a plataforma roda em Next.js no Dokploy.
 
-O Cloudflare Pages **não executa PHP, MySQL nem Directus**. O build lê arquivos do repositório: as páginas vindas da Tina e um snapshot JSON gerado por um Flow do Directus. Nenhuma credencial é compartilhada entre empresas. A arquitetura completa está em `docs/sites-stack-hibrido.md`.
+O Cloudflare Pages **não executa PHP, MySQL nem Directus**. O build lê arquivos do repositório: as páginas vindas da Tina e o snapshot do Directus versionado como arquivos Markdown em `src/content/properties/`. Nenhuma credencial é compartilhada entre empresas. A arquitetura completa está em `docs/sites-stack-hibrido.md`.
 
 ### Sites Astro (template `sites/_template`)
 
@@ -61,9 +61,10 @@ Cloudflare. Não usar Direct Upload para esses projetos.
 
 Para o Alto Araguaia Imóveis, configure **Root directory** =
 `sites/alto-araguaia-imoveis`, **Build output** = `dist`, **Node** = 22. Os dois
-pilotos acima usam Root directory `/`. O build do Alto depende do snapshot
-`src/content/data/properties.json`, gerado pelo Directus; sem ele, falha com
-erro explícito em vez de publicar dados fictícios.
+pilotos acima usam Root directory `/`. O build do Alto lê a coleção Astro de
+imóveis em `src/content/properties/*.md`. Hoje esses arquivos contêm dados
+migrados do site público, ainda não validados; o snapshot gerado pelo Directus
+deve substituí-los antes de qualquer publicação como oferta real.
 
 ### Fluxo
 

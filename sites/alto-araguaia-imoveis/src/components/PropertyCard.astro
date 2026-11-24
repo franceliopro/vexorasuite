@@ -1,0 +1,47 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { formatArea, formatBRL, plural } from "../lib/format";
+
+interface Props {
+  property: CollectionEntry<"properties">;
+}
+
+const { property } = Astro.props;
+const { data } = property;
+const href = `/imoveis/${property.id}/`;
+const image = data.images[0] || "/images/casa-centro.svg";
+const price = `${formatBRL(data.price)}${data.priceSuffix ? ` ${data.priceSuffix}` : ""}`;
+---
+
+<article
+  class="property-card"
+  data-property-card
+  data-type={data.type}
+  data-operation={data.operation}
+  data-price={data.price}
+  data-search={`${data.title} ${data.neighborhood} ${data.type} ${data.operation}`.toLowerCase()}
+>
+  <a class="property-photo" href={href} aria-label={`Ver detalhes: ${data.title}`}>
+    <img src={image} alt={`Ilustração do imóvel: ${data.title}`} loading="lazy" />
+    <span class="property-badge">{data.operation}</span>
+    {data.sample && <span class="sample-badge">Demonstrativo</span>}
+  </a>
+
+  <div class="property-body">
+    <span class="property-location">{data.neighborhood} · {data.city}/{data.state}</span>
+    <h3><a href={href}>{data.title}</a></h3>
+    <p>{data.summary}</p>
+
+    <div class="property-specs" aria-label="Características">
+      {data.bedrooms > 0 && <span>{plural(data.bedrooms, "quarto", "quartos")}</span>}
+      {data.bathrooms > 0 && <span>{plural(data.bathrooms, "banheiro", "banheiros")}</span>}
+      <span>{formatArea(data.area)}</span>
+      {data.garage > 0 && <span>{plural(data.garage, "vaga", "vagas")}</span>}
+    </div>
+
+    <div class="property-bottom">
+      <strong>{price}</strong>
+      <a href={href}>Ver detalhes <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</article>

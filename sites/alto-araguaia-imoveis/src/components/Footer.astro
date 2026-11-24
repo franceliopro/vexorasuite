@@ -1,0 +1,62 @@
+---
+import { site } from "../data/site.config";
+import {
+  displayOr,
+  isPlaceholder,
+  mailtoHref,
+  whatsappHref,
+} from "../lib/config";
+
+const brand = displayOr(site.name, "Sua marca");
+const emailHref = mailtoHref(site.email);
+const waHref = whatsappHref(site.whatsapp);
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="/" aria-label={`${brand} — início`}>
+          <span class="brand-mark" aria-hidden="true">V</span>
+          <span>{brand}</span>
+        </a>
+        <p style="margin-top:16px;max-width:320px">{site.description}</p>
+        {
+          !isPlaceholder(site.address) && (
+            <p aria-label="Endereço">{site.address}</p>
+          )
+        }
+      </div>
+
+      <div>
+        <h3>Navegação</h3>
+        {site.navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+      </div>
+
+      <div>
+        <h3>Contato</h3>
+        {emailHref && <a href={emailHref}>{site.email}</a>}
+        {!isPlaceholder(site.phone) && <a href={`tel:${site.phone.replace(/\D/g, "")}`}>{site.phone}</a>}
+        {waHref && (
+          <a href={waHref} target="_blank" rel="noopener noreferrer">
+            WhatsApp
+          </a>
+        )}
+        {site.social.map((item) => (
+          <a href={item.href} target="_blank" rel="noopener noreferrer">
+            {item.label}
+          </a>
+        ))}
+        {!emailHref && !waHref && isPlaceholder(site.phone) && (
+          <p>Canais de atendimento em configuração.</p>
+        )}
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© {year} {brand}. Todos os direitos reservados.</span>
+      <span>Presença digital com padrão Astro Véxora</span>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,25 @@
+{
+  "name": "@vexorasuite/site-alto-araguaia-imoveis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Template Astro para sites públicos Véxora: estático, rápido, SEO-first e pronto para Cloudflare Pages.",
+  "scripts": {
+    "dev": "astro dev --port 3200",
+    "build": "astro build",
+    "preview": "astro preview --port 3200",
+    "check": "astro check",
+    "audit": "node scripts/audit-links.mjs dist",
+    "verify": "astro check && astro build && node scripts/audit-links.mjs dist"
+  },
+  "dependencies": {
+    "astro": "^7.4.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

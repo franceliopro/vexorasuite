@@ -116,6 +116,7 @@ model Tenant {
   propertyApplications PropertyApplication[]
   propertyScopes       PropertyScope[]
   siteHubRequests      SiteHubRequest[]
+  submissionDecisions  SiteHubSubmissionDecision[]
   creativeBriefs       CreativeBrief[]
 
   @@map("tenants")
@@ -1273,6 +1274,27 @@ model SiteHubEvent {
   @@index([requestId, createdAt])
   @@index([tenantId, createdAt])
   @@map("site_hub_events")
+}
+
+/// Decisões tomadas na Véxora sobre submissões do Directus: auditoria, dono da
+/// decisão e idempotência. O status acompanha a chamada externa sem afirmar envio.
+model SiteHubSubmissionDecision {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  submissionKey String   @map("submission_key")
+  directusId    String?  @map("directus_id")
+  decision      String
+  reason        String?
+  actorId       String   @map("actor_id") @db.Uuid
+  status        String   @default("PROCESSING")
+  lastError     String?  @map("last_error")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, submissionKey])
+  @@index([tenantId, createdAt])
+  @@map("site_hub_submission_decisions")
 }
 
 enum SiteHubStatus {

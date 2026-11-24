@@ -177,6 +177,7 @@ const BRAND_MARK_TW:Record<string,string>={
   logoSquare:"grid h-10 w-10 flex-none place-items-center rounded-md bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
 };
 const BRAND_LOGO_IMG_TW="max-h-9 max-w-9 object-contain";
+const BRAND_LOGO_HORIZONTAL_IMG_TW="max-w-none max-h-none object-contain";
 function brandMarkClass(hasLogo:boolean,shape:string){
   if(hasLogo){
     if(shape==="round")return BRAND_MARK_TW.logoRound;
@@ -338,8 +339,8 @@ export default function HomePage() {
     };
   }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
-  type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean;fontScalePercent?:number;sidebarBackground?:string;sidebarForeground?:string;sidebarHover?:string};
-  const defaultBrandAssets:BrandAssets={primaryColor:"#4F46E5",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
+  type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";logoMaxWidth?:number;logoMaxHeight?:number;showCompanyName:boolean;fontScalePercent?:number;sidebarBackground?:string;sidebarForeground?:string;sidebarHover?:string};
+  const defaultBrandAssets:BrandAssets={primaryColor:"#4F46E5",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",logoMaxWidth:160,logoMaxHeight:40,showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
   const brandApplyRef = useRef<((themeName: string) => void) | null>(null);
   const [theme, setTheme] = useState<ThemeMode>("hybrid");
   const [themeReady,setThemeReady]=useState(false);
@@ -449,7 +450,7 @@ export default function HomePage() {
     <div className="suite-app">
       <aside id="mobile-navigation-menu" className={sidebarClass(menuOpen, sidebarCollapsed)} onContextMenu={(event) => { const target = event.target as Element; if (target.closest("button,a,summary,input,select,textarea,img,details,[role=\"menuitem\"]")) return; event.preventDefault(); const padding = 300; openSidebarColorMenu(Math.max(8, Math.min(event.clientX, window.innerWidth - padding)), Math.max(8, Math.min(event.clientY, window.innerHeight - 340))); }}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("Visão geral");setMenuOpen(false); }}>
-          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
+          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_HORIZONTAL_IMG_TW} style={{maxWidth:brandAssets.logoMaxWidth||160,maxHeight:brandAssets.logoMaxHeight||40}} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {

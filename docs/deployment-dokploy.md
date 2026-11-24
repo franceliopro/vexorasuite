@@ -15,9 +15,9 @@ Não há ponte a implementar.
 O módulo dinâmico do Alto Araguaia Imóveis usa **Directus self-hosted** em
 projeto Dokploy separado do stack Véxora, com banco e volumes próprios. Ele é a
 fonte da verdade de imóveis, usuários, permissões, submissões e mídia. Um Flow
-commita um snapshot JSON no GitHub; o Astro lê esse arquivo no build e o
-Cloudflare Pages publica o HTML estático. Nenhuma credencial de produção deve
-ser copiada para outro projeto.
+grava o snapshot como arquivos `src/content/properties/*.md` no GitHub; o Astro
+lê essa coleção no build e o Cloudflare Pages publica o HTML estático. Nenhuma
+credencial de produção deve ser copiada para outro projeto.
 
 A licença gratuita do Open Innovation Grant cobre 5–7 usuários (receita anual
 abaixo de US$ 5M e menos de 50 funcionários), com assentos ilimitados. Sem ela,

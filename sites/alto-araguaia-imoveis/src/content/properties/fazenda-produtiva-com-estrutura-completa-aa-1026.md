@@ -16,7 +16,7 @@ images:
   - "/images/gallery/g3.webp"
 features: ["1200 ha", "Estrutura completa", "Produção rural"]
 featured: false
-sample: false
+sample: true
 summary: "Fazenda de 1200 hectares em Alto Taquari com estrutura para produção."
 ---
 

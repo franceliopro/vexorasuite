@@ -22,7 +22,7 @@ images:
   - "/images/gallery/g5.webp"
 features: ["Mobiliado", "2 quartos", "2 banheiros", "1 vaga"]
 featured: true
-sample: false
+sample: true
 summary: "Apartamento mobiliado com 82 m², dois quartos e uma vaga em Alto Araguaia."
 ---
 

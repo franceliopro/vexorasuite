@@ -20,7 +20,7 @@ images:
   - "/images/gallery/g3.webp"
 features: ["Varanda", "3 quartos", "2 banheiros", "1 vaga"]
 featured: true
-sample: false
+sample: true
 summary: "Casa com varanda, 145 m², três quartos e possibilidade de venda ou locação."
 ---
 

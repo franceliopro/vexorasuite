@@ -126,7 +126,7 @@ button { font: inherit; cursor: pointer; }
   .slide-subtitle { margin-block: 20px; font-size: 20px; font-weight: 700; }
   .benefits, .card-banner .benefits { display: block; margin: 0 29px 0 49px; font-size: 15px; line-height: 1.2; }
   .benefits li::before { content: "•"; display: inline-block; margin-right: 12px; }
-  .slide .actions { flex-wrap: nowrap; margin-inline: 32px 10px; }
+  .slide .actions { flex-wrap: nowrap; margin-inline: 32px 10px; justify-content: flex-start; }
   .slide .button { flex: 0 1 auto; padding: 10px 16px; font-size: 14px; }
   .sales-row { padding-block: 20px; flex-direction: column; text-align: center; }
   .sales h2 { font-size: 28px; }

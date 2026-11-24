@@ -288,7 +288,7 @@ function RequestCard({
   );
 }
 
-export function SitesWorkspace({ canManage }: { canManage: boolean }) {
+export function SitesWorkspace({ canManage, tenantSlug }: { canManage: boolean; tenantSlug?: string }) {
   const [requests, setRequests] = useState<HubRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -432,7 +432,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         <p className="text-body text-ink-secondary">Somente responsáveis pela empresa podem registrar ou decidir pedidos de sites.</p>
       ) : null}
 
-      <PresenceWorkspace canManage={canManage} />
+      <PresenceWorkspace canManage={canManage} tenantSlug={tenantSlug} />
     </section>
   );
 }

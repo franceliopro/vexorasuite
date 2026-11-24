@@ -573,7 +573,7 @@ export default function HomePage() {
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
             </>
           ) : active === "Sites" ? (
-            canConfigure ? <SitesWorkspace canManage={canConfigure} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>
+            canConfigure ? <SitesWorkspace canManage={canConfigure} tenantSlug={session?.tenant.slug} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
           ) : active === "Calendários" || active === "Agenda" ? (

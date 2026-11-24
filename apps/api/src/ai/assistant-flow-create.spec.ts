@@ -57,6 +57,8 @@ describe('assistant flow creation',()=>{
   }).mockImplementationOnce(async(messages:any,providers:any,accept:any)=>{
    expect(messages[0].content).toContain('preferred-name');
    expect(messages[0].content).toContain('Suporte Técnico');
+   expect(messages[0].content).toContain('Corrija o roteiro completo como um único JSON');
+   expect(messages[0].content).not.toContain('use somente operações permitidas');
    expect(messages[1].content).toBe("Crie o fluxo de atendimento do zero para a Véxora Suite. é um teste. Mas ele vai perguntar como o cliente gostaria de ser chamado e terá a opção de escolher o nome dele mesmo ou digitar o outro nome, seja qual for a resposta a variável {{novo_nome}} vai receber ou o novo nome que ele digitar ou o nome atual identificado. Depois ele fará uma triagem para levar ao suporte técnico ou ao administrativo. Encaminhe ele para isso, caso ele não responda corretamente repita a pergunta");
    expect(providers[0]).toMatchObject({provider:'openrouter',jsonOutput:true,timeoutMs:60_000});
    expect(providers[1]).toMatchObject({provider:'ollama',timeoutMs:300_000});

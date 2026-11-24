@@ -24,13 +24,16 @@ import { searxngSearch } from "./local-services";
 import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
 import { flowArchitectAgent, FLOW_ARCHITECT_AGENT_ID } from "./flow-architect-agent";
 import { ASSISTANT_SPECIALISTS, isBuiltInSpecialist } from "./assistant-specialists";
-import { applyFlowPatch, chatbotFlowDirectSkill, flowOutline, parseFlowPatch } from "./chatbot-flow-direct";
+import { applyFlowPatch, chatbotFlowDirectSkill, deterministicFlowPlan, flowOutline, parseFlowPatch } from "./chatbot-flow-direct";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { resolveEntitlements } from "../auth/entitlements";
 import { monthWindowSaoPaulo } from "../common/month-window";
 import { resolveAssistantDemandContext } from "./assistant-demand-context";
 
 const object=(value:unknown):Record<string,any>=>value&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,any>:{};
+const flowRepairInstruction=(mode:'create'|'adjust')=>mode==='create'
+  ? '\nCorrija o roteiro completo como um único JSON: {"name":"...","welcome":"...","steps":[...]}. Sem Markdown ou texto fora do JSON. Use preferred-name com options:["Continuar"] e uma única transição {"Continuar":"id_da_proxima_etapa"}. Use human.handoff sem options e sem transitions, com department exato da lista. Toda transição aponta para o ID exato de outro bloco; conecte todas as opções. A primeira etapa inicia o fluxo.'
+  : '\nCorrija o JSON: use somente operações permitidas e destinos existentes no mapa. Nunca devolva o fluxo completo.';
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
 type VoiceSelection = { provider: string; model: string; endpoint?: string; voice?: string };
 type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; personalAssistant?: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[]; inboxes: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
@@ -175,7 +178,7 @@ export class AssistantController {
     };
     const generated=await ai.generate(messages,candidates,accepted,generationOptions).catch(error=>{
       if (!invalid || Date.now() >= generationOptions.deadlineAt) throw error;
-      return ai.generate([{...messages[0]!,content:messages[0]!.content+'\nReescreva o roteiro como JSON completo; verifique que cada opção tem uma transição válida e que todos os blocos podem ser alcançados.'},messages[1]!],candidates,accepted,generationOptions);
+      return ai.generate([{...messages[0]!,content:messages[0]!.content+flowRepairInstruction('create')},messages[1]!],candidates,accepted,generationOptions);
     });
     const compiled=compile(generated.text);
     if (!compiled) throw new BadRequestException('A IA devolveu um roteiro que não pode ser executado. O rascunho anterior foi mantido.');
@@ -250,14 +253,22 @@ export class AssistantController {
       compilation={...compiled,operations:patch.operations};
       return true;
     };
+    const deterministic=mode==='create'?deterministicFlowPlan(command,departments):undefined;
     const generated=await ai.generate(messages,candidates,accept,generationOptions).catch(async(error:unknown)=>{
+      if(deterministic){
+        const compiled=compileChatbotFlow(JSON.stringify(deterministic),departments);
+        if(compiled){
+          compilation=compiled;
+          return {text:'',provider:'deterministic',model:'regras-locais',usage:{promptTokens:0,completionTokens:0,totalTokens:0}} as any;
+        }
+      }
       if(Date.now()>=generationOptions.deadlineAt)throw error;
-      const repair=[{...messages[0]!,content:system+'\nCorrija o JSON: use somente operações permitidas e destinos existentes no mapa.'},messages[1]!];
+      const repair=[{...messages[0]!,content:system+flowRepairInstruction(mode)},messages[1]!];
       return ai.generate(repair,candidates,accept,generationOptions);
     });
     if(!compilation)throw new BadRequestException('O comando não resultou em um fluxo executável. O rascunho anterior foi mantido.');
     const {draft,warnings,operations}=compilation;
-    return {draft,warnings,persisted:false,active:false,usedAi:true,provider:generated.provider,model:generated.model,mode,operations:operations??[]};
+    return {draft,warnings,persisted:false,active:false,usedAi:generated.provider!=='deterministic',provider:generated.provider,model:generated.model,mode,operations:operations??[]};
   }
 
   @Post("engine/propose-workflow")

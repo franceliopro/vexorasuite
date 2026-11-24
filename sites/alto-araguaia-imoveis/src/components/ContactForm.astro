@@ -2,12 +2,22 @@
 import { site } from "../data/site.config";
 import { whatsappHref } from "../lib/config";
 
+interface PropertyContext {
+  id?: string;
+  code: string;
+  title: string;
+  url: string;
+  whatsapp: string;
+}
+
 interface Props {
   heading?: string;
   source?: string;
   compact?: boolean;
   channel?: "urbano" | "rural";
   variant?: "contact" | "announce";
+  property?: PropertyContext;
+  hideHeading?: boolean;
 }
 
 const {
@@ -16,6 +26,8 @@ const {
   compact = false,
   channel = "urbano",
   variant = "contact",
+  property,
+  hideHeading = false,
 } = Astro.props;
 const endpoint = import.meta.env.PUBLIC_CONTACT_ENDPOINT ?? "";
 const selected = site.channels.find((item) => item.label.includes(channel)) ?? site.channels[0];
@@ -37,15 +49,20 @@ const note =
     : endpoint
       ? "Sua mensagem será enviada para o canal oficial deste site."
       : "Sem endpoint configurado, abrimos o WhatsApp para você confirmar o envio.";
+const subject = property
+  ? `Interesse no imóvel ${property.code} — ${property.title}`
+  : variant === "announce"
+    ? "Anúncio de imóvel"
+    : "Contato pelo site";
 ---
 
 <div class={compact ? "form-card compact" : "form-card"}>
-  <h3>{title}</h3>
+  {!hideHeading && <h3>{title}</h3>}
   <form
     data-contact-form
     data-endpoint={endpoint}
-    data-whatsapp={selected?.whatsapp ?? site.whatsapp}
-    data-whatsapp-href={waHref ?? ""}
+    data-whatsapp={property?.whatsapp || selected?.whatsapp || site.whatsapp}
+    data-whatsapp-href={property ? whatsappHref(property.whatsapp) : (waHref ?? "")}
     data-email={site.email}
   >
     <label class="honeypot" aria-hidden="true">
@@ -54,7 +71,7 @@ const note =
     </label>
     <label class="field">
       <span>Seu nome</span>
-      <input name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Nome completo" />
+      <input name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Como podemos chamar você?" />
     </label>
     <label class="field">
       <span>WhatsApp</span>
@@ -100,6 +117,18 @@ const note =
     </label>
 
     <input type="hidden" name="source" value={source} />
+    <input type="hidden" name="_subject" value={subject} />
+    {
+      property && (
+        <>
+          <input type="hidden" name="_whatsapp" value={property.whatsapp} />
+          <input type="hidden" name="property_id" value={property.id ?? property.code} />
+          <input type="hidden" name="property_ref" value={property.code} />
+          <input type="hidden" name="property_title" value={property.title} />
+          <input type="hidden" name="property_url" value={property.url} />
+        </>
+      )
+    }
     <label class="checkbox-field">
       <input name="consent" type="checkbox" required />
       <span>{consentLabel}</span>
@@ -129,6 +158,12 @@ const note =
         message: String(data.get("message") || "").trim(),
         consent: data.get("consent") === "on",
         source: String(data.get("source") || "site"),
+        subject: String(data.get("_subject") || ""),
+        whatsapp: String(data.get("_whatsapp") || ""),
+        propertyId: String(data.get("property_id") || ""),
+        propertyRef: String(data.get("property_ref") || ""),
+        propertyTitle: String(data.get("property_title") || ""),
+        propertyUrl: String(data.get("property_url") || ""),
       };
 
       if (payload.website) return;
@@ -145,9 +180,13 @@ const note =
         .join(" ");
       const text = [
         `Olá! Sou ${payload.name}.`,
+        payload.propertyRef
+          ? `Tenho interesse no imóvel ${payload.propertyRef} — ${payload.propertyTitle}.`
+          : "",
         payload.message,
         details,
         payload.phone && `Telefone: ${payload.phone}.`,
+        payload.propertyUrl,
         `Origem: ${payload.source}.`,
       ]
         .filter(Boolean)

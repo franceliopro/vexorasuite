@@ -6,7 +6,7 @@ import ContactForm from "../components/ContactForm.astro";
 import PropertyCard from "../components/PropertyCard.astro";
 import { formatArea, formatBRL } from "../lib/format";
 import { site } from "../data/site.config";
-import { safeBaseUrl } from "../lib/config";
+import { safeBaseUrl, whatsappHref } from "../lib/config";
 
 interface Props {
   property: CollectionEntry<"properties">;
@@ -23,6 +23,7 @@ const related = all
 
 const listingHref = data.category === "rural" ? "/imoveis-rurais/" : "/imoveis-urbanos/";
 const canonicalPath = `/imovel/${property.id}/`;
+const propertyUrl = new URL(canonicalPath, `${safeBaseUrl(site.url)}/`).href;
 const image = data.images[0] || "/images/hero-house.webp";
 const rent = data.rentPrice ? `${formatBRL(data.rentPrice)} /mês` : "";
 const price =
@@ -31,6 +32,19 @@ const price =
     : data.operation === "Venda e locação" && rent
       ? `${formatBRL(data.price)} · ${rent}`
       : formatBRL(data.price);
+const operationLabel =
+  data.operation === "Venda"
+    ? "À venda"
+    : data.operation === "Aluguel"
+      ? "Para alugar"
+      : "Venda e locação";
+const channel = data.category === "rural" ? "rural" : "urbano";
+const selectedChannel = site.channels.find((item) => item.label.includes(channel)) ?? site.channels[0];
+const waText = `Olá! Tenho interesse no imóvel ${data.code} — ${data.title}. ${propertyUrl}`;
+const waHref = whatsappHref(selectedChannel?.whatsapp ?? "", waText);
+const mapsQuery = encodeURIComponent(`${data.title}, ${data.neighborhood}, ${data.city} - ${data.state}`);
+const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+const mapsEmbed = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -54,116 +68,146 @@ const jsonLd = {
   noindex={legacy}
   canonicalPath={legacy ? canonicalPath : undefined}
 >
-  <div class="container page-top">
-    <Breadcrumb
-      items={[
-        { label: "Início", href: "/" },
-        { label: data.category === "rural" ? "Rurais" : "Urbanos", href: listingHref },
-        { label: data.title, href: canonicalPath },
-      ]}
-    />
-  </div>
-
-  <section class="section property-detail">
+  <section class="pp-hero">
     <div class="container">
-      <div class="detail-head">
-        <div>
-          <div class="badge-row">
-            <span class="property-code" style="position: static; background: var(--yellow);">
-              CÓD. {data.code}
-            </span>
-            <span class="property-badge" style="position: static;">{data.operation}</span>
-          </div>
+      <Breadcrumb
+        items={[
+          { label: "Início", href: "/" },
+          { label: data.category === "rural" ? "Imóveis rurais" : "Imóveis urbanos", href: listingHref },
+          { label: data.type, href: canonicalPath },
+        ]}
+      />
+
+      <div class="pp-summary">
+        <div class="pp-summary-main">
+          <span class="pp-ref">CÓD. {data.code}</span>
           <h1>{data.title}</h1>
-          <p class="property-location">
-            ⌖ {data.neighborhood} · {data.city} - {data.state}
-          </p>
+          <p class="pp-loc"><span aria-hidden="true">⌖</span> {data.city} - {data.state} · {data.neighborhood}</p>
+          <ul class="pp-chips">
+            <li class="pp-chip pp-chip--accent">{operationLabel}</li>
+            <li class="pp-chip">{data.type}</li>
+            <li class="pp-chip">{data.category === "rural" ? "Rural" : "Urbano"}</li>
+          </ul>
         </div>
-        <strong class="detail-price">{price}</strong>
+        <div class="pp-price">
+          <span>Valor</span>
+          <strong>{price}</strong>
+        </div>
       </div>
 
-      <div class="grid cols-2 detail-grid">
-        <div>
-          <div class="gallery">
-            <img
-              class="gallery-main"
-              src={image}
-              alt={data.title}
-              data-gallery-main
-              width="1200"
-              height="800"
-            />
-            <div class="gallery-thumbs" aria-label="Imagens do imóvel">
-              {
-                data.images.map((item, index) => (
-                  <button
-                    type="button"
-                    class="gallery-thumb"
-                    data-gallery-thumb
-                    data-image={item}
-                    aria-pressed={index === 0}
-                    aria-label={`Ver imagem ${index + 1}`}
-                  >
-                    <img src={item} alt="" loading="lazy" />
-                  </button>
-                ))
-              }
-            </div>
-          </div>
+      <div class="pp-gallery">
+        {
+          data.images.slice(0, 5).map((item, index) => (
+            <button
+              type="button"
+              class:list={["pp-photo", { "pp-photo--main": index === 0 }]}
+              data-photo-button
+              data-image={item}
+              aria-label={`Ampliar foto ${index + 1}`}
+              aria-pressed={index === 0}
+            >
+              <img src={item} alt={`${data.title} — foto ${index + 1}`} loading={index === 0 ? "eager" : "lazy"} />
+            </button>
+          ))
+        }
+        <button type="button" class="pp-photo-all" data-photo-open>
+          {data.images.length} fotos
+        </button>
+      </div>
+    </div>
+  </section>
 
-          <div class="prose detail-description">
-            <h2>Sobre o imóvel</h2>
-            <Content />
-          </div>
+  <section class="pp-body container">
+    <div class="pp-main">
+      <div class="pp-specs" aria-label="Características do imóvel">
+        <div><span aria-hidden="true">▱</span><strong>{formatArea(data.area, data.areaUnit)}</strong><small>Área</small></div>
+        <div><span aria-hidden="true">▣</span><strong>{data.bedrooms || "—"}</strong><small>Quartos</small></div>
+        <div><span aria-hidden="true">♧</span><strong>{data.bathrooms || "—"}</strong><small>Banheiros</small></div>
+        <div><span aria-hidden="true">▤</span><strong>{data.garage || "—"}</strong><small>Vagas</small></div>
+      </div>
 
-          {
-            data.features.length > 0 && (
-              <div class="feature-list">
-                <h2>O que este imóvel oferece</h2>
-                <ul>
-                  {data.features.map((feature) => <li>{feature}</li>)}
-                </ul>
-              </div>
-            )
-          }
-        </div>
-
-        <aside class="detail-side" id="contato">
-          <div class="spec-panel">
-            <h2>Informações rápidas</h2>
-            <dl>
-              <div><dt>Código</dt><dd>{data.code}</dd></div>
-              <div><dt>Tipo</dt><dd>{data.type}</dd></div>
-              <div><dt>Operação</dt><dd>{data.operation}</dd></div>
-              <div><dt>Área</dt><dd>{formatArea(data.area, data.areaUnit)}</dd></div>
-              <div><dt>Quartos</dt><dd>{data.bedrooms || "—"}</dd></div>
-              <div><dt>Banheiros</dt><dd>{data.bathrooms || "—"}</dd></div>
-              <div><dt>Vagas</dt><dd>{data.garage || "—"}</dd></div>
-              <div><dt>Localização</dt><dd>{data.city} - {data.state}</dd></div>
-            </dl>
-          </div>
-
-          <ContactForm
-            heading="Perguntar sobre este imóvel"
-            source={`Imóvel: ${data.title} (${data.code})`}
-            channel={data.category === "rural" ? "rural" : "urbano"}
-            compact={true}
-          />
-        </aside>
+      <div class="pp-text prose">
+        <h2>Sobre o imóvel</h2>
+        <Content />
       </div>
 
       {
-        related.length > 0 && (
-          <div class="related">
-            <h2>Outros imóveis na região</h2>
-            <div class="property-grid">
-              {related.map((item) => <PropertyCard property={item} />)}
-            </div>
+        data.features.length > 0 && (
+          <div class="feature-list">
+            <h2>O que este imóvel oferece</h2>
+            <ul>
+              {data.features.map((feature) => <li>{feature}</li>)}
+            </ul>
           </div>
         )
       }
+
+      <div class="pp-map pp-map--lazy" data-map>
+        <button type="button" class="pp-map-open" data-map-open data-map-src={mapsEmbed}>
+          <span class="pp-map-pin" aria-hidden="true">⌖</span>
+          <strong>Ver localização no mapa</strong>
+          <small>{data.neighborhood} · {data.city} - {data.state}</small>
+        </button>
+        <a class="pp-map-link" href={mapsUrl} target="_blank" rel="noopener noreferrer">
+          Abrir no Google Maps →
+        </a>
+      </div>
     </div>
+
+    <aside class="pp-aside" aria-label="Contato sobre o imóvel">
+      <div class="pp-contact">
+        <span class="pp-contact-eyebrow">Atendimento direto</span>
+        <h2>Gostou deste imóvel?</h2>
+        <p>Fale com a nossa equipe para agendar uma visita ou tirar dúvidas.</p>
+        {
+          waHref && (
+            <a class="pp-wa" href={waHref} target="_blank" rel="noopener noreferrer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12.04 2a10 10 0 0 0-8.6 15.05L2 22l5.1-1.34A10 10 0 1 0 12.04 2Zm4.5 6.14c-.24-.12-1.44-.71-1.66-.79-.22-.08-.38-.12-.54.12-.16.24-.62.79-.76.95-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.42-1.34-1.66-.14-.24-.01-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.4-.54-.41h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.7 2.6 4.12 3.64.58.25 1.03.4 1.38.51.58.18 1.11.16 1.53.1.47-.07 1.44-.59 1.64-1.08.2-.48.2-.89.14-1.02-.06-.13-.28-.21-.56-.35Z" />
+              </svg>
+              Chamar no WhatsApp
+            </a>
+          )
+        }
+        <a class="pp-call" href={`tel:${selectedChannel?.whatsapp ?? site.whatsapp}`}>
+          {selectedChannel?.phone ?? site.phone}
+        </a>
+
+        <ContactForm
+          hideHeading={true}
+          source={`Imóvel: ${data.title} (${data.code})`}
+          channel={channel}
+          compact={true}
+          property={{
+            id: property.id,
+            code: data.code,
+            title: data.title,
+            url: propertyUrl,
+            whatsapp: selectedChannel?.whatsapp ?? site.whatsapp,
+          }}
+        />
+        <p class="pp-privacy">
+          Ao enviar, você concorda com o contato da equipe Alto Araguaia Imóveis. Seus dados não são compartilhados.
+        </p>
+      </div>
+    </aside>
   </section>
+
+  {
+    related.length > 0 && (
+      <section class="pp-similar">
+        <div class="container">
+          <div class="pp-similar-head">
+            <h2>Imóveis semelhantes</h2>
+            <a href={listingHref}>Ver todos →</a>
+          </div>
+          <div class="property-grid">
+            {related.map((item) => <PropertyCard property={item} />)}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   <script
     type="application/ld+json"
@@ -173,17 +217,36 @@ const jsonLd = {
 </BaseLayout>
 
 <script>
-  const main = document.querySelector<HTMLImageElement>("[data-gallery-main]");
-  document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]").forEach((thumb) => {
-    thumb.addEventListener("click", () => {
-      const next = thumb.dataset.image;
-      if (main && next) {
-        main.src = next;
-        main.alt = "Imagem selecionada do imóvel";
-      }
-      document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]").forEach((item) => {
-        item.setAttribute("aria-pressed", String(item === thumb));
+  document.querySelectorAll<HTMLButtonElement>("[data-photo-button]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const image = button.dataset.image;
+      const main = document.querySelector<HTMLImageElement>(".pp-photo--main img");
+      if (image && main) main.src = image;
+      document.querySelectorAll<HTMLButtonElement>("[data-photo-button]").forEach((item) => {
+        item.setAttribute("aria-pressed", String(item === button));
       });
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>("[data-photo-open]").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.querySelector("[data-photo-button]")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>("[data-map-open]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const map = button.closest<HTMLElement>("[data-map]");
+      const src = button.dataset.mapSrc;
+      if (!map || !src || !map.classList.contains("pp-map--lazy")) return;
+      map.classList.remove("pp-map--lazy");
+      const iframe = document.createElement("iframe");
+      iframe.src = src;
+      iframe.title = "Mapa de localização do imóvel";
+      iframe.loading = "lazy";
+      iframe.referrerPolicy = "no-referrer-when-downgrade";
+      iframe.setAttribute("allowfullscreen", "");
+      map.replaceChildren(iframe);
     });
   });
 </script>

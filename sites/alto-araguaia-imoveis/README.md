@@ -3,6 +3,11 @@
 Site público em **Astro estático**, criado a partir de `sites/_template` e alinhado
 à interface publicada em `https://altoaraguaiaimoveis.com.br/` em 24/11/2026.
 
+O CSS usa **Tailwind CSS 4.3.5** via `@tailwindcss/vite`, com os tokens do site
+expostos em `@theme` (`bg-navy`, `text-yellow`, `font-display`, `rounded-card`, etc.).
+O CSS componentizado permanece em `src/styles/global.css` para compatibilidade com
+o layout já validado.
+
 ## Rotas
 
 | Tela | Rota | Arquivo |

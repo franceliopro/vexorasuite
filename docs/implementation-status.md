@@ -25,7 +25,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
 | Intake de briefing criativo | [~] | Endpoint e UI tenant-scoped exigem objetivo, canal/formato, identidade, fonte aprovada, prazo, aprovador e destino; registram evento de auditoria em `creative_briefs`. Não gera, aprova, publica nem entrega peça. Ainda sem briefing preenchido pelo proprietário. |
 | Template Next.js/MDX | [ ] | Definido como padrão, com `output: 'export'`, conteúdo em `.mdx` e menu em `content/navigation.ts`. Ainda sem site publicado. |
-| Directus + Postgres (imobiliária) | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
+| Puck + Payload/Strapi + Postgres (imobiliária) | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
 | Sistemas verticais | [ ] | Escola de Música, Escola com provas/notas, Estética e Delivery registrados em §13. Nenhum módulo implantado. |
 
 ### Evidência das mudanças visuais recentes
@@ -49,7 +49,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 1. **HUB de Sites:** pedido, preview, aprovação, versão, histórico e auditoria — sem geração de HTML e sem hospedagem. UI inicial entregue; faltam integrações operacionais externas (GitHub/Cloudflare/domínio) com evidência.
 2. **Template de sites Next.js/MDX:** esqueleto em componentes, conteúdo editável em `.mdx`, menu centralizado, saída estática e entrega via Cloudflare Pages.
 3. **Rastreabem:** conversão do HTML já existente em MDX como primeiro piloto de aprendizado do template.
-4. **Alto Araguaia Imóveis:** inventário do CMS PHP atual do proprietário e desenho das collections `imoveis`, `bairros`, `tipos`, `fotos` e `pages` no Directus.
+4. **Alto Araguaia Imóveis:** inventário do CMS PHP atual do proprietário e desenho das collections `imoveis`, `bairros`, `tipos`, `fotos` e `pages` no Payload/Strapi, com Puck para edição visual.
 
 ## 3. Onde vamos chegar
 

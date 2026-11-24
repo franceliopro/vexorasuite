@@ -6,6 +6,8 @@ export type BrandAssets = {
   logoDark?: string;
   favicon?: string;
   logoShape?: "square" | "round" | "rectangular";
+  logoMaxWidth?: number;
+  logoMaxHeight?: number;
   showCompanyName?: boolean;
   fontScalePercent?: number;
   displayName?: string;

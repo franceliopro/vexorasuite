@@ -466,7 +466,9 @@ A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica as
 
 Não criar um CMS artesanal por site. Criar **um template versionado no GitHub**, com presets por vertical e instância por empresa.
 
-- Base: CMS headless self-hosted de código aberto (Payload — padrão — ou Strapi) + Postgres.- Edição visual: Puck para montar páginas em Next.js/React; o CMS continua responsável pelas collections e pela API tenant-scoped.- Decisão de 2026-11-23: Alto Araguaia Imóveis usa Puck + Payload/Strapi; a indicação anterior de Directus fica superada.
+- Base: CMS headless self-hosted de código aberto (Payload — padrão — ou Strapi) + Postgres.
+- Edição visual: Puck para montar páginas em Next.js/React; o CMS continua responsável pelas collections e pela API tenant-scoped.
+- Decisão de 2026-11-23: Alto Araguaia Imóveis usa Puck + Payload/Strapi; a indicação anterior de Directus fica superada.
 - Presets: `conteudo` (posts/páginas), `imoveis` (imóveis, fotos, filtros) e `produtos` (catálogo editorial).
 - Cada instância expõe API tenant-scoped; o site Next.js consome essa API e o HUB registra pedido, aprovação, versão e auditoria.
 - Novo site = escolher preset, subir instância a partir do mesmo template e apontar o front para a API.

@@ -127,12 +127,15 @@ export class ContactsController {
     const image = (key: string) => typeof brand[key] === "string" && /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(brand[key] as string) ? brand[key] as string : "";
     const fontScales = [100, 110, 120, 130, 140, 150] as const;
     const rawFontScale = Number(brand.fontScalePercent);
+    const logoSize = (value: unknown, min: number, max: number, fallback: number) => { const size = Number(value); return Number.isInteger(size) && size >= min && size <= max ? size : fallback; };
     return {
       primaryColor: typeof brand.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.primaryColor) ? brand.primaryColor : "#6258df",
       logoLight: image("logoLight"),
       logoDark: image("logoDark"),
       favicon: image("favicon"),
       logoShape: brand.logoShape === "square" || brand.logoShape === "round" ? brand.logoShape : "rectangular",
+      logoMaxWidth: logoSize(brand.logoMaxWidth, 24, 480, 160),
+      logoMaxHeight: logoSize(brand.logoMaxHeight, 16, 160, 40),
       showCompanyName: typeof brand.showCompanyName === "boolean" ? brand.showCompanyName : true,
       fontScalePercent: (fontScales as readonly number[]).includes(rawFontScale) ? rawFontScale : 100,
       sidebarBackground: typeof brand.sidebarBackground === "string" && /^#[0-9a-fA-F]{6}$/.test(brand.sidebarBackground) ? brand.sidebarBackground : "",
@@ -142,7 +145,7 @@ export class ContactsController {
   }
 
   @Patch("brand-settings")
-  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown; logoLight?: unknown; logoDark?: unknown; favicon?: unknown; logoShape?: unknown; showCompanyName?: unknown; fontScalePercent?: unknown; sidebarBackground?: unknown; sidebarForeground?: unknown; sidebarHover?: unknown }) {
+  async updateBrandSettings(@Req() request: AuthenticatedRequest, @Body() input: { primaryColor?: unknown; logoLight?: unknown; logoDark?: unknown; favicon?: unknown; logoShape?: unknown; logoMaxWidth?: unknown; logoMaxHeight?: unknown; showCompanyName?: unknown; fontScalePercent?: unknown; sidebarBackground?: unknown; sidebarForeground?: unknown; sidebarHover?: unknown }) {
     if (!["OWNER", "ADMIN", "MANAGER"].includes((request.user.role || "").toUpperCase())) throw new ForbiddenException("Somente administradores podem alterar a identidade visual.");
     const primaryColor = typeof input.primaryColor === "string" ? input.primaryColor.toUpperCase() : "";
     if (!/^#[0-9A-F]{6}$/.test(primaryColor)) throw new BadRequestException("Escolha uma cor hexadecimal válida.");
@@ -151,6 +154,14 @@ export class ContactsController {
       if (input[key] !== undefined && !validImage(input[key])) throw new BadRequestException(`A imagem ${key} é inválida ou muito grande. Use PNG, JPEG, WebP ou SVG de até 19 KB após otimização.`);
     }
     if (input.logoShape !== undefined && !["square", "round", "rectangular"].includes(String(input.logoShape))) throw new BadRequestException("Formato do logo inválido.");
+    const logoSizeInput = (value: unknown, min: number, max: number, label: string) => {
+      if (value === undefined) return undefined;
+      const size = Number(value);
+      if (!Number.isInteger(size) || size < min || size > max) throw new BadRequestException(`A ${label} do logo deve ser um número inteiro entre ${min} e ${max} px.`);
+      return size;
+    };
+    const logoMaxWidth = logoSizeInput(input.logoMaxWidth, 24, 480, "largura máxima");
+    const logoMaxHeight = logoSizeInput(input.logoMaxHeight, 16, 160, "altura máxima");
     if (input.showCompanyName !== undefined && typeof input.showCompanyName !== "boolean") throw new BadRequestException("A opção de nome da empresa é inválida.");
     if (input.fontScalePercent !== undefined && ![100, 110, 120, 130, 140, 150].includes(Number(input.fontScalePercent))) throw new BadRequestException("O tamanho do texto deve ser 100%, 110%, 120%, 130%, 140% ou 150%.");
     const sidebarHex = (value: unknown, label: string) => {
@@ -167,12 +178,14 @@ export class ContactsController {
     const existing = integrations.brandSettings && typeof integrations.brandSettings === "object" && !Array.isArray(integrations.brandSettings) ? integrations.brandSettings as Record<string, unknown> : {};
     const brandSettings: Record<string, unknown> = { ...existing, primaryColor };
     for (const key of ["logoLight", "logoDark", "favicon", "logoShape", "showCompanyName"] as const) if (input[key] !== undefined) (brandSettings as Record<string, unknown>)[key] = input[key];
+    if (logoMaxWidth !== undefined) brandSettings.logoMaxWidth = logoMaxWidth;
+    if (logoMaxHeight !== undefined) brandSettings.logoMaxHeight = logoMaxHeight;
     if (input.fontScalePercent !== undefined) brandSettings.fontScalePercent = Number(input.fontScalePercent);
     if (input.sidebarBackground !== undefined) brandSettings.sidebarBackground = sidebarBackground;
     if (input.sidebarForeground !== undefined) brandSettings.sidebarForeground = sidebarForeground;
     if (input.sidebarHover !== undefined) brandSettings.sidebarHover = sidebarHover;
     await mutateTenantSetting(this.prisma, request.user.tenantId, "brandSettings", current => ({ ...(current && typeof current === "object" && !Array.isArray(current) ? current : {}), ...brandSettings }) as any);
-    return { primaryColor, logoLight: brandSettings.logoLight || "", logoDark: brandSettings.logoDark || "", favicon: brandSettings.favicon || "", logoShape: brandSettings.logoShape || "rectangular", showCompanyName: brandSettings.showCompanyName !== false, fontScalePercent: Number(brandSettings.fontScalePercent) || 100, sidebarBackground: typeof brandSettings.sidebarBackground === "string" ? brandSettings.sidebarBackground : "", sidebarForeground: typeof brandSettings.sidebarForeground === "string" ? brandSettings.sidebarForeground : "", sidebarHover: typeof brandSettings.sidebarHover === "string" ? brandSettings.sidebarHover : "" };
+    return { primaryColor, logoLight: brandSettings.logoLight || "", logoDark: brandSettings.logoDark || "", favicon: brandSettings.favicon || "", logoShape: brandSettings.logoShape || "rectangular", logoMaxWidth: Number(brandSettings.logoMaxWidth) || 160, logoMaxHeight: Number(brandSettings.logoMaxHeight) || 40, showCompanyName: brandSettings.showCompanyName !== false, fontScalePercent: Number(brandSettings.fontScalePercent) || 100, sidebarBackground: typeof brandSettings.sidebarBackground === "string" ? brandSettings.sidebarBackground : "", sidebarForeground: typeof brandSettings.sidebarForeground === "string" ? brandSettings.sidebarForeground : "", sidebarHover: typeof brandSettings.sidebarHover === "string" ? brandSettings.sidebarHover : "" };
   }
 
   @Get("profile-config")

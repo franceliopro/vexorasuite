@@ -1080,7 +1080,7 @@ model GeneratedDocument {
   values      Json     @default("{}")
   content     String
   sentAt      DateTime? @map("sent_at")
-  sentTo      String?
+  sentTo      String?  @map("sent_to")
   createdAt   DateTime @default(now()) @map("created_at")
   template    DocumentTemplate @relation(fields: [templateId], references: [id])
   tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)

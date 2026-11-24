@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ClipboardList, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { PresenceWorkspace } from "./presence-workspace";
+import { SiteSubmissionsPanel } from "./site-submissions-panel";
 
 const workspaceTw = "grid gap-token";
 const headingTw = "flex flex-wrap items-start justify-between gap-4";
@@ -431,6 +432,8 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       {!canManage ? (
         <p className="text-body text-ink-secondary">Somente responsáveis pela empresa podem registrar ou decidir pedidos de sites.</p>
       ) : null}
+
+      <SiteSubmissionsPanel canManage={canManage} />
 
       <PresenceWorkspace canManage={canManage} />
     </section>

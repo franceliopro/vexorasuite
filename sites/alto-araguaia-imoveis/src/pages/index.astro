@@ -1,0 +1,93 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import FeatureGrid from "../components/FeatureGrid.astro";
+import CtaBand from "../components/CtaBand.astro";
+import PropertyCard from "../components/PropertyCard.astro";
+import { site } from "../data/site.config";
+
+const properties = await getCollection("properties");
+const featured = properties.filter((item) => item.data.featured).slice(0, 3);
+
+const pages = await getCollection("pages");
+const home = pages.find((entry) => entry.id === "home");
+const HomeContent = home ? (await render(home)).Content : null;
+---
+
+<BaseLayout>
+  <Hero>
+    <div class="hero-panel" aria-label="Tipos de imóvel">
+      <span>Casas</span>
+      <span>Apartamentos</span>
+      <span>Terrenos</span>
+      <span>Galpões</span>
+    </div>
+  </Hero>
+
+  <Section
+    id="destaques"
+    eyebrow="Imóveis em destaque"
+    title="Uma amostra do que você encontra"
+    description="Compare metragem, quartos e localização antes de conversar."
+  >
+    <div class="grid cols-3">
+      {featured.map((property) => <PropertyCard property={property} />)}
+    </div>
+    <p class="sample-note">
+      Os anúncios exibidos são demonstrativos. Substitua por imóveis reais antes
+      de publicar.
+    </p>
+    <div class="section-actions">
+      <a class="btn btn-outline" href="/imoveis/">Ver todos os imóveis</a>
+    </div>
+  </Section>
+
+  <Section
+    id="estrutura"
+    tone="soft"
+    eyebrow="Por que escolher"
+    title="Mais clareza para decidir"
+    description="O site foi pensado para responder o essencial antes mesmo da conversa."
+  >
+    <FeatureGrid items={site.features} />
+  </Section>
+
+  {
+    HomeContent && (
+      <Section eyebrow="A região" title="Conhecer o lugar faz parte da escolha">
+        <div class="prose">
+          <HomeContent />
+        </div>
+      </Section>
+    )
+  }
+
+  <Section tone="soft" eyebrow="Como funciona" title="Três passos, sem pressão">
+    <div class="grid cols-3 step-grid">
+      <article class="step-card">
+        <span class="step-number">01</span>
+        <h3>Escolha</h3>
+        <p>Use o filtro por tipo e operação para encontrar o que faz sentido.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-number">02</span>
+        <h3>Compare</h3>
+        <p>Veja metragem, quartos, vagas e localização lado a lado.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-number">03</span>
+        <h3>Converse</h3>
+        <p>Quando quiser, fale com a equipe pelo canal oficial da empresa.</p>
+      </article>
+    </div>
+  </Section>
+
+  <CtaBand
+    title="Encontrou algo que gostou?"
+    description="Fale com a equipe e tire suas dúvidas sobre o imóvel e a região."
+    label="Ir para contato"
+    href="/contato/"
+  />
+</BaseLayout>

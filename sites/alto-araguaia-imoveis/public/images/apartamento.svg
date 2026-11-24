@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#c9dcf4"/><stop offset="1" stop-color="#f4f8fd"/></linearGradient>
+    <linearGradient id="facade" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#eef3fa"/><stop offset="1" stop-color="#d9e3f0"/></linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky3)"/>
+  <rect y="650" width="1200" height="150" fill="#9db9a2"/>
+  <rect x="320" y="90" width="560" height="560" fill="url(#facade)"/>
+  <rect x="300" y="70" width="600" height="28" rx="6" fill="#2e4b70"/>
+  <g fill="#8fc3eb" stroke="#fff" stroke-width="8">
+    <rect x="360" y="140" width="120" height="95"/><rect x="540" y="140" width="120" height="95"/><rect x="720" y="140" width="120" height="95"/>
+    <rect x="360" y="285" width="120" height="95"/><rect x="540" y="285" width="120" height="95"/><rect x="720" y="285" width="120" height="95"/>
+    <rect x="360" y="430" width="120" height="95"/><rect x="540" y="430" width="120" height="95"/><rect x="720" y="430" width="120" height="95"/>
+  </g>
+  <rect x="535" y="545" width="130" height="105" fill="#4a6281"/>
+  <text x="48" y="736" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#173252">Apartamento · Fachada</text>
+  <text x="1010" y="736" font-family="Arial,sans-serif" font-size="22" fill="#173252" opacity=".7">ILUSTRATIVO</text>
+</svg>

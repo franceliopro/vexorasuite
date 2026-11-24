@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="sky5" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d6e3f0"/><stop offset="1" stop-color="#f6f9fc"/></linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky5)"/>
+  <rect y="560" width="1200" height="240" fill="#9fb2a2"/>
+  <path d="M180 560V330l170-110 170 110v230zM540 560V330l170-110 170 110v230zM900 560V360l150-95 150 95v200z" fill="#d6dde5" stroke="#7d8fa3" stroke-width="8"/>
+  <path d="M170 330 350 205l180 125M530 330 710 205l180 125M890 360 1050 250l160 110" fill="none" stroke="#3f5b78" stroke-width="20"/>
+  <rect x="255" y="430" width="170" height="130" fill="#7d93a8"/>
+  <rect x="615" y="430" width="170" height="130" fill="#7d93a8"/>
+  <rect x="975" y="430" width="150" height="130" fill="#7d93a8"/>
+  <text x="48" y="736" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#173252">Galpão · 600 m²</text>
+  <text x="1010" y="736" font-family="Arial,sans-serif" font-size="22" fill="#173252" opacity=".7">ILUSTRATIVO</text>
+</svg>

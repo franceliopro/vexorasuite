@@ -1,0 +1,39 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import FeatureGrid from "../components/FeatureGrid.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { site } from "../data/site.config";
+
+const pages = await getCollection("pages");
+const home = pages.find((entry) => entry.id === "home");
+const HomeContent = home ? (await render(home)).Content : null;
+---
+
+<BaseLayout>
+  <Hero />
+
+  <Section
+    id="estrutura"
+    tone="soft"
+    eyebrow="A estrutura"
+    title="Tudo que uma boa página precisa"
+    description="Componentes, conteúdo e SEO são tratados como parte do mesmo padrão."
+  >
+    <FeatureGrid items={site.features} />
+  </Section>
+
+  {
+    HomeContent && (
+      <Section eyebrow="Apresentação" title="Conteúdo que pode evoluir">
+        <div class="prose">
+          <HomeContent />
+        </div>
+      </Section>
+    )
+  }
+
+  <CtaBand />
+</BaseLayout>

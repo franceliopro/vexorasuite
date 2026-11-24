@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="48" viewBox="0 0 280 48" role="img" aria-label="Alto Araguaia Imóveis">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7cc4ff"/><stop offset="1" stop-color="#2478f4"/></linearGradient>
+  </defs>
+  <rect width="46" height="46" rx="13" fill="url(#a)"/>
+  <path d="M10 35 23 11h4l13 24h-7l-8-15-8 15z" fill="#06132a"/>
+  <text x="58" y="20" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="800" fill="#0d1e3d">ALTO ARAGUAIA</text>
+  <text x="58" y="38" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="650" letter-spacing="3" fill="#2478f4">IMÓVEIS</text>
+</svg>

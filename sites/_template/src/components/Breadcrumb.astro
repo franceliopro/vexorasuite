@@ -1,0 +1,40 @@
+---
+import { site } from "../data/site.config";
+import { absoluteUrl } from "../lib/config";
+
+interface Props {
+  items: { label: string; href: string }[];
+}
+
+const { items } = Astro.props;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: items.map((item, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    name: item.label,
+    item: absoluteUrl(site.url, item.href),
+  })),
+};
+---
+
+<nav class="breadcrumb" aria-label="Trilha de navegação">
+  <ol>
+    {items.map((item, index) => (
+      <li>
+        {index === items.length - 1 ? (
+          <span aria-current="page">{item.label}</span>
+        ) : (
+          <a href={item.href}>{item.label}</a>
+        )}
+      </li>
+    ))}
+  </ol>
+</nav>
+<script
+  type="application/ld+json"
+  is:inline
+  set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")}
+></script>

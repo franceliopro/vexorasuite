@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#f6f1e8"/>
+  <rect y="560" width="1200" height="240" fill="#d8c7ad"/>
+  <rect x="90" y="90" width="330" height="250" rx="12" fill="#bcdcf5" stroke="#fff" stroke-width="16"/>
+  <path d="M90 340 255 180l165 160z" fill="#8bb5d8" opacity=".5"/>
+  <rect x="210" y="420" width="560" height="150" rx="34" fill="#4c708f"/>
+  <rect x="250" y="455" width="215" height="80" rx="18" fill="#6b8da8"/>
+  <rect x="490" y="455" width="215" height="80" rx="18" fill="#6b8da8"/>
+  <rect x="530" y="560" width="150" height="18" rx="9" fill="#6b4f38"/>
+  <rect x="790" y="430" width="120" height="150" rx="8" fill="#e9dfd0"/>
+  <path d="M850 430c-60-70-30-130 10-155 10 55 30 100-10 155z" fill="#69a077"/>
+  <circle cx="1030" cy="300" r="58" fill="#ffd98a"/>
+  <text x="48" y="736" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#173252">Sala de estar</text>
+  <text x="1010" y="736" font-family="Arial,sans-serif" font-size="22" fill="#173252" opacity=".7">ILUSTRATIVO</text>
+</svg>

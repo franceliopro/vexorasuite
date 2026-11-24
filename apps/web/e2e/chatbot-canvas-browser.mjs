@@ -31,8 +31,9 @@ try{
  await page.route("**/api/backend/**",async route=>{
   const path=new URL(route.request().url()).pathname.slice("/api/backend".length);
   if(path==="/events")return route.fulfill({contentType:"text/event-stream",body:": ready\n\n"});
-  if(path==="/assistant/engine/create-flow"){
+  if(path==="/assistant/engine/flow-command"){
    const payload=route.request().postDataJSON();
+   assert.match(payload.command,/Renomeie o primeiro bloco/);
    assert.equal(payload.proposalOnly,true);
    assert.equal(payload.baseDraft.name,"Oferta de teste");
    return route.fulfill({json:{draft:{...payload.baseDraft,steps:payload.baseDraft.steps.map((step,index)=>index?step:{...step,title:"Bloco ajustado pela IA"})},warnings:[]}});
@@ -307,12 +308,13 @@ try{
  await expect(simulatedConversation.getByText("Fim",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Criar com IA",exact:true}).click();
  const assistant=page.getByRole("dialog",{name:"Assistente de fluxo"});
- await expect(assistant.getByRole("combobox",{name:"O que fazer"})).toHaveValue("adjust");
+ await expect(assistant.getByRole("combobox",{name:"O que fazer"})).toHaveCount(0);
  await assistant.getByRole("textbox",{name:"O que você quer automatizar?"}).fill("Renomeie o primeiro bloco.");
  await assistant.getByRole("button",{name:"Gerar proposta",exact:true}).click();
  await expect(assistant.getByText(/Bloco ajustado pela IA/)).toBeVisible();
- await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
+ await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco ajustado pela IA"})).toBeVisible();
  await assistant.getByRole("button",{name:"Aplicar ao canvas",exact:true}).click();
+ await expect(assistant).toHaveCount(0);
  await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco ajustado pela IA"})).toBeVisible();
  page.once("dialog",dialog=>dialog.accept());
  await page.getByRole("button",{name:"Novo fluxo",exact:true}).click();

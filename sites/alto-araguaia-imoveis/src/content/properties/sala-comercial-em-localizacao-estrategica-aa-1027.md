@@ -18,7 +18,7 @@ images:
   - "/images/gallery/g4.webp"
 features: ["120 m²", "2 banheiros", "2 vagas", "Localização estratégica"]
 featured: false
-sample: false
+sample: true
 summary: "Sala comercial de 120 m² em Alto Garças com venda e locação disponíveis."
 ---
 

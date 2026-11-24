@@ -47,6 +47,7 @@ Novos valores entram pelo Studio, sem PR e sem deploy.
 | `id` | uuid | gerado |
 | `code` | string | único, `isTitle` |
 | `title` | string | exigido |
+| `type` | string | `Casa`, `Apartamento`, `Sala comercial`, `Área`, `Chácara`, `Fazenda`; alimenta “Tipo de Imóvel” |
 | `owner_id` | uuid → `directus_users` | dono do registro; base da política RBAC |
 | `category` | many-to-one → `category` | |
 | `purpose` | many-to-one → `purpose` | |
@@ -172,46 +173,74 @@ publicação, imóvel criado nem mensagem entregue sem evidência externa.
 
 ## Snapshot publicado
 
-Arquivo: `src/content/data/properties.json` no repositório.
+O Astro **não lê JSON de conteúdo**. O build usa Content Collections com
+`glob({ pattern: "**/*.md", base: "./src/content/properties" })`, definido em
+`sites/alto-araguaia-imoveis/src/content.config.ts`. O snapshot publicado é,
+portanto, um conjunto de arquivos Markdown versionados:
 
-```json
-{
-  "generatedAt": "2026-11-24T00:00:00.000Z",
-  "source": "directus",
-  "categories": [{ "id": "...", "name": "Urbano", "slug": "urbano" }],
-  "purposes": [{ "id": "...", "name": "Alugar", "slug": "alugar" }],
-  "locations": [{ "id": "...", "city": "Alto Araguaia", "state": "MT" }],
-  "properties": [
-    {
-      "id": "...",
-      "code": "AA-1024",
-      "title": "...",
-      "category": "urbano",
-      "purpose": "alugar",
-      "price": 0,
-      "gallery": [{ "src": "https://...", "alt": "..." }],
-      "updatedAt": "2026-11-24T00:00:00.000Z"
-    }
-  ]
-}
+```text
+sites/alto-araguaia-imoveis/src/content/properties/<slug>.md
 ```
+
+Cada arquivo tem frontmatter validado pelo schema da coleção `properties`:
+
+```yaml
+---
+title: "Casa moderna com área de lazer"
+code: "AA-1024"
+type: "Casa"                    # property.type
+category: "urbano"              # category.slug do Directus
+operation: "Venda"              # purpose convertido para o enum do site
+neighborhood: "Alto Araguaia"   # location.neighborhood
+city: "Alto Araguaia"           # location.city
+state: "MT"                     # location.state
+price: 650000
+rentPrice: 4800                 # opcional; omitir quando não houver
+area: 180
+areaUnit: "m²"
+bedrooms: 3
+bathrooms: 2
+garage: 2                       # property.parking
+images: ["/images/properties/aa-1024.webp"]
+features: ["Área de lazer", "3 quartos"]
+featured: false
+sample: false                   # true enquanto os dados não forem validados
+summary: "Casa de 180 m² em Alto Araguaia."
+---
+
+Descrição do imóvel em Markdown.
+```
+
+Mapeamento das taxonomias do Directus para o frontmatter: `category.slug` →
+`category`, `purpose.slug` → `operation` nos valores aceitos pelo schema
+(`Venda`, `Aluguel`, `Venda e locação`), e
+`location.neighborhood/city/state` → `neighborhood/city/state`. Os filtros do
+site usam os valores já publicados nos arquivos; a Tina não mantém cópia
+separada. `property.condominium` entra em `features` quando houver condomínio.
 
 Regras:
 
 - Somente `property.status = published` entra no snapshot.
+- Cada imóvel publicado vira um arquivo. O Flow remove os arquivos dos imóveis
+  que deixaram de estar publicados, para não manter oferta antiga no build.
+- O corpo do arquivo é a descrição; `images` substitui o campo `gallery` do
+  Directus e mantém as URLs já validadas pelo lightbox.
 - A mensagem de commit inclui `submission_id` ou `property_id` e o autor da
   decisão, para auditoria no Git.
 - O Flow é idempotente: se o conteúdo calculado for igual ao último commit, não
   cria novo commit nem novo build.
-- O build do Astro lê o arquivo local. Se o snapshot estiver ausente, o build
-  falha com erro explícito — nunca publica dados fictícios por acidente.
+- O build lê os arquivos do disco; não há chamada ao Directus em runtime.
+- **Estado real:** os 8 arquivos atuais são dados migrados/fictícios, ainda não
+  validados comercialmente. Hoje não existe checagem que interrompa o build
+  quando a coleção estiver vazia; substituí-los por dados aprovados é pendência
+  explícita.
 
 ## Galeria no frontend
 
 `gallery` é renderizada pelo componente de detalhe do imóvel com o lightbox já
 validado: contador "N fotos", miniaturas, setas, navegação por teclado. As URLs
-das imagens são gravadas no snapshot no build; não há chamada ao Directus no
-tempo de execução do site.
+das imagens ficam no campo `images` do frontmatter dos arquivos Markdown; não
+há chamada ao Directus no tempo de execução do site.
 
 ## Limites operacionais
 

@@ -39,7 +39,7 @@ const properties = defineCollection({
     images: z.array(z.string()).default([]),
     features: z.array(z.string()).default([]),
     featured: z.boolean().default(false),
-    /** Dados migrados do site público. Validar antes de republicar. */
+    /** `true` = dados migrados/de exemplo, ainda não validados comercialmente. */
     sample: z.boolean().default(false),
     summary: z.string(),
   }),

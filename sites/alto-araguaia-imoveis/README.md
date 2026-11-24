@@ -33,7 +33,9 @@ O painel de busca segue os campos do site publicado:
 - Busca por palavra-chave (`q`), Localização (`city_id`), Pretensão (`purpose`) e Faixa de Preço (`price_range`).
 - “Mais filtros” abre Categoria, Tipo de Imóvel, Condomínio, Região, Bairro, Quartos, Banheiros, Vagas, Área mínima (m²), Preço mínimo, Preço Máximo, Ordenado por e Buscar Código.
 - A submissão é `GET`; os parâmetros voltam preenchidos na URL e o contador de resultados é atualizado no cliente.
+- Trocar `Categoria` atualiza `action` e o parâmetro `p` juntos: `Urbano` leva a `/imoveis-urbanos/`, `Rural` a `/imoveis-rurais/` e `Urbano e rural` a `/imoveis/`. Isso evita filtros contraditórios nas páginas por categoria.
 - A ordenação funciona por mais recentes, menor preço, maior preço e maior área.
+- Na página de detalhe, o botão “N fotos” e as miniaturas abrem um lightbox com setas, teclado e contador.
 
 ## Conteúdo
 

@@ -196,9 +196,17 @@ const submitLabel = variant === "hero" ? "Buscar imóveis" : "Filtrar imóveis";
 </form>
 
 <script>
+  import { syncCategoryRoute } from "../lib/filter-routes";
+
   document.querySelectorAll<HTMLFormElement>("[data-search-panel]").forEach((form) => {
     const advanced = form.querySelector<HTMLElement>("[data-advanced]");
     const toggle = form.querySelector<HTMLButtonElement>("[data-toggle-advanced]");
+
+    syncCategoryRoute(form);
+    form.querySelector<HTMLSelectElement>('select[name="category"]')?.addEventListener("change", () => {
+      syncCategoryRoute(form);
+    });
+
     toggle?.addEventListener("click", () => {
       if (!advanced) return;
       const open = advanced.hasAttribute("hidden");

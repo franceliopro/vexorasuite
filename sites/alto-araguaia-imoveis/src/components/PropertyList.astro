@@ -39,6 +39,8 @@ const { properties, category = "", title, description } = Astro.props;
 </div>
 
 <script>
+  import { syncCategoryRoute } from "../lib/filter-routes";
+
   const root = document.querySelector<HTMLElement>("[data-property-root]");
   if (root) {
     const grid = root.querySelector<HTMLElement>("[data-property-grid]");
@@ -53,6 +55,9 @@ const { properties, category = "", title, description } = Astro.props;
       const control = form?.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | null;
       if (control && value) control.value = value;
     });
+
+    // A URL pode trazer `category` e `p` divergentes; a categoria visível manda.
+    syncCategoryRoute(form);
 
     function parseCurrency(value: string): number {
       const normalized = value
@@ -137,6 +142,7 @@ const { properties, category = "", title, description } = Astro.props;
     }
 
     form?.addEventListener("submit", () => {
+      syncCategoryRoute(form);
       // O formulário GET recarrega a página; os filtros são lidos da URL.
       window.setTimeout(apply, 0);
     });
@@ -144,6 +150,7 @@ const { properties, category = "", title, description } = Astro.props;
     ["input", "change"].forEach((eventName) => {
       form?.addEventListener(eventName, () => {
         if (!form || !window.history?.replaceState) return;
+        syncCategoryRoute(form);
         const params = new URLSearchParams();
         new FormData(form).forEach((value, key) => {
           const text = String(value);
@@ -161,6 +168,7 @@ const { properties, category = "", title, description } = Astro.props;
 
     clear?.addEventListener("click", () => {
       form?.reset();
+      syncCategoryRoute(form);
       if (window.history?.replaceState) {
         window.history.replaceState(null, "", window.location.pathname);
       }

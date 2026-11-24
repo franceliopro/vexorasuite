@@ -170,6 +170,13 @@ async function main() {
     expect("POST /api/sites/hub/requests/:id/decision without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/decision`, {})).status, 401);
     expect("POST /api/sites/hub/requests/:id/publish-request without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/publish-request`, {})).status, 401);
     expect("POST /api/sites/hub/requests/:id/publish-confirm without token", (await call(baseUrl, "POST", `/api/sites/hub/requests/${routeId}/publish-confirm`, {})).status, 401);
+    // Presença: referências externas, artes e publicação Cloudflare, todos autenticados e tenant-scoped.
+    expect("GET /api/presence without token", (await call(baseUrl, "GET", "/api/presence")).status, 401);
+    expect("POST /api/presence/sites/external without token", (await call(baseUrl, "POST", "/api/presence/sites/external", {})).status, 401);
+    expect("DELETE /api/presence/sites/external/:id without token", (await call(baseUrl, "DELETE", `/api/presence/sites/external/${routeId}`)).status, 401);
+    expect("POST /api/presence/art without token", (await call(baseUrl, "POST", "/api/presence/art", {})).status, 401);
+    expect("GET /api/presence/art/:id/svg without token", (await call(baseUrl, "GET", `/api/presence/art/${routeId}/svg`)).status, 401);
+    expect("POST /api/presence/art/:id/publish without token", (await call(baseUrl, "POST", `/api/presence/art/${routeId}/publish`, {})).status, 401);
     // Public route has no session; a 404 (not 401 and not 500) proves it reached the service.
     expect("POST /api/public/sites/:id/forms/:block/submit to unknown site", (await call(baseUrl, "POST", `/api/public/sites/${routeId}/forms/bloco/submit`, { values: { nome: "Teste" } })).status, 404);
 

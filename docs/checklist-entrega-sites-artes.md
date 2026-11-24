@@ -1,7 +1,7 @@
 # Checklist de entrega — sites e artes
 
-**Status:** aguardando o proprietário. **Não autoriza `apply`, DNS, TLS público, publicação, migração nem qualquer operação externa.**  
-**Data:** 2026-11-22. Complementa `docs/plano-transicao-presenca-criativos.md`.
+**Status:** sites observados no ar; artes, HUB operacional e insumos seguem aguardando o proprietário. **Não autoriza `apply`, DNS, TLS público, publicação, migração nem qualquer operação externa.**  
+**Data:** 2026-11-24. Complementa `docs/plano-transicao-presenca-criativos.md`.
 
 A Véxora registra o pedido, a aprovação, a publicação e a auditoria. A execução de sites e criativos fica fora da Véxora e depende de acesso e insumos que o proprietário ainda não enviou. Enquanto isso, o provisionador continua em `simulation`; nenhum recurso real foi criado.
 
@@ -11,7 +11,7 @@ A Véxora registra o pedido, a aprovação, a publicação e a auditoria. A exec
 
 Preencher para cada um dos quatro sites (Alto Araguaia Imóveis, Rastreabem, SOS Alto Araguaia, Morbeck x Carvalhinho):
 
-Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morbeck x Carvalhinho ainda é WordPress com ~40 páginas; Alto Araguaia Imóveis é PHP com CMS próprio e está fora do ar; SOS Alto Araguaia está sob avaliação e fora do ciclo inicial.
+Estado verificado em 2026-11-24: Rastreabem e Morbeck x Carvalhinho responderam HTTP 200 no domínio final com os marcadores dos builds atuais e assets locais íntegros; Alto Araguaia Imóveis segue em PHP com CMS próprio e fora do ar, e SOS Alto Araguaia está sob avaliação e fora do ciclo inicial. Essa observação não significa que esta rodada tenha executado deploy, DNS, TLS ou configurado o HUB.
 
 - [ ] **Slug definitivo** usado em pasta, banco e vhost.
 - [ ] **Domínio real** no qual o site deve responder.
@@ -30,7 +30,7 @@ Estado real informado pelo proprietário: Rastreabem já tem HTML completo; Morb
 - [ ] **Conta/token Cloudflare Pages** e acesso DNS/TLS quando a publicação for executada; sem isso, o HUB só registra pedido/preview/aprovação.
 - [ ] **Briefing de artes por peça:** objetivo, canal/formato, identidade visual, texto/matéria-prima aprovados, prazo, aprovador e destino/publicador. O intake estruturado já existe em Marketing → Briefings e valida esses campos, mas continua bloqueado até o proprietário preencher o briefing real de cada peça.
 - [ ] **Credenciais Stripe e InfinitePay** (chaves, webhook secret/handle e ambiente sandbox/produção). Adaptadores já implementados no PR #1183; sem credenciais, webhook registrado e evidência do provedor, não validar cobrança real.
-- [ ] **Evidência no ar** para qualquer afirmação de publicação, domínio ativo, TLS, pagamento ou integração funcionando.
+- [x] **Evidência no ar observada em 2026-11-24:** Rastreabem e Morbeck x Carvalhinho responderam HTTP 200 no domínio final com marcadores dos builds atuais e zero assets locais quebrados. Para qualquer outra publicação, domínio, TLS, pagamento ou integração, a evidência continua pendente.
 
 ## 2. Infraestrutura do provisionador
 

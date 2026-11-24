@@ -81,3 +81,6 @@ jobs:
 
       - name: Audit local links and assets
         run: node scripts/audit-links.mjs dist
+
+      - name: Verify announcement form contract
+        run: node --test test/announcements-endpoint.test.mjs

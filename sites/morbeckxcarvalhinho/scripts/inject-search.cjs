@@ -5,13 +5,13 @@ const root = path.resolve(__dirname, "..");
 const src = path.join(root, "src");
 
 const SEARCH_HTML = `
-<section id="site-search" class="site-search" aria-label="Busca no site" style="max-width:1100px;margin:0 auto;padding:18px 20px;border-bottom:1px solid #d9d4c5;background:#f4f1e8;">
-  <form id="site-search-form" role="search" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <label for="site-search-input" style="font-weight:600;color:#333;">Buscar no site</label>
-    <input type="search" id="site-search-input" placeholder="Digite uma palavra..." autocomplete="off" style="flex:1 1 220px;min-width:0;padding:10px 12px;border:1px solid #aaa;border-radius:3px;font-size:16px;">
-    <button type="submit" style="padding:10px 18px;background:#a29e6b;color:#fff;border:0;border-radius:3px;font-weight:600;cursor:pointer;">Buscar</button>
+<section id="site-search" class="site-search" aria-label="Busca no site">
+  <form id="site-search-form" role="search">
+    <label class="screen-reader-text" for="site-search-input">Buscar no site</label>
+    <input type="search" id="site-search-input" placeholder="Buscar..." autocomplete="off">
+    <button type="submit">Buscar</button>
   </form>
-  <div id="site-search-results" hidden style="margin-top:14px;"></div>
+  <div id="site-search-results" hidden></div>
 </section>
 `;
 
@@ -29,13 +29,21 @@ function walk(dir, list = []) {
 let changed = 0;
 for (const file of walk(src)) {
   let html = fs.readFileSync(file, "utf8");
-  if (html.includes('id="site-search-form"')) continue;
-  const closeHeader = html.indexOf("</header>");
-  if (closeHeader < 0) throw new Error("header nao encontrado: " + file);
-  const at = closeHeader + "</header>".length;
-  html = html.slice(0, at) + SEARCH_HTML + html.slice(at);
-  html = html.replace("</body>", SEARCH_SCRIPT + "\n</body>");
+
+  // Remove a versão anterior para reposicionar sem duplicar.
+  html = html.replace(/<section id="site-search"[\s\S]*?<\/section>/i, "");
+
+  // Busca fica dentro da barra lateral, acima do menu PRINCIPAL.
+  const sidebar = /<div id="right-sidebar-inner"[^>]*>/i.exec(html);
+  if (!sidebar) throw new Error("barra lateral nao encontrada: " + file);
+  const insertAt = sidebar.index + sidebar[0].length;
+  html = html.slice(0, insertAt) + SEARCH_HTML + html.slice(insertAt);
+
+  if (!html.includes('/assets/js/search.js')) {
+    html = html.replace("</body>", SEARCH_SCRIPT + "\n</body>");
+  }
+
   fs.writeFileSync(file, html);
   changed++;
 }
-console.log(`Busca injetada em ${changed} paginas`);
+console.log(`Busca reposicionada em ${changed} paginas`);

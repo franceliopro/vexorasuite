@@ -4,6 +4,10 @@ import Breadcrumb from "../components/Breadcrumb.astro";
 import ContactForm from "../components/ContactForm.astro";
 import Section from "../components/Section.astro";
 import { site } from "../data/site.config";
+
+// Endpoint público do Worker de anúncios. Sem ele, o formulário abre o WhatsApp
+// e não afirma que a submissão foi registrada.
+const announcementEndpoint = import.meta.env.PUBLIC_ANNOUNCEMENTS_ENDPOINT ?? "";
 ---
 
 <BaseLayout
@@ -26,7 +30,7 @@ import { site } from "../data/site.config";
 
   <section class="section">
     <div class="container grid cols-2 contact-layout">
-      <ContactForm variant="announce" source="Anúncio de imóvel" />
+      <ContactForm variant="announce" source="Anúncio de imóvel" endpoint={announcementEndpoint} />
 
       <aside>
         <h2>Como funciona</h2>

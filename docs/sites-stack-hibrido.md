@@ -84,7 +84,7 @@ As transições e os endpoints já existem em
 
 ```text
 Visitante preenche formulário
-  → Cloudflare Worker (validação + rate limit)
+  → Cloudflare Worker (validação + rate limit; `workers/form-submissions`)
   → Directus: submission com status pending
   → Flow notifica Admin (Resend / WhatsApp)
   → Admin aprova ou rejeita com rejection_reason
@@ -123,6 +123,7 @@ Esta é a arquitetura decidida, não uma instalação concluída. Em 24/11/2026:
 
 - nenhuma instância Directus foi configurada;
 - nenhum Flow, snapshot ou notificação foi executado;
+- o Worker do formulário está versionado e testado, mas não foi implantado;
 - nenhum projeto Cloudflare Pages foi criado por este processo;
 - nenhum domínio foi apontado;
 - os imóveis no repositório são fictícios.

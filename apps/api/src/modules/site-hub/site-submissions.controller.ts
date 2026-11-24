@@ -4,8 +4,8 @@ import { AuthenticatedRequest } from "../../auth/auth.types";
 import { SiteSubmissionsService } from "./site-submissions.service";
 
 /**
- * Anúncios do HUB de Sites: submissões do formulário público lidas do Directus.
- * A identidade do tenant vem da sessão; nenhum token do Directus chega ao cliente.
+ * Anúncios do HUB de Sites: submissões do formulário público lidas do CMS configurado.
+ * A identidade do tenant vem da sessão; nenhum token do CMS chega ao cliente.
  */
 @UseGuards(AuthGuard)
 @Controller("sites/hub/submissions")

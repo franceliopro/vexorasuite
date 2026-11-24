@@ -92,6 +92,7 @@ import {
   MoreHorizontal,
   Image,
   Globe,
+  ExternalLink,
   Menu,
   Search,
   Plus,
@@ -562,6 +563,11 @@ export default function HomePage() {
             <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
+          {isOverview && session?.tenant.slug === "rastreabem" ? <section className={cardTw} aria-label="Site externo da Rastreabem">
+            <h2 className="text-body-lg font-bold text-slate-950">Site da Rastreabem</h2>
+            <p className="text-sm text-slate-600">Acesso ao site externo da empresa. A Véxora não hospedou nem publicou esta página.</p>
+            <a className={primaryButton} href="https://rastreabem.com.br" target="_blank" rel="noreferrer">Abrir rastreabem.com.br em nova janela <ExternalLink size={16} aria-hidden="true" /></a>
+          </section> : null}
           {isOverview ? <div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>
             <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />
             <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />

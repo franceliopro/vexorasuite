@@ -1,0 +1,11 @@
+---
+import { site } from "../data/site.config";
+---
+
+<div class="benefit-lead">
+  <span class="eyebrow">Conhecimento local. Atendimento de verdade.</span>
+  <h2>Mais segurança e clareza em cada etapa da sua jornada.</h2>
+  <p>
+    {site.features.map((feature) => feature.title).join(" · ")}
+  </p>
+</div>

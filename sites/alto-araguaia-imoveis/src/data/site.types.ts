@@ -6,36 +6,49 @@ export type Feature = {
   description: string;
 };
 
-export type SiteConfig = {
-  /** Nome curto da marca, usado na navegação e no JSON-LD. */
-  name: string;
-  /** Título padrão das páginas. */
+export type CategoryTile = {
   title: string;
-  /** Descrição padrão para SEO. */
   description: string;
-  /** URL canônica raiz, sem barra final. */
+  href: string;
+  icon: string;
+};
+
+export type Testimonial = {
+  quote: string;
+  author: string;
+};
+
+export type ContactChannel = {
+  label: string;
+  phone: string;
+  whatsapp: string;
+  description: string;
+};
+
+export type SiteConfig = {
+  name: string;
+  title: string;
+  description: string;
   url: string;
   locale: string;
   themeColor: string;
   logo: string;
   email: string;
   phone: string;
-  /** Apenas dígitos, com DDI (ex.: 5564999999999). */
   whatsapp: string;
   whatsappMessage: string;
   address: string;
+  hours: string;
+  creci: string;
+  channels: ContactChannel[];
   hero: {
     eyebrow: string;
     title: string;
-    accent: string;
     description: string;
-    primaryLabel: string;
-    /** Destino do CTA principal. Vazio = WhatsApp (se configurado) ou /contato/. */
-    primaryHref: string;
-    secondaryLabel: string;
-    secondaryHref: string;
   };
   features: Feature[];
+  categories: CategoryTile[];
+  testimonials: Testimonial[];
   navigation: NavItem[];
   social: NavItem[];
 };

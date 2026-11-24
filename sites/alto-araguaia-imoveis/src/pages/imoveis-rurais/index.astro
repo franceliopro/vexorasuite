@@ -1,0 +1,38 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import PropertyList from "../../components/PropertyList.astro";
+import RuralBanner from "../../components/RuralBanner.astro";
+
+const properties = (await getCollection("properties")).filter(
+  (item) => item.data.category === "rural",
+);
+---
+
+<BaseLayout
+  title="Imóveis rurais em Alto Araguaia e região | Alto Araguaia Imóveis"
+  description="Fazendas, chácaras e áreas rurais em Alto Araguaia, Alto Garças, Alto Taquari e Santa Rita do Araguaia."
+>
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Rurais", href: "/imoveis-rurais/" }]} />
+      <span class="eyebrow">Imóveis rurais</span>
+      <h1>Fazendas, chácaras e áreas para investir</h1>
+      <p>Equipe que conhece o campo, a documentação e as oportunidades da região.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <PropertyList
+        properties={properties}
+        category="rural"
+        title="Imóveis rurais"
+        description="Documentação, zoneamento e acessos devem ser validados com a equipe antes da negociação."
+      />
+    </div>
+  </section>
+
+  <RuralBanner />
+</BaseLayout>

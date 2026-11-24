@@ -1,0 +1,35 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import PropertyList from "../../components/PropertyList.astro";
+
+const properties = (await getCollection("properties")).filter(
+  (item) => item.data.category === "urbano",
+);
+---
+
+<BaseLayout
+  title="Imóveis urbanos em Alto Araguaia e região | Alto Araguaia Imóveis"
+  description="Casas, apartamentos e salas comerciais em Alto Araguaia, Alto Garças e região."
+>
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Urbanos", href: "/imoveis-urbanos/" }]} />
+      <span class="eyebrow">Imóveis urbanos</span>
+      <h1>Casas, apartamentos e imóveis comerciais</h1>
+      <p>Oportunidades na cidade e nos municípios vizinhos, com filtros por localização, tipo e valor.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <PropertyList
+        properties={properties}
+        category="urbano"
+        title="Imóveis urbanos"
+        description="Disponibilidade e condições comerciais devem ser confirmadas com a equipe."
+      />
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,172 @@
+---
+import type { CollectionEntry } from "astro:content";
+import SearchPanel from "./SearchPanel.astro";
+import PropertyCard from "./PropertyCard.astro";
+
+interface Props {
+  properties: CollectionEntry<"properties">[];
+  category?: "urbano" | "rural" | "";
+  title: string;
+  description: string;
+}
+
+const { properties, category = "", title, description } = Astro.props;
+---
+
+<div class="listing-root" data-property-root>
+  <SearchPanel variant="page" category={category} />
+
+  <div class="listing-head">
+    <h2 id="imoveis">{title}</h2>
+    <p data-results-count role="status" aria-live="polite">
+      {properties.length} imóveis encontrados
+    </p>
+  </div>
+  <p>{description}</p>
+
+  <div class="property-grid" data-property-grid>
+    {properties.map((property) => <PropertyCard property={property} />)}
+  </div>
+
+  <div class="filter-empty" data-empty hidden>
+    <h3>Nenhum imóvel com esses filtros</h3>
+    <p>Tente outro termo ou limpe os filtros para ver o portfólio completo.</p>
+  </div>
+
+  <div class="section-actions">
+    <button class="btn btn-clear" type="button" data-clear-filters>Limpar filtros</button>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-property-root]");
+  if (root) {
+    const grid = root.querySelector<HTMLElement>("[data-property-grid]");
+    const form = root.querySelector<HTMLFormElement>("[data-search-panel]");
+    const counter = root.querySelector<HTMLElement>("[data-results-count]");
+    const empty = root.querySelector<HTMLElement>("[data-empty]");
+    const clear = root.querySelector<HTMLButtonElement>("[data-clear-filters]");
+    const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-property-card]"));
+
+    const params = new URLSearchParams(window.location.search);
+    params.forEach((value, key) => {
+      const control = form?.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement | null;
+      if (control && value) control.value = value;
+    });
+
+    function parseCurrency(value: string): number {
+      const normalized = value
+        .replace(/[^\d,.-]/g, "")
+        .replace(/\./g, "")
+        .replace(",", ".");
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function fieldValue(name: string): string {
+      const control = form?.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+      return control ? String(control.value || "") : "";
+    }
+
+    function apply() {
+      const q = fieldValue("q").trim().toLowerCase();
+      const city = fieldValue("city_id").trim().toLowerCase();
+      const purpose = fieldValue("purpose").trim().toLowerCase();
+      const range = fieldValue("price_range");
+      const code = fieldValue("code").trim().toLowerCase();
+      const categoryFilter = fieldValue("category");
+      const type = fieldValue("property_type").trim().toLowerCase();
+      const condominium = fieldValue("condominium").trim().toLowerCase();
+      const region = fieldValue("region").trim().toLowerCase();
+      const neighborhood = fieldValue("neighborhood").trim().toLowerCase();
+      const bedrooms = Number(fieldValue("bedrooms") || 0);
+      const bathrooms = Number(fieldValue("bathrooms") || 0);
+      const parking = Number(fieldValue("parking") || 0);
+      const areaMin = Number(fieldValue("area_min") || 0);
+      const minPrice = parseCurrency(fieldValue("min_price"));
+      const maxPrice = parseCurrency(fieldValue("max_price"));
+      const order = fieldValue("order") || "recent";
+
+      const [rangeMinRaw, rangeMaxRaw] = range.split("-");
+      const rangeMin = rangeMinRaw ? Number(rangeMinRaw) : 0;
+      const rangeMax = rangeMaxRaw ? Number(rangeMaxRaw) : Infinity;
+      const effectiveMin = Math.max(minPrice, rangeMin || 0);
+      const effectiveMax = Math.min(maxPrice || Infinity, rangeMax || Infinity);
+
+      let visible = 0;
+      cards.forEach((card) => {
+        const d = card.dataset;
+        const rawArea = Number(d.area || 0);
+        const areaSqm = d.areaUnit === "ha" ? rawArea * 10000 : rawArea;
+        const price = Number(d.price || 0);
+        const matches = [
+          !q || (d.search || "").includes(q),
+          !city || (d.city || "").toLowerCase().includes(city),
+          !purpose || (d.purpose || "").includes(purpose),
+          !code || (d.code || "").toLowerCase().includes(code),
+          !categoryFilter || d.category === categoryFilter,
+          !type || (d.type || "").toLowerCase() === type,
+          !condominium || (d.condominium || "").toLowerCase().includes(condominium),
+          !region || (d.region || "").toLowerCase().includes(region),
+          !neighborhood || (d.neighborhood || "").toLowerCase().includes(neighborhood),
+          bedrooms === 0 || Number(d.bedrooms || 0) >= bedrooms,
+          bathrooms === 0 || Number(d.bathrooms || 0) >= bathrooms,
+          parking === 0 || Number(d.parking || 0) >= parking,
+          areaMin === 0 || areaSqm >= areaMin,
+          price >= effectiveMin && price <= effectiveMax,
+        ].every(Boolean);
+
+        card.hidden = !matches;
+        if (matches) visible += 1;
+      });
+
+      if (order !== "recent" && grid) {
+        const sorted = [...cards].sort((a, b) => {
+          if (order === "price_asc") return Number(a.dataset.price) - Number(b.dataset.price);
+          if (order === "price_desc") return Number(b.dataset.price) - Number(a.dataset.price);
+          if (order === "area_desc") return Number(b.dataset.area) - Number(a.dataset.area);
+          return 0;
+        });
+        sorted.forEach((card) => grid.appendChild(card));
+      }
+
+      if (counter) {
+        counter.textContent = `${visible} ${visible === 1 ? "imóvel encontrado" : "imóveis encontrados"}`;
+      }
+      if (empty) empty.hidden = visible !== 0;
+    }
+
+    form?.addEventListener("submit", () => {
+      // O formulário GET recarrega a página; os filtros são lidos da URL.
+      window.setTimeout(apply, 0);
+    });
+
+    ["input", "change"].forEach((eventName) => {
+      form?.addEventListener(eventName, () => {
+        if (!form || !window.history?.replaceState) return;
+        const params = new URLSearchParams();
+        new FormData(form).forEach((value, key) => {
+          const text = String(value);
+          if (text) params.set(key, text);
+        });
+        const query = params.toString();
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+        );
+        apply();
+      });
+    });
+
+    clear?.addEventListener("click", () => {
+      form?.reset();
+      if (window.history?.replaceState) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+      apply();
+    });
+
+    apply();
+  }
+</script>

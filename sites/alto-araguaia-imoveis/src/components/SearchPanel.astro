@@ -1,0 +1,225 @@
+---
+interface Props {
+  variant?: "hero" | "page";
+  category?: "urbano" | "rural" | "";
+}
+
+const { variant = "hero", category = "" } = Astro.props;
+
+const cities = [
+  "Alto Araguaia - MT",
+  "Alto Garças - MT",
+  "Alto Taquari - MT",
+  "Santa Rita do Araguaia - GO",
+];
+const purposes = [
+  ["Comprar", "comprar"],
+  ["Vender", "vender"],
+  ["Alugar", "alugar"],
+  ["Trocar", "trocar"],
+  ["Emprestar", "emprestar"],
+  ["Doar", "doar"],
+] as const;
+const ranges = [
+  ["Qualquer valor", ""],
+  ["Até R$ 80.000", "0-80000"],
+  ["De R$ 80.000 até R$ 100.000", "80000-100000"],
+  ["De R$ 100.000 até R$ 200.000", "100000-200000"],
+  ["De R$ 200.000 até R$ 400.000", "200000-400000"],
+  ["De R$ 400.000 até R$ 600.000", "400000-600000"],
+  ["De R$ 600.000 até R$ 800.000", "600000-800000"],
+  ["De R$ 800.000 até R$ 1.000.000", "800000-1000000"],
+  ["De R$ 1.000.000 até R$ 2.000.000", "1000000-2000000"],
+  ["De R$ 2.000.000 até R$ 4.000.000", "2000000-4000000"],
+  ["De R$ 4.000.000 até R$ 6.000.000", "4000000-6000000"],
+  ["De R$ 6.000.000 até R$ 8.000.000", "6000000-8000000"],
+  ["De R$ 8.000.000 até R$ 10.000.000", "8000000-10000000"],
+  ["Acima de R$ 10.000.000", "10000000-"],
+] as const;
+const types =
+  category === "rural"
+    ? ["Área", "Chácara", "Fazenda", "Terreno", "Gado"]
+    : [
+        "Salão",
+        "Sobrado",
+        "Casa",
+        "Kitnet",
+        "Terreno",
+        "Galpão",
+        "Sala Salão",
+        "Prédio",
+        "Sobrado Terreno",
+        "Apartamento",
+        "Sala comercial",
+      ];
+const counts = ["1+", "2+", "3+", "4+", "5+"];
+const orders = [
+  ["Mais recentes", "recent"],
+  ["Menor preço", "price_asc"],
+  ["Maior preço", "price_desc"],
+  ["Maior área", "area_desc"],
+] as const;
+
+const action =
+  category === "rural"
+    ? "/imoveis-rurais/#imoveis"
+    : category === "urbano"
+      ? "/imoveis-urbanos/#imoveis"
+      : "/imoveis/#imoveis";
+const submitLabel = variant === "hero" ? "Buscar imóveis" : "Filtrar imóveis";
+---
+
+<form
+  class={variant === "hero" ? "search-panel" : "search-panel page-search"}
+  action={action}
+  method="get"
+  data-search-panel
+  data-category={category}
+>
+  <div class="search-grid">
+    <label class="search-field">
+      <span>O QUE VOCÊ PROCURA?</span>
+      <input
+        type="search"
+        name="q"
+        placeholder={variant === "hero" ? "Casa, fazenda, código..." : "Bairro, código ou palavra-chave"}
+        aria-label="O que você procura?"
+      />
+    </label>
+    <label class="search-field">
+      <span>LOCALIZAÇÃO</span>
+      <select name="city_id" aria-label="Localização">
+        <option value="">Todas as cidades</option>
+        {cities.map((city) => <option value={city}>{city}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>PRETENSÃO</span>
+      <select name="purpose" aria-label="Pretensão">
+        <option value="">Comprar, alugar...</option>
+        {purposes.map(([label, value]) => <option value={value}>{label}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>FAIXA DE PREÇO</span>
+      <select name="price_range" aria-label="Faixa de preço">
+        {ranges.map(([label, value]) => <option value={value}>{label}</option>)}
+      </select>
+    </label>
+  </div>
+
+  <div class="search-actions">
+    <button class="btn btn-search" type="submit">{submitLabel}</button>
+    {
+      variant === "hero" && (
+        <button class="btn-search-toggle" type="button" data-toggle-advanced aria-expanded="false">
+          Mais filtros <span aria-hidden="true">⌄</span>
+        </button>
+      )
+    }
+  </div>
+
+  <div class="search-advanced" data-advanced hidden={variant === "hero" ? true : undefined}>
+    <label class="search-field">
+      <span>CATEGORIA</span>
+      <select name="category" aria-label="Categoria">
+        <option value="" selected={!category}>Urbano e rural</option>
+        <option value="urbano" selected={category === "urbano"}>Urbano</option>
+        <option value="rural" selected={category === "rural"}>Rural</option>
+      </select>
+    </label>
+    <label class="search-field">
+      <span>TIPO DE IMÓVEL</span>
+      <select name="property_type" aria-label="Tipo de imóvel">
+        <option value="">Todos os tipos</option>
+        {types.map((type) => <option value={type}>{type}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>CONDOMÍNIO</span>
+      <input type="search" name="condominium" placeholder="Nome do condomínio" />
+    </label>
+    <label class="search-field">
+      <span>REGIÃO</span>
+      <input type="search" name="region" placeholder="Região ou zona" />
+    </label>
+    <label class="search-field">
+      <span>BAIRRO</span>
+      <input type="search" name="neighborhood" placeholder="Bairro" />
+    </label>
+    <label class="search-field">
+      <span>QUARTOS</span>
+      <select name="bedrooms" aria-label="Quartos">
+        <option value="">Qualquer</option>
+        {counts.map((count) => <option value={count.replace("+", "")}>{count}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>BANHEIROS</span>
+      <select name="bathrooms" aria-label="Banheiros">
+        <option value="">Qualquer</option>
+        {counts.map((count) => <option value={count.replace("+", "")}>{count}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>VAGAS</span>
+      <select name="parking" aria-label="Vagas">
+        <option value="">Qualquer</option>
+        {counts.map((count) => <option value={count.replace("+", "")}>{count}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>ÁREA MÍNIMA (M²)</span>
+      <input type="number" name="area_min" placeholder="Ex.: 100" min="0" />
+    </label>
+    <label class="search-field">
+      <span>PREÇO MÍNIMO</span>
+      <input type="text" name="min_price" placeholder="R$ 0,00" inputmode="numeric" />
+    </label>
+    <label class="search-field">
+      <span>PREÇO MÁXIMO</span>
+      <input type="text" name="max_price" placeholder="Sem limite" inputmode="numeric" />
+    </label>
+    <label class="search-field">
+      <span>ORDENADO POR</span>
+      <select name="order" aria-label="Ordenado por">
+        {orders.map(([label, value]) => <option value={value}>{label}</option>)}
+      </select>
+    </label>
+    <label class="search-field">
+      <span>BUSCAR CÓDIGO</span>
+      <input type="search" name="code" placeholder="Ex.: AA-1024" />
+    </label>
+  </div>
+
+  <input type="hidden" name="p" value={category || "inicio"} />
+</form>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("[data-search-panel]").forEach((form) => {
+    const advanced = form.querySelector<HTMLElement>("[data-advanced]");
+    const toggle = form.querySelector<HTMLButtonElement>("[data-toggle-advanced]");
+    toggle?.addEventListener("click", () => {
+      if (!advanced) return;
+      const open = advanced.hasAttribute("hidden");
+      if (open) advanced.removeAttribute("hidden");
+      else advanced.setAttribute("hidden", "");
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.innerHTML = open
+        ? 'Menos filtros <span aria-hidden="true">⌃</span>'
+        : 'Mais filtros <span aria-hidden="true">⌄</span>';
+    });
+
+    // Evita parâmetros vazios na URL gerada pelo GET.
+    form.addEventListener("submit", () => {
+      form.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select").forEach((field) => {
+        if (!field.value && field.type !== "hidden") field.disabled = true;
+      });
+    });
+    window.addEventListener("pageshow", () => {
+      form.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select").forEach((field) => {
+        field.disabled = false;
+      });
+    });
+  });
+</script>

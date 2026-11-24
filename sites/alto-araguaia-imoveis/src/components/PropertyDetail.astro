@@ -1,0 +1,189 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import ContactForm from "../components/ContactForm.astro";
+import PropertyCard from "../components/PropertyCard.astro";
+import { formatArea, formatBRL } from "../lib/format";
+import { site } from "../data/site.config";
+import { safeBaseUrl } from "../lib/config";
+
+interface Props {
+  property: CollectionEntry<"properties">;
+  legacy?: boolean;
+}
+
+const { property, legacy = false } = Astro.props;
+const { data } = property;
+const { Content } = await render(property);
+const all = await getCollection("properties");
+const related = all
+  .filter((item) => item.id !== property.id && item.data.category === data.category)
+  .slice(0, 3);
+
+const listingHref = data.category === "rural" ? "/imoveis-rurais/" : "/imoveis-urbanos/";
+const canonicalPath = `/imovel/${property.id}/`;
+const image = data.images[0] || "/images/hero-house.webp";
+const rent = data.rentPrice ? `${formatBRL(data.rentPrice)} /mês` : "";
+const price =
+  data.operation === "Aluguel"
+    ? `${formatBRL(data.price)} /mês`
+    : data.operation === "Venda e locação" && rent
+      ? `${formatBRL(data.price)} · ${rent}`
+      : formatBRL(data.price);
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: data.title,
+  description: data.summary,
+  image: data.images.map((item) => new URL(item, safeBaseUrl(site.url)).href),
+  offers: {
+    "@type": "Offer",
+    price: data.price,
+    priceCurrency: "BRL",
+    availability: "https://schema.org/InStock",
+  },
+};
+---
+
+<BaseLayout
+  title={`${data.title} | ${site.name}`}
+  description={data.summary}
+  image={image}
+  noindex={legacy}
+  canonicalPath={legacy ? canonicalPath : undefined}
+>
+  <div class="container page-top">
+    <Breadcrumb
+      items={[
+        { label: "Início", href: "/" },
+        { label: data.category === "rural" ? "Rurais" : "Urbanos", href: listingHref },
+        { label: data.title, href: canonicalPath },
+      ]}
+    />
+  </div>
+
+  <section class="section property-detail">
+    <div class="container">
+      <div class="detail-head">
+        <div>
+          <div class="badge-row">
+            <span class="property-code" style="position: static; background: var(--yellow);">
+              CÓD. {data.code}
+            </span>
+            <span class="property-badge" style="position: static;">{data.operation}</span>
+          </div>
+          <h1>{data.title}</h1>
+          <p class="property-location">
+            ⌖ {data.neighborhood} · {data.city} - {data.state}
+          </p>
+        </div>
+        <strong class="detail-price">{price}</strong>
+      </div>
+
+      <div class="grid cols-2 detail-grid">
+        <div>
+          <div class="gallery">
+            <img
+              class="gallery-main"
+              src={image}
+              alt={data.title}
+              data-gallery-main
+              width="1200"
+              height="800"
+            />
+            <div class="gallery-thumbs" aria-label="Imagens do imóvel">
+              {
+                data.images.map((item, index) => (
+                  <button
+                    type="button"
+                    class="gallery-thumb"
+                    data-gallery-thumb
+                    data-image={item}
+                    aria-pressed={index === 0}
+                    aria-label={`Ver imagem ${index + 1}`}
+                  >
+                    <img src={item} alt="" loading="lazy" />
+                  </button>
+                ))
+              }
+            </div>
+          </div>
+
+          <div class="prose detail-description">
+            <h2>Sobre o imóvel</h2>
+            <Content />
+          </div>
+
+          {
+            data.features.length > 0 && (
+              <div class="feature-list">
+                <h2>O que este imóvel oferece</h2>
+                <ul>
+                  {data.features.map((feature) => <li>{feature}</li>)}
+                </ul>
+              </div>
+            )
+          }
+        </div>
+
+        <aside class="detail-side" id="contato">
+          <div class="spec-panel">
+            <h2>Informações rápidas</h2>
+            <dl>
+              <div><dt>Código</dt><dd>{data.code}</dd></div>
+              <div><dt>Tipo</dt><dd>{data.type}</dd></div>
+              <div><dt>Operação</dt><dd>{data.operation}</dd></div>
+              <div><dt>Área</dt><dd>{formatArea(data.area, data.areaUnit)}</dd></div>
+              <div><dt>Quartos</dt><dd>{data.bedrooms || "—"}</dd></div>
+              <div><dt>Banheiros</dt><dd>{data.bathrooms || "—"}</dd></div>
+              <div><dt>Vagas</dt><dd>{data.garage || "—"}</dd></div>
+              <div><dt>Localização</dt><dd>{data.city} - {data.state}</dd></div>
+            </dl>
+          </div>
+
+          <ContactForm
+            heading="Perguntar sobre este imóvel"
+            source={`Imóvel: ${data.title} (${data.code})`}
+            channel={data.category === "rural" ? "rural" : "urbano"}
+            compact={true}
+          />
+        </aside>
+      </div>
+
+      {
+        related.length > 0 && (
+          <div class="related">
+            <h2>Outros imóveis na região</h2>
+            <div class="property-grid">
+              {related.map((item) => <PropertyCard property={item} />)}
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <script
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")}
+  />
+</BaseLayout>
+
+<script>
+  const main = document.querySelector<HTMLImageElement>("[data-gallery-main]");
+  document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]").forEach((thumb) => {
+    thumb.addEventListener("click", () => {
+      const next = thumb.dataset.image;
+      if (main && next) {
+        main.src = next;
+        main.alt = "Imagem selecionada do imóvel";
+      }
+      document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]").forEach((item) => {
+        item.setAttribute("aria-pressed", String(item === thumb));
+      });
+    });
+  });
+</script>

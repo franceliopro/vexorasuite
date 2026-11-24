@@ -110,11 +110,13 @@ async function proxyRequest(request: Request, context: Context) {
     /^sites\/[^/]+\/pages\/[^/]+\/relayout$/.test(pathValue) ||
     /^sites\/pages\/[^/]+\/blocks\/[^/]+\/ai$/.test(pathValue)
   );
-  const isChatbotFlow = request.method === "POST" && pathValue === "assistant/engine/create-flow";
+  const isChatbotFlow = request.method === "POST" && (pathValue === "assistant/engine/create-flow" || pathValue === "assistant/engine/flow-command");
   const proxyFailure = (error: unknown) => {
     if (isChatbotFlow && error instanceof Error && error.name === "TimeoutError") {
       return applyResponseRequestId(Response.json({
-        message: "A criação do fluxo excedeu o tempo de resposta. Confira o rascunho antes de tentar novamente.",
+        message: pathValue === "assistant/engine/flow-command"
+          ? "O comando do fluxo excedeu o tempo de resposta. Confira o rascunho antes de tentar novamente."
+          : "A criação do fluxo excedeu o tempo de resposta. Confira o rascunho antes de tentar novamente.",
       }, { status: 504 }), requestId);
     }
     if (isSiteAi && error instanceof Error && error.name === "TimeoutError") {
@@ -127,6 +129,7 @@ async function proxyRequest(request: Request, context: Context) {
   const timeoutFor = () => {
     if (request.method === "POST" && (pathValue === "team" || /^team\/[^/]+\/reset-password$/.test(pathValue))) return 55_000;
     if (isChatbotFlow) return 315_000;
+    if (request.method === "POST" && /^presence\/art\/[^/]+\/publish$/.test(pathValue)) return 180_000;
     if (isSiteAi) return 300000;
     const isAiGeneration = pathValue==='assistant/ask'||pathValue==='marketing/drafts'||/^assistant\/agents\/[^/]+\/test$/.test(pathValue);
     return isAiGeneration?200000:pathValue==='department-resources'?180000:pathValue.startsWith('mail/accounts/')&&pathValue.endsWith('/sync')?120000:pathValue==='marketing/prepared/upload'?180000:pathValue.startsWith('assistant/voice/')?70000:30000;

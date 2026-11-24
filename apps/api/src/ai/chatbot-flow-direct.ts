@@ -250,6 +250,31 @@ export function applyFlowPatch(draft: unknown, operations: FlowPatchOperation[])
   return validDraft(next) ? next : undefined;
 }
 
+/** Deterministic reading of the common "preferred name + triage" request, before trusting model JSON. */
+export function deterministicFlowPlan(command: string, departments: { key: string; name: string }[]): unknown | undefined {
+  const normalized = compact(command);
+  const wantsName = /preferido|prefere ser chamado|gostaria de ser chamado|quer ser chamado|ser chamado|outro nome|nome atual/.test(normalized);
+  const wantsSupport = /suporte/.test(normalized);
+  const wantsAdministrative = /administrativo|administracao/.test(normalized);
+  if (!wantsName || !wantsSupport || !wantsAdministrative) return;
+  const support = departments.find(department => compact(department.name).includes('suporte') || compact(department.key).includes('suporte'));
+  const administrative = departments.find(department => compact(department.name).includes('administrativo') || compact(department.key).startsWith('adm'));
+  const supportName = support?.name ?? 'Suporte Técnico';
+  const administrativeName = administrative?.name ?? 'Administrativo';
+  const quoted = /chamado\s+["“']([^"”']{2,80})["”']/i.exec(command)?.[1] ?? /nome\s+["“']([^"”']{2,80})["”']/i.exec(command)?.[1];
+  const name = quoted?.trim().slice(0, 120) || 'Atendimento com nome preferido';
+  return {
+    name,
+    welcome: 'Olá!',
+    steps: [
+      { id: 'nome', kind: 'preferred-name', title: 'Nome preferido', options: ['Continuar'], transitions: { Continuar: 'areas' } },
+      { id: 'areas', kind: 'buttons', title: 'Triagem', message: '{{novo_nome}}, qual área?', options: ['Suporte', 'Administrativo'], transitions: { Suporte: 'suporte', Administrativo: 'administrativo' } },
+      { id: 'suporte', kind: 'human.handoff', title: 'Suporte', department: supportName },
+      { id: 'administrativo', kind: 'human.handoff', title: 'Administrativo', department: administrativeName },
+    ],
+  };
+}
+
 /** Same vocabulary used to build the complete Rastreabem flow, in compact form. */
 export function chatbotFlowDirectSkill(mode: 'create' | 'adjust', departments: {key:string;name:string}[], variables: {key:string;label:string}[] = []) {
   const common = [
@@ -262,8 +287,10 @@ export function chatbotFlowDirectSkill(mode: 'create' | 'adjust', departments: {
   ];
   if (mode === 'create') {
     return [...common,
-      'Criação: devolva {"name":"...","welcome":"...","steps":[{"id":"...","kind":"...","title":"...","message":"...","options":["..."],"transitions":{"opcao":"id"},"config":"{...}"}]}.',
-      'Máximo 20 etapas na criação. IDs simples e únicos; toda saída aponta para bloco real.',
+      'Criação: devolva um único JSON: {"name":"...","welcome":"...","steps":[{"id":"...","kind":"...","title":"...","message":"...","options":["..."],"transitions":{"opcao":"id"},"config":"{...}"}]}. Sem Markdown, sem texto fora do JSON e sem wrapper.',
+      'Use preferred-name exatamente com options:["Continuar"] e uma transição: {"id":"nome","kind":"preferred-name","options":["Continuar"],"transitions":{"Continuar":"menu"}}. O sistema gera a escolha e a captura em {{novo_nome}}.',
+      'Use human.handoff sem options e sem transitions: {"id":"suporte","kind":"human.handoff","department":"Suporte Técnico"}. Escolha o departamento pela lista; nunca substitua por fila geral.',
+      'Cada transição aponta para o ID exato de outro bloco, nunca para o título. Conecte todas as opções. A primeira etapa inicia o fluxo. Máximo 20 etapas na criação.',
     ].join('\n');
   }
   return [...common,

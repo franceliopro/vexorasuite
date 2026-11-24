@@ -1,6 +1,6 @@
 # Worker do formulário de anúncios
 
-Entrada pública do fluxo do Alto Araguaia Imóveis. Recebe `POST /api/forms/anunciar`, valida e grava uma submissão `pending` no Directus para que o gestor decida na Aba Sites da Véxora.
+Entrada pública do fluxo do Alto Araguaia Imóveis. Recebe `POST /api/forms/anunciar`, valida e grava uma submissão `pending` no CMS configurado para posterior decisão humana. `SUBMISSIONS_PROVIDER=payload` aponta para o Payload CMS; o padrão `directus` preserva o destino atual até a instância Payload ser validada.
 
 **Estado real:** código e testes versionados. Nenhum deploy, rota, segredo, binding KV ou domínio foi configurado por este processo.
 
@@ -32,13 +32,16 @@ Respostas:
 | Configuração ausente/inválida | 503 | `{ "error": "…" }` |
 | Limite de 5 envios por IP/hora | 429 | `{ "error": "…" }` + `Retry-After` |
 | Campos inválidos | 400 | `{ "error": "…", "fields": [...] }` |
-| Directus indisponível | 502 | `{ "error": "…" }` |
+| CMS indisponível | 502 | `{ "error": "…" }` |
 
 `200` significa **recebido e registrado como pendente**. Não significa imóvel criado, anúncio publicado nem mensagem enviada ao anunciante.
 
 ## Segredos e binding
 
-- `DIRECTUS_URL` e `DIRECTUS_TOKEN`: service account API-only no cofre do Cloudflare. Nunca no repositório nem no site estático.
+- `SUBMISSIONS_PROVIDER`: `directus` (padrão) ou `payload`. A troca é por configuração, sem migração automática de dados.
+- Legado: `DIRECTUS_URL` e `DIRECTUS_TOKEN` — service account API-only no cofre do Cloudflare.
+- Payload: `PAYLOAD_URL`, `PAYLOAD_TOKEN` e `PAYLOAD_TENANT_ID` no cofre. O tenant identifica o site na instância única; **não** é limite de usuário nem regra de isolamento por cliente.
+- Nenhum segredo fica no repositório, no navegador ou no site estático.
 - `RATE_LIMIT_KV`: namespace KV com binding no Worker; sem ele o Worker responde `503` em vez de liberar envios sem limite.
 - `ALLOWED_ORIGIN`: origem do site, configurada em `wrangler.toml`; requisições com `Origin` diferente são recusadas.
 
@@ -49,4 +52,4 @@ node --check index.mjs
 node --test test/*.test.mjs
 ```
 
-Os testes injetam `fetch`, relógio e KV: não chamam Directus, não enviam mensagens e não precisam de segredos reais.
+Os testes injetam `fetch`, relógio e KV: não chamam CMS real, não enviam mensagens e não precisam de segredos reais. Cobrem os dois provedores, incluindo filtro por tenant e cabeçalho de API key do Payload.

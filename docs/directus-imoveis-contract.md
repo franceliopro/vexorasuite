@@ -96,8 +96,9 @@ recebe token de escrita direta.
 
 ## Fluxo de aprovação e rejeição
 
-1. `POST /api/forms/anunciar` no Cloudflare Worker valida campos, aplica
-   rate limit por IP e honeypot, e grava `submission` com `status = pending`.
+1. `POST /api/forms/anunciar` no Cloudflare Worker (`workers/form-submissions`)
+   valida campos, aplica rate limit por IP e honeypot, e grava `submission`
+   com `status = pending`. Código e testes versionados; **deploy pendente**.
 2. Flow `submission.created` notifica o Admin por Resend e/ou WhatsApp.
 3. O Admin decide no Studio:
    - **aprovar**: cria/atualiza `property` com `owner_id` do agente responsável,
@@ -107,6 +108,38 @@ recebe token de escrita direta.
    motivo. O registro da notificação só é marcado como enviado após HTTP 2xx do
    provedor — nunca por flag de configuração.
 5. Após aprovação, o Flow de publicação gera o snapshot (abaixo).
+
+## Worker do formulário público
+
+Implementação: `workers/form-submissions/index.mjs`, com `wrangler.toml` e
+testes em `workers/form-submissions/test/`. O site liga a página
+`/anuncie-seu-imovel/` ao Worker quando `PUBLIC_ANNOUNCEMENTS_ENDPOINT` é
+definido no build; sem essa variável, o formulário abre o WhatsApp e não afirma
+registro.
+
+| Situação | HTTP | Significado observável |
+| --- | --- | --- |
+| Submissão criada | 200 | `submissionKey` + `status: "pending"`; nada além disso |
+| Mesmo conteúdo no mesmo período | 200 | `duplicate: true`; nenhum segundo registro |
+| Honeypot preenchido | 200 | resposta neutra, sem gravação |
+| Configuração ausente | 503 | sem Directus, sem KV ou URL inválida |
+| Mais de 5 envios por IP em uma hora | 429 | `Retry-After: 3600` |
+| Campos inválidos | 400 | lista de campos; nenhuma chamada ao Directus |
+| Directus indisponível | 502 | falha de registro, sem promessa de envio |
+
+Regras do Worker:
+
+- `DIRECTUS_URL` e `DIRECTUS_TOKEN` ficam no cofre do Cloudflare; o navegador
+  nunca recebe o token da service account.
+- `RATE_LIMIT_KV` é obrigatório: sem ele o Worker responde `503` em vez de
+  aceitar envios sem limite.
+- `Origin` diferente de `ALLOWED_ORIGIN` é recusado; `OPTIONS` tem resposta
+  explícita; a resposta usa `Cache-Control: no-store`.
+- `submission_key` é derivada por SHA-256 de e-mail, origem, mensagem, código do
+  imóvel e faixa horária. O Worker consulta o Directus antes de gravar e trata
+  concorrência pela mesma chave como duplicata.
+- `200` significa **recebido e pendente**. Não significa imóvel criado, anúncio
+  publicado nem mensagem entregue ao anunciante.
 
 ## Painel de Anúncios na Véxora
 
@@ -192,6 +225,6 @@ tempo de execução do site.
 
 - Criar instância Directus no Dokploy e aplicar a licença do Grant.
 - Aplicar schema, papéis e políticas; testar isolamento entre dois agentes.
-- Implementar o Worker do formulário e os Flows de notificação e snapshot.
+- Implantar o Worker do formulário (código e testes prontos) e configurar seus segredos/KV; implementar os Flows de notificação e snapshot.
 - Substituir os 8 imóveis fictícios por dados reais aprovados.
 - Validar publicação com HTTP 2xx no domínio final.

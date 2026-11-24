@@ -18,6 +18,7 @@ interface Props {
   variant?: "contact" | "announce";
   property?: PropertyContext;
   hideHeading?: boolean;
+  endpoint?: string;
 }
 
 const {
@@ -28,8 +29,8 @@ const {
   variant = "contact",
   property,
   hideHeading = false,
+  endpoint = import.meta.env.PUBLIC_CONTACT_ENDPOINT ?? "",
 } = Astro.props;
-const endpoint = import.meta.env.PUBLIC_CONTACT_ENDPOINT ?? "";
 const selected = site.channels.find((item) => item.label.includes(channel)) ?? site.channels[0];
 const waHref = whatsappHref(selected?.whatsapp ?? "");
 const title = heading ?? (variant === "announce" ? "Conte os detalhes do imóvel" : "Fale com a gente");
@@ -37,6 +38,10 @@ const consentLabel =
   variant === "announce"
     ? "Autorizo a análise do imóvel e o contato da equipe conforme a Política de Privacidade."
     : "Autorizo o contato da equipe sobre este pedido, conforme a Política de Privacidade.";
+const successMessage =
+  variant === "announce"
+    ? "Recebemos sua submissão. A equipe irá analisá-la e entrará em contato."
+    : "Recebemos sua mensagem. Obrigado!";
 const submitLabel =
   variant === "announce"
     ? "Enviar imóvel para análise"
@@ -61,6 +66,7 @@ const subject = property
   <form
     data-contact-form
     data-endpoint={endpoint}
+    data-success-message={successMessage}
     data-whatsapp={property?.whatsapp || selected?.whatsapp || site.whatsapp}
     data-whatsapp-href={property ? whatsappHref(property.whatsapp) : (waHref ?? "")}
     data-email={site.email}
@@ -202,7 +208,9 @@ const subject = property
             body: JSON.stringify(payload),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          if (status) status.textContent = "Recebemos sua mensagem. Obrigado!";
+          if (status) {
+            status.textContent = form.dataset.successMessage ?? "Recebemos sua mensagem. Obrigado!";
+          }
           form.reset();
         } catch {
           if (status) {

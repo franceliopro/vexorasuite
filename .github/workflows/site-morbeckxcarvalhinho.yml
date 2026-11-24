@@ -1,0 +1,48 @@
+name: Site Morbeck x Carvalhinho
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/morbeckxcarvalhinho/**"
+      - ".github/workflows/site-morbeckxcarvalhinho.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/morbeckxcarvalhinho/**"
+      - ".github/workflows/site-morbeckxcarvalhinho.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-morbeckxcarvalhinho-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and audit static site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sites/morbeckxcarvalhinho
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Verify static output
+        run: test -f out/index.html && test -f out/fale-conosco/index.html && test -f out/assets/js/search-index.json && test -f out/assets/js/search.js
+
+      - name: Audit local links and assets
+        run: node scripts/audit-links.cjs out

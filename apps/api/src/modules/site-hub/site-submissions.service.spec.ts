@@ -85,7 +85,7 @@ describe("SiteSubmissionsService", () => {
   it("junta a decisão local sem afirmar que a notificação foi enviada", async () => {
     const { service } = setup(decision());
     const result = await service.list(TENANT, "OWNER");
-    expect(result.submissions[0].decision).toMatchObject({ decision: "APPROVED", actorId: USER });
+    expect(result.submissions[0]?.decision).toMatchObject({ decision: "APPROVED", actorId: USER });
     expect(result.notification.status).toBe("NOT_CONFIRMED");
   });
 

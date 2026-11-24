@@ -100,7 +100,7 @@ function SubmissionCard({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const payload = submission.payload ?? {};
+  const payload: Record<string, unknown> = submission.payload ?? {};
   const canDecide = canManage && submission.status === "pending" && !submission.decision;
 
   const decide = useCallback(

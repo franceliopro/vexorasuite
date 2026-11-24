@@ -105,7 +105,7 @@ export class DirectusSubmissionsService {
       limit: "1",
     });
     const rows = await this.request<DirectusSubmission[] | null>(`/items/submission?${params.toString()}`);
-    return Array.isArray(rows) && rows.length ? rows[0] : null;
+    return (Array.isArray(rows) ? rows[0] : undefined) ?? null;
   }
 
   /** O Flow do Directus cria o imóvel e notifica o anunciante; este cliente apenas muda o status. */

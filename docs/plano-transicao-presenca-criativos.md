@@ -316,7 +316,7 @@ Três sites entram no ciclo inicial de recriação com sistema próprio. O downl
 | ----------------------------------- | ---------------- | ------------------- | ------------------------------------------------------------------ |
 | Rastreabem                          | HTML completo já pronto | Next.js/MDX   | Converter o HTML em MDX como piloto de aprendizado e do template base |
 | Morbeck x Carvalhinho               | WordPress, ~40 páginas | Next.js/MDX     | Exportar páginas e mídia; converter em MDX com menu automático    |
-| Imobiliária (Alto Araguaia Imóveis) | PHP com CMS próprio do proprietário (antes WordPress), hoje fora do ar | Next.js + Directus (preset `imoveis`) | Recuperar dump/export do CMS, mapear campos e importar para API; modelo do proprietário é a base visual |
+| Imobiliária (Alto Araguaia Imóveis) | PHP com CMS próprio do proprietário (antes WordPress), hoje fora do ar | Next.js + Puck + Payload/Strapi (preset `imoveis`) | Recuperar dump/export do CMS, mapear campos e importar para API; modelo do proprietário é a base visual |
 | SOS Alto Araguaia                   | Portal de notícias, 2–5 GB de arquivos | Sob avaliação | Manter fora do ciclo inicial; medir storage, banda e tráfego antes de decidir |
 
 **Nota:** MDX vale para Rastreabem e Morbeck x Carvalhinho. O Alto Araguaia Imóveis é dinâmico e usa CMS headless (§12.5); o SOS Alto Araguaia está sob avaliação, sem decisão de migração.
@@ -457,7 +457,7 @@ Regras comuns:
 
 - **Rastreabem:** o proprietário já tem o HTML completo; a conversão para MDX é o piloto de aprendizado e do template base.
 - **Morbeck x Carvalhinho:** origem WordPress, ~40 páginas convertidas em MDX com menu automático.
-- **Alto Araguaia Imóveis:** nível B. Já foi WordPress, hoje é PHP com CMS próprio do proprietário e está fora do ar. A fonte dos imóveis é o que for recuperável desse CMS (dump ou export); o modelo feito pelo proprietário é a base visual. Destino: Next.js + Directus com preset `imoveis`, busca e filtros via API — não é site somente em MDX.
+- **Alto Araguaia Imóveis:** nível B. Já foi WordPress, hoje é PHP com CMS próprio do proprietário e está fora do ar. A fonte dos imóveis é o que for recuperável desse CMS (dump ou export); o modelo feito pelo proprietário é a base visual. Destino: Next.js + Puck + Payload/Strapi com preset `imoveis`, busca e filtros via API — não é site somente em MDX.
 - **SOS Alto Araguaia:** portal de notícias grande, com 2–5 GB de arquivos, em grande parte mídia. Migrar não é simples conversão: exige plano de storage/CDN, redirecionamentos e import incremental. Decisão: **sob avaliação**, fora do ciclo inicial; manter o site atual com backup até medir espaço, banda e tráfego.
 
 A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica assim resolvida: **Next.js para Rastreabem, Morbeck x Carvalhinho e Alto Araguaia Imóveis**; o SOS Alto Araguaia fica sob avaliação, sem mudança de hospedagem decidida.
@@ -466,7 +466,9 @@ A decisão "PHP puro ou Next.js, por site" registrada em §11.1 e §11.9 fica as
 
 Não criar um CMS artesanal por site. Criar **um template versionado no GitHub**, com presets por vertical e instância por empresa.
 
-- Base: CMS headless self-hosted de código aberto (Directus, Strapi ou Payload) + Postgres.
+- Base: CMS headless self-hosted de código aberto (Payload — padrão — ou Strapi) + Postgres.
+- Edição visual: Puck para montar páginas em Next.js/React; o CMS continua responsável pelas collections e pela API tenant-scoped.
+- Decisão de 2026-11-23: Alto Araguaia Imóveis usa Puck + Payload/Strapi; a indicação anterior de Directus fica superada.
 - Presets: `conteudo` (posts/páginas), `imoveis` (imóveis, fotos, filtros) e `produtos` (catálogo editorial).
 - Cada instância expõe API tenant-scoped; o site Next.js consome essa API e o HUB registra pedido, aprovação, versão e auditoria.
 - Novo site = escolher preset, subir instância a partir do mesmo template e apontar o front para a API.

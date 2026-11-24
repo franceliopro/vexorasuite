@@ -64,6 +64,28 @@ describe('presença Véxora — sites externos e artes', () => {
     expect((await service.list(req())).artworks[0]!.status).toBe('PUBLISHED');
   });
 
+  it('preserva links de artes já publicadas e verifica a URL estável do projeto', async () => {
+    const { service, cf } = fixture();
+    const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(0) } as any);
+    await service.createArtwork(req(), { title: 'Primeira', headline: 'Primeira', subtitle: '', cta: 'Ver' });
+    const firstId = (await service.list(req())).artworks[0]!.id;
+    await service.publishArtwork(req(), firstId);
+    await service.createArtwork(req(), { title: 'Segunda', headline: 'Segunda', subtitle: '', cta: 'Ver' });
+    const secondId = (await service.list(req())).artworks[0]!.id;
+    const result = await service.publishArtwork(req(), secondId);
+    const files = cf.createDeployment.mock.calls[1][1] as { path: string; content: Buffer }[];
+    const paths = files.map(file => file.path);
+    expect(paths).toContain(`${firstId}.svg`);
+    expect(paths).toContain(`${firstId}/index.html`);
+    expect(paths).toContain(`${secondId}.svg`);
+    expect(paths).toContain(`${secondId}/index.html`);
+    const indexHtml = Buffer.from(files[0]!.content).toString('utf8');
+    expect(indexHtml).toContain(firstId);
+    expect(indexHtml).toContain(secondId);
+    expect(result.url).toBe(`https://vexora-presenca-11111111-1111-4111-8111-111111111111.pages.dev/${secondId}/index.html`);
+    expect(String(fetchMock.mock.calls.at(-1)?.[0])).toBe(result.url);
+  });
+
   it('mantém rascunho e falha honestamente quando a URL não responde 2xx', async () => {
     const { service } = fixture();
     await service.createArtwork(req(), { title: 'Arte', headline: 'Rastreie', subtitle: '', cta: 'Consultar' });

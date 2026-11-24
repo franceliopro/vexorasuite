@@ -53,6 +53,16 @@ export function renderArtworkSvg(input: { headline: string; subtitle: string; ct
 </g></svg>`;
 }
 
+/** Cada deploy é um snapshot completo: incluir as artes já publicadas evita quebrar links anteriores. */
+function artworkPage(artwork: Artwork): string {
+  return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeXml(artwork.title)}</title><body style="margin:0;background:#0b0e12"><img src="../${artwork.id}.svg" alt="${escapeXml(artwork.title)}" style="width:100%;height:auto;display:block"></body></html>`;
+}
+
+function artworkIndex(artworks: Artwork[]): string {
+  const links = artworks.map(item => `<li><a href="./${item.id}/index.html" style="color:#FACC15">${escapeXml(item.title)}</a></li>`).join('');
+  return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Véxora · Artes</title><body style="margin:0;background:#0b0e12;color:#fff;font-family:Arial"><main style="max-width:960px;margin:48px auto;padding:0 20px"><h1>Artes Véxora</h1><ul>${links}</ul></main></body></html>`;
+}
+
 @Injectable()
 export class PresenceService {
   constructor(private readonly prisma: PrismaService, private readonly cf: CloudflareService) {}
@@ -151,26 +161,26 @@ export class PresenceService {
     if (!artwork) throw new NotFoundException('Arte não encontrada nesta empresa.');
 
     const project = `vexora-presenca-${req.user.tenantId.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`.slice(0, 58);
-    const svg = Buffer.from(artwork.svgBase64, 'base64').toString('utf8');
-    const page = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeXml(artwork.title)}</title><body style="margin:0;background:#0b0e12"><img src="../${artwork.id}.svg" alt="${escapeXml(artwork.title)}" style="width:100%;height:auto;display:block"></body></html>`;
-    const index = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Véxora · Artes</title><body style="margin:0;background:#0b0e12;color:#fff;font-family:Arial"><main style="max-width:960px;margin:48px auto;padding:0 20px"><h1>Artes Véxora</h1><p><a href="./${artwork.id}/index.html" style="color:#FACC15">${escapeXml(artwork.title)}</a></p></main></body></html>`;
+    const alreadyPublished = current.artworks.filter(item => item.status === 'PUBLISHED' && item.id !== id);
+    const included = [artwork, ...alreadyPublished];
     const files = [
-      { path: 'index.html', content: Buffer.from(index, 'utf8') },
-      { path: `${artwork.id}.svg`, content: Buffer.from(svg, 'utf8') },
-      { path: `${artwork.id}/index.html`, content: Buffer.from(page, 'utf8') },
+      { path: 'index.html', content: Buffer.from(artworkIndex(included), 'utf8') },
+      ...included.flatMap(item => [
+        { path: `${item.id}.svg`, content: Buffer.from(Buffer.from(item.svgBase64, 'base64').toString('utf8'), 'utf8') },
+        { path: `${item.id}/index.html`, content: Buffer.from(artworkPage(item), 'utf8') },
+      ]),
     ];
 
-    let deployment: any;
     try {
       try { await this.cf.getProject(project); } catch { await this.cf.createProject(project); }
-      deployment = await this.cf.createDeployment(project, files);
+      await this.cf.createDeployment(project, files);
     } catch (error) {
       await this.mark(req, id, { status: 'FAILED', error: 'Falha no envio para a Cloudflare.' });
       throw error;
     }
 
-    const candidate = typeof deployment?.url === 'string' ? deployment.url.replace(/^http:/, 'https:') : '';
-    const target = /^https:\/\/[a-z0-9.-]+(?:\/[^?#]*)?$/i.test(candidate) ? candidate : `https://${project}.pages.dev/${artwork.id}/index.html`;
+    // URL estável do projeto, não a URL transitória do deployment; é nela que o link publicado é verificado.
+    const target = `https://${project}.pages.dev/${artwork.id}/index.html`;
     let verified = false;
     try {
       const response = await fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(20_000) });

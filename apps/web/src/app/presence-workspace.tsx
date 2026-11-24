@@ -76,9 +76,7 @@ function ArtCard({ art, canManage, onChanged, onNotice }: { art: Artwork; canMan
   );
 }
 
-const RASTREABEM_SITE = { title: "Rastreabem — site no ar", url: "https://rastreabem.com.br", description: "Site externo da empresa, fora da Véxora" };
-
-export function PresenceWorkspace({ canManage, tenantSlug }: { canManage: boolean; tenantSlug?: string }) {
+export function PresenceWorkspace({ canManage }: { canManage: boolean }) {
   const [data, setData] = useState<Presence>({ externalSites: [], artworks: [], cloudflareConfigured: false });
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
@@ -86,7 +84,6 @@ export function PresenceWorkspace({ canManage, tenantSlug }: { canManage: boolea
   const [site, setSite] = useState({ title: "", url: "https://", description: "" });
   const [art, setArt] = useState({ title: "", headline: "", subtitle: "", cta: "Saiba mais", background: "#101317", accent: "#FACC15", text: "#FFFFFF" });
   const [busy, setBusy] = useState<string | null>(null);
-  const featuredSite = tenantSlug === "rastreabem" && !data.externalSites.some((item) => item.url.replace(/\/+$/, "").toLowerCase() === RASTREABEM_SITE.url) ? RASTREABEM_SITE : null;
 
   const reload = useCallback(() => setAttempt(value => value + 1), []);
   useEffect(() => {
@@ -148,12 +145,6 @@ export function PresenceWorkspace({ canManage, tenantSlug }: { canManage: boolea
 
       <section className={panelTw} aria-label="Sites externos">
         <h3 className="text-body-lg font-bold text-ink">Sites externos desta empresa</h3>
-        {featuredSite ? (
-          <a className={cardTw} href={featuredSite.url} target="_blank" rel="noreferrer" aria-label={`Abrir ${featuredSite.title} em nova janela`}>
-            <span className="flex flex-wrap items-center gap-2 text-body font-bold text-blue-700">{featuredSite.title} <ExternalLink size={14} aria-hidden="true" /></span>
-            <span className="text-2xs text-ink-secondary">{featuredSite.description} · aberta em nova janela · sem registro de publicação pela Véxora</span>
-          </a>
-        ) : null}
         {data.externalSites.length ? (
           <ul className="grid gap-2">
             {data.externalSites.map(item => (

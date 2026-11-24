@@ -60,9 +60,9 @@ const agentHeaderTw = "flex flex-wrap items-center justify-between gap-3 rounded
 const helpTw = "m-0 rounded-xl border border-line bg-surface-2 px-4 py-3 text-small leading-relaxed text-ink-secondary";
 const adminFieldsTw = "grid gap-5";
 const toggleTw = "inline-flex cursor-pointer items-center gap-2 text-body";
-const agentsGridTw = "mt-3 flex w-full max-w-full gap-2 overflow-x-auto pb-1";
+const agentsGridTw = "mt-3 grid w-full max-w-full grid-cols-ai-agents gap-2";
 const agentsGridEmptyTw = "mt-4 grid place-items-center gap-2.5 rounded-2xl border border-dashed border-line-strong p-6 text-center text-ink-secondary";
-const agentCardTw = "inline-flex min-w-0 shrink-0 items-center gap-2.5 rounded-token-sm border px-3 py-2 text-left transition-colors hover:shadow-token-sm";
+const agentCardTw = "grid min-w-0 content-start gap-2 rounded-token-sm border px-3 py-3 text-left transition-colors hover:shadow-token-sm";
 const agentCardStateTw: Record<string, string> = { selected: "border-blue-600 ring-2 ring-blue-600", idle: "border-line" };
 const agentCardClass = (selected: boolean) => `${agentCardTw} ${agentCardStateTw[selected ? "selected" : "idle"]}`;
 /* Cores de dados dos cards — vêm do preset e acompanham os três temas. */
@@ -72,14 +72,18 @@ const agentToneTw = [
   "bg-amber-100 text-amber-600",
   "bg-red-100 text-red-600",
   "bg-sky-100 text-sky-600",
+  "bg-violet-100 text-violet-600",
+  "bg-teal-100 text-teal-600",
+  "bg-rose-100 text-rose-600",
+  "bg-indigo-100 text-indigo-600",
   "bg-zinc-200 text-ink-secondary",
 ];
-const agentToneClass = (hue: number) => agentToneTw[hue % agentToneTw.length]!;
-const agentFaceTw = "grid size-8 shrink-0 place-items-center rounded-lg";
+const agentToneClass = (index: number) => agentToneTw[index % agentToneTw.length]!;
+const agentFaceTw = "grid size-12 shrink-0 place-items-center rounded-xl";
 const agentBodyTw = "grid min-w-0 gap-0.5";
-const agentNameTw = "truncate text-small font-extrabold text-ink";
+const agentNameTw = "truncate text-2xs font-extrabold text-ink";
 const agentRoleTw = "truncate text-2xs text-ink-secondary";
-const agentFootTw = "flex shrink-0 items-center gap-1.5";
+const agentFootTw = "flex flex-wrap items-center gap-1.5";
 const agentStatusTw = "rounded-full px-2 py-0.5 text-2xs font-extrabold uppercase tracking-wide";
 const agentStatusStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-surface-2 text-ink-secondary" };
 const agentStatusClass = (on: boolean) => `${agentStatusTw} ${agentStatusStateTw[on ? "on" : "off"]}`;
@@ -124,7 +128,6 @@ const phoneHeadTw = "flex items-center justify-between gap-2.5";
 const phoneNumberTw = "inline-flex items-center gap-2 text-body font-extrabold tabular-nums";
 const phoneRemoveTw = "inline-flex min-h-7 items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-small font-semibold text-ink-secondary transition-colors hover:bg-surface hover:text-ink";
 const phoneRuleTw = "grid gap-1 text-2xs font-bold text-ink-secondary";
-const agentHue = (value: string) => { let h = 0; for (let index = 0; index < value.length; index++) h = (h * 31 + value.charCodeAt(index)) >>> 0; return h % 360; };
 
 type Agent = { personalAssistant?: boolean; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[]; inboxes: string[] }; knowledgeUrls?: string[]; llm?: {provider:string;model:string;tier:string;endpoint?:string}; stt?: VoiceModelSelection; tts?: VoiceModelSelection; id: string; name: string; role: string; tier: "Econômico" | "Equilíbrio" | "Inteligente"; enabled: boolean; instructions: string };
 function voiceModel(kind:string,provider:string){return provider==='browser'?'browser':provider==='local'?(kind==='stt'?'Systran/faster-whisper-small':'speaches-ai/Kokoro-82M-v1.0-ONNX'):kind==='stt'?'gpt-4o-transcribe':'gpt-4o-mini-tts';}
@@ -366,7 +369,7 @@ export function AiAgentsWorkspace() {
     <datalist><option value="openrouter/free">OpenRouter Free · cota gratuita</option>{(catalog.models||[]).filter(model=>model.provider==="openrouter"&&model.id!=="openrouter/free").map(model=><option key={model.id} value={model.id}>{model.name} · US$ {Number.isFinite(model.pricePerMillionInputUsd)?Number((model.pricePerMillionInputUsd??0).toFixed(4)):0}/1M entrada</option>)}</datalist>
     {workspaceTab==="Agentes"&&<section className={adminCardTw}>
       <div className={adminHeadingTw}><h2><Bot size={19}/> Agentes</h2><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates de negócio…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={primaryTw} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>
-      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a) => { const hue = agentHue(String(a.id)); const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[hue % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={`${agentCardClass(selected === a.id)} ${agentToneClass(hue)}`} onClick={() => setSelected(a.id)}><span className={agentFaceTw}><Face size={17} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Clique em Novo acima para criar o primeiro.</p></div>}
+      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a, index) => { const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[index % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={agentCardClass(selected === a.id)} onClick={() => setSelected(a.id)}><span className={`${agentFaceTw} ${agentToneClass(index)}`}><Face size={26} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Clique em Novo acima para criar o primeiro.</p></div>}
     </section>}
     <div className={workspaceLayoutTw}>
     <nav className={workspaceNavTw} role="tablist" aria-label="Áreas de configuração da inteligência">

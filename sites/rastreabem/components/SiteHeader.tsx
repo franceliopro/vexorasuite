@@ -37,9 +37,6 @@ export function SiteHeader() {
           ☰
         </button>
         <nav id="menu" className={open ? "open" : undefined} aria-label="Menu principal">
-          <a href="https://painel.rastreabem.com.br/" target="_blank" rel="noopener noreferrer">
-            Área do Cliente
-          </a>
           {navigation.filter((page) => page.group === "principal" && page.slug !== "index").map((page) => (
             <Link key={page.slug} href={page.path}>
               {page.label}
@@ -63,14 +60,6 @@ export function SiteHeader() {
         </nav>
         <a className="phone" href="tel:08004442434">
           <span aria-hidden="true" className="phone-icon" /> 0800 444-2434
-        </a>
-        <a
-          className="client-mobile"
-          href="https://painel.rastreabem.com.br/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          ÁREA DO CLIENTE
         </a>
       </div>
     </header>

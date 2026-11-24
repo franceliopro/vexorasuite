@@ -468,7 +468,7 @@ Não criar um CMS artesanal por site. Criar **um template versionado no GitHub**
 
 - Base: CMS headless self-hosted de código aberto (Payload — padrão — ou Strapi) + Postgres.
 - Edição visual: Puck para montar páginas em Next.js/React; o CMS continua responsável pelas collections e pela API tenant-scoped.
-- Decisão de 2026-11-23: Alto Araguaia Imóveis usa Puck + Payload/Strapi; a indicação anterior de Directus fica superada.
+- Decisão de 2026-11-23: Alto Araguaia Imóveis usa Puck + Payload/Strapi. Decisão de 2026-11-24 (proprietário): **Payload CMS**, instância única com papéis e usuários ilimitados; Directus fica removido do plano conforme `docs/payload-substitui-directus.md`.
 - Presets: `conteudo` (posts/páginas), `imoveis` (imóveis, fotos, filtros) e `produtos` (catálogo editorial).
 - Cada instância expõe API tenant-scoped; o site Next.js consome essa API e o HUB registra pedido, aprovação, versão e auditoria.
 - Novo site = escolher preset, subir instância a partir do mesmo template e apontar o front para a API.

@@ -37,7 +37,7 @@ Limite: é uma inspeção rápida da sessão autenticada, não um teste visual a
 
 ### P1 — CMS piloto (conteúdo editável)
 
-**Estado:** planejado. Decisão de 2026-11-23 (Puck + Payload/Strapi, Directus superado) foi **substituída em 2026-11-24**: Alto Araguaia Imóveis usa Astro + Tailwind no GitHub/Cloudflare Pages, páginas Git-native via Tina e dados dinâmicos no Directus self-hosted. Fonte atual: `docs/sites-stack-hibrido.md` e `docs/directus-imoveis-contract.md`.
+**Estado:** planejado. Decisão de 2026-11-23 (Puck + Payload/Strapi, Directus superado) foi **atualizada em 2026-11-24**: Alto Araguaia Imóveis usa Astro + Tailwind no GitHub/Cloudflare Pages, páginas Git-native via Tina e dados dinâmicos no **Payload CMS self-hosted**, instância única com papéis e usuários ilimitados. Fonte atual: `docs/sites-stack-hibrido.md` e `docs/payload-substitui-directus.md`.
 
 **Critérios de aceite:** API tenant-scoped; collections por preset (`conteudo`, `imoveis`, `produtos`); seed replicável; nenhuma credencial copiada entre empresas; preview aprovado antes de qualquer publicação.
 

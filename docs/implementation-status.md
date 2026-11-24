@@ -25,7 +25,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
 | Intake de briefing criativo | [~] | Endpoint e UI tenant-scoped exigem objetivo, canal/formato, identidade, fonte aprovada, prazo, aprovador e destino; registram evento de auditoria em `creative_briefs`. Não gera, aprova, publica nem entrega peça. Ainda sem briefing preenchido pelo proprietário. |
 | Template Next.js/MDX | [ ] | Definido como padrão, com `output: 'export'`, conteúdo em `.mdx` e menu em `content/navigation.ts`. Ainda sem site publicado. |
-| Sites estáticos Rastreabem e Morbeck via Git | [~] | Código e builds prontos para Cloudflare Pages com GitHub como fonte; PRs #1268/#1269 mesclados. Depende da configuração manual no painel Cloudflare e de 2xx no domínio final para virar publicação confirmada. |
+| Sites estáticos Rastreabem e Morbeck via Git | [~] | Código e builds prontos para Cloudflare Pages com GitHub como fonte; PRs #1268/#1269 mesclados e #1270 em integração. Depende da configuração manual no painel Cloudflare e de 2xx no domínio final para virar publicação confirmada. |
 | Alto Araguaia Imóveis | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
 
 ### Evidência das mudanças visuais recentes
@@ -45,6 +45,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Modelo preenchível `docs/modelo-insumos-sites-artes.md` ligado pelo checklist: reúne os campos exigidos por site, por peça e para cobrança real. É apenas um formulário para o proprietário; preenchê-lo não publica site, gera arte nem cobra cliente.
 - PR #1268: ajuste mobile do Rastreabem (remoção de “Área do Cliente” e alinhamento dos botões); head mesclada `684ab1e86c464238793e7e6e9aac31a2f1f8a492` em `foundation/bootstrap-monorepo`.
 - PR #1269: sync `foundation/bootstrap-monorepo` → `main`; `main` final `10a29e408abd82c144c3d04ebf322b87ddbffb2f`, com a head esperada `2f6c4012444b6455c8bde05212470f6a142d17f9`.
+- PR #1270: site estático Morbeck x Carvalhinho e documentação Git-first; CI verde em `Build and audit static site`, `Build and type-check`, `Private SearXNG runtime`, `validate`, `Container (api)` e `Container (web)`. Base esperada `2f6c4012444b6455c8bde05212470f6a142d17f9`.
 
 ## 2. O que está em construção
 
@@ -94,7 +95,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - [x] Fale Conosco com WhatsApp de Milton Pessoa Morbeck: `https://wa.me/5566996034385`.
 - [x] Rodapé limpo: `Copyright © 2005 - 2026` + “Desenvolvido por Francélio Alves da Silva” com link `https://wa.me/5566996394979?text=Gostaria%20de%20falar%20com%20voc%C3%AA%20sobre%20o%20site%20Morbeck%20x%20Carvalhinho`.
 - [x] Busca client-side: `src/assets/js/search.js` + `assets/js/search-index.json` gerado no build. Validação local com o termo `arlinda` retornou resultados; índice com 125.145 bytes.
-- [x] Build no monorepo: `Morbeck x Carvalhinho: 33 paginas HTML geradas em sites/morbeckxcarvalhinho/out`.
+- [x] Build no monorepo: `Morbeck x Carvalhinho: 33 paginas HTML geradas em sites/morbeckxcarvalhinho/out`. CI do PR #1270 validou o mesmo build e a auditoria (33 HTML, 1.616 referências, zero quebrados) no GitHub Actions.
 - [ ] Publicação em Cloudflare Pages e domínio final: código pronto para Git integration (`cd sites/morbeckxcarvalhinho && npm install && npm run build` → `sites/morbeckxcarvalhinho/out`). Sem configuração no painel e sem evidência 2xx no ar. Ver `docs/cloudflare-site-deploy.md` e `sites/morbeckxcarvalhinho/README.md`.
 
 ## 8. Fontes

@@ -2,122 +2,31 @@
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
-import PropertyCard from "../../components/PropertyCard.astro";
+import PropertyList from "../../components/PropertyList.astro";
 
 const properties = await getCollection("properties");
-const types = [...new Set(properties.map((item) => item.data.type))].sort();
 ---
 
 <BaseLayout
-  title="Imóveis em Alto Araguaia | Alto Araguaia Imóveis"
-  description="Casas, apartamentos, terrenos e galpões em Alto Araguaia e região."
+  title={`Imóveis em Alto Araguaia e região | ${"Alto Araguaia Imóveis"}`}
+  description="Casas, apartamentos, salas comerciais, sítios, chácaras e fazendas em Alto Araguaia e região."
 >
-  <div class="container page-top">
-    <Breadcrumb
-      items={[
-        { label: "Início", href: "/" },
-        { label: "Imóveis", href: "/imoveis/" },
-      ]}
-    />
-  </div>
-
-  <section class="section" data-filter-root>
+  <section class="page-hero">
     <div class="container">
-      <div class="section-head">
-        <span class="eyebrow">Portfólio</span>
-        <h1>Imóveis em Alto Araguaia</h1>
-        <p>Filtre por tipo e operação para encontrar o que procura.</p>
-      </div>
+      <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Imóveis", href: "/imoveis/" }]} />
+      <span class="eyebrow">Portfólio completo</span>
+      <h1>Imóveis em Alto Araguaia e região</h1>
+      <p>Use os filtros para encontrar imóveis urbanos e rurais disponíveis.</p>
+    </div>
+  </section>
 
-      <div class="filter-bar">
-        <label class="field">
-          <span>Buscar</span>
-          <input
-            type="search"
-            data-search
-            placeholder="Ex.: centro, apartamento, vila nova"
-            aria-label="Buscar imóveis"
-          />
-        </label>
-        <label class="field">
-          <span>Tipo</span>
-          <select data-filter-type aria-label="Filtrar por tipo">
-            <option value="">Todos os tipos</option>
-            {types.map((type) => <option value={type}>{type}</option>)}
-          </select>
-        </label>
-        <label class="field">
-          <span>Operação</span>
-          <select data-filter-operation aria-label="Filtrar por operação">
-            <option value="">Venda e aluguel</option>
-            <option value="Venda">Venda</option>
-            <option value="Aluguel">Aluguel</option>
-          </select>
-        </label>
-        <button class="btn btn-outline filter-clear" type="button" data-filter-clear>
-          Limpar
-        </button>
-      </div>
-
-      <p class="filter-count" data-results-count role="status" aria-live="polite">
-        {properties.length} imóveis encontrados
-      </p>
-
-      <div class="grid cols-3 property-grid">
-        {properties.map((property) => <PropertyCard property={property} />)}
-      </div>
-
-      <div class="filter-empty" data-empty hidden>
-        <h2>Nenhum imóvel com esses filtros</h2>
-        <p>Tente outro termo ou limpe os filtros para ver o portfólio completo.</p>
-      </div>
-
-      <p class="sample-note">
-        Anúncios demonstrativos. A base real de imóveis entra nesta mesma página
-        antes da publicação.
-      </p>
+  <section class="section">
+    <div class="container">
+      <PropertyList
+        properties={properties}
+        title="Todos os imóveis"
+        description="Dados migrados do site público em 24/11/2026. Confirme disponibilidade e valores com a equipe."
+      />
     </div>
   </section>
 </BaseLayout>
-
-<script>
-  const root = document.querySelector<HTMLElement>("[data-filter-root]");
-  const cards = Array.from(root?.querySelectorAll<HTMLElement>("[data-property-card]") ?? []);
-  const search = document.querySelector<HTMLInputElement>("[data-search]");
-  const type = document.querySelector<HTMLSelectElement>("[data-filter-type]");
-  const operation = document.querySelector<HTMLSelectElement>("[data-filter-operation]");
-  const counter = document.querySelector<HTMLElement>("[data-results-count]");
-  const empty = document.querySelector<HTMLElement>("[data-empty]");
-
-  function applyFilters() {
-    const term = (search?.value || "").trim().toLowerCase();
-    let visible = 0;
-
-    cards.forEach((card) => {
-      const matchesTerm = !term || (card.dataset.search || "").includes(term);
-      const matchesType = !type?.value || card.dataset.type === type.value;
-      const matchesOperation = !operation?.value || card.dataset.operation === operation.value;
-      card.hidden = !(matchesTerm && matchesType && matchesOperation);
-      if (!card.hidden) visible += 1;
-    });
-
-    if (counter) {
-      counter.textContent = `${visible} ${visible === 1 ? "imóvel encontrado" : "imóveis encontrados"}`;
-    }
-    if (empty) empty.hidden = visible !== 0;
-  }
-
-  [search, type, operation].forEach((control) => {
-    control?.addEventListener("input", applyFilters);
-    control?.addEventListener("change", applyFilters);
-  });
-
-  document.querySelector("[data-filter-clear]")?.addEventListener("click", () => {
-    if (search) search.value = "";
-    if (type) type.value = "";
-    if (operation) operation.value = "";
-    applyFilters();
-  });
-
-  applyFilters();
-</script>

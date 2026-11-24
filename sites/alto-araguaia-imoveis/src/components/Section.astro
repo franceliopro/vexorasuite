@@ -1,16 +1,27 @@
 ---
 interface Props {
   id?: string;
-  tone?: "plain" | "soft";
+  tone?: "plain" | "soft" | "yellow" | "navy";
   eyebrow?: string;
   title?: string;
   description?: string;
+  narrow?: boolean;
 }
 
-const { id, tone = "plain", eyebrow, title, description } = Astro.props;
+const {
+  id,
+  tone = "plain",
+  eyebrow,
+  title,
+  description,
+  narrow = false,
+} = Astro.props;
 ---
 
-<section class={tone === "soft" ? "section soft" : "section"} id={id}>
+<section
+  class:list={["section", `tone-${tone}`, { narrow }]}
+  id={id}
+>
   <div class="container">
     {(eyebrow || title || description) && (
       <div class="section-head">

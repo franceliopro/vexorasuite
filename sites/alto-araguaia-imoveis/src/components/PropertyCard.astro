@@ -8,35 +8,67 @@ interface Props {
 
 const { property } = Astro.props;
 const { data } = property;
-const href = `/imoveis/${property.id}/`;
-const image = data.images[0] || "/images/casa-centro.svg";
-const price = `${formatBRL(data.price)}${data.priceSuffix ? ` ${data.priceSuffix}` : ""}`;
+const href = `/imovel/${property.id}/`;
+const image = data.images[0] || "/images/hero-house.webp";
+
+const availability =
+  data.operation === "Aluguel"
+    ? "DISPONÍVEL PARA ALUGAR"
+    : data.operation === "Venda e locação"
+      ? "DISPONÍVEL VENDA E LOCAÇÃO"
+      : "DISPONÍVEL À VENDA";
+const rent = data.rentPrice ? formatBRL(data.rentPrice) : "";
+const price =
+  data.operation === "Aluguel"
+    ? `${formatBRL(data.price)} /mês`
+    : data.operation === "Venda e locação" && rent
+      ? `${formatBRL(data.price)} venda · ${rent} /mês`
+      : formatBRL(data.price);
+const purposes =
+  data.operation === "Venda"
+    ? "comprar vender"
+    : data.operation === "Aluguel"
+      ? "alugar"
+      : "comprar vender alugar";
 ---
 
 <article
   class="property-card"
   data-property-card
+  data-title={data.title}
+  data-code={data.code}
   data-type={data.type}
+  data-category={data.category}
   data-operation={data.operation}
+  data-purpose={purposes}
+  data-city={`${data.city} - ${data.state}`}
+  data-region={`${data.city} - ${data.state}`}
+  data-neighborhood={data.neighborhood}
   data-price={data.price}
-  data-search={`${data.title} ${data.neighborhood} ${data.type} ${data.operation}`.toLowerCase()}
+  data-rent-price={data.rentPrice ?? ""}
+  data-area={data.area}
+  data-area-unit={data.areaUnit}
+  data-bedrooms={data.bedrooms}
+  data-bathrooms={data.bathrooms}
+  data-parking={data.garage}
+  data-condominium={data.features.join(" ")}
+  data-search={`${data.title} ${data.code} ${data.neighborhood} ${data.city} ${data.type} ${data.operation} ${data.features.join(" ")}`.toLowerCase()}
 >
   <a class="property-photo" href={href} aria-label={`Ver detalhes: ${data.title}`}>
-    <img src={image} alt={`Ilustração do imóvel: ${data.title}`} loading="lazy" />
-    <span class="property-badge">{data.operation}</span>
-    {data.sample && <span class="sample-badge">Demonstrativo</span>}
+    <img src={image} alt={data.title} loading="lazy" width="800" height="520" />
+    <span class="property-badge">{availability}</span>
+    <span class="property-code">CÓD. {data.code}</span>
   </a>
 
   <div class="property-body">
-    <span class="property-location">{data.neighborhood} · {data.city}/{data.state}</span>
+    <p class="property-location">⌖ {data.neighborhood} · {data.city} - {data.state}</p>
     <h3><a href={href}>{data.title}</a></h3>
-    <p>{data.summary}</p>
 
     <div class="property-specs" aria-label="Características">
-      {data.bedrooms > 0 && <span>{plural(data.bedrooms, "quarto", "quartos")}</span>}
-      {data.bathrooms > 0 && <span>{plural(data.bathrooms, "banheiro", "banheiros")}</span>}
-      <span>{formatArea(data.area)}</span>
-      {data.garage > 0 && <span>{plural(data.garage, "vaga", "vagas")}</span>}
+      <span>▱ {formatArea(data.area, data.areaUnit)}</span>
+      {data.bedrooms > 0 && <span>▣ {plural(data.bedrooms, "quarto", "quartos")}</span>}
+      {data.bathrooms > 0 && <span>♧ {plural(data.bathrooms, "banh.", "banh.")}</span>}
+      {data.garage > 0 && <span>▤ {plural(data.garage, "vaga", "vagas")}</span>}
     </div>
 
     <div class="property-bottom">

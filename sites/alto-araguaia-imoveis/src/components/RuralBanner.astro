@@ -1,0 +1,23 @@
+---
+import { whatsappHref } from "../lib/config";
+import { site } from "../data/site.config";
+
+const channel = site.channels.find((item) => item.label.includes("rural")) ?? site.channels[0];
+const href =
+  whatsappHref(channel?.whatsapp ?? "", "Olá! Gostaria de falar sobre imóveis rurais.") ??
+  "/contato/";
+---
+
+<section class="rural-banner" id="rurais" aria-labelledby="rural-title">
+  <div class="container">
+    <span class="eyebrow" style="color: var(--yellow)">Imóveis rurais é com a gente!</span>
+    <h2 id="rural-title">Imóveis rurais é com a gente!</h2>
+    <p>
+      Temos ótimas opções de fazendas, sítios e chácaras para você investir no
+      seu futuro.
+    </p>
+    <a class="btn btn-yellow" href={href} target="_blank" rel="noopener noreferrer">
+      Falar com especialista <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</section>

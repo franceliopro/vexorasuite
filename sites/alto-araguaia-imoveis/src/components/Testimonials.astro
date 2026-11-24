@@ -1,0 +1,14 @@
+---
+import { site } from "../data/site.config";
+---
+
+<div class="testimonial-grid">
+  {
+    site.testimonials.map((item) => (
+      <figure class="testimonial">
+        <blockquote>“{item.quote}”</blockquote>
+        <figcaption><cite>{item.author}</cite></figcaption>
+      </figure>
+    ))
+  }
+</div>

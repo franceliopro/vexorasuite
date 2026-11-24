@@ -1,23 +1,26 @@
 ---
-title: "Sobre a Alto Araguaia Imóveis"
-description: "Atendimento local e informação transparente sobre imóveis em Alto Araguaia - MT."
+title: "Uma história construída com você"
+description: "Mais de 15 anos de atuação em Alto Araguaia e região."
 order: 2
 ---
 
-## Quem somos
+## Nossa história
 
-A Alto Araguaia Imóveis é uma vitrine para quem busca um imóvel na cidade e nos
-arredores. O objetivo é simples: reunir informação útil em um só lugar e
-permear todo o processo com atendimento humano.
+A Alto Araguaia Imóveis nasceu do olhar atento de Joelcio Vilela para as pessoas
+e para o desenvolvimento de Alto Araguaia. Em mais de 15 anos de atuação,
+construímos uma trajetória marcada por presença local, conhecimento do mercado e
+relações que continuam depois da assinatura.
 
-## Como trabalhamos
+Começamos com o propósito de tornar cada compra, venda e locação mais segura e
+humana. Hoje, nossa equipe acompanha famílias, produtores, empreendedores e
+investidores em decisões importantes, sempre com transparência, cuidado e uma
+leitura real das oportunidades da região.
 
-- **Informação antes de conversa:** metragem, tipos e localização aparecem logo.
-- **Atendimento local:** conhecimento da região para ajudar na escolha.
-- **Sem pressão:** o visitante decide quando quer falar com a equipe.
+## O jeito Alto Araguaia de atender
 
-## Antes da publicação
-
-Os canais de contato e os anúncios desta versão são exemplos de interface. Eles
-devem ser substituídos por dados reais e validados pelo responsável antes de o
-site entrar no ar.
+- **Conhecimento local:** vivemos a região e entendemos suas cidades, bairros e
+  oportunidades.
+- **Atendimento humano:** você fala com pessoas que acompanham cada etapa com
+  clareza.
+- **Confiança em cada detalhe:** informações organizadas, orientação segura e
+  compromisso com o cliente.

@@ -23,16 +23,122 @@ export function chatbotFlowSkill(departments: Department[]) {
 
 function parse(raw: string): unknown {
   if (raw.length > 60000) return undefined;
-  try { return JSON.parse(raw.trim()); } catch {}
+  const candidates = [raw.trim()];
   const fences = [...raw.matchAll(/\x60\x60\x60(?:json)?\s*([\s\S]*?)\x60\x60\x60/gi)];
-  if (fences.length !== 1) return undefined;
-  try { return JSON.parse(fences[0]![1]!); } catch { return undefined; }
+  if (fences.length === 1) candidates.push(fences[0]![1]!.trim());
+  const start = raw.indexOf('{'), end = raw.lastIndexOf('}');
+  if (start >= 0 && end > start) candidates.push(raw.slice(start, end + 1).trim());
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try { return JSON.parse(candidate); } catch {}
+  }
+  return undefined;
+}
+
+const safeText = (value: unknown, max: number): string | undefined =>
+  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : undefined;
+const mapKey = (value: string) => normalize(value).replace(/\s+/g, ' ');
+const kindKey = (value: string) => normalize(value).replace(/[\s_.-]/g, '');
+const KIND_ALIASES: Record<string, string> = {
+  preferredname: 'preferred-name', nomepreferido: 'preferred-name',
+  humanhandoff: 'human.handoff', handoff: 'human.handoff', transferencia: 'human.handoff', transferir: 'human.handoff',
+  inputtext: 'input.text', entradastexto: 'input.text',
+  paymentstatus: 'payment.status', calendaravailability: 'calendar.availability', calendarbook: 'calendar.book', taskreminder: 'task.reminder',
+  menu: 'buttons', choice: 'buttons', escolha: 'buttons', triagem: 'buttons', opcoes: 'buttons',
+  message: 'text', msg: 'text', texto: 'text',
+};
+const canonicalKind = (value: unknown): unknown =>
+  typeof value === 'string' ? (KIND_ALIASES[kindKey(value)] ?? value.trim()) : value;
+const canonicalId = (value: string, used: Set<string>): string => {
+  const root = mapKey(value).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70) || 'bloco';
+  let id = root, suffix = 2;
+  while (used.has(id)) id = `${root.slice(0, 64)}-${suffix++}`;
+  used.add(id);
+  return id;
+};
+
+/** Model output is untrusted data: accept common shapes, never new capabilities. */
+function canonicalPlan(raw: string): Record<string, unknown> | undefined {
+  const root = object(parse(raw));
+  if (!root) return;
+  const plan = object(root.flow) ?? object(root.roteiro) ?? object(root.plano) ?? root;
+  const rawSteps = plan.steps ?? plan.blocks ?? plan.blocos;
+  if (!Array.isArray(rawSteps) || !rawSteps.length) return;
+  const nodes = rawSteps.map(object);
+  if (nodes.some(node => !node)) return;
+  const used = new Set<string>(), ids: string[] = [], byKey = new Map<string, string>();
+  const register = (key: unknown, id: string) => {
+    const label = safeText(key, 160);
+    if (!label) return;
+    const normalized = mapKey(label);
+    if (byKey.has(normalized) && byKey.get(normalized) !== id) byKey.delete(normalized);
+    else byKey.set(normalized, id);
+  };
+  nodes.forEach((node, index) => {
+    const id = canonicalId(safeText(node!.id, 160) ?? safeText(node!.title, 160) ?? `bloco-${index + 1}`, used);
+    ids.push(id);
+    register(node!.id, id);
+    register(node!.title, id);
+  });
+  const existingIds = new Set(ids);
+  const resolveTarget = (target: string) => target === '__start__' || existingIds.has(target) ? target : (byKey.get(mapKey(target)) ?? target);
+  const steps = nodes.map((node, index) => {
+    const source = node!;
+    const id = ids[index]!;
+    const kind = canonicalKind(source.kind ?? source.action);
+    const title = safeText(source.title, 160) ?? id;
+    const message = typeof source.message === 'string' ? source.message.slice(0, 4000) : '';
+    const config = source.config;
+    const rawTransitions = object(source.transitions ?? (typeof source.transitions === 'string' ? parse(source.transitions) : undefined)) ?? {};
+    const transitions: Record<string, string> = {};
+    const options = Array.isArray(source.options)
+      ? source.options.filter((option): option is string => typeof option === 'string' && Boolean(option.trim())).map(option => option.trim().slice(0, 160))
+      : [];
+    for (const [option, target] of Object.entries(rawTransitions)) {
+      if (typeof target !== 'string' || !target.trim()) continue;
+      const label = option.trim().slice(0, 160);
+      if (!label) continue;
+      transitions[label] = resolveTarget(target.trim());
+      if (!options.includes(label)) options.push(label);
+    }
+    const next = safeText(source.next ?? source.proxima ?? source.destino, 160);
+    if (kind === 'human.handoff') {
+      const department = object(source.department) ?? undefined;
+      const reference = safeText(source.department, 160) ?? safeText(department?.name, 160) ?? safeText(department?.key, 160);
+      return { id, kind, title, message, options: [], transitions: {}, ...(reference ? { department: reference } : {}), ...(config !== undefined ? { config } : {}) };
+    }
+    if (kind === 'preferred-name') {
+      const entries = Object.entries(transitions);
+      const singleTarget = entries.length > 0 && entries.every(([, target]) => target === entries[0]![1]);
+      const chosen = entries.length === 1 || singleTarget ? entries[0]! : undefined;
+      if (chosen) {
+        const [option, target] = chosen;
+        return { id, kind, title, message, options: [option], transitions: { [option]: target }, ...(config !== undefined ? { config } : {}) };
+      }
+      if (options.length === 1 && next) return { id, kind, title, message, options, transitions: { [options[0]!]: resolveTarget(next) }, ...(config !== undefined ? { config } : {}) };
+      return { id, kind, title, message, options: options.slice(0, 1), transitions, ...(config !== undefined ? { config } : {}) };
+    }
+    if (kind === 'condition') {
+      const canonicalOption = (option: string) => {
+        const label = kindKey(option);
+        return label === 'sim' ? 'Sim' : ['nao', 'no'].includes(label) ? 'Não' : option;
+      };
+      const canonicalOptions = [...new Set(options.map(canonicalOption))];
+      const canonicalTransitions = Object.fromEntries(Object.entries(transitions).map(([option, target]) => [canonicalOption(option), target]));
+      return { id, kind, title, message, options: canonicalOptions, transitions: canonicalTransitions, ...(config !== undefined ? { config } : {}) };
+    }
+    return { id, kind, title, message, options, transitions, ...(config !== undefined ? { config } : {}) };
+  });
+  const name = safeText(plan.name ?? plan.flowName ?? plan.nome ?? plan.title, 120);
+  if (!name) return;
+  const welcome = typeof plan.welcome === 'string' ? plan.welcome.slice(0, 4000) : (safeText(plan.welcomeMessage ?? plan.saudacao, 4000) ?? '');
+  return { name, welcome, steps };
 }
 
 export function compileChatbotFlow(raw: string, departments: Department[], baseDraft?: Parameters<typeof validDraft>[0]) {
   const base = validDraft(baseDraft) ? baseDraft : undefined;
   const existing = new Map(base?.steps.map(step => [step.id, step]));
-  const plan = object(parse(raw));
+  const plan = canonicalPlan(raw);
   if (!plan || !Array.isArray(plan.steps) || !plan.steps.length || plan.steps.length > (base ? 100 : 20)) return;
   const steps: RuntimeStep[] = [];
   const warnings: string[] = [];

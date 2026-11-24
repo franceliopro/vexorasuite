@@ -1,0 +1,12 @@
+{
+  "name": "@vexorasuite/site-morbeckxcarvalhinho",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Site estatico Morbeck x Carvalhinho para Cloudflare Pages via Git",
+  "scripts": {
+    "build": "node scripts/build.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

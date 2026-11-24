@@ -1,0 +1,23 @@
+---
+import { site } from "../data/site.config";
+
+const icons: Record<string, string> = {
+  house: "⌂",
+  building: "▥",
+  store: "▣",
+  field: "✿",
+};
+---
+
+<div class="category-grid">
+  {
+    site.categories.map((category) => (
+      <a class="category-card" href={category.href}>
+        <span class="category-icon" aria-hidden="true">{icons[category.icon] ?? "⌂"}</span>
+        <h3>{category.title}</h3>
+        <p>{category.description}</p>
+        <span class="arrow" aria-hidden="true">Explorar →</span>
+      </a>
+    ))
+  }
+</div>

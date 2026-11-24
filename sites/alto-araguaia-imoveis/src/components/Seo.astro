@@ -8,6 +8,7 @@ interface Props {
   image?: string;
   type?: "website" | "article";
   noindex?: boolean;
+  canonicalPath?: string;
 }
 
 const {
@@ -16,9 +17,10 @@ const {
   image = "/og-default.svg",
   type = "website",
   noindex = false,
+  canonicalPath = Astro.url.pathname,
 } = Astro.props;
 
-const canonical = absoluteUrl(site.url, Astro.url.pathname);
+const canonical = absoluteUrl(site.url, canonicalPath);
 const imageUrl = absoluteUrl(site.url, image);
 
 const jsonLd = {

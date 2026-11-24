@@ -1,64 +1,74 @@
 # Alto Araguaia Imóveis
 
-Site público em **Astro estático**, criado a partir de `sites/_template`.
+Site público em **Astro estático**, criado a partir de `sites/_template` e alinhado
+à interface publicada em `https://altoaraguaiaimoveis.com.br/` em 24/11/2026.
 
-## O que está implementado
+O CSS usa **Tailwind CSS 4.3.5** via `@tailwindcss/vite`, com os tokens do site
+expostos em `@theme` (`bg-navy`, `text-yellow`, `font-display`, `rounded-card`, etc.).
+O CSS componentizado permanece em `src/styles/global.css` para compatibilidade com
+o layout já validado.
+
+## Rotas
 
 | Tela | Rota | Arquivo |
 |---|---|---|
-| Home com hero, imóveis em destaque, benefícios, região e 3 passos | `/` | `src/pages/index.astro` |
-| Listagem com busca e filtros por tipo/contato | `/imoveis/` | `src/pages/imoveis/index.astro` |
-| Detalhe do imóvel com galeria, ficha, descrição e formulário | `/imoveis/<slug>/` | `src/pages/imoveis/[slug].astro` |
+| Home com busca, categorias, destaques, rural, benefícios e depoimentos | `/` | `src/pages/index.astro` |
+| Busca geral | `/imoveis/` | `src/pages/imoveis/index.astro` |
+| Imóveis urbanos | `/imoveis-urbanos/` | `src/pages/imoveis-urbanos/index.astro` |
+| Imóveis rurais | `/imoveis-rurais/` | `src/pages/imoveis-rurais/index.astro` |
+| Detalhe do imóvel | `/imovel/<slug>/` | `src/pages/imovel/[slug].astro` |
+| Compatibilidade com URLs antigas | `/imoveis/<slug>/` | `src/pages/imoveis/[slug].astro` |
 | Sobre | `/sobre/` | `src/pages/sobre.astro` |
-| Contato com canais e formulário | `/contato/` | `src/pages/contato.astro` |
+| Contato | `/contato/` | `src/pages/contato.astro` |
+| Anuncie seu imóvel | `/anuncie-seu-imovel/` | `src/pages/anuncie-seu-imovel.astro` |
+| Política de Privacidade | `/p/politica-de-privacidade/` | `src/pages/p/politica-de-privacidade.astro` |
+| Termos de Uso | `/p/termos-de-uso/` | `src/pages/p/termos-de-uso.astro` |
 | 404 | `/404.html` | `src/pages/404.astro` |
-| Sitemap e robots gerados | `/sitemap.xml`, `/robots.txt` | `src/pages/` |
+| Sitemap e robots | `/sitemap.xml`, `/robots.txt` | `src/pages/` |
 
-Conteúdo em `src/content/pages/` e imóveis em `src/content/properties/`, ambos
-com schema validado por Content Collections.
+## Busca e filtros
 
-## Estado honesto deste checkout
+O painel de busca segue os campos do site publicado:
 
-- ✅ Código, telas, filtros, galeria, SEO, sitemap e auditoria implementados.
-- ✅ Build estático validado localmente quando `pnpm verify` passa.
-- ⚠️ **E-mail, telefone e WhatsApp não foram informados** — os campos estão vazios
-  no `src/data/site.config.ts`. O formulário abre e-mail/WhatsApp apenas se houver
-  valor real; com os campos vazios ele avisa que o canal está em configuração.
-- ⚠️ **Os seis imóveis são demonstrativos** (`sample: true`). Eles mostram o
-  layout completo, mas não devem ir ao ar como ofertas reais.
-- ⚠️ **Domínio não informado** — a URL canônica está como
-  `https://altoaraguaia-imoveis.example` apenas para o build. Substitua antes de publicar.
-- ⏳ **Não há deploy executado neste checkout.** Publicação exige projeto no
-  Cloudflare Pages, domínio e credenciais. Nenhum status "no ar" é afirmado sem 2xx.
+- Busca por palavra-chave (`q`), Localização (`city_id`), Pretensão (`purpose`) e Faixa de Preço (`price_range`).
+- “Mais filtros” abre Categoria, Tipo de Imóvel, Condomínio, Região, Bairro, Quartos, Banheiros, Vagas, Área mínima (m²), Preço mínimo, Preço Máximo, Ordenado por e Buscar Código.
+- A submissão é `GET`; os parâmetros voltam preenchidos na URL e o contador de resultados é atualizado no cliente.
+- Trocar `Categoria` atualiza `action` e o parâmetro `p` juntos: `Urbano` leva a `/imoveis-urbanos/`, `Rural` a `/imoveis-rurais/` e `Urbano e rural` a `/imoveis/`. Isso evita filtros contraditórios nas páginas por categoria.
+- A ordenação funciona por mais recentes, menor preço, maior preço e maior área.
+- Na página de detalhe, o botão “N fotos” e as miniaturas abrem um lightbox com setas, teclado e contador.
 
-## Antes de publicar
+## Conteúdo
 
-1. Preencher `name/title/description/url/email/phone/whatsapp/address` em
-   `src/data/site.config.ts` com dados oficiais.
-2. Substituir os arquivos de `src/content/properties/` pelos imóveis reais e
-   trocar `sample: true` para `false`.
-3. Substituir `public/images/*.svg` por fotos reais e ajustar `og-default.svg`.
-4. Definir `PUBLIC_SITE_URL` com o domínio final.
-5. Opcional: definir `PUBLIC_CONTACT_ENDPOINT` (HTTPS) para receber o formulário
-   via POST; sem isso o formulário abre WhatsApp/e-mail e não afirma envio.
-6. Rodar `pnpm verify`.
+- Imóveis: `src/content/properties/` — 8 anúncios reais `AA-1024` a `AA-1031`, com `sample: false`.
+- Páginas: `src/content/pages/` — conteúdo textual validado por Content Collections.
+- Identidade, canais e navegação: `src/data/site.config.ts`.
+- Imagens locais: `public/images/` (hero, campo rural, fotos de cards e galeria).
 
-## Desenvolvimento
+Canais urbanos publicados: `(66) 3481-2792` / `556634812792`.
+Canais rurais publicados: `(66) 99999-0000` / `5566999990000`.
+O e-mail `contato@altoaraguaiaimoveis.com.br` consta no texto da Política de Privacidade;
+o link `mailto:` do site atual está vazio, por isso `site.email` permanece vazio e
+nenhum envio é afirmado apenas pela configuração.
+
+## Validação local
 
 ```bash
 cd sites/alto-araguaia-imoveis
-pnpm install
-pnpm dev       # http://localhost:3200
-pnpm verify    # astro check + astro build + auditoria de links
+pnpm verify
 ```
 
-## Deploy
+`pnpm verify` executa `astro check`, `astro build` e auditoria determinística de
+links/assets em `dist/`. O workflow `.github/workflows/site-alto-araguaia-imoveis.yml`
+repete checagem, build e auditoria no GitHub Actions.
 
-Cloudflare Pages: **Root directory** `sites/alto-araguaia-imoveis`,
-**Build command** `pnpm build`, **Build output** `dist`.
-Workflow: `.github/workflows/site-alto-araguaia-imoveis.yml`.
+## Estado honesto
 
-## Aba Sites
-
-O mesmo fluxo do template: pedido tenant-scoped → build/preview com `commitSha` →
-aprovação humana → publicação pelo host → `PUBLISHED` somente após health-check 2xx.
+- ✅ Código, conteúdo, filtros, galeria, SEO, sitemap e auditoria implementados.
+- ✅ Build estático validado localmente e no GitHub Actions neste checkout.
+- ⏳ Deploy não executado neste repositório: sem `CLOUDFLARE_API_TOKEN`,
+  `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_PAGES_PROJECT` e domínio configurado,
+  nenhuma publicação é afirmada.
+- ⏳ Formulários sem `PUBLIC_CONTACT_ENDPOINT` abrem o WhatsApp para confirmação
+  manual; nenhum envio é afirmado sem resposta HTTP 2xx do endpoint final.
+- ⚠️ Dados migrados do site público exigem validação comercial antes de qualquer
+  republicação.

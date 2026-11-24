@@ -1,6 +1,7 @@
 import { defineConfig } from "astro/config";
+import tailwindcss from "@tailwindcss/vite";
 
-const site = process.env.PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://altoaraguaia-imoveis.example";
+const site = process.env.PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://altoaraguaiaimoveis.com.br";
 
 export default defineConfig({
   site,
@@ -11,6 +12,7 @@ export default defineConfig({
     format: "directory",
   },
   vite: {
+    plugins: [tailwindcss()],
     build: {
       cssMinify: true,
     },

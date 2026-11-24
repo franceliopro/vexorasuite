@@ -17,12 +17,13 @@ const {
 } = Astro.props;
 ---
 
-<section class="cta-band" aria-labelledby="cta-title">
-  <div class="container cta-inner">
-    <div>
+<section class="section tone-navy" aria-labelledby="cta-title">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Fale com a gente</span>
       <h2 id="cta-title">{title}</h2>
       <p>{description}</p>
     </div>
-    <a class="btn btn-light" href={href}>{label} <span aria-hidden="true">→</span></a>
+    <a class="btn btn-yellow" href={href}>{label} <span aria-hidden="true">→</span></a>
   </div>
 </section>

@@ -6,6 +6,27 @@ Este stack publica a Véxora Suite em um ambiente separado. Ele não deve compar
 
 O arquivo de implantação é o `docker-compose.yml` da raiz. O deploy deve usar Compose; os Dockerfiles individuais são usados pelo próprio Compose e pelo CI.
 
+### Directus do Alto Araguaia Imóveis (decisão de 24/11/2026)
+
+O CMS PHP/MySQL com editor visual estilo Elementor foi **descartado**: era um
+protótipo incompleto, publicava em `/p/<slug>` e nunca substituiu o site em `/`.
+Não há ponte a implementar.
+
+O módulo dinâmico do Alto Araguaia Imóveis usa **Directus self-hosted** em
+projeto Dokploy separado do stack Véxora, com banco e volumes próprios. Ele é a
+fonte da verdade de imóveis, usuários, permissões, submissões e mídia. Um Flow
+commita um snapshot JSON no GitHub; o Astro lê esse arquivo no build e o
+Cloudflare Pages publica o HTML estático. Nenhuma credencial de produção deve
+ser copiada para outro projeto.
+
+A licença gratuita do Open Innovation Grant cobre 5–7 usuários (receita anual
+abaixo de US$ 5M e menos de 50 funcionários), com assentos ilimitados. Sem ela,
+o Core limita a 3 assentos. Detalhes em `docs/sites-stack-hibrido.md` e
+`docs/directus-imoveis-contract.md`.
+
+Nenhuma instância Directus foi configurada até 24/11/2026; este é o desenho
+pretendido, não uma implantação confirmada.
+
 ## Serviços do perfil padrão
 
 - `web`: Next.js na porta interna 3000.

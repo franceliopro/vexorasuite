@@ -1,5 +1,43 @@
 # Deploy de sites estáticos via Cloudflare Pages
 
+## Modelo de hospedagem escolhido (24/11/2026)
+
+Decisão do proprietário (atualizada em 24/11/2026): **Cloudflare Pages + Dokploy + GitHub + Directus**.
+
+- **Sites públicos** (Astro, estáticos): um projeto Cloudflare Pages por site, com domínio e variáveis próprios.
+- **Páginas e blocos**: arquivos no GitHub, editáveis na Tina (Git-native).
+- **Dados dinâmicos do Alto Araguaia Imóveis** (imóveis, usuários, permissões, submissões e mídia): Directus self-hosted no Dokploy/VPS.
+- **Véxora**: gerente do processo (pedido, preview, aprovação, publicação, evidência); a plataforma roda em Next.js no Dokploy.
+
+O Cloudflare Pages **não executa PHP, MySQL nem Directus**. O build lê arquivos do repositório: as páginas vindas da Tina e um snapshot JSON gerado por um Flow do Directus. Nenhuma credencial é compartilhada entre empresas. A arquitetura completa está em `docs/sites-stack-hibrido.md`.
+
+### Sites Astro (template `sites/_template`)
+
+Para um site novo baseado no template Astro:
+
+| Configuração | Valor |
+| --- | --- |
+| Root directory | `sites/<slug>` |
+| Build command | `pnpm build` |
+| Build output | `dist` |
+| Branch de produção | `main` |
+| Domínio | próprio, por site |
+
+Exemplo já no repositório: `sites/alto-araguaia-imoveis`.
+
+### Saída do provedor atual
+
+1. Reduzir o TTL dos registros DNS atuais antes da mudança.
+2. Adicionar a zona do domínio na conta Cloudflare e copiar os nameservers.
+3. Criar o projeto Pages, vincular o repositório e configurar o domínio customizado.
+4. Validar o deployment no `*.pages.dev` com HTTP 2xx e conferir o conteúdo.
+5. Trocar os nameservers no registrador e aguardar a propagação.
+6. Confirmar **HTTP 2xx no domínio final** e que o conteúdo antigo não aparece.
+7. Só depois cancelar o provedor antigo.
+
+> Em 24/11/2026 nenhum deploy foi executado. A configuração abaixo registra o
+> pretendido; publicação só se afirma após resposta 2xx verificada na URL final.
+
 ## Publicação via Git — abordagem atual dos sites piloto
 
 Rastreabem e Morbeck x Carvalhinho usam **Cloudflare Pages com integração Git**.
@@ -19,6 +57,13 @@ Cloudflare. Não usar Direct Upload para esses projetos.
 | --- | --- | --- |
 | Rastreabem | `cd sites/rastreabem && npm install && npm run build` | `sites/rastreabem/out` |
 | Morbeck x Carvalhinho | `cd sites/morbeckxcarvalhinho && npm install && npm run build` | `sites/morbeckxcarvalhinho/out` |
+| Alto Araguaia Imóveis | `npm install -g pnpm@12.22.0 && pnpm install --frozen-lockfile && pnpm build` | `sites/alto-araguaia-imoveis/dist` |
+
+Para o Alto Araguaia Imóveis, configure **Root directory** =
+`sites/alto-araguaia-imoveis`, **Build output** = `dist`, **Node** = 22. Os dois
+pilotos acima usam Root directory `/`. O build do Alto depende do snapshot
+`src/content/data/properties.json`, gerado pelo Directus; sem ele, falha com
+erro explícito em vez de publicar dados fictícios.
 
 ### Fluxo
 

@@ -92,6 +92,13 @@ No projeto do Pages: **Root directory** = `sites/<slug>`, **Build command** =
 `pnpm build`, **Build output** = `dist`. Cada site tem projeto, domínio e
 variáveis próprias. Nenhuma credencial é compartilhada entre empresas.
 
+As páginas são arquivos no Git, editáveis na Tina. No Alto Araguaia Imóveis, os
+dados dinâmicos (imóveis, usuários, submissões) ficam no **Directus** no
+Dokploy; um Flow gera o snapshot `src/content/data/properties.json` no repositório
+e o Astro lê esse arquivo no build. Os demais sites são 100% Git-native.
+Veja `docs/sites-stack-hibrido.md`, `docs/directus-imoveis-contract.md`,
+`docs/cloudflare-site-deploy.md` e `docs/deployment-dokploy.md`.
+
 O build bem-sucedido **não** é publicação. Só se reporta "no ar" após resposta
 **2xx** verificada na URL final.
 

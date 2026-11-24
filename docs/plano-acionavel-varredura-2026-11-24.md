@@ -31,7 +31,7 @@ Limite: é uma inspeção rápida da sessão autenticada, não um teste visual a
 
 **Estado:** existe como contrato, intake, preview e decisão; **não** gera HTML, não hospeda e não publica.
 
-**Próximo passo:** receber os insumos do proprietário e transforming a solicitação aprovada em versão rastreável, com auditoria por tenant.
+**Próximo passo:** receber os insumos do proprietário e transformar a solicitação aprovada em versão rastreável, com auditoria por tenant.
 
 **Critérios de aceite:** pedido registrado com slug/domínio/origem definidos; aprovação registrada; preview versionado; nenhuma publicação afirmada sem HTTP 2xx no domínio final.
 

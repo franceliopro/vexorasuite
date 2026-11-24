@@ -25,8 +25,8 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
 | Intake de briefing criativo | [~] | Endpoint e UI tenant-scoped exigem objetivo, canal/formato, identidade, fonte aprovada, prazo, aprovador e destino; registram evento de auditoria em `creative_briefs`. Não gera, aprova, publica nem entrega peça. Ainda sem briefing preenchido pelo proprietário. |
 | Template Next.js/MDX | [ ] | Definido como padrão, com `output: 'export'`, conteúdo em `.mdx` e menu em `content/navigation.ts`. Ainda sem site publicado. |
-| Puck + Payload/Strapi + Postgres (imobiliária) | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
-| Sistemas verticais | [ ] | Escola de Música, Escola com provas/notas, Estética e Delivery registrados em §13. Nenhum módulo implantado. |
+| Sites estáticos Rastreabem e Morbeck via Git | [~] | Código e builds prontos para Cloudflare Pages com GitHub como fonte; PRs #1268/#1269 mesclados e #1270 em integração. Depende da configuração manual no painel Cloudflare e de 2xx no domínio final para virar publicação confirmada. |
+| Alto Araguaia Imóveis | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
 
 ### Evidência das mudanças visuais recentes
 
@@ -43,13 +43,17 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - PR #1188: sync `foundation/bootstrap-monorepo` → `main` preservando as duas histórias; merge `de1ec15f6eb1124b1d2345ae64c2fe92c0029cca`, mesclado com head esperada `db118c1534112dd92bade26e32c8db9b9e8c220d` e todos os cinco checks verdes. Após o merge, `git merge-base --is-ancestor origin/foundation/bootstrap-monorepo origin/main` retornou `0`.
 - Varredura de processo em 2026-11-23: `docs/especificacao-ui-dominio-cloudflare.md` foi alinhado à simulação (sem promessa de deploy, DNS ou SSL reais). Nenhum item foi promovido a “entregue” por configuração, rascunho ou flag.
 - Modelo preenchível `docs/modelo-insumos-sites-artes.md` ligado pelo checklist: reúne os campos exigidos por site, por peça e para cobrança real. É apenas um formulário para o proprietário; preenchê-lo não publica site, gera arte nem cobra cliente.
+- PR #1268: ajuste mobile do Rastreabem (remoção de “Área do Cliente” e alinhamento dos botões); head mesclada `684ab1e86c464238793e7e6e9aac31a2f1f8a492` em `foundation/bootstrap-monorepo`.
+- PR #1269: sync `foundation/bootstrap-monorepo` → `main`; `main` final `10a29e408abd82c144c3d04ebf322b87ddbffb2f`, com a head esperada `2f6c4012444b6455c8bde05212470f6a142d17f9`.
+- PR #1270: site estático Morbeck x Carvalhinho e documentação Git-first; CI verde em `Build and audit static site`, `Build and type-check`, `Private SearXNG runtime`, `validate`, `Container (api)` e `Container (web)`. Base esperada `2f6c4012444b6455c8bde05212470f6a142d17f9`.
 
 ## 2. O que está em construção
 
 1. **HUB de Sites:** pedido, preview, aprovação, versão, histórico e auditoria — sem geração de HTML e sem hospedagem. UI inicial entregue; faltam integrações operacionais externas (GitHub/Cloudflare/domínio) com evidência.
 2. **Template de sites Next.js/MDX:** esqueleto em componentes, conteúdo editável em `.mdx`, menu centralizado, saída estática e entrega via Cloudflare Pages.
 3. **Rastreabem:** conversão do HTML já existente em MDX como primeiro piloto de aprendizado do template.
-4. **Alto Araguaia Imóveis:** inventário do CMS PHP atual do proprietário e desenho das collections `imoveis`, `bairros`, `tipos`, `fotos` e `pages` no Payload/Strapi, com Puck para edição visual.
+4. **Morbeck x Carvalhinho:** espelho estático limpo do WordPress, com busca client-side e build via Git.
+5. **Alto Araguaia Imóveis:** inventário do CMS PHP atual do proprietário e desenho das collections `imoveis`, `bairros`, `tipos`, `fotos` e `pages` no Payload/Strapi, com Puck para edição visual.
 
 ## 3. Onde vamos chegar
 
@@ -73,6 +77,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Deploy ativo e SHA confirmado no Dokploy; domínio, TLS e sessão no ambiente publicado.
 - Envio real de WhatsApp/e-mail, confirmação de cobrança pelo provedor e publicação de sites.
 - Aceite ponta a ponta com aparelho de WhatsApp e contas reais de e-mail.
+- Configuração dos projetos Cloudflare Pages via Git e 2xx nos domínios finais do Rastreabem e do Morbeck x Carvalhinho.
 
 ## 6. Piloto Rastreabem — site em Next.js/MDX
 
@@ -80,9 +85,20 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - [x] Preview local e em endereço temporário: `python -m http.server 3105` serviu `sites/rastreabem/out` com HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/images/1.jpg`; o túnel `https://vexora-rastreabem.loca.lt` devolveu HTTP 200 com o HTML da home em 2026-11-23. Endereço temporário, não publicação definitiva.
 - [x] Auditoria estática reproduzível no workflow `site-rastreabem.yml` (`scripts/audit-links.cjs`): 10 arquivos HTML, 171 referências locais, zero links/assets quebrados em 2026-11-23.
 - [x] Varredura visual e de processo em 2026-11-23: cabeçalho preto e links da Área do Cliente em nova aba com `rel="noopener noreferrer"` (#1256); menu mobile voltou a responder ao botão após remoção de regra CSS duplicada (#1258); erro de hidratação React #418 em `/lp-info/` eliminado ao alinhar MDX e DOM (#1260). Syncs de `main`: #1257, #1259 e #1261. `npm run build` e a auditoria de links foram repetidos sem regressão. Isso não é publicação.
-- [ ] Publicação em Cloudflare Pages e domínio final: sem credenciais, sem `apply` e sem evidência no ar. Ver `docs/site-rastreabem-mdx.md` e `docs/checklist-entrega-sites-artes.md`.
+- [x] Ajuste mobile final: remoção de “Área do Cliente” e alinhamento dos botões à borda esquerda do texto em 390px (#1268); sync para `main` (#1269). Build final a partir de `main`: 10 HTML, auditoria 171/0, sem o texto removido.
+- [ ] Publicação em Cloudflare Pages e domínio final: código pronto para Git integration (`cd sites/rastreabem && npm install && npm run build` → `sites/rastreabem/out`). Sem credenciais, sem configuração confessada no painel e sem evidência 2xx no ar. Ver `docs/site-rastreabem-mdx.md`, `docs/checklist-entrega-sites-artes.md` e `docs/cloudflare-site-deploy.md`.
 
-## 7. Fontes
+## 7. Morbeck x Carvalhinho — site estático via Git
+
+- [x] Espelho limpo do site WordPress original: 33 páginas HTML, 94 arquivos, ~4,23 MB, zero XML/feeds e zero pastas `wp-content`/`wp-includes`.
+- [x] Auditoria estática de links/assets: 1.616 referências locais únicas verificadas pelo script do CI, zero quebrados. Nenhum resíduo de `author/`, `category/`, `hello-world/` ou `/r/`.
+- [x] Fale Conosco com WhatsApp de Milton Pessoa Morbeck: `https://wa.me/5566996034385`.
+- [x] Rodapé limpo: `Copyright © 2005 - 2026` + “Desenvolvido por Francélio Alves da Silva” com link `https://wa.me/5566996394979?text=Gostaria%20de%20falar%20com%20voc%C3%AA%20sobre%20o%20site%20Morbeck%20x%20Carvalhinho`.
+- [x] Busca client-side: `src/assets/js/search.js` + `assets/js/search-index.json` gerado no build. Validação local com o termo `arlinda` retornou resultados; índice com 125.145 bytes.
+- [x] Build no monorepo: `Morbeck x Carvalhinho: 33 paginas HTML geradas em sites/morbeckxcarvalhinho/out`. CI do PR #1270 validou o mesmo build e a auditoria (33 HTML, 1.616 referências, zero quebrados) no GitHub Actions.
+- [ ] Publicação em Cloudflare Pages e domínio final: código pronto para Git integration (`cd sites/morbeckxcarvalhinho && npm install && npm run build` → `sites/morbeckxcarvalhinho/out`). Sem configuração no painel e sem evidência 2xx no ar. Ver `docs/cloudflare-site-deploy.md` e `sites/morbeckxcarvalhinho/README.md`.
+
+## 8. Fontes
 
 - `docs/plano-transicao-presenca-criativos.md` — HUB de Sites (§12) e sistemas verticais (§13).
 - `docs/implementation-register.md` — inventário histórico de entregas, não fonte de estado.

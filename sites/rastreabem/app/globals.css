@@ -32,7 +32,7 @@ button { font: inherit; cursor: pointer; }
 .app-links { position: absolute; top: calc(100% + 12px); left: 0; z-index: 5; display: grid; gap: 8px; width: max-content; padding: 15px 20px; background: #111; }
 .app-links strong { color: var(--orange); }
 .phone { border: 1px solid var(--orange); border-radius: 30px; padding: 6px 21px; white-space: nowrap; font-size: 20px; line-height: 1.2; }
-.menu-toggle, .client-mobile { display: none; }
+.menu-toggle { display: none; }
 .carousel { height: 700px; position: relative; overflow: hidden; isolation: isolate; background: #111; color: #fff; }
 .slide { position: absolute; inset: 0; display: grid; align-items: center; background: center / cover no-repeat; }
 .slide[hidden] { display: none; }
@@ -55,7 +55,7 @@ button { font: inherit; cursor: pointer; }
 .button { display: inline-flex; align-items: center; justify-content: center; min-height: 64px; padding: 12px 40px; color: #fff; background: var(--amber); border: 3px solid var(--orange); border-radius: 4px; font-weight: 600; font-size: 16px; line-height: 1.1; letter-spacing: -.55px; text-align: center; }
 .button:hover { filter: brightness(1.08); }
 .green { background: var(--green); border-color: #219653; }
-.slide .actions { gap: 5px; }
+.slide .actions { gap: 5px; justify-content: center; }
 .slide .button { min-height: 46px; padding: 12px 30px; border: 0; border-radius: 3px; background: var(--orange); font-weight: 500; }
 .slide .green { background: var(--green); }
 .green::before, .sales .button::before, .contact li a::before { content: ""; width: .9em; height: .9em; flex: none; margin-right: .3em; background: currentColor; mask: url("/images/whatsapp.svg") center / contain no-repeat; display: inline-block; vertical-align: -.08em; }
@@ -112,7 +112,6 @@ button { font: inherit; cursor: pointer; }
   .brand { flex: 0 1 148px; }
   .phone { display: none; }
   .menu-toggle { display: block; color: #fff; background: none; border: 0; padding: 4px; font-size: 22px; line-height: 1; }
-  .client-mobile { display: block; padding: 3px 4px; border: 2px solid var(--orange); font-size: 12px; font-weight: 700; white-space: nowrap; }
   .header nav { display: none; position: absolute; inset: 57px 0 auto; z-index: 4; background: #000; padding: 16px; align-items: flex-start; flex-direction: column; }
   .header nav.open { display: flex; }
   .app-links { position: static; margin-top: 8px; }
@@ -127,8 +126,8 @@ button { font: inherit; cursor: pointer; }
   .slide-subtitle { margin-block: 20px; font-size: 20px; font-weight: 700; }
   .benefits, .card-banner .benefits { display: block; margin: 0 29px 0 49px; font-size: 15px; line-height: 1.2; }
   .benefits li::before { content: "•"; display: inline-block; margin-right: 12px; }
-  .slide .actions { flex-wrap: nowrap; }
-  .slide .button { flex: 1; padding: 10px 4px; font-size: 14px; }
+  .slide .actions { flex-wrap: nowrap; margin-inline: 32px 10px; }
+  .slide .button { flex: 0 1 auto; padding: 10px 16px; font-size: 14px; }
   .sales-row { padding-block: 20px; flex-direction: column; text-align: center; }
   .sales h2 { font-size: 28px; }
   .split, .contact-grid { grid-template-columns: 1fr; gap: 22px; }

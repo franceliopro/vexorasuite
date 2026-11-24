@@ -2,7 +2,7 @@
 
 Este documento consolida a varredura rápida pedida pelo proprietário e transforma o mapeamento de sites/artes, HUB, orçamento/documentos e escolas em um plano priorizado. Ele **não** autoriza deploy, DNS, TLS, publicação, migração em produção, envio a clientes nem integração externa.
 
-Linha de base verificada: `foundation/bootstrap-monorepo` em `77c8a813acfdfbb4d02461244b5ad719a96a9f36` e `main` em `6b3b77a65db26acbe72c5b6cf4ea9036f0e479c1` (PRs #1274, #1275, #1276 e #1277 mesclados; `foundation` é ancestral de `main`).
+Linha de base verificada: `foundation/bootstrap-monorepo` em `cdb24dc1479bd239f2768bda4e46eae932cea6a1` e `main` em `e78a1e0393d668690fd3e5e419b40a432bd5b4af` (PRs #1274 a #1280 mesclados; `foundation` é ancestral de `main`).
 
 ## 1. Varredura visual
 
@@ -23,7 +23,7 @@ Limite: é uma inspeção rápida da sessão autenticada, não um teste visual a
 | `GET /api/backend/finance/executive?months=6` | `503`: “Integração Asaas não está configurada para esta empresa.” | Dependência de configuração por tenant, não defeito de código | Configurar Asaas na empresa; não afirmar dados financeiros antes disso. |
 | `/api/backend/users`, `/api/backend/agents`, `/api/backend/operations/settings` | `404` em sondagem direta; registros antigos no console. Após recarregamento limpo, nenhuma requisição `4xx` para `/api/backend` foi capturada e o código atual não contém essas chamadas | Rastro de bundle/console antigo, não rota quebrada confirmada | Registrar e reavaliar se reaparecer em sessão nova. |
 | `SSE /api/backend/events` | `ERR_HTTP2_PROTOCOL_ERROR`, `ERR_ABORTED` e `502` em momentos distintos; outras rotas estáveis | Transporte intermitente, não falha funcional confirmada | Observar; só abrir correção com reprodutibilidade. |
-| `Guardar cópia do fluxo atual` | `Error: prompt() is not supported.` no navegador integrado | Falha real de UI em ambiente incorporado | PR de robustez: usar o nome sugerido quando `prompt()` não existir e não excluir sem confirmação utilizável. |
+| `Guardar cópia do fluxo atual` | `Error: prompt() is not supported.` no navegador integrado | Falha real de UI em ambiente incorporado | Corrigido e mesclado em #1279: usar o nome sugerido quando `prompt()` não existir e bloquear exclusão sem confirmação utilizável. |
 
 ## 3. Priorização
 
@@ -82,4 +82,8 @@ Também faltam:
 
 ## 6. Estado de publicação
 
-Este documento e os PRs relacionados apenas registram plano e corrigem código. Nenhum domínio, DNS, TLS, deploy manual, publicação de site ou integração externa foi executado ou afirmado por eles. A evidência de produção consultada foi HTTP 2xx/503/404 direto nas rotas indicadas.
+Este documento e os PRs relacionados registram plano, corrigem código e consolidam evidência observada. Nenhum domínio, DNS, TLS, deploy manual, publicação de site ou integração externa foi executado por esta rodada.
+
+Publicação **observada** em 2026-11-24, sem autoria desta rodada: `https://rastreabem.com.br` respondeu HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/lp-info/`, com 13 assets locais verificados e zero quebrados; `https://morbeckxcarvalhinho.com.br` respondeu HTTP 200 em `/`, `/fale-conosco/` e `/resgatando-a-historia/`, com 14 assets locais verificados e zero quebrados. Os marcadores dos builds atuais apareceram nos dois domínios e não havia resíduos de WordPress. A observação por HTTP 2xx prova que o conteúdo responde no destino final, mas não prova que o HUB executou a publicação nem que esta rodada configurou Cloudflare, DNS ou TLS.
+
+A evidência de produção consultada também incluiu `200` em documentos e no runtime, `503` no financeiro por falta de configuração do Asaas e `404` antigos que não se reproduziram em aba limpa.

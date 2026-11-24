@@ -1,4 +1,6 @@
-# Estado atual da Véxora — 2026-11-23
+# Estado atual da Véxora — 2026-11-24
+
+> Atualização de 2026-11-24: varredura visual e de processos, correção do `500` em documentos e do `prompt()` do editor, publicação observada dos sites Rastreabem e Morbeck x Carvalhinho no domínio final. Nenhuma publicação, cobrança ou integração externa foi executada por esta rodada.
 
 Este arquivo é a **fonte canônica de status**. Ele substitui os checklists históricos para responder três perguntas: onde estamos, o que está em construção e onde vamos chegar. Documentos antigos continuam no repositório como registro, mas não definem o produto atual.
 
@@ -24,8 +26,8 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | Stripe e InfinitePay | [~] | Adaptadores tenant-scoped, credenciais criptografadas, rotas autenticadas, webhooks e UI implementados; Asaas e aliases preservados. Stripe verifica assinatura v1 com corpo cru; InfinitePay só confirma após `payment_check`. Sem credenciais, webhooks registrados ou evidência externa: nenhuma cobrança real foi validada. |
 | HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
 | Intake de briefing criativo | [~] | Endpoint e UI tenant-scoped exigem objetivo, canal/formato, identidade, fonte aprovada, prazo, aprovador e destino; registram evento de auditoria em `creative_briefs`. Não gera, aprova, publica nem entrega peça. Ainda sem briefing preenchido pelo proprietário. |
-| Template Next.js/MDX | [ ] | Definido como padrão, com `output: 'export'`, conteúdo em `.mdx` e menu em `content/navigation.ts`. Ainda sem site publicado. |
-| Sites estáticos Rastreabem e Morbeck via Git | [~] | Código e builds prontos para Cloudflare Pages com GitHub como fonte; PRs #1268/#1269 mesclados e #1270 em integração. Depende da configuração manual no painel Cloudflare e de 2xx no domínio final para virar publicação confirmada. |
+| Template Next.js/MDX | [x] | Padrão usado nos sites Rastreabem e Morbeck x Carvalhinho, com `output: 'export'`, conteúdo em `.mdx`/HTML saneado e menu centralizado. Publicação observada por HTTP 2xx no domínio final em 2026-11-24; esta rodada não executou deploy. |
+| Sites estáticos Rastreabem e Morbeck via Git | [x] / [~] | Publicação **observada** por HTTP 2xx no domínio final em 2026-11-24 (Rastreabem: 5 páginas e 13 assets locais; Morbeck: 3 páginas e 14 assets locais, zero quebrados, marcadores dos builds presentes e ausência de `wp-content`/`wp-includes`). Esta rodada **não** executou deploy, DNS, TLS nem configurou o HUB; a automação continua sem publicação própria. |
 | Alto Araguaia Imóveis | [ ] | Piloto recomendado; aguardando dump/export do CMS PHP do proprietário, campos dos imóveis, domínio/slug e direito de uso das fotos. |
 
 ### Evidência das mudanças visuais recentes
@@ -46,6 +48,9 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - PR #1268: ajuste mobile do Rastreabem (remoção de “Área do Cliente” e alinhamento dos botões); head mesclada `684ab1e86c464238793e7e6e9aac31a2f1f8a492` em `foundation/bootstrap-monorepo`.
 - PR #1269: sync `foundation/bootstrap-monorepo` → `main`; `main` final `10a29e408abd82c144c3d04ebf322b87ddbffb2f`, com a head esperada `2f6c4012444b6455c8bde05212470f6a142d17f9`.
 - PR #1270: site estático Morbeck x Carvalhinho e documentação Git-first; CI verde em `Build and audit static site`, `Build and type-check`, `Private SearXNG runtime`, `validate`, `Container (api)` e `Container (web)`. Base esperada `2f6c4012444b6455c8bde05212470f6a142d17f9`.
+- PRs #1274 a #1280: logo horizontal com limites configuráveis, correção do `500` em documentos, fallback de `prompt()`/`confirm()` no editor de fluxo, varredura e plano priorizado, além da sincronização `foundation` → `main`. CI verde nos PRs #1278, #1279 e #1280; `foundation` em `cdb24dc1479bd239f2768bda4e46eae932cea6a1` e `main` em `e78a1e0393d668690fd3e5e419b40a432bd5b4af`, com `git merge-base --is-ancestor origin/foundation/bootstrap-monorepo origin/main` retornando `0`.
+- Varredura de 2026-11-24: sessão autenticada da Rastreabem e aba limpa sem imagens quebradas, overflow horizontal, `undefined`, `NaN` ou `[object Object]`. `GET /api/backend/documents/recent?limit=5` → `200`; `GET /api/backend/chatbot/runtime` → `200` com `active:false`, `publications:[]`, `defaultActive:false` e `activeBots:0`; `/api/backend/business-templates` → `200` com o fluxo salvo da Rastreabem. `GET /api/backend/finance/executive?months=6` segue `503` por falta de configuração do Asaas nesta empresa. Os `404` antigos em `/users`, `/agents` e `/operations/settings` não se reproduziram em recarregamento limpo e não existem no código atual; SSE de eventos teve apenas erros de transporte intermitentes, sem reprodutibilidade confirmada.
+- Publicação observada em 2026-11-24 (não executada por esta rodada): `https://rastreabem.com.br` respondeu HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/lp-info/`; 13 assets locais verificados, zero quebrados; marcadores `Fale com nossa equipe comercial`, `wa.me/5566996968893`, `images/logo.png`, `RASTREACARD` e `FALE CONOSCO`; ausência de `wp-content`. `https://morbeckxcarvalhinho.com.br` respondeu HTTP 200 em `/`, `/fale-conosco/` e `/resgatando-a-historia/`; 14 assets locais verificados, zero quebrados; marcadores `Buscar no site`, `search.js`, `5566996394979` e `Copyright`; ausência de `wp-content`/`wp-includes`. Cabeçalhos do Rastreabem: `Server=cloudflare`, `cf-cache-status=DYNAMIC`.
 
 ## 2. O que está em construção
 
@@ -77,7 +82,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Deploy ativo e SHA confirmado no Dokploy; domínio, TLS e sessão no ambiente publicado.
 - Envio real de WhatsApp/e-mail, confirmação de cobrança pelo provedor e publicação de sites.
 - Aceite ponta a ponta com aparelho de WhatsApp e contas reais de e-mail.
-- Configuração dos projetos Cloudflare Pages via Git e 2xx nos domínios finais do Rastreabem e do Morbeck x Carvalhinho.
+- Confirmação no painel Cloudflare de que os projetos Git estão configurados. Os dois sites foram **observados** com HTTP 2xx no domínio final em 2026-11-24; a configuração e a publicação não foram executadas por esta rodada.
 
 ## 6. Piloto Rastreabem — site em Next.js/MDX
 
@@ -86,7 +91,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - [x] Auditoria estática reproduzível no workflow `site-rastreabem.yml` (`scripts/audit-links.cjs`): 10 arquivos HTML, 171 referências locais, zero links/assets quebrados em 2026-11-23.
 - [x] Varredura visual e de processo em 2026-11-23: cabeçalho preto e links da Área do Cliente em nova aba com `rel="noopener noreferrer"` (#1256); menu mobile voltou a responder ao botão após remoção de regra CSS duplicada (#1258); erro de hidratação React #418 em `/lp-info/` eliminado ao alinhar MDX e DOM (#1260). Syncs de `main`: #1257, #1259 e #1261. `npm run build` e a auditoria de links foram repetidos sem regressão. Isso não é publicação.
 - [x] Ajuste mobile final: remoção de “Área do Cliente” e alinhamento dos botões à borda esquerda do texto em 390px (#1268); sync para `main` (#1269). Build final a partir de `main`: 10 HTML, auditoria 171/0, sem o texto removido.
-- [ ] Publicação em Cloudflare Pages e domínio final: código pronto para Git integration (`cd sites/rastreabem && npm install && npm run build` → `sites/rastreabem/out`). Sem credenciais, sem configuração confessada no painel e sem evidência 2xx no ar. Ver `docs/site-rastreabem-mdx.md`, `docs/checklist-entrega-sites-artes.md` e `docs/cloudflare-site-deploy.md`.
+- [x] Publicação observada no domínio final em 2026-11-24: HTTP 200 em `/`, `/rastreamento/`, `/gestao-de-frotas/`, `/rastreacard/` e `/lp-info/`; 13 assets locais verificados, zero quebrados; marcadores do build presentes e ausência de `wp-content`. Esta rodada não executou deploy, DNS, TLS nem configurou o HUB. Ver `docs/site-rastreabem-mdx.md`, `docs/checklist-entrega-sites-artes.md` e `docs/cloudflare-site-deploy.md`.
 
 ## 7. Morbeck x Carvalhinho — site estático via Git
 
@@ -96,7 +101,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - [x] Rodapé limpo: `Copyright © 2005 - 2026` + “Desenvolvido por Francélio Alves da Silva” com link `https://wa.me/5566996394979?text=Gostaria%20de%20falar%20com%20voc%C3%AA%20sobre%20o%20site%20Morbeck%20x%20Carvalhinho`.
 - [x] Busca client-side: `src/assets/js/search.js` + `assets/js/search-index.json` gerado no build. Validação local com o termo `arlinda` retornou resultados; índice com 125.145 bytes.
 - [x] Build no monorepo: `Morbeck x Carvalhinho: 33 paginas HTML geradas em sites/morbeckxcarvalhinho/out`. CI do PR #1270 validou o mesmo build e a auditoria (33 HTML, 1.616 referências, zero quebrados) no GitHub Actions.
-- [ ] Publicação em Cloudflare Pages e domínio final: código pronto para Git integration (`cd sites/morbeckxcarvalhinho && npm install && npm run build` → `sites/morbeckxcarvalhinho/out`). Sem configuração no painel e sem evidência 2xx no ar. Ver `docs/cloudflare-site-deploy.md` e `sites/morbeckxcarvalhinho/README.md`.
+- [x] Publicação observada no domínio final em 2026-11-24: HTTP 200 em `/`, `/fale-conosco/` e `/resgatando-a-historia/`; 14 assets locais verificados, zero quebrados; marcadores `Buscar no site`, `search.js`, `5566996394979` e `Copyright`; ausência de `wp-content`/`wp-includes`. Esta rodada não executou deploy, DNS, TLS nem configurou o HUB. Ver `docs/cloudflare-site-deploy.md` e `sites/morbeckxcarvalhinho/README.md`.
 
 ## 8. Fontes
 

@@ -108,6 +108,35 @@ recebe token de escrita direta.
    provedor — nunca por flag de configuração.
 5. Após aprovação, o Flow de publicação gera o snapshot (abaixo).
 
+## Painel de Anúncios na Véxora
+
+O gestor decide na Aba Sites, sem entrar no Studio do Directus. A Véxora não
+substitui o Directus: ela consome a coleção `submission` e registra a decisão
+humana com autor, motivo e horário.
+
+| Rota da API | Uso |
+| --- | --- |
+| `GET /api/sites/hub/submissions` | lista submissões pendentes e decisões locais |
+| `POST /api/sites/hub/submissions/:submissionKey/decide` | `{ "decision": "APPROVED" \| "REJECTED", "reason": "..." }` |
+
+Regras implementadas:
+
+- `reason` é obrigatório para `REJECTED` e opcional para `APPROVED`.
+- O tenant vem da sessão; `DIRECTUS_TENANT_ID` autoriza **uma** empresa a usar a
+  instância configurada. Outro tenant recebe `503`, sem detalhes da configuração.
+- `DIRECTUS_URL`, `DIRECTUS_TOKEN` e `DIRECTUS_TENANT_ID` ficam no cofre do
+  servidor; o navegador nunca recebe o token da service account.
+- `site_hub_submission_decisions` guarda a reivindicação (`PROCESSING`),
+  o resultado (`DECIDED`) ou a falha (`FAILED`) por
+  `(tenant_id, submission_key)`. Repetir a mesma decisão é idempotente; trocar a
+  decisão é recusado; falha na chamada externa pode ser tentada de novo.
+- A resposta de notificação é `NOT_CONFIRMED` até o Flow do Directus registrar a
+  confirmação real do Resend/WhatsApp. A UI não mostra “enviado” por configuração.
+
+A criação/atualização de `property` com `owner_id` e o envio ao anunciante
+continuam sendo execução do Directus. A Véxora registra e audita; não afirma
+publicação, imóvel criado nem mensagem entregue sem evidência externa.
+
 ## Snapshot publicado
 
 Arquivo: `src/content/data/properties.json` no repositório.

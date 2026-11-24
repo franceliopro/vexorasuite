@@ -1,0 +1,186 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import ContactForm from "../../components/ContactForm.astro";
+import PropertyCard from "../../components/PropertyCard.astro";
+import { formatArea, formatBRL } from "../../lib/format";
+import { site } from "../../data/site.config";
+import { safeBaseUrl } from "../../lib/config";
+
+export const getStaticPaths = (async () => {
+  const properties = await getCollection("properties");
+  return properties.map((property) => ({
+    params: { slug: property.id },
+    props: { property },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  property: CollectionEntry<"properties">;
+}
+
+const { property } = Astro.props;
+const { data } = property;
+const { Content } = await render(property);
+const all = await getCollection("properties");
+const related = all
+  .filter((item) => item.id !== property.id && item.data.type === data.type)
+  .slice(0, 3);
+const price = `${formatBRL(data.price)}${data.priceSuffix ? ` ${data.priceSuffix}` : ""}`;
+const image = data.images[0] || "/images/casa-centro.svg";
+
+const jsonLd = data.sample
+  ? null
+  : {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: data.title,
+      description: data.summary,
+      image: data.images.map((item) => new URL(item, safeBaseUrl(site.url)).href),
+      offers: {
+        "@type": "Offer",
+        price: data.price,
+        priceCurrency: "BRL",
+        availability: "https://schema.org/InStock",
+      },
+    };
+---
+
+<BaseLayout
+  title={`${data.title} | Alto Araguaia Imóveis`}
+  description={data.summary}
+  image={image}
+>
+  <div class="container page-top">
+    <Breadcrumb
+      items={[
+        { label: "Início", href: "/" },
+        { label: "Imóveis", href: "/imoveis/" },
+        { label: data.title, href: `/imoveis/${property.id}/` },
+      ]}
+    />
+  </div>
+
+  <section class="section property-detail">
+    <div class="container">
+      <div class="detail-head">
+        <div>
+          <div class="badge-row">
+            <span class="property-badge">{data.operation}</span>
+            <span class="property-badge outline">{data.type}</span>
+            {data.sample && <span class="sample-badge">Demonstrativo</span>}
+          </div>
+          <h1>{data.title}</h1>
+          <p class="property-location">{data.neighborhood} · {data.city}/{data.state}</p>
+        </div>
+        <strong class="detail-price">{price}</strong>
+      </div>
+
+      <div class="grid cols-2 detail-grid">
+        <div>
+          <div class="gallery">
+            <img class="gallery-main" src={image} alt={`Ilustração: ${data.title}`} data-gallery-main />
+            <div class="gallery-thumbs" aria-label="Imagens do imóvel">
+              {
+                data.images.map((item, index) => (
+                  <button
+                    type="button"
+                    class="gallery-thumb"
+                    data-gallery-thumb
+                    data-image={item}
+                    aria-pressed={index === 0}
+                    aria-label={`Ver imagem ${index + 1}`}
+                  >
+                    <img src={item} alt="" loading="lazy" />
+                  </button>
+                ))
+              }
+            </div>
+          </div>
+
+          <div class="prose detail-description">
+            <h2>Sobre o imóvel</h2>
+            <Content />
+          </div>
+
+          {
+            data.features.length > 0 && (
+              <div class="feature-list">
+                <h2>O que este imóvel oferece</h2>
+                <ul>
+                  {data.features.map((feature) => <li>{feature}</li>)}
+                </ul>
+              </div>
+            )
+          }
+        </div>
+
+        <aside class="detail-side" id="contato">
+          <div class="spec-panel">
+            <h2>Informações rápidas</h2>
+            <dl>
+              <div><dt>Tipo</dt><dd>{data.type}</dd></div>
+              <div><dt>Operação</dt><dd>{data.operation}</dd></div>
+              <div><dt>Área</dt><dd>{formatArea(data.area)}</dd></div>
+              <div><dt>Quartos</dt><dd>{data.bedrooms || "—"}</dd></div>
+              <div><dt>Banheiros</dt><dd>{data.bathrooms || "—"}</dd></div>
+              <div><dt>Vagas</dt><dd>{data.garage || "—"}</dd></div>
+            </dl>
+          </div>
+
+          {data.sample && (
+            <p class="sample-note">
+              Este anúncio é ilustrativo. Confirme dados, fotos e disponibilidade
+              antes de publicar.
+            </p>
+          )}
+
+          <ContactForm
+            heading="Perguntar sobre este imóvel"
+            source={`Imóvel: ${data.title}`}
+            compact={true}
+          />
+        </aside>
+      </div>
+
+      {
+        related.length > 0 && (
+          <div class="related">
+            <h2>Outros imóveis do mesmo tipo</h2>
+            <div class="grid cols-3">
+              {related.map((item) => <PropertyCard property={item} />)}
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    jsonLd && (
+      <script
+        type="application/ld+json"
+        is:inline
+        set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")}
+      />
+    )
+  }
+</BaseLayout>
+
+<script>
+  const main = document.querySelector<HTMLImageElement>("[data-gallery-main]");
+  document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]").forEach((thumb) => {
+    thumb.addEventListener("click", () => {
+      const image = thumb.dataset.image;
+      if (main && image) {
+        main.src = image;
+        main.alt = "Ilustração selecionada do imóvel";
+      }
+      document.querySelectorAll<HTMLButtonElement>("[data-gallery-thumb]").forEach((item) => {
+        item.setAttribute("aria-pressed", String(item === thumb));
+      });
+    });
+  });
+</script>

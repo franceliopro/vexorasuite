@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="44" viewBox="0 0 180 44" role="img" aria-label="Sua marca">
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7cc4ff"/>
+      <stop offset="1" stop-color="#2478f4"/>
+    </linearGradient>
+  </defs>
+  <rect width="44" height="44" rx="13" fill="url(#mark)"/>
+  <path d="M11 13h7l3 12 3-12h7l-7 20h-6z" fill="#06132a"/>
+  <text x="54" y="29" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="800" letter-spacing="-0.5" fill="#0d1e3d">SUA MARCA</text>
+</svg>

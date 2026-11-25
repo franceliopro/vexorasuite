@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
-import { isAnyAuthenticated, isEditorOrAdmin, isTenantScopedReader } from '../access/roles'
+import { isAdmin, isEditorOrAdmin, isTenantScopedReader } from '../access/roles'
 
+/** Chaves naturais são indexadas, não únicas globalmente: a instância é multi-site. */
 export const Category: CollectionConfig = {
   slug: 'category',
   admin: { useAsTitle: 'slug', defaultColumns: ['name', 'slug', 'tenantId'] },
@@ -8,12 +9,12 @@ export const Category: CollectionConfig = {
     read: isTenantScopedReader,
     create: isEditorOrAdmin,
     update: isEditorOrAdmin,
-    delete: isAdminForCategory,
+    delete: isAdmin,
   },
   fields: [
     { name: 'tenantId', type: 'text', required: true, index: true },
     { name: 'name', type: 'text', required: true },
-    { name: 'slug', type: 'text', required: true, index: true, unique: true },
+    { name: 'slug', type: 'text', required: true, index: true },
     { name: 'legacyId', type: 'text', index: true, admin: { readOnly: true } },
   ],
 }

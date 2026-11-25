@@ -9,7 +9,8 @@ const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rou
 /**
  * Assistente de orçamento para a inbox: seleciona itens do catálogo,
  * define quantidade e gera o PDF já enviado pela conversa.
- * Usa as ferramentas MCP-padrão: create_document + share/send-whatsapp.
+ * Envia apenas os IDs e quantidades escolhidos; o servidor recalcula escopo e valor
+ * a partir do catálogo do tenant e grava um snapshot no documento gerado.
  */
 export function CatalogQuotePanel({ conversationId, contactName, onClose, onNotice }: { conversationId: string; contactName: string; onClose: () => void; onNotice?: (msg: string) => void }) {
   const [items, setItems] = useState<Item[]>([]);
@@ -38,9 +39,7 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
     if (!selectedItems.length) { setError("Selecione ao menos um item do catálogo."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      const lines = selectedItems.map(({ item, qty }) => `${qty}x ${item.name} (${item.unit}) — ${money(item.priceCents * qty, item.currency)}`);
-      const escopo = ["Itens:", ...lines.map(l => `• ${l}`)].join("\n");
-      const response = await fetch("/api/backend/documents/generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "QUOTE", values: { objetivo: "Orçamento de serviços", escopo, valor: money(total), prazo: "A combinar", forma_pagamento: "À vista ou em até 3x" } }) });
+      const response = await fetch("/api/backend/documents/generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "QUOTE", values: { nome_cliente: contactName }, catalogItems: selectedItems.map(({ item, qty }) => ({ id: item.id, quantity: qty })) }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "Não foi possível gerar o orçamento.");
       const sendResponse = await fetch(`/api/backend/documents/${data.document.id}/send-whatsapp`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ conversationId }) });

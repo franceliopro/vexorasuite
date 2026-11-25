@@ -63,6 +63,88 @@ export class DocumentsController {
     return body;
   }
 
+  private formatCatalogMoney(cents: number, currency: string) {
+    try {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(cents / 100);
+    } catch {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+    }
+  }
+
+  private async resolveTemplate(tenantId: string, templateId: string, kindRaw: unknown) {
+    const explicit = templateId.trim();
+    const include = { tenant: { select: { name: true } } };
+    if (explicit) {
+      const template = await this.prisma.documentTemplate.findFirst({ where: { id: explicit, tenantId }, include });
+      if (!template) throw new NotFoundException("Modelo não encontrado.");
+      return template;
+    }
+    const kind = typeof kindRaw === "string" && KINDS.has(kindRaw) ? kindRaw : "QUOTE";
+    const template = await this.prisma.documentTemplate.findFirst({
+      where: { tenantId, kind },
+      orderBy: { createdAt: "asc" },
+      include,
+    });
+    if (!template) throw new BadRequestException(`Nenhum modelo ${kind} cadastrado nesta empresa.`);
+    return template;
+  }
+
+  private async catalogValues(tenantId: string, input: any, templateKind: string) {
+    const requested = new Map<string, number>();
+    const raw = Array.isArray(input?.catalogItems) ? input.catalogItems : [];
+    for (const entry of raw) {
+      const id = typeof entry?.id === "string" ? entry.id.trim() : "";
+      if (!id) continue;
+      const parsed = Number(entry?.quantity);
+      const quantity = Number.isFinite(parsed) ? Math.min(1000, Math.max(1, Math.round(parsed))) : 1;
+      requested.set(id, (requested.get(id) ?? 0) + quantity);
+    }
+    if (!requested.size) return null;
+
+    const items = await this.prisma.catalogItem.findMany({
+      where: { tenantId, id: { in: [...requested.keys()] }, active: true },
+      select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, category: true },
+    });
+    if (items.length !== requested.size) throw new BadRequestException("Algum item do catálogo não está disponível nesta empresa.");
+
+    const rows = [...requested.entries()].map(([id, quantity]) => {
+      const item = items.find((candidate) => candidate.id === id)!;
+      return { item, quantity, lineTotalCents: item.priceCents * quantity };
+    });
+    const currencies = [...new Set(rows.map((row) => row.item.currency || "BRL"))];
+    if (currencies.length > 1) throw new BadRequestException("Itens com moedas diferentes não podem ser orçados juntos.");
+    const currency = currencies[0] || "BRL";
+    const totalCents = rows.reduce((sum, row) => sum + row.lineTotalCents, 0);
+    const scope = rows
+      .map((row) => {
+        const details = [row.item.sku, row.item.unit, row.item.description].filter((value) => typeof value === "string" && value.trim()).join(" · ");
+        return `• ${row.quantity}x ${row.item.name}${details ? ` (${details})` : ""} — ${this.formatCatalogMoney(row.lineTotalCents, row.item.currency || currency)}`;
+      })
+      .join("\n");
+
+    return {
+      values: {
+        objetivo: templateKind === "QUOTE" ? "Orçamento de produtos e serviços" : "Produtos e serviços do catálogo",
+        escopo: scope,
+        valor: this.formatCatalogMoney(totalCents, currency),
+        prazo: "A definir com o cliente",
+        forma_pagamento: "A definir com o cliente",
+      },
+      snapshot: rows.map((row) => ({
+        id: row.item.id,
+        name: row.item.name,
+        kind: row.item.kind,
+        sku: row.item.sku,
+        category: row.item.category,
+        unit: row.item.unit,
+        currency: row.item.currency,
+        unitPriceCents: row.item.priceCents,
+        quantity: row.quantity,
+        lineTotalCents: row.lineTotalCents,
+      })),
+    };
+  }
+
   @Get("templates")
   async listTemplates(@Req() req: AuthenticatedRequest, @Query("kind") kind?: string) {
     const where: any = { tenantId: req.user.tenantId };
@@ -216,12 +298,7 @@ export class DocumentsController {
   @Post("generate")
   async generate(@Req() req: AuthenticatedRequest, @Body() input: any) {
     const templateId = typeof input?.templateId === "string" ? input.templateId : "";
-    if (!templateId) throw new BadRequestException("Selecione um modelo.");
-    const template = await this.prisma.documentTemplate.findFirst({
-      where: { id: templateId, tenantId: req.user.tenantId },
-      include: { tenant: { select: { name: true } } },
-    });
-    if (!template) throw new NotFoundException("Modelo não encontrado.");
+    const template = await this.resolveTemplate(req.user.tenantId, templateId, input?.kind);
     const contactId = typeof input?.contactId === "string" ? input.contactId : "";
     let contact: any = null;
     if (contactId) {
@@ -236,6 +313,10 @@ export class DocumentsController {
       const value = trim(manual[key], 4000);
       if (value) merged[key.toLowerCase()] = value;
     }
+    const catalog = await this.catalogValues(req.user.tenantId, input, template.kind);
+    if (catalog) {
+      for (const [key, value] of Object.entries(catalog.values)) merged[key] = value;
+    }
     const today = new Date().toLocaleDateString("pt-BR");
     if (!merged.data) merged.data = today;
     if (!merged.documento && !merged.protocolo) merged.documento = String(Math.floor(Math.random() * 900000) + 100000);
@@ -246,6 +327,7 @@ export class DocumentsController {
       if (required.length) throw new BadRequestException("Preencha: " + required.map((v) => v.label || v.key).join(", "));
     }
     const content = renderTemplate(template.body, merged);
+    const documentValues: Record<string, any> = catalog ? { ...merged, catalogItems: catalog.snapshot } : { ...merged };
     const document = await this.prisma.generatedDocument.create({
       data: {
         tenantId: req.user.tenantId,
@@ -254,12 +336,12 @@ export class DocumentsController {
         kind: template.kind,
         contactId: contact?.id ?? null,
         contactName: contact?.name ? String(contact.name).slice(0, 160) : null,
-        values: merged as any,
+        values: documentValues as any,
         content,
       },
       select: { id: true, name: true, kind: true, contactName: true, createdAt: true },
     });
-    return { document: { ...document, content, values: merged } };
+    return { document: { ...document, content, values: documentValues } };
   }
 
   @Get(":id")

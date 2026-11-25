@@ -831,6 +831,25 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = followStep(step, step.options[0]!);
             continue;
           }
+          if (type === 'catalog.item') {
+            // Nunca inventa produto ou preço: tudo vem do CatalogItem escolhido explicitamente.
+            const itemId = config.itemId || '';
+            const item = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(itemId)
+              ? await tx.catalogItem.findFirst({
+                  where: { id: itemId, tenantId: channel.tenantId, active: true },
+                  select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, category: true },
+                })
+              : null;
+            messages.push(item ? [
+              `Item do catálogo: ${item.name}`,
+              `Tipo: ${item.kind === 'SERVICE' ? 'Serviço' : 'Produto digital'}`,
+              item.sku ? `SKU: ${item.sku}` : '',
+              item.category ? `Categoria: ${item.category}` : '',
+              `Preço: ${(item.priceCents / 100).toFixed(2)} ${item.currency}${item.unit ? ` / ${item.unit}` : ''}`,
+              item.description ? `Descrição: ${item.description}` : '',
+            ].filter(Boolean).join('\n') : 'Item do catálogo indisponível. Escolha outro item ou fale com um atendente.');
+            step = followStep(step, step.options[0]!); continue;
+          }
           messages.push(['input.text','input.cpf'].includes(type) ? renderStep({ ...step, options: [] }, variables) : renderStep(step, variables));
           state = { flow: 'INTELLIGENCE', revision: published.revision, stepId: step.id, variables, completed: !step.options.length && !['input.text','input.cpf'].includes(type) };
           step = undefined as unknown as RuntimeStep;

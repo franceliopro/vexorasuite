@@ -56,7 +56,7 @@ async function readStage(tx: Prisma.TransactionClient, scope: CrmCardScope, excl
 
 async function writePosition(tx: Prisma.TransactionClient, tenantId: string, rows: CardRow[], startAt: number, gapAt = -1) {
   for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index];
+    const row = rows[index]!;
     const position = startAt + index + (gapAt >= 0 && index >= gapAt ? 1 : 0);
     if (row.crmPosition !== position) {
       await tx.contact.updateMany({ where: { id: row.id, tenantId }, data: { crmPosition: position } });

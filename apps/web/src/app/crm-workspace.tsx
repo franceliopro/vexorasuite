@@ -308,7 +308,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     const cards = Array.from(container.querySelectorAll<HTMLElement>("[data-crm-card-id]"))
       .filter((card) => card.dataset.crmCardId !== draggedId);
     for (let index = 0; index < cards.length; index += 1) {
-      const rect = cards[index].getBoundingClientRect();
+      const rect = cards[index]!.getBoundingClientRect();
       if (clientY < rect.top + rect.height / 2) return index;
     }
     return cards.length;

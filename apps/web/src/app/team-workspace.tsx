@@ -34,6 +34,8 @@ const photoPremiumTw = "relative grid w-full cursor-pointer justify-items-center
 const photoCircleTw = "grid size-22 place-items-center overflow-hidden rounded-full bg-linear-to-br from-blue-50 to-blue-100 font-display text-h2 font-extrabold text-blue-950 shadow-token";
 const photoCtaTw = "grid min-w-0 justify-items-center gap-px text-center";
 const sectorsFieldsetTw = "mt-5 flex flex-wrap gap-1.5 rounded-token border border-line bg-surface p-3";
+const notificationFieldsetTw = "mt-5 grid gap-2 rounded-token border border-line bg-surface p-3";
+const notificationHintTw = "text-small text-ink-secondary";
 const toggleTw = "inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-small font-semibold text-ink transition-colors hover:border-blue-600";
 const formFooterTw = "flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2 px-4 py-3";
 const formActionsTw = "flex gap-2";
@@ -55,6 +57,21 @@ const knownByTw = "grid min-w-0 gap-1 text-2xs font-extrabold uppercase tracking
 const knownByInputTw = "min-h-8 normal-case tracking-normal text-small font-semibold";
 const cardActionsTw = "flex flex-wrap gap-1.5 border-t border-line pt-2.5";
 const ROLE_LABELS: Record<string, string> = { OWNER: "Proprietário", ADMIN: "Administrador", MANAGER: "Gestor", AGENT: "Atendente" };
+const NOTIFICATION_PREFERENCES = [
+  { event: "CONVERSATION_ASSIGNED_TO_ME", label: "Atendimento atribuído a mim" },
+  { event: "CONVERSATION_ASSIGNED_TO_MY_TEAM", label: "Atendimento atribuído ao meu setor" },
+  { event: "MENTION", label: "Menção em nota interna" },
+  { event: "TASK_DUE", label: "Tarefa próxima do prazo" },
+  { event: "CONVERSATION_MESSAGE_RECEIVED", label: "Nova mensagem no meu atendimento" },
+] as const;
+type NotificationEvent = (typeof NOTIFICATION_PREFERENCES)[number]["event"];
+const DEFAULT_NOTIFICATION_EVENTS: NotificationEvent[] = NOTIFICATION_PREFERENCES.map(({ event }) => event);
+function notificationEventsFrom(value: unknown): NotificationEvent[] {
+  const known = new Set<string>(NOTIFICATION_PREFERENCES.map(({ event }) => event));
+  return Array.isArray(value)
+    ? value.filter((event): event is NotificationEvent => typeof event === "string" && known.has(event))
+    : [...DEFAULT_NOTIFICATION_EVENTS];
+}
 const initials = (name: string) => String(name || "?").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((n) => n[0]).join("").toUpperCase();
 function temporaryPasswordNotice(success: string, data: { temporaryPassword?: unknown; passwordEmail?: unknown }) {
   if (data.passwordEmail === "accepted") return success + " O servidor de e-mail aceitou o envio da senha temporária.";
@@ -77,6 +94,7 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
       departmentIds: [] as string[],
       modules: [] as string[],
       agendaKey: "",
+      notificationEvents: [...DEFAULT_NOTIFICATION_EVENTS] as NotificationEvent[],
       transferScope: { anyDepartment: false, ownDepartment: true, directAgent: false },
     }),
     [photoFile, setPhotoFile] = useState<File | null>(null),
@@ -119,6 +137,38 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
     setDepartments(await d.json());
     await loadAgendas();
   }
+  async function startEdit(member: any) {
+    setEditingId(member.id);
+    setEditRole(member.role || "");
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setForm({
+      name: member.fullName || member.name,
+      knownBy: member.knownBy || "",
+      email: member.email,
+      password: "",
+      role: member.role,
+      deniedModules: member.deniedModules || [],
+      departmentIds: member.departmentIds,
+      modules: member.modules || [],
+      agendaKey: agendaAssignments.filter((item) => item.userId === member.id).map((item) => item.accountId + "::" + item.calendarId)[0] || "",
+      notificationEvents: [...DEFAULT_NOTIFICATION_EVENTS],
+      transferScope: {
+        anyDepartment: member.transferScope?.anyDepartment === true,
+        ownDepartment: member.transferScope?.ownDepartment !== false,
+        directAgent: member.transferScope?.directAgent !== false,
+      },
+    });
+    setEditing(true);
+    try {
+      const response = await fetch("/api/backend/notification-preferences?userId=" + encodeURIComponent(member.id));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw Error(data.message || "Não foi possível carregar as preferências de notificação.");
+      setForm((v) => ({ ...v, notificationEvents: notificationEventsFrom(data.events) }));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Não foi possível carregar as preferências de notificação.");
+    }
+  }
   useEffect(() => {
     void load().catch((e) => setNotice(e.message));
   }, []);
@@ -144,7 +194,7 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
         </div>
         <button
           className={heroCtaTw}
-          onClick={() => {setEditingId('');setPhotoFile(null);setPhotoPreview(null);setForm({name:'',knownBy:'',email:'',password:'',role:'AGENT',deniedModules:[],departmentIds:[],modules:[],agendaKey:'',transferScope:{anyDepartment:false,ownDepartment:true,directAgent:false}});setEditing(v=>!v)}}
+          onClick={() => {setEditingId('');setPhotoFile(null);setPhotoPreview(null);setForm({name:'',knownBy:'',email:'',password:'',role:'AGENT',deniedModules:[],departmentIds:[],modules:[],agendaKey:'',notificationEvents:[...DEFAULT_NOTIFICATION_EVENTS],transferScope:{anyDepartment:false,ownDepartment:true,directAgent:false}});setEditing(v=>!v)}}
         >
           {editing ? "Fechar cadastro" : (<><UserRoundPlus size={16} aria-hidden="true" />Cadastrar atendente</>)}
         </button>
@@ -229,6 +279,15 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
                     const photoData = await photoResponse.json().catch(() => ({}));
                     if (!photoResponse.ok) throw Error(photoData.message || "Não foi possível salvar a foto.");
                   }
+                  if (memberId) {
+                    const preferenceResponse = await fetch("/api/backend/notification-preferences", {
+                      method: "PATCH",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ userId: memberId, events: form.notificationEvents }),
+                    });
+                    const preferenceData = await preferenceResponse.json().catch(() => ({}));
+                    if (!preferenceResponse.ok) throw Error(preferenceData.message || "Não foi possível salvar as preferências de notificação.");
+                  }
                   setForm({
                     name: "",knownBy:"",
                     email: "",
@@ -237,6 +296,7 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
                     departmentIds: [],
                     modules: [],
                     agendaKey: "",
+                    notificationEvents: [...DEFAULT_NOTIFICATION_EVENTS],
                     transferScope: { anyDepartment: false, ownDepartment: true, directAgent: false },
                   });
                   setEditing(false);
@@ -244,7 +304,7 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
                   setPhotoPreview(null);
                   await load();
                   window.dispatchEvent(new Event("vexora:team-updated"));
-                  setNotice(editingId ? "Permissões e setores atualizados." : createdNotice);setEditingId('');
+                  setNotice(editingId ? "Permissões, setores e preferência de notificação salvos." : createdNotice + " Preferência de notificação salva.");setEditingId('');
                 } catch (e) {
                   const msg = e instanceof Error ? e.message : "Não foi possível cadastrar.";
                   setNotice(msg);
@@ -354,6 +414,27 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
                 </label>
                 <small>Vale para a janela de transferência da conversa: o atendente só enxerga e escolhe destinos liberados aqui. Assumir conversa dentro do próprio setor é sempre permitido.</small>
               </fieldset>
+              <fieldset className={notificationFieldsetTw}>
+                <legend>Notificações</legend>
+                <small className={notificationHintTw}>Escolha os avisos que esta pessoa quer ver no aplicativo. Salvar a preferência não envia nem confirma a entrega de uma notificação.</small>
+                <div className={deptChipsTw}>
+                  {NOTIFICATION_PREFERENCES.map(({ event, label }) => (
+                    <label className={toggleTw} key={event}>
+                      <input
+                        type="checkbox"
+                        checked={form.notificationEvents.includes(event)}
+                        onChange={(e) => setForm((v) => ({
+                          ...v,
+                          notificationEvents: e.target.checked
+                            ? [...new Set([...v.notificationEvents, event])]
+                            : v.notificationEvents.filter((item) => item !== event),
+                        }))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <ModuleChoices
                 value={form.modules}
                 allowed={
@@ -409,7 +490,7 @@ export function TeamWorkspace({platformAdmin=false,canManageAdmin}:{platformAdmi
               <button className={secondaryTw} disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/reactivate",{method:"PATCH"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível reativar.");setNotice("Atendente reativado. Senha temporária: "+(data.temporaryPassword||"")+". Troca obrigatória no próximo acesso.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível reativar.")}finally{setBusy(false)}}}>Reativar</button>
               <button className={`${textButtonTw} ${dangerTextTw}`} disabled={busy} onClick={async()=>{if(!window.confirm("Excluir definitivamente "+r.name+" da empresa? O e-mail fica liberado e o vínculo é desfeito; quando possível, o histórico é preservado. Esta ação não pode ser desfeita."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id+"/permanent",{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível excluir definitivamente.");setNotice(data.emailFreed?"Atendente excluído definitivamente: e-mail liberado para novo cadastro.":"Vínculo do atendente removido desta empresa.");await load();window.dispatchEvent(new Event("vexora:team-updated"));}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível excluir definitivamente.")}finally{setBusy(false)}}}>Excluir definitivamente</button>
               </>) : (<>
-              {r.canEditAccess&&<button className={secondaryTw} onClick={()=>{setEditingId(r.id);setEditRole(r.role||'');setPhotoFile(null);setPhotoPreview(null);setForm({name:r.fullName||r.name,knownBy:r.knownBy||"",email:r.email,password:'',role:r.role,deniedModules:r.deniedModules||[],departmentIds:r.departmentIds,modules:r.modules||[],agendaKey:agendaAssignments.filter(item=>item.userId===r.id).map(item=>item.accountId+"::"+item.calendarId)[0]||"",transferScope:{anyDepartment:r.transferScope?.anyDepartment===true,ownDepartment:r.transferScope?.ownDepartment!==false,directAgent:r.transferScope?.directAgent!==false}});setEditing(true)}}>Editar atendente</button>}
+              {r.canEditAccess&&<button className={secondaryTw} onClick={() => void startEdit(r)}>Editar atendente</button>}
               {(r.canResetPassword ?? platformAdmin)&&<button className={textButtonTw} disabled={busy} onClick={async()=>{setBusy(true);try{const response=await fetch('/api/backend/team/'+r.id+'/reset-password',{method:'POST'});const data=await response.json();if(!response.ok)throw Error(data.message||'Não foi possível redefinir.');setNotice(temporaryPasswordNotice("Senha redefinida para " + r.name + ".", data));await load().catch(() => undefined);}catch(error){setNotice(error instanceof Error?error.message:'Não foi possível redefinir.')}finally{setBusy(false)}}}>Redefinir senha</button>}
               {r.id!==undefined&&r.isActive&&r.id!==undefined&&<button className={`${textButtonTw} ${dangerTextTw}`} disabled={busy} onClick={async()=>{if(!window.confirm("Desativar "+r.name+"? O histórico de conversas será preservado."))return;setBusy(true);try{const response=await fetch("/api/backend/team/"+r.id,{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.message||"Não foi possível desativar.");setNotice("Usuário desativado. O histórico foi preservado.");await load();}catch(error){setNotice(error instanceof Error?error.message:"Não foi possível desativar.")}finally{setBusy(false)}}}>Desativar</button>}
                             </>)}

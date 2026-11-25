@@ -2,8 +2,8 @@
 import { ContactPhoto } from "./contact-photo";
 import { WhatsAppGlyph } from "./brand-glyph";
 
-import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
-import { Check, ChartNoAxesCombined, LayoutGrid, List, Mail, Phone, Plus, Search, UserRound, UsersRound, X, Clock3 } from "lucide-react";
+import { Fragment, useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
+import { Check, ChartNoAxesCombined, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Phone, Plus, Search, UserRound, UsersRound, X, Clock3 } from "lucide-react";
 import { LeadOriginsWorkspace } from "./lead-origins-workspace";
 import { ReportsWorkspace } from "./reports-workspace";
 import { ContactProfilePanel } from "./contact-profile-panel";
@@ -50,6 +50,7 @@ type Contact = {
   email: string | null;
   source: string | null;
   updatedAt: string;
+  crmPosition?: number | null;
   crmStage?: CrmStage | null;
   crmFinalization?: CrmFinalization | null;
   metadata?: Record<string, unknown> | null;
@@ -117,6 +118,11 @@ const finalWonTw = "flex min-h-crm-outcome items-center gap-3 rounded-brand bord
 const finalWonSelectedTw = "flex min-h-crm-outcome items-center gap-3 rounded-brand border-2 border-emerald-600 bg-emerald-100 px-3.5 py-3 text-left transition-colors";
 const finalLostTw = "flex min-h-crm-outcome items-center gap-3 rounded-brand border-2 border-gray-200 bg-zinc-200 px-3.5 py-3 text-left transition-colors hover:border-red-600";
 const finalLostSelectedTw = "flex min-h-crm-outcome items-center gap-3 rounded-brand border-2 border-red-600 bg-red-100 px-3.5 py-3 text-left transition-colors";
+const orderButtonTw = "grid h-7 w-7 flex-none place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+/** Abertura pequena com brilho no ponto exato onde o cartão será solto. */
+const dropSlotTw = "pointer-events-none relative grid h-2 place-items-center";
+const dropSlotLineTw = "h-0.5 w-full rounded-full bg-blue-600 shadow-token-sm ring-2 ring-blue-600/30 animate-pulse motion-reduce:animate-none";
+const dropSlotSparkTw = "absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-50 shadow-token ring-1 ring-blue-600/30";
 
 const defaultStages: { id: CrmStage; label: string; hint: string; tone: string }[] = [
   { id: "new", label: "Novos", hint: "Entraram no CRM", tone: "violet" },
@@ -193,8 +199,10 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [movingId, setMovingId] = useState("");
+  const [savingOrderId, setSavingOrderId] = useState("");
   const [draggingId, setDraggingId] = useState("");
   const [dropTarget, setDropTarget] = useState<CrmStage | "">("");
+  const [dropSlot, setDropSlot] = useState<{ stage: CrmStage; index: number } | null>(null);
   const [view, setView] = useState<"pipeline" | "customers" | "contacts" | "origins" | "reports">("pipeline");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -270,21 +278,74 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     } finally { setSaving(false); }
   }
 
-  async function moveContact(contact: Contact, stage: CrmStage) {
+  function stageOf(contact: Contact): CrmStage { return (contact.crmStage || "new") as CrmStage; }
+  function isPipelineCard(contact: Contact) {
+    return !isCustomer(contact) && !contact.crmFinalization && (!contact.metadata?.crmRemoved || !!contact.pipelineId);
+  }
+  function compareCards(a: Contact, b: Contact) {
+    const aPosition = a.crmPosition ?? Number.MAX_SAFE_INTEGER;
+    const bPosition = b.crmPosition ?? Number.MAX_SAFE_INTEGER;
+    return aPosition - bPosition || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id);
+  }
+  function pipelineColumn(stageId: CrmStage) {
+    return contacts.filter((contact) => isPipelineCard(contact) && stageOf(contact) === stageId).sort(compareCards);
+  }
+  function visibleColumn(stageId: CrmStage) {
+    const visibleIds = new Set(visibleContacts.map((contact) => contact.id));
+    return pipelineColumn(stageId).filter((contact) => visibleIds.has(contact.id));
+  }
+  /** Converte o índice visível (com busca) no índice real da etapa no backend. */
+  function globalIndexFor(stageId: CrmStage, visibleIndex: number, movedId: string) {
+    const full = pipelineColumn(stageId).filter((contact) => contact.id !== movedId);
+    const visible = visibleColumn(stageId).filter((contact) => contact.id !== movedId);
+    if (visibleIndex >= visible.length) return full.length;
+    const anchor = visible[Math.max(0, visibleIndex)]?.id;
+    const index = anchor ? full.findIndex((contact) => contact.id === anchor) : -1;
+    return index < 0 ? full.length : index;
+  }
+  /** Índice de inserção pela posição do ponteiro em relação ao meio de cada cartão. */
+  function insertionIndexFromPointer(container: HTMLElement, clientY: number, draggedId: string) {
+    const cards = Array.from(container.querySelectorAll<HTMLElement>("[data-crm-card-id]"))
+      .filter((card) => card.dataset.crmCardId !== draggedId);
+    for (let index = 0; index < cards.length; index += 1) {
+      const rect = cards[index]!.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) return index;
+    }
+    return cards.length;
+  }
+  function optimisticMove(items: Contact[], contact: Contact, stage: CrmStage, position: number) {
+    const others = items.filter((item) => item.id !== contact.id);
+    const updates = new Map<string, Contact>();
+    const target = others.filter((item) => isPipelineCard(item) && stageOf(item) === stage).sort(compareCards);
+    target.forEach((item, index) => updates.set(item.id, { ...item, crmPosition: index < position ? index : index + 1 }));
+    const sourceStage = stageOf(contact);
+    if (sourceStage !== stage) {
+      others.filter((item) => isPipelineCard(item) && stageOf(item) === sourceStage).sort(compareCards)
+        .forEach((item, index) => updates.set(item.id, { ...item, crmPosition: index }));
+    }
+    return [...others.map((item) => updates.get(item.id) || item), { ...contact, crmStage: stage, crmPosition: position }];
+  }
+
+  async function moveContact(contact: Contact, stage: CrmStage, position?: number) {
     if (stage === "finalization") { setFinalizingContact(contact); setFinalOutcome(""); setLossReason(""); return; }
-    if (contact.crmFinalization || (contact.crmStage || "new") === stage || movingId) return;
-    const previousStage = contact.crmStage || "new";
-    setMovingId(contact.id); setError(""); setNotice("");
-    setContacts((items) => items.map((item) => item.id === contact.id ? { ...item, crmStage: stage } : item));
+    if (contact.crmFinalization || movingId) return;
+    const previousContacts = contacts;
+    const target = pipelineColumn(stage).filter((item) => item.id !== contact.id);
+    const targetPosition = position === undefined ? target.length : Math.max(0, Math.min(position, target.length));
+    const label = stages.find((item) => item.id === stage)?.label || stage;
+    setMovingId(contact.id); setSavingOrderId(contact.id); setError(""); setNotice("");
+    setContacts((items) => optimisticMove(items, contact, stage, targetPosition));
     try {
       await api<Contact>("/api/backend/contacts/" + contact.id + "/stage", {
-        method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ stage }),
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify(position === undefined ? { stage } : { stage, position: targetPosition }),
       });
-      setNotice(contact.name + " movido para " + stages.find((item) => item.id === stage)?.label + ".");
+      setNotice(contact.name + " movido para " + label + " · ordem confirmada.");
+      await loadContacts(queryRef.current);
     } catch (cause) {
-      setContacts((items) => items.map((item) => item.id === contact.id ? { ...item, crmStage: previousStage } : item));
+      setContacts(previousContacts);
       setError(cause instanceof Error ? cause.message : "Não foi possível mover o contato.");
-    } finally { setMovingId(""); setDraggingId(""); setDropTarget(""); }
+    } finally { setMovingId(""); setSavingOrderId(""); setDraggingId(""); setDropSlot(null); setDropTarget(""); }
   }
 
 
@@ -324,13 +385,32 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", contact.id);
     setDraggingId(contact.id);
+    setDropSlot(null);
+  }
+
+  function updateDropSlot(event: DragEvent<HTMLDivElement>, stage: CrmStage) {
+    if (!draggingId) return;
+    setDropTarget(stage);
+    const index = insertionIndexFromPointer(event.currentTarget, event.clientY, draggingId);
+    setDropSlot(stage === "finalization" ? null : { stage, index });
+  }
+
+  function dropAtPosition(event: DragEvent<HTMLDivElement>, stage: CrmStage) {
+    event.preventDefault();
+    event.stopPropagation();
+    const id = event.dataTransfer.getData("text/plain") || draggingId;
+    const contact = contacts.find((item) => item.id === id);
+    const visibleIndex = insertionIndexFromPointer(event.currentTarget, event.clientY, id);
+    const position = globalIndexFor(stage, visibleIndex, id);
+    setDropSlot(null); setDropTarget("");
+    if (contact) void moveContact(contact, stage, position);
   }
 
   function dropOnStage(event: DragEvent<HTMLDivElement>, stage: CrmStage) {
     event.preventDefault();
     const id = event.dataTransfer.getData("text/plain");
     const contact = contacts.find((item) => item.id === id);
-    setDropTarget("");
+    setDropTarget(""); setDropSlot(null);
     if (contact) void moveContact(contact, stage);
   }
 
@@ -374,13 +454,15 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
       </section> : view === "pipeline" ? (
         <section data-testid="crm-pipeline" aria-label="Pipeline comercial" className="grid snap-x snap-proximity grid-flow-col auto-cols-crm-stage items-start gap-3.5 overflow-x-auto p-1 pb-3.5">
           {stages.map((stage) => {
-            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => !isCustomer(contact) && !contact.crmFinalization && (!contact.metadata?.crmRemoved || !!contact.pipelineId) && (contact.crmStage || "new") === stage.id);
+            const columnContacts = stage.id === "finalization" ? [] : visibleContacts.filter((contact) => isPipelineCard(contact) && stageOf(contact) === stage.id).sort(compareCards);
+            const displayContacts = columnContacts.filter((contact) => contact.id !== draggingId);
+            const slotIndex = dropSlot?.stage === stage.id ? Math.min(dropSlot.index, displayContacts.length) : -1;
             const activeDrop = dropTarget === stage.id;
             const tone = stageTones[stage.tone as keyof typeof stageTones] ?? stageTones.blue;
             return <div key={stage.id}
               className={"flex min-h-crm-column max-h-crm-column snap-start flex-col gap-2.5 rounded-token-lg border border-transparent border-t-crm-stage bg-linear-to-b " + tone.column + " p-3.5 shadow-token transition-shadow duration-control " + (activeDrop ? "border-blue-600 border-t-blue-600 shadow-token-lg ring-4 ring-blue-600/30" : "")}
               onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropTarget(stage.id); }}
-              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(""); }}
+              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setDropTarget(""); setDropSlot(null); } }}
               onDrop={(event) => dropOnStage(event, stage.id)}>
               <header className="flex min-h-crm-heading items-start gap-2 border-b border-dashed border-gray-200 pb-2.5 text-left">
                 <span aria-hidden="true" className={"mt-1 h-2.5 w-2.5 flex-none rounded-full " + tone.dot + " " + tone.halo} />
@@ -391,8 +473,13 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
                 <span className={"inline-grid h-6 min-w-6 flex-none place-items-center rounded-full px-2 text-2xs font-extrabold " + tone.count}>{columnContacts.length}</span>
                 <button type="button" className="grid h-7 w-7 flex-none place-items-center rounded-full border border-gray-200 bg-zinc-100 text-slate-600 transition-transform duration-control hover:rotate-90 hover:border-blue-600 hover:bg-blue-600 hover:text-blue-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" onClick={()=>openNewContact(stage.id as CrmStage)} aria-label={"Adicionar contato em "+stage.label} title={"Adicionar contato em "+stage.label}><Plus size={15} aria-hidden="true"/></button>
               </header>
-              <div className="grid min-h-0 flex-1 content-start gap-2.5 overflow-y-auto p-0.5">
-                {columnContacts.map((contact) => <article key={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); }} className={"group relative grid min-h-crm-card min-w-0 gap-2 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-100 p-3 shadow-token-sm transition-all duration-control hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-token-lg " + (draggingId === contact.id ? "scale-105 cursor-grabbing opacity-60" : "cursor-grab")}>
+              <div className="grid min-h-0 flex-1 content-start gap-2.5 overflow-y-auto p-0.5"
+                onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; updateDropSlot(event, stage.id); }}
+                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropSlot(null); }}
+                onDrop={(event) => dropAtPosition(event, stage.id)}>
+                {displayContacts.map((contact, index) => <Fragment key={contact.id}>
+                  {slotIndex === index ? <div data-testid="crm-drop-slot" aria-hidden="true" className={dropSlotTw}><span className={dropSlotLineTw} /><span className={dropSlotSparkTw} /></div> : null}
+                  <article data-crm-card-id={contact.id} draggable onDragStart={(event) => startDrag(event, contact)} onDragEnd={() => { setDraggingId(""); setDropTarget(""); setDropSlot(null); }} className={"group relative grid min-h-crm-card min-w-0 gap-2 overflow-hidden rounded-2xl border border-gray-200 bg-zinc-100 p-3 shadow-token-sm transition-all duration-control hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-token-lg " + (draggingId === contact.id ? "scale-105 cursor-grabbing opacity-60" : "cursor-grab")}>
                   <span aria-hidden="true" className={"pointer-events-none absolute inset-y-0 left-0 w-crm-accent bg-linear-to-b to-transparent opacity-0 transition-opacity group-hover:opacity-100 " + tone.dot} />
                   <button type="button" className="flex w-full min-w-0 items-center gap-2.5 rounded-xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" onClick={()=>setFichaContact(contact)} aria-label={"Abrir ficha de " + contactName(contact)}>
                     <ContactPhoto id={contact.id} name={contactName(contact)} version={contact.metadata?.avatarUrl} className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-full bg-blue-600 text-body font-extrabold text-white shadow-token-sm ring-2 ring-zinc-100" />
@@ -404,6 +491,7 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
                   {contactTags(contact).length?<span className="flex flex-wrap gap-1">{contactTags(contact).map((tag,index)=>{const color=tag.color||"#eeecff";return <span key={tag.name+index} style={{backgroundColor:color,borderColor:color,color:tagForeground(color)}} className="rounded-full border px-2 py-0.5 text-2xs font-extrabold uppercase">{tag.name}</span>})}</span>:null}
                   {contactFieldSummary(contact,fieldDefinitions).length?<span className="flex flex-wrap gap-3 text-small text-slate-600">{contactFieldSummary(contact,fieldDefinitions).map(item=><span key={item.field.key}><b className="font-extrabold text-slate-950">{item.field.name}:</b> {String(item.value)}</span>)}</span>:null}
                   {(contact.updatedAt||contactLeadOrigin(contact))?<span className="flex min-w-0 items-center gap-1.5 truncate text-2xs tabular-nums text-slate-600"><Clock3 size={11} aria-hidden="true" className="flex-none"/>Atualizado {relativeTime(contact.updatedAt)}{contactLeadOrigin(contact)?" · "+contactLeadOrigin(contact):""}</span>:null}
+                  {savingOrderId === contact.id ? <span data-testid="crm-order-saving" className="text-2xs font-extrabold text-blue-800">Salvando ordem…</span> : null}
                   {(()=>{const order=stages.filter(s=>s.id!=="finalization");const index=Math.max(0,order.findIndex(s=>s.id===(contact.crmStage||"new")));return <div className="mt-px flex gap-1" role="img" aria-label={"Progresso no pipeline — etapa "+(index+1)+" de "+order.length}>{order.map((s,i)=><i key={s.id} className={"h-0.5 flex-1 rounded-full " + (i<=index ? tone.dot : "bg-gray-300")}/>)}</div>;})()}
                   {(()=>{const s=contactSecondaryLine(contact);return <span className="flex items-center gap-1.5 text-small tabular-nums text-slate-600"><span aria-hidden="true" className="h-1 w-1 flex-none rounded-full bg-emerald-600 opacity-90"/>{s.social ? <PlatformIcon platform={s.platform} size={11}/> : <Phone size={11} aria-hidden="true" className="flex-none"/>}{s.text}</span>})()}
                   {contact.phone && contact.email ? <span className="flex items-center gap-1.5 text-small tabular-nums text-slate-600"><span aria-hidden="true" className="h-1 w-1 flex-none rounded-full bg-emerald-600 opacity-90"/><Mail size={11} aria-hidden="true" className="flex-none"/>{contact.email}</span> : null}
@@ -412,8 +500,12 @@ export function CrmWorkspace({initialSearch=""}:{initialSearch?:string}={}) {
                     {contact.phone?<a className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm" href={"tel:" + contact.phone} title="Ligar" aria-label={"Ligar para " + contact.name}><Phone size={12} aria-hidden="true"/></a>:null}
                     {contact.email?<a className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm" href={"mailto:" + contact.email} title="Enviar e-mail" aria-label={"Enviar e-mail para " + contact.name}><Mail size={12} aria-hidden="true"/></a>:null}
                     <button type="button" className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-zinc-200 text-slate-600 transition-all hover:-translate-y-0.5 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-800 hover:shadow-token-sm" onClick={()=>setFichaContact(contact)} title="Abrir ficha" aria-label={"Abrir ficha de " + contactName(contact)}><UserRound size={12} aria-hidden="true"/></button>
-                  </div><label className="min-w-0 flex-1"><select aria-label={"Mover " + contactName(contact) + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)} className="min-h-8 w-full min-w-0 appearance-none rounded-lg border border-gray-200 bg-zinc-200 px-2.5 text-small font-bold text-slate-950">{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>{pipelineId?<button type="button" className="grid h-8 w-8 flex-none place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60" disabled={!!movingId} onClick={()=>void removeFromPipeline(contact)} aria-label={"Retirar "+contact.name+" do pipeline"} title="Retirar do pipeline"><X size={14} aria-hidden="true" /></button>:null}</div>
-                </article>)}
+                  </div>{(()=>{const cardIndex=columnContacts.findIndex((item)=>item.id===contact.id);return <div className="flex flex-none items-center gap-1" role="group" aria-label={"Ordem de " + contactName(contact) + " na etapa"}>
+                      <button type="button" className={orderButtonTw} disabled={cardIndex <= 0 || !!movingId} onClick={()=>void moveContact(contact, stage.id as CrmStage, cardIndex - 1)} aria-label={"Subir " + contactName(contact) + " na etapa"} title="Subir na etapa"><ChevronUp size={14} aria-hidden="true" /></button>
+                      <button type="button" className={orderButtonTw} disabled={cardIndex < 0 || cardIndex >= columnContacts.length - 1 || !!movingId} onClick={()=>void moveContact(contact, stage.id as CrmStage, cardIndex)} aria-label={"Descer " + contactName(contact) + " na etapa"} title="Descer na etapa"><ChevronDown size={14} aria-hidden="true" /></button>
+                    </div>;})()}<label className="min-w-0 flex-1"><select aria-label={"Mover " + contactName(contact) + " para outra etapa"} value={stage.id} disabled={movingId === contact.id} onChange={(event) => void moveContact(contact, event.target.value as CrmStage)} className="min-h-8 w-full min-w-0 appearance-none rounded-lg border border-gray-200 bg-zinc-200 px-2.5 text-small font-bold text-slate-950">{stages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>{pipelineId?<button type="button" className="grid h-8 w-8 flex-none place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60" disabled={!!movingId} onClick={()=>void removeFromPipeline(contact)} aria-label={"Retirar "+contact.name+" do pipeline"} title="Retirar do pipeline"><X size={14} aria-hidden="true" /></button>:null}</div>
+                  </article></Fragment>)}
+                {slotIndex === displayContacts.length ? <div data-testid="crm-drop-slot" aria-hidden="true" className={dropSlotTw}><span className={dropSlotLineTw} /><span className={dropSlotSparkTw} /></div> : null}
                 {!columnContacts.length ? <button type="button" className={"group/empty flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-gray-300 px-3.5 py-6 text-center text-slate-600 transition-all hover:-translate-y-px hover:border-blue-600/40 hover:bg-blue-50 " + (activeDrop ? "border-solid border-blue-600 bg-blue-50" : "")} onClick={()=>openNewContact(stage.id as CrmStage)} aria-label={"Adicionar contato em " + stage.label}><span className={"grid h-10 w-10 place-items-center rounded-full ring-1 ring-inset ring-gray-200 transition-transform group-hover/empty:rotate-90 " + tone.empty}>{activeDrop ? <Check size={17}/> : <Plus size={17}/>}</span><strong className="text-h4 text-slate-950">{activeDrop ? "Solte para mover" : "Sem contatos nesta etapa"}</strong><small className="text-2xs leading-relaxed text-slate-600">{activeDrop ? (stage.id === "finalization" ? "Escolha ganho ou perda" : "O pipeline será atualizado") : (stage.id === "finalization" ? "Arraste um contato para registrar o resultado" : "Clique em + para cadastrar ou arraste um cartão para cá")}</small></button> : null}
               </div>
             </div>;

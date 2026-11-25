@@ -1,0 +1,93 @@
+name: Tauri v2 shell
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+      - main
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauri-shell-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  config:
+    name: Config and static guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Static config guards
+        run: pnpm --filter @vexorasuite/shell test
+
+      - name: Validate config with Tauri CLI
+        run: pnpm --filter @vexorasuite/shell exec tauri info
+        env:
+          CI: "true"
+
+      # Android needs SDK/NDK and iOS needs macOS/Xcode; neither is available
+      # on ubuntu-latest. Their config is checked above, not compiled here.
+      - name: Mobile targets are config-only in this runner
+        run: echo "Android and iOS are configured but not built on ubuntu-latest."
+
+  desktop:
+    name: Desktop build check (Linux)
+    needs: config
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install Linux WebKit build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl wget file libxdo-dev libssl-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Cargo check
+        run: cargo check --manifest-path apps/shell/src-tauri/Cargo.toml
+
+      - name: Tauri build without installers
+        run: pnpm --filter @vexorasuite/shell exec tauri build --no-bundle --ci
+
+      - name: No installer published
+        run: echo "Build check only; this workflow does not sign, upload or publish a binary."

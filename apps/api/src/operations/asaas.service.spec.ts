@@ -124,3 +124,87 @@ describe("AsaasService CRM customer synchronization", () => {
     }));
   });
 });
+
+
+describe("AsaasService assinaturas a partir do catálogo", () => {
+  const catalogId = "11111111-1111-4111-8111-111111111111";
+
+  function setupPayment() {
+    const prisma: any = {
+      catalogItem: {
+        findFirst: jest.fn().mockResolvedValue({ id: catalogId, name: "Plano mensal", priceCents: 12900, currency: "BRL" }),
+        findMany: jest.fn().mockResolvedValue([{ id: catalogId, name: "Plano mensal", priceCents: 12900, description: "", imageUrl: null, createdAt: new Date("2026-01-01T00:00:00.000Z") }]),
+        update: jest.fn(),
+      },
+      auditLog: { create: jest.fn() },
+      contact: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn(), update: jest.fn() },
+      $transaction: jest.fn((callback: (client: unknown) => unknown) => callback(prisma)),
+    };
+    const service = new AsaasService(prisma as PrismaService);
+    jest.spyOn(service as any, "credentials").mockResolvedValue({ key: "test", sandbox: false });
+    const request = jest.spyOn(service as any, "request").mockResolvedValue({ id: "sub_test", description: "Plano mensal", value: 129, nextDueDate: "2026-12-01", endDate: "2027-11-30" });
+    return { service, prisma, request };
+  }
+
+  it("usa nome e preço gravados no catálogo, nunca o valor enviado pelo navegador", async () => {
+    const { service, prisma, request } = setupPayment();
+
+    const result = await service.createSubscription("tenant-id", {
+      customerId: "cus_test", catalogItemId: catalogId, value: 1, service: "Nome inventado",
+      cycle: "MONTHLY", billingType: "PIX", nextDueDate: "2026-12-01", endDate: "2027-11-30", userId: "user-1",
+    });
+
+    expect(request).toHaveBeenCalledWith("tenant-id", "/subscriptions", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        customer: "cus_test", billingType: "PIX", value: 129, cycle: "MONTHLY",
+        nextDueDate: "2026-12-01", description: "Plano mensal", externalReference: undefined, endDate: "2027-11-30",
+      }),
+    }));
+    expect(result.subscription).toMatchObject({ id: "sub_test", catalogItemId: catalogId, endDate: "2027-11-30" });
+    expect(prisma.catalogItem.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: catalogId, tenantId: "tenant-id", active: true, category: "ASAAS" }),
+    }));
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "payment.subscription_created", details: expect.objectContaining({ catalogItemId: catalogId, endDate: "2027-11-30", actorId: "user-1" }) }),
+    }));
+  });
+
+  it("recusa item inativo ou de outra empresa sem chamar o Asaas", async () => {
+    const { service, prisma, request } = setupPayment();
+    prisma.catalogItem.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.createSubscription("tenant-id", { customerId: "cus_test", catalogItemId: catalogId, value: 10 })).rejects.toThrow("indisponível");
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("exclui assinatura no Asaas e registra auditoria", async () => {
+    const { service, prisma, request } = setupPayment();
+
+    const result = await service.removeSubscription("tenant-id", "sub_test", "user-1");
+
+    expect(request).toHaveBeenCalledWith("tenant-id", "/subscriptions/sub_test", { method: "DELETE" });
+    expect(result).toEqual({ deleted: true, subscriptionId: "sub_test", environment: "PRODUCTION" });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "payment.subscription_deleted", entityId: "sub_test", details: expect.objectContaining({ actorId: "user-1" }) }),
+    }));
+  });
+
+  it("exclui cliente no Asaas e marca contatos locais como excluídos", async () => {
+    const { service, prisma, request } = setupPayment();
+    prisma.contact.findMany.mockResolvedValueOnce([{ id: "contact-1", metadata: { asaas: { customerId: "cus_test" } } }]);
+    prisma.contact.findFirst.mockResolvedValue({ metadata: { asaas: { customerId: "cus_test" }, contactType: "CUSTOMER" } });
+
+    const result = await service.removeCustomer("tenant-id", "cus_test", "user-1");
+
+    expect(request).toHaveBeenCalledWith("tenant-id", "/customers/cus_test", { method: "DELETE" });
+    expect(prisma.contact.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "contact-1" },
+      data: { metadata: expect.objectContaining({ asaas: expect.objectContaining({ status: "DELETED" }), asaasSync: expect.objectContaining({ status: "DELETED" }) }) },
+    }));
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "payment.customer_deleted", details: expect.objectContaining({ affectedContactIds: ["contact-1"], actorId: "user-1" }) }),
+    }));
+    expect(result).toEqual({ deleted: true, customerId: "cus_test", environment: "PRODUCTION", affectedContacts: 1 });
+  });
+});

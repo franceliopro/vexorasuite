@@ -1,5 +1,6 @@
 import {effectiveModules,patternModules} from "../auth/module-policy";
 import {assignmentRecipient} from "./conversation-visibility";
+import {allowsNotification} from "./notification-preferences";
 import { BadRequestException, Injectable, Logger, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { Subscription } from 'rxjs';
@@ -27,9 +28,11 @@ export class PushService implements OnModuleInit,OnModuleDestroy{
   const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true}});const root=tenant.integrations as Record<string,any>;const settings=root.notificationRouting||{};
   const members=await this.prisma.membership.findMany({where:{tenantId,user:{isActive:true,mustChangePassword:false},tenant:{status:'ACTIVE'}},select:{userId:true,role:true,modules:true,deniedModules:true}});
   const team=await this.prisma.departmentMember.findMany({where:{tenantId,userId:{in:members.map(m=>m.userId)},department:{isActive:true}},select:{userId:true,departmentId:true,department:{select:{modules:true}}}});
+  const preferences=await this.prisma.userNotificationPreference.findMany({where:{tenantId,userId:{in:members.map(m=>m.userId)}},select:{userId:true,events:true}});
+  const byUser=new Map(preferences.map(p=>[p.userId,p.events]));
   const ids=members.filter(m=>{
    const links=team.filter(t=>t.userId===m.userId),departmentIds=links.filter(t=>t.department.modules.includes('INBOX')).map(t=>t.departmentId);
-   return assignmentRecipient(conversation,m.userId,departmentIds,settings)&&effectiveModules(m.role,m.modules,links.map(t=>t.department),patternModules(root,m.userId,links.map(t=>t.departmentId)),m.deniedModules).includes('INBOX');
+   const routing=assignmentRecipient(conversation,m.userId,departmentIds,settings,byUser.get(m.userId));const optedIn=assignment||allowsNotification(byUser.get(m.userId),'CONVERSATION_MESSAGE_RECEIVED');return routing&&optedIn&&effectiveModules(m.role,m.modules,links.map(t=>t.department),patternModules(root,m.userId,links.map(t=>t.departmentId)),m.deniedModules).includes('INBOX');
   }).map(m=>m.userId);if(!ids.length)return;
   const subscribers=await this.prisma.pushSubscription.findMany({where:{tenantId,userId:{in:ids}},take:500});const privateKey=this.decrypt(config.privateKeyEncrypted);
   for(let offset=0;offset<subscribers.length;offset+=5)await Promise.allSettled(subscribers.slice(offset,offset+5).map(async sub=>{if(!validPushEndpoint(sub.endpoint))return;try{await webpush.sendNotification({endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},JSON.stringify({title:assignment?'Véxora · Atendimento atribuído':'Véxora · Nova mensagem',body:assignment?'Um atendimento chegou à sua fila.':'Há uma nova mensagem na sua fila de atendimento.',tag:'conversation-'+conversationId,url:'/?module=Atendimento&conversation='+conversationId}),{TTL:300,timeout:8000,urgency:'normal',vapidDetails:{subject:'https://app.vexorasuite.com.br',publicKey:config.publicKey,privateKey}})}catch(error){if([404,410].includes(Number((error as {statusCode?:number}).statusCode)))await this.prisma.pushSubscription.deleteMany({where:{id:sub.id,tenantId}});else throw error}}));

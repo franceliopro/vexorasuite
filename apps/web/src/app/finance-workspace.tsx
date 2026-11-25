@@ -11,6 +11,7 @@ import {
   Clock3,
   History,
   LayoutDashboard,
+  Package,
   Plus,
   Receipt,
   RefreshCcw,
@@ -37,12 +38,19 @@ const tabTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill px
 const tabActiveTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill bg-blue-600 px-3.5 text-small font-bold text-blue-900 shadow-token-sm";
 const portfolioCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
 const catalogCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
+const productGridTw="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3";
+const productCardTw="grid min-w-0 gap-2.5 self-start rounded-token border border-line bg-surface-2 p-pad shadow-token-sm";
+const productImageTw="aspect-video w-full rounded-fin-card bg-surface-3 object-cover";
+const productPlaceholderTw="grid aspect-video place-items-center rounded-fin-card border border-dashed border-line-strong bg-surface-3 text-small text-ink-secondary";
+const productPriceTw="text-fin-metric font-extrabold tabular-nums text-ink";
 const listingCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
 const actionRowTw="flex flex-wrap gap-2.5";
 const metaTw="m-0 text-asaas-muted text-ink-secondary";
 const tableScrollTw="w-full overflow-x-auto";
 const customerDocTw="block text-asaas-muted text-ink-secondary";
 const collectionActionTw="inline-flex min-h-7 items-center rounded-fin-pill border border-blue-600/30 bg-blue-50 px-2.5 text-2xs font-extrabold text-blue-800 no-underline disabled:cursor-not-allowed disabled:opacity-45";
+const dangerActionTw="inline-flex min-h-7 items-center gap-1 rounded-fin-pill border border-red-600/30 bg-red-50 px-2.5 text-2xs font-extrabold text-red-600 no-underline transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-45";
+const dangerButtonTw="inline-flex min-h-control items-center gap-2 rounded-token-sm bg-red-600 px-4 text-body font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60";
 const paginationTw="flex justify-end gap-2.5";
 const paginationButtonTw="min-h-8 rounded-fin-pill border border-line bg-surface-2 px-3.5 text-small font-bold text-ink-secondary disabled:cursor-not-allowed disabled:opacity-45";
 const catalogNoteTw="m-0 text-asaas-muted leading-relaxed text-ink-secondary";
@@ -173,6 +181,10 @@ const dialogFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t border-li
 
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateBR = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split("-").reverse().join("/") : value;
+/** Abre Configurações → Catálogo sem inventar um atalho de criação fora da página de gestão. */
+function openCatalogSettings(){if(typeof window!=="undefined")window.dispatchEvent(new Event("vexora:open-catalog"));}
+/** Imagens do catálogo são privadas: só renderizamos URLs HTTP(S) ou locais da própria API. */
+const catalogImageUrl=(value:unknown):string=>typeof value==="string"&&(/^https?:\/\//i.test(value.trim())||value.trim().startsWith("/api/"))?value.trim():"";
 const statusBR:Record<string,string>={PENDING:"Pendente",OVERDUE:"Vencido",RECEIVED:"Recebido",CONFIRMED:"Confirmado",RECEIVED_IN_CASH:"Recebido em dinheiro",REFUNDED:"Estornado",CANCELLED:"Cancelado",CHARGEBACK_REQUESTED:"Contestação solicitada",CHARGEBACK_DISPUTE:"Em contestação"};
 
 type PortfolioItem = { id:string;customerId:string;customerName?:string|null;customerDocument?:string|null;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null;invoiceUrl?:string|null };
@@ -236,6 +248,25 @@ function CatalogView({mode}:{mode:"catalog"|"subscriptions"}){
  </section>;
 }
 
+type CatalogProduct={id:string;name:string;description:string;priceCents:number;currency:string;imageUrl:string|null};
+function CatalogProductsView(){
+  const [items,setItems]=useState<CatalogProduct[]|null>(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [refresh,setRefresh]=useState(0);
+  useEffect(()=>{let live=true;setLoading(true);setError("");fetch("/api/backend/catalog?category=ASAAS&limit=200",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as {items?:CatalogProduct[]}}).then(body=>{if(live)setItems(Array.isArray(body.items)?body.items:[])}).catch(e=>{if(live){setItems(null);setError(e instanceof Error?e.message:"Falha ao consultar o catálogo.")}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[refresh]);
+  return <section className={catalogCardTw} aria-labelledby="finance-products-title">
+   <div className={panelHeadingTw}><div><h2 id="finance-products-title">Produtos</h2><p className={metaTw}>Itens privados da Véxora, gravados no catálogo da empresa.</p></div><div className={headingActionsTw}><button type="button" className={secondaryButton} onClick={openCatalogSettings}><Package size={15} aria-hidden="true"/> Configurações / Catálogo</button><button type="button" className={secondaryButton} onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Atualizar</button></div></div>
+   {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando catálogo…</p>:items&&items.length?<div className={productGridTw}>{items.map(item=>{const image=catalogImageUrl(item.imageUrl);return <article className={productCardTw} key={item.id}>
+     {image?<img className={productImageTw} src={image} alt="" loading="lazy"/>:<div className={productPlaceholderTw} role="img" aria-label="Imagem não informada">Imagem não informada</div>}
+     <h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>
+     <p className={catalogNoteTw}>{item.description||"Sem descrição cadastrada."}</p>
+     <strong className={productPriceTw}>{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}</strong>
+    </article>})}</div>:<div className={emptyPanelTw}><p className={emptyTw}>Nenhum produto cadastrado nesta empresa.</p><button type="button" className={secondaryButton} onClick={openCatalogSettings}>Criar produto em Configurações / Catálogo</button></div>}
+   <p className={catalogNoteTw}>Imagem e descrição ficam na Véxora. Nada aqui é enviado para WhatsApp, e-mail ou outros canais externos.</p>
+  </section>;
+}
+
 type FinanceListing={source:string;environment:string;kind:string;offset:number;limit:number;hasMore:boolean;totalCount:number|null;items:{id:string;customerId:string;customerName:string;description:string;value:number;cycle:string|null;status:string;billingType:string|null;dueDate:string|null;invoiceUrl:string|null}[]};
 function FinanceAsaasListing({kind}:{kind:"subscriptions"|"detached"}){
  const [data,setData]=useState<FinanceListing|null>(null),[offset,setOffset]=useState(0),[refresh,setRefresh]=useState(0),[search,setSearch]=useState(""),[status,setStatus]=useState(""),[cycle,setCycle]=useState(""),[filters,setFilters]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState("");
@@ -244,12 +275,12 @@ function FinanceAsaasListing({kind}:{kind:"subscriptions"|"detached"}){
  const shown=(data?.items||[]).filter(x=>(!search||[x.customerName,x.description,x.id].some(v=>v.toLowerCase().includes(search.toLowerCase())))&&(!status||x.status===status)&&(!cycle||x.cycle===cycle));
  const cycleName=(v:string|null)=>({MONTHLY:"Mensal",WEEKLY:"Semanal",BIWEEKLY:"Quinzenal",QUARTERLY:"Trimestral",SEMIANNUALLY:"Semestral",YEARLY:"Anual"} as Record<string,string>)[v||""]||v||"Avulsa";
  const paymentName=(v:string|null)=>({BOLETO:"Boleto bancário",PIX:"Pix",CREDIT_CARD:"Cartão de crédito",UNDEFINED:"A definir"} as Record<string,string>)[v||""]||v||"Não informado";
- const [newSubscriptionOpen,setNewSubscriptionOpen]=useState(false),[createdNotice,setCreatedNotice]=useState("");
+ const [newSubscriptionOpen,setNewSubscriptionOpen]=useState(false),[createdNotice,setCreatedNotice]=useState(""),[deleteTarget,setDeleteTarget]=useState<DeleteTarget|null>(null);
   const title=kind==="subscriptions"?"Assinaturas":"Cobranças avulsas";
  return <section className={listingCardTw}><div className={panelHeadingTw}><div><h2>{title}</h2><p>Sincronização direta · {data?.environment||"Asaas"}</p></div><div className={headingActionsTw}>{kind==="subscriptions"?<button type="button" className={primaryButton} onClick={()=>{setCreatedNotice("");setNewSubscriptionOpen(true)}}><Plus size={15} aria-hidden="true"/> Nova assinatura</button>:null}<button type="button" className={secondaryButton} onClick={()=>setRefresh(v=>v+1)}><RefreshCcw size={15}/> Sincronizar</button></div></div>
  <div className={toolbarTw}><label className={searchTw}><span>Buscar</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nome do cliente ou descrição"/></label><button type="button" className={secondaryButton} aria-expanded={filters} onClick={()=>setFilters(v=>!v)}>Filtros {filters?"−":"+"}</button><small>Busca e filtros na página atual</small></div>
  {filters?<div className={filterBarTw}><label>Situação<select value={status} onChange={e=>setStatus(e.target.value)}><option value="">Todas</option>{["ACTIVE","INACTIVE","EXPIRED","PENDING","OVERDUE","RECEIVED","CONFIRMED"].map(s=><option key={s} value={s}>{statusBR[s]||s}</option>)}</select></label>{kind==="subscriptions"?<label>Periodicidade<select value={cycle} onChange={e=>setCycle(e.target.value)}><option value="">Todas</option>{["MONTHLY","WEEKLY","BIWEEKLY","QUARTERLY","SEMIANNUALLY","YEARLY"].map(s=><option key={s} value={s}>{cycleName(s)}</option>)}</select></label>:null}<button type="button" className={secondaryButton} onClick={()=>{setStatus("");setCycle("");setSearch("")}}>Limpar filtros</button></div>:null}
- {loading?<p role="status">Consultando dados reais do Asaas…</p>:error?<p role="alert">{error}</p>:<><div className={tableScrollTw}><table><thead><tr><th>Cliente</th><th>Valor</th><th>Descrição</th><th>Forma de pagamento</th>{kind==="detached"?<th>Vencimento</th>:null}<th>Situação</th><th>Ações</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><strong>{x.customerName}</strong></td><td><strong>{currency(x.value)}</strong>{kind==="subscriptions"?<small>/ {cycleName(x.cycle)}</small>:null}</td><td>{x.description||<span className={mutedTw}>Não informada</span>}</td><td>{paymentName(x.billingType)}</td>{kind==="detached"?<td>{x.dueDate?dateBR(x.dueDate):"—"}</td>:null}<td><span data-status-tone={x.status==="ACTIVE"||x.status==="RECEIVED"?"positive":x.status==="OVERDUE"?"negative":"neutral"} className={x.status==="ACTIVE"||x.status==="RECEIVED"?statusPositiveTw:x.status==="OVERDUE"?statusNegativeTw:statusNeutralTw}>{statusBR[x.status]||({ACTIVE:"Ativa",INACTIVE:"Inativa",EXPIRED:"Expirada"} as Record<string,string>)[x.status]||x.status}</span></td><td>{x.invoiceUrl?<a href={x.invoiceUrl} target="_blank" rel="noopener noreferrer" className={linkTw}>Fatura</a>:<span className={mutedTw}>—</span>}</td></tr>)}</tbody></table></div>{!shown.length?<p className={emptyTw}>Nenhum registro encontrado nesta página.</p>:null}<div className={footerTw}><span>{shown.length} registros exibidos · página {Math.floor(offset/50)+1}{data?.totalCount!==null?" · "+data?.totalCount+" registros informados pelo Asaas":""}</span><div><button type="button" className={secondaryButton} disabled={!offset} onClick={()=>setOffset(v=>Math.max(0,v-50))}>Anterior</button><button type="button" className={secondaryButton} disabled={!data?.hasMore} onClick={()=>setOffset(v=>v+50)}>Próxima</button></div></div>{kind==="detached"?<p className={catalogNoteTw}>Somente cobranças sem assinatura vinculada. O resultado é paginado conforme o retorno do Asaas.</p>:null}{createdNotice?<p role="status" className={noticeTw}>{createdNotice}<button type="button" aria-label="Fechar" onClick={()=>setCreatedNotice("")}><X size={14} aria-hidden="true"/></button></p>:null}{newSubscriptionOpen?<NewSubscriptionModal onClose={()=>setNewSubscriptionOpen(false)} onCreated={(message)=>{setNewSubscriptionOpen(false);setCreatedNotice(message);setRefresh(v=>v+1)}}/>:null}</>}
+ {loading?<p role="status">Consultando dados reais do Asaas…</p>:error?<p role="alert">{error}</p>:<><div className={tableScrollTw}><table><thead><tr><th>Cliente</th><th>Valor</th><th>Descrição</th><th>Forma de pagamento</th>{kind==="detached"?<th>Vencimento</th>:null}<th>Situação</th><th>Ações</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><strong>{x.customerName}</strong></td><td><strong>{currency(x.value)}</strong>{kind==="subscriptions"?<small>/ {cycleName(x.cycle)}</small>:null}</td><td>{x.description||<span className={mutedTw}>Não informada</span>}</td><td>{paymentName(x.billingType)}</td>{kind==="detached"?<td>{x.dueDate?dateBR(x.dueDate):"—"}</td>:null}<td><span data-status-tone={x.status==="ACTIVE"||x.status==="RECEIVED"?"positive":x.status==="OVERDUE"?"negative":"neutral"} className={x.status==="ACTIVE"||x.status==="RECEIVED"?statusPositiveTw:x.status==="OVERDUE"?statusNegativeTw:statusNeutralTw}>{statusBR[x.status]||({ACTIVE:"Ativa",INACTIVE:"Inativa",EXPIRED:"Expirada"} as Record<string,string>)[x.status]||x.status}</span></td><td>{x.invoiceUrl?<a href={x.invoiceUrl} target="_blank" rel="noopener noreferrer" className={linkTw}>Fatura</a>:<span className={mutedTw}>—</span>}{kind==="subscriptions"?<div className={actionRowTw}>{x.customerId?<button type="button" className={dangerActionTw} onClick={()=>setDeleteTarget({kind:"CUSTOMER",id:x.customerId,label:x.customerName||"Cliente"})}>Excluir cliente</button>:null}<button type="button" className={dangerActionTw} onClick={()=>setDeleteTarget({kind:"SUBSCRIPTION",id:x.id,label:x.description||"Assinatura"})}>Excluir assinatura</button></div>:null}</td></tr>)}</tbody></table></div>{!shown.length?<p className={emptyTw}>Nenhum registro encontrado nesta página.</p>:null}<div className={footerTw}><span>{shown.length} registros exibidos · página {Math.floor(offset/50)+1}{data?.totalCount!==null?" · "+data?.totalCount+" registros informados pelo Asaas":""}</span><div><button type="button" className={secondaryButton} disabled={!offset} onClick={()=>setOffset(v=>Math.max(0,v-50))}>Anterior</button><button type="button" className={secondaryButton} disabled={!data?.hasMore} onClick={()=>setOffset(v=>v+50)}>Próxima</button></div></div>{kind==="detached"?<p className={catalogNoteTw}>Somente cobranças sem assinatura vinculada. O resultado é paginado conforme o retorno do Asaas.</p>:null}{createdNotice?<p role="status" className={noticeTw}>{createdNotice}<button type="button" aria-label="Fechar" onClick={()=>setCreatedNotice("")}><X size={14} aria-hidden="true"/></button></p>:null}{newSubscriptionOpen?<NewSubscriptionModal onClose={()=>setNewSubscriptionOpen(false)} onCreated={(message)=>{setNewSubscriptionOpen(false);setCreatedNotice(message);setRefresh(v=>v+1)}}/>:null}{deleteTarget?<ConfirmDeleteDialog target={deleteTarget} onClose={()=>setDeleteTarget(null)} onDeleted={(message)=>{setDeleteTarget(null);setCreatedNotice(message);setRefresh(v=>v+1)}}/>:null}</>}
  </section>;
 }
 
@@ -343,18 +374,52 @@ function FinanceHistoryWorkspace(){
  return <section className={historyPageTw}><header className={automationHeadingTw}><div><h2>Histórico de avisos</h2><p>Acompanhamento de tentativas, entregas, falhas e alterações das automações financeiras.</p></div><span className={automationPillTw}>Aguardando integração com eventos reais</span></header><div className={historyStatsTw}>{["Enviados","Entregues","Falhas","Pendentes"].map(label=><div key={label}><small>{label}</small><strong>—</strong></div>)}</div><div className={historyTableTw}><div className={historyHeadTw}><span>Data e hora</span><span>Cliente</span><span>Evento</span><span>Status</span><span>Detalhes</span></div><div className={historyEmptyTw}>Ainda não há um registro de execução auditável conectado a esta tela. Nenhuma entrega ou falha será simulada.</div></div><p className={autoNoteTw}>A integração deverá registrar eventos de cobrança, confirmação do provedor, recebimento e leitura quando disponíveis, erros, tentativas e reprocessamentos seguros.</p></section>;
 }
 
-type ServiceCatalogItem={id:string;name:string;value:number};
+type DeleteTarget={kind:"SUBSCRIPTION"|"CUSTOMER";id:string;label:string};
+function ConfirmDeleteDialog({target,onClose,onDeleted}:{target:DeleteTarget;onClose:()=>void;onDeleted:(message:string)=>void}){
+  const [phrase,setPhrase]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState("");
+  const dialogRef=useRef<HTMLDivElement|null>(null);
+  useModalDialog(true,dialogRef,()=>{if(!busy)onClose()});
+  const isSubscription=target.kind==="SUBSCRIPTION";
+  const effect=isSubscription
+    ? "Ao confirmar, o Asaas removerá a recorrência e as cobranças pendentes ou vencidas. Pagamentos já confirmados permanecem."
+    : "Ao confirmar, o Asaas removerá o cliente, assinaturas e cobranças pendentes ou vencidas. Os contatos locais vinculados serão marcados como excluídos. Pagamentos já confirmados permanecem.";
+  async function confirm(){
+    if(phrase.trim().toUpperCase()!=="EXCLUIR")return;
+    setBusy(true);setError("");
+    const path=isSubscription?"/api/backend/finance/subscriptions/":"/api/backend/finance/customers/";
+    try{
+      const r=await fetch(path+encodeURIComponent(target.id),{method:"DELETE",cache:"no-store"});
+      const body=await r.json().catch(()=>({}));
+      if(!r.ok)throw Error(body.message||"O servidor não confirmou a exclusão.");
+      onDeleted((isSubscription?"Assinatura":"Cliente")+" excluído(a) no Asaas após confirmação do servidor: "+target.label+" · auditoria registrada.");
+    }catch(e){setError(e instanceof Error?e.message:"Não foi possível confirmar a exclusão.")}
+    finally{setBusy(false)}
+  }
+  return <div className={dialogBackdropTw} role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose()}}><div ref={dialogRef} tabIndex={-1} className={dialogTw} role="dialog" aria-modal="true" aria-labelledby="confirm-delete-title"><header className={dialogHeadingTw}><div><h2 id="confirm-delete-title">Confirmar exclusão</h2><p>{isSubscription?"Assinatura":"Cliente"}: {target.label}</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true"/></button></header><div className={dialogBodyTw}>
+   <div className={subscriptionFormTw}>
+    <p className={errorTw}>Atenção: {effect}</p>
+    <p className={catalogNoteTw}>A intenção é registrada na auditoria com o usuário responsável. Nenhuma exclusão é considerada concluída antes da resposta de sucesso do servidor; se falhar, nada é afirmado como feito.</p>
+    <label className={fieldTw}><span>Para confirmar, digite EXCLUIR</span><input value={phrase} onChange={event=>setPhrase(event.target.value)} autoComplete="off" disabled={busy} maxLength={20}/></label>
+    {error?<p role="alert" className={errorTw}>{error}</p>:null}
+    <div className={dialogFooterTw}><button type="button" className={secondaryButton} disabled={busy} onClick={onClose}>Cancelar</button><button type="button" className={dangerButtonTw} disabled={busy||phrase.trim().toUpperCase()!=="EXCLUIR"} onClick={()=>void confirm()}>{busy?"Excluindo…":"Confirmar exclusão"}</button></div>
+   </div>
+  </div></div></div>;
+}
+
+type ServiceCatalogItem={id:string;name:string;value:number;description?:string;imageUrl?:string|null};
 type LookupMatch={id:string;name:string;email:string|null;phone:string|null};
 function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;onClose:()=>void;onCreated:(message:string)=>void}){
   const [document,setDocument]=useState("");
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
-  const [service,setService]=useState("");
-  const [value,setValue]=useState("");
+  const [catalogItemId,setCatalogItemId]=useState("");
   const [cycle,setCycle]=useState("MONTHLY");
   const [billingType,setBillingType]=useState("BOLETO");
   const [nextDueDate,setNextDueDate]=useState(()=>{const d=new Date();d.setDate(d.getDate()+30);return d.toISOString().slice(0,10)});
+  const [endDate,setEndDate]=useState("");
   const [catalog,setCatalog]=useState<ServiceCatalogItem[]>([]);
   const [lookupBusy,setLookupBusy]=useState(false);
   const [matches,setMatches]=useState<LookupMatch[]|null>(null);
@@ -362,38 +427,46 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
   const [customerId,setCustomerId]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
+  const dialogRef=useRef<HTMLDivElement|null>(null);
+  useModalDialog(true,dialogRef,()=>{if(!busy)onClose()});
   useEffect(()=>{let live=true;fetch("/api/backend/finance/services",{cache:"no-store"}).then(r=>r.json()).then(v=>{if(live&&Array.isArray(v.services))setCatalog(v.services)}).catch(()=>{});return()=>{live=false}},[]);
   const documentDigits=document.replace(/\D+/g,"");
   const documentValid=/^(\d{11}|\d{14})$/.test(documentDigits);
   async function lookup(){if(!documentValid){setError("CPF ou CNPJ inválido.");return;}setLookupBusy(true);setError("");setMatches(null);setCreateNew(false);setCustomerId("");try{const r=await fetch("/api/backend/finance/customer-lookup?document="+encodeURIComponent(documentDigits),{cache:"no-store"});const body=await r.json();if(!r.ok)throw Error(body.message||"Falha ao consultar o Asaas.");const found:LookupMatch[]=Array.isArray(body.customers)?body.customers:[];setMatches(found);if(found.length===1)setCustomerId(found[0]!.id);else if(!found.length)setCreateNew(true);}catch(e){setError(e instanceof Error?e.message:"Não foi possível consultar o Asaas.");setMatches([]);}finally{setLookupBusy(false)}}
   const selectedCustomer=matches?.find(item=>item.id===customerId)||null;
-  const canCreate=Boolean(service.trim()&&Number(value)>0&&documentValid&&(selectedCustomer||customerId||(createNew&&name.trim().length>2)));
+  const selectedItem=catalog.find(item=>item.id===catalogItemId)||null;
+  const canCreate=Boolean(selectedItem&&documentValid&&(selectedCustomer||customerId||(createNew&&name.trim().length>2)));
   async function submit(){
-    if(!canCreate){setError("Preencha serviço, valor e cliente.");return;}
+    if(!canCreate){setError("Selecione um serviço do catálogo e informe um cliente válido.");return;}
+    if(endDate&&endDate<nextDueDate){setError("A data final não pode ser anterior à primeira cobrança.");return;}
     setBusy(true);setError("");
     try{
-      const body:Record<string,unknown>={service:service.trim(),value:Number(String(value).replace(",",".")),cycle,billingType,nextDueDate};
+      // Nome e preço vêm do CatalogItem no servidor; o navegador envia só a referência e as datas.
+      const body:Record<string,unknown>={catalogItemId:selectedItem!.id,cycle,billingType,nextDueDate};
+      if(endDate)body.endDate=endDate;
       if(selectedCustomer||customerId)body.customerId=selectedCustomer?.id||customerId;
       else if(createNew){body.document=documentDigits;body.customerName=name.trim();if(email.trim())body.customerEmail=email.trim();if(phone.trim())body.customerPhone=phone.replace(/\D+/g,"")}
       if(contactId)body.contactId=contactId;
       const r=await fetch("/api/backend/finance/subscriptions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
       const result=await r.json().catch(()=>({}));
       if(!r.ok)throw Error(result.message||"Não foi possível criar a assinatura.");
-      const numericValue=Number(String(value).replace(",","."));
-      onCreated("Assinatura criada: "+service.trim()+" · "+currency(numericValue)+" · primeira cobrança em "+result.subscription.nextDueDate);
+      onCreated("Assinatura criada: "+selectedItem!.name+" · "+currency(selectedItem!.value)+" · primeira cobrança em "+result.subscription.nextDueDate+(result.subscription.endDate?" · término em "+dateBR(result.subscription.endDate):""));
     }catch(e){setError(e instanceof Error?e.message:"Falha ao criar a assinatura.");setBusy(false)}
   }
-  return <div className={dialogBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}><div className={dialogTw} role="dialog" aria-modal="true" aria-labelledby="new-sub-title"><header className={dialogHeadingTw}><div><h2 id="new-sub-title">Nova assinatura</h2><p>A descrição será o nome do serviço. Um serviço novo é criado e fica gravado no catálogo automaticamente — como as Tags.</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true"/></button></header><div className={dialogBodyTw}>
+  return <div className={dialogBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}><div ref={dialogRef} tabIndex={-1} className={dialogTw} role="dialog" aria-modal="true" aria-labelledby="new-sub-title"><header className={dialogHeadingTw}><div><h2 id="new-sub-title">Nova assinatura</h2><p>A descrição e o valor vêm do serviço gravado no catálogo da empresa.</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true"/></button></header><div className={dialogBodyTw}>
     <form className={subscriptionFormTw} onSubmit={(event)=>{event.preventDefault();void submit()}}>
       <section><strong>Cliente</strong><label className={fieldTw}><span>CPF ou CNPJ</span><div className={lookupTw}><input inputMode="numeric" autoComplete="off" value={document} onChange={e=>{setDocument(e.target.value);setMatches(null);setCreateNew(false);setCustomerId("");updateSelectionFromDocument(e.target.value)}} placeholder="Somente números"/><button type="button" className={secondaryButton} disabled={!documentValid||lookupBusy} onClick={()=>void lookup()}>{lookupBusy?"Consultando…":"Buscar cliente"}</button></div></label>
-      {matches!==null?(matches.length?<fieldset className={matchesTw}><legend>Selecione o cadastro no Asaas</legend>{matches.map(item=><label key={item.id} data-selected={customerId===item.id?"true":"false"} className={customerId===item.id?customerSelectedTw:customerTw}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span><strong>{item.name}</strong><small>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className={matchesTw}><legend>Novo cadastro no Asaas</legend><div className={newCustomerTw}><label className={fieldTw}><span>Nome do cliente *</span><input required autoFocus={createNew} value={name} onChange={e=>setName(e.target.value)} placeholder="Nome completo ou razão social"/></label><label className={fieldTw}><span>E-mail (opcional)</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@empresa.com"/></label><label className={fieldTw}><span>Telefone (opcional)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(00) 00000-0000"/></label></div></fieldset>):null}
+      {matches!==null?(matches.length?<fieldset className={matchesTw}><legend>Selecione o cadastro no Asaas</legend>{matches.map(item=><label key={item.id} data-selected={customerId===item.id?"true":"false"} className={customerId===item.id?customerSelectedTw:customerTw}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span><strong>{item.name}</strong><small>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className={matchesTw}><legend>Novo cadastro no Asaas</legend><div className={newCustomerTw}><label className={fieldTw}><span>Nome do cliente *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="Nome completo ou razão social"/></label><label className={fieldTw}><span>E-mail (opcional)</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@empresa.com"/></label><label className={fieldTw}><span>Telefone (opcional)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(00) 00000-0000"/></label></div></fieldset>):null}
       </section>
-      <section><strong>Serviço e cobrança</strong><label className={fieldTw}><span>Serviço (nome da assinatura no Asaas) *</span><input required list="finance-services" autoFocus={!createNew} value={service} onChange={e=>setService(e.target.value)} placeholder="Ex.: Plano clube mensal" maxLength={120}/><datalist id="finance-services">{catalog.map(item=><option key={item.id} value={item.name}>{item.name}</option>)}</datalist>{service.trim()&&catalog.some(item=>item.name.toLocaleLowerCase("pt-BR")===service.trim().toLocaleLowerCase("pt-BR"))?<small>Este serviço já está no catálogo e será reaproveitado.</small>:catalog.length?<small>{catalog.length} serviços no catálogo — um nome novo é criado aqui mesmo.</small>:null}</label>
+      <section><strong>Serviço e cobrança</strong><label className={fieldTw}><span>Serviço do catálogo *</span><select required value={catalogItemId} onChange={e=>setCatalogItemId(e.target.value)}><option value="">Selecione um serviço</option>{catalog.map(item=><option key={item.id} value={item.id}>{item.name} · {currency(item.value)}</option>)}<option value="__create__">Criar outros…</option></select></label>
+       {catalogItemId==="__create__"?<p className={partialTw}>Cadastre o novo serviço em Configurações / Catálogo; depois volte aqui para selecioná-lo. <button type="button" className={linkTw} onClick={openCatalogSettings}>Abrir Configurações / Catálogo</button></p>:null}
+       {catalog.length===0&&catalogItemId!=="__create__"?<p className={catalogNoteTw}>Nenhum serviço ativo no catálogo. <button type="button" className={linkTw} onClick={openCatalogSettings}>Criar em Configurações / Catálogo</button></p>:null}
       <div className={subGridTw}>
-        <label className={fieldTw}><span>Valor *</span><input required inputMode="decimal" value={value} onChange={e=>setValue(e.target.value)} placeholder="0,00"/></label>
+        <label className={fieldTw}><span>Valor do catálogo</span><input readOnly value={selectedItem?currency(selectedItem.value):"—"}/></label>
         <label className={fieldTw}><span>Periodicidade</span><select value={cycle} onChange={e=>setCycle(e.target.value)}><option value="WEEKLY">Semanal</option><option value="BIWEEKLY">Quinzenal</option><option value="MONTHLY">Mensal</option><option value="QUARTERLY">Trimestral</option><option value="SEMIANNUALLY">Semestral</option><option value="YEARLY">Anual</option></select></label>
         <label className={fieldTw}><span>Forma de pagamento</span><select value={billingType} onChange={e=>setBillingType(e.target.value)}><option value="BOLETO">Boleto bancário</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão de crédito</option><option value="UNDEFINED">A definir</option></select></label>
         <label className={fieldTw}><span>Primeira cobrança</span><input type="date" value={nextDueDate} onChange={e=>setNextDueDate(e.target.value)}/></label>
+         <label className={fieldTw}><span>Data final (opcional)</span><input type="date" value={endDate} min={nextDueDate||undefined} onChange={e=>setEndDate(e.target.value)}/></label>
       </div>
       </section>
       {error?<p role="alert" className={errorTw}>{error}</p>:null}
@@ -402,15 +475,16 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
   </div></div></div>;
 }
 function updateSelectionFromDocument(value: string){/* helper placeholder noop for clarity */}
-const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
+const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export function FinanceWorkspace(){
- const [tab,setTab]=useState<"overview"|"charges"|"subscriptions"|"detached"|"automation"|"history">("overview");
+ const [tab,setTab]=useState<"overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history">("overview");
  const [portfolioStatus,setPortfolioStatus]=useState("");
  return <section className={moduleTw}>
   <header className={pageHeadingTw}><div><h1>Financeiro</h1><p className={pageSubtitleTw}>Indicadores e cobranças reais integrados ao Asaas. Nada é estimado sem base.</p></div></header>
   <nav className={tabsTw} aria-label="Áreas do Financeiro">{FINANCE_TABS.map(item=>{const Icon=item.icon;return <button type="button" key={item.id} aria-selected={tab===item.id} className={tab===item.id?tabActiveTw:tabTw} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}><Icon size={15} aria-hidden="true"/>{item.label}</button>})}</nav>
   {tab==="overview"?<ExecutiveOverview onOpenCharges={(status)=>{setPortfolioStatus(status);setTab("charges")}}/>:null}
-  {tab==="charges"?<PortfolioView initialStatus={portfolioStatus}/>:null}
+  {tab==="products"?<CatalogProductsView/>:null}
+   {tab==="charges"?<PortfolioView initialStatus={portfolioStatus}/>:null}
   {tab==="subscriptions"||tab==="detached"?<FinanceAsaasListing kind={tab}/>:null}
   {tab==="automation"?<FinanceAutomationWorkspace/>:null}
   {tab==="history"?<FinanceHistoryWorkspace/>:null}

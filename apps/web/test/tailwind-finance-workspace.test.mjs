@@ -6,6 +6,7 @@ const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "
 
 const config = read("tailwind.config.ts");
 const source = read("src/app/finance-workspace.tsx");
+const homePage = read("src/app/page.tsx");
 
 /**
  * Literais de className, constantes TW referenciadas por className e mapas
@@ -210,6 +211,7 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
   for (const marker of [
     'fetch("/api/backend/finance/portfolio?"',
     'fetch("/api/backend/finance/catalog?offset="+offset+"&limit=50"',
+    'fetch("/api/backend/catalog?category=ASAAS&limit=200"',
     'fetch("/api/backend/finance/listings?"',
     'fetch("/api/backend/finance/executive?"',
     'fetch("/api/backend/finance/services"',
@@ -238,9 +240,26 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     'role="alert" className={partialTw}',
     'aria-label="Áreas do Financeiro"',
     '<h1>Financeiro</h1>',
+    'id:"products",label:"Produtos"',
+    '<h2 id="finance-products-title">Produtos</h2>',
+    'window.dispatchEvent(new Event("vexora:open-catalog"))',
+    'useModalDialog(true,dialogRef',
+    'ref={dialogRef} tabIndex={-1}',
+    'aria-labelledby="confirm-delete-title"',
+    'const body:Record<string,unknown>={catalogItemId:selectedItem!.id',
+    'if(endDate)body.endDate=endDate',
+    '"/api/backend/finance/subscriptions/"',
+    '"/api/backend/finance/customers/"',
+    'method:"DELETE"',
+    'EXCLUIR',
   ]) {
     assert.ok(source.includes(marker), `faltou ${marker}`);
   }
+  assert.doesNotMatch(source, /<datalist/);
+  assert.doesNotMatch(source, /const body:Record<string,unknown>=\{service:/);
+  assert.doesNotMatch(source, /body\.service=/);
+  assert.doesNotMatch(source, /body\.value=/);
+  assert.doesNotMatch(source, /templateId/);
   assert.match(source, /role="dialog" aria-modal="true" aria-labelledby="new-sub-title"/);
   assert.match(source, /<h2 id="new-sub-title">Nova assinatura<\/h2>/);
   assert.match(source, /aria-label="Fechar"/);
@@ -253,4 +272,11 @@ test("o JSX financeiro mantém os gráficos como dados, sem cor de marca fixa", 
   assert.match(source, /style=\{\{background:"conic-gradient\("\+item\.color\+" "\+percentage\+"%,var\(--s2\) 0\)"\}\}/);
   assert.match(source, /style=\{\{width:Math\.max\(3,share\)\+"%",background:"linear-gradient\(90deg,"\+palette\[0\]\+","\+palette\[1\]\+"\)"\}\}/);
   assert.doesNotMatch(source, /color-mix\(/);
+});
+
+test("a home abre o catálogo em Configurações mediante evento interno", () => {
+  assert.match(homePage, /addEventListener\("vexora:open-catalog"/);
+  assert.match(homePage, /setSettingsCatalogOpen\(true\)/);
+  assert.match(homePage, /removeEventListener\("vexora:open-catalog"/);
+  assert.match(homePage, /\["OWNER",\s*"ADMIN",\s*"MANAGER"\]/);
 });

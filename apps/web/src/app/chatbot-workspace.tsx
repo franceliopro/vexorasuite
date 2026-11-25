@@ -411,10 +411,11 @@ function VariablePicker({label,variables,onPick}:{label:string;variables:Readonl
 }
 
 function insertVariable(input:HTMLInputElement|HTMLTextAreaElement|null,value:string,key:string,limit:number,update:(next:string)=>void){
- const start=input?.selectionStart??value.length;
+ const source=input?.value??value;
+ const start=input?.selectionStart??source.length;
  const end=input?.selectionEnd??start;
  const token="{{"+key+"}}";
- const next=value.slice(0,start)+token+value.slice(end);
+ const next=source.slice(0,start)+token+source.slice(end);
  if(next.length>limit)return;
  update(next);
  input?.focus();
@@ -875,7 +876,7 @@ function dictateAiRequest(){
  function insertMessageMarkup(prefix:string,suffix=prefix){
    if(!current)return;
    const input=messageRef.current;
-   const source=current.message||"";
+   const source=input?.value??current.message??"";
    const start=input?.selectionStart??source.length;
    const end=input?.selectionEnd??start;
    const selectedText=source.slice(start,end);
@@ -883,7 +884,7 @@ function dictateAiRequest(){
    updateStep({message:next});
    requestAnimationFrame(()=>{if(!input)return;input.focus();const cursor=start+prefix.length+selectedText.length+suffix.length;input.setSelectionRange(cursor,cursor);});
  }
- function insertWelcomeVariable(variable:string){const input=welcomeRef.current;const source=flow.welcome||"";const start=input?.selectionStart??source.length;const end=input?.selectionEnd??start;const token="{{"+variable+"}}";setFlow(f=>({...f,welcome:f.welcome.slice(0,start)+token+f.welcome.slice(end)}));requestAnimationFrame(()=>{if(!input)return;input.focus();const cursor=start+token.length;input.setSelectionRange(cursor,cursor);});}
+ function insertWelcomeVariable(variable:string){const input=welcomeRef.current;const source=input?.value??flow.welcome??"";const start=input?.selectionStart??source.length;const end=input?.selectionEnd??start;const token="{{"+variable+"}}";setFlow(f=>({...f,welcome:source.slice(0,start)+token+source.slice(end)}));requestAnimationFrame(()=>{if(!input)return;input.focus();const cursor=start+token.length;input.setSelectionRange(cursor,cursor);});}
  function stepConfig(step:Step):Record<string,string>{try{const value=JSON.parse(step.config||"{}");return value&&typeof value==="object"&&!Array.isArray(value)?value:{}}catch{return {}}}
  function destinationSummary(step:Step){const c=stepConfig(step);const mode=c.targetMode||(c.userId?"PERSON":c.departmentKey?"DEPARTMENT":"PLATFORM");const department=destinations.departments.find(d=>d.key===c.departmentKey);const person=destinations.agents.find(a=>a.id===c.userId);return mode==="QUEUE"?"Fila geral · sem time ou atendente":mode==="PLATFORM"?"Automático · setor/plataforma; fila geral se indisponível":mode==="PERSON"?(person?.name||"Atendente não selecionado")+(department?" · "+department.name:""):"Time: "+(department?.name||c.departmentKey||"não selecionado");}
  function changeDestination(values:Record<string,string|undefined>){if(!current)return;const c={...stepConfig(current),...values};for(const k of Object.keys(c))if(c[k]===undefined||c[k]==="")delete c[k];const title=values.userId?destinations.agents.find(a=>a.id===values.userId)?.name:values.departmentKey?destinations.departments.find(d=>d.key===values.departmentKey)?.name:undefined;updateStep({config:JSON.stringify(c),...(title?{title}:{})});}
@@ -1278,12 +1279,13 @@ function dictateAiRequest(){
   <VariablePicker label="Inserir variável" variables={textVariables} onPick={key=>insertVariable(inlineMessageRef.current,step.message,key,4000,next=>updateStep({message:next}))}/>
   {flow.steps.some(item=>item.kind==="payment.status")&&!step.message.includes("{{pagamento_link}}")?<button type="button" className={canvasNodeQuickButton} disabled={step.message.length>3982} onClick={event=>{
    const editor=event.currentTarget.parentElement?.querySelector("textarea");
-   const position=editor?.selectionStart??step.message.length;
+   const source=editor?.value??step.message;
+   const position=editor?.selectionStart??source.length;
    const end=editor?.selectionEnd??position;
    const link="{{pagamento_link}}";
-   const prefix=step.message.slice(0,position);
+   const prefix=source.slice(0,position);
    const separator=prefix&&!/\s$/.test(prefix)?" ":"";
-   const next=prefix+separator+link+step.message.slice(end);
+   const next=prefix+separator+link+source.slice(end);
    if(next.length>4000)return;
    editor?.focus();
    updateStep({message:next});

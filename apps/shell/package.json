@@ -1,0 +1,20 @@
+{
+  "name": "@vexorasuite/shell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tauri v2 shell that loads the canonical Véxora web app on desktop and mobile",
+  "scripts": {
+    "tauri": "tauri",
+    "check:config": "node test/config.test.mjs",
+    "lint": "node test/config.test.mjs",
+    "test": "node --test test/*.test.mjs",
+    "dev:desktop": "tauri dev",
+    "build:desktop": "tauri build",
+    "build:android": "tauri android build",
+    "build:ios": "tauri ios build",
+    "build": "node -e \"console.log('Tauri shell: config checked by lint/test; real bundles use build:desktop, build:android or build:ios')\""
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.7"
+  }
+}

@@ -68,7 +68,7 @@ describe("catálogo no orçamento", () => {
       },
       catalogItems: [{ id: "item-1", quantity: 2 }],
     });
-    expect(out.document.values.valor).toBe("R$ 2.400,00");
+    expect(String(out.document.values.valor).replace(/\u00a0/g, " ")).toBe("R$ 2.400,00");
     expect(out.document.values.prazo).toBe("A definir com o cliente");
     expect(out.document.values.forma_pagamento).toBe("A definir com o cliente");
     expect(out.document.content).toContain("2x Site institucional");

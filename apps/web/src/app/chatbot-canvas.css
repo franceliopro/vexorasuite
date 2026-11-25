@@ -235,6 +235,13 @@
   pointer-events: stroke;
   cursor: pointer;
 }
+.flow-wires [data-flow-preview-wire] {
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent2) 70%, transparent));
+}
+.vx-flow-board [data-flow-wire-start] {
+  touch-action: none;
+}
 .flow-wires g:hover .vex-wire-line,
 .flow-wires g[data-edge-running="true"] .vex-wire-line {
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent2) 55%, transparent));

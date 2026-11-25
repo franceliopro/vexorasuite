@@ -72,3 +72,28 @@ export function allowedModulesOf(kind: string, raw: unknown): string[] {
   if (kind === "PLATFORM") return ALL_MODULE_IDS;
   return resolveEntitlements(raw).modules;
 }
+/**
+ * PLANOS é um módulo de plataforma, desligado por padrão para clientes.
+ * Só entra na lista quando a administração Véxora libera explicitamente para o tenant.
+ */
+export const PLANS_MODULE = "PLANS";
+export function hasPlansAccess(raw: unknown): boolean {
+  return resolveEntitlements(raw).modules.includes(PLANS_MODULE);
+}
+/** Preserva os demais entitlements e só altera a permissão explícita de Planos e preços. */
+export function withPlansAccess(raw: unknown, enabled: boolean): Record<string, unknown> {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? { ...(raw as Record<string, unknown>) }
+    : {};
+  const current = Array.isArray(source.modules)
+    ? source.modules.filter((m): m is string => typeof m === "string")
+    : [...ALL_MODULE_IDS];
+  const modules = enabled
+    ? [...new Set([...current, "SETTINGS", PLANS_MODULE])]
+    : [...new Set(current.filter((m) => m !== PLANS_MODULE).concat("SETTINGS"))];
+  return { ...source, modules };
+}
+/** Mantém a liberação explícita quando um plano é (re)atribuído. */
+export function preservePlansAccess(previousRaw: unknown, nextRaw: unknown): Record<string, unknown> {
+  return withPlansAccess(nextRaw, hasPlansAccess(previousRaw));
+}

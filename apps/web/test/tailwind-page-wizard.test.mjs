@@ -127,7 +127,11 @@ test("os contratos funcionais da home permanecem", () => {
   assert.equal(page.includes('import("./sites-workspace")'), false, "Sites não deve ser carregado pela home");
   assert.equal(page.includes('label: "Planos e pacotes"'), false, "o menu Planos e pacotes não deve aparecer na home");
   assert.equal(page.includes('active === "Planos e pacotes"'), false, "o workspace Planos e pacotes não deve ser renderizado");
-  assert.ok(page.includes('label: "Planos e preços"'), "Planos e preços permanece disponível");
+  assert.ok(page.includes('label: "Planos e preços"'), "o rótulo da capacidade permanece no catálogo de módulos");
+  assert.ok(page.includes("'Planos e preços':'PLANS'"), "Planos e preços deve usar o módulo PLANS, não SETTINGS");
+  assert.ok(page.includes('const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS")'), "o menu de clientes precisa do gate explícito de PLANS");
+  assert.ok(page.includes('(item.label !== "Planos e preços" || plansMenuVisible)'), "Planos e preços não pode aparecer por padrão no menu do cliente");
+  assert.ok(page.includes('!moduleVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2>'), "URL direta também precisa respeitar o gate");
 });
 
 test("a home não limpa mais o rascunho específico da Rastreabem", () => {

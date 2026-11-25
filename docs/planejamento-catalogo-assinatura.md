@@ -1,52 +1,40 @@
 # Catálogo de produtos digitais e serviços + assinatura de documentos
 
-**Status:** proposta de arquitetura aprovada em 25/11/2026. Nada disso foi implantado, publicado ou deployado até aqui. Sites ficam para a frente seguinte.
+**Status:** base de decisões e acompanhamento. A branch `feat/finance-catalog-subscriptions` implementa apenas o escopo de catálogo/Asaas descrito abaixo. Nada aqui foi publicado ou deployado; a existência de código ou teste não prova operação real em ambiente externo.
 
 ## Decisões fixadas
 
-1. **Catálogo canônico por tenant.** A fonte da verdade é `CatalogItem` (`apps/api/prisma/schema.prisma`), com `kind` `PRODUCT` ou `SERVICE`, preço em centavos, moeda, unidade, categoria e `active`. Não há estoque físico no MVP.
-2. **Nada inventado.** IA, chatbot e atendimento só podem apresentar itens que existem no catálogo do tenant, com nome, descrição e preço lidos do banco. Nunca inventar produto, preço, disponibilidade ou condição comercial.
-3. **Um catálogo, todas as superfícies:** Configurações → Catálogo (gestão), composer do atendimento (inserir item na conversa), painel de orçamento, documentos (PDF), chatbot (bloco com item escolhido) e IAs (MCP `search_catalog`, já existente). Todo dado é tenant-scoped.
-4. **Documenso Community Edition (AGPL-3.0), sem modificar o código.** Imagem oficial, stack separada no Dokploy, com Postgres, domínio e segredos próprios. Integração pela API do Documenso; nenhuma credencial em Git ou chat.
-5. **API de assinatura do gov.br não é substituto imediato.** A documentação oficial (manual-integracao-assinatura-eletronica.servicos.gov.br) exige formalização como órgão público, integração prévia ao Login Único e credenciais OAuth emitidas pelo ITI/MGI. Para Véxora como SaaS privada não há acesso; só considerar se um cliente órgão público trouxer credenciais próprias e fizer a homologação.
+1. **Catálogo canônico por tenant.** A fonte da verdade é `CatalogItem` (`apps/api/prisma/schema.prisma`), com `kind` `PRODUCT` ou `SERVICE`, preço em centavos, moeda, unidade, categoria, `imageUrl` e `active`. Não há estoque físico no MVP.
+2. **Nada inventado.** Toda superfície lê nome, descrição, preço e disponibilidade do `CatalogItem` do tenant. Nunca inventar produto, preço, disponibilidade ou condição comercial. No formulário de assinatura, o navegador envia apenas `catalogItemId`, datas e dados do cliente; nome e valor vêm do servidor.
+3. **Imagem e descrição são privadas da Véxora.** No bloco `catalog.item`, `imageUrl` e `description` ficam somente em metadata interna da mensagem e nos detalhes de auditoria. Nenhum dos dois entra no texto entregue a WhatsApp, e-mail ou outros canais externos.
+4. **Exclusão confirmada.** Cliente e assinatura no Asaas são removidos somente após confirmação explícita (`EXCLUIR`) e resposta de sucesso do `DELETE`. A UI não afirma exclusão antes dessa resposta.
+5. **Rastreabem é referência de segmento/teste**, nunca identidade global nem fluxo obrigatório.
+6. **Documenso/gov.br ficam fora desta entrega.** Documenso Community Edition exigiria stack separada, segredos próprios e evidência de deploy; a API gov.br exige formalização como órgão público e credenciais ITI/MGI. Nenhuma integração de assinatura eletrônica foi implementada aqui.
 
-## Estado verificado no `main` (`95cb5da7`)
+## Implementado nesta branch (código + testes locais)
 
-- `CatalogItem` e a migration `20261118150000_catalog_items` já existem.
-- `apps/api/src/operations/catalog.controller.ts` expõe `GET /catalog`, `GET /catalog/:id` e CRUD com permissão `OWNER`/`ADMIN`.
-- `apps/api/src/operations/mcp.controller.ts` já expõe `search_catalog` para IAs.
-- `apps/web/src/app/catalog-quote-panel.tsx` já busca o catálogo e gera orçamento, mas envia `generate` sem `templateId`, enquanto `documents.controller.ts` exige `templateId`. Há também prazos/condições de pagamento fixos no painel que precisam deixar de parecer dados do catálogo.
-- `apps/api/src/operations/documents.controller.ts` já gera PDF (`pdfkit`) para `QUOTE`, `CONTRACT`, `WORK_ORDER` e `RECEIPT`, com envio por WhatsApp e e-mail.
-- `apps/web/src/app/inbox-workspace.tsx` tem composer com respostas rápidas e variáveis, mas não tem inserção de item do catálogo.
-- `apps/api/src/ai/flow-runtime.ts` tem lista fechada de blocos executáveis; não existe bloco de catálogo.
-- Não existe integração de assinatura eletrônica nem modelo de assinatura no banco.
-
-## Lacunas a fechar
-
-| # | Lacuna | Superfície |
+| Item | Evidência no código | Limite honesto |
 |---|---|---|
-| 1 | Geração de orçamento quebra por falta de `templateId` | API + atendimento |
-| 2 | Sem UI de gestão do catálogo (o backend já existe) | Configurações |
-| 3 | Sem inserção de item no composer | Todas as inboxes/canais |
-| 4 | Sem bloco de catálogo no fluxo | Chatbot |
-| 5 | Sem envio de documento para assinatura | Documentos/contratos |
+| Filtro por categoria no catálogo | `CatalogController.list(req, q, kind, category, limit, includeInactive)` e teste em `catalog-scope.spec.ts` | Não cria itens nem altera catálogo de outro tenant |
+| Serviços e assinaturas Asaas em `AsaasService` | `asaas.service.ts` e 4 testes novos em `asaas.service.spec.ts` | Depende de credenciais e retorno real do Asaas para operar |
+| `DELETE` de assinatura/cliente com auditoria | `finance.controller.ts` e `finance.controller.spec.ts` | A confirmação do provedor é necessária; falha não é sucesso simulado |
+| Aba Produtos no Financeiro | `finance-workspace.tsx` busca `/api/backend/catalog?category=ASAAS&limit=200` e mostra grid/estado vazio | Imagem e descrição ficam na Véxora; nada é enviado a canais externos |
+| Modal de nova assinatura refatorado | `useModalDialog`, dropdown de serviços, "Criar outros…", `endDate`, payload sem `service`/`value` | Não cria serviço novo fora de Configurações → Catálogo |
+| Abertura de Configurações → Catálogo | evento interno `vexora:open-catalog` em `finance-workspace.tsx`, tratado em `page.tsx` | Somente papéis `OWNER`/`ADMIN`/`MANAGER` |
+| `catalog.item` no runtime | `intelligence-runtime.service.ts` valida item ativo do tenant e mantém imagem/descrição internas | Não promete preço, estoque ou condição não gravados no catálogo |
 
-## Plano em PRs pequenos e reversíveis
+## Fora do escopo desta branch
 
-1. **Este documento** — decisões e evidências (sem código de produção).
-2. **Correção do orçamento** — resolver modelo `QUOTE` padrão no servidor quando `templateId` não vier; remover condições comerciais inventadas do painel; teste de contrato.
-3. **Gestão do catálogo** — página em Configurações com CRUD usando os endpoints existentes; sem novo model no banco.
-4. **Inserção no atendimento** — ação no composer que busca itens ativos e insere snapshot real (nome, tipo, preço, descrição) no texto; disponível em todas as inboxes.
-5. **Bloco no chatbot** — bloco `catalog.item` com item escolhido no inspector; runtime valida o item no tenant antes de enviar; falha clara se o item foi desativado; E2E no editor.
-6. **Infra do Documenso** — `infra/documenso/compose.yml`, `.env.example` sem segredos, documento de pré-requisitos (Postgres, SMTP, certificado `.p12`, TLS via reverse proxy) e validação de compose no CI. Nenhum deploy afirmado.
-7. **Integração de assinatura** — cliente da API do Documenso, modelo `DocumentSignature` por tenant/documento, endpoint "enviar para assinatura" e leitura de status; estados explícitos: `CONFIGURED`, `SENT`, `SIGNED`, `FAILED` (nunca "assinado" por presunção).
-8. **UI de assinatura no documento** — botão e status na tela do documento, com link para o envelope quando existir.
-9. **Syncs `foundation` → `main`** após cada lote, com CI verde antes de mesclar.
+- Inserção de item no composer do atendimento: não implementada.
+- Correção de `templateId` em orçamento: não alterada; não afirmar que geração de PDF funciona sem evidência.
+- Modelo `DocumentSignature`, envio para assinatura, status de envelope e UI de assinatura: não implementados.
+- Infraestrutura Dokploy do Documenso: não criada; nenhum deploy afirmado.
+- BOT continua sem gerar notificações de atendimento.
 
 ## Critérios de aceite
 
-- Preço e dados exibidos vêm sempre do `CatalogItem` do tenant; if item desativado, falha clara, sem fallback inventado.
-- Orçamento e contrato registram snapshot dos itens no `values` do documento, para não mudar com reajuste posterior.
-- Assinatura só é considerada concluída quando a API do Documenso confirmar; `200` em requisição de criação de envelope significa "enviado/pendente", não "assinado".
-- Segredos (SMTP, `NEXTAUTH_SECRET`, chaves de criptografia, token da API do Documenso, certificado) somente no cofre/Dokploy; nunca no repositório ou chat.
-- Cada PR passa no CI (incluindo `validate`) antes do merge; merge não é deploy.
+- Preço e dados exibidos vêm sempre do `CatalogItem` do tenant; item desativado falha de forma clara, sem fallback inventado.
+- Nenhum texto externo recebe `imageUrl` ou `description` do catálogo.
+- Assinatura e exclusão só são consideradas concluídas quando a API confirmar; `200` em criação não prova pagamento, e falha de `DELETE` não é excluído.
+- Segredos de integração ficam somente no cofre/Dokploy; nunca no repositório ou chat.
+- CI deve passar antes de merge. Merge não é deploy.

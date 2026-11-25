@@ -2,6 +2,7 @@ import { assertConversationClaim, lockConversationClaim } from "./conversation-c
 import { AuditCovered } from "../common/audit/audit.decorator";
 import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
+import {allowsNotification} from "./notification-preferences";
 import { whatsappPhone } from './whatsapp-bridge';
 import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
@@ -825,7 +826,12 @@ export class ConversationsController {
       for(const userId of mentionedUserIds)await tx.conversationParticipant.upsert({where:{conversationId_userId:{conversationId:id,userId}},create:{tenantId,conversationId:id,userId,kind:"INVITED"},update:{kind:"INVITED"}});
       const department=conversation.departmentId?await tx.department.findFirst({where:{id:conversation.departmentId,tenantId},select:{name:true}}):null;
       const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:authorName,metadata:{departmentName:department?.name||"",kind:"private_note",authorId:request.user.sub,mentionedUserIds}}});
-      if(mentionedUserIds.length)await tx.internalMention.createMany({data:mentionedUserIds.map(userId=>({tenantId,conversationId:id,messageId:message.id,userId})),skipDuplicates:true});
+      if(mentionedUserIds.length){
+       const preferences=await tx.userNotificationPreference.findMany({where:{tenantId,userId:{in:mentionedUserIds}},select:{userId:true,events:true}});
+       const byUser=new Map(preferences.map(p=>[p.userId,p.events]));
+       const notifiedUserIds=mentionedUserIds.filter(userId=>allowsNotification(byUser.get(userId),'MENTION'));
+       if(notifiedUserIds.length)await tx.internalMention.createMany({data:notifiedUserIds.map(userId=>({tenantId,conversationId:id,messageId:message.id,userId})),skipDuplicates:true});
+      }
       await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.internal_note",entityType:"conversation",entityId:id,details:{messageId:message.id,mentionedUserIds}}});
       return message;
     });

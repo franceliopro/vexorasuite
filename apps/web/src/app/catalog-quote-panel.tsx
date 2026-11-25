@@ -12,7 +12,7 @@ const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rou
  * Envia apenas os IDs e quantidades escolhidos; o servidor recalcula escopo e valor
  * a partir do catálogo do tenant e grava um snapshot no documento gerado.
  */
-export function CatalogQuotePanel({ conversationId, contactName, onClose, onNotice }: { conversationId: string; contactName: string; onClose: () => void; onNotice?: (msg: string) => void }) {
+export function CatalogQuotePanel({ conversationId, contactName, onClose, onNotice, onInsert }: { conversationId: string; contactName: string; onClose: () => void; onNotice?: (msg: string) => void; onInsert?: (text: string) => void }) {
   const [items, setItems] = useState<Item[]>([]);
   const [saved, setSaved] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
@@ -34,6 +34,17 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
   const money = (cents: number, currency = "BRL") => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency });
   const selectedItems = Object.entries(saved).filter(([, qty]) => qty > 0).map(([id, qty]) => { const item = items.find(i => i.id === id); return item ? { item, qty } : null; }).filter(Boolean) as { item: Item; qty: number }[];
   const total = selectedItems.reduce((sum, row) => sum + row.item.priceCents * row.qty, 0);
+
+  function insertSnapshot() {
+    if (!selectedItems.length || !onInsert) return;
+    const lines = selectedItems.map(({ item, qty }) => {
+      const details = [item.sku, item.unit, item.description].filter((value) => typeof value === "string" && value.trim()).join(" · ");
+      return `• ${qty}x ${item.name}${details ? ` (${details})` : ""} — ${money(item.priceCents * qty, item.currency)}`;
+    });
+    onInsert(`*Itens do catálogo*\n${lines.join("\n")}\n*Total:* ${money(total)}`);
+    setError(""); setNotice("");
+    onClose();
+  }
 
   async function sendQuote() {
     if (!selectedItems.length) { setError("Selecione ao menos um item do catálogo."); return; }
@@ -72,9 +83,12 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
         </div>;
       })}
     </div>
-    <footer className="flex items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-700 pt-2.5">
+    <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-700 pt-2.5">
       <div className="flex items-center gap-2"><span>Total</span><strong className="text-sm">{money(total)}</strong></div>
-      <button type="button" className={primaryButton} disabled={!selectedItems.length || busy} onClick={() => void sendQuote()}>{busy ? "Enviando…" : "Gerar e enviar orçamento"}</button>
+      <div className="flex flex-wrap items-center gap-2">
+        {onInsert ? <button type="button" data-testid="catalog-quote-insert" className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 transition-colors hover:border-blue-500 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:border-blue-400" disabled={!selectedItems.length || busy} onClick={insertSnapshot}>Inserir na mensagem</button> : null}
+        <button type="button" className={primaryButton} disabled={!selectedItems.length || busy} onClick={() => void sendQuote()}>{busy ? "Enviando…" : "Gerar e enviar orçamento"}</button>
+      </div>
     </footer>
   </div>;
 }

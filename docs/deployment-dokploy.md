@@ -27,6 +27,18 @@ pedido do proprietário. Detalhes em `docs/sites-stack-hibrido.md` e
 Nenhuma instância Payload foi configurada até 24/11/2026; este é o desenho
 pretendido, não uma implantação confirmada.
 
+### Documenso (decisão de 25/11/2026)
+
+A assinatura eletrônica usa **Documenso Community (AGPL-3.0)** em projeto Dokploy
+separado, com banco, volume, domínio e segredos próprios. A imagem oficial é usada
+sem fork e sem modificação. O Compose fica em `infra/documenso/compose.yml` e as
+instruções em `infra/documenso/DOKPLOY.md`.
+
+Nenhuma credencial, token ou certificado entra no Git ou no chat: o token de API
+é criado dentro do Documenso quando a integração existir e guardado somente no
+cofre do Dokploy. Um envelope criado com `200` está pendente, não assinado; a
+existência deste Compose não prova deploy nem funcionamento da integração.
+
 ## Serviços do perfil padrão
 
 - `web`: Next.js na porta interna 3000.

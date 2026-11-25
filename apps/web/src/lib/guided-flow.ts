@@ -235,3 +235,53 @@ export function guidedKindDefaults(kind: string): Partial<GuidedStep> {
     default: return { ...common, config: undefined, options: ["Continuar"] };
   }
 }
+
+export type StepIO = {
+  label: string;
+  input: string;
+  output: string;
+  writes: string[];
+  reads: string[];
+  kind: "text" | "variable" | "condition" | "flow";
+  note: string;
+};
+
+function varsIn(value: string): string[] {
+  return [...value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map(match => match[1] ?? "");
+}
+
+export function stepIO(step: Pick<GuidedStep, "kind" | "action" | "config" | "message" | "options">): StepIO {
+  const type = step.action || step.kind || "text";
+  const config = (() => {
+    try {
+      const parsed: unknown = JSON.parse(step.config || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, string> : {};
+    } catch { return {}; }
+  })();
+  const outputs = step.options?.length ? step.options : ["Continuar"];
+  const reads = varsIn([step.message || "", ...(step.options || [])].join(" "));
+  if (type === "condition") return {
+    label: "Verificar condi\u00E7\u00E3o", input: config.variable || "Informa\u00E7\u00E3o", output: "Sim / N\u00E3o",
+    writes: [], reads: config.variable ? [config.variable] : [], kind: "condition",
+    note: "Decis\u00E3o interna: o cliente n\u00E3o v\u00EA esta etapa.",
+  };
+  if (type === "variable") return {
+    label: "Guardar informa\u00E7\u00E3o", input: config.value ? "Valor: " + config.value : "Valor informado",
+    output: outputs.join(", "), writes: config.variable ? [config.variable] : [],
+    reads: Array.from(new Set([...reads, ...varsIn(config.value || "")])), kind: "variable",
+    note: "Salva um valor para usar depois com {{variavel}}.",
+  };
+  if (String(type).startsWith("input.")) return {
+    label: type === "input.text" ? "Fazer pergunta" : "Pedir dado", input: "Resposta do cliente",
+    output: outputs.join(", "), writes: config.variable ? [config.variable] : [], reads: [], kind: "variable",
+    note: "A resposta \u00E9 salva na vari\u00E1vel indicada.",
+  };
+  if (type === "buttons" || type === "quick-reply") return {
+    label: "Oferecer op\u00E7\u00F5es", input: "Escolha do cliente", output: outputs.join(", "),
+    writes: [], reads, kind: "text", note: "Cada op\u00E7\u00E3o leva a um pr\u00F3ximo passo.",
+  };
+  return {
+    label: "Enviar mensagem", input: "Nenhum dado de entrada", output: outputs.join(", "),
+    writes: [], reads, kind: "text", note: "Apenas informa e segue em frente.",
+  };
+}

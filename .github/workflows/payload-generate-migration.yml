@@ -1,7 +1,9 @@
 name: Generate Payload initial migration
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - chore/payload-initial-migration
 
 permissions:
   contents: read

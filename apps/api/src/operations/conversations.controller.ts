@@ -21,6 +21,7 @@ import { EmailMailboxService } from "../mail/email-mailbox.service";
 import { MetaService } from "./meta.service";
 import { transferScopeOf } from "./transfer-policy";
 import { readSupportSettings, supportRecord, supportText, validateSupportSettings } from "./support-settings";
+import { parseCardPosition, placeCrmCard } from "./crm-card-position";
 
 
 function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
@@ -209,7 +210,7 @@ export class ConversationsController {
   }
 
   @Post(":id/crm")
-  async updateConversationCrm(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { pipelineId?: string; stageId?: string }) {
+  async updateConversationCrm(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { pipelineId?: string; stageId?: string; position?: unknown }) {
     await this.assertCanAccess(request, id, "all-open");
     const pipeline = await accessiblePipeline(this.prisma, request, input.pipelineId || "");
     const stages = Array.isArray(pipeline.stages) ? pipeline.stages as Array<Record<string, unknown>> : [];
@@ -219,16 +220,23 @@ export class ConversationsController {
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true, pipelineId: true } });
     if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
-    const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
-    const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
-    const updated = await this.prisma.$transaction(async tx => {
-      const next = await tx.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
-      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.crm_updated", entityType: "conversation", entityId: id, details: { contactId: conversation.contactId, fromPipelineId: contact.pipelineId, toPipelineId: pipeline.id, fromStage: previousStage, toStage: stageId } } });
-      return next;
+    const position = parseCardPosition(input.position);
+    const result = await this.prisma.$transaction(async tx => {
+      const placement = await placeCrmCard(tx, {
+        tenantId: request.user.tenantId,
+        contactId: conversation.contactId,
+        pipelineId: pipeline.id,
+        stage: stageId,
+        position,
+      });
+      const next = await tx.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...placement.metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.crm_updated", entityType: "conversation", entityId: id, details: { contactId: conversation.contactId, fromPipelineId: contact.pipelineId, toPipelineId: pipeline.id, fromStage: placement.previousStage, toStage: stageId, position: placement.position } } });
+      return { next, placement };
     });
-    this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId });
-    this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId });
-    return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId };
+    const updated = result.next;
+    this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId, position: result.placement.position });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId, position: result.placement.position });
+    return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId, position: result.placement.position };
   }
 
   @Get("supervision")

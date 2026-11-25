@@ -3,7 +3,7 @@ const tenantId='tenant',pipelineId='12345678-1234-4234-8234-123456789abc';
 const req:any={user:{tenantId,sub:'admin',role:'ADMIN'}};
 function fixture(current=pipelineId){
  const metadata={notes:'keep',asaas:{customerId:'cus_1'},crmStage:'proposal'};
- const tx:any={ $queryRaw:jest.fn(),auditLog:{create:jest.fn()},contact:{findFirst:jest.fn(async()=>({id:'contact',tenantId,pipelineId:current,metadata})),update:jest.fn(async(v)=>({id:'contact',...v.data}))}};
+ const tx:any={ $queryRaw:jest.fn(),auditLog:{create:jest.fn()},contact:{findFirst:jest.fn(async()=>({id:'contact',tenantId,pipelineId:current,metadata})),findMany:jest.fn(async()=>[]),update:jest.fn(async(v)=>({id:'contact',...v.data})),updateMany:jest.fn(async()=>({count:1}))}};
  const prisma:any={contact:{findFirst:jest.fn(async()=>({id:'contact',tenantId,pipelineId:current}))},crmPipeline:{findFirst:jest.fn(async()=>({id:pipelineId}))},$transaction:async(fn)=>fn(tx)};
  const events:any={publish:jest.fn()};
  return {tx,prisma,events,controller:new ContactsController(prisma,events,{} as any)};
@@ -21,11 +21,12 @@ it('rejects stale pipeline selection without writing',async()=>{
 
 it('audits a CRM stage transition with the previous and next stage',async()=>{
  const f=fixture();
+ const auditLog={create:jest.fn()};
+ f.prisma.auditLog=auditLog;
  f.prisma.$transaction=async(fn)=>fn({
-  $queryRaw:jest.fn(),
-  contact:{findFirst:jest.fn(async()=>({id:'contact',tenantId,metadata:{notes:'keep',crmStage:'new'}})),update:jest.fn(async(v)=>({id:'contact',...v.data}))},
+  $queryRaw:jest.fn(),auditLog,
+  contact:{findFirst:jest.fn(async()=>({id:'contact',tenantId,pipelineId:null,metadata:{notes:'keep',crmStage:'new'},crmPosition:0})),findMany:jest.fn(async()=>[]),update:jest.fn(async(v)=>({id:'contact',...v.data})),updateMany:jest.fn(async()=>({count:1}))},
  });
- f.prisma.auditLog={create:jest.fn()};
  await f.controller.updateStage(req,'contact',{stage:'qualification'});
- expect(f.prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({action:'contact.stage_changed',details:{from:'new',to:'qualification'}})}));
+ expect(auditLog.create).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({action:'contact.stage_changed',details:expect.objectContaining({from:'new',to:'qualification',position:0})})}));
 });

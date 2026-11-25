@@ -120,10 +120,14 @@ test("os contratos funcionais da home permanecem", () => {
     "platform-admin-workspace", "inbox-workspace", "operations-settings",
     "crm-workspace", "finance-workspace", "channels-integrations",
     "calendar-workspace", "tasks-workspace", "chatbot-workspace",
-    "ai-agents-workspace", "sites-workspace",
+    "ai-agents-workspace",
   ]) {
     assert.ok(page.includes(`dynamic(()=>import("./${moduleName}")`), `perdeu o módulo ${moduleName}`);
   }
+  assert.equal(page.includes('import("./sites-workspace")'), false, "Sites não deve ser carregado pela home");
+  assert.equal(page.includes('label: "Planos e pacotes"'), false, "o menu Planos e pacotes não deve aparecer na home");
+  assert.equal(page.includes('active === "Planos e pacotes"'), false, "o workspace Planos e pacotes não deve ser renderizado");
+  assert.ok(page.includes('label: "Planos e preços"'), "Planos e preços permanece disponível");
 });
 
 test("a home não limpa mais o rascunho específico da Rastreabem", () => {

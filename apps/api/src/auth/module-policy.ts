@@ -79,12 +79,10 @@ export function routeModules(path: string, method: string): string[] {
   if (/^sites(?:\/|$)/.test(p)) return ["SITES"];
   if (/^mail(?:\/|$)/.test(p)) return ["EMAIL"];
   if (/^finance|^asaas|^integrations\/(?:asaas|stripe|infinitepay)(?:\/|$)/.test(p)) return ["FINANCE"];
-  if (
-    /^assistant\/automations|^marketing|^creative-references|^drive-manager/.test(
-      p,
-    )
-  )
-    return ["MARKETING"];
+  if (/^assistant\/automations|^marketing/.test(p)) return ["MARKETING"];
+  // Referências e Drive foram realocados para Configurações; MARKETING fica apenas
+  // como compatibilidade com sessões antigas.
+  if (/^creative-references|^drive-manager/.test(p)) return ["SETTINGS", "MARKETING"];
   if (/^chatbot|^workflows|^assistant/.test(p)) return ["AUTOMATION"];
   if (/^integrations|^communications/.test(p)) return ["CHANNELS"];
   if (/^push/.test(p)) return ["INBOX"];

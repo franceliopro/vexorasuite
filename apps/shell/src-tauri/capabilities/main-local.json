@@ -1,0 +1,7 @@
+{
+  "identifier": "main-local",
+  "description": "Minimal core IPC for the local development window. The remote production URL gets no Tauri IPC because this capability is local-only.",
+  "local": true,
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

@@ -515,11 +515,13 @@ describe('AI generated preferred-name and triage flow',()=>{
   expect(await reply(route)).toMatchObject({departmentId:key,handlingMode:'HUMAN',botState:{variables:{novo_nome:name}}});
  });
 
- it('sends only the explicitly chosen tenant catalog item', async () => {
+ it('sends only the explicitly chosen tenant catalog item, keeping image and description private', async () => {
   const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const imageUrl = 'https://intranet.example.com/catalog/crm.png';
+  const description = 'Diagnóstico e plano de ação';
   x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue({
    id: '12345678-1234-4234-8234-123456789abc', kind: 'SERVICE', name: 'Consultoria de CRM',
-   description: 'Diagnóstico e plano de ação', sku: 'SRV-CRM', priceCents: 15000, currency: 'BRL', unit: 'hora', category: 'Consultoria',
+   description, sku: 'SRV-CRM', priceCents: 15000, currency: 'BRL', unit: 'hora', category: 'Consultoria', imageUrl,
   }) };
   const itemId = '12345678-1234-4234-8234-123456789abc';
   x.flow.steps.splice(1, 0,
@@ -531,10 +533,22 @@ describe('AI generated preferred-name and triage flow',()=>{
   await x.service.receive(x.channel, 'conversation', 'inbound');
   expect(x.tx.catalogItem.findFirst).toHaveBeenCalledWith(expect.objectContaining({
    where: { id: itemId, tenantId: 'tenant', active: true },
+   select: expect.objectContaining({ imageUrl: true, description: true }),
   }));
-  const sent = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data.content as string);
-  expect(sent).toContain('Item do catálogo: Consultoria de CRM\nTipo: Serviço\nSKU: SRV-CRM\nCategoria: Consultoria\nPreço: 150.00 BRL / hora\nDescrição: Diagnóstico e plano de ação');
+  const created = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data);
+  const sent = created.map((data: any) => data.content as string);
+  expect(created.some((data: any) => data.metadata?.catalogItems)).toBe(true);
+  const internal = created.find((data: any) => data.metadata?.catalogItems)?.metadata.catalogItems;
+  expect(internal).toEqual([{ id: itemId, imageUrl, description }]);
+  expect(x.tx.auditLog.create.mock.calls[0][0].data.details.catalogItems).toEqual([{ id: itemId, imageUrl, description }]);
+  expect(sent).toContain('Item do catálogo: Consultoria de CRM\nTipo: Serviço\nSKU: SRV-CRM\nCategoria: Consultoria\nPreço: 150.00 BRL / hora');
   expect(sent.some((content: string) => content.includes('150,00') && !content.includes('150.00'))).toBe(false);
+  expect(sent.join('\n')).not.toContain(imageUrl);
+  expect(sent.join('\n')).not.toContain(description);
+  for (const call of x.waha.sendText.mock.calls) {
+   expect(call[2]).not.toContain(imageUrl);
+   expect(call[2]).not.toContain(description);
+  }
  });
 
  it('fails clearly when the chosen catalog item is no longer available', async () => {

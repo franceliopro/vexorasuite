@@ -2,10 +2,12 @@ import { assertConversationClaim, lockConversationClaim } from "./conversation-c
 import { AuditCovered } from "../common/audit/audit.decorator";
 import {attendantName} from "./attendant-name";
 import {assignedConversationScope} from "./conversation-visibility";
+import {allowsNotification} from "./notification-preferences";
 import { whatsappPhone } from './whatsapp-bridge';
 import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, ServiceUnavailableException, StreamableFile, UseGuards } from "@nestjs/common";
+import { isAllowedMediaUrl } from "./inbound-media";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
@@ -21,6 +23,7 @@ import { EmailMailboxService } from "../mail/email-mailbox.service";
 import { MetaService } from "./meta.service";
 import { transferScopeOf } from "./transfer-policy";
 import { readSupportSettings, supportRecord, supportText, validateSupportSettings } from "./support-settings";
+import { parseCardPosition, placeCrmCard } from "./crm-card-position";
 
 
 function isFinalizedConversation(metadata: unknown, conversationId: string): boolean {
@@ -209,7 +212,7 @@ export class ConversationsController {
   }
 
   @Post(":id/crm")
-  async updateConversationCrm(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { pipelineId?: string; stageId?: string }) {
+  async updateConversationCrm(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { pipelineId?: string; stageId?: string; position?: unknown }) {
     await this.assertCanAccess(request, id, "all-open");
     const pipeline = await accessiblePipeline(this.prisma, request, input.pipelineId || "");
     const stages = Array.isArray(pipeline.stages) ? pipeline.stages as Array<Record<string, unknown>> : [];
@@ -219,16 +222,23 @@ export class ConversationsController {
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
     const contact = await this.prisma.contact.findFirst({ where: { id: conversation.contactId, tenantId: request.user.tenantId }, select: { metadata: true, pipelineId: true } });
     if (!contact) throw new NotFoundException("Contato não encontrado nesta empresa.");
-    const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Record<string, unknown> : {};
-    const previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
-    const updated = await this.prisma.$transaction(async tx => {
-      const next = await tx.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
-      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.crm_updated", entityType: "conversation", entityId: id, details: { contactId: conversation.contactId, fromPipelineId: contact.pipelineId, toPipelineId: pipeline.id, fromStage: previousStage, toStage: stageId } } });
-      return next;
+    const position = parseCardPosition(input.position);
+    const result = await this.prisma.$transaction(async tx => {
+      const placement = await placeCrmCard(tx, {
+        tenantId: request.user.tenantId,
+        contactId: conversation.contactId,
+        pipelineId: pipeline.id,
+        stage: stageId,
+        position,
+      });
+      const next = await tx.contact.update({ where: { id: conversation.contactId }, data: { pipelineId: pipeline.id, metadata: { ...placement.metadata, crmStage: stageId, crmFinalization: null } }, include: { pipeline: { select: { id: true, name: true, stages: true } } } });
+      await tx.auditLog.create({ data: { tenantId: request.user.tenantId, userId: request.user.sub, action: "conversation.crm_updated", entityType: "conversation", entityId: id, details: { contactId: conversation.contactId, fromPipelineId: contact.pipelineId, toPipelineId: pipeline.id, fromStage: placement.previousStage, toStage: stageId, position: placement.position } } });
+      return { next, placement };
     });
-    this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId });
-    this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId });
-    return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId };
+    const updated = result.next;
+    this.events.publish(request.user.tenantId, "contact.updated", { id: updated.id, pipelineId: pipeline.id, crmStage: stageId, position: result.placement.position });
+    this.events.publish(request.user.tenantId, "conversation.updated", { id, crmPipelineId: pipeline.id, crmStage: stageId, position: result.placement.position });
+    return { conversationId: id, contactId: updated.id, pipeline: updated.pipeline, stageId, position: result.placement.position };
   }
 
   @Get("supervision")
@@ -688,8 +698,10 @@ export class ConversationsController {
       select: { id: true, channelConnection: true },
     });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA") {
-      throw new BadRequestException("Esta mídia não pertence a um canal WAHA.");
+    const channel = conversation.channelConnection;
+    const provider = channel?.provider ?? "";
+    if (!channel || !["WAHA", "META", "ZERNIO"].includes(provider)) {
+      throw new BadRequestException("Esta mídia não pertence a um canal suportado.");
     }
     const message = await this.prisma.message.findFirst({
       where: { id: messageId, conversationId: conversation.id, tenantId: request.user.tenantId },
@@ -699,28 +711,39 @@ export class ConversationsController {
     const metadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
       ? message.metadata as Record<string, unknown>
       : {};
+    if (metadata.mediaDelivery === "UNAVAILABLE") {
+      // Nunca devolver um link quebrado: o cliente mostra um marcador com nome/tipo.
+      throw new BadRequestException({
+        message: "Anexo sem download seguro.",
+        placeholder: { filename: metadata.filename ?? null, mimetype: metadata.mimetype ?? null, contentType: metadata.contentType ?? null },
+      });
+    }
     const rawMediaUrl = typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : "";
     const chatId = typeof metadata.chatId === "string" ? metadata.chatId : "";
+    const mediaRef = typeof metadata.mediaRef === "string" ? metadata.mediaRef : "";
     let media: { buffer: Buffer; mimetype: string };
-    if (rawMediaUrl) {
-      try {
-        media = await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl);
-      } catch (error) {
-        // WAHA file URLs may expire. Recover through the authenticated message lookup before
-        // reporting a broken attachment; the lookup remains scoped to this channel and message.
-        if (!chatId || !message.providerMessageId) throw error;
-        media = await this.waha.recoverMessageMedia(
-          conversation.channelConnection,
-          chatId,
-          message.providerMessageId,
-        );
+    if (provider === "WAHA") {
+      if (rawMediaUrl) {
+        try {
+          media = await this.waha.downloadMedia(channel, rawMediaUrl);
+        } catch (error) {
+          // WAHA file URLs may expire. Recover through the authenticated message lookup before
+          // reporting a broken attachment; the lookup remains scoped to this channel and message.
+          if (!chatId || !message.providerMessageId) throw error;
+          media = await this.waha.recoverMessageMedia(channel, chatId, message.providerMessageId);
+        }
+      } else {
+        media = await this.waha.recoverMessageMedia(channel, chatId, message.providerMessageId || "");
       }
+    } else if (provider === "META") {
+      if (!this.meta || !mediaRef) throw new BadGatewayException("O WhatsApp Oficial não disponibilizou esta mídia.");
+      const settings = channel.settings && typeof channel.settings === "object" && !Array.isArray(channel.settings)
+        ? channel.settings as Record<string, unknown> : {};
+      media = await this.meta.downloadMedia(request.user.tenantId, mediaRef, String(settings.phoneNumberId || ""));
     } else {
-      media = await this.waha.recoverMessageMedia(
-        conversation.channelConnection,
-        chatId,
-        message.providerMessageId || "",
-      );
+      // ZERNIO: URL do webhook somente se passou na allowlist na normalização.
+      if (!isAllowedMediaUrl(rawMediaUrl)) throw new BadGatewayException("A rede social não disponibilizou uma URL de mídia segura.");
+      media = await this.zernio.downloadMedia(request.user.tenantId, rawMediaUrl);
     }
     return new StreamableFile(media.buffer, { type: media.mimetype });
   }
@@ -803,7 +826,12 @@ export class ConversationsController {
       for(const userId of mentionedUserIds)await tx.conversationParticipant.upsert({where:{conversationId_userId:{conversationId:id,userId}},create:{tenantId,conversationId:id,userId,kind:"INVITED"},update:{kind:"INVITED"}});
       const department=conversation.departmentId?await tx.department.findFirst({where:{id:conversation.departmentId,tenantId},select:{name:true}}):null;
       const message=await tx.message.create({data:{tenantId,conversationId:id,direction:"INTERNAL",status:"SENT",content,contentType:"text",senderName:authorName,metadata:{departmentName:department?.name||"",kind:"private_note",authorId:request.user.sub,mentionedUserIds}}});
-      if(mentionedUserIds.length)await tx.internalMention.createMany({data:mentionedUserIds.map(userId=>({tenantId,conversationId:id,messageId:message.id,userId})),skipDuplicates:true});
+      if(mentionedUserIds.length){
+       const preferences=await tx.userNotificationPreference.findMany({where:{tenantId,userId:{in:mentionedUserIds}},select:{userId:true,events:true}});
+       const byUser=new Map(preferences.map(p=>[p.userId,p.events]));
+       const notifiedUserIds=mentionedUserIds.filter(userId=>allowsNotification(byUser.get(userId),'MENTION'));
+       if(notifiedUserIds.length)await tx.internalMention.createMany({data:notifiedUserIds.map(userId=>({tenantId,conversationId:id,messageId:message.id,userId})),skipDuplicates:true});
+      }
       await tx.auditLog.create({data:{tenantId,userId:request.user.sub,action:"conversation.internal_note",entityType:"conversation",entityId:id,details:{messageId:message.id,mentionedUserIds}}});
       return message;
     });

@@ -141,6 +141,9 @@ try{
  await page.getByRole("button",{name:"Ver no canvas",exact:true}).click();
  await expect(board.locator("svg g path.vex-wire-line")).toHaveCount(2);
  await expect(board.locator("svg g path.vex-wire-line.stroke-accent")).toHaveCount(1);
+ await expect(board.locator("[data-flow-trace-node=\"0\"]").filter({hasText:"Bloco à esquerda"})).toHaveCount(1);
+ await expect(board.locator("[data-flow-trace-node=\"1\"]").filter({hasText:"Bloco à direita"})).toHaveCount(1);
+ await expect(board.locator("[data-flow-trace-edge=\"0\"]")).toHaveCount(1);
  await expect(board.getByText("Aguardando resposta",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Acompanhar conversa",exact:true}).click();
  conversationContinued=true;

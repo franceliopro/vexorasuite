@@ -2,11 +2,17 @@ import { documentDigits } from "../common/documents";
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { Prisma } from "../generated/prisma/client";
-import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual, randomUUID } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 
 type AsaasSettings = { enabled?: boolean; sandbox?: boolean; apiKey?: string; encryptedApiKey?: string; encryptedWebhookToken?: string };
 type AsaasDebt = { id: string; value: number; dueDate: string; status: string; description: string; invoiceUrl?: string | null; bankSlipUrl?: string | null };
+
+/** Categoria reservada no CatalogItem para produtos de sistemas de pagamento (Asaas, InfinitePay). */
+const PAYMENT_CATEGORY = "ASAAS";
+const CATALOG_ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const validIsoDate = (value: unknown): value is string => typeof value === "string" && ISO_DATE.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 
 function mergedCustomerMetadata(customer: Record<string, string | null>): Record<string, string | null> { return { ...customer }; }
 
@@ -185,42 +191,75 @@ export class AsaasService {
     return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
   }
 
+  /** Catálogo visível na Véxora: os mesmos CatalogItem usados por atendimento, orçamento e IAs. */
   async listServices(tenantId: string) {
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { integrations: true } });
-    const all = tenant?.integrations && typeof tenant.integrations === "object" && !Array.isArray(tenant.integrations) ? tenant.integrations as Record<string, unknown> : {};
-    const catalog = all.serviceCatalog && typeof all.serviceCatalog === "object" && !Array.isArray(all.serviceCatalog) ? all.serviceCatalog as Record<string, unknown> : {};
-    const services = Array.isArray(catalog.services) ? catalog.services as Array<Record<string, unknown>> : [];
-    return { source: "VEXORA" as const, services: services.map(s => ({ id: String(s.id || ""), name: String(s.name || ""), value: Number(s.value) || 0, createdAt: typeof s.createdAt === "string" ? s.createdAt : undefined })).filter(s => s.name) };
+    const items = await this.prisma.catalogItem.findMany({
+      where: { tenantId, active: true, category: PAYMENT_CATEGORY },
+      select: { id: true, name: true, priceCents: true, description: true, imageUrl: true, createdAt: true },
+      orderBy: { name: "asc" },
+      take: 200,
+    });
+    return {
+      source: "VEXORA" as const,
+      services: items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        value: item.priceCents / 100,
+        description: item.description || "",
+        imageUrl: item.imageUrl || null,
+        createdAt: item.createdAt.toISOString(),
+      })),
+    };
   }
 
-  async createService(tenantId: string, input: { name?: unknown; value?: unknown }, userId: string) {
-    const name = typeof input.name === "string" ? input.name.trim().slice(0, 80) : "";
-    if (!name) throw new BadRequestException("Informe o nome do serviço (máx. 80 caracteres).");
+  async createService(tenantId: string, input: { name?: unknown; value?: unknown; description?: unknown; imageUrl?: unknown }, userId: string) {
+    const name = typeof input.name === "string" ? input.name.trim().slice(0, 120) : "";
+    if (!name) throw new BadRequestException("Informe o nome do serviço (máx. 120 caracteres).");
     const rawValue = input.value;
     const value = rawValue === undefined || rawValue === null || rawValue === "" ? 0 : Number(rawValue);
     if (!Number.isFinite(value) || value < 0 || value > 99999999) throw new BadRequestException("Informe um valor válido (ou deixe zero).");
-    const result = await mutateTenantSetting(this.prisma, tenantId, "serviceCatalog", current => {
-      const owned = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
-      const latest = Array.isArray(owned.services) ? owned.services as Array<Record<string, any>> : [];
-      const match = latest.find((s) => typeof s.name === "string" && s.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"));
-      if (match) return {
-        ...owned,
-        services: latest.map((s) => s === match ? { ...s, value: value || s.value } : s),
-      };
-      if (latest.length >= 200) throw new BadRequestException("O limite de serviços desta empresa foi atingido.");
-      return { ...owned, services: [...latest, { id: randomUUID(), name, value, createdBy: userId, createdAt: new Date().toISOString() }] };
+    const priceCents = Math.round(value * 100);
+    const existing = await this.prisma.catalogItem.findFirst({
+      where: { tenantId, category: PAYMENT_CATEGORY, name: { equals: name, mode: "insensitive" } },
+      select: { id: true, priceCents: true, active: true },
     });
-    const services = Array.isArray((result as any)?.services) ? (result as any).services as Array<Record<string, unknown>> : [];
-    return services.find((s) => typeof s.name === "string" && (s.name as string).toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR")) ?? { name, value };
+    if (existing) {
+      if (!existing.active || existing.priceCents !== priceCents) {
+        await this.prisma.catalogItem.update({
+          where: { id: existing.id },
+          data: { active: true, ...(value > 0 ? { priceCents } : {}) },
+        });
+        await this.prisma.auditLog.create({ data: { tenantId, action: "payment.catalog_service_updated", entityType: "catalog_item", entityId: existing.id, details: { name, priceCents, actorId: userId || null } } });
+      }
+      const current = value > 0 ? priceCents : existing.priceCents;
+      return { id: existing.id, name, value: current / 100 };
+    }
+    const created = await this.prisma.catalogItem.create({
+      data: {
+        tenantId,
+        kind: "SERVICE",
+        name,
+        description: typeof input.description === "string" ? input.description.trim().slice(0, 2000) : "",
+        imageUrl: typeof input.imageUrl === "string" ? input.imageUrl.trim().slice(0, 1000) || null : null,
+        priceCents,
+        currency: "BRL",
+        unit: "un",
+        category: PAYMENT_CATEGORY,
+      },
+      select: { id: true, priceCents: true },
+    });
+    await this.prisma.auditLog.create({ data: { tenantId, action: "payment.catalog_service_created", entityType: "catalog_item", entityId: created.id, details: { name, priceCents, actorId: userId || null } } });
+    return { id: created.id, name, value: created.priceCents / 100 };
   }
 
   async deleteService(tenantId: string, serviceId: string) {
-    await mutateTenantSetting(this.prisma, tenantId, "serviceCatalog", current => {
-      const owned = current && typeof current === "object" && !Array.isArray(current) ? current as Record<string, any> : {};
-      const latest = Array.isArray(owned.services) ? owned.services as Array<Record<string, any>> : [];
-      if (!latest.some((s) => s.id === serviceId)) throw new BadRequestException("Serviço não encontrado.");
-      return { ...owned, services: latest.filter((s) => s.id !== serviceId) };
+    const item = await this.prisma.catalogItem.findFirst({
+      where: { id: serviceId, tenantId, category: PAYMENT_CATEGORY },
+      select: { id: true, name: true },
     });
+    if (!item) throw new BadRequestException("Serviço não encontrado.");
+    await this.prisma.catalogItem.update({ where: { id: item.id }, data: { active: false } });
+    await this.prisma.auditLog.create({ data: { tenantId, action: "payment.catalog_service_deactivated", entityType: "catalog_item", entityId: item.id, details: { name: item.name } } });
     return { deleted: true, serviceId };
   }
 
@@ -232,15 +271,34 @@ export class AsaasService {
     return { environment: (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION", customers: matches.map((x) => ({ id: x.id, name: x.name, email: x.email || null, phone: x.mobilePhone || x.phone || null })) };
   }
 
-  async createSubscription(tenantId: string, input: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; billingType?: unknown; userId?: string }) {
-    const service = typeof input.service === "string" ? input.service.trim().slice(0, 120) : "";
+  async createSubscription(tenantId: string, input: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; catalogItemId?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; endDate?: unknown; billingType?: unknown; userId?: string }) {
+    let service = typeof input.service === "string" ? input.service.trim().slice(0, 120) : "";
+    let value = Number(input.value);
+    let catalogItemId: string | null = null;
+    if (typeof input.catalogItemId === "string" && input.catalogItemId.trim()) {
+      const id = input.catalogItemId.trim();
+      if (!CATALOG_ITEM_ID.test(id)) throw new BadRequestException("Produto do catálogo inválido.");
+      const item = await this.prisma.catalogItem.findFirst({
+        where: { id, tenantId, active: true, category: PAYMENT_CATEGORY },
+        select: { id: true, name: true, priceCents: true, currency: true },
+      });
+      if (!item) throw new BadRequestException("Produto do catálogo indisponível para esta empresa.");
+      if (item.currency !== "BRL") throw new BadRequestException("Somente produtos em BRL podem ser assinados no Asaas.");
+      // Nome e preço vêm do catálogo gravado, nunca do navegador.
+      service = item.name.slice(0, 120);
+      value = item.priceCents / 100;
+      catalogItemId = item.id;
+    }
     if (!service) throw new BadRequestException("Informe o serviço — o nome será usado como descrição da assinatura no Asaas.");
-    const value = Number(input.value);
     if (!Number.isFinite(value) || value <= 0 || value > 99999999) throw new BadRequestException("Informe um valor maior que zero.");
     const allowedCycles = ["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "SEMIANNUALLY", "YEARLY"];
     const cycle = allowedCycles.includes(String(input.cycle)) ? String(input.cycle) : "MONTHLY";
-    let nextDueDate = typeof input.nextDueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.nextDueDate) ? input.nextDueDate : null;
+    if (typeof input.nextDueDate === "string" && input.nextDueDate.trim() && !validIsoDate(input.nextDueDate)) throw new BadRequestException("Data de início inválida.");
+    let nextDueDate = validIsoDate(input.nextDueDate) ? input.nextDueDate : null;
     if (!nextDueDate) { const d = new Date(); d.setMonth(d.getMonth() + 1); nextDueDate = d.toISOString().slice(0, 10); }
+    if (typeof input.endDate === "string" && input.endDate.trim() && !validIsoDate(input.endDate)) throw new BadRequestException("Data final inválida.");
+    const endDate = validIsoDate(input.endDate) ? input.endDate : null;
+    if (endDate && endDate < nextDueDate) throw new BadRequestException("A data final não pode ser anterior à primeira cobrança.");
     const allowedBilling = ["BOLETO", "PIX", "CREDIT_CARD", "UNDEFINED"];
     const billingType = allowedBilling.includes(String(input.billingType)) ? String(input.billingType) : "BOLETO";
     const contactId = typeof input.contactId === "string" && input.contactId ? input.contactId : "";
@@ -273,16 +331,58 @@ export class AsaasService {
         customerId = created.id;
       }
     }
-    const result = await this.request<{ id?: string; description?: string; value?: number; cycle?: string; status?: string; nextDueDate?: string }>(tenantId, "/subscriptions", {
+    const result = await this.request<{ id?: string; description?: string; value?: number; cycle?: string; status?: string; nextDueDate?: string; endDate?: string }>(tenantId, "/subscriptions", {
       method: "POST",
-      body: JSON.stringify({ customer: customerId, billingType, value, cycle, nextDueDate, description: service, externalReference: contactId ? "vexora:" + contactId : undefined }),
+      body: JSON.stringify({
+        customer: customerId, billingType, value, cycle, nextDueDate,
+        description: service, externalReference: contactId ? "vexora:" + contactId : undefined,
+        ...(endDate ? { endDate } : {}),
+      }),
     });
     if (!result?.id) throw new ServiceUnavailableException("O Asaas não retornou o identificador da assinatura.");
-    const resolvedService = await this.createService(tenantId, { name: service, value }, input.userId || "system").catch(() => null);
-    const subscription = { id: result.id, customerId, description: result.description || service, value: Number(result.value) || value, cycle: result.cycle || cycle, status: result.status || "ACTIVE", nextDueDate: result.nextDueDate || nextDueDate, billingType, environment };
-    await this.prisma.auditLog.create({ data: { tenantId, action: "payment.subscription_created", entityType: "asaas_subscription", entityId: result.id, details: { customerId, value, cycle, service, billingType, environment, actorId: input.userId || null } } });
+    // "Criar outros": o nome avulso entra no mesmo catálogo e passa a aparecer no dropdown.
+    const resolvedService = catalogItemId ? { id: catalogItemId, name: service, value } : await this.createService(tenantId, { name: service, value }, input.userId || "system").catch(() => null);
+    const subscription = { id: result.id, customerId, description: result.description || service, value: Number(result.value) || value, cycle: result.cycle || cycle, status: result.status || "ACTIVE", nextDueDate: result.nextDueDate || nextDueDate, endDate: result.endDate || endDate, billingType, environment, catalogItemId };
+    await this.prisma.auditLog.create({ data: { tenantId, action: "payment.subscription_created", entityType: "asaas_subscription", entityId: result.id, details: { customerId, value, cycle, service, billingType, environment, nextDueDate: result.nextDueDate || nextDueDate, endDate: result.endDate || endDate, catalogItemId, actorId: input.userId || null } } });
     const catalog = await this.listServices(tenantId);
     return { subscription, catalog: catalog.services, serviceSaved: Boolean(resolvedService) };
+  }
+
+  /** Remove a assinatura no Asaas (e cobranças pendentes/vencidas) com confirmação e auditoria. */
+  async removeSubscription(tenantId: string, subscriptionId: string, userId: string) {
+    const id = typeof subscriptionId === "string" ? subscriptionId.trim() : "";
+    if (!/^sub_[A-Za-z0-9_-]{4,}$/.test(id)) throw new BadRequestException("Identificador de assinatura inválido.");
+    const environment = (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION";
+    await this.request(tenantId, "/subscriptions/" + encodeURIComponent(id), { method: "DELETE" });
+    await this.prisma.auditLog.create({ data: { tenantId, action: "payment.subscription_deleted", entityType: "asaas_subscription", entityId: id, details: { environment, actorId: userId || null, effect: "remove recorrência e cobranças pendentes/vencidas; pagamentos já confirmados permanecem" } } });
+    return { deleted: true, subscriptionId: id, environment };
+  }
+
+  /** Remove o cliente no Asaas (e assinaturas/cobranças pendentes) e marca os contatos locais como excluídos. */
+  async removeCustomer(tenantId: string, customerId: string, userId: string) {
+    const id = typeof customerId === "string" ? customerId.trim() : "";
+    if (!/^cus_[A-Za-z0-9_-]{4,}$/.test(id)) throw new BadRequestException("Identificador de cliente inválido.");
+    const environment = (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION";
+    await this.request(tenantId, "/customers/" + encodeURIComponent(id), { method: "DELETE" });
+    const contacts = await this.prisma.contact.findMany({ where: { tenantId }, select: { id: true, metadata: true }, take: 5000 });
+    const metadataOf = (value: unknown): Record<string, unknown> =>
+      value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+    const affected = contacts.filter((contact) => metadataOf(metadataOf(contact.metadata).asaas).customerId === id).map((contact) => contact.id);
+    const deletedAt = new Date().toISOString();
+    await this.prisma.$transaction(async (tx) => {
+      for (const contactId of affected) {
+        const current = await tx.contact.findFirst({ where: { id: contactId, tenantId }, select: { metadata: true } });
+        const metadata = metadataOf(current?.metadata);
+        const asaas = metadataOf(metadata.asaas);
+        const sync = metadataOf(metadata.asaasSync);
+        await tx.contact.update({
+          where: { id: contactId },
+          data: { metadata: { ...metadata, asaas: { ...asaas, status: "DELETED" }, asaasSync: { ...sync, status: "DELETED", environment, deletedAt } } as Prisma.InputJsonObject },
+        });
+      }
+      await tx.auditLog.create({ data: { tenantId, action: "payment.customer_deleted", entityType: "asaas_customer", entityId: id, details: { environment, actorId: userId || null, affectedContactIds: affected, effect: "remove cliente, assinaturas e cobranças pendentes/vencidas; pagamentos já confirmados permanecem" } } });
+    });
+    return { deleted: true, customerId: id, environment, affectedContacts: affected.length };
   }
 
   async debtsByDocument(tenantId:string,rawDocument:string){

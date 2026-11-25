@@ -14,4 +14,11 @@ describe('human assignment visibility and notifications',()=>{
   expect(assignmentRecipient({handlingMode:'HUMAN',departmentId:'link'},'ana',['link'])).toBe(true);
   expect(assignmentRecipient({handlingMode:'HUMAN',departmentId:'link'},'ana',['link'],{departments:false})).toBe(false);
  });
+ it('honours the two assignment opt-outs independently',()=>{
+  const assigned={handlingMode:'HUMAN',departmentId:'link',assigneeId:'ana'};
+  expect(assignmentRecipient(assigned,'ana',['link'],{},['MENTION'])).toBe(false);
+  expect(assignmentRecipient({handlingMode:'HUMAN',departmentId:'link'},'ana',['link'],{},['MENTION'])).toBe(false);
+  expect(assignmentRecipient(assigned,'ana',['link'],{},['CONVERSATION_ASSIGNED_TO_ME'])).toBe(true);
+  expect(assignmentRecipient({handlingMode:'HUMAN',departmentId:'link'},'ana',['link'],{},['CONVERSATION_ASSIGNED_TO_MY_TEAM'])).toBe(true);
+ });
 });

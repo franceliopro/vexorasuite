@@ -27,6 +27,14 @@ export type Message = {
     linkedConversationId?: string;
     departmentName?: string;
     linkPreview?: MessageLinkPreview;
+    provider?: string;
+    hasMedia?: boolean;
+    mediaUrl?: string | null;
+    mediaRef?: string | null;
+    mediaDelivery?: "READY" | "UNAVAILABLE";
+    filename?: string | null;
+    mimetype?: string | null;
+    contentType?: string;
   };
 };
 

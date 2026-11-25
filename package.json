@@ -12,6 +12,11 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "shell:check": "pnpm --filter @vexorasuite/shell test",
+    "shell:dev": "pnpm --filter @vexorasuite/shell dev:desktop",
+    "shell:build:desktop": "pnpm --filter @vexorasuite/shell build:desktop",
+    "shell:build:android": "pnpm --filter @vexorasuite/shell build:android",
+    "shell:build:ios": "pnpm --filter @vexorasuite/shell build:ios",
     "format:check": "prettier --check ."
   },
   "devDependencies": {

@@ -14,3 +14,7 @@ coverage/
 .nx/
 *.tsbuildinfo
 artifacts/
+
+# Rust / Tauri generated output
+target/
+apps/shell/src-tauri/gen/

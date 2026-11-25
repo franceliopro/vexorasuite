@@ -68,7 +68,21 @@ enum ConversationHandlingMode {
   HUMAN
 }
 
+model UserNotificationPreference {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  events    String[] @default(["CONVERSATION_ASSIGNED_TO_ME", "CONVERSATION_ASSIGNED_TO_MY_TEAM", "MENTION", "TASK_DUE", "CONVERSATION_MESSAGE_RECEIVED"])
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, userId])
+  @@index([tenantId])
+  @@map("user_notification_preferences")
+}
+
 model Tenant {
+  userNotificationPreferences UserNotificationPreference[]
   pipelines            CrmPipeline[]
   catalogItems         CatalogItem[]
   documentTemplates    DocumentTemplate[]
@@ -123,6 +137,7 @@ model Tenant {
 }
 
 model User {
+  notificationPreferences    UserNotificationPreference[]
   pushSubscriptions          PushSubscription[]
   id                         String                    @id @default(uuid()) @db.Uuid
   email                      String                    @unique
@@ -179,6 +194,7 @@ model Contact {
   source           String?
   externalId       String?             @map("external_id")
   metadata         Json                @default("{}")
+  crmPosition      Int?                @map("crm_position")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
   tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -190,6 +206,7 @@ model Contact {
   @@unique([tenantId, externalId])
   @@index([tenantId, phone])
   @@index([tenantId, createdAt])
+  @@index([tenantId, pipelineId, crmPosition])
   @@map("contacts")
 }
 

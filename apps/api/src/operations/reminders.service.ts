@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from "@nestjs/commo
 import { PrismaService } from "../prisma/prisma.service";
 import { schedulersEnabled } from "../common/scheduler-mode";
 import { PushService } from "./push.service";
+import { allowsNotification } from "./notification-preferences";
 
 /** Varredura periódica de tarefas com prazo próximo/atrasado e disparo de push para o responsável. */
 @Injectable()
@@ -35,8 +36,15 @@ export class RemindersService implements OnModuleInit, OnModuleDestroy {
           where: { tenantId: tenant.id, status: { not: "DONE" }, assigneeId: { not: null }, dueAt: { gte: new Date(now - 6 * 3600e3), lte: new Date(now + windowMin * 60e3) } },
           select: { id: true, title: true, dueAt: true, assigneeId: true },
         });
+        const assignees = [...new Set(tasks.map(task => task.assigneeId).filter((id): id is string => !!id))];
+        const preferences = assignees.length ? await this.prisma.userNotificationPreference.findMany({
+          where: { tenantId: tenant.id, userId: { in: assignees } },
+          select: { userId: true, events: true },
+        }) : [];
+        const byUser = new Map(preferences.map(preference => [preference.userId, preference.events]));
         for (const task of tasks) {
           if (!task.assigneeId || !task.dueAt) continue;
+          if (!allowsNotification(byUser.get(task.assigneeId), "TASK_DUE")) continue;
           const key = tenant.id + ":" + task.id;
           const last = this.notified.get(key) || 0;
           if (now - last < 30 * 60e3) continue;

@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Defina POSTGRES_USER no cofre}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no cofre}
+      POSTGRES_DB: ${POSTGRES_DB:-vexora_payload}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:?Defina POSTGRES_USER no cofre} -d ${POSTGRES_DB:-vexora_payload}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  payload:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PAYLOAD_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Defina POSTGRES_USER no cofre}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no cofre}@db:5432/${POSTGRES_DB:-vexora_payload}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Defina PAYLOAD_SECRET no cofre}
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

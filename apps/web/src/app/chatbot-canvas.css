@@ -272,3 +272,32 @@
 @media (prefers-reduced-motion: reduce) {
   .flow-wires .vex-wire-motion { animation: none; opacity: .45; }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-flow-board] [data-flow-trace-node],
+  [data-flow-board] [data-flow-trace-edge] {
+    animation-duration: 420ms;
+    animation-delay: var(--flow-trace-delay, 0ms);
+    animation-timing-function: ease-out;
+  }
+
+  [data-flow-trace-phase="0"] [data-flow-trace-node],
+  [data-flow-trace-phase="0"] [data-flow-trace-edge] {
+    animation-name: vexora-canvas-trace;
+  }
+
+  [data-flow-trace-phase="1"] [data-flow-trace-node],
+  [data-flow-trace-phase="1"] [data-flow-trace-edge] {
+    animation-name: vexora-canvas-trace-next;
+  }
+
+  @keyframes vexora-canvas-trace {
+    0%, 100% { filter: none; }
+    40% { filter: drop-shadow(0 0 8px var(--accent2)); }
+  }
+
+  @keyframes vexora-canvas-trace-next {
+    0%, 100% { filter: none; }
+    40% { filter: drop-shadow(0 0 8px var(--accent2)); }
+  }
+}

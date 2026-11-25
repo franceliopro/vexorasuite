@@ -114,3 +114,47 @@ test("o assistente oferece o comando determinístico como exemplo clicável", ()
     assert.ok(workspace.includes(marker), `diálogo perdeu ${marker}`);
   }
 });
+
+test("o bloco de catálogo usa itemId persistido e não aceita preço digitado", () => {
+  const defaults = guided.guidedKindDefaults("catalog.item");
+  assert.deepEqual(JSON.parse(defaults.config), { itemId: "" });
+  assert.deepEqual(defaults.options, ["Continuar"]);
+  assert.equal(guided.guidedKindOptions.some(([kind]) => kind === "catalog.item"), true);
+
+  const guide = guided.flowGuide.find((item) => item.id === "catalog.item");
+  assert.ok(guide, "o guia deve explicar o item do catálogo");
+  assert.match(guide.configure, /Escolha explicitamente o item/i);
+  assert.match(guide.sees, /sem preço ou condição inventados/i);
+
+  const explanation = guided.explainStep({ kind: "catalog.item" });
+  assert.match(explanation.configure, /Não digite preço/i);
+  assert.match(explanation.sees, /do item cadastrado/i);
+
+  const io = guided.stepIO({ kind: "catalog.item", options: ["Continuar"] });
+  assert.equal(io.input, "Item escolhido no cadastro da empresa");
+  assert.equal(io.writes.length, 0);
+  assert.match(io.note, /não inventa condições/i);
+});
+
+test("o editor carrega itens ativos do tenant e só seleciona item explícito", () => {
+  for (const marker of [
+    "/api/backend/catalog?limit=200&includeInactive=false",
+    "Array.isArray(data?.items)",
+    "setCatalogItems(data.items)",
+    'catalog: "border-l-flow-tone-crm"',
+    '["catalog.item","Item do catálogo"]',
+    'JSON.stringify({itemId:""})',
+    'data-testid="chatbot-catalog-item"',
+    "changeDestination({itemId:e.target.value})",
+    "values.itemId?catalogItems.find(item=>item.id===values.itemId)?.name",
+    "nodeSummary(step,catalogItems)",
+    "<summary>Catálogo</summary>",
+    'add("catalog.item",item.name,{itemId:item.id})',
+    '"catalog.item","Item do catálogo"',
+  ]) {
+    assert.ok(workspace.includes(marker), `editor perdeu ${marker}`);
+  }
+  for (const raw of ["catalogItemId", "priceCents:e.target.value", "digite o preço"]) {
+    assert.equal(workspace.includes(raw), false, `editor voltou a aceitar dado manual: ${raw}`);
+  }
+});

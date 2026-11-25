@@ -20,13 +20,14 @@ export class CatalogController {
   }
 
   @Get()
-  async list(@Req() req: AuthenticatedRequest, @Query("q") qRaw?: string, @Query("kind") kindRaw?: string, @Query("limit") limitRaw?: string) {
+  async list(@Req() req: AuthenticatedRequest, @Query("q") qRaw?: string, @Query("kind") kindRaw?: string, @Query("limit") limitRaw?: string, @Query("includeInactive") includeInactiveRaw?: string) {
     const limit = Math.max(1, Math.min(200, Number.parseInt(limitRaw || "50", 10) || 50));
     const q = trim(qRaw, 120);
     const kind = typeof kindRaw === "string" && KINDS.has(kindRaw) ? kindRaw : undefined;
+    const includeInactive = includeInactiveRaw === "true" && administrative(req.user.role);
     const items = await this.prisma.catalogItem.findMany({
-      where: { tenantId: req.user.tenantId, active: true, ...(kind ? { kind } : {}), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } : {}) },
-      select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, imageUrl: true, category: true },
+      where: { tenantId: req.user.tenantId, ...(includeInactive ? {} : { active: true }), ...(kind ? { kind } : {}), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } : {}) },
+      select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, imageUrl: true, category: true, active: true },
       orderBy: [{ kind: "asc" }, { name: "asc" }] ,
       take: limit,
     });
@@ -82,7 +83,8 @@ export class CatalogController {
   @Delete(":id")
   async remove(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string) {
     this.adminOnly(req);
-    await this.prisma.catalogItem.update({ where: { id }, data: { active: false } });
+    const result = await this.prisma.catalogItem.updateMany({ where: { id, tenantId: req.user.tenantId }, data: { active: false } });
+    if (!result.count) throw new NotFoundException("Item não encontrado.");
     return { deactivated: true };
   }
 }

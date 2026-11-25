@@ -2,14 +2,14 @@
 
 ## Modelo de hospedagem escolhido (24/11/2026)
 
-Decisão do proprietário (atualizada em 24/11/2026): **Cloudflare Pages + Dokploy + GitHub + Directus**.
+Decisão do proprietário (atualizada em 24/11/2026): **Cloudflare Pages + Dokploy + GitHub + Payload CMS**.
 
 - **Sites públicos** (Astro, estáticos): um projeto Cloudflare Pages por site, com domínio e variáveis próprios.
 - **Páginas e blocos**: arquivos no GitHub, editáveis na Tina (Git-native).
-- **Dados dinâmicos do Alto Araguaia Imóveis** (imóveis, usuários, permissões, submissões e mídia): Directus self-hosted no Dokploy/VPS.
+- **Dados dinâmicos do Alto Araguaia Imóveis** (imóveis, usuários, permissões, submissões e mídia): Payload CMS self-hosted no Dokploy/VPS, instância única com papéis e usuários ilimitados.
 - **Véxora**: gerente do processo (pedido, preview, aprovação, publicação, evidência); a plataforma roda em Next.js no Dokploy.
 
-O Cloudflare Pages **não executa PHP, MySQL nem Directus**. O build lê arquivos do repositório: as páginas vindas da Tina e o snapshot do Directus versionado como arquivos Markdown em `src/content/properties/`. Nenhuma credencial é compartilhada entre empresas. A arquitetura completa está em `docs/sites-stack-hibrido.md`.
+O Cloudflare Pages **não executa PHP, MySQL nem Payload**. O build lê arquivos do repositório: as páginas vindas da Tina e o snapshot do Payload versionado como arquivos Markdown em `src/content/properties/`. Nenhuma credencial é compartilhada entre empresas. A arquitetura completa está em `docs/sites-stack-hibrido.md`.
 
 ### Sites Astro (template `sites/_template`)
 
@@ -63,7 +63,7 @@ Para o Alto Araguaia Imóveis, configure **Root directory** =
 `sites/alto-araguaia-imoveis`, **Build output** = `dist`, **Node** = 22. Os dois
 pilotos acima usam Root directory `/`. O build do Alto lê a coleção Astro de
 imóveis em `src/content/properties/*.md`. Hoje esses arquivos contêm dados
-migrados do site público, ainda não validados; o snapshot gerado pelo Directus
+migrados do site público, ainda não validados; o snapshot gerado pelo Payload
 deve substituí-los antes de qualquer publicação como oferta real.
 
 ### Fluxo

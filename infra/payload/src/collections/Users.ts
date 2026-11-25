@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAdmin, isAnyAuthenticated, ROLE_OPTIONS } from '../access/roles'
+import { isAdmin, isAnyAuthenticated, isRole, ROLE_OPTIONS } from '../access/roles'
 
 /**
  * Contas da instância única. API keys são geradas no Studio pelo admin e
@@ -20,7 +20,8 @@ export const Users: CollectionConfig = {
     lockTime: 10 * 60 * 1000,
   },
   access: {
-    admin: isAdmin,
+    // access.admin exige booleano; não aceita uma query de restrição.
+    admin: ({ req }) => isRole(req.user, 'admin'),
     create: isAdmin,
     read: isAnyAuthenticated,
     update: isAdmin,

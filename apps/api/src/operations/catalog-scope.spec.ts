@@ -17,8 +17,8 @@ describe("escopo do catálogo", () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const prisma: any = { catalogItem: { findMany } };
     const controller = new CatalogController(prisma);
-    const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" }, query: { includeInactive: "true" } };
-    await controller.list(request);
+    const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
+    await controller.list(request, undefined, undefined, undefined, "true");
     expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a" });
     expect(findMany.mock.calls[0][0].where.active).toBeUndefined();
   });
@@ -27,8 +27,8 @@ describe("escopo do catálogo", () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const prisma: any = { catalogItem: { findMany } };
     const controller = new CatalogController(prisma);
-    const request: any = { user: { tenantId: "tenant-a", role: "MANAGER" }, query: { includeInactive: "true" } };
-    await controller.list(request);
+    const request: any = { user: { tenantId: "tenant-a", role: "MANAGER" } };
+    await controller.list(request, undefined, undefined, undefined, "true");
     expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a", active: true });
   });
 });

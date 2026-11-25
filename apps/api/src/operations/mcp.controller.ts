@@ -8,6 +8,7 @@ import { AiService } from "../ai/ai.service";
 import { economicalProviders } from "../ai/economical-providers";
 import { dailyAiLimit, reserveAiExecution } from "../ai/ai-budget";
 import { companyAutofill, contactAutofill, renderTemplate, missingKeys } from "./document-helpers";
+import { parseCardPosition, placeCrmCard } from "./crm-card-position";
 
 /**
  * Véxora MCP Server (Model Context Protocol sobre HTTP, JSON-RPC 2.0).
@@ -138,6 +139,7 @@ const TOOLS: Array<{
         contactId: { type: "string" },
         pipelineId: { type: "string" },
         stageId: { type: "string" },
+        position: { type: "integer", minimum: 0, description: "Opcional. Índice desejado na etapa; sem ele, o cartão vai para o fim." },
       },
       required: ["contactId", "pipelineId", "stageId"],
       additionalProperties: false,
@@ -471,22 +473,32 @@ export class McpController {
         const stageId = typeof args.stageId === "string" ? args.stageId : "";
         if (!contactId || !pipelineId || !stageId) this.mcpError("Informe contactId, pipelineId e stageId.");
         const [contact, pipeline] = await Promise.all([
-          this.prisma.contact.findFirst({ where: { id: contactId, tenantId }, select: { id: true, metadata: true } }),
+          this.prisma.contact.findFirst({ where: { id: contactId, tenantId }, select: { id: true, metadata: true, pipelineId: true } }),
           this.prisma.crmPipeline.findFirst({ where: { id: pipelineId, tenantId, enabled: true }, select: { id: true, stages: true } }),
         ]);
         if (!contact) this.mcpError("Contato não encontrado nesta empresa.");
         if (!pipeline) this.mcpError("Pipeline não encontrado ou desativado nesta empresa.");
         const stages = Array.isArray(pipeline.stages) ? (pipeline.stages as Array<{ id?: string }>) : [];
         if (!stages.some((stage) => stage.id === stageId)) this.mcpError("Etapa não pertence ao pipeline informado.");
-        const metadata = object(contact.metadata);
-        const updated = await this.prisma.contact.update({
-          where: { id: contact.id },
-          data: { pipelineId: pipeline.id, metadata: { ...metadata, crmStage: stageId, crmFinalization: null } },
-          select: { id: true, pipelineId: true },
+        const position = parseCardPosition(args.position);
+        const result = await this.prisma.$transaction(async tx => {
+          const placement = await placeCrmCard(tx, {
+            tenantId,
+            contactId: contact.id,
+            pipelineId: pipeline.id,
+            stage: stageId,
+            position,
+          });
+          const updated = await tx.contact.update({
+            where: { id: contact.id },
+            data: { pipelineId: pipeline.id, metadata: { ...placement.metadata, crmStage: stageId, crmFinalization: null } },
+            select: { id: true, pipelineId: true, crmPosition: true },
+          });
+          await tx.auditLog.create({ data: { tenantId, userId: null, action: "conversation.crm_updated", entityType: "contact", entityId: contact.id, details: { fromPipelineId: contact.pipelineId ?? null, toPipelineId: pipeline.id, toStage: stageId, position: placement.position, source: "mcp" } } });
+          return { updated, placement };
         });
-        await this.prisma.auditLog.create({ data: { tenantId, userId: null, action: "conversation.crm_updated", entityType: "contact", entityId: contact.id, details: { fromPipelineId: metadata.pipelineId ?? null, toPipelineId: pipeline.id, toStage: stageId, source: "mcp" } } });
-        this.events.publish(tenantId, "contact.updated", { id: updated.id, pipelineId: updated.pipelineId, crmStage: stageId });
-        return { contactId: updated.id, pipelineId: updated.pipelineId, stageId };
+        this.events.publish(tenantId, "contact.updated", { id: result.updated.id, pipelineId: result.updated.pipelineId, crmStage: stageId, position: result.placement.position });
+        return { contactId: result.updated.id, pipelineId: result.updated.pipelineId, stageId, position: result.placement.position };
       }
       case "search_catalog": {
         const q = typeof args.q === "string" ? args.q.trim() : "";

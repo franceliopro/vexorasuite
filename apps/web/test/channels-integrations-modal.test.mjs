@@ -24,3 +24,11 @@ test('integration response parsing does not silently swallow successful invalid 
   assert.match(source, /if\(response\.ok\)throw new Error\("A Véxora recebeu uma resposta inválida do servidor\."\)/);
 });
 
+test('attachment checkboxes render the saved state returned by the backend', () => {
+  assert.match(source, /api<\{inboxes:InboxRow\[\];departments:\{id:string;name:string\}\[\]\}>\("\/api\/backend\/channels\/inboxes"\)/);
+  assert.match(source, /api<\{id:string;attachments\?:Record<string,boolean>\}\[\]>\("\/api\/backend\/channels"\)\.catch\(\(\)=>\[\]\)/);
+  assert.match(source, /savedAttachments\(saved\.has\(row\.id\)\?saved\.get\(row\.id\):row\.attachments\)/);
+  assert.match(source, /checked=\{!!inbox\.attachments\?\.\[service\]\}/);
+  assert.match(source, /ATTACHMENT_SERVICES\.map\(service => \[service, value\?\.\[service\] === true\]\)/);
+});
+

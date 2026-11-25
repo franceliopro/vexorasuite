@@ -46,6 +46,15 @@ test("message links are safe and remain readable inside bubbles", () => {
   assert.match(inbox, /const messageLinkTw="break-words [^"]+"/);
 });
 
+test("delivery status renders once per message and unavailable media has an honest placeholder", () => {
+  assert.equal([...inbox.matchAll(/<MessageStatus\b/g)].length, 1, "não deve haver um segundo tick abaixo do rótulo de IA");
+  assert.ok(inbox.includes('data-testid="inbox-media-placeholder"'));
+  assert.ok(inbox.includes('hasMedia&&message.metadata?.mediaDelivery==="UNAVAILABLE"'));
+  assert.ok(inbox.includes("· download indisponível"));
+  assert.ok(inbox.includes('const mediaUrl = ["audio", "image", "video", "file"].includes(message.contentType) ? mediaUrlOf(message) : "";'));
+  assert.ok(!inbox.includes("const mediaUrl = selected && hasMedia"), "a URL renderizada passa pelo mesmo filtro de mídia segura");
+});
+
 test("inbox list tools stay outside the scrollable list and remain accessible", () => {
   const listMount = inbox.indexOf("<ConversationList conversations={visibleConversations}");
   const tools = inbox.indexOf('data-testid="inbox-list-tools"');

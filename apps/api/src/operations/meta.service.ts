@@ -1,6 +1,7 @@
 import { BadGatewayException, BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { metaAccessTokenFor } from "./meta-credentials";
+import { isAllowedMediaUrl, readMediaResponse } from "./inbound-media";
 
 const GRAPH_BASE = "https://graph.facebook.com/v21.0";
 const object = (value: unknown): Record<string, any> =>
@@ -84,6 +85,24 @@ export class MetaService {
     const firstId = messages[0]?.id;
     if (typeof firstId === "string" && firstId) return firstId;
     throw new BadGatewayException("A Meta confirmou a mensagem mas não retornou o identificador da mensagem.");
+  }
+
+  /** Baixa mídia inbound somente pelo id recebido no webhook. A URL é resolvida na Graph API
+   * com as credenciais cifradas da empresa e validada contra a allowlist antes do fetch. */
+  async downloadMedia(tenantId: string, mediaId: string, phoneNumberId: string): Promise<{ buffer: Buffer; mimetype: string }> {
+    if (!/^[A-Za-z0-9_-]{8,255}$/.test(mediaId) || !/^\d{5,25}$/.test(phoneNumberId)) {
+      throw new BadGatewayException("Referência de mídia inválida.");
+    }
+    const descriptor = await this.request<{ url?: unknown }>(tenantId, `/${encodeURIComponent(mediaId)}?phone_number_id=${encodeURIComponent(phoneNumberId)}`);
+    if (!isAllowedMediaUrl(descriptor?.url)) throw new BadGatewayException("A Meta não disponibilizou uma URL de mídia segura.");
+    const token = metaAccessTokenFor(await this.integrationsOf(tenantId), tenantId);
+    if (!token) throw new ServiceUnavailableException("Configure o WhatsApp Oficial em Conexões antes de baixar mídia.");
+    const response = await fetch(String(descriptor.url), {
+      headers: { authorization: "Bearer " + token },
+      redirect: "error",
+      signal: AbortSignal.timeout(30000),
+    });
+    return readMediaResponse(response);
   }
 
   async markSeen(tenantId: string, phoneNumberId: string, wamid: string): Promise<void> {

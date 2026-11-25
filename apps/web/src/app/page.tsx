@@ -312,6 +312,7 @@ export default function HomePage() {
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
   const [settingsCatalogOpen, setSettingsCatalogOpen] = useState(false);
+  useEffect(() => { const openCatalog = () => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; preloadWorkspace("Configurações"); setActive("Configurações"); setSettingsAdvanced(false); setSettingsCatalogOpen(true); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
     const closeOutside = (event: MouseEvent) => {

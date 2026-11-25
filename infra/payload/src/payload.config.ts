@@ -12,6 +12,7 @@ import { Property } from './collections/Property'
 import { Purpose } from './collections/Purpose'
 import { Submission } from './collections/Submission'
 import { Users } from './collections/Users'
+import { migrations } from './migrations'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -32,6 +33,9 @@ export default buildConfig({
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URL },
+    // Postgres em produção não cria tabelas sozinho. Este é um container de
+    // longa duração: as migrations rodam na inicialização, antes de servir.
+    prodMigrations: migrations,
   }),
   sharp,
   plugins: [],

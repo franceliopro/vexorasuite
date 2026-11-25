@@ -31,7 +31,7 @@ function fixture(rowsByStage: Record<string, Row[]>, moved: Row) {
   };
   const prisma: any = {
     $transaction: jest.fn(async (fn: any) => fn(tx)),
-    contact: { findMany: jest.fn().mockResolvedValue([]) },
+    contact: { findFirst: jest.fn().mockResolvedValue({ pipelineId }), findMany: jest.fn().mockResolvedValue([]) },
     auditLog: { create: jest.fn() },
   };
   const events: any = { publish: jest.fn() };

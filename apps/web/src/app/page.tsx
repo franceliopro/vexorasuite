@@ -2,6 +2,7 @@
 import {ChangePasswordScreen} from "./change-password-screen";
 import {CompanySwitcher} from "./company-switcher";
 import { SettingsCatalog } from "./settings-catalog";
+import { CatalogSettings } from "./catalog-settings";
 import { MentionNotifications } from "./mention-notifications";
 import { PwaControls, disableDeviceNotifications } from "./pwa-controls";
 import { ReminderCenter } from "./reminder-center";
@@ -38,12 +39,9 @@ const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module
 const ChatbotWorkspace=dynamic(()=>import("./chatbot-workspace").then(module=>module.ChatbotWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const AiAgentsWorkspace=dynamic(()=>import("./ai-agents-workspace").then(module=>module.AiAgentsWorkspace));
 const PersonalAssistantPanel=dynamic(()=>import("./ai-agents-workspace").then(module=>module.PersonalAssistantPanel));
-const CreativeBriefWorkspace=dynamic(()=>import("./creative-brief-workspace").then(module=>module.CreativeBriefWorkspace),{loading:()=> <p role="status">Carregando briefings.</p>});
-const SitesWorkspace=dynamic(()=>import("./sites-workspace").then(module=>module.SitesWorkspace),{loading:()=> <p role="status">Carregando sites…</p>});
 
 const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Atendimento":()=>import("./inbox-workspace"),
-  "Sites":()=>import("./sites-workspace"),
   "CRM":()=>import("./crm-workspace"),
   "Calendários":()=>import("./calendar-workspace"),
   "Agenda":()=>import("./calendar-workspace"),
@@ -51,14 +49,11 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Chatbots":()=>import("./chatbot-workspace"),
   "Workflows":()=>import("./workflows-workspace"),
   "Agentes de IA":()=>import("./ai-agents-workspace"),
-  "Criações":()=>import("./creative-library-workspace"),
-  "Postagens":()=>import("./creative-library-workspace"),
-  "Marketing":()=>import("./creative-library-workspace"),
+  "Planos e preços":()=>import("./client-plans-workspace"),
+  "Biblioteca de referências":()=>import("./creative-library-workspace"),
   "Referências criativas":()=>import("./creative-library-workspace"),
   "Google Drive":()=>import("./creative-library-workspace"),
-  "Briefings":()=>import("./creative-brief-workspace"),
   "Relatórios":()=>import("./reports-workspace"),
-  "Planos e preços":()=>import("./client-plans-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
   "Gestão":()=>import("./finance-workspace"),
   "Conexões":()=>import("./channels-integrations"),
@@ -92,6 +87,7 @@ import {
   MoreHorizontal,
   Image,
   Globe,
+  ExternalLink,
   Menu,
   Search,
   Plus,
@@ -177,6 +173,7 @@ const BRAND_MARK_TW:Record<string,string>={
   logoSquare:"grid h-10 w-10 flex-none place-items-center rounded-md bg-transparent font-sans text-base font-extrabold text-blue-950 shadow-none",
 };
 const BRAND_LOGO_IMG_TW="max-h-9 max-w-9 object-contain";
+const BRAND_LOGO_HORIZONTAL_IMG_TW="max-w-none max-h-none object-contain";
 function brandMarkClass(hasLogo:boolean,shape:string){
   if(hasLogo){
     if(shape==="round")return BRAND_MARK_TW.logoRound;
@@ -235,8 +232,6 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Marketing", icon: "megaphone", children: [{ label: "Briefings", icon: "file-text" }, { label: "Criações", icon: "megaphone" }, { label: "Referências criativas", icon: "image" }, { label: "Google Drive", icon: "share" }] },
-    { label: "Sites", icon: "globe" },
     { label: "Financeiro", icon: "wallet" },
     { label: "Documentos", icon: "file-text" },
   ] },
@@ -245,14 +240,11 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
   automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
-  marketing: [{ label: "Briefings", target: "Briefings" }, { label: "Criações", target: "Criações" }, { label: "Referências criativas", target: "Referências criativas" }, { label: "Google Drive", target: "Google Drive" }],
   connections: [{ label: "Conexões", target: "Conexões" }],
 };
 const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de IA"].includes(value)
   ? "automation"
-  : ["Briefings", "Criações", "Referências criativas", "Google Drive"].includes(value)
-    ? "marketing"
-    : value === "Conexões" || value === "Canais e integrações" ? "connections" : null;
+  : value === "Conexões" || value === "Canais e integrações" ? "connections" : null;
 
 export default function HomePage() {
   useGlobalPhoneMask();
@@ -278,13 +270,15 @@ export default function HomePage() {
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
-    const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Planos e pacotes","Clientes","Planos e preços",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
+    const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Clientes","Planos e preços","Biblioteca de referências","Referências criativas","Google Drive",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (requested === "Gestão") setActive("Financeiro");
     else if (requested === "Integrações (API)") setActive("Configurações");
     else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
+    else if (["Marketing","Sites","Briefings","Criações","Postagens","Planos e pacotes"].includes(requested || "")) setActive("Configurações");
+    else if (requested === "Referências criativas") setActive("Biblioteca de referências");
     else if (requested && validModules.has(requested)) {
       preloadWorkspace(requested);
       setActive(requested);
@@ -317,6 +311,8 @@ export default function HomePage() {
   }, []);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
+  const [settingsCatalogOpen, setSettingsCatalogOpen] = useState(false);
+  useEffect(() => { const openCatalog = () => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; preloadWorkspace("Configurações"); setActive("Configurações"); setSettingsAdvanced(false); setSettingsCatalogOpen(true); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
     const closeOutside = (event: MouseEvent) => {
@@ -338,8 +334,8 @@ export default function HomePage() {
     };
   }, [menuOpen, workspaceInfoOpen]);
     type ThemeMode = "hybrid" | "light" | "dark";
-  type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";showCompanyName:boolean;fontScalePercent?:number;sidebarBackground?:string;sidebarForeground?:string;sidebarHover?:string};
-  const defaultBrandAssets:BrandAssets={primaryColor:"#4F46E5",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
+  type BrandAssets = {primaryColor:string;logoLight:string;logoDark:string;favicon:string;logoShape:"square"|"round"|"rectangular";logoMaxWidth?:number;logoMaxHeight?:number;showCompanyName:boolean;fontScalePercent?:number;sidebarBackground?:string;sidebarForeground?:string;sidebarHover?:string};
+  const defaultBrandAssets:BrandAssets={primaryColor:"#4F46E5",logoLight:"",logoDark:"",favicon:"",logoShape:"rectangular",logoMaxWidth:160,logoMaxHeight:40,showCompanyName:true,fontScalePercent:100,sidebarBackground:"",sidebarForeground:"",sidebarHover:""};
   const brandApplyRef = useRef<((themeName: string) => void) | null>(null);
   const [theme, setTheme] = useState<ThemeMode>("hybrid");
   const [themeReady,setThemeReady]=useState(false);
@@ -428,11 +424,14 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Marketing':'MARKETING','Sites':'SITES','Relatórios':'INBOX','Planos e pacotes':'SETTINGS','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','Postagens':'MARKETING','Criações':'MARKETING','E-mails':'EMAIL','Referências criativas':'MARKETING','Google Drive':'MARKETING','Briefings':'MARKETING',  'Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
+  // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
+  // Mesmo um admin da plataforma olhando um tenant cliente não faz o item reaparecer sem a liberação.
+  const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS");
   const isOverview = active === "Visão geral";
-  useEffect(() => { if (active !== "Configurações") setSettingsAdvanced(false); }, [active]);
+  useEffect(() => { if (active !== "Configurações") { setSettingsAdvanced(false); setSettingsCatalogOpen(false); } }, [active]);
   const currentWorkspaceTab = workspaceTabKey(active);
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
@@ -449,21 +448,18 @@ export default function HomePage() {
     <div className="suite-app">
       <aside id="mobile-navigation-menu" className={sidebarClass(menuOpen, sidebarCollapsed)} onContextMenu={(event) => { const target = event.target as Element; if (target.closest("button,a,summary,input,select,textarea,img,details,[role=\"menuitem\"]")) return; event.preventDefault(); const padding = 300; openSidebarColorMenu(Math.max(8, Math.min(event.clientX, window.innerWidth - padding)), Math.max(8, Math.min(event.clientY, window.innerHeight - 340))); }}>
         <div className="sidebar-brand-row"><a className="brand" href="/" aria-label="Página inicial" onClick={(event) => { event.preventDefault(); setActive("Visão geral");setMenuOpen(false); }}>
-          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
+          {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_HORIZONTAL_IMG_TW} style={{maxWidth:brandAssets.logoMaxWidth||160,maxHeight:brandAssets.logoMaxHeight||40}} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => (!platformPanel || item.label !== "Planos e preços") && moduleVisible(item.label) && (!["Financeiro","Marketing","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
-            if (group.section === "ADMINISTRAÇÃO" && platformPanel) {
-              visibleItems.unshift({ label: "Planos e pacotes", icon: "sparkles" });
-            }
+            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && (!["Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
                 const childActive = item.children?.some((child) => child.label === active) || false;
-                const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Marketing" && workspaceTabKey(active) === "marketing") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
+                const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
                 return <div className={accordionClass(expanded)} key={item.label}>
                   <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={navItemClass(active === item.label || childActive || familyActive)}
                     onClick={() => {
@@ -561,6 +557,11 @@ export default function HomePage() {
             <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
           </section> : null}
           {isOverview ? <DashboardWidgets /> : null}
+          {isOverview && session?.tenant.slug === "rastreabem" ? <section className={cardTw} aria-label="Site externo da Rastreabem">
+            <h2 className="text-body-lg font-bold text-slate-950">Site da Rastreabem</h2>
+            <p className="text-sm text-slate-600">Acesso ao site externo da empresa. A Véxora não hospedou nem publicou esta página.</p>
+            <a className={primaryButton} href="https://rastreabem.com.br" target="_blank" rel="noreferrer">Abrir rastreabem.com.br em nova janela <ExternalLink size={16} aria-hidden="true" /></a>
+          </section> : null}
           {isOverview ? <div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>
             <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />
             <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />
@@ -571,8 +572,6 @@ export default function HomePage() {
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
             </>
-          ) : active === "Sites" ? (
-            canConfigure ? <SitesWorkspace canManage={canConfigure} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar sites.</p></section>
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
           ) : active === "Calendários" || active === "Agenda" ? (
@@ -589,16 +588,15 @@ export default function HomePage() {
             canConfigure ? <AiAgentsWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "Chatbots" ? (
             canConfigure ? <ChatbotWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} /> : <section className={cardTw}><h2>Acesso restrito</h2></section>
-          ) : active === "Briefings" ? (
-            canManage ? <CreativeBriefWorkspace canManage={canManage} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente a administração pode registrar briefings.</p></section>
-          ) : active === "Referências criativas" || active === "Google Drive" || active === "Postagens" || active === "Criações" || active === "Marketing" ? (
-            canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":["Postagens","Criações","Marketing"].includes(active)?"creations":"references"} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar criações e referências.</p></section>
+          ) : active === "Biblioteca de referências" || active === "Referências criativas" || active === "Google Drive" ? (
+            canManage ? <CreativeLibraryWorkspace key={active} initialTab={active==="Google Drive"?"drive":"references"} /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente a administração pode gerenciar referências e arquivos do Drive.</p></section>
           ) : active === "Relatórios" ? (
             canManage ? <ReportsWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente a administração pode visualizar relatórios.</p></section>
-          ) : active === "Planos e pacotes" || active === "Clientes" ? (
+          ) : active === "Clientes" ? (
             platformPanel ? <PlatformAdminWorkspace initialTab="plans" /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Este painel pertence à administração da Véxora.</p></section>
           ) : active === "Planos e preços" ? (
-            !platformPanel ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className={cardTw}><h2>Este painel é para clientes</h2></section>
+            platformPanel ? <section className={cardTw}><h2>Este painel é para clientes</h2></section>
+              : plansMenuVisible && canManage ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className={cardTw}><h2>Acesso não permitido</h2><p>Este painel só aparece quando a Véxora libera Planos e preços para a sua empresa.</p></section>
           ) : active === "Atendentes" ? (
             canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true} canManageAdmin={session?.user.isPlatformAdmin===true||session?.role==="OWNER"}/> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (
@@ -610,7 +608,11 @@ export default function HomePage() {
           ) : active === "Conexões" || active === "Canais e integrações" ? (
             canConfigure ? <ChannelsIntegrations /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (
-            canConfigure ? (settingsAdvanced ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></> : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} />) : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
+            canConfigure ? (
+              settingsCatalogOpen ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsCatalogOpen(false)}>← Voltar para Configurações</button><CatalogSettings canManage={canManage} /></>
+                : settingsAdvanced ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></>
+                  : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} onCatalog={() => setSettingsCatalogOpen(true)} />
+            ) : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className={placeholderTw}>
               <span className={placeholderIconTw}><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>

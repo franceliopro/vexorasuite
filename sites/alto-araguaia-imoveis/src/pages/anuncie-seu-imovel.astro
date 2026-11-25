@@ -1,0 +1,57 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import ContactForm from "../components/ContactForm.astro";
+import Section from "../components/Section.astro";
+import { site } from "../data/site.config";
+
+// Endpoint público do Worker de anúncios. Sem ele, o formulário abre o WhatsApp
+// e não afirma que a submissão foi registrada.
+const announcementEndpoint = import.meta.env.PUBLIC_ANNOUNCEMENTS_ENDPOINT ?? "";
+---
+
+<BaseLayout
+  title={`Anuncie seu imóvel | ${site.name}`}
+  description="Envie os detalhes do seu imóvel para análise da equipe da Alto Araguaia Imóveis."
+>
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb
+        items={[
+          { label: "Início", href: "/" },
+          { label: "Anuncie seu imóvel", href: "/anuncie-seu-imovel/" },
+        ]}
+      />
+      <span class="eyebrow">Anuncie seu imóvel</span>
+      <h1>Conte os detalhes para nossa equipe avaliar</h1>
+      <p>O anúncio será publicado após validação.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container grid cols-2 contact-layout">
+      <ContactForm variant="announce" source="Anúncio de imóvel" endpoint={announcementEndpoint} />
+
+      <aside>
+        <h2>Como funciona</h2>
+        <div class="feature-list">
+          <ul>
+            <li>Você informa o tipo, a cidade e os detalhes do imóvel.</li>
+            <li>A equipe analisa as informações e entra em contato.</li>
+            <li>Após validação, o anúncio segue para publicação.</li>
+          </ul>
+        </div>
+        <p class="form-note">
+          Prefere falar primeiro? Use um dos canais oficiais na página de contato.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <Section tone="yellow" eyebrow="Divulgação cuidadosa" title="Seu imóvel merece ser apresentado com clareza">
+    <p>Fotos, ficha técnica e informações verificadas ajudam a atrair o comprador certo.</p>
+    <div class="section-actions">
+      <a class="btn btn-navy" href="/contato/">Falar com a equipe</a>
+    </div>
+  </Section>
+</BaseLayout>

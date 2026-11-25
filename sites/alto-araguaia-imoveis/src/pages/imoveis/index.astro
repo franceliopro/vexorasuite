@@ -1,0 +1,32 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import PropertyList from "../../components/PropertyList.astro";
+
+const properties = await getCollection("properties");
+---
+
+<BaseLayout
+  title={`Imóveis em Alto Araguaia e região | ${"Alto Araguaia Imóveis"}`}
+  description="Casas, apartamentos, salas comerciais, sítios, chácaras e fazendas em Alto Araguaia e região."
+>
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Imóveis", href: "/imoveis/" }]} />
+      <span class="eyebrow">Portfólio completo</span>
+      <h1>Imóveis em Alto Araguaia e região</h1>
+      <p>Use os filtros para encontrar imóveis urbanos e rurais disponíveis.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <PropertyList
+        properties={properties}
+        title="Todos os imóveis"
+        description="Dados migrados do site público em 24/11/2026. Confirme disponibilidade e valores com a equipe."
+      />
+    </div>
+  </section>
+</BaseLayout>

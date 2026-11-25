@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import { site } from "../../data/site.config";
+---
+
+<BaseLayout title={`Política de Privacidade | ${site.name}`} description="Como a Alto Araguaia Imóveis coleta, usa e protege dados pessoais.">
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb
+        items={[
+          { label: "Início", href: "/" },
+          { label: "Política de Privacidade", href: "/p/politica-de-privacidade/" },
+        ]}
+      />
+      <span class="eyebrow">Privacidade</span>
+      <h1>Política de Privacidade</h1>
+    </div>
+  </section>
+
+  <section class="section narrow">
+    <div class="container prose">
+      <p>
+        Esta política explica como a Alto Araguaia Imóveis coleta, usa e protege
+        os dados pessoais de quem visita este site ou entra em contato conosco, em
+        conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+      </p>
+
+      <h2>1. Quais dados coletamos</h2>
+      <p>
+        Coletamos apenas os dados que você informa voluntariamente nos
+        formulários do site: nome, telefone/WhatsApp, e-mail, cidade, tipo de
+        imóvel e a mensagem enviada. Também registramos informações técnicas
+        básicas de acesso, como data, hora e endereço IP, para segurança e
+        prevenção de abusos.
+      </p>
+
+      <h2>2. Para que usamos seus dados</h2>
+      <ul>
+        <li>Responder ao seu contato e apresentar imóveis compatíveis com o que você procura;</li>
+        <li>Agendar visitas e dar andamento a propostas;</li>
+        <li>Analisar imóveis enviados para anúncio;</li>
+        <li>Cumprir obrigações legais e regulatórias.</li>
+      </ul>
+
+      <h2>3. Compartilhamento</h2>
+      <p>
+        Seus dados não são vendidos. Podem ser compartilhados apenas com a equipe
+        da Alto Araguaia Imóveis, com prestadores de serviços estritamente
+        necessários ao atendimento (por exemplo, hospedagem e ferramentas de
+        mensagem) e com autoridades quando houver obrigação legal.
+      </p>
+
+      <h2>4. Cookies</h2>
+      <p>
+        Utilizamos cookies essenciais para o funcionamento do site. Ferramentas
+        de medição e de publicidade, quando ativadas, respeitam as preferências
+        registradas por você no navegador.
+      </p>
+
+      <h2>5. Seus direitos</h2>
+      <p>
+        Você pode solicitar a confirmação, correção, portabilidade ou exclusão
+        dos seus dados. Para exercer esses direitos, entre em contato pelo e-mail
+        contato@altoaraguaiaimoveis.com.br ou pelo telefone (66) 3481-2792.
+      </p>
+
+      <h2>6. Segurança e retenção</h2>
+      <p>
+        Adotamos medidas técnicas e administrativas para proteger seus dados. As
+        informações são mantidas pelo tempo necessário ao atendimento e ao
+        cumprimento de obrigações legais, e depois são eliminadas ou anonimizadas.
+      </p>
+
+      <h2>7. Contato</h2>
+      <p>
+        Alto Araguaia Imóveis<br />
+        Alto Araguaia - MT
+      </p>
+      <p><strong>Última atualização: 04/11/2026.</strong></p>
+    </div>
+  </section>
+</BaseLayout>

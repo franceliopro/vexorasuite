@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get,
 import { AuthGuard } from "./auth.guard";
 import { AuthenticatedRequest } from "./auth.types";
 import { PrismaService } from "../prisma/prisma.service";
-import { FULL_ENTITLEMENTS, entitlementsFromPlanLimits, resolveEntitlements, entitlementsView } from "./entitlements";
+import { FULL_ENTITLEMENTS, entitlementsFromPlanLimits, resolveEntitlements, entitlementsView, preservePlansAccess, withPlansAccess } from "./entitlements";
 import { monthWindowSaoPaulo } from "../common/month-window";
 const PRICE_MIN = 0, PRICE_MAX = 99999000;
 const VALID_CYCLE = new Set(["MONTH","YEAR","ONCE"]);
@@ -98,8 +98,22 @@ export class PlansController {
       if (!plan) throw new NotFoundException("Plano não encontrado.");
       entitlements = entitlementsFromPlanLimits(plan.limits as Record<string, unknown>) as any;
     }
-    const updated = await this.prisma.tenant.update({ where: { id: tenantId }, data: { planId: planId || null, entitlements: entitlements as any }, select: { id: true, name: true, slug: true, planId: true, entitlements: true } });
+    const current = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { entitlements: true } });
+    if (!current) throw new NotFoundException("Cliente não encontrado.");
+    const merged = preservePlansAccess(current.entitlements, entitlements);
+    const updated = await this.prisma.tenant.update({ where: { id: tenantId }, data: { planId: planId || null, entitlements: merged as any }, select: { id: true, name: true, slug: true, planId: true, entitlements: true } });
     return updated;
+  }
+  @Patch("customers/:id/plans-access") async setPlansAccess(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) tenantId: string, @Body() body: any) {
+    this.admin(req);
+    if (body?.enabled !== true && body?.enabled !== false) throw new BadRequestException("enabled deve ser true ou false.");
+    const current = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, entitlements: true } });
+    if (!current) throw new NotFoundException("Cliente não encontrado.");
+    return this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { entitlements: withPlansAccess(current.entitlements, body.enabled) as any },
+      select: { id: true, name: true, slug: true, entitlements: true },
+    });
   }
 }
 function safeParse(value: unknown): Record<string, unknown> {

@@ -4,14 +4,15 @@ function setup(){
  const publication={active:true,source:"ui",revision:"flow1",flow:{name:"Entrada",steps:[{id:"menu",kind:"agent",config:'{"agentId":"customer"}'}],channelIds:[id],triggers:[{kind:"message"}]}};
  const root:any={assistant:{enabled:true,agents:[{id:"customer",name:"Atendimento",enabled:true}]},intelligencePublished:publication};
  const channel:any={id,tenantId:"tenant",isActive:true,provider:"WAHA",status:"CONNECTED",name:"Principal",settings:{accountPhone:"5566996361707",webhookSecret:"private"}};
- const tx:any={$queryRaw:jest.fn(),channelConnection:{findFirst:jest.fn().mockResolvedValue(channel),findMany:jest.fn().mockResolvedValue([channel]),update:jest.fn()},tenant:{findUniqueOrThrow:jest.fn().mockImplementation(async()=>({integrations:root}))},department:{findFirst:jest.fn().mockResolvedValue({id:departmentId}),findMany:jest.fn().mockResolvedValue([{id:departmentId,name:"Financeiro"}])},message:{findFirst:jest.fn().mockResolvedValue(null)},auditLog:{findFirst:jest.fn().mockResolvedValue(null),create:jest.fn()}};
+ const attachments=[{channelConnectionId:id,service:"INBOX",attached:true},{channelConnectionId:id,service:"IA",attached:true}];
+ const tx:any={$queryRaw:jest.fn(),channelConnection:{findFirst:jest.fn().mockResolvedValue(channel),findMany:jest.fn().mockResolvedValue([channel]),update:jest.fn()},channelAttachment:{findMany:jest.fn().mockResolvedValue(attachments)},tenant:{findUniqueOrThrow:jest.fn().mockImplementation(async()=>({integrations:root}))},department:{findFirst:jest.fn().mockResolvedValue({id:departmentId}),findMany:jest.fn().mockResolvedValue([{id:departmentId,name:"Financeiro"}])},message:{findFirst:jest.fn().mockResolvedValue(null)},auditLog:{findFirst:jest.fn().mockResolvedValue(null),create:jest.fn()}};
  const prisma:any={...tx,$transaction:jest.fn((fn:any)=>fn(tx))};const req:any={user:{tenantId:"tenant",sub:"owner",role:"OWNER"}};
  return {controller:new InboxesController(prisma),prisma,tx,root,channel,req};
 }
 describe("inbox management",()=>{
  it("exposes physical identity and actual published agents without credentials",async()=>{
   const x=setup();const data=await x.controller.list(x.req);expect(data.inboxes[0]).toMatchObject({identity:"5566996361707",flow:{agents:[{id:"customer",name:"Atendimento",enabled:true}]},blockers:[]});
-  expect(JSON.stringify(data)).not.toContain("private");expect(x.tx.channelConnection.findMany).toHaveBeenCalledWith(expect.objectContaining({where:{tenantId:"tenant",isActive:true,provider:{in:["WAHA","ZERNIO","EMAIL"]}}}));
+  expect(JSON.stringify(data)).not.toContain("private");expect(x.tx.channelConnection.findMany).toHaveBeenCalledWith(expect.objectContaining({where:{tenantId:"tenant",isActive:true,provider:{in:["WAHA","ZERNIO","META","EMAIL"]}}}));
  });
  it("rejects attendants before reading inbox diagnostics",async()=>{
   const x=setup();x.req.user.role="AGENT";await expect(x.controller.list(x.req)).rejects.toThrow("administradores");expect(x.tx.channelConnection.findMany).not.toHaveBeenCalled();
@@ -34,5 +35,24 @@ describe("inbox management",()=>{
  });
  it("validates unknown modes and mandatory revision",async()=>{
   const x=setup();await expect(x.controller.configure(x.req,id,{mode:"UNKNOWN",expectedRevision:null})).rejects.toThrow("Escolha");await expect(x.controller.configure(x.req,id,{mode:"HUMAN"})).rejects.toThrow("Atualize");
+ });
+ it("lists active Meta Cloud connections with their saved purposes",async()=>{
+  const x=setup();x.channel.provider="META";x.channel.settings={phoneNumberId:"123456789",webhookSecret:"private"};
+  const data=await x.controller.list(x.req);
+  expect(data.inboxes[0]).toMatchObject({provider:"META",platform:"whatsapp",attachments:{INBOX:true,IA:true,CHATBOT:false,SITE:false}});
+  expect(JSON.stringify(data)).not.toContain("private");
+  expect(x.tx.channelAttachment.findMany).toHaveBeenCalledWith(expect.objectContaining({where:{channelConnectionId:{in:[id]}}}));
+ });
+ it("allows routing configuration for Meta Cloud connections",async()=>{
+  const x=setup();x.channel.provider="META";
+  await x.controller.configure(x.req,id,{mode:"HUMAN",departmentId,expectedRevision:null});
+  expect(x.tx.channelConnection.findFirst).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({provider:{in:["WAHA","ZERNIO","META"]}})}));
+  expect(x.tx.channelConnection.update).toHaveBeenCalled();
+ });
+ it("supports Instagram automation-only connections with Atendimento detached",async()=>{
+  const x=setup();x.channel.provider="ZERNIO";x.channel.settings={platform:"instagram",username:"loja"};
+  x.tx.channelAttachment.findMany.mockResolvedValue([{channelConnectionId:id,service:"IA",attached:true},{channelConnectionId:id,service:"CHATBOT",attached:true}]);
+  const data=await x.controller.list(x.req);
+  expect(data.inboxes[0]).toMatchObject({provider:"ZERNIO",platform:"instagram",attachments:{INBOX:false,IA:true,CHATBOT:true,SITE:false}});
  });
 });

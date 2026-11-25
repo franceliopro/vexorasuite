@@ -1,0 +1,62 @@
+---
+import { site } from "../data/site.config";
+import { whatsappHref } from "../lib/config";
+
+const year = new Date().getFullYear();
+const channels = site.channels.map((channel) => ({
+  ...channel,
+  href: whatsappHref(channel.whatsapp, `Olá! Gostaria de falar sobre ${channel.label.toLowerCase()}.`),
+}));
+---
+
+<footer class="site-footer" id="contato">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="/" aria-label="Alto Araguaia Imóveis — início">
+        <img src="/logo.svg" alt="Alto Araguaia Imóveis" width="180" height="38" />
+      </a>
+      <p>
+        Seu próximo capítulo começa aqui. Compra, locação e imóveis rurais com
+        atendimento próximo.
+      </p>
+    </div>
+
+    <div>
+      <h2>Encontre seu imóvel</h2>
+      <a href="/?purpose=comprar#imoveis">Comprar imóvel</a>
+      <a href="/?purpose=alugar#imoveis">Alugar imóvel</a>
+      <a href="/imoveis-rurais/">Imóveis rurais</a>
+      <a href="/anuncie-seu-imovel/">Anuncie seu imóvel</a>
+    </div>
+
+    <div>
+      <h2>Fale com a gente</h2>
+      {
+        channels.map(
+          (channel) =>
+            channel.href && (
+              <a href={channel.href} target="_blank" rel="noopener noreferrer">
+                {channel.label} · {channel.phone}
+              </a>
+            ),
+        )
+      }
+      <a href="/contato/">Enviar mensagem</a>
+      <div class="footer-hours">
+        <strong>Atendimento</strong>
+        <span>{site.address}</span>
+        <span>{site.hours}</span>
+        <span>{site.phone}</span>
+        <span>CRECI: {site.creci}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <span>© {year} Alto Araguaia Imóveis. Todos os direitos reservados.</span>
+    <span>
+      <a href="/p/politica-de-privacidade/">Privacidade</a>
+      <a href="/p/termos-de-uso/">Termos de uso</a>
+    </span>
+  </div>
+</footer>

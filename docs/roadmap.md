@@ -13,7 +13,7 @@ Este roadmap mostra direção e prioridade. O estado de cada item com evidência
 - HUB da Véxora para pedido, preview, aprovação, versão, histórico e auditoria. Não gera HTML nem hospeda página.
 - Template base em Next.js/MDX no GitHub, `output: 'export'` e Cloudflare Pages.
 - Rastreabem (HTML → MDX) e Morbeck x Carvalhinho (WordPress → MDX) no ciclo inicial.
-- Alto Araguaia Imóveis com CMS headless Directus + Postgres, a partir do modelo e do CMS PHP do proprietário.
+- Alto Araguaia Imóveis com Puck + CMS headless Payload/Strapi + Postgres, a partir do modelo e do CMS PHP do proprietário.
 - SOS Alto Araguaia fora do ciclo inicial, sob avaliação de volume e custo.
 
 ## Fase C — Sistemas verticais [planejado]

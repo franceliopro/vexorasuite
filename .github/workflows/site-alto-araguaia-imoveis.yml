@@ -1,0 +1,86 @@
+name: Site Alto Araguaia Imóveis
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/alto-araguaia-imoveis/**"
+      - "sites/_template/**"
+      - ".github/workflows/site-alto-araguaia-imoveis.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/alto-araguaia-imoveis/**"
+      - "sites/_template/**"
+      - ".github/workflows/site-alto-araguaia-imoveis.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-alto-araguaia-imoveis-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Check, build and audit site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sites/alto-araguaia-imoveis
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: sites/alto-araguaia-imoveis/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm check
+
+      - name: Build static site
+        run: pnpm build
+
+      - name: Verify static output
+        run: |
+          test -f dist/index.html
+          test -f dist/imoveis/index.html
+          test -f dist/imoveis-urbanos/index.html
+          test -f dist/imoveis-rurais/index.html
+          test -f dist/imovel/casa-moderna-com-area-de-lazer-aa-1024/index.html
+          test -f dist/imovel/apartamento-aconchegante-no-centro-aa-1025/index.html
+          test -f dist/imovel/fazenda-produtiva-com-estrutura-completa-aa-1026/index.html
+          test -f dist/imovel/sala-comercial-em-localizacao-estrategica-aa-1027/index.html
+          test -f dist/imovel/chacara-com-casa-e-nascente-aa-1028/index.html
+          test -f dist/imovel/casa-familiar-com-varanda-aa-1029/index.html
+          test -f dist/imovel/area-rural-para-investimento-aa-1030/index.html
+          test -f dist/imovel/apartamento-mobiliado-para-locacao-aa-1031/index.html
+          test -f dist/sobre/index.html
+          test -f dist/contato/index.html
+          test -f dist/anuncie-seu-imovel/index.html
+          test -f dist/p/politica-de-privacidade/index.html
+          test -f dist/p/termos-de-uso/index.html
+          test -f dist/404.html
+          test -f dist/sitemap.xml
+          test -f dist/robots.txt
+
+      - name: Audit local links and assets
+        run: node scripts/audit-links.mjs dist
+
+      - name: Verify announcement form contract
+        run: node --test test/announcements-endpoint.test.mjs

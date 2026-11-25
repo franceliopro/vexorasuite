@@ -340,6 +340,8 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       variables.endereco_completo = address;
       variables.endereco = address;
       const messages: string[] = [];
+      // Dados privados do catálogo ficam só no metadata interno/auditoria: nunca no texto enviado ao canal.
+      const catalogItems: { id: string; imageUrl: string | null; description: string | null }[] = [];
       const skills: string[] = [];
       const visitedStepIds: string[] = [];
       const visitedEdges: { from: string; option: string; to: string }[] = [];
@@ -831,6 +833,26 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = followStep(step, step.options[0]!);
             continue;
           }
+          if (type === 'catalog.item') {
+            // Nunca inventa produto ou preço: tudo vem do CatalogItem escolhido explicitamente.
+            const itemId = config.itemId || '';
+            const item = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(itemId)
+              ? await tx.catalogItem.findFirst({
+                  where: { id: itemId, tenantId: channel.tenantId, active: true },
+                  select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, category: true, imageUrl: true },
+                })
+              : null;
+            // Imagem e descrição são privadas da Véxora: ficam só em metadata/auditoria internas.
+            if (item) catalogItems.push({ id: item.id, imageUrl: item.imageUrl ?? null, description: item.description ?? null });
+            messages.push(item ? [
+              `Item do catálogo: ${item.name}`,
+              `Tipo: ${item.kind === 'SERVICE' ? 'Serviço' : 'Produto digital'}`,
+              item.sku ? `SKU: ${item.sku}` : '',
+              item.category ? `Categoria: ${item.category}` : '',
+              `Preço: ${(item.priceCents / 100).toFixed(2)} ${item.currency}${item.unit ? ` / ${item.unit}` : ''}`,
+            ].filter(Boolean).join('\n') : 'Item do catálogo indisponível. Escolha outro item ou fale com um atendente.');
+            step = followStep(step, step.options[0]!); continue;
+          }
           messages.push(['input.text','input.cpf'].includes(type) ? renderStep({ ...step, options: [] }, variables) : renderStep(step, variables));
           state = { flow: 'INTELLIGENCE', revision: published.revision, stepId: step.id, variables, completed: !step.options.length && !['input.text','input.cpf'].includes(type) };
           step = undefined as unknown as RuntimeStep;
@@ -840,7 +862,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
       }
       await tx.conversation.update({ where: { id: conversation.id }, data: { botState: {...object(state),scopeKey,runtimeScope}, ...(human ? { handlingMode: 'HUMAN', assigneeId, departmentId, status: 'OPEN' } : skills.includes('department.route')?{departmentId,assigneeId:null}:{}) } });
       const queued: Message[] = [];
-      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, inboxRoutingRevision:entry.revision, scopeKey, runtimeScope, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null } } }));
+      for (const content of messages.filter(Boolean)) queued.push(await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'OUTBOUND', status: 'QUEUED', content, contentType: 'text', senderName: 'Véxora Intelligence Engine', metadata: { engine: true, inboxRoutingRevision:entry.revision, scopeKey, runtimeScope, revision: published.revision, sourceMessageId: inbound.id, handoff: human, handoffAssigneeId: human?assigneeId:null, ...(catalogItems.length ? { catalogItems } : {}) } } }));
       if (human) {
         const contactName = conversation.contact.metadata && typeof object(conversation.contact.metadata).novo_nome === 'string'
           ? String(object(conversation.contact.metadata).novo_nome).trim()
@@ -858,7 +880,7 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
         ].filter(Boolean).join('\n');
         await tx.message.create({ data: { tenantId: channel.tenantId, conversationId, direction: 'INTERNAL', status: 'SENT', content: context, contentType: 'text', senderName: 'Contexto do atendimento', metadata: { kind: 'handoff_context', reason, sourceMessageId: inbound.id, departmentId, assigneeId, scopeKey } } });
       }
-      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedEdges, visitedSteps: visitedStepIds.map(id => ({ id, title: flow.steps.find(item => item.id === id)?.title || id })), waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
+      await tx.auditLog.create({ data: { tenantId: channel.tenantId, action: 'engine.processed', entityType: 'message', entityId: inbound.id, details: { conversationId, scopeKey, runtimeScope, revision: published.revision, visitedEdges, visitedSteps: visitedStepIds.map(id => ({ id, title: flow.steps.find(item => item.id === id)?.title || id })), waitingStepId: object(state).completed === false && typeof object(state).stepId === 'string' ? object(state).stepId : null, skills, reason, tokensUsed, model, ...(catalogItems.length ? { catalogItems } : {}), decision: human ? 'human' : model ? 'agent' : 'workflow' } } });
       return { messages: queued, handled: true, handoff: human,assigned:human };
     }, { timeout: 120000 });
     if (!result) return false;

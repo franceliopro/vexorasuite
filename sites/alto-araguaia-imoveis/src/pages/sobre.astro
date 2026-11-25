@@ -1,0 +1,45 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import CtaBand from "../components/CtaBand.astro";
+import FeatureGrid from "../components/FeatureGrid.astro";
+import { site } from "../data/site.config";
+
+const pages = await getCollection("pages");
+const entry = pages.find((item) => item.id === "sobre");
+const Content = entry ? (await render(entry)).Content : null;
+const title = entry?.data.title ?? "Sobre nós";
+const description = entry?.data.description;
+---
+
+<BaseLayout title={`${title} | ${site.name}`} description={description}>
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Sobre nós", href: "/sobre/" }]} />
+      <span class="eyebrow">Sobre nós</span>
+      <h1>{title}</h1>
+      <p>{description}</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="prose">
+        {Content && <Content />}
+      </div>
+    </div>
+  </section>
+
+  <section class="section tone-soft">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Nosso jeito de trabalhar</span>
+        <h2>Presença local em cada decisão</h2>
+      </div>
+      <FeatureGrid items={site.features} />
+    </div>
+  </section>
+
+  <CtaBand />
+</BaseLayout>

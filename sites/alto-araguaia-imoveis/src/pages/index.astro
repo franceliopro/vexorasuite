@@ -1,0 +1,84 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import Section from "../components/Section.astro";
+import SearchPanel from "../components/SearchPanel.astro";
+import CategoryGrid from "../components/CategoryGrid.astro";
+import PropertyCard from "../components/PropertyCard.astro";
+import RuralBanner from "../components/RuralBanner.astro";
+import Benefits from "../components/Benefits.astro";
+import FeatureGrid from "../components/FeatureGrid.astro";
+import Testimonials from "../components/Testimonials.astro";
+import AnnounceCta from "../components/AnnounceCta.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { site } from "../data/site.config";
+
+const properties = await getCollection("properties");
+const featured = [...properties]
+  .sort((a, b) => Number(b.data.featured) - Number(a.data.featured))
+  .slice(0, 8);
+---
+
+<BaseLayout>
+  <Hero>
+    <SearchPanel variant="hero" />
+  </Hero>
+
+  <Section
+    id="tipos"
+    eyebrow="O que você procura?"
+    title="Encontre o espaço ideal para o seu próximo capítulo"
+    description="Casas, apartamentos, imóveis comerciais e propriedades no campo."
+  >
+    <CategoryGrid />
+  </Section>
+
+  <Section
+    id="destaques"
+    tone="soft"
+    eyebrow="Imóveis em destaque"
+    title="Oportunidades em Alto Araguaia e região"
+    description="Compare metragem, quartos, vagas e localização antes de conversar."
+  >
+    <div class="property-grid" data-property-grid>
+      {featured.map((property) => <PropertyCard property={property} />)}
+    </div>
+    <div class="section-actions">
+      <a class="btn btn-navy" href="/imoveis/">Ver todos os imóveis <span aria-hidden="true">→</span></a>
+    </div>
+  </Section>
+
+  <RuralBanner />
+
+  <Section id="beneficios" tone="soft">
+    <Benefits />
+  </Section>
+
+  <Section
+    id="diferenciais"
+    eyebrow="Por que escolher a gente"
+    title="Conhecimento local. Atendimento de verdade."
+    description="Cada etapa é acompanhada por quem conhece a região e entende o seu momento."
+  >
+    <FeatureGrid items={site.features} />
+    <div class="section-actions">
+      <a class="btn btn-outline" href="/sobre/">Conheça nossa história</a>
+    </div>
+  </Section>
+
+  <Section id="depoimentos" tone="soft" eyebrow="Quem confiou na gente" title="Histórias que começaram aqui">
+    <div id="vozes">
+      <Testimonials />
+    </div>
+  </Section>
+
+  <AnnounceCta />
+
+  <CtaBand
+    title="Encontrou algo que gostou?"
+    description="Fale com a equipe e tire suas dúvidas sobre o imóvel e a região."
+    label="Ir para contato"
+    href="/contato/"
+  />
+</BaseLayout>

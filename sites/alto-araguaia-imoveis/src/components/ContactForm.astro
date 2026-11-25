@@ -1,0 +1,236 @@
+---
+import { site } from "../data/site.config";
+import { whatsappHref } from "../lib/config";
+
+interface PropertyContext {
+  id?: string;
+  code: string;
+  title: string;
+  url: string;
+  whatsapp: string;
+}
+
+interface Props {
+  heading?: string;
+  source?: string;
+  compact?: boolean;
+  channel?: "urbano" | "rural";
+  variant?: "contact" | "announce";
+  property?: PropertyContext;
+  hideHeading?: boolean;
+  endpoint?: string;
+}
+
+const {
+  heading,
+  source = "site",
+  compact = false,
+  channel = "urbano",
+  variant = "contact",
+  property,
+  hideHeading = false,
+  endpoint = import.meta.env.PUBLIC_CONTACT_ENDPOINT ?? "",
+} = Astro.props;
+const selected = site.channels.find((item) => item.label.includes(channel)) ?? site.channels[0];
+const waHref = whatsappHref(selected?.whatsapp ?? "");
+const title = heading ?? (variant === "announce" ? "Conte os detalhes do imóvel" : "Fale com a gente");
+const consentLabel =
+  variant === "announce"
+    ? "Autorizo a análise do imóvel e o contato da equipe conforme a Política de Privacidade."
+    : "Autorizo o contato da equipe sobre este pedido, conforme a Política de Privacidade.";
+const successMessage =
+  variant === "announce"
+    ? "Recebemos sua submissão. A equipe irá analisá-la e entrará em contato."
+    : "Recebemos sua mensagem. Obrigado!";
+const submitLabel =
+  variant === "announce"
+    ? "Enviar imóvel para análise"
+    : compact
+      ? "Quero mais informações"
+      : "Enviar mensagem";
+const note =
+  variant === "announce"
+    ? "O anúncio será publicado após validação pela equipe."
+    : endpoint
+      ? "Sua mensagem será enviada para o canal oficial deste site."
+      : "Sem endpoint configurado, abrimos o WhatsApp para você confirmar o envio.";
+const subject = property
+  ? `Interesse no imóvel ${property.code} — ${property.title}`
+  : variant === "announce"
+    ? "Anúncio de imóvel"
+    : "Contato pelo site";
+---
+
+<div class={compact ? "form-card compact" : "form-card"}>
+  {!hideHeading && <h3>{title}</h3>}
+  <form
+    data-contact-form
+    data-endpoint={endpoint}
+    data-success-message={successMessage}
+    data-whatsapp={property?.whatsapp || selected?.whatsapp || site.whatsapp}
+    data-whatsapp-href={property ? whatsappHref(property.whatsapp) : (waHref ?? "")}
+    data-email={site.email}
+  >
+    <label class="honeypot" aria-hidden="true">
+      Não preencha
+      <input name="website" type="text" tabindex="-1" autocomplete="off" />
+    </label>
+    <label class="field">
+      <span>Seu nome</span>
+      <input name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Como podemos chamar você?" />
+    </label>
+    <label class="field">
+      <span>WhatsApp</span>
+      <input name="phone" type="tel" autocomplete="tel" maxlength="40" placeholder="(66) 9 9999-9999" />
+    </label>
+    <label class="field">
+      <span>E-mail</span>
+      <input name="email" type="email" autocomplete="email" required maxlength="180" placeholder="voce@email.com" />
+    </label>
+
+    {
+      variant === "announce" && (
+        <>
+          <label class="field">
+            <span>Tipo do imóvel</span>
+            <select name="property_type" required>
+              <option value="">Selecione</option>
+              <option>Casa</option>
+              <option>Apartamento</option>
+              <option>Terreno</option>
+              <option>Sala comercial</option>
+              <option>Sítio</option>
+              <option>Chácara</option>
+              <option>Fazenda</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Cidade</span>
+            <input name="city" type="text" maxlength="120" placeholder="Alto Araguaia - MT" />
+          </label>
+        </>
+      )
+    }
+
+    <label class="field">
+      <span>{variant === "announce" ? "Detalhes do imóvel" : "Como podemos ajudar?"}</span>
+      <textarea
+        name="message"
+        required
+        maxlength="2000"
+        placeholder={variant === "announce" ? "Área, quartos, localização e valor pretendido." : "Conte um pouco sobre o que você procura."}
+      ></textarea>
+    </label>
+
+    <input type="hidden" name="source" value={source} />
+    <input type="hidden" name="_subject" value={subject} />
+    {
+      property && (
+        <>
+          <input type="hidden" name="_whatsapp" value={property.whatsapp} />
+          <input type="hidden" name="property_id" value={property.id ?? property.code} />
+          <input type="hidden" name="property_ref" value={property.code} />
+          <input type="hidden" name="property_title" value={property.title} />
+          <input type="hidden" name="property_url" value={property.url} />
+        </>
+      )
+    }
+    <label class="checkbox-field">
+      <input name="consent" type="checkbox" required />
+      <span>{consentLabel}</span>
+    </label>
+    <p class="form-note">{note}</p>
+    <button class="btn btn-search" type="submit">{submitLabel}</button>
+    <p class="form-status" data-form-status role="status" aria-live="polite"></p>
+  </form>
+</div>
+
+<script>
+  const forms = document.querySelectorAll<HTMLFormElement>("[data-contact-form]");
+
+  forms.forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const status = form.querySelector<HTMLElement>("[data-form-status]");
+      const data = new FormData(form);
+      const payload = {
+        website: String(data.get("website") || ""),
+        name: String(data.get("name") || "").trim(),
+        email: String(data.get("email") || "").trim(),
+        phone: String(data.get("phone") || "").trim(),
+        propertyType: String(data.get("property_type") || "").trim(),
+        city: String(data.get("city") || "").trim(),
+        message: String(data.get("message") || "").trim(),
+        consent: data.get("consent") === "on",
+        source: String(data.get("source") || "site"),
+        subject: String(data.get("_subject") || ""),
+        whatsapp: String(data.get("_whatsapp") || ""),
+        propertyId: String(data.get("property_id") || ""),
+        propertyRef: String(data.get("property_ref") || ""),
+        propertyTitle: String(data.get("property_title") || ""),
+        propertyUrl: String(data.get("property_url") || ""),
+      };
+
+      if (payload.website) return;
+      if (!payload.name || !payload.email || !payload.message || !payload.consent) {
+        if (status) status.textContent = "Preencha os campos obrigatórios e autorize o contato.";
+        return;
+      }
+
+      const details = [
+        payload.propertyType && `Tipo: ${payload.propertyType}`,
+        payload.city && `Cidade: ${payload.city}`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const text = [
+        `Olá! Sou ${payload.name}.`,
+        payload.propertyRef
+          ? `Tenho interesse no imóvel ${payload.propertyRef} — ${payload.propertyTitle}.`
+          : "",
+        payload.message,
+        details,
+        payload.phone && `Telefone: ${payload.phone}.`,
+        payload.propertyUrl,
+        `Origem: ${payload.source}.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const endpoint = form.dataset.endpoint;
+      if (endpoint) {
+        if (status) status.textContent = "Enviando...";
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          if (status) {
+            status.textContent = form.dataset.successMessage ?? "Recebemos sua mensagem. Obrigado!";
+          }
+          form.reset();
+        } catch {
+          if (status) {
+            status.textContent = "Não foi possível enviar agora. Tente novamente ou use outro canal.";
+          }
+        }
+        return;
+      }
+
+      const base = form.dataset.whatsappHref;
+      const digits = (form.dataset.whatsapp || "").replace(/\D/g, "");
+      const waUrl = base || (digits.length >= 12 && !/^0+$/.test(digits) ? `https://wa.me/${digits}` : "");
+
+      if (waUrl) {
+        window.open(`${waUrl}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+        if (status) status.textContent = "Conversa aberta no WhatsApp. Confirme o envio lá.";
+        return;
+      }
+
+      if (status) status.textContent = "Canal de atendimento em configuração. Volte em breve.";
+    });
+  });
+</script>

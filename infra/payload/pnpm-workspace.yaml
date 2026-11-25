@@ -1,0 +1,9 @@
+packages:
+  - "."
+
+# pnpm 12 removeu onlyBuiltDependencies. Builds permitidos devem ser
+# declarados explicitamente em allowBuilds (mapa nome -> true/false).
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

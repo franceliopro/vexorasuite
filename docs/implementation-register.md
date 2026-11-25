@@ -122,3 +122,14 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 
 **Ainda não entregue/conferido:** publicação real na Cloudflare e Cloudflare for SaaS dependem de credenciais configuradas no ambiente e de evidência de deploy; não afirmar publicação, domínio ativo ou envio de formulário em site publicado sem essa confirmação. `post-list`/`product-grid` seguem como placeholders; a rota pública `/sites/<slug>` citada no histórico não existe no checkout atual (o middleware a reescreve, mas não há `page.tsx` nem endpoint `public/sites/resolve`). Textos legais publicados anteriormente precisam de revisão jurídica do proprietário (bases legais, prazos, operadores, DPO e endereço físico).
 
+## Rodada 2026-11-25 (branch `feat/finance-catalog-subscriptions`)
+
+- **Financeiro → Produtos:** aba própria com grid do catálogo ativo da empresa (`GET /api/backend/catalog?category=ASAAS&limit=200`), estado vazio e atalho interno para Configurações → Catálogo. Imagem e descrição ficam na Véxora; nenhuma das duas é enviada a WhatsApp, e-mail ou outros canais externos.
+- **Nova assinatura:** modal passa a usar `useModalDialog`, lista somente serviços reais do catálogo, oferece "Criar outros…" sem criar serviço fora da gestão, aceita `endDate` e envia `catalogItemId` ao servidor. O navegador não envia `service` nem `value`; nome/preço vêm do `CatalogItem`.
+- **Exclusão no Asaas:** assinaturas e clientes podem ser excluídos mediante confirmação digitada `EXCLUIR`, ligada aos endpoints `DELETE /api/backend/finance/subscriptions/:id` e `DELETE /api/backend/finance/customers/:id`. A mensagem de sucesso aparece somente após resposta positiva do servidor, com auditoria; falha não é relatada como concluída.
+- **Backend preservado:** filtro por categoria em `CatalogController.list`, serviços/assinaturas/exclusões em `AsaasService`, endpoints `DELETE` e specs novas/foco em `catalog-scope.spec.ts`, `asaas.service.spec.ts` e `finance.controller.spec.ts`.
+- **Runtime de catálogo:** bloco `catalog.item` valida item ativo e tenant-scoped; `imageUrl` e `description` ficam em metadata interna e auditoria, nunca no texto entregue ao canal. Falha de item indisponível continua explícita, sem fallback inventado.
+- **Guardas de UI/teste:** `tailwind-finance-workspace.test.mjs` cobre aba Produtos, fetch do catálogo, modal, payload por `catalogItemId`, exclusões confirmadas e a abertura de Configurações → Catálogo pelo evento `vexora:open-catalog`.
+
+**Não afirmado:** deploy, publicação, pagamento, cobrança, assinatura eletrônica, integração real com Asaas ou envio externo. Esses estados exigem evidência da operação correspondente. Documentos, assinatura digital e composer seguem fora desta entrega.
+

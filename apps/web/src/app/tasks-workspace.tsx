@@ -1,5 +1,6 @@
 "use client";
 import { formatDateTimeBR } from "../lib/date-format";
+import type { TaskStatusFilter } from "../lib/task-status";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import {useCallback,useEffect,useRef, useState} from "react";
 import {CheckCircle2,ClipboardCheck,Plus,RefreshCw,CalendarClock,X,Bell,Pencil,Trash2} from "lucide-react";
@@ -18,9 +19,9 @@ const priorityTone={LOW:"bg-zinc-300 text-slate-600",NORMAL:"bg-blue-50 text-blu
 const workspaceTabsTw="inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-gray-200 bg-zinc-200 p-1";
 const workspaceTabTw="min-h-9 shrink-0 rounded-full px-4 text-small font-bold transition-colors";
 const workspaceTabClass=(active:boolean)=>workspaceTabTw+" "+(active?"bg-blue-600 text-blue-900 shadow-token-sm":"text-slate-600 hover:bg-zinc-300");
-const statusGridTw="grid grid-cols-1 gap-2.5 sm:grid-cols-3";
-const statusCardTw="grid min-w-0 content-start gap-1.5 rounded-token border px-4 py-3 shadow-token-sm";
-const statusToneTw:Record<string,string>={overdue:"border-red-600/40 bg-red-100 text-red-600",today:"border-emerald-600/40 bg-emerald-100 text-emerald-600",total:"border-blue-600/40 bg-blue-50 text-blue-800"};
+const statusGridTw="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:grid-cols-4";
+const statusCardTw="grid min-w-0 content-start gap-1.5 rounded-token border px-4 py-3 text-left shadow-token-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+const statusToneTw:Record<string,string>={overdue:"border-red-600/40 bg-red-100 text-red-600",today:"border-emerald-600/40 bg-emerald-100 text-emerald-600",completed:"border-emerald-600/40 bg-emerald-50 text-emerald-700",total:"border-blue-600/40 bg-blue-50 text-blue-800"};
 const statusCardClass=(kind:string)=>`${statusCardTw} ${statusToneTw[kind]??statusToneTw.total}`;
 const statusTitleTw="flex min-w-0 items-center gap-2 text-small font-extrabold uppercase tracking-wide";
 const statusValueTw="text-h2 font-heading tabular-nums";
@@ -45,7 +46,7 @@ function overdueTag(t:Task){
 const MINUTE_PRESETS=[5,15,30,60,120,1440];
 async function api<T>(path:string,init?:RequestInit):Promise<T>{const r=await fetch("/api/backend/tasks"+path,{...init,cache:"no-store"});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(Array.isArray(data.message)?data.message.join(", "):data.message||"Falha ao acessar tarefas.");return data as T;}
 export function TasksWorkspace(){const [editId,setEditId]=useState<string|null>(null);
-  const [tasks,setTasks]=useState<Task[]>([]),[metrics,setMetrics]=useState<Metrics|null>(null),[filter,setFilter]=useState<"active"|"done">("active"),[busy,setBusy]=useState(false),[error,setError]=useState(""),[form,setForm]=useState(false),[title,setTitle]=useState(""),[description,setDescription]=useState(""),[priority,setPriority]=useState("NORMAL"),[complexity,setComplexity]=useState(1),[due,setDue]=useState(""),[steps,setSteps]=useState(""),[role,setRole]=useState(""),[reminders,setReminders]=useState<ReminderSettings|null>(null),[remindersLoading,setRemindersLoading]=useState(true),[remindersSaving,setRemindersSaving]=useState(false),[remindersNotice,setRemindersNotice]=useState("");
+  const [tasks,setTasks]=useState<Task[]>([]),[metrics,setMetrics]=useState<Metrics|null>(null),[filter,setFilter]=useState<TaskStatusFilter>("active"),[busy,setBusy]=useState(false),[error,setError]=useState(""),[form,setForm]=useState(false),[title,setTitle]=useState(""),[description,setDescription]=useState(""),[priority,setPriority]=useState("NORMAL"),[complexity,setComplexity]=useState(1),[due,setDue]=useState(""),[steps,setSteps]=useState(""),[role,setRole]=useState(""),[reminders,setReminders]=useState<ReminderSettings|null>(null),[remindersLoading,setRemindersLoading]=useState(true),[remindersSaving,setRemindersSaving]=useState(false),[remindersNotice,setRemindersNotice]=useState("");
   const [workspaceTab,setWorkspaceTab]=useState<"Tarefas"|"Lembretes">("Tarefas");
   const canConfigureReminders=["OWNER","ADMIN","MANAGER"].includes(role.toUpperCase());
   useEffect(()=>{let live=true;void Promise.all([fetch("/api/backend/auth/me",{cache:"no-store"}).then(r=>r.json()).catch(()=>null),fetch("/api/backend/reminders/settings",{cache:"no-store"}).then(r=>r.json()).catch(()=>null)]).then(([me,rs])=>{if(!live)return;setRole(typeof me?.role==="string"?me.role:"");setReminders(rs?{enabled:rs.enabled!==false,minutesBefore:Array.isArray(rs.minutesBefore)?rs.minutesBefore:[15,60],sound:rs.sound!==false,push:rs.push!==false,mutedWeekdays:Array.isArray(rs.mutedWeekdays)?rs.mutedWeekdays:[],maxPerDay:typeof rs.maxPerDay==="number"?rs.maxPerDay:15}:{enabled:true,minutesBefore:[15,60],sound:true,push:true,mutedWeekdays:[],maxPerDay:15});}).finally(()=>{if(live)setRemindersLoading(false)});return()=>{live=false};},[]);
@@ -69,10 +70,11 @@ export function TasksWorkspace(){const [editId,setEditId]=useState<string|null>(
       {canConfigureReminders?<button id="tasks-tab-lembretes" type="button" role="tab" aria-controls="reminders-tabpanel" aria-selected={workspaceTab==="Lembretes"} className={workspaceTabClass(workspaceTab==="Lembretes")} onClick={()=>setWorkspaceTab("Lembretes")}>Lembretes</button>:null}
     </nav>
     <div id="tasks-tabpanel" role="tabpanel" aria-labelledby="tasks-tab-tarefas" hidden={workspaceTab!=="Tarefas"} className={workspaceTab==="Tarefas"?"grid content-start gap-token":"hidden"}>
-      {metrics?<div className={statusGridTw} aria-label="Resumo das tarefas">
-        <div className={statusCardClass("overdue")}><span className={statusTitleTw}><CalendarClock size={16} aria-hidden="true"/> Atrasadas</span><strong className={statusValueTw}>{metrics.overdue}</strong><span className={statusHintTw}>Prazo vencido: ajuste a data ou conclua hoje.</span></div>
-        <div className={statusCardClass("today")}><span className={statusTitleTw}><CheckCircle2 size={16} aria-hidden="true"/> Concluídas hoje</span><strong className={statusValueTw}>{metrics.completedToday}</strong><span className={statusHintTw}>Finalizadas desde a meia-noite de hoje.</span></div>
-        <div className={statusCardClass("total")}><span className={statusTitleTw}><ClipboardCheck size={16} aria-hidden="true"/> Todas</span><strong className={statusValueTw}>{metrics.total}</strong><span className={statusHintTw}>Tarefas internas visíveis para você.</span></div>
+      {metrics?<div className={statusGridTw} aria-label="Resumo e filtros das tarefas" role="group">
+        <button type="button" aria-pressed={filter==="overdue"} className={statusCardClass("overdue")} onClick={()=>setFilter("overdue")}><span className={statusTitleTw}><CalendarClock size={16} aria-hidden="true"/> Atrasadas</span><strong className={statusValueTw}>{metrics.overdue}</strong><span className={statusHintTw}>Prazo vencido: ajuste a data ou conclua hoje.</span></button>
+        <button type="button" aria-label="Concluídas Hoje" aria-pressed={filter==="doneToday"} className={statusCardClass("today")} onClick={()=>setFilter("doneToday")}><span className={statusTitleTw}><CheckCircle2 size={16} aria-hidden="true"/> Concluídas hoje</span><strong className={statusValueTw}>{metrics.completedToday}</strong><span className={statusHintTw}>Finalizadas desde a meia-noite de hoje.</span></button>
+        <button type="button" aria-pressed={filter==="done"} className={statusCardClass("completed")} onClick={()=>setFilter("done")}><span className={statusTitleTw}><CheckCircle2 size={16} aria-hidden="true"/> Concluídas</span><strong className={statusValueTw}>{metrics.completed}</strong><span className={statusHintTw}>Todas as tarefas finalizadas, de qualquer data.</span></button>
+        <button type="button" aria-pressed={filter==="all"} className={statusCardClass("total")} onClick={()=>setFilter("all")}><span className={statusTitleTw}><ClipboardCheck size={16} aria-hidden="true"/> Todas</span><strong className={statusValueTw}>{metrics.total}</strong><span className={statusHintTw}>Tarefas internas visíveis para você.</span></button>
       </div>:null}
       {metrics&&metrics.overdue>0?<div className="flex items-center gap-2.5 rounded-token border border-red-600/40 bg-red-100 px-3.5 py-3 text-small font-bold text-red-600" role="alert"><CalendarClock size={15} aria-hidden="true"/> Você tem {metrics.overdue} tarefa(s) atrasada(s). Ajuste o prazo ou conclua-as hoje.</div>:null}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -105,7 +107,7 @@ export function TasksWorkspace(){const [editId,setEditId]=useState<string|null>(
             {t.status==="DONE"?<span className="inline-flex items-center gap-1.5 text-small font-extrabold text-blue-800"><CheckCircle2 size={16}/> Finalizada</span>:<button type="button" className={primaryButton} disabled={busy||t.steps.some(s=>!s.done)} onClick={()=>void finish(t)}><CheckCircle2 size={15}/> Finalizar tarefa</button>}
           </div>
         </footer>
-      </article>)}{!tasks.length?<div className="grid justify-items-center gap-2.5 rounded-token border border-gray-200 bg-zinc-100 p-10 text-slate-600"><ClipboardCheck size={30}/><p>{filter==="active"?"Nenhuma tarefa pendente.":"Nenhuma tarefa finalizada."}</p></div>:null}</div>
+      </article>)}{!tasks.length?<div className="grid justify-items-center gap-2.5 rounded-token border border-gray-200 bg-zinc-100 p-10 text-slate-600"><ClipboardCheck size={30}/><p>{filter==="active"||filter==="overdue"?"Nenhuma tarefa pendente.":filter==="done"||filter==="doneToday"?"Nenhuma tarefa finalizada.":"Nenhuma tarefa encontrada."}</p></div>:null}</div>
     </div>
     {canConfigureReminders&&reminders?<div id="reminders-tabpanel" role="tabpanel" aria-labelledby="tasks-tab-lembretes" hidden={workspaceTab!=="Lembretes"} className={workspaceTab==="Lembretes"?"grid content-start gap-token":"hidden"}>
       <section className="grid gap-3 rounded-token border border-gray-200 bg-zinc-100 p-4 shadow-token-sm" aria-label="Lembretes de tarefas e compromissos">

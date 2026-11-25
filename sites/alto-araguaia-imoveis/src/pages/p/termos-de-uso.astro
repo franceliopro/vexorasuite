@@ -1,0 +1,72 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import { site } from "../../data/site.config";
+---
+
+<BaseLayout title={`Termos de Uso | ${site.name}`} description="Condições de uso do site da Alto Araguaia Imóveis.">
+  <section class="page-hero">
+    <div class="container">
+      <Breadcrumb
+        items={[
+          { label: "Início", href: "/" },
+          { label: "Termos de uso", href: "/p/termos-de-uso/" },
+        ]}
+      />
+      <span class="eyebrow">Termos de uso</span>
+      <h1>Termos de Uso</h1>
+    </div>
+  </section>
+
+  <section class="section narrow">
+    <div class="container prose">
+      <p>
+        Ao navegar e utilizar este site, você concorda com os termos abaixo. Se
+        não concordar, recomendamos interromper o uso.
+      </p>
+
+      <h2>1. Informações sobre os imóveis</h2>
+      <p>
+        As informações, imagens e valores apresentados são fornecidos pelos
+        proprietários e pela equipe da Alto Araguaia Imóveis. Podem ocorrer
+        alterações sem aviso prévio, e os imóveis estão sujeitos à disponibilidade
+        e à confirmação no momento da visita.
+      </p>
+
+      <h2>2. Uso do site</h2>
+      <p>
+        É proibido utilizar este site para fins ilícitos, enviar conteúdo falso,
+        ofensivo ou de terceiros sem autorização, ou tentar acessar áreas
+        restritas de forma indevida.
+      </p>
+
+      <h2>3. Contato e propostas</h2>
+      <p>
+        O envio de formulário não garante reserva do imóvel. Negociações,
+        propostas e contratos dependem de análise e formalização pela equipe
+        responsável.
+      </p>
+
+      <h2>4. Propriedade intelectual</h2>
+      <p>
+        Textos, marcas, layout e imagens deste site pertencem à Alto Araguaia
+        Imóveis ou a seus parceiros e não podem ser reproduzidos sem autorização.
+      </p>
+
+      <h2>5. Links externos</h2>
+      <p>
+        O site pode conter links para páginas de terceiros. Não nos
+        responsabilizamos pelo conteúdo ou pelas práticas de privacidade desses
+        sites.
+      </p>
+
+      <h2>6. Foro e legislação</h2>
+      <p>
+        Estes termos são regidos pela legislação brasileira. Eventuais
+        controvérsias serão resolvidas no foro da comarca de Alto Araguaia, Mato
+        Grosso, salvo disposição legal em contrário.
+      </p>
+      <p><strong>Última atualização: 04/11/2026.</strong></p>
+    </div>
+  </section>
+</BaseLayout>

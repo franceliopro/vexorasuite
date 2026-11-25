@@ -40,6 +40,7 @@ const customVariants = new Set(
 );
 const standardVariants = new Set([
   "dark", "hover", "focus", "focus-visible", "active", "disabled", "print",
+  "motion-reduce", "motion-safe",
   "placeholder", "group-hover", "peer-hover", "last", "first", "odd", "even",
   "sm", "md", "lg", "xl", "2xl", "max-md",
   /* Variantes explicitamente permitidas para estes workspaces. */
@@ -147,6 +148,12 @@ test("os contratos funcionais dos quatro workspaces permanecem", () => {
       'data-selected={finalOutcome === "WON"}',
       "onSubmit={createContact}", "onDragStart={(event) => startDrag(event, contact)}",
       "onDrop={(event) => dropOnStage(event, stage.id)}",
+      'data-testid="crm-drop-slot"', "data-crm-card-id={contact.id}",
+      "onDrop={(event) => dropAtPosition(event, stage.id)}",
+      'aria-label={"Subir " + contactName(contact) + " na etapa"}',
+      'aria-label={"Descer " + contactName(contact) + " na etapa"}',
+      "motion-reduce:animate-none",
+      'data-testid="crm-order-saving"',
       "void confirmFinalization()", "void removeFromPipeline(contact)",
     ],
     fields: [

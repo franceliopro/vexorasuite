@@ -514,4 +514,54 @@ describe('AI generated preferred-name and triage flow',()=>{
   expect(x.tx.message.create.mock.calls.some(([call]:any[])=>call.data.content.includes(name+', qual área?'))).toBe(true);
   expect(await reply(route)).toMatchObject({departmentId:key,handlingMode:'HUMAN',botState:{variables:{novo_nome:name}}});
  });
+
+ it('sends only the explicitly chosen tenant catalog item, keeping image and description private', async () => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  const imageUrl = 'https://intranet.example.com/catalog/crm.png';
+  const description = 'Diagnóstico e plano de ação';
+  x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue({
+   id: '12345678-1234-4234-8234-123456789abc', kind: 'SERVICE', name: 'Consultoria de CRM',
+   description, sku: 'SRV-CRM', priceCents: 15000, currency: 'BRL', unit: 'hora', category: 'Consultoria', imageUrl,
+  }) };
+  const itemId = '12345678-1234-4234-8234-123456789abc';
+  x.flow.steps.splice(1, 0,
+   { id: 'catalog', kind: 'catalog.item', title: 'Item', message: '', options: ['Continuar'], transitions: { Continuar: 'reply' }, config: JSON.stringify({ itemId }) },
+   { id: 'reply', kind: 'text', title: 'Resposta', message: 'Posso continuar?', options: [] },
+  );
+  x.flow.steps[0].transitions.Suporte = 'catalog';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.tx.catalogItem.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+   where: { id: itemId, tenantId: 'tenant', active: true },
+   select: expect.objectContaining({ imageUrl: true, description: true }),
+  }));
+  const created = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data);
+  const sent = created.map((data: any) => data.content as string);
+  expect(created.some((data: any) => data.metadata?.catalogItems)).toBe(true);
+  const internal = created.find((data: any) => data.metadata?.catalogItems)?.metadata.catalogItems;
+  expect(internal).toEqual([{ id: itemId, imageUrl, description }]);
+  expect(x.tx.auditLog.create.mock.calls[0][0].data.details.catalogItems).toEqual([{ id: itemId, imageUrl, description }]);
+  expect(sent).toContain('Item do catálogo: Consultoria de CRM\nTipo: Serviço\nSKU: SRV-CRM\nCategoria: Consultoria\nPreço: 150.00 BRL / hora');
+  expect(sent.some((content: string) => content.includes('150,00') && !content.includes('150.00'))).toBe(false);
+  expect(sent.join('\n')).not.toContain(imageUrl);
+  expect(sent.join('\n')).not.toContain(description);
+  for (const call of x.waha.sendText.mock.calls) {
+   expect(call[2]).not.toContain(imageUrl);
+   expect(call[2]).not.toContain(description);
+  }
+ });
+
+ it('fails clearly when the chosen catalog item is no longer available', async () => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue(null) };
+  x.flow.steps.splice(1, 0,
+   { id: 'catalog', kind: 'catalog.item', title: 'Item', message: '', options: ['Continuar'], transitions: { Continuar: 'reply' }, config: JSON.stringify({ itemId: '12345678-1234-4234-8234-123456789abc' }) },
+   { id: 'reply', kind: 'text', title: 'Resposta', message: 'Posso continuar?', options: [] },
+  );
+  x.flow.steps[0].transitions.Suporte = 'catalog';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  const sent = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data.content as string);
+  expect(sent).toContain('Item do catálogo indisponível. Escolha outro item ou fale com um atendente.');
+ });
 });

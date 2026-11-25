@@ -1,0 +1,23 @@
+name = "alto-araguaia-anuncios"
+main = "index.mjs"
+compatibility_date = "2026-11-24"
+
+# Rota pública planejada: altoaraguaiaimoveis.com.br/api/forms/anunciar
+# Isto é configuração versionada, NÃO um deploy executado.
+[vars]
+ALLOWED_ORIGIN = "https://altoaraguaiaimoveis.com.br"
+# Padrão "directus" preserva o destino atual; "payload" é opt-in e reversível.
+SUBMISSIONS_PROVIDER = "directus"
+
+# Segredos a configurar no cofre do Cloudflare (wrangler secret put / dashboard):
+#   Legado (padrão):
+#     DIRECTUS_URL   - URL base HTTPS da instância do Directus
+#     DIRECTUS_TOKEN - token da service account API-only (0 assentos)
+#   Payload (quando SUBMISSIONS_PROVIDER = "payload"):
+#     PAYLOAD_URL       - URL base HTTPS da instância única do Payload
+#     PAYLOAD_TOKEN     - API key da service account (sem limite de usuários)
+#     PAYLOAD_TENANT_ID - tenant do site, gravado na submissão; não é limite de usuário
+#
+# Binding necessário (wrangler kv namespace create RATE_LIMIT_KV):
+#   RATE_LIMIT_KV - usado para limitar 5 envios por IP por hora
+# Nenhum ID de namespace, token ou URL real é versionado aqui.

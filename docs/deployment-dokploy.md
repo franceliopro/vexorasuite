@@ -6,6 +6,39 @@ Este stack publica a Véxora Suite em um ambiente separado. Ele não deve compar
 
 O arquivo de implantação é o `docker-compose.yml` da raiz. O deploy deve usar Compose; os Dockerfiles individuais são usados pelo próprio Compose e pelo CI.
 
+### Payload CMS do Alto Araguaia Imóveis (decisão de 24/11/2026)
+
+O CMS PHP/MySQL com editor visual estilo Elementor foi **descartado**: era um
+protótipo incompleto, publicava em `/p/<slug>` e nunca substituiu o site em `/`.
+Não há ponte a implementar.
+
+O módulo dinâmico do Alto Araguaia Imóveis usa **Payload CMS self-hosted** em
+projeto Dokploy separado do stack Véxora, com banco e volumes próprios. Ele é a
+fonte da verdade de imóveis, usuários, permissões, submissões e mídia. Um hook
+grava o snapshot como arquivos `src/content/properties/*.md` no GitHub; o Astro
+lê essa coleção no build e o Cloudflare Pages publica o HTML estático. Nenhuma
+credencial de produção deve ser copiada para outro projeto.
+
+A instância é única, com papéis e **usuários ilimitados**. Não existe licença
+por assento. A antiga regra de isolamento rígido por cliente foi retirada a
+pedido do proprietário. Detalhes em `docs/sites-stack-hibrido.md` e
+`docs/payload-substitui-directus.md`.
+
+Nenhuma instância Payload foi configurada até 24/11/2026; este é o desenho
+pretendido, não uma implantação confirmada.
+
+### Documenso (decisão de 25/11/2026)
+
+A assinatura eletrônica usa **Documenso Community (AGPL-3.0)** em projeto Dokploy
+separado, com banco, volume, domínio e segredos próprios. A imagem oficial é usada
+sem fork e sem modificação. O Compose fica em `infra/documenso/compose.yml` e as
+instruções em `infra/documenso/DOKPLOY.md`.
+
+Nenhuma credencial, token ou certificado entra no Git ou no chat: o token de API
+é criado dentro do Documenso quando a integração existir e guardado somente no
+cofre do Dokploy. Um envelope criado com `200` está pendente, não assinado; a
+existência deste Compose não prova deploy nem funcionamento da integração.
+
 ## Serviços do perfil padrão
 
 - `web`: Next.js na porta interna 3000.

@@ -13,7 +13,7 @@ Plataforma SaaS modular e multiempresa, desenvolvida em repositório e ambiente 
 ## Onde vamos chegar
 
 1. HUB de Sites e template base Next.js/MDX com menu gerado de `content/navigation.ts`.
-2. CMS headless self-hosted (Directus + Postgres) como piloto do Alto Araguaia Imóveis.
+2. CMS headless self-hosted (Payload CMS + Postgres), instância única com papéis e usuários ilimitados, como piloto do Alto Araguaia Imóveis.
 3. Sistemas verticais nativos: Escola de Música, Escola com provas/notas, Estética e Delivery, reaproveitando CRM, agenda, Financeiro/Asaas, WhatsApp/e-mail e auditoria.
 4. SOS Alto Araguaia: fora do ciclo inicial, sob avaliação de storage, banda e tráfego.
 
@@ -25,6 +25,7 @@ Criador de sites com IA e seu editor visual legado, Home de apresentação com p
 
 - Estado atual e prioridades: `docs/implementation-status.md` (fonte canônica de status).
 - Arquitetura do HUB de Sites e dos sistemas verticais: `docs/plano-transicao-presenca-criativos.md` (§12 e §13).
+- Substituição do Directus pelo Payload CMS: `docs/payload-substitui-directus.md`.
 - Regras de contexto e permissões: `docs/platform-and-client-contexts.md`.
 - Arquitetura do monorepo: `docs/architecture.md`.
 - Registro histórico de entregas: `docs/implementation-register.md`.

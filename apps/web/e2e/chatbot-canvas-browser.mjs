@@ -31,8 +31,9 @@ try{
  await page.route("**/api/backend/**",async route=>{
   const path=new URL(route.request().url()).pathname.slice("/api/backend".length);
   if(path==="/events")return route.fulfill({contentType:"text/event-stream",body:": ready\n\n"});
-  if(path==="/assistant/engine/create-flow"){
+  if(path==="/assistant/engine/flow-command"){
    const payload=route.request().postDataJSON();
+   assert.match(payload.command,/Renomeie o primeiro bloco/);
    assert.equal(payload.proposalOnly,true);
    assert.equal(payload.baseDraft.name,"Oferta de teste");
    return route.fulfill({json:{draft:{...payload.baseDraft,steps:payload.baseDraft.steps.map((step,index)=>index?step:{...step,title:"Bloco ajustado pela IA"})},warnings:[]}});
@@ -74,6 +75,10 @@ try{
     departments:[{id:"department-qa",key:"qa-new",name:"Setor recém-criado",members:["agent-qa"]}],
     agents:[{id:"agent-qa",name:"Atendente recém-criado"}],
    }:{departments:[],agents:[]},
+   "/catalog":{items:[
+    {id:"11111111-1111-4aaa-8aaa-111111111111",name:"Consultoria digital",kind:"SERVICE",priceCents:19900,currency:"BRL",sku:"CONS-01",category:"Serviços"},
+    {id:"22222222-2222-4bbb-8bbb-222222222222",name:"Pacote de automação",kind:"DIGITAL",priceCents:49900,currency:"BRL",sku:"AUTO-01",category:"Produtos digitais"},
+   ]},
    "/crm/pipelines":[],
    "/crm/custom-fields":[{id:"veiculo.placa-1",label:"Placa do veículo",enabled:true}],
    "/assistant/config":{agents:[]},
@@ -134,19 +139,19 @@ try{
  const history=page.getByText("Execuções reais",{exact:true});
  await history.click();
  await page.getByRole("button",{name:"Ver no canvas",exact:true}).click();
- await expect(board.locator("svg g path")).toHaveCount(2);
- await expect(board.locator("svg g path.stroke-accent")).toHaveCount(1);
+ await expect(board.locator("svg g path.vex-wire-line")).toHaveCount(2);
+ await expect(board.locator("svg g path.vex-wire-line.stroke-accent")).toHaveCount(1);
  await expect(board.locator("[data-flow-trace-node=\"0\"]").filter({hasText:"Bloco à esquerda"})).toHaveCount(1);
  await expect(board.locator("[data-flow-trace-node=\"1\"]").filter({hasText:"Bloco à direita"})).toHaveCount(1);
  await expect(board.locator("[data-flow-trace-edge=\"0\"]")).toHaveCount(1);
  await expect(board.getByText("Aguardando resposta",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Acompanhar conversa",exact:true}).click();
  conversationContinued=true;
- await expect(board.locator("svg g path").last()).toHaveClass("stroke-accent",{timeout:12000});
+ await expect(board.locator("svg g path.vex-wire-line").last()).toHaveClass(/stroke-accent/,{timeout:12000});
  await expect(board.getByText("Aguardando resposta",{exact:true})).toHaveCount(0);
  await expect(page.getByRole("button",{name:"Parar de acompanhar",exact:true})).toHaveCount(1);
  await history.click();
- await expect(board.locator("svg g path.stroke-accent")).toHaveCount(0);
+ await expect(board.locator("svg g path.vex-wire-line.stroke-accent")).toHaveCount(0);
 
  await canvas.focus();
  for(const key of ["ArrowLeft","ArrowUp"])await page.keyboard.press(key);
@@ -274,10 +279,26 @@ try{
  await newMessage.evaluate(input=>input.setSelectionRange(10,10));
  await board.getByRole("button",{name:"Inserir link de pagamento",exact:true}).click();
  await expect(newMessage).toHaveValue("Pague aqui {{pagamento_link}} e confirme.");
- const connectedPaths=await board.locator("svg g path").count();
+ const dragPlus=board.getByRole("button",{name:"Adicionar próximo passo após Não",exact:true});
+ await expect(dragPlus).toBeVisible();
+ const plusBox=await dragPlus.boundingBox();
+ const targetBox=await newMessage.boundingBox();
+ assert(plusBox);
+ assert(targetBox);
+ const beforeDragWires=await board.locator("svg g path.vex-wire-line").count();
+ await page.mouse.move(plusBox.x+plusBox.width/2,plusBox.y+plusBox.height/2);
+ await page.mouse.down();
+ await page.mouse.move(plusBox.x+plusBox.width/2+48,plusBox.y+plusBox.height/2,{steps:3});
+ await expect(board.locator("svg path[data-flow-preview-wire]")).toHaveCount(1);
+ await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+targetBox.height/2,{steps:8});
+ await page.mouse.up();
+ await expect(board.locator("svg path[data-flow-preview-wire]")).toHaveCount(0);
+ await expect(board.locator("svg g path.vex-wire-line")).toHaveCount(beforeDragWires+1);
+ await expect(dragPlus).toHaveCount(0);
+ const connectedPaths=await board.locator("svg g path.vex-wire-line").count();
  await condition.locator("[data-flow-node-head]").click({button:"right"});
  await page.getByRole("dialog",{name:"Ações do bloco"}).getByRole("button",{name:"Inserir mensagem após Sim",exact:true}).click();
- await expect(board.locator("svg g path")).toHaveCount(connectedPaths+1);
+ await expect(board.locator("svg g path.vex-wire-line")).toHaveCount(connectedPaths+1);
  await expect(board.getByRole("textbox",{name:"Mensagem de Enviar mensagem",exact:true})).toHaveValue("");
  const picker=page.getByRole("combobox",{name:"Fluxo aberto"});
  await picker.selectOption({label:"Oferta de teste"});
@@ -310,12 +331,13 @@ try{
  await expect(simulatedConversation.getByText("Fim",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Criar com IA",exact:true}).click();
  const assistant=page.getByRole("dialog",{name:"Assistente de fluxo"});
- await expect(assistant.getByRole("combobox",{name:"O que fazer"})).toHaveValue("adjust");
+ await expect(assistant.getByRole("combobox",{name:"O que fazer"})).toHaveCount(0);
  await assistant.getByRole("textbox",{name:"O que você quer automatizar?"}).fill("Renomeie o primeiro bloco.");
  await assistant.getByRole("button",{name:"Gerar proposta",exact:true}).click();
  await expect(assistant.getByText(/Bloco ajustado pela IA/)).toBeVisible();
- await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco à esquerda"})).toBeVisible();
+ await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco ajustado pela IA"})).toBeVisible();
  await assistant.getByRole("button",{name:"Aplicar ao canvas",exact:true}).click();
+ await expect(assistant).toHaveCount(0);
  await expect(board.locator("[data-flow-node-head]").filter({hasText:"Bloco ajustado pela IA"})).toBeVisible();
  page.once("dialog",dialog=>dialog.accept());
  await page.getByRole("button",{name:"Novo fluxo",exact:true}).click();
@@ -327,6 +349,24 @@ try{
  await expect(option).toHaveValue("Usar nome {{nome}}");
  await board.getByRole("button",{name:"Aplicar",exact:true}).click();
  await expect(board.getByRole("button",{name:"Usar nome {{nome}}",exact:true})).toBeVisible();
+ await libraryToggle.click();
+ await expect(libraryToggle).toHaveAttribute("aria-expanded","true");
+ const catalogBlocks=page.getByText("Mais blocos",{exact:true});
+ const catalogBlocksOpen=await catalogBlocks.evaluate(summary=>summary.parentElement.open);
+ if(!catalogBlocksOpen)await catalogBlocks.click();
+ await page.locator("summary").filter({hasText:/^Catálogo$/}).click();
+ const catalogItem=page.getByRole("button",{name:"Consultoria digital",exact:true});
+ await expect(catalogItem).toBeVisible();
+ const nodesBeforeCatalog=await board.locator("[data-flow-node]").count();
+ await catalogItem.click();
+ await expect(board.locator("[data-flow-node]")).toHaveCount(nodesBeforeCatalog+1);
+ await expect(board.locator("[data-flow-node]").filter({hasText:"Consultoria digital"})).toHaveCount(1);
+ const catalogSelect=page.getByTestId("chatbot-catalog-item");
+ await expect(catalogSelect).toBeVisible();
+ await expect(catalogSelect).toHaveValue("11111111-1111-4aaa-8aaa-111111111111");
+ await catalogSelect.selectOption("22222222-2222-4bbb-8bbb-222222222222");
+ await expect(board.locator("[data-flow-node]").filter({hasText:"Pacote de automação"})).toHaveCount(1);
+ await expect(page.getByText(/Nome, tipo, SKU, preço e descrição vêm do cadastro/)).toBeVisible();
  console.log("Chatbot: canvas, inline editing and saved-flow switching OK");
 }finally{
  await browser?.close();

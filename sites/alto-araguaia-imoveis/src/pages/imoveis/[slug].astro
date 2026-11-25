@@ -1,0 +1,25 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import PropertyDetail from "../../components/PropertyDetail.astro";
+
+/**
+ * Compatibilidade com as URLs antigas. O conteúdo é o mesmo de /imovel/<slug>/,
+ * mas a canonical aponta para a rota definitiva e a página é noindex.
+ */
+export const getStaticPaths = (async () => {
+  const properties = await getCollection("properties");
+  return properties.map((property) => ({
+    params: { slug: property.id },
+    props: { property },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  property: CollectionEntry<"properties">;
+}
+
+const { property } = Astro.props;
+---
+
+<PropertyDetail property={property} legacy={true} />

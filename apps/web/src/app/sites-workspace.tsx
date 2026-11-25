@@ -10,6 +10,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ClipboardList, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { PresenceWorkspace } from "./presence-workspace";
+import { SiteSubmissionsPanel } from "./site-submissions-panel";
 
 const workspaceTw = "grid gap-token";
 const headingTw = "flex flex-wrap items-start justify-between gap-4";
@@ -349,7 +351,7 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
         <div>
           <h1>Sites</h1>
           <p className={subtitleTw}>
-            Acompanhe pedidos, previews, aprovações e publicações confirmadas. A Véxora não gera HTML nem publica páginas por conta própria.
+            Acompanhe pedidos, previews, aprovações e publicações confirmadas; registre sites externos e produza artes. A Véxora não gera HTML de sites nem publica páginas por conta própria — a publicação de artes é um fluxo separado e verificado.
           </p>
         </div>
         <button type="button" className={secondaryTw} onClick={reload} disabled={loading}>
@@ -430,6 +432,10 @@ export function SitesWorkspace({ canManage }: { canManage: boolean }) {
       {!canManage ? (
         <p className="text-body text-ink-secondary">Somente responsáveis pela empresa podem registrar ou decidir pedidos de sites.</p>
       ) : null}
+
+      <SiteSubmissionsPanel canManage={canManage} />
+
+      <PresenceWorkspace canManage={canManage} />
     </section>
   );
 }

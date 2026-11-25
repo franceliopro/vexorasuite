@@ -1,0 +1,24 @@
+---
+import { site } from "../data/site.config";
+
+interface Props {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+}
+
+const {
+  eyebrow = site.hero.eyebrow,
+  title = site.hero.title,
+  description = site.hero.description,
+} = Astro.props;
+---
+
+<section class="hero" id="hero" aria-labelledby="hero-title">
+  <div class="container hero-inner">
+    {eyebrow && <span class="hero-eyebrow">{eyebrow}</span>}
+    <h1 id="hero-title">{title}</h1>
+    <p>{description}</p>
+    <slot />
+  </div>
+</section>

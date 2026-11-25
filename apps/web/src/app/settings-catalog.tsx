@@ -11,6 +11,7 @@ import {
   KeyRound,
   MessageSquareText,
   Network,
+  Package,
   Palette,
   PanelTop,
   Radio,
@@ -30,13 +31,14 @@ type CatalogProps = {
   onNavigate: (module: string) => void;
   onAdvanced: () => void;
   onCompanies: () => void;
+  onCatalog: () => void;
 };
 
 type CatalogCard = {
   title: string;
   description: string;
   icon: typeof Settings2;
-  action: "module" | "advanced" | "companies";
+  action: "module" | "advanced" | "companies" | "catalog";
   target?: string;
   tone?: string;
   metricKey?: string;
@@ -68,6 +70,7 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
   {
     title: "Atendimento e automação",
     cards: [
+      { title: "Catálogo", description: "Produtos e serviços usados no atendimento, orçamentos, documentos, chatbot e IAs.", icon: Package, action: "catalog", tone: "orange" },
       { title: "Saudações e mensagens", description: "Mensagens de entrada, horários e respostas da operação.", icon: MessageSquareText, action: "advanced", tone: "cyan" },
       { title: "Respostas rápidas", description: "Textos prontos para responder com agilidade.", icon: Sparkles, action: "module", target: "Atendimento", tone: "violet" },
       { title: "Distribuição de atendimento", description: "Fila, rodízio, carga e prioridade para novas conversas.", icon: UsersRound, action: "advanced", tone: "indigo" },
@@ -80,7 +83,7 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
       { title: "Segurança e acesso", description: "Preferências administrativas e controle de acesso.", icon: ShieldCheck, action: "advanced", tone: "slate" },
       { title: "Configurações técnicas", description: "Ajustes avançados para integrações e ambiente.", icon: Settings2, action: "advanced", tone: "slate" },
       { title: "Fluxos de trabalho", description: "Modelos que automatizam tarefas, mensagens e follow-ups.", icon: Workflow, action: "module", target: "Workflows", tone: "purple", metricKey: "workflows" },
-      { title: "Marca e publicação", description: "Biblioteca, Drive e conteúdo para o Marketing.", icon: Image, action: "module", target: "Marketing", tone: "pink" },
+      { title: "Biblioteca de referências", description: "Imagens de referência e arquivos do Google Drive usados pela automação.", icon: Image, action: "module", target: "Biblioteca de referências", tone: "pink" },
       { title: "Chaves e integrações", description: "Credenciais e tokens das conexões autorizadas.", icon: KeyRound, action: "advanced", tone: "slate" },
     ],
   },
@@ -114,7 +117,7 @@ const clearTitleTw = "font-display text-catalog-clear-title font-extrabold";
 const clearSmallTw = "text-catalog-metric text-slate-600";
 
 async function clearSystemCache(){try{const keys=Object.keys(localStorage).filter(k=>/^(vx|vexora)/i.test(k));for(const k of keys)localStorage.removeItem(k);if(typeof caches!=="undefined"){const names=await caches.keys();await Promise.all(names.map(n=>caches.delete(n)));}if(typeof navigator!=="undefined"&&navigator.serviceWorker){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()));}}catch{/* prosseguir */}finally{window.location.reload();}}
-export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: CatalogProps) {
+export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies, onCatalog }: CatalogProps) {
   const [query, setQuery] = useState("");
   const [metrics, setMetrics] = useState<Record<string, number | string>>({});
   useEffect(() => {
@@ -160,7 +163,8 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
   const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
   const filteredSections = sections.map((section) => ({ ...section, cards: section.cards.filter((card) => !normalizedQuery || `${section.title} ${card.title} ${card.description}`.toLocaleLowerCase("pt-BR").includes(normalizedQuery)) })).filter((section) => section.cards.length);
   const open = (card: CatalogCard) => {
-    if (card.action === "companies") onCompanies();
+    if (card.action === "catalog") onCatalog();
+    else if (card.action === "companies") onCompanies();
     else if (card.action === "advanced") onAdvanced();
     else if (card.target) onNavigate(card.target);
   };
@@ -196,7 +200,7 @@ export function SettingsCatalog({ onNavigate, onAdvanced, onCompanies }: Catalog
             })}
           </div>
         </section>
-      )) : <div className={emptyTw}><Search size={20} aria-hidden="true" /><strong className={emptyTitleTw}>Nenhuma configuração encontrada</strong><span className={emptyHintTw}>Tente buscar por conexão, usuário, Asaas, Waha, saudação ou automação.</span></div>}
+      )) : <div className={emptyTw}><Search size={20} aria-hidden="true" /><strong className={emptyTitleTw}>Nenhuma configuração encontrada</strong><span className={emptyHintTw}>Tente buscar por catálogo, conexão, usuário, Asaas, Waha, saudação ou automação.</span></div>}
       <p className={noteTw}><Settings2 size={15} /> Os ajustes avançados continuam disponíveis pelos cartões correspondentes.</p>
       <button type="button" className={clearTw} onClick={() => void clearSystemCache()}><Trash2 size={17} aria-hidden="true" className={clearIconTw} /><span className={clearCopyTw}><strong className={clearTitleTw}>Limpar cache</strong><small className={clearSmallTw}>Apaga o cache local (Service Worker + Cache Storage + localStorage) e recarrega a página.</small></span></button>
     </section>

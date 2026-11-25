@@ -22,11 +22,18 @@ import { economicalProviders } from "./economical-providers";
 import { dailyAiLimit, reserveAiExecution } from "./ai-budget";
 import { searxngSearch } from "./local-services";
 import { webDesignerAgent, WEB_DESIGNER_AGENT_ID } from "./web-designer-agent";
+import { flowArchitectAgent, FLOW_ARCHITECT_AGENT_ID } from "./flow-architect-agent";
+import { ASSISTANT_SPECIALISTS, isBuiltInSpecialist } from "./assistant-specialists";
+import { applyFlowPatch, chatbotFlowDirectSkill, deterministicFlowPlan, flowOutline, parseFlowPatch } from "./chatbot-flow-direct";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { resolveEntitlements } from "../auth/entitlements";
 import { monthWindowSaoPaulo } from "../common/month-window";
+import { resolveAssistantDemandContext } from "./assistant-demand-context";
 
 const object=(value:unknown):Record<string,any>=>value&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,any>:{};
+const flowRepairInstruction=(mode:'create'|'adjust')=>mode==='create'
+  ? '\nCorrija o roteiro completo como um único JSON: {"name":"...","welcome":"...","steps":[...]}. Sem Markdown ou texto fora do JSON. Use preferred-name com options:["Continuar"] e uma única transição {"Continuar":"id_da_proxima_etapa"}. Use human.handoff sem options e sem transitions, com department exato da lista. Toda transição aponta para o ID exato de outro bloco; conecte todas as opções. A primeira etapa inicia o fluxo.'
+  : '\nCorrija o JSON: use somente operações permitidas e destinos existentes no mapa. Nunca devolva o fluxo completo.';
 type ModelSelection = { provider: string; model: string; tier: string; endpoint?: string };
 type VoiceSelection = { provider: string; model: string; endpoint?: string; voice?: string };
 type AgentConfig = { id: string; name: string; role: string; tier: string; enabled: boolean; personalAssistant?: boolean; instructions: string; profile?: { tone: string; channels: string[] }; behavior?: { rules: string; prohibitions: string }; allowedActions?: string[]; customActions?: string[]; bindings?: { mode: string; specialists: string[]; flows: string[]; pipelines: string[]; externalSystems: string[]; modules: string[]; inboxes: string[] }; knowledgeUrls?: string[]; llm?: ModelSelection; stt?: VoiceSelection; tts?: VoiceSelection };
@@ -39,9 +46,14 @@ function parseConfig(value: unknown): Config {
   const item = (value as Record<string, unknown>).assistant;
   if (!item || typeof item !== "object" || Array.isArray(item)) return initial;
   const cfg = item as Partial<Config>;
-  const withDefaultDesigner = (agents: unknown): AgentConfig[] => {
-    const list = Array.isArray(agents) ? agents : [];
-    return list.some((agent: any) => agent && agent.id === WEB_DESIGNER_AGENT_ID) ? list as AgentConfig[] : [...list as AgentConfig[], webDesignerAgent() as AgentConfig];
+  const withDefaultAgents = (agents: unknown): AgentConfig[] => {
+    const list: AgentConfig[] = Array.isArray(agents) ? agents as AgentConfig[] : [];
+    const ids = new Set(list.map(agent => agent?.id));
+    const result = [...list];
+    if (!ids.has(WEB_DESIGNER_AGENT_ID)) result.push(webDesignerAgent() as AgentConfig);
+    if (!ids.has(FLOW_ARCHITECT_AGENT_ID)) result.push(flowArchitectAgent() as AgentConfig);
+    for (const specialist of ASSISTANT_SPECIALISTS) if (!ids.has(specialist.id)) result.push(specialist as AgentConfig);
+    return result;
   };
   const parsePersonalAssistantRules = (value: unknown): PersonalAssistantRule[] => Array.isArray(value) ? value.flatMap(entry => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
@@ -53,7 +65,7 @@ function parseConfig(value: unknown): Config {
     if (!allowed && !forbidden) return [];
     return [{ phone, allowed, forbidden }];
   }).slice(0, 50) : [];
-  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: withDefaultDesigner(cfg.agents), allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", companyProhibitions: typeof cfg.companyProhibitions === "string" ? cfg.companyProhibitions : "", personalAssistantRules: parsePersonalAssistantRules(cfg.personalAssistantRules), knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
+  return { name: typeof cfg.name === "string" ? cfg.name : initial.name, wakeWord: typeof cfg.wakeWord === "string" ? cfg.wakeWord : initial.wakeWord, enabled: cfg.enabled === true, agents: withDefaultAgents(cfg.agents), allowedPhones: Array.isArray(cfg.allowedPhones) ? cfg.allowedPhones.filter((phone): phone is string => typeof phone === "string") : [], testAccessEnabled: cfg.testAccessEnabled === true, testPhones: Array.isArray(cfg.testPhones) ? cfg.testPhones.filter((phone): phone is string => typeof phone === "string") : [], companyRules: typeof cfg.companyRules === "string" ? cfg.companyRules : "", companyKnowledge: typeof cfg.companyKnowledge === "string" ? cfg.companyKnowledge : "", companyProhibitions: typeof cfg.companyProhibitions === "string" ? cfg.companyProhibitions : "", personalAssistantRules: parsePersonalAssistantRules(cfg.personalAssistantRules), knowledgeDocuments: Array.isArray(cfg.knowledgeDocuments) ? cfg.knowledgeDocuments.filter((doc): doc is KnowledgeDocument => !!doc && typeof doc === "object" && typeof doc.id === "string" && typeof doc.name === "string" && typeof doc.content === "string") : [], dailyAiLimit: cfg.dailyAiLimit ?? 100, fallbackModels: cfg.fallbackModels || [], llm: cfg.llm, stt: cfg.stt, tts: cfg.tts };
 }
 
 @AuditCovered()
@@ -100,28 +112,16 @@ export class AssistantController {
       { id: "assistant.tasks.read", name: "Consultar tarefas", category: "Operações", cost: "zero", implemented: true, permission: "tasks.read" },
       { id: "assistant.calendar.read", name: "Consultar agenda", category: "Agenda", cost: "external", implemented: true, permission: "calendar.read" },
       { id: "assistant.finance.read", name: "Consultar resumo financeiro", category: "Financeiro", cost: "zero", implemented: true, permission: "finance.admin" },
+      { id: "assistant.direct.context", name: "Resposta direta por demanda", category: "Operações", cost: "zero", implemented: true, permission: "automation.execute" },
       { id: "asaas.payment.lookup", name: "Consultar cobrança Asaas", category: "Financeiro", cost: "external", implemented: true, permission: "finance.read" },
-      { id: "asaas.pix.create", name: "Gerar PIX", category: "Financeiro", cost: "external", implemented: false, permission: "finance.write", confirmationRequired: true },
-      { id: "crm.opportunity.create", name: "Criar oportunidade", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
-      { id: "crm.lead.qualify", name: "Qualificar lead", category: "CRM", cost: "zero", implemented: false, permission: "crm.write" },
       { id: "crm.tag.apply", name: "Aplicar tag", category: "CRM", cost: "zero", implemented: true, permission: "contacts.write" },
       { id: "inbox.transfer", name: "Transferir para humano ou equipe", category: "Atendimento", cost: "zero", implemented: true, permission: "inbox.transfer" },
-      { id: "inbox.agent.route", name: "Encaminhar para agente de IA", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.route" },
-      { id: "inbox.participant.invite", name: "Convidar participante", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.invite" },
-      { id: "inbox.stage.move", name: "Mover etapa do atendimento", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.write" },
-      { id: "inbox.resolve", name: "Concluir atendimento", category: "Atendimento", cost: "zero", implemented: false, permission: "inbox.resolve", confirmationRequired: true },
-      { id: "calendar.event.create", name: "Criar agendamento", category: "Agenda", cost: "external", implemented: false, permission: "calendar.write", confirmationRequired: true },
-      { id: "crm.contact.update", name: "Atualizar campo do contato", category: "CRM", cost: "zero", implemented: false, permission: "contacts.write" },
       { id: "crm.pipeline.move", name: "Mover oportunidade no CRM", category: "CRM", cost: "zero", implemented: true, permission: "crm.write" },
       { id: "payment.status", name: "Consultar pagamento Stripe ou InfinitePay", category: "Financeiro", cost: "zero", implemented: true, permission: "finance.read" },
       { id: "calendar.availability", name: "Consultar horário na agenda", category: "Agenda", cost: "zero", implemented: true, permission: "calendar.read" },
       { id: "task.reminder", name: "Criar lembrete para o atendente", category: "Tarefas", cost: "zero", implemented: true, permission: "tasks.write" },
       { id: "crm.deal.finalize", name: "Registrar ganho ou perda", category: "CRM", cost: "zero", implemented: true, permission: "crm.write" },
-      { id: "chatbot.flow.trigger", name: "Acionar fluxo de chatbot", category: "Automação", cost: "zero", implemented: false, permission: "automation.execute" },
-      { id: "tracking.triage", name: "Triagem de rastreamento", category: "Suporte", cost: "zero", implemented: false, permission: "tracking.read" },
-      { id: "catalog.menu.show", name: "Mostrar cardápio", category: "Comercial", cost: "zero", implemented: false, permission: "catalog.read" },
-      { id: "catalog.products.show", name: "Mostrar produtos", category: "Comercial", cost: "zero", implemented: false, permission: "catalog.read" },
-      { id: "external.api.call", name: "Consultar ou acionar API", category: "Integrações", cost: "external", implemented: false, permission: "integrations.execute", confirmationRequired: true },
+      { id: "chatbot.flow.direct", name: "Execução direta de fluxo do chatbot", category: "Automação", cost: "model", implemented: true, permission: "automation.execute" },
       { id: "drive.files.search", name: "Buscar arquivos na pasta de referências", category: "Conhecimento", cost: "external", implemented: true, permission: "drive.read" },
       { id: "voice.stt", name: "Transcrever áudio", category: "Voz", cost: "model", implemented: true, permission: "voice.use" },
       { id: "voice.tts", name: "Responder por voz", category: "Voz", cost: "model", implemented: true, permission: "voice.use" },
@@ -178,7 +178,7 @@ export class AssistantController {
     };
     const generated=await ai.generate(messages,candidates,accepted,generationOptions).catch(error=>{
       if (!invalid || Date.now() >= generationOptions.deadlineAt) throw error;
-      return ai.generate([{...messages[0]!,content:messages[0]!.content+'\nReescreva o roteiro como JSON completo; verifique que cada opção tem uma transição válida e que todos os blocos podem ser alcançados.'},messages[1]!],candidates,accepted,generationOptions);
+      return ai.generate([{...messages[0]!,content:messages[0]!.content+flowRepairInstruction('create')},messages[1]!],candidates,accepted,generationOptions);
     });
     const compiled=compile(generated.text);
     if (!compiled) throw new BadRequestException('A IA devolveu um roteiro que não pode ser executado. O rascunho anterior foi mantido.');
@@ -195,6 +195,80 @@ export class AssistantController {
       await tx.auditLog.create({data:{tenantId:req.user.tenantId,userId:req.user.sub,action:'assistant.flow.created',entityType:'chatbot',details:{name:draft.name,active:false,provider:generated.provider,model:generated.model,agentId:agent?.id??null}}});
     });
     return {answer:'Criei o rascunho “'+draft.name+'” no Chatbot. Revise os blocos, selecione os canais e publique quando estiver pronto. O rascunho anterior foi preservado no histórico.'+(warnings.length?' '+warnings.join(' '):'')+' IA: '+generated.provider+' / '+generated.model+'.',persisted:true,active:false,draft,warnings,usedAi:true,provider:generated.provider,model:generated.model,agent:agent?{id:agent.id,name:agent.name}:null};
+  }
+
+  /** Execução direta: linguagem natural -> operações curtas, aplicadas no backend. */
+  @Post("engine/flow-command")
+  async flowCommand(@Req() req:AuthenticatedRequest,@Body() body:{command?:string;baseDraft?:unknown;agentId?:string;proposalOnly?:boolean}){
+    if(!['OWNER','ADMIN','MANAGER'].includes(req.user.role))throw new ForbiddenException('Permissão insuficiente para executar fluxos.');
+    const ai=this.ai;
+    if(!ai)throw new ServiceUnavailableException('Serviço de IA indisponível.');
+    const command=typeof body?.command==='string'?body.command.trim():'';
+    if(!command||command.length>2000)throw new BadRequestException('Descreva o comando em até 2.000 caracteres.');
+    const hasDraft=body.baseDraft!==undefined;
+    const baseDraft=hasDraft&&validDraft(body.baseDraft)?body.baseDraft:undefined;
+    if(hasDraft&&!baseDraft)throw new BadRequestException('Este rascunho é inválido para um ajuste.');
+    const explicitCreate=/\b(crie|criar|monte|montar)\b/i.test(command)&&/\b(fluxo|roteiro|chatbot)\b/i.test(command)&&!/\b(acrescente|adicione|altere|mude|troque|remova|exclua|conecte)\b/i.test(command);
+    const mode=!hasDraft||explicitCreate?'create':'adjust';
+    const tenant=await this.prisma.tenant.findUniqueOrThrow({where:{id:req.user.tenantId},select:{integrations:true}});
+    const config=parseConfig(tenant.integrations);
+    if(!config.enabled)throw new ForbiddenException('Assistente desabilitada.');
+    const agent=body.agentId?config.agents.find(item=>item?.id===body.agentId):config.agents.find(item=>item?.id===FLOW_ARCHITECT_AGENT_ID);
+    if(body.agentId&&!agent)throw new BadRequestException('Agente não encontrado.');
+    const providers=economicalProviders(config,agent?.llm||config.llm,tenant.integrations,req.user.tenantId);
+    if(!providers.length)throw new ServiceUnavailableException('Selecione um modelo instalado e verifique o serviço local.');
+    await this.prisma.$transaction(tx=>reserveAiExecution(tx,req.user.tenantId,dailyAiLimit(config.dailyAiLimit),'assistant_flow_command',req.user.sub));
+    const departments=await this.prisma.department.findMany({where:{tenantId:req.user.tenantId,isActive:true},select:{name:true,key:true},orderBy:{name:'asc'},take:100});
+    const configuredFields=object(tenant.integrations).customFields;
+    const customVariables=Array.isArray(configuredFields)?configuredFields.flatMap(raw=>{
+      const field=object(raw);
+      if(field.enabled===false||typeof field.id!=='string'||typeof field.label!=='string')return [];
+      return /^[\w.-]{1,80}$/.test(field.id)?[{key:field.id,label:field.label.slice(0,120)}]:[];
+    }).slice(0,100):[];
+    const system=chatbotFlowDirectSkill(mode,departments,customVariables);
+    const messages:any[]=mode==='adjust'
+      ? [{role:'system' as const,content:system},{role:'user' as const,content:JSON.stringify({comando:command,mapa:flowOutline(baseDraft)})}]
+      : [{role:'system' as const,content:system},{role:'user' as const,content:command}];
+    const candidates=providers.map(provider=>({
+      ...provider,
+      maxTokens:mode==='adjust'?1200:4000,
+      jsonOutput:true,
+      timeoutMs:mode==='adjust'?Math.min(provider.timeoutMs??60_000,60_000):Math.min(Math.max(provider.timeoutMs??60_000,90_000),180_000),
+    }));
+    const generationOptions={deadlineAt:Date.now()+(mode==='adjust'?120_000:300_000)};
+    let compilation:{draft:any;warnings:string[];operations?:unknown[]}|undefined;
+    const accept=(raw:string)=>{
+      if(mode==='create'){
+        const compiled=compileChatbotFlow(raw,departments);
+        if(!compiled)return false;
+        compilation=compiled;
+        return true;
+      }
+      const patch=parseFlowPatch(raw);
+      if(!patch)return false;
+      const applied=applyFlowPatch(baseDraft!,patch.operations);
+      if(!applied)return false;
+      const compiled=compileChatbotFlow(JSON.stringify(applied),departments,baseDraft!);
+      if(!compiled)return false;
+      compilation={...compiled,operations:patch.operations};
+      return true;
+    };
+    const deterministic=mode==='create'?deterministicFlowPlan(command,departments):undefined;
+    const generated=await ai.generate(messages,candidates,accept,generationOptions).catch(async(error:unknown)=>{
+      if(deterministic){
+        const compiled=compileChatbotFlow(JSON.stringify(deterministic),departments);
+        if(compiled){
+          compilation=compiled;
+          return {text:'',provider:'deterministic',model:'regras-locais',usage:{promptTokens:0,completionTokens:0,totalTokens:0}} as any;
+        }
+      }
+      if(Date.now()>=generationOptions.deadlineAt)throw error;
+      const repair=[{...messages[0]!,content:system+flowRepairInstruction(mode)},messages[1]!];
+      return ai.generate(repair,candidates,accept,generationOptions);
+    });
+    if(!compilation)throw new BadRequestException('O comando não resultou em um fluxo executável. O rascunho anterior foi mantido.');
+    const {draft,warnings,operations}=compilation;
+    return {draft,warnings,persisted:false,active:false,usedAi:generated.provider!=='deterministic',provider:generated.provider,model:generated.model,mode,operations:operations??[]};
   }
 
   @Post("engine/propose-workflow")
@@ -294,9 +368,11 @@ export class AssistantController {
     const longText = (v: unknown) => { if (v === undefined) return ""; if (typeof v !== "string" || v.length > 6000) throw new BadRequestException("Texto inválido"); return v; };
     const agents = input.agents.map(a => {
       if (!a || typeof a.id !== "string" || !a.id.trim() || a.id.length > 80 || typeof a.name !== "string" || !a.name.trim() || a.name.length > 80 || typeof a.role !== "string" || a.role.length > 120 || !["Econômico", "Equilíbrio", "Inteligente"].includes(a.tier) || typeof a.enabled !== "boolean" || typeof a.instructions !== "string" || a.instructions.length > 6000) throw new BadRequestException("Agente inválido");
-      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, personalAssistant: a.id !== WEB_DESIGNER_AGENT_ID && (a.personalAssistant === true || a.id === "1"), instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules), inboxes: a.id === WEB_DESIGNER_AGENT_ID ? [] : strings(a.bindings?.inboxes, 100) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
+      return { id: a.id, name: a.name.trim(), role: a.role, tier: a.tier, enabled: a.enabled, personalAssistant: !isBuiltInSpecialist(a.id) && a.id !== WEB_DESIGNER_AGENT_ID && a.id !== FLOW_ARCHITECT_AGENT_ID && (a.personalAssistant === true || a.id === "1"), instructions: a.instructions, profile: { tone: longText(a.profile?.tone).slice(0, 100), channels: strings(a.profile?.channels, 20) }, behavior: { rules: longText(a.behavior?.rules), prohibitions: longText(a.behavior?.prohibitions) }, allowedActions: strings(a.allowedActions, 100), customActions: strings(a.customActions, 60), bindings: { mode: a.bindings?.mode === "specialist" ? "specialist" : "principal", specialists: strings(a.bindings?.specialists), flows: strings(a.bindings?.flows), pipelines: strings(a.bindings?.pipelines), externalSystems: strings(a.bindings?.externalSystems), modules: strings(a.bindings?.modules), inboxes: a.id === WEB_DESIGNER_AGENT_ID ? [] : strings(a.bindings?.inboxes, 100) }, knowledgeUrls: strings(a.knowledgeUrls, 100).filter(url => { try { return new URL(url).protocol === "https:"; } catch { return false; } }), llm: selection(a.llm) as ModelSelection | undefined, stt: selection(a.stt, true), tts: selection(a.tts, true) };
     });
     if (!agents.some(agent => agent.id === WEB_DESIGNER_AGENT_ID)) agents.push(webDesignerAgent() as unknown as (typeof agents)[number]);
+    if (!agents.some(agent => agent.id === FLOW_ARCHITECT_AGENT_ID)) agents.push(flowArchitectAgent() as unknown as (typeof agents)[number]);
+    for (const specialist of ASSISTANT_SPECIALISTS) if (!agents.some(agent => agent.id === specialist.id)) agents.push(specialist as unknown as (typeof agents)[number]);
     if (new Set(agents.map(agent=>agent.id)).size !== agents.length) throw new BadRequestException("IDs de agentes duplicados");
     if (agents.filter(agent => agent.personalAssistant).length > 1) throw new BadRequestException("Selecione somente um agente como Assistente Pessoal");
     if (input.fallbackModels !== undefined && (!Array.isArray(input.fallbackModels) || input.fallbackModels.length > 2)) throw new BadRequestException("Use no máximo dois modelos de contingência");
@@ -479,7 +555,7 @@ export class AssistantController {
       return { source: "google_calendar", usedAi: false, answer: `Agenda dos próximos 7 dias: ${upcoming.length} eventos encontrados em ${calendarsChecked} calendários acessíveis${details ? ". Próximos: " + details : "."} Consulta limitada às primeiras 3 contas e 5 agendas por conta.` };
     }
     if (/financeir|faturamento|cobranças|cobrancas|receita|pagamentos/i.test(question)) {
-      if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+      if (!["OWNER", "ADMIN"].includes(req.user.role) || !req.user.allowedModules?.includes("FINANCE")) throw new ForbiddenException("Acesso financeiro restrito à administração com módulo Financeiro.");
       const from = new Date();
       from.setUTCDate(1); from.setUTCHours(0, 0, 0, 0);
       const rows = await this.prisma.payment.findMany({ where: { tenantId: req.user.tenantId, provider: "ASAAS", createdAt: { gte: from } }, select: { amount: true, status: true, environment: true }, take: 10001 });
@@ -492,6 +568,8 @@ export class AssistantController {
       const env = [...new Set(payments.map(p => p.environment))].join(", ") || "não informado";
       return { source: "local_payments", usedAi: false, answer: `Resumo financeiro do mês atual, somente pagamentos Asaas registrados na Véxora: ${payments.length} registros, total ${money(total)}, recebidos ${money(received)}, demais situações ${money(total - received)}. Ambientes: ${env}. Não representa a carteira completa do Asaas nem inadimplência conciliada.${limited ? " Resultado parcial: limite de 10 mil registros." : ""}` };
     }
+    const contextual = await resolveAssistantDemandContext(this.prisma, req, question);
+    if (contextual) return contextual;
     return { source: "rules", usedAi: false, answer: "Ainda não tenho uma automação segura para essa solicitação. Nenhuma IA foi acionada." };
   }
 }

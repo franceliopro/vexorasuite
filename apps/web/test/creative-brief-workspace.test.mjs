@@ -36,12 +36,19 @@ test("o briefing não afirma geração, aprovação, publicação ou entrega", (
   assert.ok(brief.includes('method: "POST"'), "o envio do briefing precisa ser explícito");
 });
 
-test("a navegação expõe Briefings dentro de Marketing", () => {
-  assert.ok(page.includes('{ label: "Briefings", icon: "file-text" }'));
-  assert.ok(page.includes('"Briefings":()=>import("./creative-brief-workspace")'));
-  assert.ok(page.includes("active === \"Briefings\""));
-  assert.ok(page.includes("'Briefings':'MARKETING'"));
-  assert.ok(page.includes('label: "Briefings", target: "Briefings"'));
+test("Briefings e os menus mortos não são expostos na navegação", () => {
+  for (const dead of [
+    '{ label: "Briefings", icon: "file-text" }',
+    '"Briefings":()=>import("./creative-brief-workspace")',
+    'active === "Briefings"',
+    "'Briefings':'MARKETING'",
+    'label: "Briefings", target: "Briefings"',
+    '{ label: "Marketing"',
+    '{ label: "Sites"',
+  ]) {
+    assert.equal(page.includes(dead), false, `entrada morta ainda presente: ${dead}`);
+  }
+  assert.ok(page.includes('"Biblioteca de referências":()=>import("./creative-library-workspace")'));
 });
 
 test("a fatia respeita as regras de classes do design system", () => {

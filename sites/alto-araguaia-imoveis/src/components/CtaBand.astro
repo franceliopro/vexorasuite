@@ -1,0 +1,29 @@
+---
+import { site } from "../data/site.config";
+import { whatsappHref } from "../lib/config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  label?: string;
+  href?: string;
+}
+
+const {
+  title = "Vamos conversar sobre o seu projeto?",
+  description = site.description,
+  label = "Iniciar conversa",
+  href = whatsappHref(site.whatsapp, site.whatsappMessage) ?? "/contato/",
+} = Astro.props;
+---
+
+<section class="section tone-navy" aria-labelledby="cta-title">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Fale com a gente</span>
+      <h2 id="cta-title">{title}</h2>
+      <p>{description}</p>
+    </div>
+    <a class="btn btn-yellow" href={href}>{label} <span aria-hidden="true">→</span></a>
+  </div>
+</section>

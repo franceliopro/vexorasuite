@@ -14,6 +14,7 @@ export const Media: CollectionConfig = {
     update: isEditorOrAdmin,
     delete: isEditorOrAdmin,
   },
+  indexes: [{ fields: ['tenantId', 'legacyId'], unique: true }],
   fields: [
     { name: 'tenantId', type: 'text', required: true, index: true },
     { name: 'legacyId', type: 'text', required: true, index: true },

@@ -223,3 +223,45 @@
   padding: 2px 4px !important;
   font-size: 8.5px !important;
 }
+.vx-flow-wires .vx-flow-wire-line {
+  transition: stroke-width .15s, filter .15s;
+}
+.vx-flow-wires .vx-flow-wire-motion {
+  stroke-dasharray: 1 14;
+  opacity: .7;
+  animation: vx-wire-move 1.5s linear infinite;
+}
+.vx-flow-wires .vx-flow-wire-hit {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.vx-flow-wires g:hover .vx-flow-wire-line,
+.vx-flow-wires g[data-edge-running="true"] .vx-flow-wire-line {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent2) 55%, transparent));
+}
+.vx-flow-wires g[data-edge-selected="true"] .vx-flow-wire-line {
+  stroke-width: 3.6 !important;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent2) 75%, transparent));
+}
+.vx-flow-wires g[data-edge-selected="true"] .vx-flow-wire-motion {
+  stroke: #fff;
+  stroke-width: 2.6;
+  opacity: 1;
+}
+.vx-flow-board .vx-flow-node[data-edge-connected="true"],
+.vx-flow-board .vx-flow-start-node[data-edge-connected="true"] {
+  border-color: var(--accent2) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent2) 55%, transparent), 0 0 20px color-mix(in srgb, var(--accent2) 35%, transparent) !important;
+}
+.vx-flow-board .vx-flow-node[data-selected="true"],
+.vx-flow-board .vx-flow-start-node[data-selected="true"] {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 80%, white), 0 0 24px color-mix(in srgb, var(--primary) 45%, transparent) !important;
+}
+@keyframes vx-wire-move {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -30; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vx-flow-wires .vx-flow-wire-motion { animation: none; opacity: .45; }
+}

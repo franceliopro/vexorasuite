@@ -62,6 +62,17 @@ pnpm run dev
 
 O Studio fica em `/admin` e o health-check mínimo em `/health`. O health-check não consulta banco: **`200` nele não prova integração nem publicação.**
 
+## Schema e migrations
+
+O Postgres **não** cria tabelas sozinho em produção. A migration inicial
+(`src/migrations/20261125_024632_initial.ts`) está versionada e é executada
+automaticamente na inicialização do container via `prodMigrations`. Ela cria
+tabelas e índices; a função `down` existe apenas para reversão explícita e não
+é executada automaticamente.
+
+Ao alterar coleções ou campos, gere uma nova migration em ambiente de
+desenvolvimento e rode `pnpm payload migrate` antes de publicar. A URL do
+banco e o segredo continuam apenas no cofre.
 ## API key da conta de serviço
 
 1. Entre no Studio com uma conta `admin`.

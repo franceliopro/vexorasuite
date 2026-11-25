@@ -16,6 +16,7 @@ export const Property: CollectionConfig = {
     update: isOwnerOrEditor,
     delete: isOwnerOrEditor,
   },
+  indexes: [{ fields: ['tenantId', 'code'], unique: true }],
   fields: [
     { name: 'tenantId', type: 'text', required: true, index: true },
     { name: 'legacyId', type: 'text', index: true, admin: { readOnly: true } },

@@ -13,6 +13,15 @@ describe('published flow contract', () => {
   f.steps[1]!.config=JSON.stringify({pipelineId:'invalid',stage:'won'});
   expect(validateRuntimeFlow(f).join()).toContain('pipeline e etapa válidos');
  });
+ it('requires an explicit catalog item and one continuation',()=>{
+  const f=flow();const step=f.steps[1]!;delete step.action;step.kind='catalog.item';step.options=['Continuar'];step.transitions={Continuar:'menu'};
+  step.config=JSON.stringify({itemId:''});
+  expect(validateRuntimeFlow(f).join()).toContain('selecione um item do catálogo');
+  step.config=JSON.stringify({itemId:'12345678-1234-4234-8234-123456789abc'});
+  expect(validateRuntimeFlow(f)).toEqual([]);
+  step.options=[];
+  expect(validateRuntimeFlow(f).join()).toContain('use exatamente uma saída de continuação');
+ });
  it('blocks unsupported skills',()=>{const f=flow();f.steps[1]!.action='asaas.payment.pix';expect(validateRuntimeFlow(f).join()).toContain('ainda não executável');});
  it('rejects dangling transitions',()=>{const f=flow();f.steps[0]!.transitions={Suporte:'missing'};expect(validateRuntimeFlow(f).join()).toContain('destino inválido');});
  it('rejects malformed options without crashing',()=>{const f=flow();f.steps[0]!.options=[null] as any;expect(validateRuntimeFlow(f).length).toBeGreaterThan(0);});

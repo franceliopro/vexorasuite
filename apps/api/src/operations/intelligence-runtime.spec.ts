@@ -514,4 +514,40 @@ describe('AI generated preferred-name and triage flow',()=>{
   expect(x.tx.message.create.mock.calls.some(([call]:any[])=>call.data.content.includes(name+', qual área?'))).toBe(true);
   expect(await reply(route)).toMatchObject({departmentId:key,handlingMode:'HUMAN',botState:{variables:{novo_nome:name}}});
  });
+
+ it('sends only the explicitly chosen tenant catalog item', async () => {
+  const x = setup();
+  x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue({
+   id: '12345678-1234-4234-8234-123456789abc', kind: 'SERVICE', name: 'Consultoria de CRM',
+   description: 'Diagnóstico e plano de ação', sku: 'SRV-CRM', priceCents: 15000, currency: 'BRL', unit: 'hora', category: 'Consultoria',
+  }) };
+  const itemId = '12345678-1234-4234-8234-123456789abc';
+  x.flow.steps.splice(1, 0,
+   { id: 'catalog', kind: 'catalog.item', title: 'Item', message: '', options: ['Continuar'], transitions: { Continuar: 'reply' }, config: JSON.stringify({ itemId }) },
+   { id: 'reply', kind: 'text', title: 'Resposta', message: 'Posso continuar?', options: [] },
+  );
+  x.flow.steps[0].transitions.Suporte = 'catalog';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  expect(x.tx.catalogItem.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+   where: { id: itemId, tenantId: 'tenant', active: true },
+  }));
+  const sent = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data.content as string);
+  expect(sent).toContain('Item do catálogo: Consultoria de CRM\nTipo: Serviço\nSKU: SRV-CRM\nCategoria: Consultoria\nPreço: 150.00 BRL / hora\nDescrição: Diagnóstico e plano de ação');
+  expect(sent.some((content: string) => content.includes('150,00') && !content.includes('150.00'))).toBe(false);
+ });
+
+ it('fails clearly when the chosen catalog item is no longer available', async () => {
+  const x = setup();
+  x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue(null) };
+  x.flow.steps.splice(1, 0,
+   { id: 'catalog', kind: 'catalog.item', title: 'Item', message: '', options: ['Continuar'], transitions: { Continuar: 'reply' }, config: JSON.stringify({ itemId: '12345678-1234-4234-8234-123456789abc' }) },
+   { id: 'reply', kind: 'text', title: 'Resposta', message: 'Posso continuar?', options: [] },
+  );
+  x.flow.steps[0].transitions.Suporte = 'catalog';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  const sent = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data.content as string);
+  expect(sent).toContain('Item do catálogo indisponível. Escolha outro item ou fale com um atendente.');
+ });
 });

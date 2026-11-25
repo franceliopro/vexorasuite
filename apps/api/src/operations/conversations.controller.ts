@@ -6,6 +6,7 @@ import { whatsappPhone } from './whatsapp-bridge';
 import { resolveContactIdentity } from './contact-identity';
 import { mutateTenantSetting } from "../prisma/tenant-settings";
 import { BadGatewayException, BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, ServiceUnavailableException, StreamableFile, UseGuards } from "@nestjs/common";
+import { isAllowedMediaUrl } from "./inbound-media";
 import { randomUUID } from "node:crypto";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUUID } from "class-validator";
@@ -688,8 +689,10 @@ export class ConversationsController {
       select: { id: true, channelConnection: true },
     });
     if (!conversation) throw new NotFoundException("Conversa não encontrada nesta empresa.");
-    if (!conversation.channelConnection || conversation.channelConnection.provider !== "WAHA") {
-      throw new BadRequestException("Esta mídia não pertence a um canal WAHA.");
+    const channel = conversation.channelConnection;
+    const provider = channel?.provider ?? "";
+    if (!channel || !["WAHA", "META", "ZERNIO"].includes(provider)) {
+      throw new BadRequestException("Esta mídia não pertence a um canal suportado.");
     }
     const message = await this.prisma.message.findFirst({
       where: { id: messageId, conversationId: conversation.id, tenantId: request.user.tenantId },
@@ -699,28 +702,39 @@ export class ConversationsController {
     const metadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
       ? message.metadata as Record<string, unknown>
       : {};
+    if (metadata.mediaDelivery === "UNAVAILABLE") {
+      // Nunca devolver um link quebrado: o cliente mostra um marcador com nome/tipo.
+      throw new BadRequestException({
+        message: "Anexo sem download seguro.",
+        placeholder: { filename: metadata.filename ?? null, mimetype: metadata.mimetype ?? null, contentType: metadata.contentType ?? null },
+      });
+    }
     const rawMediaUrl = typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : "";
     const chatId = typeof metadata.chatId === "string" ? metadata.chatId : "";
+    const mediaRef = typeof metadata.mediaRef === "string" ? metadata.mediaRef : "";
     let media: { buffer: Buffer; mimetype: string };
-    if (rawMediaUrl) {
-      try {
-        media = await this.waha.downloadMedia(conversation.channelConnection, rawMediaUrl);
-      } catch (error) {
-        // WAHA file URLs may expire. Recover through the authenticated message lookup before
-        // reporting a broken attachment; the lookup remains scoped to this channel and message.
-        if (!chatId || !message.providerMessageId) throw error;
-        media = await this.waha.recoverMessageMedia(
-          conversation.channelConnection,
-          chatId,
-          message.providerMessageId,
-        );
+    if (provider === "WAHA") {
+      if (rawMediaUrl) {
+        try {
+          media = await this.waha.downloadMedia(channel, rawMediaUrl);
+        } catch (error) {
+          // WAHA file URLs may expire. Recover through the authenticated message lookup before
+          // reporting a broken attachment; the lookup remains scoped to this channel and message.
+          if (!chatId || !message.providerMessageId) throw error;
+          media = await this.waha.recoverMessageMedia(channel, chatId, message.providerMessageId);
+        }
+      } else {
+        media = await this.waha.recoverMessageMedia(channel, chatId, message.providerMessageId || "");
       }
+    } else if (provider === "META") {
+      if (!this.meta || !mediaRef) throw new BadGatewayException("O WhatsApp Oficial não disponibilizou esta mídia.");
+      const settings = channel.settings && typeof channel.settings === "object" && !Array.isArray(channel.settings)
+        ? channel.settings as Record<string, unknown> : {};
+      media = await this.meta.downloadMedia(request.user.tenantId, mediaRef, String(settings.phoneNumberId || ""));
     } else {
-      media = await this.waha.recoverMessageMedia(
-        conversation.channelConnection,
-        chatId,
-        message.providerMessageId || "",
-      );
+      // ZERNIO: URL do webhook somente se passou na allowlist na normalização.
+      if (!isAllowedMediaUrl(rawMediaUrl)) throw new BadGatewayException("A rede social não disponibilizou uma URL de mídia segura.");
+      media = await this.zernio.downloadMedia(request.user.tenantId, rawMediaUrl);
     }
     return new StreamableFile(media.buffer, { type: media.mimetype });
   }

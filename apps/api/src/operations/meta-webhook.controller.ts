@@ -19,6 +19,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
 import { resolveContactIdentity } from "./contact-identity";
 import { inboundKind } from "./inbound-kind";
+import { normalizeInboundMedia } from "./inbound-media";
 import { IntelligenceRuntimeService } from "./intelligence-runtime.service";
 import { MetaService } from "./meta.service";
 import { metaAppSecretFor, metaVerifyTokenFor } from "./meta-credentials";
@@ -182,6 +183,8 @@ export class MetaWebhookController {
       const contentType = inboundKind({ type, media: { mimetype: this.mimeOf(msg) }, hasMedia: type !== "text" });
       const mimeType = this.mimeOf(msg);
       const filename = type === "document" ? trim(msg?.document?.filename, 255) || null : null;
+      // A Meta entrega apenas um id de mídia; nunca guardamos a URL assinada do webhook.
+      const mediaId = trim(msg?.[type]?.id ?? (type === "voice" ? msg?.voice?.id : undefined), 255);
       const chatId = from;
       const occurredAt = (() => {
         const seconds = Number(msg?.timestamp);
@@ -198,6 +201,7 @@ export class MetaWebhookController {
           contentType,
           mimeType,
           filename,
+          mediaId,
           occurredAt,
           intelligenceEnabled,
         });
@@ -245,6 +249,7 @@ export class MetaWebhookController {
     contentType: "text" | "audio" | "image" | "video" | "file";
     mimeType: string;
     filename: string | null;
+    mediaId: string;
     occurredAt: Date;
     intelligenceEnabled: boolean;
   }) {
@@ -278,14 +283,13 @@ export class MetaWebhookController {
             data: { tenantId: input.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: "WHATSAPP", status: "OPEN" },
           });
         }
+        const media = normalizeInboundMedia({ provider: "META", type: input.contentType, hasMedia: input.contentType !== "text", mimetype: input.mimeType, filename: input.filename ?? undefined, mediaId: input.mediaId });
         const metadata = {
           provider: "META",
           chatId: input.chatId,
           isGroup: false,
-          hasMedia: input.contentType !== "text",
-          mimeType: input.mimeType || null,
-          filename: input.filename ?? null,
-          mediaUrl: null,
+          ...media,
+          mimeType: media.mimetype,
           ...(input.intelligenceEnabled && conversation.handlingMode === "BOT" ? { engineStatus: "PENDING", engineAttempts: 0 } : {}),
         };
         const message = await tx.message.create({

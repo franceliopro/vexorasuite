@@ -1,4 +1,5 @@
 import {inboundKind} from './inbound-kind';
+import {normalizeInboundMedia} from './inbound-media';
 import {AudioTriageService} from './audio-triage.service';
 import { ConversationDistributionService } from './conversation-distribution.service';
 import {documentDigits} from '../common/documents';
@@ -104,6 +105,7 @@ export class WahaWebhookController {
     const linkPreview = content.includes("http") ? inboundLinkPreview(payload) : null;
     const mimeType = String(payload.media?.mimetype || "");
     const contentType = inboundKind(payload);
+    const media = normalizeInboundMedia({ provider: "WAHA", type: contentType === "text" ? "text" : contentType, hasMedia: Boolean(payload.hasMedia), mimetype: mimeType, filename: payload.media?.filename, mediaUrl: payload.media?.url });
     const timestamp = Number(payload.timestamp);
     const occurredAt = Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp < 1000000000000 ? timestamp * 1000 : timestamp) : new Date();
 
@@ -168,7 +170,7 @@ export class WahaWebhookController {
 
         const voiceEntry=conversation.handlingMode==='BOT'&&!isGroup&&(contentType==='audio'||(conversation.botState as any)?.flow==='VOICE_TRIAGE');
         if(voiceEntry&&(conversation.botState as any)?.flow!=='VOICE_TRIAGE'){await tx.conversation.update({where:{id:conversation.id},data:{botState:{flow:'VOICE_TRIAGE',previousState:conversation.botState||{}}}});}
-        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), ...(intelligenceEnabled && conversation.handlingMode === 'BOT' && !voiceEntry ? { engineStatus: 'PENDING', engineAttempts: 0 } : {}), ...(linkPreview ? { linkPreview } : {}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, hasMedia: Boolean(payload.hasMedia), mimeType: mimeType || null, filename: payload.media?.filename ? String(payload.media.filename).slice(0, 255) : null, mediaUrl: typeof payload.media?.url === "string" ? payload.media.url : null, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
+        const metadata = { ...(voiceEntry?{voiceTriageStatus:'PENDING'}:{}), ...(intelligenceEnabled && conversation.handlingMode === 'BOT' && !voiceEntry ? { engineStatus: 'PENDING', engineAttempts: 0 } : {}), ...(linkPreview ? { linkPreview } : {}), provider: "WAHA", session: channel.sessionName, chatId, isGroup, ...media, mimeType: media.mimetype, mediaError: typeof payload.media?.error === "string" ? payload.media.error.slice(0, 320) : null };
         const message = await tx.message.create({
           data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content, contentType, senderName: notifyName || null, metadata, occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt },
         });

@@ -69,6 +69,11 @@ const qrTw="grid place-items-center rounded-token-sm bg-channels-qr p-4";
 
 type Diagnostic = { configured: boolean; publicUrlConfigured: boolean; webhookSecretConfigured?:boolean; teamWebhookUrl?:string|null; authenticated: boolean; profileConfigured?:boolean; providerStatus?:number; providerCode?:string; providerReason?:string; dashboardUrl?:string; accountCount: number; accounts: {accountId:string;platform:string;username?:string;name?:string;status?:string;profileName?:string}[]; checkedAt: string; message?: string; diagnosticStage?: string; tenantKind?: "PLATFORM"|"COMPANY" };
 
+const ATTACHMENT_SERVICES = ["INBOX", "IA", "CHATBOT", "SITE"] as const;
+function savedAttachments(value?: Record<string, boolean> | null): Record<string, boolean> {
+  return Object.fromEntries(ATTACHMENT_SERVICES.map(service => [service, value?.[service] === true]));
+}
+
 async function api<T>(url:string, init?:RequestInit):Promise<T>{ const response=await fetch(url,{...init,cache:"no-store"}); let body:Record<string,any>={}; try{body=await response.json();}catch{if(response.ok)throw new Error("A Véxora recebeu uma resposta inválida do servidor.");} if(!response.ok) { if(response.status===401) throw new Error("Sua sessão da Véxora expirou ou não foi encontrada. Entre novamente na Véxora para verificar a integração Zernio."); const detail=body?.message&&typeof body.message==="object"?body.message:null; const message=Array.isArray(body.message)?body.message.join(" "):typeof body.message==="string"?body.message:detail?.message||body.error||"Não foi possível concluir a operação."; const suffix=detail?.dashboardUrl?` Abra a página de cobrança da Zernio: ${detail.dashboardUrl}`:""; throw new Error(message+suffix); } return body as T; }
 function mailBrandColor(host:string){const value=(host||"").toLowerCase();if(value.includes("gmail")||value.includes("google"))return "#EA4335";if(value.includes("outlook")||value.includes("office365")||value.includes("office.com"))return "#0067B8";if(value.includes("yahoo"))return "#5F01D1";return "#475569";}
 function statusText(status?:string){const s=(status||"").toUpperCase();if(["CONNECTED","ACTIVE","HEALTHY"].includes(s))return "Conectada";if(["ERROR","FAILED","DISCONNECTED","REVOKED"].includes(s))return "Precisa de atenção";if(["CONNECTING","PENDING"].includes(s))return "Em validação";if(s==="UNKNOWN")return "Conexão não confirmada";return status||"Registrada";}
@@ -219,7 +224,17 @@ export function ChannelsIntegrations(){
  const [targetTypes,setTargetTypes]=useState<Record<string,string>>({});
  const [renameValues,setRenameValues]=useState<Record<string,string>>({});
   const loadInboxes=useCallback(async()=>{
-   try{const result=await api<{inboxes:InboxRow[];departments:{id:string;name:string}[]}>("/api/backend/channels/inboxes");setInboxes(result.inboxes);setInboxDepartments(result.departments);const [agents,ai]=await Promise.all([api<{id:string;name:string;email?:string}[]>("/api/backend/conversations/assignees"),api<{agents?:{id:string;name:string}[]}>("/api/backend/assistant/config")]);setInboxAgents(agents);setInboxAiAgents(Array.isArray(ai.agents)?ai.agents:[]);}
+   try{
+    const [result,channels]=await Promise.all([
+     api<{inboxes:InboxRow[];departments:{id:string;name:string}[]}>("/api/backend/channels/inboxes"),
+     api<{id:string;attachments?:Record<string,boolean>}[]>("/api/backend/channels").catch(()=>[]),
+    ]);
+    const saved=new Map(channels.map(channel=>[channel.id,channel.attachments]));
+    setInboxes(result.inboxes.map(row=>({...row,attachments:savedAttachments(saved.has(row.id)?saved.get(row.id):row.attachments)})));
+    setInboxDepartments(result.departments);
+    const [agents,ai]=await Promise.all([api<{id:string;name:string;email?:string}[]>("/api/backend/conversations/assignees"),api<{agents?:{id:string;name:string}[]}>("/api/backend/assistant/config")]);
+    setInboxAgents(agents);setInboxAiAgents(Array.isArray(ai.agents)?ai.agents:[]);
+   }
    catch(e){setError(e instanceof Error?e.message:"Não foi possível carregar os canais agora. Verifique a conexão e recarregue; se continuar falhando, a administração precisa conferir as credenciais do WhatsApp.");}
   },[]);
 

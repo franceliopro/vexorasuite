@@ -533,7 +533,12 @@ export class ChannelConnectionsController {
     const service = body?.service;
     if (!isAttachmentService(service)) throw new BadRequestException("service deve ser INBOX, IA, CHATBOT ou SITE.");
     if (typeof body?.attached !== "boolean") throw new BadRequestException("attached deve ser booleano.");
-    const channel = await this.findOwned(request.user.tenantId, id);
+    // Finalidades valem para WAHA, Zernio (Instagram/Facebook/WhatsApp) e Meta Cloud API.
+    const channel = await this.prisma.channelConnection.findFirst({
+      where: { id, tenantId: request.user.tenantId, provider: { in: ["WAHA", "ZERNIO", "META"] }, isActive: true },
+      select: { id: true },
+    });
+    if (!channel) throw new NotFoundException("Canal não encontrado nesta empresa.");
     await this.prisma.channelAttachment.upsert({
       where: { channelConnectionId_service: { channelConnectionId: channel.id, service } },
       update: { attached: body.attached },

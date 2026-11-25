@@ -10,6 +10,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Valores falsos apenas para o next build. Nao sao segredos e nao vao para o runtime.
+ENV DATABASE_URL=postgres://build:build@127.0.0.1:5432/build
+ENV PAYLOAD_SECRET=build-placeholder-not-a-production-secret
 RUN npm run build
 
 FROM base AS runner

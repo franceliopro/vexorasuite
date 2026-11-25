@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAnyAuthenticated, isEditorOrAdmin, isTenantScopedReader, isWriter } from '../access/roles'
+import { isEditorOrAdmin, isTenantScopedReader, isWriter } from '../access/roles'
 
 export const SUBMISSION_STATUSES = ['pending', 'approved', 'rejected'] as const
 

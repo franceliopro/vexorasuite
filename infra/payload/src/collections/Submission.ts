@@ -16,6 +16,7 @@ export const Submission: CollectionConfig = {
     update: isEditorOrAdmin,
     delete: isEditorOrAdmin,
   },
+  indexes: [{ fields: ['tenantId', 'submission_key'], unique: true }],
   fields: [
     { name: 'tenantId', type: 'text', required: true, index: true },
     { name: 'legacyId', type: 'text', index: true, admin: { readOnly: true } },

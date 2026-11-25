@@ -138,9 +138,21 @@ export class FinanceController {
   }
 
   @Post("subscriptions")
-  createSubscription(@Req() req: AuthenticatedRequest, @Body() body: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; billingType?: unknown }) {
+  createSubscription(@Req() req: AuthenticatedRequest, @Body() body: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; catalogItemId?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; endDate?: unknown; billingType?: unknown }) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
     return this.asaas.createSubscription(req.user.tenantId, { ...(body || {}), userId: req.user.sub });
+  }
+
+  @Delete("subscriptions/:subscriptionId")
+  removeSubscription(@Req() req: AuthenticatedRequest, @Param("subscriptionId") subscriptionId: string) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.removeSubscription(req.user.tenantId, subscriptionId, req.user.sub);
+  }
+
+  @Delete("customers/:customerId")
+  removeCustomer(@Req() req: AuthenticatedRequest, @Param("customerId") customerId: string) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.removeCustomer(req.user.tenantId, customerId, req.user.sub);
   }
 
   /** Registro local para Stripe/InfinitePay. Asaas continua no fluxo existente. */

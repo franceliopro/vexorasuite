@@ -18,7 +18,7 @@ describe("escopo do catálogo", () => {
     const prisma: any = { catalogItem: { findMany } };
     const controller = new CatalogController(prisma);
     const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
-    await controller.list(request, undefined, undefined, undefined, "true");
+    await controller.list(request, undefined, undefined, undefined, undefined, "true");
     expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a" });
     expect(findMany.mock.calls[0][0].where.active).toBeUndefined();
   });
@@ -28,7 +28,16 @@ describe("escopo do catálogo", () => {
     const prisma: any = { catalogItem: { findMany } };
     const controller = new CatalogController(prisma);
     const request: any = { user: { tenantId: "tenant-a", role: "MANAGER" } };
-    await controller.list(request, undefined, undefined, undefined, "true");
+    await controller.list(request, undefined, undefined, undefined, undefined, "true");
     expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a", active: true });
+  });
+
+  it("filtra por categoria sem perder o escopo do tenant e o filtro de ativos", async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma: any = { catalogItem: { findMany } };
+    const controller = new CatalogController(prisma);
+    const request: any = { user: { tenantId: "tenant-a", role: "MANAGER" } };
+    await controller.list(request, undefined, undefined, "ASAAS", "50");
+    expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a", active: true, category: "ASAAS" });
   });
 });

@@ -140,7 +140,7 @@ try{
  await expect(board.getByText("Aguardando resposta",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Acompanhar conversa",exact:true}).click();
  conversationContinued=true;
- await expect(board.locator("svg g path.vex-wire-line").last()).toHaveClass("stroke-accent",{timeout:12000});
+ await expect(board.locator("svg g path.vex-wire-line").last()).toHaveClass(/stroke-accent/,{timeout:12000});
  await expect(board.getByText("Aguardando resposta",{exact:true})).toHaveCount(0);
  await expect(page.getByRole("button",{name:"Parar de acompanhar",exact:true})).toHaveCount(1);
  await history.click();

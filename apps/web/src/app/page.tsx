@@ -423,9 +423,12 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'SETTINGS','Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
+  // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
+  // Mesmo um admin da plataforma olhando um tenant cliente não faz o item reaparecer sem a liberação.
+  const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS");
   const isOverview = active === "Visão geral";
   useEffect(() => { if (active !== "Configurações") { setSettingsAdvanced(false); setSettingsCatalogOpen(false); } }, [active]);
   const currentWorkspaceTab = workspaceTabKey(active);
@@ -448,7 +451,7 @@ export default function HomePage() {
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => (!platformPanel || item.label !== "Planos e preços") && moduleVisible(item.label) && (!["Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
+            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && (!["Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
@@ -591,7 +594,8 @@ export default function HomePage() {
           ) : active === "Clientes" ? (
             platformPanel ? <PlatformAdminWorkspace initialTab="plans" /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Este painel pertence à administração da Véxora.</p></section>
           ) : active === "Planos e preços" ? (
-            !platformPanel ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className={cardTw}><h2>Este painel é para clientes</h2></section>
+            platformPanel ? <section className={cardTw}><h2>Este painel é para clientes</h2></section>
+              : plansMenuVisible && canManage ? <ClientPlansWorkspace currentPlanCode={session?.tenant?.plan?.code||null} currentPlanName={session?.tenant?.plan?.name||null} /> : <section className={cardTw}><h2>Acesso não permitido</h2><p>Este painel só aparece quando a Véxora libera Planos e preços para a sua empresa.</p></section>
           ) : active === "Atendentes" ? (
             canManage ? <TeamWorkspace platformAdmin={session?.user.isPlatformAdmin===true} canManageAdmin={session?.user.isPlatformAdmin===true||session?.role==="OWNER"}/> : <section className={cardTw}><h2>Acesso restrito</h2></section>
           ) : active === "E-mails" ? (

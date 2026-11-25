@@ -8,7 +8,7 @@ export type RuntimeFlow = {
   name: string; welcome: string; askPreferredName?: boolean; steps: RuntimeStep[]; channelIds?: string[];
   triggers?: { kind: 'message' | 'dm' | 'keyword' | 'first_message'; keyword?: string }[];
 };
-export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'contact.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition', 'task.reminder', 'calendar.availability', 'calendar.book', 'payment.status'];
+export const executableKinds = ['text', 'buttons', 'input.text', 'input.cpf', 'human.handoff', 'assignment', 'department.route', 'tag', 'asaas.payment.lookup', 'contact.lookup', 'agent', 'crm.stage.move', 'crm.finalize', 'variable', 'condition', 'task.reminder', 'calendar.availability', 'calendar.book', 'payment.status', 'catalog.item'];
 export const executableActions = ['human.handoff', 'asaas.payment.lookup', 'crm.stage.move', 'crm.finalize'];
 export function settings(step: RuntimeStep): Record<string, string> {
   if (!step.config?.trim()) return {};
@@ -47,6 +47,7 @@ export function validateRuntimeFlow(value: unknown): string[] {
       if (config.targetMode === 'DEPARTMENT' && config.userId) errors.push(`${s.id}: use destino Atendente para atribuição individual`);
       if (s.kind === 'text' && s.options.length > 1) errors.push(`${s.id}: use múltipla escolha para mais de uma saída`);
       if (s.kind === 'agent' && !config.agentId) errors.push(`${s.id}: selecione agentId de um agente configurado`);
+      if (s.kind === 'catalog.item' && !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(config.itemId || '')) errors.push(`${s.id}: selecione um item do catálogo`);
       if (['variable','condition'].includes(s.kind || '') && (!(s.kind==='condition'?/^[\w.-]{1,80}$/:/^[a-zA-Z][\w]{0,39}$/).test(config.variable || '') || typeof config.value !== 'string')) errors.push(`${s.id}: configure variable e value`);
       if (s.kind === 'condition' && (!s.options.includes('Sim') || !s.options.includes('Não') || s.options.length !== 2)) errors.push(`${s.id}: condição exige saídas Sim e Não`);
       if (s.kind === 'tag' && (!config.name?.trim() || config.name.length > 40 || !/^#[a-f\d]{6}$/i.test(config.color || ''))) errors.push(`${s.id}: configure name e color da tag`);
@@ -81,11 +82,11 @@ export function validateRuntimeFlow(value: unknown): string[] {
       if (s.options.length) errors.push(`${s.id}: finalização comercial não precisa de saídas`);
     } else if (!['human.handoff','assignment','department.route','asaas.payment.lookup'].includes(type)) {
       if (s.options.some(o => !s.transitions?.[o])) errors.push(`${s.id}: conecte todas as saídas`);
-      if (['input.text','tag','variable','crm.stage.move','task.reminder','calendar.availability','calendar.book','payment.status'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
+      if (['input.text','tag','variable','crm.stage.move','task.reminder','calendar.availability','calendar.book','payment.status','catalog.item'].includes(type) && s.options.length !== 1) errors.push(`${s.id}: use exatamente uma saída de continuação`);
     }
   }
   // Detect loops that have no wait for a customer message; they must not flood the channel.
-  const autoSteps = f.steps.filter(s => s && (['variable','condition','tag','task.reminder','calendar.availability','calendar.book','payment.status'].includes(s.kind || '') || (s.kind === 'text' && Array.isArray(s.options) && s.options.length === 1)));
+  const autoSteps = f.steps.filter(s => s && (['variable','condition','tag','task.reminder','calendar.availability','calendar.book','payment.status','catalog.item'].includes(s.kind || '') || (s.kind === 'text' && Array.isArray(s.options) && s.options.length === 1)));
   const automatic = new Map(autoSteps.map(s => [s.id,s]));
   const visiting = new Set<string>(), visited = new Set<string>();
   const cycle = (id: string): boolean => {

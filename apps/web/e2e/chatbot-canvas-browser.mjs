@@ -135,16 +135,16 @@ try{
  const history=page.getByText("Execuções reais",{exact:true});
  await history.click();
  await page.getByRole("button",{name:"Ver no canvas",exact:true}).click();
- await expect(board.locator("svg g path")).toHaveCount(2);
- await expect(board.locator("svg g path.stroke-accent")).toHaveCount(1);
+ await expect(board.locator("svg g path.vex-wire-line")).toHaveCount(2);
+ await expect(board.locator("svg g path.vex-wire-line.stroke-accent")).toHaveCount(1);
  await expect(board.getByText("Aguardando resposta",{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Acompanhar conversa",exact:true}).click();
  conversationContinued=true;
- await expect(board.locator("svg g path").last()).toHaveClass("stroke-accent",{timeout:12000});
+ await expect(board.locator("svg g path.vex-wire-line").last()).toHaveClass("stroke-accent",{timeout:12000});
  await expect(board.getByText("Aguardando resposta",{exact:true})).toHaveCount(0);
  await expect(page.getByRole("button",{name:"Parar de acompanhar",exact:true})).toHaveCount(1);
  await history.click();
- await expect(board.locator("svg g path.stroke-accent")).toHaveCount(0);
+ await expect(board.locator("svg g path.vex-wire-line.stroke-accent")).toHaveCount(0);
 
  await canvas.focus();
  for(const key of ["ArrowLeft","ArrowUp"])await page.keyboard.press(key);
@@ -272,10 +272,10 @@ try{
  await newMessage.evaluate(input=>input.setSelectionRange(10,10));
  await board.getByRole("button",{name:"Inserir link de pagamento",exact:true}).click();
  await expect(newMessage).toHaveValue("Pague aqui {{pagamento_link}} e confirme.");
- const connectedPaths=await board.locator("svg g path").count();
+ const connectedPaths=await board.locator("svg g path.vex-wire-line").count();
  await condition.locator("[data-flow-node-head]").click({button:"right"});
  await page.getByRole("dialog",{name:"Ações do bloco"}).getByRole("button",{name:"Inserir mensagem após Sim",exact:true}).click();
- await expect(board.locator("svg g path")).toHaveCount(connectedPaths+1);
+ await expect(board.locator("svg g path.vex-wire-line")).toHaveCount(connectedPaths+1);
  await expect(board.getByRole("textbox",{name:"Mensagem de Enviar mensagem",exact:true})).toHaveValue("");
  const picker=page.getByRole("combobox",{name:"Fluxo aberto"});
  await picker.selectOption({label:"Oferta de teste"});

@@ -59,6 +59,17 @@ jobs:
       - name: Build
         run: pnpm build
 
+  docker-build:
+    name: Build Docker image without runtime secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image with no DATABASE_URL or PAYLOAD_SECRET in the environment
+        run: docker build --file infra/payload/Dockerfile infra/payload
+
   smoke:
     name: Boot Payload with production migrations
     runs-on: ubuntu-latest

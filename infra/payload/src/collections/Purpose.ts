@@ -10,6 +10,7 @@ export const Purpose: CollectionConfig = {
     update: isEditorOrAdmin,
     delete: isAdmin,
   },
+  indexes: [{ fields: ['tenantId', 'slug'], unique: true }],
   fields: [
     { name: 'tenantId', type: 'text', required: true, index: true },
     { name: 'name', type: 'text', required: true },

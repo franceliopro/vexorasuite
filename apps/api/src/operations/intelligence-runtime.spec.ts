@@ -516,7 +516,7 @@ describe('AI generated preferred-name and triage flow',()=>{
  });
 
  it('sends only the explicitly chosen tenant catalog item', async () => {
-  const x = setup();
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
   x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue({
    id: '12345678-1234-4234-8234-123456789abc', kind: 'SERVICE', name: 'Consultoria de CRM',
    description: 'Diagnóstico e plano de ação', sku: 'SRV-CRM', priceCents: 15000, currency: 'BRL', unit: 'hora', category: 'Consultoria',
@@ -538,7 +538,7 @@ describe('AI generated preferred-name and triage flow',()=>{
  });
 
  it('fails clearly when the chosen catalog item is no longer available', async () => {
-  const x = setup();
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
   x.tx.catalogItem = { findFirst: jest.fn().mockResolvedValue(null) };
   x.flow.steps.splice(1, 0,
    { id: 'catalog', kind: 'catalog.item', title: 'Item', message: '', options: ['Continuar'], transitions: { Continuar: 'reply' }, config: JSON.stringify({ itemId: '12345678-1234-4234-8234-123456789abc' }) },

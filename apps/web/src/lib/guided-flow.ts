@@ -134,6 +134,7 @@ export const flowGuide: ReadonlyArray<{
   { id: "variable", label: "Guardar informação", when: "Quando você quer reaproveitar um dado em mensagens ou transferências.", configure: "O nome do dado e seu valor, que pode usar {{variavel}}.", sees: "Nada. É uma ação interna." },
   { id: "human.handoff", label: "Transferir atendimento", when: "Quando uma pessoa deve continuar a conversa.", configure: "A mensagem de aviso e o time ou atendente de destino.", sees: "A mensagem de encaminhamento; depois, um atendente assume." },
   { id: "agent", label: "Agente de IA", when: "Quando um agente configurado deve conduzir a conversa.", configure: "Qual agente ativo será usado.", sees: "As respostas do agente dentro do fluxo." },
+  { id: "catalog.item", label: "Item do catálogo", when: "Quando o bot deve apresentar um produto digital ou serviço cadastrado pela empresa.", configure: "Escolha explicitamente o item. Nome, preço, moeda e descrição vêm do cadastro.", sees: "O item escolhido com os dados cadastrados, sem preço ou condição inventados." },
   { id: "tag", label: "Adicionar tag", when: "Quando o contato deve ser classificado no CRM.", configure: "Nome e cor da tag.", sees: "Nada. A classificação fica no CRM." },
 ];
 
@@ -187,6 +188,12 @@ export function explainStep(step: Pick<GuidedStep, "kind" | "action" | "config">
     configure: "Selecione o agente.",
     sees: "As mensagens geradas pelo agente.",
   };
+  if (type === "catalog.item") return {
+    title: "Apresenta um item do catálogo",
+    what: "O bot mostra o produto digital ou serviço escolhido com os dados cadastrados pela empresa.",
+    configure: "Selecione o item no painel. Não digite preço, disponibilidade ou condição manualmente.",
+    sees: "Nome, tipo, SKU, categoria, preço e descrição do item cadastrado.",
+  };
   if (type === "variable") return {
     title: "Guarda uma informação",
     what: "O bot salva um valor para reaproveitar em mensagens, decisões ou transferências.",
@@ -217,6 +224,7 @@ export const guidedKindOptions: ReadonlyArray<readonly [string, string]> = [
   ["human.handoff", "Transferir atendimento"],
   ["department.route", "Abrir atendimento do departamento"],
   ["agent", "Agente de IA"],
+  ["catalog.item", "Item do catálogo"],
   ["tag", "Adicionar tag"],
 ];
 
@@ -231,6 +239,7 @@ export function guidedKindDefaults(kind: string): Partial<GuidedStep> {
     case "human.handoff": return { ...common, config: JSON.stringify({ targetMode: "QUEUE" }), options: [] };
     case "department.route": return { ...common, config: JSON.stringify({ targetMode: "DEPARTMENT" }), options: ["Continuar"] };
     case "agent": return { ...common, config: JSON.stringify({ agentId: "" }), options: ["Continuar"] };
+    case "catalog.item": return { ...common, config: JSON.stringify({ itemId: "" }), options: ["Continuar"] };
     case "tag": return { ...common, config: JSON.stringify({ name: "Novo lead" }), options: ["Continuar"] };
     default: return { ...common, config: undefined, options: ["Continuar"] };
   }
@@ -279,6 +288,10 @@ export function stepIO(step: Pick<GuidedStep, "kind" | "action" | "config" | "me
   if (type === "buttons" || type === "quick-reply") return {
     label: "Oferecer op\u00E7\u00F5es", input: "Escolha do cliente", output: outputs.join(", "),
     writes: [], reads, kind: "text", note: "Cada op\u00E7\u00E3o leva a um pr\u00F3ximo passo.",
+  };
+  if (type === "catalog.item") return {
+    label: "Item do catálogo", input: "Item escolhido no cadastro da empresa", output: outputs.join(", "),
+    writes: [], reads: [], kind: "text", note: "Nome, preço e descrição vêm do cadastro; o bot não inventa condições.",
   };
   return {
     label: "Enviar mensagem", input: "Nenhum dado de entrada", output: outputs.join(", "),

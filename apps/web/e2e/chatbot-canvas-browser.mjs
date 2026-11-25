@@ -75,6 +75,10 @@ try{
     departments:[{id:"department-qa",key:"qa-new",name:"Setor recém-criado",members:["agent-qa"]}],
     agents:[{id:"agent-qa",name:"Atendente recém-criado"}],
    }:{departments:[],agents:[]},
+   "/catalog":{items:[
+    {id:"11111111-1111-4aaa-8aaa-111111111111",name:"Consultoria digital",kind:"SERVICE",priceCents:19900,currency:"BRL",sku:"CONS-01",category:"Serviços"},
+    {id:"22222222-2222-4bbb-8bbb-222222222222",name:"Pacote de automação",kind:"DIGITAL",priceCents:49900,currency:"BRL",sku:"AUTO-01",category:"Produtos digitais"},
+   ]},
    "/crm/pipelines":[],
    "/crm/custom-fields":[{id:"veiculo.placa-1",label:"Placa do veículo",enabled:true}],
    "/assistant/config":{agents:[]},
@@ -113,6 +117,20 @@ try{
  await page.evaluate(()=>window.dispatchEvent(new Event("vexora:team-updated")));
  await expect(newDepartment).toBeVisible();
  await expect(newAttendant).toBeVisible();
+ await page.locator("summary").filter({hasText:/^Catálogo$/}).click();
+ const catalogItem=page.getByRole("button",{name:"Consultoria digital",exact:true});
+ await expect(catalogItem).toBeVisible();
+ const nodesBeforeCatalog=await board.locator("[data-flow-node]").count();
+ await catalogItem.click();
+ await expect(board.locator("[data-flow-node]")).toHaveCount(nodesBeforeCatalog+1);
+ await expect(board.locator("[data-flow-node]").filter({hasText:"Consultoria digital"})).toHaveCount(1);
+ const catalogSelect=page.getByTestId("chatbot-catalog-item");
+ await expect(catalogSelect).toBeVisible();
+ await expect(catalogSelect).toHaveValue("11111111-1111-4aaa-8aaa-111111111111");
+ await catalogSelect.selectOption("22222222-2222-4bbb-8bbb-222222222222");
+ await expect(board.locator("[data-flow-node]").filter({hasText:"Pacote de automação"})).toHaveCount(1);
+ await expect(board.locator("[data-flow-node]").filter({hasText:"Consultoria digital"})).toHaveCount(0);
+ await expect(page.getByText(/Nome, tipo, SKU, preço e descrição vêm do cadastro/)).toBeVisible();
  await libraryToggle.click();
  await expect(libraryToggle).toHaveAttribute("aria-expanded","false");
  await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);

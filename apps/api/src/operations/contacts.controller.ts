@@ -13,6 +13,7 @@ import { AsaasService } from "./asaas.service";
 import { assignedConversationScope } from "./conversation-visibility";
 import { accessiblePipeline, contactPipelineAccess } from "./crm-pipelines.controller";
 import { bindContactIdentity } from "./contact-identity";
+import { nextCardPosition, parseCardPosition, placeCrmCard } from "./crm-card-position";
 
 const CRM_STAGES = ["new", "qualification", "proposal"] as const;
 type CrmStage = (typeof CRM_STAGES)[number];
@@ -113,7 +114,11 @@ export class ContactsController {
           }],
         } : {}),
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: [
+        { crmPosition: { sort: "asc", nulls: "last" } },
+        { updatedAt: "desc" },
+        { id: "asc" },
+      ],
       take: 100,
     });
     return contacts.map((contact) => { const metadata = contact.metadata && typeof contact.metadata === "object" && !Array.isArray(contact.metadata) ? contact.metadata as Prisma.JsonObject : {}; return { ...contact, crmStage: readCrmStage(contact.metadata), crmFinalization: metadata.crmFinalization ?? null }; });
@@ -423,27 +428,42 @@ export class ContactsController {
   }
 
   @Patch(":id/stage")
-  async updateStage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { stage?: string }) {
+  async updateStage(@Req() request: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: { stage?: string; position?: unknown }) {
     await contactPipelineAccess(this.prisma, request, id);
     if (!input.stage || !CRM_STAGES.includes(input.stage as CrmStage)) throw new BadRequestException("Etapa de CRM inválida. Para finalizar, registre o resultado comercial.");
-    let previousStage: string | null = null;
-    const updated = await mutateContactMetadata(this.prisma, request.user.tenantId, id, metadata => {
-      if (metadata.crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
-      previousStage = typeof metadata.crmStage === "string" ? metadata.crmStage : null;
-      return { ...metadata, crmStage: input.stage! };
-    });
-    await this.prisma.auditLog.create({
-      data: {
+    const position = parseCardPosition(input.position);
+    const result = await this.prisma.$transaction(async tx => {
+      const placement = await placeCrmCard(tx, {
         tenantId: request.user.tenantId,
-        userId: request.user.sub,
-        action: "contact.stage_changed",
-        entityType: "contact",
-        entityId: updated.id,
-        details: { from: previousStage, to: input.stage },
-      },
+        contactId: id,
+        stage: input.stage!,
+        position,
+      });
+      if (contactMetadata(placement.metadata).crmFinalization) throw new BadRequestException("Este contato já foi finalizado. Consulte-o em Contatos.");
+      const updated = await tx.contact.update({
+        where: { id: placement.contact.id },
+        data: { metadata: { ...placement.metadata, crmStage: input.stage! } },
+      });
+      await tx.auditLog.create({
+        data: {
+          tenantId: request.user.tenantId,
+          userId: request.user.sub,
+          action: "contact.stage_changed",
+          entityType: "contact",
+          entityId: updated.id,
+          details: {
+            from: placement.previousStage,
+            to: input.stage,
+            pipelineId: placement.pipelineId,
+            position: placement.position,
+            previousPosition: placement.previousPosition,
+          },
+        },
+      });
+      return { updated, placement };
     });
-    this.events.publish(request.user.tenantId, "contact.stage_changed", { id: updated.id, stage: input.stage });
-    return { ...updated, crmStage: input.stage };
+    this.events.publish(request.user.tenantId, "contact.stage_changed", { id: result.updated.id, stage: input.stage, position: result.placement.position });
+    return { ...result.updated, crmStage: input.stage, crmPosition: result.placement.position };
   }
 
   @Post(":id/remove-pipeline")
@@ -563,10 +583,16 @@ export class ContactsController {
     if (pipelineId) await accessiblePipeline(this.prisma, request, pipelineId);
     const phone = input.phone?.replace(/\D/g, "") || null;
     const contact = await this.prisma.$transaction(async tx => {
+      const crmPosition = await nextCardPosition(tx, {
+        tenantId: request.user.tenantId,
+        pipelineId: pipelineId ?? null,
+        stage: "new",
+      });
       const created = await tx.contact.create({
         data: {
           tenantId: request.user.tenantId,
           ...(pipelineId ? { pipelineId } : {}),
+          crmPosition,
           name: input.name.trim(),
           phone,
           email: input.email?.trim().toLowerCase() || null,

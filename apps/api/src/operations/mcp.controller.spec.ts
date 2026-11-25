@@ -10,7 +10,7 @@ function setup() {
       findFirst: jest.fn().mockResolvedValue({ id: "c1" }),
       groupBy: jest.fn().mockResolvedValue([{ status: "OPEN", _count: { _all: 3 } }]),
     },
-    contact: { findFirst: jest.fn().mockResolvedValue({ id: "ct1", metadata: {} }), findMany: jest.fn().mockResolvedValue([]), update: jest.fn().mockImplementation(async (args: any) => ({ id: "ct1", ...args.data })) },
+    contact: { findFirst: jest.fn().mockResolvedValue({ id: "ct1", metadata: {} }), findMany: jest.fn().mockResolvedValue([]), update: jest.fn().mockImplementation(async (args: any) => ({ id: "ct1", ...args.data })), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
     crmPipeline: { findFirst: jest.fn().mockResolvedValue({ id: "p1", stages: [{ id: "new", label: "Novos", tone: "violet" }, { id: "qualification", label: "Qualificação", tone: "blue" }] }), findMany: jest.fn().mockResolvedValue([{ id: "p1", name: "Vendas", template: "SALES", stages: [{ id: "new", label: "Novos", tone: "violet" }] }]) },
     workTask: { findMany: jest.fn().mockResolvedValue([]), create: jest.fn().mockImplementation(async (_a: any) => ({ id: "t1" })) },
     message: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn().mockResolvedValue(null), create: jest.fn().mockImplementation(async (_a: any) => ({ id: "m1", conversationId: "c1", createdAt: new Date() })) },
@@ -70,6 +70,7 @@ describe("Véxora MCP server", () => {
     const { controller } = setup();
     const moved: any = await controller.handle("vx_live_test", undefined, rpc("tools/call", { name: "move_card_stage", arguments: { contactId: "ct1", pipelineId: "p1", stageId: "qualification" } }));
     expect(moved.result.isError).toBe(false);
+    expect(JSON.parse(moved.result.content[0].text).position).toBe(0);
     const invalid: any = await controller.handle("vx_live_test", undefined, rpc("tools/call", { name: "move_card_stage", arguments: { contactId: "ct1", pipelineId: "p1", stageId: "stage-nao-existe" } }));
     expect(invalid.result.isError).toBe(true);
     expect(invalid.result.content[0].text).toContain("Etapa");

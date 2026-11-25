@@ -113,6 +113,23 @@ test("o drag e a acessibilidade do Kanban continuam intactos", () => {
   assert.ok(migrado.includes('role="img"'));
 });
 
+test("o slot de inserção e a ordenação manual do Kanban estão presentes", () => {
+  assert.ok(migrado.includes('data-testid="crm-drop-slot"'));
+  assert.ok(migrado.includes("data-crm-card-id={contact.id}"));
+  assert.ok(migrado.includes("updateDropSlot(event, stage.id)"));
+  assert.ok(migrado.includes("dropAtPosition(event, stage.id)"));
+  assert.ok(crm.includes("insertionIndexFromPointer(event.currentTarget, event.clientY"));
+  assert.ok(crm.includes("globalIndexFor(stage, visibleIndex, id)"));
+  assert.ok(crm.includes("JSON.stringify(position === undefined ? { stage } : { stage, position: targetPosition })"));
+  assert.ok(crm.includes('aria-label={"Subir " + contactName(contact) + " na etapa"}'));
+  assert.ok(crm.includes('aria-label={"Descer " + contactName(contact) + " na etapa"}'));
+  assert.ok(crm.includes("moveContact(contact, stage.id as CrmStage, cardIndex - 1)"));
+  assert.ok(crm.includes("moveContact(contact, stage.id as CrmStage, cardIndex)"));
+  assert.ok(crm.includes("motion-reduce:animate-none"));
+  assert.ok(migrado.includes('data-testid="crm-order-saving"'));
+  assert.ok(crm.includes("ordem confirmada."));
+});
+
 test("as medidas do Kanban vivem no preset", () => {
   for (const token of [
     '"crm-stage": "minmax(272px, 1fr)"',

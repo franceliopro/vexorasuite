@@ -1,6 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { DirectusSubmissionsService } from "./directus-submissions.service";
+import { SUBMISSIONS_CLIENT, SubmissionsClient } from "./submissions-client";
 
 const DECISIONS = ["APPROVED", "REJECTED"];
 type Input = Record<string, unknown>;
@@ -21,7 +21,7 @@ type DecisionRow = {
 
 const NOTIFICATION = Object.freeze({
   status: "NOT_CONFIRMED",
-  message: "O envio por e-mail/WhatsApp é executado pelo Directus e só é considerado enviado após confirmação do provedor.",
+  message: "O envio por e-mail/WhatsApp é executado pelo CMS e só é considerado enviado após confirmação do provedor.",
 });
 
 function text(value: unknown, field: string, max = 200): string {
@@ -47,15 +47,15 @@ function iso(value: unknown): string | null {
 /**
  * Submissões de anunciantes no HUB de Sites.
  *
- * O Directus é a fonte dos dados; a Véxora registra a decisão humana, quem a
- * tomou e quando. O envio ao anunciante é um Flow externo: enquanto não há
+ * O CMS configurado é a fonte dos dados; a Véxora registra a decisão humana,
+ * quem a tomou e quando. O envio ao anunciante é externo: enquanto não há
  * confirmação do provedor, o status de notificação permanece NOT_CONFIRMED.
  */
 @Injectable()
 export class SiteSubmissionsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly directus: DirectusSubmissionsService,
+    @Inject(SUBMISSIONS_CLIENT) private readonly cms: SubmissionsClient,
   ) {}
 
   private assertManager(role: string) {
@@ -78,10 +78,10 @@ export class SiteSubmissionsService {
 
   async list(tenantId: string, role: string) {
     this.assertManager(role);
-    this.directus.assertConfigured(tenantId);
+    this.cms.assertConfigured(tenantId);
 
     const [submissions, decisions] = await Promise.all([
-      this.directus.listPending(),
+      this.cms.listPending(tenantId),
       this.prisma.siteHubSubmissionDecision.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" } }),
     ]);
     const byKey = new Map((decisions as DecisionRow[]).map((row) => [row.submissionKey, row]));
@@ -98,7 +98,7 @@ export class SiteSubmissionsService {
 
   async decide(submissionKey: string, input: Input, tenantId: string, role: string, userId: string) {
     this.assertManager(role);
-    this.directus.assertConfigured(tenantId);
+    this.cms.assertConfigured(tenantId);
 
     const key = text(submissionKey, "submissionKey", 200);
     if (!/^[A-Za-z0-9._:-]+$/.test(key)) throw new BadRequestException("submissionKey contém caracteres inválidos.");
@@ -142,10 +142,10 @@ export class SiteSubmissionsService {
     }
 
     try {
-      const found = await this.directus.findByKey(key);
-      if (!found) throw new NotFoundException("Submissão não encontrada no Directus.");
-      if (found.status !== "pending") throw new BadRequestException("Esta submissão não está mais pendente no Directus.");
-      await this.directus.decide(found.id, decision as "APPROVED" | "REJECTED", reason);
+      const found = await this.cms.findByKey(tenantId, key);
+      if (!found) throw new NotFoundException("Submissão não encontrada no CMS.");
+      if (found.status !== "pending") throw new BadRequestException("Esta submissão não está mais pendente no CMS.");
+      await this.cms.decide(tenantId, found.id, decision as "APPROVED" | "REJECTED", reason);
 
       const saved = await this.prisma.siteHubSubmissionDecision.update({
         where: { id: claim.id },

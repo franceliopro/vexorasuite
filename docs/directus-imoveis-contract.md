@@ -1,5 +1,10 @@
 # Contrato do módulo de imóveis no Directus
 
+> **Documento histórico — supersedido em 24/11/2026.** O Directus foi removido
+> do plano. A decisão vigente é Payload CMS, instância única com papéis e
+> usuários ilimitados: `docs/payload-substitui-directus.md`. O contrato de dados
+> abaixo serve apenas como especificação de origem para a migração.
+
 ## Escopo
 
 Este documento descreve o contrato de dados e de fluxo para o site **Alto

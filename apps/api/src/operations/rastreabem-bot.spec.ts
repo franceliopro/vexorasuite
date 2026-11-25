@@ -36,4 +36,20 @@ describe("Rastreabem bot policy", () => {
     result = advanceRastreabemBot(result.state, "12345678901");
     expect(result.effects[0]).toEqual({ type: "ASAAS_LOOKUP", document: "12345678901", platform: "Link" });
   });
+  it("refuses an invalid protocol before any conversation state exists", () => {
+    expect(() => startRastreabemBot({ protocol: "protocolo inválido!" })).toThrow("Protocolo inválido");
+  });
+  it("does not adopt a suggested name without explicit confirmation", () => {
+    const start = startRastreabemBot({ protocol, suggestedName: "Ana" });
+    expect(start.state.step).toBe("CONFIRM_NAME");
+    expect(start.state.novo_nome).toBeUndefined();
+    expect(start.effects).toEqual([]);
+  });
+  it("sends commercial and administrative sectors outside the bot flow", () => {
+    const start = startRastreabemBot({ protocol, verifiedCustomerName: "João" });
+    const commercial = advanceRastreabemBot(start.state, "3");
+    expect(commercial.effects).toEqual([{ type: "EXTERNAL_CONTACT", sector: "COMERCIAL" }]);
+    const administrative = advanceRastreabemBot(start.state, "4");
+    expect(administrative.effects).toEqual([{ type: "EXTERNAL_CONTACT", sector: "ADMINISTRATIVO" }]);
+  });
 });

@@ -93,11 +93,11 @@ No projeto do Pages: **Root directory** = `sites/<slug>`, **Build command** =
 variáveis próprias. Nenhuma credencial é compartilhada entre empresas.
 
 As páginas são arquivos no Git, editáveis na Tina. No Alto Araguaia Imóveis, os
-dados dinâmicos (imóveis, usuários, submissões) ficam no **Directus** no
-Dokploy; um Flow grava o snapshot como arquivos
-`src/content/properties/*.md` e o Astro lê a coleção no build. Os demais sites
-são 100% Git-native.
-Veja `docs/sites-stack-hibrido.md`, `docs/directus-imoveis-contract.md`,
+dados dinâmicos (imóveis, usuários, submissões) ficam no **Payload CMS** no
+Dokploy, em instância única com papéis e usuários ilimitados; um hook grava o
+snapshot como arquivos `src/content/properties/*.md` e o Astro lê a coleção no
+build. Os demais sites são 100% Git-native.
+Veja `docs/sites-stack-hibrido.md`, `docs/payload-substitui-directus.md`,
 `docs/cloudflare-site-deploy.md` e `docs/deployment-dokploy.md`.
 
 O build bem-sucedido **não** é publicação. Só se reporta "no ar" após resposta

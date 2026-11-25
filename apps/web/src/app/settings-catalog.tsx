@@ -80,7 +80,7 @@ const sections: { title: string; cards: CatalogCard[] }[] = [
       { title: "Segurança e acesso", description: "Preferências administrativas e controle de acesso.", icon: ShieldCheck, action: "advanced", tone: "slate" },
       { title: "Configurações técnicas", description: "Ajustes avançados para integrações e ambiente.", icon: Settings2, action: "advanced", tone: "slate" },
       { title: "Fluxos de trabalho", description: "Modelos que automatizam tarefas, mensagens e follow-ups.", icon: Workflow, action: "module", target: "Workflows", tone: "purple", metricKey: "workflows" },
-      { title: "Marca e publicação", description: "Biblioteca, Drive e conteúdo para o Marketing.", icon: Image, action: "module", target: "Marketing", tone: "pink" },
+      { title: "Biblioteca de referências", description: "Imagens de referência e arquivos do Google Drive usados pela automação.", icon: Image, action: "module", target: "Biblioteca de referências", tone: "pink" },
       { title: "Chaves e integrações", description: "Credenciais e tokens das conexões autorizadas.", icon: KeyRound, action: "advanced", tone: "slate" },
     ],
   },

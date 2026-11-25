@@ -4,6 +4,8 @@ import { handleRequest } from "../index.mjs";
 
 const ORIGIN = "https://altoaraguaiaimoveis.com.br";
 const URL_BASE = "https://directus.example.test";
+const PAYLOAD_BASE = "https://payload.example.test";
+const TENANT = "22222222-2222-4222-8222-222222222222";
 const FIXED_NOW = () => new Date("2026-11-24T12:34:00.000Z");
 
 function memoryKv() {
@@ -24,20 +26,25 @@ function memoryKv() {
 
 function env(overrides = {}) {
   return {
+    SUBMISSIONS_PROVIDER: "directus",
     DIRECTUS_URL: URL_BASE,
     DIRECTUS_TOKEN: "token-apenas-no-servidor",
+    PAYLOAD_URL: PAYLOAD_BASE,
+    PAYLOAD_TOKEN: "payload-token-apenas-no-servidor",
+    PAYLOAD_TENANT_ID: TENANT,
     ALLOWED_ORIGIN: ORIGIN,
     RATE_LIMIT_KV: memoryKv(),
     ...overrides,
   };
 }
 
-function fetchMock({ existing = [], createStatus = 200, throwOnCreate = false } = {}) {
+function fetchMock({ provider = "directus", existing = [], createStatus = 200, throwOnCreate = false } = {}) {
   const calls = [];
   const impl = async (url, init) => {
     calls.push({ url, init });
     if (init?.method !== "POST") {
-      return new Response(JSON.stringify({ data: existing }), {
+      const envelope = provider === "payload" ? { docs: existing } : { data: existing };
+      return new Response(JSON.stringify(envelope), {
         status: 200,
         headers: { "content-type": "application/json" },
       });
@@ -85,7 +92,7 @@ async function jsonBody(response) {
   return response.json();
 }
 
-test("configuração ausente responde 503 sem tocar no Directus", async () => {
+test("configuração ausente responde 503 sem tocar no CMS", async () => {
   const fetchImpl = fetchMock();
   const response = await handleRequest(
     request(),
@@ -118,7 +125,7 @@ test("honeypot preenchido responde sem gravar submissão", async () => {
   assert.equal(fetchImpl.calls.length, 0);
 });
 
-test("campos obrigatórios e consentimento são validados antes do Directus", async () => {
+test("campos obrigatórios e consentimento são validados antes do CMS", async () => {
   const fetchImpl = fetchMock();
   const response = await handleRequest(
     request(validBody({ name: "A", email: "invalido", message: "oi", consent: false })),
@@ -170,6 +177,77 @@ test("chave já existente é reaproveitada sem segundo POST", async () => {
   assert.notEqual(fetchImpl.calls[0].init.method, "POST");
 });
 
+test("payload: submissão usa API key, filtra por tenant e grava tenantId", async () => {
+  const fetchImpl = fetchMock({ provider: "payload" });
+  const settings = env({ SUBMISSIONS_PROVIDER: "payload" });
+  const response = await handleRequest(request(), settings, { fetch: fetchImpl, now: FIXED_NOW });
+
+  assert.equal(response.status, 200);
+  const body = await jsonBody(response);
+  assert.equal(body.status, "pending");
+  assert.equal(body.duplicate, false);
+  assert.match(body.submissionKey, /^AA-[0-9a-f]{32}$/);
+  assert.ok(!JSON.stringify(body).includes("payload-token-apenas-no-servidor"));
+
+  assert.equal(fetchImpl.calls.length, 2);
+  const [lookup, create] = fetchImpl.calls;
+  const lookupUrl = new URL(lookup.url);
+  assert.equal(lookupUrl.pathname, "/api/submission");
+  assert.equal(lookupUrl.searchParams.get("where[tenantId][equals]"), TENANT);
+  assert.ok(lookupUrl.searchParams.get("where[submission_key][equals]"));
+  assert.equal(lookupUrl.searchParams.get("limit"), "1");
+  assert.equal(lookup.init.headers.authorization, "users API-Key payload-token-apenas-no-servidor");
+  assert.equal(create.init.method, "POST");
+  assert.equal(create.init.headers.authorization, "users API-Key payload-token-apenas-no-servidor");
+
+  const created = JSON.parse(create.init.body);
+  assert.equal(created.tenantId, TENANT);
+  assert.equal(created.status, "pending");
+  assert.equal(created.email, "ana@example.com");
+  assert.equal(created.payload.consent, true);
+  assert.equal(created.payload.receivedAt, FIXED_NOW().toISOString());
+});
+
+test("payload: resposta docs com chave existente evita segundo POST", async () => {
+  const fetchImpl = fetchMock({
+    provider: "payload",
+    existing: [{ id: "s1", submission_key: "AA-existente" }],
+  });
+  const response = await handleRequest(
+    request(),
+    env({ SUBMISSIONS_PROVIDER: "payload" }),
+    { fetch: fetchImpl, now: FIXED_NOW },
+  );
+  assert.equal(response.status, 200);
+  assert.equal((await jsonBody(response)).duplicate, true);
+  assert.equal(fetchImpl.calls.length, 1);
+  assert.notEqual(fetchImpl.calls[0].init.method, "POST");
+});
+
+test("payload sem tenant é recusado sem chamar o CMS", async () => {
+  const fetchImpl = fetchMock({ provider: "payload" });
+  const response = await handleRequest(
+    request(),
+    env({ SUBMISSIONS_PROVIDER: "payload", PAYLOAD_TENANT_ID: "" }),
+    { fetch: fetchImpl, now: FIXED_NOW },
+  );
+  assert.equal(response.status, 503);
+  assert.match((await jsonBody(response)).error, /não está configurado/);
+  assert.equal(fetchImpl.calls.length, 0);
+});
+
+test("provedor inválido é recusado sem chamar o CMS", async () => {
+  const fetchImpl = fetchMock();
+  const response = await handleRequest(
+    request(),
+    env({ SUBMISSIONS_PROVIDER: "outro" }),
+    { fetch: fetchImpl, now: FIXED_NOW },
+  );
+  assert.equal(response.status, 503);
+  assert.match((await jsonBody(response)).error, /não está configurado/);
+  assert.equal(fetchImpl.calls.length, 0);
+});
+
 test("limite de cinco envios por IP por hora é aplicado", async () => {
   const settings = env();
   const fetchImpl = fetchMock();
@@ -185,7 +263,7 @@ test("limite de cinco envios por IP por hora é aplicado", async () => {
   assert.equal(fetchImpl.calls.length, 10);
 });
 
-test("falha do Directus vira 502 sem afirmar registro", async () => {
+test("falha do CMS vira 502 sem afirmar registro", async () => {
   const fetchImpl = fetchMock({ createStatus: 500 });
   const response = await handleRequest(request(), env(), { fetch: fetchImpl, now: FIXED_NOW });
   assert.equal(response.status, 502);

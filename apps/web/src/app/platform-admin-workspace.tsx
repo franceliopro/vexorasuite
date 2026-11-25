@@ -162,6 +162,10 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
     try { await api(`/plans/customers/${customerId}/plan`, { method: "PATCH", body: JSON.stringify({ planId }) }); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível atribuir o plano."); }
   };
+  const setPlansAccess = async (customerId: string, enabled: boolean) => {
+    try { await api(`/plans/customers/${customerId}/plans-access`, { method: "PATCH", body: JSON.stringify({ enabled }) }); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar o acesso a Planos e preços."); }
+  };
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return customers.filter(c => !term || [c.name, c.slug, c.plan?.name, c.plan?.code].filter(Boolean).join(" ").toLowerCase().includes(term));
@@ -195,12 +199,14 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
         </>
       ) : (
         <div className={customersTw}>
+          <p className="m-0 text-docs-hint text-ink-secondary">Planos e preços fica fora do menu dos clientes por padrão. Marque a opção abaixo para liberar em uma, duas ou várias empresas ao mesmo tempo.</p>
           <label className={searchTw} style={{ display: "flex" }}><Search size={15} aria-hidden="true" /><input className={searchInputTw} value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar empresa…" aria-label="Buscar empresa" /></label>
-          <div className={tableWrapTw}><table className={tableTw} style={{ minWidth: 820 }}><thead><tr><th className={thTw}>Empresa</th><th className={thTw}>Plano</th><th className={thTw}>Status</th><th className={thTw}>Assentos</th><th className={thTw}>Canais</th><th className={thTw}>Conversas</th><th className={thTw}>IA/mês</th><th className={thTw}>MRR</th><th className={thTw}></th></tr></thead><tbody>
+          <div className={tableWrapTw}><table className={tableTw} style={{ minWidth: 820 }}><thead><tr><th className={thTw}>Empresa</th><th className={thTw}>Plano</th><th className={thTw}>Planos e preços</th><th className={thTw}>Status</th><th className={thTw}>Assentos</th><th className={thTw}>Canais</th><th className={thTw}>Conversas</th><th className={thTw}>IA/mês</th><th className={thTw}>MRR</th><th className={thTw}></th></tr></thead><tbody>
             {filtered.map(c => (
               <tr key={c.id}>
                 <td className={tdTw}><div className={customerTw}><span className={customerMarkTw} aria-hidden="true">{c.name.trim().slice(0, 1).toUpperCase()}</span><span><b className={customerNameTw}>{c.name}</b><small className={customerSlugTw}>{c.slug}</small></span></div></td>
                 <td className={tdTw}><select className={planSelectTw} value={c.plan?.id || ""} onChange={e => void assignPlan(c.id, e.target.value || null)} aria-label={"Plano de " + c.name}><option value="">Sem plano</option>{plans.filter(p => p.isActive).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
+                <td className={tdTw}><label className={checkTw} data-testid="plans-access-toggle"><input type="checkbox" className={moduleCheckboxTw} checked={strArr(c.entitlements?.modules).includes("PLANS")} onChange={e => void setPlansAccess(c.id, e.target.checked)} aria-label={"Planos e preços para " + c.name} /> <span>Liberado</span></label></td>
                 <td className={tdTw}><span className={pillTw+" "+pillStateTw[c.status === "ACTIVE" ? "live" : "off"]}>{c.status === "ACTIVE" ? "Ativa" : c.status}</span></td>
                 <td className={tdTw}>{c.seats}</td><td className={tdTw}>{c.channels}</td><td className={tdTw}>{c.conversations}</td><td className={tdTw} title={"Execuções de IA neste mês: " + (c.aiMonth ?? 0)}>{c.aiMonth ?? 0}</td><td className={tdTw}>{PRICE(c.monthlyPriceCents)}</td><td className={tdTw}><a href={"/?module=Configurações"} className={iconButtonTw} title="Abrir empresa" aria-label="Abrir empresa"><ExternalLink size={14} aria-hidden="true" /></a></td>
               </tr>

@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EventsService } from "./events.service";
-import { entitlementsFromPlanLimits } from "../auth/entitlements";
+import { entitlementsFromPlanLimits, preservePlansAccess } from "../auth/entitlements";
 
 /**
  * Webhook da cobrança de planos (Asaas da própria Véxora).
@@ -56,7 +56,8 @@ export class BillingWebhookController {
       this.logger.warn(`Webhook de cobrança: plano "${code}" não encontrado.`);
       return { ok: true, ignored: true, plan: "not-found" };
     }
-    const entitlements = entitlementsFromPlanLimits(plan.limits as any) as any;
+    const previous = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { entitlements: true } });
+    const entitlements = preservePlansAccess(previous?.entitlements, entitlementsFromPlanLimits(plan.limits as any)) as any;
     await this.prisma.tenant.update({ where: { id: tenantId }, data: { planId: plan.id, entitlements } });
     await this.prisma.auditLog.create({
       data: { tenantId, userId: null, action: "plan.activated", entityType: "plan", entityId: plan.id, details: { code: plan.code, event, paymentId: payment.id ?? null, source: "asaas_webhook" } },

@@ -17,6 +17,7 @@ export const MODULES = [
   "FINANCE",
   "CHANNELS",
   "SETTINGS",
+  "PLANS",
 ] as const;
 export type ModuleKey = (typeof MODULES)[number];
 export const administrative = (role: string) =>
@@ -65,7 +66,10 @@ export function routeModules(path: string, method: string): string[] {
     return ["INBOX"];
   if (/^departments(?:\/|$)/.test(p) && method === "GET")
     return ["INBOX", "CRM", "SETTINGS", "AUTOMATION"];
-  if (/^departments(?:\/|$)|^team(?:\/|$)|^billing(?:\/|$)/.test(p)) return ["SETTINGS"];
+  // Planos e preços é capacidade da plataforma: cliente só acessa quando liberado por entitlements.
+  if (/^billing(?:\/|$)/.test(p)) return ["PLANS"];
+  if (/^plans(?:\/|$)/.test(p)) return ["PLANS"];
+  if (/^departments(?:\/|$)|^team(?:\/|$)/.test(p)) return ["SETTINGS"];
   if (/^channels(?:\/|$)/.test(p) && method === "GET")
     return ["INBOX", "AUTOMATION", "MARKETING", "CHANNELS"];
   if (/^channels(?:\/|$)/.test(p)) return ["CHANNELS"];

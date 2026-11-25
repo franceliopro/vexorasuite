@@ -72,16 +72,28 @@ test("a acessibilidade e os mocks de Tarefas continuam intactos", () => {
 });
 
 test("Tarefas mostra status no topo e mantém dados em coluna", () => {
-  for (const label of ["Atrasadas", "Concluídas hoje", "Todas"]) {
+  for (const label of ["Atrasadas", "Concluídas hoje", "Concluídas", "Todas"]) {
     assert.ok(tasks.includes(label), `falta o cartão de status ${label}`);
   }
   assert.ok(tasks.includes("metrics.completedToday"));
+  assert.ok(tasks.includes("metrics.completed"));
+  assert.ok(tasks.includes('aria-label="Concluídas Hoje"'));
   assert.ok(tasks.includes('min===120?"2h"'));
-  assert.ok(tasks.includes("grid-cols-1 gap-2.5 sm:grid-cols-3"));
+  assert.ok(tasks.includes("grid-cols-1 gap-2.5 sm:grid-cols-3 lg:grid-cols-4"));
   assert.ok(tasks.includes("sm:grid-cols-3"));
+  assert.ok(tasks.includes("lg:grid-cols-4"));
   assert.ok(tasks.includes("max-w-20"));
   assert.ok(tasks.includes("min-w-0"));
   assert.ok(tasks.includes("whitespace-nowrap text-ellipsis"));
   assert.ok(tasks.includes("line-clamp-2"));
   assert.doesNotMatch(tasks, /120 min/);
+});
+
+test("Os cartões de status filtram a lista com o mesmo padrão acessível", () => {
+  for (const value of ["overdue", "doneToday", "done", "all"]) {
+    assert.ok(tasks.includes(`aria-pressed={filter==="${value}"}`), `falta o filtro ${value}`);
+    assert.ok(tasks.includes(`onClick={()=>setFilter("${value}")}`), `falta a ação do filtro ${value}`);
+  }
+  assert.ok(tasks.includes('aria-label="Resumo e filtros das tarefas" role="group"'));
+  assert.ok(tasks.includes('api<Task[]>("?status="+filter+"&scope=internal")'));
 });

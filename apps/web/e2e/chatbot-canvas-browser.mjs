@@ -131,6 +131,9 @@ try{
  await expect(board.locator("[data-flow-node]").filter({hasText:"Pacote de automação"})).toHaveCount(1);
  await expect(board.locator("[data-flow-node]").filter({hasText:"Consultoria digital"})).toHaveCount(0);
  await expect(page.getByText(/Nome, tipo, SKU, preço e descrição vêm do cadastro/)).toBeVisible();
+ const catalogFlowPicker=page.getByRole("combobox",{name:"Fluxo aberto"});
+ await catalogFlowPicker.selectOption({label:"Oferta de teste"});
+ await expect(board.locator("[data-flow-node]")).toHaveCount(2);
  await libraryToggle.click();
  await expect(libraryToggle).toHaveAttribute("aria-expanded","false");
  await expect(board.locator("[data-flow-entry-link]")).toHaveCount(1);

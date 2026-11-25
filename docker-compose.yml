@@ -93,6 +93,10 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
+      # Submissões: destino continua Directus até a validação real do Payload.
+      SUBMISSIONS_PROVIDER: ${SUBMISSIONS_PROVIDER:-directus}
+      PAYLOAD_URL: ${PAYLOAD_URL:-}
+      PAYLOAD_TOKEN: ${PAYLOAD_TOKEN:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-vexora}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Dokploy}@postgres:5432/${POSTGRES_DB:-vexorasuite}
       REDIS_URL: redis://redis:6379
       # Rate limit uses the shared Redis counter and reads the real client IP from the proxy.

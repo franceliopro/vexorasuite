@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAnyAuthenticated, isEditorOrAdmin, isTenantScopedReader } from '../access/roles'
+import { isEditorOrAdmin, isTenantScopedReader } from '../access/roles'
 
 /**
  * Catálogo de mídia legada por URL. Não é uma collection `upload`: nenhum

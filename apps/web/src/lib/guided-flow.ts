@@ -247,7 +247,7 @@ export type StepIO = {
 };
 
 function varsIn(value: string): string[] {
-  return [...value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map(match => match[1]);
+  return [...value.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map(match => match[1] ?? "");
 }
 
 export function stepIO(step: Pick<GuidedStep, "kind" | "action" | "config" | "message" | "options">): StepIO {

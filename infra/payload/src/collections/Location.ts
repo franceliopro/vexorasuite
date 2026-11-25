@@ -10,6 +10,7 @@ export const Location: CollectionConfig = {
     update: isEditorOrAdmin,
     delete: isAdmin,
   },
+  indexes: [{ fields: ['tenantId', 'naturalKey'], unique: true }],
   fields: [
     { name: 'tenantId', type: 'text', required: true, index: true },
     { name: 'city', type: 'text', required: true },

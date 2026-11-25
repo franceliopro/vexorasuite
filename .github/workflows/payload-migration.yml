@@ -1,0 +1,27 @@
+name: Payload migration tool
+
+on:
+  pull_request:
+    paths:
+      - "scripts/payload-migrate/**"
+      - ".github/workflows/payload-migration.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "scripts/payload-migrate/**"
+      - ".github/workflows/payload-migration.yml"
+
+jobs:
+  test:
+    name: Migração Payload (dry-run e testes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Checar sintaxe
+        run: node --check scripts/payload-migrate/index.mjs
+      - name: Testes com fetch injetado
+        run: node --test scripts/payload-migrate/*.test.mjs

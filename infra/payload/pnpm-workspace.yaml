@@ -1,2 +1,8 @@
 packages:
   - "."
+
+# pnpm 12 lê esta chave aqui, não em package.json.
+onlyBuiltDependencies:
+  - sharp
+  - esbuild
+  - unrs-resolver

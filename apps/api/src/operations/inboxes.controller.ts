@@ -7,6 +7,7 @@ import {AuthGuard} from "../auth/auth.guard";
 import {AuthenticatedRequest} from "../auth/auth.types";
 import {PrismaService} from "../prisma/prisma.service";
 import {inboxRouting} from "./inbox-routing";
+import {attachmentsMap,ATTACHMENT_SERVICES} from "./attachment-helpers";
 import {isSchedulerWorkerAlive} from "../common/worker-health";
 import {selectPublication,publicationKey} from "./runtime-scope";
 const object=(v:unknown):Record<string,any>=>v&&typeof v==="object"&&!Array.isArray(v)?v as any:{};
@@ -20,11 +21,12 @@ export class InboxesController{
   this.authorize(req);const tenantId=req.user.tenantId;
   const [tenant,channels,departments]=await Promise.all([
    this.prisma.tenant.findUniqueOrThrow({where:{id:tenantId},select:{integrations:true,kind:true}}),
-   this.prisma.channelConnection.findMany({where:{tenantId,isActive:true,provider:{in:["WAHA","ZERNIO","EMAIL"]}},orderBy:{createdAt:"asc"}}),
+   this.prisma.channelConnection.findMany({where:{tenantId,isActive:true,provider:{in:["WAHA","ZERNIO","META","EMAIL"]}},orderBy:{createdAt:"asc"}}),
    this.prisma.department.findMany({where:{tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:"asc"}})
   ]);
   const root=object(tenant.integrations),assistant=object(root.assistant);
-  const rows=await Promise.all(channels.map(async channel=>{
+  const attachments=await attachmentsMap(this.prisma,tenantId,channels.map(channel=>channel.id));
+   const rows=await Promise.all(channels.map(async channel=>{
    const config=object(channel.settings),routing=inboxRouting(config),scope={departmentId:routing.departmentId};
    const selection=selectPublication(root,scope),publication=selection?.publication;
    const [inbound,outbound]=await Promise.all([
@@ -48,7 +50,7 @@ export class InboxesController{
    const last=inbound?.conversation;
    const activeSelection=last?selectPublication(root,{departmentId:last.departmentId,userId:last.assigneeId}):null;
    const lastDecision=!inbound?"Nenhuma mensagem recebida registrada.":last?.handlingMode==="HUMAN"?"Conversa sob atendimento humano; a IA não assume automaticamente.":audit?(object(audit.details).reason==="inbox_routing_human"?"Canal configurado como \"Atendimento humano\" — a IA não responde.":"Mensagem processada pelo motor."):!activeSelection?.publication?.flow.channelIds?.includes(channel.id)?"Mensagem recebida; não há fluxo vinculado ao contexto desta conversa.":!activeSelection.publication.active?"Mensagem recebida; o fluxo está pausado.":"Mensagem recebida; sem processamento confirmado. Verifique o gatilho e os registros da API.";
-   return {id:channel.id,name:channel.name,provider:channel.provider,platform:channel.provider==="WAHA"?"whatsapp":channel.provider==="EMAIL"?"email":String(config.platform||"social"),status:channel.status,identity:channel.provider==="WAHA"?config.accountPhone||null:config.username||config.profileName||null,identityCheckedAt:config.identityCheckedAt||null,accountId:channel.provider==="ZERNIO"?config.accountId||null:null,routing,departmentName:departments.find(d=>d.id===routing.departmentId)?.name||null,flow:publication?{name:publication.flow.name,active:publication.active,revision:publication.revision,scopeKey:selection?.key,includesInbox:publication.flow.channelIds?.includes(channel.id)===true,agents}:null,blockers,lastInboundAt:inbound?.occurredAt||null,lastConversationId:last?.id||null,lastDecision,lastProcessing:audit?{at:audit.createdAt,decision:object(audit.details).decision||null,reason:object(audit.details).reason||null}:null,lastDelivery:outbound?{at:outbound.occurredAt,status:outbound.status}:null};
+   return {id:channel.id,name:channel.name,provider:channel.provider,attachments:attachments.get(channel.id)||Object.fromEntries(ATTACHMENT_SERVICES.map(service=>[service,false])),platform:channel.provider==="WAHA"||channel.provider==="META"?"whatsapp":channel.provider==="EMAIL"?"email":String(config.platform||"social"),status:channel.status,identity:channel.provider==="WAHA"?config.accountPhone||null:config.username||config.profileName||null,identityCheckedAt:config.identityCheckedAt||null,accountId:channel.provider==="ZERNIO"?config.accountId||null:null,routing,departmentName:departments.find(d=>d.id===routing.departmentId)?.name||null,flow:publication?{name:publication.flow.name,active:publication.active,revision:publication.revision,scopeKey:selection?.key,includesInbox:publication.flow.channelIds?.includes(channel.id)===true,agents}:null,blockers,lastInboundAt:inbound?.occurredAt||null,lastConversationId:last?.id||null,lastDecision,lastProcessing:audit?{at:audit.createdAt,decision:object(audit.details).decision||null,reason:object(audit.details).reason||null}:null,lastDelivery:outbound?{at:outbound.occurredAt,status:outbound.status}:null};
   }));
   return {inboxes:rows,departments};
  }
@@ -65,7 +67,7 @@ export class InboxesController{
   return this.prisma.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM tenants WHERE id=${tenantId}::uuid FOR UPDATE`;
    await tx.$queryRaw`SELECT id FROM channel_connections WHERE id=${id}::uuid AND tenant_id=${tenantId}::uuid FOR UPDATE`;
-   const channel=await tx.channelConnection.findFirst({where:{id,tenantId,isActive:true,provider:{in:["WAHA","ZERNIO"]}}});
+   const channel=await tx.channelConnection.findFirst({where:{id,tenantId,isActive:true,provider:{in:["WAHA","ZERNIO","META"]}}});
    if(!channel)throw new BadRequestException("Inbox indisponível nesta empresa.");
    const config=object(channel.settings),current=inboxRouting(config);
    if(current.revision!==body.expectedRevision)throw new BadRequestException("A inbox foi alterada por outra pessoa. Atualize e revise antes de salvar.");

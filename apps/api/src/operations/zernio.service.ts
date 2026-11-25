@@ -3,6 +3,7 @@ import { BadGatewayException, Injectable, Optional, ServiceUnavailableException 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { zernioApiKeyFor } from "./zernio-credentials";
+import { isAllowedMediaUrl, readMediaResponse } from "./inbound-media";
 
 const BASE_URL = "https://zernio.com/api/v1";
 
@@ -74,5 +75,18 @@ export class ZernioService {
       });
     }
     return payload as T;
+  }
+
+  /** Busca mídia de redes sociais apenas em URL https allowlisted, usando a chave
+   * cifrada da empresa no servidor. Nunca busca host livre recebido no webhook. */
+  async downloadMedia(tenantId: string, url: string): Promise<{ buffer: Buffer; mimetype: string }> {
+    if (!isAllowedMediaUrl(url)) throw new BadGatewayException("A Zernio não forneceu uma URL de mídia segura.");
+    const apiKey = await this.resolveApiKey(tenantId);
+    const response = await fetch(url, {
+      ...(apiKey ? { headers: { authorization: "Bearer " + apiKey } } : {}),
+      redirect: "error",
+      signal: AbortSignal.timeout(30000),
+    });
+    return readMediaResponse(response);
   }
 }

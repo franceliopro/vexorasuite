@@ -8,6 +8,7 @@ import { EventsService } from "./events.service";
 import { ZernioService } from "./zernio.service";
 import { zernioWebhookSecretFor } from "./zernio-credentials";
 import { resolveContactIdentity } from "./contact-identity";
+import { normalizeInboundMedia } from "./inbound-media";
 
 const zernioProfileId = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -189,12 +190,15 @@ export class ZernioWebhookController {
           }
           let conversation = await tx.conversation.findFirst({ where: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, status: { in: ["OPEN", "PENDING"] } }, orderBy: { updatedAt: "desc" } });
           if (!conversation) conversation = await tx.conversation.create({ data: { tenantId: channel.tenantId, contactId: contact.id, channelConnectionId: channel.id, channel: platform, status: "OPEN" } });
+          const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+          const media = normalizeInboundMedia({ provider: "ZERNIO", type: attachments.length ? "file" : "text", attachments });
           const metadata = {
             provider: "ZERNIO",
             accountId,
             externalConversationId,
             platform,
-            attachments: Array.isArray(message.attachments) ? message.attachments : [],
+            attachments,
+            ...media,
             ...(conversation.handlingMode === "BOT" ? { engineStatus: "PENDING", engineAttempts: 0 } : {}),
           };
           const created = await tx.message.create({ data: { tenantId: channel.tenantId, conversationId: conversation.id, providerMessageId, direction: "INBOUND", status: "RECEIVED", content: text, contentType: Array.isArray(message.attachments) && message.attachments.length ? "file" : "text", senderName: customerName, metadata } });

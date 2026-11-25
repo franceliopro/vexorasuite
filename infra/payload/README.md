@@ -3,6 +3,7 @@
 Aplicação Payload CMS self-hosted, pronta para ser publicada no Dokploy. Este diretório contém código: nenhuma instância foi criada, nenhum domínio foi publicado e nenhum dado foi importado até agora.
 
 A decisão e a sequência completa estão em `docs/payload-substitui-directus.md`.
+O passo a passo de publicação no Dokploy está em `DOKPLOY.md`.
 
 ## O que é, em palavras simples
 
@@ -36,19 +37,18 @@ Nenhuma conta é criada automaticamente. O primeiro `admin` e a conta `service` 
 
 ## Variáveis de ambiente
 
-Preenchidas **somente no cofre do Dokploy**:
+Preenchidas **somente no cofre do Dokploy** (passo a passo em `DOKPLOY.md`):
 
 | Variável | Uso |
 | --- | --- |
-| `DATABASE_URL` | conexão Postgres |
-| `PAYLOAD_SECRET` | chave de assinatura; trocar invalida as API keys |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD` | banco no Compose |
 | `POSTGRES_DB` | nome do banco (padrão `vexora_payload`) |
+| `PAYLOAD_SECRET` | chave de assinatura; trocar invalida as API keys |
 | `PAYLOAD_PORT` | porta exposta (padrão `3000`) |
 
-`PAYLOAD_URL`, `PAYLOAD_TOKEN` e `PAYLOAD_TENANT_ID` pertencem aos **consumidores** (API da Véxora e Worker do formulário). Não são variáveis deste app e nunca devem ser coladas no chat ou versionadas.
+`DATABASE_URL` é montada pelo Compose a partir das variáveis do Postgres: não precisa ser preenchida à mão. Dentro do container, o app falha com mensagem explícita se ela ou `PAYLOAD_SECRET` estiverem ausentes. Não existe valor padrão escondido.
 
-O app falha com mensagem explícita se `DATABASE_URL` ou `PAYLOAD_SECRET` estiverem ausentes. Não existe valor padrão escondido.
+`PAYLOAD_URL`, `PAYLOAD_TOKEN` e `PAYLOAD_TENANT_ID` pertencem aos **consumidores** (API da Véxora e Worker do formulário). Não são variáveis deste app e nunca devem ser coladas no chat ou versionadas.
 
 ## Rodando localmente
 
@@ -73,6 +73,7 @@ tabelas e índices; a função `down` existe apenas para reversão explícita e 
 Ao alterar coleções ou campos, gere uma nova migration em ambiente de
 desenvolvimento e rode `pnpm payload migrate` antes de publicar. A URL do
 banco e o segredo continuam apenas no cofre.
+
 ## API key da conta de serviço
 
 1. Entre no Studio com uma conta `admin`.

@@ -31,7 +31,7 @@ test("a inserção usa o mesmo painel de todas as inboxes, sem mexer no botão +
   assert.match(inbox, /onInsert=\{\(text\) => insertCatalogText\(text\)\}/);
   assert.equal((inbox.match(/<CatalogQuotePanel /g) || []).length, 1);
   assert.equal((inbox.match(/data-testid="composer-tools"/g) || []).length, 1);
-  const helper = inbox.match(/function insertCatalogText\(text: string\) \{[\s\S]*?\n  \}/)?.[0] || "";
+  const helper = inbox.match(/function insertCatalogText\(text: string\) \{[\s\S]*?\n {2}\}/)?.[0] || "";
   assert.ok(helper.length > 100);
   assert.doesNotMatch(helper, /setComposerMenuOpen/);
 });

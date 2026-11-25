@@ -1,6 +1,6 @@
 import { jest as jestGlobals } from "@jest/globals";
 const jest = jestGlobals as any;
-import { BadRequestException, ForbiddenException, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 
 let SiteSubmissionsService: typeof import("./site-submissions.service").SiteSubmissionsService;
 beforeAll(async () => {
@@ -12,9 +12,10 @@ const OTHER = "99999999-9999-4999-8999-999999999999";
 const USER = "33333333-3333-4333-8333-333333333333";
 const KEY = "aa-1024-2026";
 
-function submission() {
+function submission(overrides: Record<string, unknown> = {}) {
   return {
     id: "s1",
+    tenantId: TENANT,
     submission_key: KEY,
     name: "Ana",
     email: "ana@example.com",
@@ -25,6 +26,7 @@ function submission() {
     property_id: null,
     date_created: "2026-11-24T00:00:00.000Z",
     date_updated: null,
+    ...overrides,
   };
 }
 
@@ -46,7 +48,7 @@ function decision(overrides: Record<string, unknown> = {}) {
 }
 
 function setup(prior: Record<string, unknown> | null = null, configuredTenant = TENANT) {
-  const directus: any = {
+  const cms: any = {
     assertConfigured: jest.fn().mockImplementation((tenantId: string) => {
       if (tenantId !== configuredTenant) throw new ServiceUnavailableException("Não configurado para esta empresa.");
     }),
@@ -62,24 +64,24 @@ function setup(prior: Record<string, unknown> | null = null, configuredTenant = 
       update: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ ...decision(), ...data })),
     },
   };
-  return { service: new SiteSubmissionsService(prisma, directus), prisma, directus };
+  return { service: new SiteSubmissionsService(prisma, cms), prisma, cms };
 }
 
 describe("SiteSubmissionsService", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("rejeita papel sem permissão de gestão", async () => {
-    const { service, directus } = setup();
+    const { service, cms } = setup();
     await expect(service.list(TENANT, "AGENT")).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.decide(KEY, { decision: "APPROVED" }, TENANT, "AGENT", USER)).rejects.toBeInstanceOf(ForbiddenException);
-    expect(directus.listPending).not.toHaveBeenCalled();
+    expect(cms.listPending).not.toHaveBeenCalled();
   });
 
   it("não usa a integração configurada em outra empresa", async () => {
-    const { service, directus } = setup();
+    const { service, cms } = setup();
     await expect(service.list(OTHER, "OWNER")).rejects.toBeInstanceOf(ServiceUnavailableException);
-    expect(directus.assertConfigured).toHaveBeenCalledWith(OTHER);
-    expect(directus.listPending).not.toHaveBeenCalled();
+    expect(cms.assertConfigured).toHaveBeenCalledWith(OTHER);
+    expect(cms.listPending).not.toHaveBeenCalled();
   });
 
   it("junta a decisão local sem afirmar que a notificação foi enviada", async () => {
@@ -90,16 +92,16 @@ describe("SiteSubmissionsService", () => {
   });
 
   it("exige motivo para rejeitar", async () => {
-    const { service, directus } = setup();
+    const { service, cms } = setup();
     await expect(service.decide(KEY, { decision: "REJECTED" }, TENANT, "OWNER", USER)).rejects.toBeInstanceOf(BadRequestException);
-    expect(directus.decide).not.toHaveBeenCalled();
+    expect(cms.decide).not.toHaveBeenCalled();
   });
 
   it("registra a decisão e não confirma o envio", async () => {
-    const { service, directus, prisma } = setup();
+    const { service, cms, prisma } = setup();
     const result = await service.decide(KEY, { decision: "APPROVED" }, TENANT, "ADMIN", USER);
-    expect(directus.findByKey).toHaveBeenCalledWith(KEY);
-    expect(directus.decide).toHaveBeenCalledWith("s1", "APPROVED", null);
+    expect(cms.findByKey).toHaveBeenCalledWith(TENANT, KEY);
+    expect(cms.decide).toHaveBeenCalledWith(TENANT, "s1", "APPROVED", null);
     expect(prisma.siteHubSubmissionDecision.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ tenantId: TENANT, submissionKey: KEY, actorId: USER, status: "PROCESSING" }),
     }));
@@ -110,23 +112,43 @@ describe("SiteSubmissionsService", () => {
   });
 
   it("repete a mesma decisão sem nova chamada externa e recusa decisão divergente", async () => {
-    const { service, directus } = setup(decision());
+    const { service, cms } = setup(decision());
     const repeated = await service.decide(KEY, { decision: "APPROVED" }, TENANT, "OWNER", USER);
     expect(repeated).toMatchObject({ idempotent: true, decision: "APPROVED" });
-    expect(directus.findByKey).not.toHaveBeenCalled();
-    expect(directus.decide).not.toHaveBeenCalled();
+    expect(cms.findByKey).not.toHaveBeenCalled();
+    expect(cms.decide).not.toHaveBeenCalled();
 
     await expect(service.decide(KEY, { decision: "REJECTED", reason: "Outro motivo" }, TENANT, "OWNER", USER))
       .rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("marca falha externa sem confirmar a decisão", async () => {
-    const { service, directus, prisma } = setup();
-    directus.decide.mockRejectedValueOnce(new Error("Directus respondeu 500"));
-    await expect(service.decide(KEY, { decision: "REJECTED", reason: "Preço acima do faixa" }, TENANT, "OWNER", USER))
-      .rejects.toThrow("Directus respondeu 500");
+    const { service, cms, prisma } = setup();
+    cms.decide.mockRejectedValueOnce(new Error("CMS respondeu 500"));
+    await expect(service.decide(KEY, { decision: "REJECTED", reason: "Preço acima da faixa" }, TENANT, "OWNER", USER))
+      .rejects.toThrow("CMS respondeu 500");
     expect(prisma.siteHubSubmissionDecision.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ status: "FAILED", lastError: "Directus respondeu 500" }),
+      data: expect.objectContaining({ status: "FAILED", lastError: "CMS respondeu 500" }),
+    }));
+  });
+
+  it("propaga o tenant da sessão ao cliente em toda leitura e escrita", async () => {
+    const { service, cms } = setup();
+    await service.list(TENANT, "OWNER");
+    expect(cms.listPending).toHaveBeenCalledWith(TENANT);
+    await service.decide(KEY, { decision: "APPROVED" }, TENANT, "OWNER", USER);
+    expect(cms.findByKey).toHaveBeenCalledWith(TENANT, KEY);
+    expect(cms.decide).toHaveBeenCalledWith(TENANT, "s1", "APPROVED", null);
+  });
+
+  it("não decide uma submissão ausente no CMS", async () => {
+    const { service, cms, prisma } = setup();
+    cms.findByKey.mockResolvedValueOnce(null);
+    await expect(service.decide(KEY, { decision: "APPROVED" }, TENANT, "OWNER", USER))
+      .rejects.toBeInstanceOf(NotFoundException);
+    expect(cms.decide).not.toHaveBeenCalled();
+    expect(prisma.siteHubSubmissionDecision.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "FAILED" }),
     }));
   });
 });

@@ -1,30 +1,19 @@
 import { BadGatewayException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
+import { SubmissionDecision, SubmissionRecord, SubmissionsClient } from "./submissions-client";
 
 /**
- * Cliente somente leitura/escrita da coleção `submission` do Directus.
+ * Cliente legado da coleção `submission` do Directus, mantido como fallback.
  *
  * A configuração é global mas vinculada a UM tenant (DIRECTUS_TENANT_ID): uma
  * empresa nunca pode usar as credenciais de outra. O token é service account
  * API-only e fica no cofre do servidor; o navegador nunca o recebe.
  */
-export interface DirectusSubmission {
-  id: string;
-  submission_key: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  payload: Record<string, unknown>;
-  status: string;
-  rejection_reason: string | null;
-  property_id: string | null;
-  date_created: string;
-  date_updated: string | null;
-}
+export type DirectusSubmission = SubmissionRecord;
 
 const FIELDS = "id,submission_key,name,email,phone,payload,status,rejection_reason,property_id,date_created,date_updated";
 
 @Injectable()
-export class DirectusSubmissionsService {
+export class DirectusSubmissionsService implements SubmissionsClient {
   private readonly logger = new Logger(DirectusSubmissionsService.name);
   private readonly baseUrl = (process.env.DIRECTUS_URL ?? "").trim().replace(/\/$/, "");
   private readonly token = (process.env.DIRECTUS_TOKEN ?? "").trim();
@@ -87,29 +76,30 @@ export class DirectusSubmissionsService {
     return (json?.data ?? null) as T;
   }
 
-  async listPending(): Promise<DirectusSubmission[]> {
+  async listPending(_tenantId: string): Promise<SubmissionRecord[]> {
     const params = new URLSearchParams({
       fields: FIELDS,
       "filter[status][_eq]": "pending",
       sort: "-date_created",
       limit: "100",
     });
-    const rows = await this.request<DirectusSubmission[] | null>(`/items/submission?${params.toString()}`);
-    return Array.isArray(rows) ? rows : [];
+    const rows = await this.request<Array<Omit<SubmissionRecord, "tenantId">> | null>(`/items/submission?${params.toString()}`);
+    return Array.isArray(rows) ? rows.map((row) => ({ ...row, tenantId: this.tenantId })) : [];
   }
 
-  async findByKey(submissionKey: string): Promise<DirectusSubmission | null> {
+  async findByKey(_tenantId: string, submissionKey: string): Promise<SubmissionRecord | null> {
     const params = new URLSearchParams({
       fields: FIELDS,
       "filter[submission_key][_eq]": submissionKey,
       limit: "1",
     });
-    const rows = await this.request<DirectusSubmission[] | null>(`/items/submission?${params.toString()}`);
-    return (Array.isArray(rows) ? rows[0] : undefined) ?? null;
+    const rows = await this.request<Array<Omit<SubmissionRecord, "tenantId">> | null>(`/items/submission?${params.toString()}`);
+    const row = (Array.isArray(rows) ? rows[0] : undefined) ?? null;
+    return row ? { ...row, tenantId: this.tenantId } : null;
   }
 
   /** O Flow do Directus cria o imóvel e notifica o anunciante; este cliente apenas muda o status. */
-  async decide(id: string, decision: "APPROVED" | "REJECTED", reason: string | null): Promise<void> {
+  async decide(_tenantId: string, id: string, decision: SubmissionDecision, reason: string | null): Promise<void> {
     const body = decision === "REJECTED"
       ? { status: "rejected", rejection_reason: reason }
       : { status: "approved" };

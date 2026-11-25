@@ -2,11 +2,12 @@
  * Worker do formulário público do Alto Araguaia Imóveis.
  *
  * Recebe o POST do site, valida, aplica honeypot e rate limit e grava uma
- * `submission` no Directus com status `pending`. Não cria imóvel, não notifica
- * o anunciante e não publica nada: isso pertence aos Flows do Directus.
+ * `submission` com status `pending` no CMS configurado. Não cria imóvel, não
+ * notifica o anunciante e não publica nada: isso pertence aos hooks do CMS.
  *
- * Segredos (DIRECTUS_URL, DIRECTUS_TOKEN) ficam no ambiente do Cloudflare.
- * Nenhum deles é devolvido ao navegador ou incluído no bundle do site.
+ * `SUBMISSIONS_PROVIDER` seleciona o destino. O padrão continua sendo
+ * `directus` até a instância Payload ser validada; `payload` é opt-in.
+ * Segredos ficam no ambiente do Cloudflare e nunca voltam ao navegador.
  */
 
 const JSON_HEADERS = Object.freeze({
@@ -75,20 +76,45 @@ async function sha256(value) {
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function configurationProblem(env) {
-  if (!clean(env.DIRECTUS_URL) || !clean(env.DIRECTUS_TOKEN)) {
+/** Configuração do destino escolhido. Nenhum segredo aparece no corpo da resposta. */
+function cmsConfig(env) {
+  const provider = (clean(env.SUBMISSIONS_PROVIDER) || "directus").toLowerCase();
+  if (provider === "directus") {
+    return {
+      provider,
+      url: clean(env.DIRECTUS_URL).replace(/\/+$/, ""),
+      token: clean(env.DIRECTUS_TOKEN),
+      tenantId: null,
+    };
+  }
+  if (provider === "payload") {
+    return {
+      provider,
+      url: clean(env.PAYLOAD_URL).replace(/\/+$/, ""),
+      token: clean(env.PAYLOAD_TOKEN),
+      tenantId: clean(env.PAYLOAD_TENANT_ID),
+    };
+  }
+  return { provider: null, url: "", token: "", tenantId: null };
+}
+
+function configurationProblem(config) {
+  if (!config.url || !config.token) {
+    return "O canal de envio não está configurado. Use um dos canais oficiais de contato.";
+  }
+  if (config.provider === "payload" && !config.tenantId) {
     return "O canal de envio não está configurado. Use um dos canais oficiais de contato.";
   }
   try {
-    const url = new URL(env.DIRECTUS_URL);
+    const url = new URL(config.url);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
-      return "A configuração do Directus não é válida.";
+      return "A configuração do CMS não é válida.";
     }
     if (url.protocol === "http:" && !["localhost", "127.0.0.1"].includes(url.hostname)) {
-      return "A configuração do Directus exige HTTPS.";
+      return "A configuração do CMS exige HTTPS.";
     }
   } catch {
-    return "A configuração do Directus não é válida.";
+    return "A configuração do CMS não é válida.";
   }
   return null;
 }
@@ -158,23 +184,59 @@ async function consumeRateLimit(env, request) {
   }
 }
 
-function directusHeaders(env) {
+function cmsHeaders(config) {
+  const authorization = config.provider === "payload"
+    ? (config.token.startsWith("users API-Key ") || config.token.startsWith("Bearer ")
+      ? config.token
+      : `users API-Key ${config.token}`)
+    : `Bearer ${config.token}`;
   return {
-    authorization: `Bearer ${env.DIRECTUS_TOKEN}`,
+    authorization,
     "content-type": "application/json",
   };
 }
 
-async function findSubmission(fetchImpl, listUrl, env) {
-  const response = await fetchImpl(listUrl, {
+function listUrl(config, submissionKey) {
+  if (config.provider === "payload") {
+    const params = new URLSearchParams({
+      "where[submission_key][equals]": submissionKey,
+      "where[tenantId][equals]": config.tenantId,
+      limit: "1",
+      depth: "0",
+    });
+    return `${config.url}/api/submission?${params.toString()}`;
+  }
+  return `${config.url}/items/submission?fields=id,submission_key&filter[submission_key][_eq]=${encodeURIComponent(submissionKey)}&limit=1`;
+}
+
+function createUrl(config) {
+  return config.provider === "payload"
+    ? `${config.url}/api/submission`
+    : `${config.url}/items/submission`;
+}
+
+function createBody(config, submissionKey, fields, receivedAt) {
+  const base = {
+    submission_key: submissionKey,
+    name: fields.name,
+    email: fields.email,
+    phone: fields.phone,
+    status: "pending",
+    payload: { ...fields, consent: true, receivedAt },
+  };
+  return config.provider === "payload" ? { ...base, tenantId: config.tenantId } : base;
+}
+
+async function findSubmission(fetchImpl, url, config) {
+  const response = await fetchImpl(url, {
     method: "GET",
-    headers: directusHeaders(env),
+    headers: cmsHeaders(config),
     redirect: "error",
   });
   if (!response.ok) return null;
   const jsonValue = await response.json().catch(() => null);
-  const rows = Array.isArray(jsonValue?.data) ? jsonValue.data : [];
-  return rows[0] ?? null;
+  const rows = config.provider === "payload" ? jsonValue?.docs : jsonValue?.data;
+  return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
 
 /**
@@ -208,7 +270,8 @@ export async function handleRequest(request, env, dependencies = {}) {
   }
 
   const headers = corsHeaders(cors.origin);
-  const problem = configurationProblem(env);
+  const config = cmsConfig(env);
+  const problem = configurationProblem(config);
   if (problem) return json({ error: problem }, 503, headers);
 
   const rate = await consumeRateLimit(env, request);
@@ -254,39 +317,31 @@ export async function handleRequest(request, env, dependencies = {}) {
     hourBucket,
   ].join("\u001f");
   const submissionKey = `AA-${(await sha256(material)).slice(0, 32)}`;
-  const baseUrl = env.DIRECTUS_URL.replace(/\/+$/, "");
-  const listUrl = `${baseUrl}/items/submission?fields=id,submission_key&filter[submission_key][_eq]=${encodeURIComponent(submissionKey)}&limit=1`;
+  const lookup = listUrl(config, submissionKey);
 
   try {
-    const existing = await findSubmission(fetchImpl, listUrl, env);
+    const existing = await findSubmission(fetchImpl, lookup, config);
     if (existing) {
       return json({ ok: true, submissionKey, duplicate: true }, 200, headers);
     }
 
-    const created = await fetchImpl(`${baseUrl}/items/submission`, {
+    const created = await fetchImpl(createUrl(config), {
       method: "POST",
-      headers: directusHeaders(env),
-      body: JSON.stringify({
-        submission_key: submissionKey,
-        name: parsed.fields.name,
-        email: parsed.fields.email,
-        phone: parsed.fields.phone,
-        status: "pending",
-        payload: { ...parsed.fields, consent: true, receivedAt },
-      }),
+      headers: cmsHeaders(config),
+      body: JSON.stringify(createBody(config, submissionKey, parsed.fields, receivedAt)),
     });
 
     if (!created.ok) {
       // Concorrência: outra requisição pode ter criado a mesma chave.
       if (created.status === 409 || created.status === 400) {
-        const raced = await findSubmission(fetchImpl, listUrl, env);
+        const raced = await findSubmission(fetchImpl, lookup, config);
         if (raced) return json({ ok: true, submissionKey, duplicate: true }, 200, headers);
       }
       return json({ error: "Não foi possível registrar a submissão." }, 502, headers);
     }
 
-    // A criação não implica notificação nem publicação. O Flow do Directus
-    // decide o que acontece depois e registra a confirmação do provedor.
+    // A criação não implica notificação nem publicação. O hook do CMS decide
+    // o que acontece depois e registra a confirmação do provedor.
     return json({ ok: true, submissionKey, duplicate: false, status: "pending" }, 200, headers);
   } catch {
     return json({ error: "Não foi possível registrar a submissão." }, 502, headers);

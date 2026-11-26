@@ -6,6 +6,7 @@ Website institucional premium, inspirado na composição editorial da referênci
 
 - `index.html` — página completa, responsiva e interativa.
 - `assets/logo-vexora.svg` — arquivo original do logotipo fornecido, preservado sem recoloração ou redesenho.
+- `assets/logo-app.svg` — logotipo fornecido para os ícones dos apps nativos, preservado sem recoloração ou redesenho.
 - `assets/*.webp` — capturas de tela dos módulos reais fornecidas para apresentação.
 - `assets/marketing-preview.svg` — demonstração visual conceitual da área de Marketing.
 - `media/crm-desktop-flow.mp4` — vídeo curto em loop simulando a movimentação de uma oportunidade no Kanban do CRM.

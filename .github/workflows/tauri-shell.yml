@@ -48,10 +48,10 @@ jobs:
         env:
           CI: "true"
 
-      # Android needs SDK/NDK and iOS needs macOS/Xcode; neither is available
-      # on ubuntu-latest. Their config is checked above, not compiled here.
-      - name: Mobile targets are config-only in this runner
-        run: echo "Android and iOS are configured but not built on ubuntu-latest."
+      # Android is compiled in its own job with SDK/NDK. iOS needs macOS/Xcode,
+      # so it remains configuration-only in this runner.
+      - name: iOS remains config-only in this runner
+        run: echo "iOS is configured but not built on ubuntu-latest."
 
   desktop:
     name: Desktop build check (Linux)
@@ -91,3 +91,111 @@ jobs:
 
       - name: No installer published
         run: echo "Build check only; this workflow does not sign, upload or publish a binary."
+
+  windows:
+    name: Windows NSIS build check
+    needs: config
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build NSIS installer
+        run: pnpm --filter @vexorasuite/shell exec tauri build --ci --bundles nsis
+
+      - name: Verify NSIS artifact
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path "apps/shell/src-tauri/target/release/bundle/nsis" -Filter "*.exe" -File
+          if (-not $installer) { throw "No NSIS installer was produced." }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vexora-shell-windows-nsis
+          path: apps/shell/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+      - name: No signing or release
+        run: echo "Unsigned NSIS artifact only; no code signing, release or publication."
+
+  android:
+    name: Android build check (unsigned APK)
+    needs: config
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ANDROID_NDK_VERSION: 27.2.12479018
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 platform-tools ndk;${{ env.ANDROID_NDK_VERSION }}"
+
+      - name: Expose NDK home
+        run: echo "NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> "$GITHUB_ENV"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install Rust with Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Initialize Android project
+        run: pnpm --filter @vexorasuite/shell exec tauri android init --ci --skip-targets-install
+
+      - name: Build unsigned APKs
+        run: pnpm --filter @vexorasuite/shell exec tauri android build --ci --apk
+
+      - name: Verify APK artifact
+        shell: bash
+        run: |
+          test -n "$(find apps/shell/src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -print -quit)"
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vexora-shell-android-unsigned-apk
+          path: apps/shell/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      - name: No signing or publication
+        run: echo "Unsigned APK artifact only; no keystore, Play Store upload or publication."

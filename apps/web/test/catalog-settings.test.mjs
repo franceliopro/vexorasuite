@@ -13,21 +13,20 @@ test("o catálogo usa apenas endpoints tenant-scoped da API", () => {
   assert.match(component, /\/api\/backend\/catalog\?limit=200&includeInactive=true/);
   assert.match(component, /method: "POST"/);
   assert.match(component, /method: "PUT"/);
-  assert.match(component, /method: "DELETE"/);
-  assert.match(component, /active: true/);
+  assert.match(component, /includeInactive=true/);
 });
 
 test("a gestão do catálogo respeita OWNER e ADMIN", () => {
   assert.match(component, /canManage: boolean/);
   assert.match(component, /if \(!canManage\) return/);
   assert.match(component, /Somente OWNER e ADMIN podem alterar o catálogo/);
-  assert.match(home, /<CatalogSettings canManage=\{canManage\} initialFormOpen=\{catalogFormOpen\} \/>/);
+  assert.match(home, /<CatalogSettings canManage=\{canManage\} initialItemId=\{catalogEditId\} backLabel=\{catalogBackLabel\} onBack=\{closeCatalog\} \/>/);
   assert.match(home, /const canManage = \["OWNER", "ADMIN"\]/);
 });
 
 test("Configurações abre o catálogo sem mexer em Planos e preços", () => {
   assert.match(home, /import \{ CatalogSettings \} from "\.\/catalog-settings";/);
-  assert.ok(home.includes('onCatalog={() => { setCatalogReturnTo("settings"); setCatalogFormOpen(false); setSettingsCatalogOpen(true); }}'));
+  assert.ok(home.includes('onCatalog={() => { setCatalogReturnTo("settings"); setCatalogEditId(""); setSettingsCatalogOpen(true); }}'));
   assert.match(home, /active === "Planos e preços"/);
   assert.doesNotMatch(home, /active === "Planos e pacotes"/);
   assert.match(settings, /action: "catalog"/);
@@ -39,11 +38,9 @@ test("os controles do catálogo têm identificadores estáveis", () => {
   for (const hook of [
     'data-testid="catalog-settings"',
     'data-testid="catalog-settings-form"',
-    'data-testid="catalog-settings-list"',
     'data-testid="catalog-settings-save"',
-    'data-testid="catalog-settings-deactivate"',
-    'data-testid="catalog-settings-reactivate"',
-    'data-testid="catalog-item-price"',
+    'data-testid="catalog-settings-name"',
+    'data-testid="catalog-settings-price"',
     'data-testid="catalog-settings-image-picker"',
     'data-testid="catalog-settings-image-value"',
   ]) {
@@ -85,25 +82,29 @@ test("o seletor de imagem aceita PC, Google Drive conectado e URL", () => {
 });
 
 test("o botão Voltar do catálogo devolve ao módulo de origem", () => {
-  assert.ok(finance.includes('window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:origin}))'));
-  assert.match(home, /setCatalogReturnTo\(newItem \? "finance-products" : origin === "finance-subscriptions" \? "finance-subscriptions" : "settings"\)/);
-  assert.match(home, /Voltar para \{catalogReturnTo === "finance-products"/);
+  assert.ok(finance.includes('window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin,itemId:itemId||""}}))'));
+  assert.match(home, /const raw = detail\.origin \|\| "settings"/);
+  assert.match(home, /onClick=\{closeCatalog\}/);
   assert.match(home, /<FinanceWorkspace initialTab=\{financeInitialTab\} \/>/);
 });
 
-test("a listagem do catálogo vem primeiro e o formulário é uma ação explícita", () => {
-  assert.match(component, /initialFormOpen = false/);
-  assert.match(component, /initialFormOpen\?: boolean/);
-  assert.match(component, /const \[formOpen, setFormOpen\] = useState\(initialFormOpen\)/);
-  assert.match(component, /useEffect\(\(\) => \{ setFormOpen\(initialFormOpen\); \}, \[initialFormOpen\]\)/);
-  assert.ok(component.includes('{canManage && formOpen ? <div data-testid="catalog-settings-form"'));
+test("o cadastro é a única janela do catálogo e abre em modo de edição", () => {
+  assert.match(component, /initialItemId = ""/);
+  assert.match(component, /initialItemId\?: string/);
+  assert.match(component, /backLabel = "Voltar aos Produtos"/);
+  assert.match(component, /const appliedEditId = useRef\(""\)/);
+  assert.match(component, /const item = items\.find\(\(entry\) => entry\.id === initialItemId\)/);
+  assert.ok(component.includes('{editingId ? "Salvar alterações" : "Adicionar item"}'));
+  assert.ok(component.includes('{backLabel}</button>'));
   assert.ok(component.includes('data-testid="catalog-settings-new"'));
-  assert.ok(component.includes('function openNewItem()'));
-  assert.ok(component.includes('setFormOpen(false);'));
-  assert.match(home, /const \[catalogFormOpen, setCatalogFormOpen\] = useState\(false\)/);
-  assert.match(home, /const newItem = origin === "finance-products:new"/);
-  assert.match(home, /setCatalogFormOpen\(newItem\)/);
-  assert.ok(home.includes('setCatalogFormOpen(false); }}>← Voltar para'));
+  assert.doesNotMatch(component, /data-testid="catalog-settings-list"/);
+  assert.doesNotMatch(component, /data-testid="catalog-settings-search"/);
+  assert.doesNotMatch(component, /Filtrar por tipo/);
+  assert.doesNotMatch(component, /Voltar à lista/);
+  assert.doesNotMatch(component, /Cancelar edição/);
+  assert.match(home, /const \[catalogEditId, setCatalogEditId\] = useState\(""\)/);
+  assert.match(home, /setCatalogEditId\(itemId\)/);
   assert.ok(finance.includes('openCatalogSettings("finance-products:new")'));
+  assert.ok(finance.includes('onClick={()=>openCatalogSettings("finance-products",item.id)}'));
   assert.ok(finance.includes('origin:"finance-products"|"finance-products:new"|"finance-subscriptions"'));
 });

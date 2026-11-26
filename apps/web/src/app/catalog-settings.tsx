@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Image as ImageIcon, Package, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Image as ImageIcon, Plus } from "lucide-react";
 import { CatalogImagePicker, safeCatalogImageUrl } from "./catalog-image-picker";
 
 type Kind = "PRODUCT" | "SERVICE";
@@ -53,26 +53,18 @@ const fieldTw = "grid gap-1.5 text-asaas-label font-semibold text-ink-secondary"
 const inputTw = "min-h-control w-full min-w-0 rounded-lg border border-gray-200 bg-zinc-100 px-2.5 py-1.5 text-small text-ink focus:border-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-600/25";
 const primaryButton = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-900 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-gray-200 bg-zinc-200 px-4 text-body font-bold text-ink transition-colors hover:bg-zinc-300 disabled:cursor-not-allowed disabled:opacity-60";
-const textButton = "inline-flex min-h-8 items-center justify-center gap-1.5 px-1.5 font-bold text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60";
-const listTw = "grid gap-2";
-const itemTw = "grid grid-cols-1 gap-2 rounded-token-sm border border-gray-200 bg-zinc-100 p-3 sm:grid-cols-2";
-const itemTitleTw = "flex min-w-0 items-center gap-2 text-body font-bold text-ink";
-const itemMetaTw = "text-small text-ink-secondary";
-const badgeTw = "inline-flex min-h-6 items-center rounded-cf-tag px-cf-tag-x text-2xs font-bold";
-const mutedTw = "text-asaas-muted text-ink-secondary";
+const noteTw = "m-0 text-small text-ink-secondary";
 
-export function CatalogSettings({ canManage, initialFormOpen = false }: { canManage: boolean; initialFormOpen?: boolean }) {
+export function CatalogSettings({ canManage, initialItemId = "", backLabel = "Voltar aos Produtos", onBack }: { canManage: boolean; initialItemId?: string; backLabel?: string; onBack: () => void }) {
   const [items, setItems] = useState<CatalogItem[]>([]);
-  const [formOpen, setFormOpen] = useState(initialFormOpen);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [kindFilter, setKindFilter] = useState<"ALL" | Kind>("ALL");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const appliedEditId = useRef("");
 
   async function load() {
     try {
@@ -86,20 +78,11 @@ export function CatalogSettings({ canManage, initialFormOpen = false }: { canMan
   }
 
   useEffect(() => { void load(); }, []);
-  useEffect(() => { setFormOpen(initialFormOpen); }, [initialFormOpen]);
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase("pt-BR");
-    return items.filter((item) => {
-      if (kindFilter !== "ALL" && item.kind !== kindFilter) return false;
-      return !needle || `${item.name} ${item.description || ""} ${item.sku || ""} ${item.category || ""}`.toLocaleLowerCase("pt-BR").includes(needle);
-    });
-  }, [items, query, kindFilter]);
-
-  const money = (item: CatalogItem) => (item.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: item.currency || "BRL" });
-
-  function startEdit(item: CatalogItem) {
-    setFormOpen(true);
+  useEffect(() => {
+    if (!initialItemId || appliedEditId.current === initialItemId) return;
+    const item = items.find((entry) => entry.id === initialItemId);
+    if (!item) return;
+    appliedEditId.current = initialItemId;
     setEditingId(item.id);
     setDraft({
       kind: item.kind,
@@ -114,20 +97,11 @@ export function CatalogSettings({ canManage, initialFormOpen = false }: { canMan
     });
     setError("");
     setNotice("");
-  }
+  }, [initialItemId, items]);
 
   function resetDraft() {
-    setFormOpen(false);
     setDraft(emptyDraft());
     setEditingId(null);
-  }
-
-  function openNewItem() {
-    setFormOpen(true);
-    setEditingId(null);
-    setDraft(emptyDraft());
-    setError("");
-    setNotice("");
   }
 
   async function save() {
@@ -163,36 +137,19 @@ export function CatalogSettings({ canManage, initialFormOpen = false }: { canMan
     }
   }
 
-  async function toggleActive(item: CatalogItem) {
-    if (!canManage) return;
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const url = `/api/backend/catalog/${encodeURIComponent(item.id)}`;
-      if (item.active) await api(url, { method: "DELETE" });
-      else await api(url, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ active: true }) });
-      setNotice(item.active ? "Item desativado. Documentos antigos mantêm o snapshot." : "Item reativado no catálogo.");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao alterar o item.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return <section data-testid="catalog-settings" className={cardTw} aria-labelledby="catalog-settings-title">
     <div className={headingTw}>
       <div>
-        <h2 id="catalog-settings-title" className={headingTitleTw}>Catálogo de produtos e serviços</h2>
-        <p className={headingCopyTw}>Fonte única da empresa para atendimento, orçamentos, documentos, chatbot e IAs. Preço e descrição vêm sempre do catálogo.</p>
+        <h2 id="catalog-settings-title" className={headingTitleTw}>{editingId ? "Editar produto/serviço" : "Novo produto/serviço"}</h2>
+        <p className={headingCopyTw}>{editingId ? "Altere os dados e salve para atualizar a vitrine do Financeiro." : "Cadastre um produto ou serviço para usar em Financeiro, atendimento e documentos."}</p>
       </div>
-      {canManage ? <button type="button" className={secondaryButton} data-testid="catalog-settings-new" onClick={openNewItem}><Plus size={15} aria-hidden="true" /> Novo produto</button> : null}
+      {canManage ? <button type="button" className={secondaryButton} data-testid="catalog-settings-new" disabled={busy} onClick={resetDraft}><Plus size={15} aria-hidden="true" /> Novo produto</button> : null}
     </div>
     {error ? <div className={feedbackErrorTw} role="alert">{error}</div> : null}
     {notice ? <div className={feedbackSuccessTw} role="status">{notice}</div> : null}
-    {!canManage ? <div className={feedbackErrorTw} role="note">Somente OWNER e ADMIN podem alterar o catálogo. Você está vendo os itens ativos desta empresa.</div> : null}
-    {canManage && formOpen ? <div data-testid="catalog-settings-form" className={formTw}>
+    {!canManage ? <div className={feedbackErrorTw} role="note">Somente OWNER e ADMIN podem alterar o catálogo.</div> : null}
+    {loading && initialItemId ? <p className={noteTw}>Carregando item do catálogo…</p> : null}
+    {canManage ? <div data-testid="catalog-settings-form" className={formTw}>
       <div className={toolbarTw}>
         <label className={fieldTw}><span>Tipo</span><select className={inputTw} value={draft.kind} onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value as Kind }))}><option value="SERVICE">Serviço</option><option value="PRODUCT">Produto digital</option></select></label>
         <label className={fieldTw}><span>Nome</span><input className={inputTw} data-testid="catalog-settings-name" maxLength={160} value={draft.name} placeholder="ex.: Site institucional" onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label>
@@ -215,22 +172,9 @@ export function CatalogSettings({ canManage, initialFormOpen = false }: { canMan
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={primaryButton} data-testid="catalog-settings-save" disabled={busy} onClick={() => void save()}>{editingId ? "Salvar alterações" : "Adicionar item"}</button>
-        {editingId ? <button type="button" className={secondaryButton} disabled={busy} onClick={resetDraft}>Cancelar edição</button> : <button type="button" className={secondaryButton} disabled={busy} onClick={resetDraft}>Voltar à lista</button>}
+        <button type="button" className={secondaryButton} disabled={busy} onClick={onBack}>{backLabel}</button>
       </div>
     </div> : null}
-    <div className={toolbarTw}>
-      <label className={fieldTw}><span>Buscar item</span><span className="relative"><Search size={16} aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-secondary" /><input className={inputTw} data-testid="catalog-settings-search" value={query} placeholder="Nome, descrição, SKU ou categoria" onChange={(event) => setQuery(event.target.value)} /></span></label>
-      <label className={fieldTw}><span>Filtrar por tipo</span><select className={inputTw} value={kindFilter} onChange={(event) => setKindFilter(event.target.value as "ALL" | Kind)}><option value="ALL">Todos</option><option value="SERVICE">Serviços</option><option value="PRODUCT">Produtos digitais</option></select></label>
-    </div>
-    <div data-testid="catalog-settings-list" className={listTw}>
-      {loading ? <p className={mutedTw}>Carregando catálogo…</p> : null}
-      {!loading && filtered.length === 0 ? <p className={mutedTw}>Nenhum item encontrado. {canManage ? "Use “Novo produto” para cadastrar o primeiro item." : "Peça à administração para cadastrar itens."}</p> : null}
-      {filtered.map((item) => <div className={itemTw} key={item.id} data-testid="catalog-item">
-        <div className={itemTitleTw}><Package size={16} aria-hidden="true" /><span>{item.name}</span><span className={badgeTw} data-kind={item.kind}>{item.kind === "PRODUCT" ? "Produto digital" : "Serviço"}</span>{!item.active ? <span className={badgeTw}>Inativo</span> : null}</div>
-        <div className={itemMetaTw}>{item.sku ? `${item.sku} · ` : ""}{item.category ? `${item.category} · ` : ""}{item.unit} · <strong data-testid="catalog-item-price">{money(item)}</strong>{item.description ? <><br />{item.description}</> : null}</div>
-        {canManage ? <div className="flex flex-wrap gap-2"><button type="button" className={textButton} data-testid="catalog-settings-edit" onClick={() => startEdit(item)}><Pencil size={14} aria-hidden="true" /> Editar</button>{item.active ? <button type="button" className={textButton} data-testid="catalog-settings-deactivate" disabled={busy} onClick={() => void toggleActive(item)}><Trash2 size={14} aria-hidden="true" /> Desativar</button> : <button type="button" className={textButton} data-testid="catalog-settings-reactivate" disabled={busy} onClick={() => void toggleActive(item)}><RotateCcw size={14} aria-hidden="true" /> Reativar</button>}</div> : null}
-      </div>)}
-    </div>
     <CatalogImagePicker open={imagePickerOpen} onClose={() => setImagePickerOpen(false)} onSelect={(value) => setDraft((current) => ({ ...current, imageUrl: value }))} />
   </section>;
 }

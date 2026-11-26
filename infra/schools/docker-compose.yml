@@ -1,0 +1,27 @@
+name: vexora-schools
+
+# Stack separada da Véxora Suite. Sem banco, volume, rede, domínio ou segredos compartilhados.
+# Contrato inicial: apenas o vínculo tenantId + provider + externalCustomerId.
+# A presença deste Compose não prova deploy, conexão com escola ou envio de mensagem.
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SCHOOLS_POSTGRES_USER:?Defina SCHOOLS_POSTGRES_USER no cofre}
+      POSTGRES_PASSWORD: ${SCHOOLS_POSTGRES_PASSWORD:?Defina SCHOOLS_POSTGRES_PASSWORD no cofre}
+      POSTGRES_DB: ${SCHOOLS_POSTGRES_DB:?Defina SCHOOLS_POSTGRES_DB no cofre}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SCHOOLS_POSTGRES_USER:?Defina SCHOOLS_POSTGRES_USER no cofre} -d ${SCHOOLS_POSTGRES_DB:?Defina SCHOOLS_POSTGRES_DB no cofre}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    expose:
+      - "5432"
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - schools-pgdata:/var/lib/postgresql/data
+
+volumes:
+  schools-pgdata:

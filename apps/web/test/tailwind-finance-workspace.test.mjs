@@ -211,7 +211,7 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
   for (const marker of [
     'fetch("/api/backend/finance/portfolio?"',
     'fetch("/api/backend/finance/catalog?offset="+offset+"&limit=50"',
-    'fetch("/api/backend/catalog?category=ASAAS&limit=200"',
+    'fetch("/api/backend/catalog?limit=200"',
     'fetch("/api/backend/finance/listings?"',
     'fetch("/api/backend/finance/executive?"',
     'fetch("/api/backend/finance/services"',
@@ -242,9 +242,9 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     '<h1>Financeiro</h1>',
     'id:"products",label:"Produtos"',
     '<h2 id="finance-products-title">Produtos</h2>',
-    'Cadastro e edição em Configurações → Catálogo.',
+    'Produtos da empresa. Use Editar em cada card para alterar nome, descrição, preço e imagem.',
     '> Novo produto</button>',
-    '> Gerenciar catálogo</button>',
+    '<Pencil size={15} aria-hidden="true"/> Editar</button>',
     'aria-label="Atualizar produtos"',
     'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:origin}))',
     'openCatalogSettings("finance-products:new")',
@@ -275,7 +275,7 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
 
 test("a vitrine mostra imagem, título e detalhes do catálogo em cards responsivos", () => {
   for (const marker of [
-    'fetch("/api/backend/catalog?category=ASAAS&limit=200"',
+    'fetch("/api/backend/catalog?limit=200"',
     'data-kind={item.kind}',
     'aria-label="Imagem não informada"',
     'loading="lazy"',
@@ -288,6 +288,21 @@ test("a vitrine mostra imagem, título e detalhes do catálogo em cards responsi
     assert.ok(source.includes(marker), `faltou ${marker}`);
   }
   assert.doesNotMatch(source, /<img className=\{productImageTw\} src=\{image\} alt=""/);
+});
+
+test("os produtos são editados na própria vitrine, sem Gerenciar catálogo", () => {
+  assert.doesNotMatch(source, /Gerenciar catálogo/);
+  assert.doesNotMatch(source, /Nenhum produto cadastrado nesta empresa\. Use/);
+  for (const marker of [
+    'aria-label={"Editar "+item.name}',
+    'useModalDialog(!!editing,editorRef,()=>setEditing(null))',
+    'aria-labelledby="finance-product-edit-title"',
+    'fetch("/api/backend/catalog/"+encodeURIComponent(editing.id)',
+    'method:"PUT"',
+    'priceCents:Math.round(price*100)',
+    'setRefresh(n=>n+1)',
+    '<button type="button" className={drawerButtonTw} disabled={saving}',
+  ]) assert.ok(source.includes(marker), `faltou ${marker}`);
 });
 
 test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {

@@ -109,7 +109,7 @@ jobs:
         run: |
           for attempt in $(seq 1 60); do
             if docker compose -f infra/telephony/docker-compose.yml exec -T database \
-              pg_isready -U "$TELEPHONY_POSTGRES_USER" -d "$TELEPHONY_POSTGRES_DB" >/dev/null 2>&1; then
+              pg_isready -h 127.0.0.1 -U "$TELEPHONY_POSTGRES_USER" -d "$TELEPHONY_POSTGRES_DB" >/dev/null 2>&1; then
               echo "Postgres pronto apos ${attempt}s"
               exit 0
             fi

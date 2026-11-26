@@ -18,10 +18,10 @@ test("a stack de telefonia é separada e não publica o banco", () => {
   assert.match(compose, /name: vexora-telephony/);
   assert.match(compose, /image: postgres:17-alpine/);
   assert.match(compose, /telephony-pgdata:\/var\/lib\/postgresql\/data/);
-  const databaseBlock = compose.split(/\n  telephony:/)[0];
-  assert.match(databaseBlock, /^  database:/m);
-  assert.match(databaseBlock, /^    expose:\s*$/m);
-  assert.doesNotMatch(databaseBlock, /^    ports:\s*$/m);
+  const databaseBlock = compose.split(/\n {2}telephony:/)[0];
+  assert.match(databaseBlock, /^ {2}database:/m);
+  assert.match(databaseBlock, /^ {4}expose:\s*$/m);
+  assert.doesNotMatch(databaseBlock, /^ {4}ports:\s*$/m);
   assert.doesNotMatch(rootCompose, /vexora-telephony|telephony-pgdata/i);
 });
 
@@ -73,6 +73,7 @@ test("o CI valida compose, migration, build e testes do serviço", () => {
   assert.match(workflow, /pnpm --filter @vexorasuite\/telephony test/);
   assert.match(workflow, /call_events_media_requires_consent/);
   assert.match(workflow, /call_events_idempotency_key/);
+  assert.match(workflow, /pg_isready -h 127\.0\.0\.1/);
   assert.match(workflow, /ci-placeholder-not-a-production-secret/);
 });
 

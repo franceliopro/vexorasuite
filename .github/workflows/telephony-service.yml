@@ -1,0 +1,164 @@
+name: Telephony service contract
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+      - main
+    paths:
+      - "apps/telephony/**"
+      - "infra/telephony/**"
+      - "apps/web/test/telephony-service-contract.test.mjs"
+      - "docs/product-focus.md"
+      - "docs/implementation-status.md"
+      - "docs/implementation-register.md"
+      - "docs/deployment-dokploy.md"
+      - ".github/workflows/telephony-service.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+      - main
+    paths:
+      - "apps/telephony/**"
+      - "infra/telephony/**"
+      - "apps/web/test/telephony-service-contract.test.mjs"
+      - "docs/product-focus.md"
+      - "docs/implementation-status.md"
+      - "docs/implementation-register.md"
+      - "docs/deployment-dokploy.md"
+      - ".github/workflows/telephony-service.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telephony-service-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Static contract guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Valores de CI apenas. Nao sao segredos e nunca chegam a producao.
+      TELEPHONY_POSTGRES_USER: ci
+      TELEPHONY_POSTGRES_PASSWORD: ci-placeholder-not-a-production-secret
+      TELEPHONY_POSTGRES_DB: telephony_ci
+      TELEPHONY_TENANTS: '{"11111111-1111-4111-8111-111111111111":{"provider":"NVOIP","webhookSecret":"ci-placeholder-not-a-production-secret"}}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Validate compose interpolation
+        run: docker compose -f infra/telephony/docker-compose.yml config > /tmp/telephony-compose.resolved.yml
+
+      - name: Contract tests
+        run: node --test apps/web/test/telephony-service-contract.test.mjs
+
+  service:
+    name: Service typecheck and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck telephony service
+        run: pnpm --filter @vexorasuite/telephony typecheck
+
+      - name: Unit tests telephony service
+        run: pnpm --filter @vexorasuite/telephony test
+
+  migration:
+    name: Isolation consent and idempotency
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Valores de CI apenas. Nao sao segredos e nunca chegam a producao.
+      TELEPHONY_POSTGRES_USER: ci
+      TELEPHONY_POSTGRES_PASSWORD: ci-placeholder-not-a-production-secret
+      TELEPHONY_POSTGRES_DB: telephony_ci
+      TELEPHONY_TENANTS: '{"11111111-1111-4111-8111-111111111111":{"provider":"NVOIP","webhookSecret":"ci-placeholder-not-a-production-secret"}}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start isolated database
+        run: docker compose -f infra/telephony/docker-compose.yml up -d database
+
+      - name: Wait for healthy database
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker compose -f infra/telephony/docker-compose.yml exec -T database \
+              pg_isready -U "$TELEPHONY_POSTGRES_USER" -d "$TELEPHONY_POSTGRES_DB" >/dev/null 2>&1; then
+              echo "Postgres pronto apos ${attempt}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose -f infra/telephony/docker-compose.yml logs database
+          exit 1
+
+      - name: Verify isolated schema without raw phone numbers
+        run: |
+          set -euo pipefail
+          DC="docker compose -f infra/telephony/docker-compose.yml exec -T database psql -v ON_ERROR_STOP=1 -U $TELEPHONY_POSTGRES_USER -d $TELEPHONY_POSTGRES_DB"
+          for table in call_consent call_events telephony_audit; do
+            $DC -tAc "SELECT to_regclass('public.$table')" | grep -qx "$table"
+          done
+          $DC -tAc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND (column_name ILIKE '%phone%' OR column_name ILIKE '%numero%' OR column_name ILIKE '%telefone%')" | grep -qx 0
+
+      - name: Verify consent and idempotency constraints
+        run: |
+          set -euo pipefail
+          DC="docker compose -f infra/telephony/docker-compose.yml exec -T database psql -v ON_ERROR_STOP=1 -U $TELEPHONY_POSTGRES_USER -d $TELEPHONY_POSTGRES_DB"
+          TENANT='11111111-1111-4111-8111-111111111111'
+          HASH=$(printf 'a%.0s' $(seq 1 64))
+          $DC -c "INSERT INTO call_events (tenant_id, provider, external_call_id, event_type, direction, channel, party_hash, occurred_at, correlation_id, consent_reason) VALUES ('$TENANT','NVOIP','call-1','call.ended','INBOUND','PHONE','$HASH', now(), 'corr-1','NO_CONSENT')" >/dev/null
+
+          if $DC -c "INSERT INTO call_events (tenant_id, provider, external_call_id, event_type, direction, channel, party_hash, occurred_at, correlation_id, consent_reason, recording_url) VALUES ('$TENANT','NVOIP','call-2','call.ended','INBOUND','PHONE','$HASH', now(), 'corr-2','NO_CONSENT','https://example.com/a.wav')" >/dev/null 2>/tmp/telephony-media.err; then
+            echo "Midia sem consentimento foi aceita"
+            exit 1
+          fi
+          grep -q 'call_events_media_requires_consent' /tmp/telephony-media.err
+
+          if $DC -c "INSERT INTO call_events (tenant_id, provider, external_call_id, event_type, direction, channel, party_hash, occurred_at, correlation_id, consent_reason) VALUES ('$TENANT','NVOIP','call-1','call.ended','INBOUND','PHONE','$HASH', now(), 'corr-3','NO_CONSENT')" >/dev/null 2>/tmp/telephony-duplicate.err; then
+            echo "Evento duplicado foi aceito"
+            exit 1
+          fi
+          grep -q 'call_events_idempotency_key' /tmp/telephony-duplicate.err
+          $DC -tAc "SELECT count(*) FROM call_events" | grep -qx 1
+
+      - name: Stop isolated database
+        if: always()
+        run: docker compose -f infra/telephony/docker-compose.yml down -v
+
+  docker-build:
+    name: Build image without runtime secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image with no tenant secrets in the environment
+        run: docker build --file apps/telephony/Dockerfile .

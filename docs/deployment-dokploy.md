@@ -39,6 +39,12 @@ Nenhuma credencial, token ou certificado entra no Git ou no chat: o token de API
 cofre do Dokploy. Um envelope criado com `200` está pendente, não assinado; a
 existência deste Compose não prova deploy nem funcionamento da integração.
 
+### Escolas (decisão de 26/11/2026)
+
+O futuro serviço escolar será um projeto Dokploy **separado**, com Postgres e volume próprios. O contrato inicial é o vínculo `tenantId + provider + externalCustomerId`, gravado em `tenant_links` com unicidade por essa tríade. O Compose fica em `infra/schools/docker-compose.yml` e as instruções em `infra/schools/DOKPLOY.md`.
+
+Este slice entrega apenas contrato e infraestrutura: não há alunos, turmas, matrículas, API ou deploy. A existência do Compose não prova deploy nem funcionamento da integração.
+
 ## Serviços do perfil padrão
 
 - `web`: Next.js na porta interna 3000.

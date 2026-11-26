@@ -68,6 +68,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 3. **Rastreabem:** conversão do HTML já existente em MDX como primeiro piloto de aprendizado do template.
 4. **Morbeck x Carvalhinho:** espelho estático limpo do WordPress, com busca client-side e build via Git.
 5. **Alto Araguaia Imóveis:** inventário do CMS PHP atual do proprietário e desenho das collections `imoveis`, `bairros`, `tipos`, `fotos` e `pages` no Payload/Strapi, com Puck para edição visual.
+6. **Telefonia/SMS e chamadas ao vivo com IA:** reabertura aprovada em 26/11/2026, em fatias reversíveis. Primeira fatia entregue: serviço separado com webhook assinado por tenant, consentimento default-deny, idempotência, auditoria e Postgres isolado (`apps/telephony`, `infra/telephony`). **Não entregue:** discagem, gravação, transcrição e IA em chamada. O endpoint sempre responde `aiInvoked: false`. Ver `infra/telephony/DOKPLOY.md`.
 
 ## 3. Onde vamos chegar
 
@@ -82,7 +83,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 
 - Criador de sites com IA, wizard de blueprint e editor visual legado (Véxora Sites). Substituído pelo HUB.
 - Home de apresentação com papel de parede. A página inicial é a Visão geral e o logo leva para ela.
-- Conector completo de WordPress, telefonia/SMS, chamadas com IA, anúncios pagos, publicação social automática e vídeo automático.
+- Conector completo de WordPress, anúncios pagos, publicação social automática e vídeo automático. Telefonia/SMS e chamadas ao vivo com IA foram reabertas em 26/11/2026 e saíram desta lista; ver §2, item 6. O histórico de remoção permanece registrado em `docs/product-focus.md`.
 - FAETER como primeiro vertical, Rastreabem como identidade global e PHP por site.
 - Studio Visual completo para páginas, formulários, galerias e conteúdo dinâmico.
 

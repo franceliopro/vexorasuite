@@ -1,0 +1,45 @@
+name: vexora-telephony
+
+# Serviço separado da Véxora Suite. Banco, volume, segredos e domínio próprios.
+# Padrão é simulação: nenhuma chamada, mensagem ou IA é disparada daqui.
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TELEPHONY_POSTGRES_USER:?Defina TELEPHONY_POSTGRES_USER no cofre}
+      POSTGRES_PASSWORD: ${TELEPHONY_POSTGRES_PASSWORD:?Defina TELEPHONY_POSTGRES_PASSWORD no cofre}
+      POSTGRES_DB: ${TELEPHONY_POSTGRES_DB:?Defina TELEPHONY_POSTGRES_DB no cofre}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TELEPHONY_POSTGRES_USER:?Defina TELEPHONY_POSTGRES_USER no cofre} -d ${TELEPHONY_POSTGRES_DB:?Defina TELEPHONY_POSTGRES_DB no cofre}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    expose:
+      - "5432"
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - telephony-pgdata:/var/lib/postgresql/data
+
+  telephony:
+    build:
+      context: ../..
+      dockerfile: apps/telephony/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${TELEPHONY_POSTGRES_USER:?Defina TELEPHONY_POSTGRES_USER no cofre}:${TELEPHONY_POSTGRES_PASSWORD:?Defina TELEPHONY_POSTGRES_PASSWORD no cofre}@database:5432/${TELEPHONY_POSTGRES_DB:?Defina TELEPHONY_POSTGRES_DB no cofre}
+      TELEPHONY_TENANTS: ${TELEPHONY_TENANTS:?Defina TELEPHONY_TENANTS no cofre}
+      TELEPHONY_MODE: ${TELEPHONY_MODE:-simulation}
+      TELEPHONY_ALLOW_REAL: ${TELEPHONY_ALLOW_REAL:-false}
+      TELEPHONY_WEBHOOK_TOLERANCE_SECONDS: ${TELEPHONY_WEBHOOK_TOLERANCE_SECONDS:-300}
+      TELEPHONY_HOST: 0.0.0.0
+      TELEPHONY_PORT: "3002"
+    ports:
+      - "${TELEPHONY_HOST_PORT:-3002}:3002"
+
+volumes:
+  telephony-pgdata:

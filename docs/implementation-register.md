@@ -66,6 +66,8 @@ A partir desta entrega o desenvolvimento ocorre diretamente no GitHub, com uma b
 
 ## Escopo reduzido aprovado
 O proprietário substituiu as expansões acima pelo escopo de docs/product-focus.md. Telefonia, SMS, campanhas em massa, anúncios, WordPress, vídeo automático e publicação social automática saem da aplicação ativa. WhatsApp e chat no site permanecem prioritários; não tratar widget público como entregue sem teste real. Marketing mantém criação e organização manual. Backlog histórico acima é referência, não autorização para retomar funcionalidades retiradas.
+
+**Reabertura aprovada em 26/11/2026 (item 13):** o proprietário autorizou retomar telefonia/SMS e chamadas ao vivo com IA em fatias reversíveis. A primeira fatia entrega apenas contrato e infraestrutura em `apps/telephony` e `infra/telephony`: webhook assinado por tenant, consentimento default-deny, idempotência, auditoria e Postgres isolado, com `TELEPHONY_MODE=simulation` por padrão. Nenhuma chamada, mensagem ou IA real foi executada. Discagem, gravação, transcrição e IA em chamadas dependem de PR próprio, consentimento por canal e APIs oficiais autorizadas — nunca scraping. O restante do escopo reduzido continua vigente.
 ## Entregue no PR #509+ (rodada de 2026-11-10, telão comercial + sites + planos)
 
 - **Véxora Sites** (produto isolável): API `/api/sites` com wizard de área de negócio (12 áreas), blueprint IA de páginas completas (home/serviços/quem somos/contato/imóveis/notícias), editor visual de blocos com reordenação, publicação/despublicação com slug único, formulários arrastáveis com destinos (pré-cadastro/e-mail/WhatsApp), agendamento 1:1 no site, domínio próprio com verificação TXT via DNS, render público em `/sites/<slug>` e snippet de chatbot público.

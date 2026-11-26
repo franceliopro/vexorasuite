@@ -1,0 +1,71 @@
+name: Lead attribution contract
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+      - main
+    paths:
+      - "apps/api/src/operations/lead-attribution-normalizer.ts"
+      - "apps/api/src/operations/lead-attribution-normalizer.spec.ts"
+      - "apps/web/test/lead-attribution-normalizer-contract.test.mjs"
+      - "docs/lead-attribution-normalization-contract.md"
+      - "docs/lead-attribution-foundation.md"
+      - ".github/workflows/lead-attribution-contract.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+      - main
+    paths:
+      - "apps/api/src/operations/lead-attribution-normalizer.ts"
+      - "apps/api/src/operations/lead-attribution-normalizer.spec.ts"
+      - "apps/web/test/lead-attribution-normalizer-contract.test.mjs"
+      - "docs/lead-attribution-normalization-contract.md"
+      - "docs/lead-attribution-foundation.md"
+      - ".github/workflows/lead-attribution-contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lead-attribution-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Pure normalizer guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Static contract guards
+        run: node --test apps/web/test/lead-attribution-normalizer-contract.test.mjs
+
+  api-spec:
+    name: API spec and typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Targeted normalizer spec
+        run: pnpm --filter @vexorasuite/api exec node --experimental-vm-modules -r ./scripts/typescript6-require-hook.cjs ./node_modules/jest/bin/jest.js --runInBand --testPathPatterns=lead-attribution-normalizer.spec.ts
+
+      - name: Typecheck API
+        run: pnpm --filter @vexorasuite/api typecheck

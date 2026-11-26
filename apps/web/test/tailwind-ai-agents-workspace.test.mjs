@@ -48,7 +48,9 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
   for (const utility of [
     "grid min-w-0 gap-token",
     "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface p-6 shadow-token-sm",
-    "flex shrink-0 flex-col gap-1 self-start rounded-token border border-line bg-surface-2 p-1.5 lg:w-52",
+    "flex w-full shrink-0 flex-col gap-2 self-start lg:w-52",
+    "grid gap-2 rounded-token border border-line bg-surface p-2",
+    "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5",
     "mt-3 grid w-full max-w-full grid-cols-ai-agents gap-2",
     "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg",
     "grid gap-3 rounded-ai-phone border border-line bg-surface-2 p-3",
@@ -70,6 +72,22 @@ test("a lista de agentes fica no topo, em grade responsiva e em largura total", 
   assert.equal(gridLine.includes("overflow-x-auto"), false, "a faixa não pode voltar a ter rolagem horizontal");
   assert.equal(ai.match(/role="listbox"/g)?.length, 1, "deve existir uma única lista de agentes");
   assert.equal(ai.includes("grid-cols-ai-layout"), false, "a lista não pode voltar para uma coluna estreita");
+});
+
+test("a criação de agentes vive na sidebar, acima da navegação e fora da lista", () => {
+  const sidebar = ai.indexOf('<aside className={workspaceSidebarTw}>');
+  const quickActions = ai.indexOf('{workspaceTab==="Agentes"&&<div className={agentQuickActionsTw}');
+  const agents = ai.indexOf('{workspaceTab==="Agentes"&&<section className={adminCardTw}>');
+  const nav = ai.indexOf('<nav className={workspaceNavTw}');
+  assert.ok(sidebar >= 0, "a sidebar da inteligência não foi encontrada");
+  assert.ok(quickActions > sidebar, "as ações rápidas precisam ficar dentro da sidebar");
+  assert.ok(quickActions < nav, "as ações rápidas precisam ficar acima da navegação");
+  assert.ok(quickActions > agents, "as ações rápidas precisam sair do cabeçalho da lista e ir para a sidebar");
+  assert.ok(ai.includes('<div className={adminHeadingTw}><h2 className={adminHeadingTitleTw}>'), "o cabeçalho da lista deve ficar limpo");
+  assert.ok(ai.includes('aria-label="Criação de agente"'));
+  assert.ok(ai.includes('aria-label="Tipo de agente"'));
+  assert.ok(ai.includes('aria-label="Template da área"'));
+  assert.ok(ai.includes('Use Novo na barra lateral'), "o estado vazio precisa apontar para a sidebar");
 });
 
 test("a navegação ativa usa texto branco sem cor herdada conflitante", () => {

@@ -13,6 +13,8 @@ const packageJson=read("package.json");
 test("workflow mostra uma linha do tempo sequencial e reordenável",()=>{
   for(const token of [
     "data-workflow-timeline",
+    "data-workflow-sidebar",
+    "workflow-editor-toolbar",
     "data-workflow-step={i+1}",
     "Passo {i+1}",
     "O passo 1 acontece primeiro",
@@ -53,4 +55,34 @@ test("a linha do tempo tem estilos próprios e responsivos",()=>{
     ".workflow-step-fields",".workflow-step-actions",".workflow-wait-field",
   ]) assert.ok(styles.includes(selector),`falta o estilo ${selector}`);
   assert.match(styles,/@media \(max-width:760px\)\{[\s\S]*?\.workflow-step-fields\{grid-template-columns:1fr\}/);
+});
+
+test("o editor alinha os textos à esquerda e reserva o negrito para títulos e números",()=>{
+  assert.match(styles,/\.workflow-studio-heading button,\.workflow-builder button\{justify-content:flex-start;text-align:left;text-indent:0;font-weight:400\}/);
+  assert.match(styles,/\.workflow-guide b,\.workflow-step-index\{font-weight:800\}/);
+  for(const selector of [
+    ".workflow-catalog-block button small",
+    ".workflow-name-field>span",
+    ".workflow-condition-grid label",
+    ".workflow-step-fields label",
+    ".workflow-guide span",
+    ".workflow-timeline-panel header p",
+    ".workflow-step-head span",
+    ".workflow-panel>header>small",
+  ]) assert.ok(styles.includes(selector),`falta o texto sem negrito ${selector}`);
+});
+
+test("o editor mantém o catálogo à esquerda e a sequência em uma área maior à direita",()=>{
+  assert.match(styles,/\.workflow-builder-grid\{grid-template-columns:250px minmax\(0,1fr\);grid-template-areas:"catalog canvas" "catalog settings"/);
+  for(const selector of [
+    ".workflow-editor-toolbar{",
+    ".workflow-catalog{grid-area:catalog",
+    ".workflow-canvas{grid-area:canvas",
+    ".workflow-settings{grid-area:settings",
+    ".workflow-name-field{",
+    ".workflow-condition-grid{",
+    ".workflow-panel{display:grid;gap:14px;padding:18px",
+  ]) assert.ok(styles.includes(selector),`falta o estilo ${selector}`);
+  assert.match(styles,/\.workflow-timeline-list \.workflow-step-card\{background-color:var\(--s1\)!important\}/);
+  assert.match(styles,/\.workflow-builder input,\.workflow-builder select,\.workflow-builder textarea\{background-color:var\(--s1\)!important\}/);
 });

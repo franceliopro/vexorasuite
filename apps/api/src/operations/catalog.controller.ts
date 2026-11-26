@@ -7,6 +7,14 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { administrative } from "../auth/module-policy";
 
 const trim = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+/** A vitrine exige ASAAS; itens sem categoria ficariam invisíveis no Financeiro e em Nova assinatura. */
+const PAYMENT_CATEGORY = "ASAAS";
+const safeImageUrl = (value: unknown): string | undefined => {
+  const url = trim(value, 1000);
+  if (!url) return undefined;
+  if (!/^https?:\/\//i.test(url) && !url.startsWith("/api/")) throw new BadRequestException("URL de imagem inválida. Use um link HTTP(S) ou um arquivo da própria Véxora.");
+  return url;
+};
 const KINDS = new Set(["PRODUCT", "SERVICE"]);
 const object = (v: unknown): Record<string, any> => v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, any> : {};
 
@@ -55,8 +63,8 @@ export class CatalogController {
     const currency = trim(input?.currency, 3).toUpperCase() || "BRL";
     if (currency.length !== 3) throw new BadRequestException("Moeda inválida.");
     const unit = trim(input?.unit, 10) || "un";
-    const imageUrl = trim(input?.imageUrl, 1000) || undefined;
-    const category = trim(input?.category, 80) || undefined;
+    const imageUrl = safeImageUrl(input?.imageUrl);
+    const category = trim(input?.category, 80) || PAYMENT_CATEGORY;
     const item = await this.prisma.catalogItem.create({ data: { tenantId: req.user.tenantId, kind, name, description, sku, priceCents: Math.round(price), currency, unit, imageUrl, category } });
     return { item };
   }
@@ -74,8 +82,8 @@ export class CatalogController {
     if (input?.priceCents !== undefined) { const price = Number(input.priceCents); if (!Number.isFinite(price) || price < 0) throw new BadRequestException("Preço inválido."); data.priceCents = Math.round(price); }
     if (input?.currency !== undefined) { const currency = trim(input.currency, 3).toUpperCase(); if (currency.length !== 3) throw new BadRequestException("Moeda inválida."); data.currency = currency; }
     if (input?.unit !== undefined) data.unit = trim(input.unit, 10) || "un";
-    if (input?.imageUrl !== undefined) data.imageUrl = trim(input.imageUrl, 1000) || null;
-    if (input?.category !== undefined) data.category = trim(input.category, 80) || null;
+    if (input?.imageUrl !== undefined) data.imageUrl = safeImageUrl(input.imageUrl) || null;
+    if (input?.category !== undefined) data.category = trim(input.category, 80) || PAYMENT_CATEGORY;
     if (input?.active !== undefined) data.active = input.active === true;
     const item = await this.prisma.catalogItem.update({ where: { id }, data, select: { id: true, kind: true, name: true, priceCents: true, unit: true, imageUrl: true, active: true } });
     return { item };

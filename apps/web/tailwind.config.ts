@@ -1170,7 +1170,7 @@ const config: Config = {
         "fin-history-stats": "repeat(4,minmax(0,1fr))",
         "fin-automation": "repeat(2,minmax(0,1fr))",
         "fin-templates": "minmax(170px,.72fr) minmax(0,1.28fr)",
-        "fin-sub-grid": "repeat(4,minmax(0,1fr))",
+        "fin-sub-columns": "minmax(0,0.92fr) minmax(0,1.08fr)",
         "fin-lookup": "minmax(0,1fr) auto",
 
       },
@@ -1318,7 +1318,8 @@ const config: Config = {
         /* Larguras dos painéis do Financeiro. */
         "fin-hero-title-w": "26ch",
         "fin-hero-copy-w": "52ch",
-        "fin-drawer": "min(100%,480px)",
+        "fin-window": "min(100%,880px)",
+        "fin-subscription": "min(100%,1040px)",
 
       },
       width: {

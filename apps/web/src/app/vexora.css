@@ -1787,10 +1787,9 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .workflow-catalog-block button strong{font-size:12.5px}
 .workflow-catalog-block button small{font-size:10.5px;color:var(--tx2)}
 .workflow-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 13px;border-radius:12px;background:var(--primary-soft);font-size:12px;color:var(--primary-ink)}
-.workflow-builder-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--ln)}
-.workflow-builder-header h2{margin:5px 0 3px;font-size:20px;font-weight:800;letter-spacing:-.02em}
-.workflow-builder-header p{margin:0;font-size:12px;color:var(--tx2)}
-.workflow-catalog{grid-area:catalog;display:grid;gap:16px;padding:14px;border:1px solid var(--ln);border-radius:var(--r);background:var(--s1)}
+.workflow-editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--ln)}
+.workflow-editor-toolbar button{min-height:30px;font-size:11px}
+.workflow-catalog{grid-area:catalog;display:grid;gap:14px;padding:14px;border:1px solid var(--ln);border-radius:var(--r);background:var(--s1)}
 .workflow-catalog-block h3{margin:0 0 8px;font-size:12px;font-weight:800;color:var(--tx)}
 .workflow-canvas{grid-area:canvas;display:grid;gap:16px;min-width:0}
 .workflow-settings{grid-area:settings}
@@ -1812,6 +1811,9 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .workflow-guide{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .workflow-guide span{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s1);font-size:11px;font-weight:700;color:var(--tx2)}
 .workflow-guide b{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--primary-soft);color:var(--primary-ink);font-size:10px}
+.workflow-catalog .workflow-name-field{padding:11px 12px}
+.workflow-catalog .workflow-guide{gap:6px;margin-top:0}
+.workflow-catalog .workflow-guide span{min-height:26px;padding:0 8px;font-size:10px}
 .workflow-timeline-panel header p{max-width:64ch;margin:6px 0 0;font-size:12px;font-weight:500;line-height:1.5;letter-spacing:0;text-transform:none;color:var(--tx2)}
 .workflow-timeline-list{display:grid;gap:14px}
 .workflow-timeline-list .workflow-step-card{grid-template-columns:34px minmax(0,1fr);gap:12px;padding:14px;border:1px solid var(--ln);border-radius:var(--r);background:var(--s1)}

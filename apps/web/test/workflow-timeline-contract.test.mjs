@@ -13,6 +13,8 @@ const packageJson=read("package.json");
 test("workflow mostra uma linha do tempo sequencial e reordenável",()=>{
   for(const token of [
     "data-workflow-timeline",
+    "data-workflow-sidebar",
+    "workflow-editor-toolbar",
     "data-workflow-step={i+1}",
     "Passo {i+1}",
     "O passo 1 acontece primeiro",
@@ -58,7 +60,7 @@ test("a linha do tempo tem estilos próprios e responsivos",()=>{
 test("o editor mantém o catálogo à esquerda e a sequência em uma área maior à direita",()=>{
   assert.match(styles,/\.workflow-builder-grid\{grid-template-columns:250px minmax\(0,1fr\);grid-template-areas:"catalog canvas" "catalog settings"/);
   for(const selector of [
-    ".workflow-builder-header{",
+    ".workflow-editor-toolbar{",
     ".workflow-catalog{grid-area:catalog",
     ".workflow-canvas{grid-area:canvas",
     ".workflow-settings{grid-area:settings",

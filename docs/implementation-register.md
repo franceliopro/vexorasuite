@@ -141,3 +141,14 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 
 **Não afirmado:** deploy, publicação, pagamento, cobrança, assinatura eletrônica, integração real com Asaas ou envio externo. Esses estados exigem evidência da operação correspondente. Documentos, assinatura digital e composer seguem fora desta entrega.
 
+## Rodada 2026-11-26 (branch `feat/multi-provider-finance`)
+
+- **Navegação:** `Financeiro` ganhou submenu com `Asaas`, `Stripe` e `InfinitePay`, todos com a permissão `FINANCE`. O grupo pai abre no deep-link e permanece aberto enquanto a pessoa navega dentro dele; o workspace legado continua em `Financeiro` (`FinanceWorkspace initialTab`), sem cartões acima do título do motor.
+- **Manifesto honesto:** `finance-provider-capabilities.ts` declara origem por capacidade (`PROVIDER_LIVE`, `LOCAL_RECORDS` ou `UNSUPPORTED`), limites e caveats por provedor. `FinanceProvidersService` mescla o estado salvo por tenant e devolve `verification.status = NOT_VERIFIED`: configuração salva não é conexão, pagamento ou saldo confirmados.
+- **Backend tenant-scoped:** `FinanceController` expõe `GET /finance/providers`, `GET /finance/providers/:provider` e `GET /finance/:provider/{capabilities,dashboard,charges,customers,catalog,subscriptions}`, além de `POST /finance/:provider/refunds`. Asaas reusa leitura ao vivo de clientes/portfólio/catálogo/dashboard/assinaturas com documento mascarado; Stripe passa a expor clientes, cobranças, catálogo, assinaturas e dashboard reais; InfinitePay usa adaptador local/parcial restrito a registros confirmados por `payment_check`, com aviso explícito de que não representa a conta do provedor. Aliases antigos continuam normalizados.
+- **Operação externa sob controle:** o estorno da Stripe só responde `executed` após a resposta da API e exige `confirm === true`, com auditoria incluindo ator, ambiente e valor. Asaas e InfinitePay recusam estorno por capacidade não documentada; o painel não dispara estorno nem qualquer outra operação externa.
+- **Testes e validação local:** novas specs cobrem manifesto, serviço de providers, adaptadores Stripe/InfinitePay/Asaas e contratos do controller (26/26 na API). Novo teste estático cobre submenu, endpoints, rótulos de origem e negações (33/33 no Web). Typecheck de API e Web limpo; suítes completas, lint, build, migrations e concorrência ficam a cargo do GitHub Actions no PR de integração.
+- **Documentação:** `docs/implementation-status.md` registra o painel sem promover Stripe e InfinitePay a aceite externo; a linha permanece `[~]`.
+
+**Não afirmado:** deploy, publicação, cobrança, confirmação de pagamento, estorno executado, saldo, webhook registrado, conexão ativa, envio externo ou integração funcionando no ambiente publicado. Nenhuma operação externa real foi executada nesta rodada; a confirmação depende de credenciais e evidência do proprietário.
+

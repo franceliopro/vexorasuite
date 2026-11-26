@@ -1,6 +1,8 @@
 # Estado atual da Véxora — 2026-11-24
 
 > Atualização de 2026-11-24: varredura visual e de processos, correção do `500` em documentos e do `prompt()` do editor, publicação observada dos sites Rastreabem e Morbeck x Carvalhinho no domínio final. Nenhuma publicação, cobrança ou integração externa foi executada por esta rodada.
+>
+> Atualização de 2026-11-26: painel financeiro por provedor (Asaas, Stripe e InfinitePay) com origem dos dados e limites explícitos. Nenhuma cobrança, estorno, conexão ativa, publicação ou deploy foi executado por esta rodada.
 
 Este arquivo é a **fonte canônica de status**. Ele substitui os checklists históricos para responder três perguntas: onde estamos, o que está em construção e onde vamos chegar. Documentos antigos continuam no repositório como registro, mas não definem o produto atual.
 
@@ -26,7 +28,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 | Assistente direto e especialistas | [~] | Resolvedor determinístico `assistant-demand-context` responde capacidades e contagens sem IA, antes do fallback; 14 skills que prometiam operações não implementadas foram removidas e `assistant.direct.context` entrou no catálogo; cinco especialistas built-in (Financeiro, CRM, Atendimento, Tarefas/Agenda, Relatórios) são materializados em toda empresa nova. Finanças no `ask` agora exigem papel **e** módulo `FINANCE`. 15/15 testes novos passaram; sem PR/CI. |
 | Presença — sites externos e artes | [~] | Novo módulo `presence`: registra referência de site já publicado fora da Véxora (informativo, sem afirmar publicação própria) e produz arte SVG original na empresa. Publicação envia arquivos para projeto Cloudflare Pages do tenant e só grava `PUBLISHED` após HTTP 2xx na URL final; sem credenciais, a arte fica como rascunho/falha honesta. 6/6 testes locais passaram; sem PR/CI/deploy. |
 | Financeiro, Asaas, WhatsApp e e-mail | [x] / [~] | Contratos e código presentes. Agendamento e envio são registrados como `agendado`/`enviado`; `confirmado` exige evidência do provedor. |
-| Stripe e InfinitePay | [~] | Adaptadores tenant-scoped, credenciais criptografadas, rotas autenticadas, webhooks e UI implementados; Asaas e aliases preservados. Stripe verifica assinatura v1 com corpo cru; InfinitePay só confirma após `payment_check`. Sem credenciais, webhooks registrados ou evidência externa: nenhuma cobrança real foi validada. |
+| Stripe e InfinitePay | [~] | Adaptadores tenant-scoped, credenciais criptografadas, rotas autenticadas, webhooks e UI implementados; Asaas e aliases preservados. Stripe verifica assinatura v1 com corpo cru; InfinitePay só confirma após `payment_check`. O painel por provedor informa a origem (`PROVIDER_LIVE` ou `LOCAL_RECORDS`) e as capacidades documentadas; estorno da Stripe exige confirmação explícita. Sem credenciais, webhooks registrados ou evidência externa: nenhuma cobrança real foi validada. |
 | HUB de Sites | [~] | Contrato, schema/migration, service/controller tenant-scoped, testes, boot smoke e UI inicial de pedidos/preview/decisão/confirmação 2xx implementados em PRs mesclados. Não gera HTML, não hospeda página e não publica por conta própria. Publicação final depende de credenciais/evidência no ar. |
 | Intake de briefing criativo | [~] | Endpoint e UI tenant-scoped exigem objetivo, canal/formato, identidade, fonte aprovada, prazo, aprovador e destino; registram evento de auditoria em `creative_briefs`. Não gera, aprova, publica nem entrega peça. Ainda sem briefing preenchido pelo proprietário. |
 | Template Next.js/MDX | [x] | Padrão usado nos sites Rastreabem e Morbeck x Carvalhinho, com `output: 'export'`, conteúdo em `.mdx`/HTML saneado e menu centralizado. Publicação observada por HTTP 2xx no domínio final em 2026-11-24; esta rodada não executou deploy. |
@@ -60,6 +62,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Presença Véxora: 6/6 testes passaram (`presence.service.spec.ts`), incluindo escaping da arte, URL https obrigatória, isolamento por tenant e confirmação só após 2xx; 3/3 testes estáticos do Web passaram (`sites-hub-workspace.test.mjs`) e `tsc --noEmit` limpo em API e Web.
 - Varredura rápida de processos em 2026-11-24: suíte completa da API com 771/774 testes verdes. As três falhas ficaram em `events.service.spec.ts` e `team.controller.spec.ts`, arquivos não alterados nesta rodada; ao isolá-los, 7/7 passaram, indicando instabilidade por tempo/concorrência sob carga e não regressão das mudanças. Nenhuma dessas falhas foi "corrigida" alterando teste ou produção.
 - Rotas novas `/api/presence` (listar, SVG, cadastrar/remover referência externa, criar e publicar arte) foram acrescentadas ao boot smoke de 401. Nenhuma chamada real à Cloudflare, publicação, cobrança ou envio foi executada nesta rodada.
+- Painel financeiro multi-provedor (2026-11-26): submenu `Financeiro → Asaas/Stripe/InfinitePay` com permissão `FINANCE`, deep-link e grupo aberto ao navegar dentro dele; workspace legado preservado em `Financeiro`. `GET /finance/providers`, `/finance/providers/:provider` e `/finance/:provider/{capabilities,dashboard,charges,customers,catalog,subscriptions}` são tenant-scoped; capacidades e limites vêm de manifesto explícito, com `verification.status = NOT_VERIFIED` — configuração salva nunca é apresentada como conexão ativa. Asaas e Stripe leem dados reais do provedor; InfinitePay exibe somente registros locais confirmados por `payment_check`. Operações não documentadas (por exemplo, assinaturas e estorno no InfinitePay) retornam recusa explícita. Estorno da Stripe exige `confirm === true` e grava auditoria com o ator. Nenhuma cobrança ou estorno real foi executado; 26/26 specs da API e 33/33 testes estáticos do Web passaram localmente.
 
 ## 2. O que está em construção
 
@@ -93,6 +96,7 @@ Nenhum item vira “entregue” por causa de configuração, rascunho ou flag. N
 - Envio real de WhatsApp/e-mail, confirmação de cobrança pelo provedor e publicação de sites.
 - Aceite ponta a ponta com aparelho de WhatsApp e contas reais de e-mail.
 - Confirmação no painel Cloudflare de que os projetos Git estão configurados. Os dois sites foram **observados** com HTTP 2xx no domínio final em 2026-11-24; a configuração e a publicação não foram executadas por esta rodada.
+- Credenciais válidas e webhooks registrados em Asaas, Stripe e InfinitePay, além de evidência de cobrança/confirmação/estorno real. O painel multi-provedor expõe leituras e limites, mas não prova conexão ativa, saldo ou liquidação.
 
 ## 6. Piloto Rastreabem — site em Next.js/MDX
 

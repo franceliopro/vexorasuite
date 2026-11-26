@@ -16,6 +16,10 @@ import { ReportsController } from "../operations/reports.controller";
 import { FinanceController } from "../operations/finance.controller";
 import { PaymentRecordsService } from "../operations/payment-records.service";
 import { AsaasService } from "../operations/asaas.service";
+import { FinanceProvidersService } from "../operations/finance-providers.service";
+import { InfinitePayService } from "../operations/infinitepay.service";
+import { InfinitePayFinanceService } from "../operations/infinite-pay-finance.service";
+import { StripeService } from "../operations/stripe.service";
 import { ReportExportService } from "./report-export.service";
 import { ReportExportController } from "./report-export.controller";
 import { Module } from "@nestjs/common";
@@ -33,6 +37,6 @@ import { PublicDesignApprovalsController } from "./public-design-approvals.contr
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 import { WahaService } from "../operations/waha.service";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, CatalogImageController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, PaymentRecordsService, ReportExportService, AiService, GoogleCalendarController, WahaService], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, CatalogImageController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, PaymentRecordsService, ReportExportService, AiService, GoogleCalendarController, WahaService, FinanceProvidersService, StripeService, InfinitePayService, InfinitePayFinanceService], exports: [AiService] })
 export class AiModule {}
 

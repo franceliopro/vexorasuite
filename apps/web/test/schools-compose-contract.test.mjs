@@ -51,6 +51,7 @@ test("o CI valida o compose e a unicidade da tríade", () => {
   assert.match(workflow, /docker compose -f infra\/schools\/docker-compose\.yml config/);
   assert.match(workflow, /node --test apps\/web\/test\/schools-compose-contract\.test\.mjs/);
   assert.match(workflow, /tenant_links_tenant_provider_customer_key/);
+  assert.match(workflow, /pg_isready -h 127\.0\.0\.1/);
   assert.match(workflow, /ci-placeholder-not-a-production-secret/);
 });
 

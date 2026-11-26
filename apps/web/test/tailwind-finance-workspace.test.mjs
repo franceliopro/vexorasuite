@@ -312,6 +312,10 @@ test("os produtos são editados na própria vitrine, sem Gerenciar catálogo", (
 test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
   for (const marker of [
     '<span>CPF/CNPJ do cliente *</span>',
+    'data-testid="new-subscription-customer-search"',
+    'fetch("/api/backend/finance/customer-search?q="+encodeURIComponent(term)',
+    'Clientes encontrados no Asaas',
+    'const canCreate=Boolean(selectedItem&&(selectedCustomer||(documentValid&&createNew&&name.trim().length>2)))',
     'data-testid="new-subscription-document"',
     '<span>Produto/serviço do catálogo *</span>',
     '<h3 className={newSubscriptionSectionTitleTw}>Produto/serviço</h3>',

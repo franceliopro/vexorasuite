@@ -273,6 +273,24 @@ export class AsaasService {
     return { environment: (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION", customers: matches.map((x) => ({ id: x.id, name: x.name, email: x.email || null, phone: x.mobilePhone || x.phone || null })) };
   }
 
+  async customerSearch(tenantId: string, query: string) {
+    const term = String(query || "").trim().slice(0, 120);
+    if (term.length < 2) throw new BadRequestException("Informe ao menos 2 caracteres para buscar clientes.");
+    const doc = this.digits(term);
+    const filter: Record<string, string> = /^(\d{11}|\d{14})$/.test(doc) && this.validDocument(doc)
+      ? { cpfCnpj: doc }
+      : term.includes("@") ? { email: term } : { name: term };
+    const result = await this.request<{ data?: Array<{ id: string; name: string; email?: string | null; mobilePhone?: string | null; phone?: string | null; cpfCnpj?: string | null }> }>(tenantId, "/customers?" + new URLSearchParams({ ...filter, limit: "20" }));
+    const normalize = (value: string) => value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const needle = normalize(term);
+    const matches = (result.data || []).filter((item) => {
+      if (typeof item.id !== "string" || !item.id) return false;
+      if (filter.cpfCnpj) return this.digits(item.cpfCnpj || "") === doc;
+      return normalize(`${item.name || ""} ${item.email || ""} ${item.mobilePhone || ""} ${item.phone || ""}`).includes(needle);
+    }).map((item) => ({ id: item.id, name: item.name, email: item.email || null, phone: item.mobilePhone || item.phone || null }));
+    return { environment: (await this.credentials(tenantId)).sandbox ? "SANDBOX" : "PRODUCTION", customers: matches.slice(0, 20) };
+  }
+
   async createSubscription(tenantId: string, input: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; catalogItemId?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; endDate?: unknown; billingType?: unknown; userId?: string }) {
     let service = typeof input.service === "string" ? input.service.trim().slice(0, 120) : "";
     let value = Number(input.value);

@@ -100,6 +100,14 @@ test("os overlays e diálogos usam slate real", () => {
   }
 });
 
+test("as janelas financeiras usam largura imponente", () => {
+  for (const utility of ["max-w-fin-window", "max-w-fin-subscription"]) {
+    assert.ok(financeClasses.includes(utility), `falta a utility ${utility}`);
+  }
+  assert.doesNotMatch(finance, /max-w-lg/);
+  assert.doesNotMatch(finance, /max-w-fin-drawer/);
+});
+
 test("as exceções de breakpoint do Financeiro permanecem", () => {
   assert.ok(finance.includes("ov-laptop:grid-cols-fin-metrics-tablet"));
   assert.ok(finance.includes("ov-laptop:grid-cols-2"));
@@ -116,7 +124,7 @@ test("os contratos funcionais das duas telas permanecem", () => {
     'role="dialog" aria-modal="true" aria-labelledby="new-sub-title"',
     '<h2 id="new-sub-title">Nova assinatura</h2>',
     'role="dialog" aria-modal="true" aria-label="Preparar cobrança"',
-    '<span>Serviço do catálogo *</span>',
+    '<span>Produto/serviço do catálogo *</span>',
     'const body:Record<string,unknown>={catalogItemId:selectedItem!.id',
     'aria-labelledby="confirm-delete-title"',
     'EXCLUIR',

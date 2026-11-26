@@ -10,15 +10,18 @@ test("o shell Android marca a página para aplicar área segura", () => {
   assert.match(layout, /viewportFit: "cover"/);
   assert.ok(layout.includes('window.__TAURI_INTERNALS__&&/Android/i.test(navigator.userAgent)'));
   assert.ok(layout.includes('document.documentElement.dataset.nativeAndroid="true"'));
+  assert.ok(layout.includes('addEventListener("load",mark,{once:true})'));
 });
 
-test("topbar e navegação inferior desviam das barras do Android", () => {
+test("o topbar de todas as telas e a navegação inferior desviam das barras do Android", () => {
   for (const marker of [
     "html[data-native-android]",
-    "--vx-system-top: max(env(safe-area-inset-top), 32px)",
+    "--vx-system-top: max(env(safe-area-inset-top), 40px)",
     "--vx-system-bottom: max(env(safe-area-inset-bottom), 32px)",
+    "--top: calc(48px + var(--vx-system-top))",
     "html[data-native-android] .topbar",
-    "height: calc(48px + var(--vx-system-top)) !important",
+    "height: var(--top) !important",
+    "min-height: var(--top) !important",
     "padding-top: var(--vx-system-top) !important",
     'html[data-native-android] [data-testid="ov-dock"]',
     "padding-bottom: var(--vx-system-bottom) !important",

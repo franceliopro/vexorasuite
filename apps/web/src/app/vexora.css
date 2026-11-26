@@ -4792,14 +4792,17 @@ input[type=tel]{letter-spacing:.02em}
 /* ===== Android nativo: área segura das barras do sistema =====
    O WebView edge-to-edge do Tauri desenha sob a status bar e a navegação.
    Em WebViews que não expõem env(safe-area-inset-*), o piso abaixo mantém
-   o topbar abaixo do topo e o dock da Visão geral acima da navegação Android. */
+   o topbar de todas as telas abaixo do topo e o dock da Visão geral acima
+   da navegação Android. --top também é recalculado para que os cálculos de
+   altura das workspaces acompanhem a barra maior. */
 html[data-native-android] {
-  --vx-system-top: max(env(safe-area-inset-top), 32px);
+  --vx-system-top: max(env(safe-area-inset-top), 40px);
   --vx-system-bottom: max(env(safe-area-inset-bottom), 32px);
+  --top: calc(48px + var(--vx-system-top));
 }
 html[data-native-android] .topbar {
-  height: calc(48px + var(--vx-system-top)) !important;
-  min-height: calc(48px + var(--vx-system-top)) !important;
+  height: var(--top) !important;
+  min-height: var(--top) !important;
   padding-top: var(--vx-system-top) !important;
 }
 html[data-native-android] [data-testid="ov-dock"] {

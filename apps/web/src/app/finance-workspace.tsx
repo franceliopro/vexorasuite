@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import {
   Activity,
@@ -172,6 +173,8 @@ const historyTableTw="grid overflow-hidden rounded-fin-card border border-line";
 const historyHeadTw="grid grid-cols-fin-history gap-2.5 border-b border-line bg-blue-50 p-2.5 px-3.5 text-2xs font-extrabold uppercase tracking-fin-wide text-ink-secondary";
 const historyEmptyTw="p-5 text-center text-small leading-relaxed text-ink-secondary";
 const dialogBackdropTw="fixed inset-0 z-50 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm";
+/* A janela de assinatura sai do fluxo do shell: portal no body evita o empilhamento da topbar. */
+const subscriptionBackdropTw="fixed inset-0 z-[1100] grid items-start justify-items-center overflow-y-auto bg-slate-900/80 px-4 pb-6 pt-[calc(var(--top)_+_16px)] backdrop-blur-sm "+noScrollbarTw;
 const dialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-window flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
 const dialogHeadingTw="mb-3.5 flex flex-none items-center gap-3 pr-10";
 const dialogCloseTw="absolute right-3 top-3 z-10 grid size-control place-items-center rounded-fin-icon border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
@@ -189,7 +192,7 @@ const newCustomerTw="grid gap-2.5";
 const subGridTw="grid grid-cols-2 gap-3 ov-laptop:grid-cols-2 max-sm:grid-cols-1";
 const errorTw="m-0 text-body font-semibold text-red-600";
 const dialogFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t border-line pt-3";
-const newSubscriptionDialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-subscription flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
+const newSubscriptionDialogTw="relative z-[1101] flex max-h-[calc(100dvh_-_var(--top)_-_40px)] min-h-[min(80dvh,820px)] w-full max-w-fin-subscription flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
 const newSubscriptionHeadingTw="mb-4 flex flex-none items-center gap-3 rounded-fin-figure border border-line bg-linear-to-br from-blue-50 to-surface p-3.5 pr-12";
 const newSubscriptionTitleTw="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5";
 const newSubscriptionIntroTw="m-0 whitespace-nowrap text-asaas-muted text-ink-secondary";
@@ -517,7 +520,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
       onCreated("Assinatura criada: "+selectedItem!.name+" · "+currency(selectedItem!.value)+" · primeira cobrança em "+result.subscription.nextDueDate+(result.subscription.endDate?" · término em "+dateBR(result.subscription.endDate):""));
     }catch(e){setError(e instanceof Error?e.message:"Falha ao criar a assinatura.");setBusy(false)}
   }
-  return <div className={dialogBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
+  return createPortal(<div className={subscriptionBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
    <div ref={dialogRef} tabIndex={-1} className={newSubscriptionDialogTw} role="dialog" aria-modal="true" aria-labelledby="new-sub-title">
     <header className={newSubscriptionHeadingTw}>
      <div className={newSubscriptionTitleTw}>
@@ -551,7 +554,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
      </form>
     </div>
    </div>
-  </div>;
+  </div>,document.body);
 }
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export type FinanceTab="overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history";

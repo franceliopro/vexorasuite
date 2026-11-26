@@ -1319,7 +1319,7 @@ const config: Config = {
         "fin-hero-title-w": "26ch",
         "fin-hero-copy-w": "52ch",
         "fin-window": "min(100%,880px)",
-        "fin-subscription": "min(100%,1040px)",
+        "fin-subscription": "min(100%,1200px)",
 
       },
       width: {

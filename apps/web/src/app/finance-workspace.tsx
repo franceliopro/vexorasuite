@@ -517,7 +517,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
      </form>
     </div>
    </div>
-  </div>,document.body);
+  </div>,window.document.body);
 }
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export type FinanceTab="overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history";

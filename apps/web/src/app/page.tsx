@@ -313,7 +313,7 @@ export default function HomePage() {
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
   const [settingsCatalogOpen, setSettingsCatalogOpen] = useState(false);
   const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-products" | "finance-subscriptions">("settings");
-  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "products" | "subscriptions">("overview");
+  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "products" | "subscriptions">("products");
   useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const origin = (event as CustomEvent<string>).detail; const fromFinance = origin === "finance-products" || origin === "finance-subscriptions"; setCatalogReturnTo(fromFinance ? origin : "settings"); if (origin === "finance-products") setFinanceInitialTab("products"); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); preloadWorkspace("Configurações"); setActive("Configurações"); setSettingsAdvanced(false); setSettingsCatalogOpen(true); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;

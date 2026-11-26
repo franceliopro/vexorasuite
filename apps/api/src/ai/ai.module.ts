@@ -1,6 +1,7 @@
 import { ProviderConnectionsController } from "./provider-connections.controller";
 import { MarketingController } from "./marketing.controller";
 import { DriveManagerController } from "./drive-manager.controller";
+import { CatalogImageController } from "./catalog-image.controller";
 import { DriveManagerService } from "./drive-manager.service";
 import { MarketingLibraryService } from "./marketing-library.service";
 import { VoiceService } from "./voice.service";
@@ -32,6 +33,6 @@ import { PublicDesignApprovalsController } from "./public-design-approvals.contr
 import { GoogleCalendarController } from "../operations/google-calendar.controller";
 import { WahaService } from "../operations/waha.service";
 
-@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, PaymentRecordsService, ReportExportService, AiService, GoogleCalendarController, WahaService], exports: [AiService] })
+@Module({ imports: [PrismaModule, AuthModule, JwtModule.register({})], controllers: [ProviderConnectionsController, DriveManagerController, CatalogImageController, MarketingController, VoiceController, CreativeReferencesController, AssistantAutomationController, ReportExportController, AssistantController, AuthorizedContactsController, ChatbotDraftController, ChatbotTriggerPreviewController, ChatbotAsaasPreviewController, DesignApprovalsController, PublicDesignApprovalsController], providers: [DriveManagerService, MarketingLibraryService, VoiceService, CreativeReferencesService, GoogleAccessService, ZernioService, AssistantAutomationService, ReportsController, FinanceController, AsaasService, PaymentRecordsService, ReportExportService, AiService, GoogleCalendarController, WahaService], exports: [AiService] })
 export class AiModule {}
 

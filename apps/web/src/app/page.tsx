@@ -312,7 +312,9 @@ export default function HomePage() {
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
   const [settingsCatalogOpen, setSettingsCatalogOpen] = useState(false);
-  useEffect(() => { const openCatalog = () => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; preloadWorkspace("Configurações"); setActive("Configurações"); setSettingsAdvanced(false); setSettingsCatalogOpen(true); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
+  const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-products" | "finance-subscriptions">("settings");
+  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "products" | "subscriptions">("overview");
+  useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const origin = (event as CustomEvent<string>).detail; const fromFinance = origin === "finance-products" || origin === "finance-subscriptions"; setCatalogReturnTo(fromFinance ? origin : "settings"); if (origin === "finance-products") setFinanceInitialTab("products"); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); preloadWorkspace("Configurações"); setActive("Configurações"); setSettingsAdvanced(false); setSettingsCatalogOpen(true); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
     const closeOutside = (event: MouseEvent) => {
@@ -431,7 +433,7 @@ export default function HomePage() {
   // Mesmo um admin da plataforma olhando um tenant cliente não faz o item reaparecer sem a liberação.
   const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS");
   const isOverview = active === "Visão geral";
-  useEffect(() => { if (active !== "Configurações") { setSettingsAdvanced(false); setSettingsCatalogOpen(false); } }, [active]);
+  useEffect(() => { if (active !== "Configurações") { setSettingsAdvanced(false); setSettingsCatalogOpen(false); setCatalogReturnTo("settings"); } }, [active]);
   const currentWorkspaceTab = workspaceTabKey(active);
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
@@ -579,7 +581,7 @@ export default function HomePage() {
           ) : active === "CRM" ? (
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />
           ) : active === "Financeiro" || active === "Gestão" ? (
-            canManage ? <FinanceWorkspace /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
+            canManage ? <FinanceWorkspace initialTab={financeInitialTab} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
           ) : active === "Documentos" ? (
             <DocumentsWorkspace />
           ) : active === "Curso" ? (
@@ -609,9 +611,9 @@ export default function HomePage() {
             canConfigure ? <ChannelsIntegrations /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : active === "Configurações" ? (
             canConfigure ? (
-              settingsCatalogOpen ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsCatalogOpen(false)}>← Voltar para Configurações</button><CatalogSettings canManage={canManage} /></>
+              settingsCatalogOpen ? <><button type="button" className={settingsBackLinkTw} onClick={() => { if (catalogReturnTo === "finance-products" || catalogReturnTo === "finance-subscriptions") { setFinanceInitialTab(catalogReturnTo === "finance-products" ? "products" : "subscriptions"); setActive("Financeiro"); } else { setSettingsCatalogOpen(false); } setCatalogReturnTo("settings"); }}>← Voltar para {catalogReturnTo === "finance-products" ? "Produtos" : catalogReturnTo === "finance-subscriptions" ? "Assinaturas" : "Configurações"}</button><CatalogSettings canManage={canManage} /></>
                 : settingsAdvanced ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></>
-                  : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} onCatalog={() => setSettingsCatalogOpen(true)} />
+                  : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} onCatalog={() => { setCatalogReturnTo("settings"); setSettingsCatalogOpen(true); }} />
             ) : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className={placeholderTw}>

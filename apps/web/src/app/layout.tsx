@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="pt-BR" data-theme="hybrid" suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: `try{const theme=localStorage.getItem("vexora:theme");if(["light","dark","hybrid"].includes(theme))document.documentElement.dataset.theme=theme}catch{}` }} /></head>
+      <head><script dangerouslySetInnerHTML={{ __html: `try{const theme=localStorage.getItem("vexora:theme");if(["light","dark","hybrid"].includes(theme))document.documentElement.dataset.theme=theme;const mark=()=>{if(window.__TAURI_INTERNALS__&&/Android/i.test(navigator.userAgent))document.documentElement.dataset.nativeAndroid="true"};mark();addEventListener("load",mark,{once:true})}catch{}` }} /></head>
       <body>{children}</body>
     </html>
   );

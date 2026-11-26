@@ -221,7 +221,7 @@ function dockItemClass(isOverview:boolean,menuOpen:boolean){
 const DOCK_ICON_STATE_TW:Record<string,string>={idle:"",active:"text-blue-950"};
 function dockIconClass(active:boolean){return active?DOCK_ICON_STATE_TW.active:DOCK_ICON_STATE_TW.idle;}
 const MOBILE_NAV_STATE_TW:Record<string,string>={
-  dock:"fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1",
+  dock:"mobile-bottom-nav mobile-bottom-nav--overview",
   actions:"mobile-bottom-nav",
 };
 function mobileNavClass(isOverview:boolean){return isOverview?MOBILE_NAV_STATE_TW.dock:MOBILE_NAV_STATE_TW.actions;}

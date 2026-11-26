@@ -68,7 +68,7 @@ test("as utilities TW padrão estão presentes na home", () => {
     "text-slate-600", "bg-blue-600", "hover:bg-blue-700", "text-blue-950",
     "text-blue-700", "bg-blue-50", "border-amber-600", "bg-amber-100",
     "text-red-600", "text-sm", "text-xs", "font-bold", "shadow-md",
-    "max-md:grid", "max-md:border-gray-200", "max-md:bg-zinc-50", "z-40",
+    "mobile-bottom-nav", "mobile-bottom-nav--overview",
   ]) {
     assert.ok(pageClasses.split(/\s+/).includes(utility), `falta na home: ${utility}`);
   }

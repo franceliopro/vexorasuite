@@ -39,7 +39,9 @@ const statusPillTw = "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.
 const statusPillStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-zinc-200 text-slate-600" };
 const statusPillClass = (on: boolean) => `${statusPillTw} ${statusPillStateTw[on ? "on" : "off"]}`;
 const workspaceLayoutTw = "flex min-w-0 flex-col gap-token lg:flex-row";
-const workspaceNavTw = "flex shrink-0 flex-col gap-1 self-start rounded-token border border-line bg-surface-2 p-1.5 lg:w-52";
+const workspaceSidebarTw = "flex w-full shrink-0 flex-col gap-2 self-start lg:w-52";
+const agentQuickActionsTw = "grid gap-2 rounded-token border border-line bg-surface p-2";
+const workspaceNavTw = "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5";
 const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 rounded-token-sm px-3 text-left text-body font-bold transition-colors";
 const workspaceNavIdleTw = "text-ink-secondary hover:bg-surface hover:text-ink";
 const workspaceNavActiveTw = "bg-blue-600 text-white shadow-token-sm hover:bg-blue-600 hover:text-white";
@@ -55,6 +57,8 @@ const noticeTw = "rounded-token-sm border border-line bg-surface-2 px-3.5 py-2.5
 const adminGridTw = "grid grid-cols-1 gap-token";
 const adminCardTw = "grid min-w-0 content-start gap-4 rounded-token border border-line bg-surface p-pad shadow-token";
 const adminHeadingTw = "flex flex-wrap items-center gap-2 border-b border-line pb-3";
+const adminHeadingTitleTw = "flex items-center gap-2";
+const agentCountTw = "text-small font-bold text-ink-secondary";
 const adminNoteTw = "text-small leading-relaxed text-ink-secondary";
 const agentHeaderTw = "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3";
 const helpTw = "m-0 rounded-xl border border-line bg-surface-2 px-4 py-3 text-small leading-relaxed text-ink-secondary";
@@ -368,11 +372,13 @@ export function AiAgentsWorkspace() {
     <datalist>{(catalog.models||[]).filter(model=>model.provider==="local-voice").map(model=><option key={model.id} value={model.id}>{model.name}</option>)}</datalist>
     <datalist><option value="openrouter/free">OpenRouter Free · cota gratuita</option>{(catalog.models||[]).filter(model=>model.provider==="openrouter"&&model.id!=="openrouter/free").map(model=><option key={model.id} value={model.id}>{model.name} · US$ {Number.isFinite(model.pricePerMillionInputUsd)?Number((model.pricePerMillionInputUsd??0).toFixed(4)):0}/1M entrada</option>)}</datalist>
     {workspaceTab==="Agentes"&&<section className={adminCardTw}>
-      <div className={adminHeadingTw}><h2><Bot size={19}/> Agentes</h2><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates de negócio…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={primaryTw} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>
-      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a, index) => { const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[index % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={agentCardClass(selected === a.id)} onClick={() => setSelected(a.id)}><span className={`${agentFaceTw} ${agentToneClass(index)}`}><Face size={26} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Clique em Novo acima para criar o primeiro.</p></div>}
+      <div className={adminHeadingTw}><h2 className={adminHeadingTitleTw}><Bot size={19}/> Agentes <small className={agentCountTw}>{agents.length} {agents.length===1?"agente":"agentes"}</small></h2></div>
+      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a, index) => { const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[index % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={agentCardClass(selected === a.id)} onClick={() => setSelected(a.id)}><span className={`${agentFaceTw} ${agentToneClass(index)}`}><Face size={26} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Use Novo na barra lateral para criar o primeiro.</p></div>}
     </section>}
     <div className={workspaceLayoutTw}>
-    <nav className={workspaceNavTw} role="tablist" aria-label="Áreas de configuração da inteligência">
+    <aside className={workspaceSidebarTw}>
+      {workspaceTab==="Agentes"&&<div className={agentQuickActionsTw} aria-label="Criação de agente"><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={`${primaryTw} w-full`} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>}
+      <nav className={workspaceNavTw} role="tablist" aria-label="Áreas de configuração da inteligência">
       {([
         { name: "Agentes", icon: Bot },
         { name: "Conhecimento", icon: BrainCircuit },
@@ -384,7 +390,8 @@ export function AiAgentsWorkspace() {
       })}
       <span className={workspaceNavDividerTw} aria-hidden="true"/>
       <button type="button" className={`${workspaceNavItemTw} ${workspaceNavIdleTw}`} onClick={()=>{void fetch("/api/backend/assistant/model-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(setCatalog).catch(()=>setNotice("Não foi possível atualizar os modelos."))}}><RefreshCw size={16} aria-hidden="true"/> Atualizar modelos</button>
-    </nav>
+      </nav>
+    </aside>
     <div className={workspaceContentTw}>
     <div id="ai-workspace-tabpanel" role="tabpanel" aria-labelledby={"ai-workspace-tab-"+workspaceTab.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}>
     <div className={workspaceActionsTw}><button type="button" className={primaryTw} onClick={()=>void save()} disabled={saving||loading||!configAvailable}><Save size={15}/> {saving?"Salvando…":"Salvar configuração"}</button></div>

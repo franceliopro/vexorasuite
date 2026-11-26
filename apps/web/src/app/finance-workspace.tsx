@@ -64,7 +64,6 @@ const catalogNoteTw="m-0 text-asaas-muted leading-relaxed text-ink-secondary";
 const noScrollbarTw="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 const overlayTw="fixed inset-0 z-50 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm";
 const drawerTw="relative z-10 grid max-h-dvh w-full max-w-fin-window gap-4 self-start overflow-y-auto overscroll-contain rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 "+noScrollbarTw;
-const productEditFormTw="grid gap-4 sm:grid-cols-2";
 const iconButtonTw="grid size-control place-items-center rounded-fin-icon border border-line bg-surface-2 text-ink transition-colors hover:bg-hover";
 const drawerLabelTw="grid gap-1.5 text-asaas-label font-bold uppercase tracking-fin-label text-ink-secondary";
 const drawerControlTw="min-h-control-h min-w-0 rounded-fin-row border border-line bg-surface-2 px-2.5 text-body text-ink";
@@ -205,7 +204,7 @@ const newSubscriptionFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t 
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateBR = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split("-").reverse().join("/") : value;
 /** Abre Configurações → Catálogo lembrando de onde o usuário veio, para o Voltar ser contextual. */
-function openCatalogSettings(origin:"finance-products"|"finance-products:new"|"finance-subscriptions"="finance-products"){if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:origin}));}
+function openCatalogSettings(origin:"finance-products"|"finance-products:new"|"finance-subscriptions"="finance-products",itemId?:string){if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin,itemId:itemId||""}}));}
 /** Imagens do catálogo são privadas: só renderizamos URLs HTTP(S) ou locais da própria API. */
 const catalogImageUrl=(value:unknown):string=>typeof value==="string"&&(/^https?:\/\//i.test(value.trim())||value.trim().startsWith("/api/"))?value.trim():"";
 const statusBR:Record<string,string>={PENDING:"Pendente",OVERDUE:"Vencido",RECEIVED:"Recebido",CONFIRMED:"Confirmado",RECEIVED_IN_CASH:"Recebido em dinheiro",REFUNDED:"Estornado",CANCELLED:"Cancelado",CHARGEBACK_REQUESTED:"Contestação solicitada",CHARGEBACK_DISPUTE:"Em contestação"};
@@ -272,68 +271,26 @@ function CatalogView({mode}:{mode:"catalog"|"subscriptions"}){
 }
 
 type CatalogProduct={id:string;name:string;description:string;priceCents:number;currency:string;imageUrl:string|null;kind:string;category:string|null};
-type ProductEdit={id:string;name:string;description:string;price:string;imageUrl:string;category:string};
 function CatalogProductsView(){
   const [items,setItems]=useState<CatalogProduct[]|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [refresh,setRefresh]=useState(0);
-  const [editing,setEditing]=useState<ProductEdit|null>(null);
-  const [saving,setSaving]=useState(false);
-  const [formError,setFormError]=useState("");
-  const [notice,setNotice]=useState("");
-  const editorRef=useRef<HTMLElement|null>(null);
-  useModalDialog(!!editing,editorRef,()=>setEditing(null));
   /** A vitrine mostra todos os itens ativos da empresa, qualquer que seja a categoria. */
   useEffect(()=>{let live=true;setLoading(true);setError("");fetch("/api/backend/catalog?limit=200",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as {items?:CatalogProduct[]}}).then(body=>{if(live)setItems(Array.isArray(body.items)?body.items:[])}).catch(e=>{if(live){setItems(null);setError(e instanceof Error?e.message:"Falha ao consultar o catálogo.")}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[refresh]);
 
-  function startEdit(item:CatalogProduct){
-    setEditing({id:item.id,name:item.name,description:item.description||"",price:(item.priceCents/100).toFixed(2).replace(".",","),imageUrl:item.imageUrl||"",category:item.category||"ASAAS"});
-    setFormError("");setNotice("");
-  }
-  async function saveEdit(){
-    if(!editing)return;
-    const name=editing.name.trim();
-    const price=Number(editing.price.trim().replace(",","."));
-    if(name.length<2){setFormError("Informe um nome com pelo menos 2 caracteres.");return;}
-    if(!Number.isFinite(price)||price<0){setFormError("Informe um preço válido.");return;}
-    setSaving(true);setFormError("");setNotice("");
-    try{
-      const response=await fetch("/api/backend/catalog/"+encodeURIComponent(editing.id),{method:"PUT",headers:{"content-type":"application/json"},cache:"no-store",body:JSON.stringify({name,description:editing.description.trim(),priceCents:Math.round(price*100),imageUrl:catalogImageUrl(editing.imageUrl)||null,category:editing.category.trim()||"ASAAS"})});
-      const body=await response.json().catch(()=>({}));
-      if(!response.ok)throw Error(body.message||"Falha ao salvar o produto.");
-      setEditing(null);setNotice("Produto atualizado.");setRefresh(n=>n+1);
-    }catch(e){setFormError(e instanceof Error?e.message:"Falha ao salvar o produto.")}finally{setSaving(false)}
-  }
-
   return <section className={catalogCardTw} aria-labelledby="finance-products-title">
-   <div className={panelHeadingTw}><div><h2 id="finance-products-title">Produtos</h2><p className={metaTw}>Produtos da empresa. Use Editar em cada card para alterar nome, descrição, preço e imagem.</p></div><div className={headingActionsTw}><button type="button" className={subtleButtonTw} title="Cadastrar um novo produto" onClick={() => openCatalogSettings("finance-products:new")}><Plus size={15} aria-hidden="true"/> Novo produto</button><button type="button" className={iconButtonTw} aria-label="Atualizar produtos" title="Atualizar" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/></button></div></div>
-   {notice?<p role="status" className={noticeTw}>{notice}</p>:null}
-   {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando catálogo…</p>:items&&items.length?<div className={productGridTw}>{items.map(item=>{const image=catalogImageUrl(item.imageUrl);return <article className={productCardTw} key={item.id}>
-     <div className={productImageFrameTw}>{image?<img className={productImageTw} src={image} alt={item.name} loading="lazy"/>:<div className={productPlaceholderTw} role="img" aria-label="Imagem não informada"><Package size={26} aria-hidden="true"/><span>Sem imagem</span></div>}</div>
-     <div className={productBodyTw}><div className="flex flex-wrap items-center gap-1.5"><span className={productBadgeTw} data-kind={item.kind}>{item.kind==="PRODUCT"?"Produto digital":"Serviço"}</span>{item.category?<span className={productMetaTw}>{item.category}</span>:null}</div><h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>
-     <p className={catalogNoteTw}>{item.description||"Sem descrição cadastrada."}</p>
-     <strong className={productPriceTw}>{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}</strong>
-     <button type="button" className={subtleButtonTw} aria-label={"Editar "+item.name} onClick={()=>startEdit(item)}><Pencil size={15} aria-hidden="true"/> Editar</button></div>
-    </article>})}</div>:<div className={emptyPanelTw}><p className={emptyTw}>Nenhum produto cadastrado nesta empresa.</p><button type="button" className={subtleButtonTw} onClick={() => openCatalogSettings("finance-products:new")}><Plus size={15} aria-hidden="true"/> Novo produto</button></div>}
-   <p className={catalogNoteTw}>Imagem e descrição ficam na Véxora. Nada aqui é enviado para WhatsApp, e-mail ou outros canais externos.</p>
-   {editing?<div className={overlayTw} onMouseDown={event=>{if(event.target===event.currentTarget)setEditing(null)}}>
-    <section ref={editorRef} className={drawerTw} role="dialog" aria-modal="true" aria-labelledby="finance-product-edit-title" tabIndex={-1}>
-     <header className={dialogHeadingTw}><div><h2 id="finance-product-edit-title" className="m-0 text-body font-extrabold text-ink">Editar produto</h2><p className={metaTw}>Altere os dados e salve para atualizar a vitrine.</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" onClick={()=>setEditing(null)}><X size={18} aria-hidden="true"/></button></header>
-     {formError?<p role="alert" className={errorTw}>{formError}</p>:null}
-     <div className={dialogBodyTw}><div className={productEditFormTw}>
-      <label className={drawerLabelTw}>Nome<input className={drawerControlTw} maxLength={160} value={editing.name} onChange={event=>setEditing({...editing,name:event.target.value})}/></label>
-      <label className={drawerLabelTw+" sm:col-span-2"}>Descrição<textarea className={drawerTextareaTw} value={editing.description} onChange={event=>setEditing({...editing,description:event.target.value})}/></label>
-      <label className={drawerLabelTw}>Preço<input className={drawerControlTw} inputMode="decimal" value={editing.price} onChange={event=>setEditing({...editing,price:event.target.value})}/></label>
-      <label className={drawerLabelTw}>URL da imagem (opcional)<input className={drawerControlTw} value={editing.imageUrl} onChange={event=>setEditing({...editing,imageUrl:event.target.value})}/></label>
-      <label className={drawerLabelTw}>Categoria<input className={drawerControlTw} maxLength={80} value={editing.category} onChange={event=>setEditing({...editing,category:event.target.value})}/></label>
-     </div></div>
-     <footer className={dialogFooterTw}><button type="button" className={secondaryButton} onClick={()=>setEditing(null)}>Cancelar</button><button type="button" className={drawerButtonTw} disabled={saving} onClick={()=>void saveEdit()}>{saving?"Salvando…":"Salvar"}</button></footer>
-    </section>
-   </div>:null}
-  </section>;
+   <div className={panelHeadingTw}><div><h2 id="finance-products-title">Produtos</h2><p className={metaTw}>Produtos da empresa. Use Editar em cada card para abrir o cadastro em modo de edição.</p></div><div className={headingActionsTw}><button type="button" className={subtleButtonTw} title="Cadastrar um novo produto" onClick={() => openCatalogSettings("finance-products:new")}><Plus size={15} aria-hidden="true"/> Novo produto</button><button type="button" className={iconButtonTw} aria-label="Atualizar produtos" title="Atualizar" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/></button></div></div>
+    {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando catálogo…</p>:items&&items.length?<div className={productGridTw}>{items.map(item=>{const image=catalogImageUrl(item.imageUrl);return <article className={productCardTw} key={item.id}>
+      <div className={productImageFrameTw}>{image?<img className={productImageTw} src={image} alt={item.name} loading="lazy"/>:<div className={productPlaceholderTw} role="img" aria-label="Imagem não informada"><Package size={26} aria-hidden="true"/><span>Sem imagem</span></div>}</div>
+      <div className={productBodyTw}><div className="flex flex-wrap items-center gap-1.5"><span className={productBadgeTw} data-kind={item.kind}>{item.kind==="PRODUCT"?"Produto digital":"Serviço"}</span>{item.category?<span className={productMetaTw}>{item.category}</span>:null}</div><h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>
+      <p className={catalogNoteTw}>{item.description||"Sem descrição cadastrada."}</p>
+      <strong className={productPriceTw}>{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}</strong>
+      <button type="button" className={subtleButtonTw} aria-label={"Editar "+item.name} onClick={()=>openCatalogSettings("finance-products",item.id)}><Pencil size={15} aria-hidden="true"/> Editar</button></div>
+     </article>})}</div>:<div className={emptyPanelTw}><p className={emptyTw}>Nenhum produto cadastrado nesta empresa.</p><button type="button" className={subtleButtonTw} onClick={() => openCatalogSettings("finance-products:new")}><Plus size={15} aria-hidden="true"/> Novo produto</button></div>}
+    <p className={catalogNoteTw}>Imagem e descrição ficam na Véxora. Nada aqui é enviado para WhatsApp, e-mail ou outros canais externos.</p>
+   </section>;
 }
-
 type FinanceListing={source:string;environment:string;kind:string;offset:number;limit:number;hasMore:boolean;totalCount:number|null;items:{id:string;customerId:string;customerName:string;description:string;value:number;cycle:string|null;status:string;billingType:string|null;dueDate:string|null;invoiceUrl:string|null}[]};
 function FinanceAsaasListing({kind}:{kind:"subscriptions"|"detached"}){
  const [data,setData]=useState<FinanceListing|null>(null),[offset,setOffset]=useState(0),[refresh,setRefresh]=useState(0),[search,setSearch]=useState(""),[status,setStatus]=useState(""),[cycle,setCycle]=useState(""),[filters,setFilters]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState("");

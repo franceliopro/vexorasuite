@@ -246,12 +246,13 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     '<h1>Financeiro</h1>',
     'id:"products",label:"Produtos"',
     '<h2 id="finance-products-title">Produtos</h2>',
-    'Produtos da empresa. Use Editar em cada card para alterar nome, descrição, preço e imagem.',
+    'Produtos da empresa. Use Editar em cada card para abrir o cadastro em modo de edição.',
     '> Novo produto</button>',
     '<Pencil size={15} aria-hidden="true"/> Editar</button>',
     'aria-label="Atualizar produtos"',
-    'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:origin}))',
+    'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin,itemId:itemId||""}}))',
     'openCatalogSettings("finance-products:new")',
+    'onClick={()=>openCatalogSettings("finance-products",item.id)}',
     'origin:"finance-products"|"finance-products:new"|"finance-subscriptions"',
     'useModalDialog(true,dialogRef',
     'ref={dialogRef} tabIndex={-1}',
@@ -294,18 +295,16 @@ test("a vitrine mostra imagem, título e detalhes do catálogo em cards responsi
   assert.doesNotMatch(source, /<img className=\{productImageTw\} src=\{image\} alt=""/);
 });
 
-test("os produtos são editados na própria vitrine, sem Gerenciar catálogo", () => {
+test("os produtos abrem o cadastro em modo de edição, sem janela própria", () => {
   assert.doesNotMatch(source, /Gerenciar catálogo/);
   assert.doesNotMatch(source, /Nenhum produto cadastrado nesta empresa\. Use/);
+  assert.doesNotMatch(source, /finance-product-edit-title/);
+  assert.doesNotMatch(source, /function saveEdit\(/);
   for (const marker of [
     'aria-label={"Editar "+item.name}',
-    'useModalDialog(!!editing,editorRef,()=>setEditing(null))',
-    'aria-labelledby="finance-product-edit-title"',
-    'fetch("/api/backend/catalog/"+encodeURIComponent(editing.id)',
-    'method:"PUT"',
-    'priceCents:Math.round(price*100)',
+    'onClick={()=>openCatalogSettings("finance-products",item.id)}',
+    'detail:{origin,itemId:itemId||""}',
     'setRefresh(n=>n+1)',
-    '<button type="button" className={drawerButtonTw} disabled={saving}',
   ]) assert.ok(source.includes(marker), `faltou ${marker}`);
 });
 
@@ -336,7 +335,7 @@ test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
 });
 
 test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível", () => {
-  assert.equal((source.match(/role="dialog"/g) || []).length, 4);
+  assert.equal((source.match(/role="dialog"/g) || []).length, 3);
   assert.doesNotMatch(source, /max-w-lg/);
   assert.doesNotMatch(source, /max-w-fin-drawer/);
   for (const utility of [
@@ -360,9 +359,7 @@ test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível
     'const newSubscriptionDialogTw="relative z-[1101] flex max-h-[calc(100dvh_-_var(--top)_-_40px)] min-h-[min(80dvh,820px)] w-full max-w-fin-subscription',
     'return createPortal(<div className={subscriptionBackdropTw}',
     '</div>,window.document.body);',
-    'const productEditFormTw="grid gap-4 sm:grid-cols-2"',
     'aria-label="Preparar cobrança"',
-    'aria-labelledby="finance-product-edit-title"',
     'aria-labelledby="confirm-delete-title"',
     'aria-labelledby="new-sub-title"',
   ]) {
@@ -373,10 +370,11 @@ test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível
 test("a home retorna ao Financeiro na aba correta depois do catálogo", () => {
   assert.match(homePage, /const \[catalogReturnTo, setCatalogReturnTo\]/);
   assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\] = useState<"overview" \| "products" \| "subscriptions">\("products"\)/);
-  assert.match(homePage, /if \(newItem \|\| origin === "finance-products"\) setFinanceInitialTab\("products"\)/);
+  assert.match(homePage, /if \(origin === "finance-products"\) setFinanceInitialTab\("products"\)/);
   assert.match(homePage, /if \(origin === "finance-subscriptions"\) setFinanceInitialTab\("subscriptions"\)/);
   assert.match(homePage, /setActive\("Financeiro"\)/);
-  assert.ok(homePage.includes('Voltar para {catalogReturnTo === "finance-products" ? "Produtos" : catalogReturnTo === "finance-subscriptions" ? "Assinaturas" : "Configurações"}'));
+  assert.match(homePage, /function closeCatalog\(/);
+  assert.ok(homePage.includes('catalogReturnTo === "finance-products" ? "Voltar aos Produtos"'));
 });
 
 test("o JSX financeiro mantém os gráficos como dados, sem cor de marca fixa", () => {

@@ -39,10 +39,14 @@ export type InboundCaptureResult = {
 
 @Injectable()
 export class InboundCaptureService {
+  private readonly resolveIdentity: typeof resolveContactIdentity;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsService,
-  ) {}
+  ) {
+    this.resolveIdentity = resolveContactIdentity;
+  }
 
   async capture(tenantId: string, userId: string, dto: CaptureInboundDto): Promise<InboundCaptureResult> {
     const provider = dto.provider.trim().toUpperCase();
@@ -75,7 +79,7 @@ export class InboundCaptureService {
         });
         if (duplicate) return { ok: true as const, duplicate: true as const };
 
-        let contact = await resolveContactIdentity(tx, {
+        let contact = await this.resolveIdentity(tx, {
           tenantId,
           provider,
           externalId: externalContactId,

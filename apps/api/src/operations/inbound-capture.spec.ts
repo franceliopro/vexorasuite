@@ -1,10 +1,7 @@
 import { ForbiddenException } from "@nestjs/common";
 import { InboundCaptureController } from "./inbound-capture.controller";
 import { InboundCaptureService, routeInbound } from "./inbound-capture.service";
-import { resolveContactIdentity } from "./contact-identity";
 import type { CaptureInboundDto } from "./dto/capture-inbound.dto";
-
-jest.mock("./contact-identity", () => ({ resolveContactIdentity: jest.fn() }));
 
 const input = {
   provider: "GHL",
@@ -43,24 +40,26 @@ describe("Captura inbound unificada", () => {
       channelConnection: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     const events: any = { publish: jest.fn() };
-    (resolveContactIdentity as jest.Mock).mockResolvedValue(contact);
-    return { service: new InboundCaptureService(prisma, events), prisma, events, tx, contact };
+    const service = new InboundCaptureService(prisma, events);
+    const resolveIdentity = jest.fn().mockResolvedValue(contact);
+    (service as any).resolveIdentity = resolveIdentity;
+    return { service, prisma, events, tx, contact, resolveIdentity };
   }
 
-  it(" decide o destino por regras determinísticas antes de qualquer IA", () => {
+  it("decide o destino por regras determinísticas antes de qualquer IA", () => {
     expect(routeInbound("atendente")).toMatchObject({ reason: "explicit_human_request", optOut: false });
     expect(routeInbound("PARAR")).toMatchObject({ reason: "opt_out_requested", optOut: true });
     expect(routeInbound("Olá")).toMatchObject({ reason: "deterministic_default", handlingMode: "HUMAN" });
   });
 
   it("grava contato, conversa, mensagem e auditoria no tenant da sessão", async () => {
-    const { service, tx, events } = setup();
+    const { service, tx, events, resolveIdentity } = setup();
 
     const result = await service.capture("tenant-a", "user-1", input);
 
     expect(result).toMatchObject({ ok: true, duplicate: false, conversationId: "conversation-1", messageId: "message-1", handlingMode: "HUMAN" });
     expect(tx.$executeRaw).toHaveBeenCalled();
-    expect(resolveContactIdentity).toHaveBeenCalledWith(tx, expect.objectContaining({ tenantId: "tenant-a", provider: "GHL", externalId: "lead-456" }));
+    expect(resolveIdentity).toHaveBeenCalledWith(tx, expect.objectContaining({ tenantId: "tenant-a", provider: "GHL", externalId: "lead-456" }));
     expect(tx.conversation.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ tenantId: "tenant-a", handlingMode: "HUMAN", channel: "API" }),
     }));

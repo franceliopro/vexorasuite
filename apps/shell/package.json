@@ -5,6 +5,7 @@
   "description": "Tauri v2 shell that loads the canonical Véxora web app on desktop and mobile",
   "scripts": {
     "tauri": "tauri",
+    "icon": "tauri icon ../../sites/institucional/assets/logo-app.svg --fit contain",
     "check:config": "node test/config.test.mjs",
     "lint": "node test/config.test.mjs",
     "test": "node --test test/*.test.mjs",

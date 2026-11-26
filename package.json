@@ -13,6 +13,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "shell:check": "pnpm --filter @vexorasuite/shell test",
+    "shell:icon": "pnpm --filter @vexorasuite/shell icon",
     "shell:dev": "pnpm --filter @vexorasuite/shell dev:desktop",
     "shell:build:desktop": "pnpm --filter @vexorasuite/shell build:desktop",
     "shell:build:android": "pnpm --filter @vexorasuite/shell build:android",

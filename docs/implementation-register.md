@@ -124,9 +124,9 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 
 ## Rodada de 2026-11-25: shell Tauri v2 (configurado, não publicado)
 
-- **Configurado:** `apps/shell` contém um shell Tauri v2 que carrega `apps/web` (canonical) via URL remota em produção e via Next.js em `localhost:3000` no dev. Há `Cargo.toml`, `tauri.conf.json` v2, capacidade local-only sem IPC remoto, overrides para Android/iOS e ícones PNG. Nenhuma regra de negócio foi movida para Rust; o web segue sendo a única interface.
-- **Validado automaticamente:** testes estáticos de configuração/scripts, `tauri info`, `cargo check` e `tauri build --no-bundle --ci` no Ubuntu (Linux). O build do pacote no monorepo permanece no-op para não transformar `pnpm build` em build nativo.
-- **Não executado/não afirmado:** bundles de Windows/macOS, builds Android (sem SDK/NDK) e iOS (sem macOS/Xcode), assinatura, upload, instalação, execução em dispositivo real e publicação. **Nenhum binário foi publicado.**
+- **Configurado:** `apps/shell` contém um shell Tauri v2 que carrega `apps/web` (canonical) via URL remota em produção e via Next.js em `localhost:3000` no dev. Há `Cargo.toml`, `tauri.conf.json` v2, capacidade local-only sem IPC remoto, overrides para Android/iOS e ícones nativos gerados de `sites/institucional/assets/logo-app.svg` por `pnpm shell:icon`. Nenhuma regra de negócio foi movida para Rust; o web segue sendo a única interface.
+- **Validado automaticamente:** testes estáticos de configuração/scripts, `tauri info`, `cargo check` e `tauri build --no-bundle --ci` no Ubuntu (Linux); instalador NSIS compilado no Windows e APKs não assinados compilados no Android, ambos anexados como artefatos de CI. O build do pacote no monorepo permanece no-op para não transformar `pnpm build` em build nativo.
+- **Não executado/não afirmado:** MSI, macOS e iOS (sem macOS/Xcode), AAB, assinatura, keystore, notarização, upload para lojas, instalação, execução em dispositivo real e publicação. Artefatos de CI não são release. **Nenhum binário foi publicado.**
 - Detalhes e limitações em `docs/tauri-v2-shell.md`. `apps/native` permanece como scaffold anterior, sem alterações nesta rodada.
 ## Rodada 2026-11-25 (branch `feat/finance-catalog-subscriptions`)
 

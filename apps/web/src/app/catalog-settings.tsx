@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Image as ImageIcon, Package, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Package, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { CatalogImagePicker, safeCatalogImageUrl } from "./catalog-image-picker";
 
 type Kind = "PRODUCT" | "SERVICE";
@@ -61,8 +61,9 @@ const itemMetaTw = "text-small text-ink-secondary";
 const badgeTw = "inline-flex min-h-6 items-center rounded-cf-tag px-cf-tag-x text-2xs font-bold";
 const mutedTw = "text-asaas-muted text-ink-secondary";
 
-export function CatalogSettings({ canManage }: { canManage: boolean }) {
+export function CatalogSettings({ canManage, initialFormOpen = false }: { canManage: boolean; initialFormOpen?: boolean }) {
   const [items, setItems] = useState<CatalogItem[]>([]);
+  const [formOpen, setFormOpen] = useState(initialFormOpen);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -85,6 +86,7 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
   }
 
   useEffect(() => { void load(); }, []);
+  useEffect(() => { setFormOpen(initialFormOpen); }, [initialFormOpen]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt-BR");
@@ -97,6 +99,7 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
   const money = (item: CatalogItem) => (item.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: item.currency || "BRL" });
 
   function startEdit(item: CatalogItem) {
+    setFormOpen(true);
     setEditingId(item.id);
     setDraft({
       kind: item.kind,
@@ -114,8 +117,17 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
   }
 
   function resetDraft() {
+    setFormOpen(false);
     setDraft(emptyDraft());
     setEditingId(null);
+  }
+
+  function openNewItem() {
+    setFormOpen(true);
+    setEditingId(null);
+    setDraft(emptyDraft());
+    setError("");
+    setNotice("");
   }
 
   async function save() {
@@ -175,11 +187,12 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
         <h2 id="catalog-settings-title" className={headingTitleTw}>Catálogo de produtos e serviços</h2>
         <p className={headingCopyTw}>Fonte única da empresa para atendimento, orçamentos, documentos, chatbot e IAs. Preço e descrição vêm sempre do catálogo.</p>
       </div>
+      {canManage ? <button type="button" className={secondaryButton} data-testid="catalog-settings-new" onClick={openNewItem}><Plus size={15} aria-hidden="true" /> Novo produto</button> : null}
     </div>
     {error ? <div className={feedbackErrorTw} role="alert">{error}</div> : null}
     {notice ? <div className={feedbackSuccessTw} role="status">{notice}</div> : null}
     {!canManage ? <div className={feedbackErrorTw} role="note">Somente OWNER e ADMIN podem alterar o catálogo. Você está vendo os itens ativos desta empresa.</div> : null}
-    {canManage ? <div data-testid="catalog-settings-form" className={formTw}>
+    {canManage && formOpen ? <div data-testid="catalog-settings-form" className={formTw}>
       <div className={toolbarTw}>
         <label className={fieldTw}><span>Tipo</span><select className={inputTw} value={draft.kind} onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value as Kind }))}><option value="SERVICE">Serviço</option><option value="PRODUCT">Produto digital</option></select></label>
         <label className={fieldTw}><span>Nome</span><input className={inputTw} data-testid="catalog-settings-name" maxLength={160} value={draft.name} placeholder="ex.: Site institucional" onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label>
@@ -202,7 +215,7 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={primaryButton} data-testid="catalog-settings-save" disabled={busy} onClick={() => void save()}>{editingId ? "Salvar alterações" : "Adicionar item"}</button>
-        {editingId ? <button type="button" className={secondaryButton} disabled={busy} onClick={resetDraft}>Cancelar edição</button> : null}
+        {editingId ? <button type="button" className={secondaryButton} disabled={busy} onClick={resetDraft}>Cancelar edição</button> : <button type="button" className={secondaryButton} disabled={busy} onClick={resetDraft}>Voltar à lista</button>}
       </div>
     </div> : null}
     <div className={toolbarTw}>
@@ -211,7 +224,7 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
     </div>
     <div data-testid="catalog-settings-list" className={listTw}>
       {loading ? <p className={mutedTw}>Carregando catálogo…</p> : null}
-      {!loading && filtered.length === 0 ? <p className={mutedTw}>Nenhum item encontrado. {canManage ? "Cadastre um item no formulário acima." : "Peça à administração para cadastrar itens."}</p> : null}
+      {!loading && filtered.length === 0 ? <p className={mutedTw}>Nenhum item encontrado. {canManage ? "Use “Novo produto” para cadastrar o primeiro item." : "Peça à administração para cadastrar itens."}</p> : null}
       {filtered.map((item) => <div className={itemTw} key={item.id} data-testid="catalog-item">
         <div className={itemTitleTw}><Package size={16} aria-hidden="true" /><span>{item.name}</span><span className={badgeTw} data-kind={item.kind}>{item.kind === "PRODUCT" ? "Produto digital" : "Serviço"}</span>{!item.active ? <span className={badgeTw}>Inativo</span> : null}</div>
         <div className={itemMetaTw}>{item.sku ? `${item.sku} · ` : ""}{item.category ? `${item.category} · ` : ""}{item.unit} · <strong data-testid="catalog-item-price">{money(item)}</strong>{item.description ? <><br />{item.description}</> : null}</div>

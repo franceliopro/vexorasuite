@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Package, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Package, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
+import { CatalogImagePicker, safeCatalogImageUrl } from "./catalog-image-picker";
 
 type Kind = "PRODUCT" | "SERVICE";
 type CatalogItem = {
@@ -29,7 +30,8 @@ type Draft = {
   category: string;
 };
 
-const emptyDraft = (): Draft => ({ kind: "SERVICE", name: "", description: "", sku: "", price: "", currency: "BRL", unit: "un", imageUrl: "", category: "" });
+/** ASAAS é a categoria que faz o item aparecer em Financeiro → Produtos e em Nova assinatura. */
+const emptyDraft = (): Draft => ({ kind: "SERVICE", name: "", description: "", sku: "", price: "", currency: "BRL", unit: "un", imageUrl: "", category: "ASAAS" });
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: "no-store" });
@@ -69,6 +71,7 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [imagePickerOpen, setImagePickerOpen] = useState(false);
 
   async function load() {
     try {
@@ -104,7 +107,7 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
       currency: item.currency || "BRL",
       unit: item.unit || "un",
       imageUrl: item.imageUrl || "",
-      category: item.category || "",
+      category: item.category || "ASAAS",
     });
     setError("");
     setNotice("");
@@ -133,8 +136,8 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
         priceCents: Math.round(price * 100),
         currency: (draft.currency.trim().toUpperCase() || "BRL").slice(0, 3),
         unit: draft.unit.trim() || "un",
-        imageUrl: draft.imageUrl.trim(),
-        category: draft.category.trim(),
+        imageUrl: safeCatalogImageUrl(draft.imageUrl),
+        category: draft.category.trim() || "ASAAS",
       };
       if (editingId) await api(`/api/backend/catalog/${encodeURIComponent(editingId)}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       else await api("/api/backend/catalog", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
@@ -187,8 +190,15 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
         <label className={fieldTw}><span>Moeda</span><input className={inputTw} maxLength={3} value={draft.currency} onChange={(event) => setDraft((current) => ({ ...current, currency: event.target.value }))} /></label>
         <label className={fieldTw}><span>Unidade</span><input className={inputTw} maxLength={10} value={draft.unit} onChange={(event) => setDraft((current) => ({ ...current, unit: event.target.value }))} /></label>
         <label className={fieldTw}><span>SKU</span><input className={inputTw} maxLength={80} value={draft.sku} onChange={(event) => setDraft((current) => ({ ...current, sku: event.target.value }))} /></label>
-        <label className={fieldTw}><span>Categoria</span><input className={inputTw} maxLength={80} value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} /></label>
-        <label className={fieldTw}><span>URL da imagem</span><input className={inputTw} maxLength={1000} value={draft.imageUrl} onChange={(event) => setDraft((current) => ({ ...current, imageUrl: event.target.value }))} /></label>
+        <label className={fieldTw}><span>Categoria</span><input className={inputTw} maxLength={80} value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} /><small className="font-normal">Use <strong>ASAAS</strong> para este item aparecer em Financeiro → Produtos e em Nova assinatura.</small></label>
+      </div>
+      <div className={fieldTw}>
+        <span>Imagem do produto</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={secondaryButton} data-testid="catalog-settings-image-picker" onClick={() => setImagePickerOpen(true)}><ImageIcon size={15} aria-hidden="true" /> Escolher imagem</button>
+          <span className="min-w-0 break-all text-small text-ink-secondary" data-testid="catalog-settings-image-value">{draft.imageUrl || "Nenhuma imagem escolhida"}</span>
+        </div>
+        {safeCatalogImageUrl(draft.imageUrl) ? <img className="mt-1 w-full max-w-xs rounded-token-sm border border-gray-200 object-cover" src={safeCatalogImageUrl(draft.imageUrl)} alt="Prévia da imagem do produto" /> : null}
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={primaryButton} data-testid="catalog-settings-save" disabled={busy} onClick={() => void save()}>{editingId ? "Salvar alterações" : "Adicionar item"}</button>
@@ -208,5 +218,6 @@ export function CatalogSettings({ canManage }: { canManage: boolean }) {
         {canManage ? <div className="flex flex-wrap gap-2"><button type="button" className={textButton} data-testid="catalog-settings-edit" onClick={() => startEdit(item)}><Pencil size={14} aria-hidden="true" /> Editar</button>{item.active ? <button type="button" className={textButton} data-testid="catalog-settings-deactivate" disabled={busy} onClick={() => void toggleActive(item)}><Trash2 size={14} aria-hidden="true" /> Desativar</button> : <button type="button" className={textButton} data-testid="catalog-settings-reactivate" disabled={busy} onClick={() => void toggleActive(item)}><RotateCcw size={14} aria-hidden="true" /> Reativar</button>}</div> : null}
       </div>)}
     </div>
+    <CatalogImagePicker open={imagePickerOpen} onClose={() => setImagePickerOpen(false)} onSelect={(value) => setDraft((current) => ({ ...current, imageUrl: value }))} />
   </section>;
 }

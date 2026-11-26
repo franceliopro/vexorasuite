@@ -242,7 +242,7 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     '<h1>Financeiro</h1>',
     'id:"products",label:"Produtos"',
     '<h2 id="finance-products-title">Produtos</h2>',
-    'window.dispatchEvent(new Event("vexora:open-catalog"))',
+    'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:origin}))',
     'useModalDialog(true,dialogRef',
     'ref={dialogRef} tabIndex={-1}',
     'aria-labelledby="confirm-delete-title"',
@@ -265,6 +265,51 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
   assert.match(source, /aria-label="Fechar"/);
   assert.match(source, /role="dialog" aria-modal="true" aria-label="Preparar cobrança"/);
   assert.match(source, /aria-label="Fechar" onClick=\{\(\)=>setSelected\(null\)\}/);
+});
+
+test("a vitrine mostra imagem, título e detalhes do catálogo em cards responsivos", () => {
+  for (const marker of [
+    'fetch("/api/backend/catalog?category=ASAAS&limit=200"',
+    'data-kind={item.kind}',
+    'aria-label="Imagem não informada"',
+    'loading="lazy"',
+    'productGridTw="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"',
+    'productImageFrameTw="grid aspect-square place-items-center overflow-hidden rounded-fin-card bg-surface-3"',
+    'productBodyTw="grid gap-2 p-pad"',
+    '<h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>',
+    '{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}',
+  ]) {
+    assert.ok(source.includes(marker), `faltou ${marker}`);
+  }
+  assert.doesNotMatch(source, /<img className=\{productImageTw\} src=\{image\} alt=""/);
+});
+
+test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
+  for (const marker of [
+    '<span>CPF/CNPJ do cliente *</span>',
+    'data-testid="new-subscription-document"',
+    '<span>Serviço do catálogo *</span>',
+    'data-testid="new-subscription-service"',
+    'data-testid="new-subscription-value"',
+    '<option value="">Selecione um serviço</option>',
+    'catalog.map(item=><option key={item.id} value={item.id}>{item.name} · {currency(item.value)}</option>)',
+    'value={selectedItem?currency(selectedItem.value):"—"}',
+    'const body:Record<string,unknown>={catalogItemId:selectedItem!.id',
+    '// Nome e preço vêm do CatalogItem no servidor; o navegador envia só a referência e as datas.',
+  ]) {
+    assert.ok(source.includes(marker), `faltou ${marker}`);
+  }
+  assert.doesNotMatch(source, /body\.service=/);
+  assert.doesNotMatch(source, /body\.value=/);
+});
+
+test("a home retorna ao Financeiro na aba correta depois do catálogo", () => {
+  assert.match(homePage, /const \[catalogReturnTo, setCatalogReturnTo\]/);
+  assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\]/);
+  assert.match(homePage, /if \(origin === "finance-products"\) setFinanceInitialTab\("products"\)/);
+  assert.match(homePage, /if \(origin === "finance-subscriptions"\) setFinanceInitialTab\("subscriptions"\)/);
+  assert.match(homePage, /setActive\("Financeiro"\)/);
+  assert.ok(homePage.includes('Voltar para {catalogReturnTo === "finance-products" ? "Produtos" : catalogReturnTo === "finance-subscriptions" ? "Assinaturas" : "Configurações"}'));
 });
 
 test("o JSX financeiro mantém os gráficos como dados, sem cor de marca fixa", () => {

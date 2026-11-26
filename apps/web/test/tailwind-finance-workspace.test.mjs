@@ -359,7 +359,7 @@ test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível
     'const dialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-window',
     'const newSubscriptionDialogTw="relative z-[1101] flex max-h-[calc(100dvh_-_var(--top)_-_40px)] min-h-[min(80dvh,820px)] w-full max-w-fin-subscription',
     'return createPortal(<div className={subscriptionBackdropTw}',
-    '</div>,document.body);',
+    '</div>,window.document.body);',
     'const productEditFormTw="grid gap-4 sm:grid-cols-2"',
     'aria-label="Preparar cobrança"',
     'aria-labelledby="finance-product-edit-title"',

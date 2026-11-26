@@ -10,6 +10,8 @@ type AsaasDebt = { id: string; value: number; dueDate: string; status: string; d
 
 /** Categoria reservada no CatalogItem para produtos de sistemas de pagamento (Asaas, InfinitePay). */
 const PAYMENT_CATEGORY = "ASAAS";
+/** Itens cadastrados antes do default de categoria ficaram com NULL ou string vazia. */
+const PAYMENT_CATEGORY_FILTER = [{ category: PAYMENT_CATEGORY }, { category: null }, { category: "" }];
 const CATALOG_ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const validIsoDate = (value: unknown): value is string => typeof value === "string" && ISO_DATE.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
@@ -194,7 +196,7 @@ export class AsaasService {
   /** Catálogo visível na Véxora: os mesmos CatalogItem usados por atendimento, orçamento e IAs. */
   async listServices(tenantId: string) {
     const items = await this.prisma.catalogItem.findMany({
-      where: { tenantId, active: true, category: PAYMENT_CATEGORY },
+      where: { tenantId, active: true, OR: PAYMENT_CATEGORY_FILTER },
       select: { id: true, name: true, priceCents: true, description: true, imageUrl: true, createdAt: true },
       orderBy: { name: "asc" },
       take: 200,
@@ -220,14 +222,14 @@ export class AsaasService {
     if (!Number.isFinite(value) || value < 0 || value > 99999999) throw new BadRequestException("Informe um valor válido (ou deixe zero).");
     const priceCents = Math.round(value * 100);
     const existing = await this.prisma.catalogItem.findFirst({
-      where: { tenantId, category: PAYMENT_CATEGORY, name: { equals: name, mode: "insensitive" } },
+      where: { tenantId, OR: PAYMENT_CATEGORY_FILTER, name: { equals: name, mode: "insensitive" } },
       select: { id: true, priceCents: true, active: true },
     });
     if (existing) {
       if (!existing.active || existing.priceCents !== priceCents) {
         await this.prisma.catalogItem.update({
           where: { id: existing.id },
-          data: { active: true, ...(value > 0 ? { priceCents } : {}) },
+          data: { active: true, category: PAYMENT_CATEGORY, ...(value > 0 ? { priceCents } : {}) },
         });
         await this.prisma.auditLog.create({ data: { tenantId, action: "payment.catalog_service_updated", entityType: "catalog_item", entityId: existing.id, details: { name, priceCents, actorId: userId || null } } });
       }
@@ -254,7 +256,7 @@ export class AsaasService {
 
   async deleteService(tenantId: string, serviceId: string) {
     const item = await this.prisma.catalogItem.findFirst({
-      where: { id: serviceId, tenantId, category: PAYMENT_CATEGORY },
+      where: { id: serviceId, tenantId, OR: PAYMENT_CATEGORY_FILTER },
       select: { id: true, name: true },
     });
     if (!item) throw new BadRequestException("Serviço não encontrado.");
@@ -279,7 +281,7 @@ export class AsaasService {
       const id = input.catalogItemId.trim();
       if (!CATALOG_ITEM_ID.test(id)) throw new BadRequestException("Produto do catálogo inválido.");
       const item = await this.prisma.catalogItem.findFirst({
-        where: { id, tenantId, active: true, category: PAYMENT_CATEGORY },
+        where: { id, tenantId, active: true, OR: PAYMENT_CATEGORY_FILTER },
         select: { id: true, name: true, priceCents: true, currency: true },
       });
       if (!item) throw new BadRequestException("Produto do catálogo indisponível para esta empresa.");

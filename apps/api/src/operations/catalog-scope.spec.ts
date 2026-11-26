@@ -38,7 +38,42 @@ describe("escopo do catálogo", () => {
     const controller = new CatalogController(prisma);
     const request: any = { user: { tenantId: "tenant-a", role: "MANAGER" } };
     await controller.list(request, undefined, undefined, "ASAAS", "50");
-    expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a", active: true, category: "ASAAS" });
+    expect(findMany.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-a", active: true });
+    expect(findMany.mock.calls[0][0].where.AND).toEqual([
+      { OR: [{ category: "ASAAS" }, { category: null }, { category: "" }] },
+    ]);
+  });
+
+  it("inclui itens legados sem categoria na vitrine ASAAS", async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      { id: "antigo", category: null },
+      { id: "vazio", category: "" },
+      { id: "atual", category: "ASAAS" },
+    ]);
+    const prisma: any = { catalogItem: { findMany } };
+    const controller = new CatalogController(prisma);
+    const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
+    const result = await controller.list(request, undefined, undefined, "ASAAS", "50");
+    expect(result.items).toHaveLength(3);
+    expect(findMany.mock.calls[0][0].where.AND).toEqual([
+      { OR: [{ category: "ASAAS" }, { category: null }, { category: "" }] },
+    ]);
+  });
+
+  it("mantém busca textual e categoria ASAAS como condições simultâneas", async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma: any = { catalogItem: { findMany } };
+    const controller = new CatalogController(prisma);
+    const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
+    await controller.list(request, "curso", undefined, "ASAAS", "50");
+    expect(findMany.mock.calls[0][0].where.AND).toEqual([
+      { OR: [{ category: "ASAAS" }, { category: null }, { category: "" }] },
+      { OR: [
+        { name: { contains: "curso", mode: "insensitive" } },
+        { description: { contains: "curso", mode: "insensitive" } },
+        { sku: { contains: "curso", mode: "insensitive" } },
+      ] },
+    ]);
   });
 
   it("cadastra sem categoria como ASAAS para aparecer no Financeiro", async () => {
@@ -73,5 +108,15 @@ describe("escopo do catálogo", () => {
     const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
     await controller.update(request, "item-legado", { category: "" });
     expect(update.mock.calls[0][0].data).toMatchObject({ category: "ASAAS" });
+  });
+
+  it("normaliza a categoria ao reativar um item legado sem categoria", async () => {
+    const findFirst = jest.fn().mockResolvedValue({ id: "item-legado", category: null });
+    const update = jest.fn().mockResolvedValue({ id: "item-legado" });
+    const prisma: any = { catalogItem: { findFirst, update } };
+    const controller = new CatalogController(prisma);
+    const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
+    await controller.update(request, "item-legado", { active: true });
+    expect(update.mock.calls[0][0].data).toMatchObject({ active: true, category: "ASAAS" });
   });
 });

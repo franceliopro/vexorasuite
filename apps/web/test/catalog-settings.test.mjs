@@ -65,10 +65,15 @@ test("o seletor de imagem aceita PC, Google Drive conectado e URL", () => {
     'data-testid="catalog-image-picker-drive"',
     'data-testid="catalog-image-picker-url"',
     'data-testid="catalog-image-picker-confirm"',
-    'api<{ assets: Asset[] }>("/sites/assets"',
+    'createPortal(',
+    'useModalDialog(open && mounted, dialogRef, onClose)',
+    'style={{ zIndex: 1000 }}',
+    'max-h-72',
+    'api<{ assets: Asset[] }>("/catalog-images"',
     'api<DriveAccount[]>("/drive-manager/accounts")',
     'api<{ files?: DriveFile[] }>(`/drive-manager/${encodeURIComponent(accountId)}/files?${params.toString()}`)',
-    '"/api/backend/sites/assets"',
+    '"/api/backend/catalog-images"',
+    '"/catalog-images/from-drive"',
     'Nenhuma conta do Google Drive conectada para esta empresa',
     'role="tablist" aria-label="Origem da imagem"',
   ]) {
@@ -76,6 +81,7 @@ test("o seletor de imagem aceita PC, Google Drive conectado e URL", () => {
   }
   assert.ok(picker.includes('/^https?:\\/\\//i'));
   assert.doesNotMatch(picker, /api<[^>]+>\("\/api\/backend\//);
+  assert.doesNotMatch(picker, /\/drive-manager\/\$\{encodeURIComponent\(accountId\)\}\/files\/\$\{encodeURIComponent\(file\.id\)\}\/content/);
 });
 
 test("o botão Voltar do catálogo devolve ao módulo de origem", () => {

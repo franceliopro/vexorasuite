@@ -26,6 +26,7 @@ import {
 const cardTw="min-w-0 rounded-token border border-line bg-surface p-pad shadow-token";
 const primaryButton="inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-900 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton="inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink transition-colors hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
+const subtleButtonTw="inline-flex min-h-control items-center gap-1.5 rounded-token-sm px-2 font-bold text-blue-700 no-underline transition-colors hover:bg-hover";
 const panelHeadingTw="flex flex-wrap items-start justify-between gap-3.5";
 const fieldTw="grid gap-1.5 text-asaas-label font-bold uppercase tracking-fin-label text-ink-secondary";
 const filterBarTw="flex flex-wrap items-end gap-3";
@@ -260,13 +261,13 @@ function CatalogProductsView(){
   const [refresh,setRefresh]=useState(0);
   useEffect(()=>{let live=true;setLoading(true);setError("");fetch("/api/backend/catalog?category=ASAAS&limit=200",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as {items?:CatalogProduct[]}}).then(body=>{if(live)setItems(Array.isArray(body.items)?body.items:[])}).catch(e=>{if(live){setItems(null);setError(e instanceof Error?e.message:"Falha ao consultar o catálogo.")}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[refresh]);
   return <section className={catalogCardTw} aria-labelledby="finance-products-title">
-   <div className={panelHeadingTw}><div><h2 id="finance-products-title">Produtos</h2><p className={metaTw}>Itens privados da Véxora, gravados no catálogo da empresa.</p></div><div className={headingActionsTw}><button type="button" className={secondaryButton} onClick={() => openCatalogSettings()}><Package size={15} aria-hidden="true"/> Configurações / Catálogo</button><button type="button" className={secondaryButton} onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Atualizar</button></div></div>
+   <div className={panelHeadingTw}><div><h2 id="finance-products-title">Produtos</h2><p className={metaTw}>Itens privados da Véxora, gravados no catálogo da empresa. Cadastro e edição em Configurações → Catálogo.</p></div><div className={headingActionsTw}><button type="button" className={subtleButtonTw} title="Abre Configurações → Catálogo para cadastrar um produto" onClick={() => openCatalogSettings()}><Plus size={15} aria-hidden="true"/> Novo produto</button><button type="button" className={subtleButtonTw} title="Configurações → Catálogo serve para editar, desativar e reativar itens, preços e imagens" onClick={() => openCatalogSettings()}><Package size={15} aria-hidden="true"/> Gerenciar catálogo</button><button type="button" className={iconButtonTw} aria-label="Atualizar produtos" title="Atualizar" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/></button></div></div>
    {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando catálogo…</p>:items&&items.length?<div className={productGridTw}>{items.map(item=>{const image=catalogImageUrl(item.imageUrl);return <article className={productCardTw} key={item.id}>
      <div className={productImageFrameTw}>{image?<img className={productImageTw} src={image} alt={item.name} loading="lazy"/>:<div className={productPlaceholderTw} role="img" aria-label="Imagem não informada"><Package size={26} aria-hidden="true"/><span>Sem imagem</span></div>}</div>
      <div className={productBodyTw}><div className="flex flex-wrap items-center gap-1.5"><span className={productBadgeTw} data-kind={item.kind}>{item.kind==="PRODUCT"?"Produto digital":"Serviço"}</span>{item.category?<span className={productMetaTw}>{item.category}</span>:null}</div><h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>
      <p className={catalogNoteTw}>{item.description||"Sem descrição cadastrada."}</p>
      <strong className={productPriceTw}>{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}</strong></div>
-    </article>})}</div>:<div className={emptyPanelTw}><p className={emptyTw}>Nenhum produto cadastrado nesta empresa.</p><button type="button" className={secondaryButton} onClick={() => openCatalogSettings()}>Criar produto em Configurações / Catálogo</button></div>}
+    </article>})}</div>:<div className={emptyPanelTw}><p className={emptyTw}>Nenhum produto cadastrado nesta empresa. Use “Novo produto” para cadastrar o primeiro item.</p><button type="button" className={subtleButtonTw} onClick={() => openCatalogSettings()}><Plus size={15} aria-hidden="true"/> Novo produto</button></div>}
    <p className={catalogNoteTw}>Imagem e descrição ficam na Véxora. Nada aqui é enviado para WhatsApp, e-mail ou outros canais externos.</p>
   </section>;
 }
@@ -480,7 +481,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
 }
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export type FinanceTab="overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history";
-export function FinanceWorkspace({initialTab="overview"}:{initialTab?:FinanceTab}={}){
+export function FinanceWorkspace({initialTab="products"}:{initialTab?:FinanceTab}={}){
  const [tab,setTab]=useState<FinanceTab>(initialTab);
   useEffect(()=>setTab(initialTab),[initialTab]);
  const [portfolioStatus,setPortfolioStatus]=useState("");

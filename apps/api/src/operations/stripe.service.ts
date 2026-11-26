@@ -24,6 +24,19 @@ const SUPPORTED_EVENTS = new Set([
   "charge.refunded",
 ]);
 
+const stripeQuery = (params: Record<string, string | number>): string => {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) search.set(key, String(value));
+  return "?" + search.toString();
+};
+
+const normalizeStripeStatus = (status: unknown): "PAID" | "PENDING" | "CANCELLED" | "REFUNDED" => {
+  if (status === "succeeded") return "PAID";
+  if (status === "canceled") return "CANCELLED";
+  if (status === "refunded") return "REFUNDED";
+  return "PENDING";
+};
+
 /** Verificação manual conforme docs.stripe.com/webhooks: corpo cru, apenas t e v1, tolerância de 5 min. */
 export function verifyStripeWebhookSignature(
   rawBody: Buffer | string,
@@ -169,6 +182,164 @@ export class StripeService {
       livemode: account.livemode === true,
       environment: credentials.environment,
     };
+  }
+
+  /** Gestão financeira: somente leitura, tenant-scoped e com origem declarada. */
+  async listFinanceCustomers(tenantId: string, limit = 50) {
+    const { environment } = await this.credentials(tenantId);
+    const data = await this.request<{ data?: Record<string, any>[]; has_more?: boolean }>(
+      tenantId, `/customers${stripeQuery({ limit: Math.min(Math.max(limit, 1), 100) })}`, undefined, "GET",
+    );
+    const items = (Array.isArray(data.data) ? data.data : []).map((row) => ({
+      id: firstString(row.id),
+      name: firstString(row.name) || null,
+      email: firstString(row.email) || null,
+      phone: firstString(row.phone) || null,
+      createdAt: typeof row.created === "number" ? new Date(row.created * 1000).toISOString() : null,
+    })).filter((row) => Boolean(row.id));
+    return { source: "PROVIDER_LIVE", provider: "STRIPE", environment, hasMore: data.has_more === true, limit, items };
+  }
+
+  async listFinanceCharges(tenantId: string, limit = 50, from?: Date) {
+    const { environment } = await this.credentials(tenantId);
+    const params: Record<string, string | number> = { limit: Math.min(Math.max(limit, 1), 100) };
+    if (from) params["created[gte]"] = Math.floor(from.getTime() / 1000);
+    const data = await this.request<{ data?: Record<string, any>[]; has_more?: boolean }>(
+      tenantId, `/payment_intents${stripeQuery(params)}`, undefined, "GET",
+    );
+    const items = (Array.isArray(data.data) ? data.data : []).map((row) => {
+      const metadata = objectOf(row.metadata);
+      return {
+        id: firstString(row.id),
+        amount: Number(row.amount || 0) / 100,
+        currency: firstString(row.currency).toUpperCase() || "BRL",
+        status: normalizeStripeStatus(row.status),
+        rawStatus: firstString(row.status) || null,
+        description: firstString(row.description) || null,
+        customerId: firstString(row.customer) || null,
+        invoiceUrl: firstString(metadata.invoiceUrl || metadata.invoice_url) || null,
+        createdAt: typeof row.created === "number" ? new Date(row.created * 1000).toISOString() : null,
+      };
+    }).filter((row) => Boolean(row.id));
+    return { source: "PROVIDER_LIVE", provider: "STRIPE", environment, hasMore: data.has_more === true, limit, items };
+  }
+
+  async listFinanceCatalog(tenantId: string, limit = 50) {
+    const { environment } = await this.credentials(tenantId);
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const [products, prices] = await Promise.all([
+      this.request<{ data?: Record<string, any>[]; has_more?: boolean }>(tenantId, `/products${stripeQuery({ active: "true", limit: safeLimit })}`, undefined, "GET"),
+      this.request<{ data?: Record<string, any>[]; has_more?: boolean }>(tenantId, `/prices${stripeQuery({ active: "true", limit: safeLimit })}`, undefined, "GET"),
+    ]);
+    const priceByProduct = new Map<string, { amountCents: number; currency: string }>();
+    for (const price of Array.isArray(prices.data) ? prices.data : []) {
+      const productId = typeof price.product === "string" ? price.product : firstString(objectOf(price.product).id);
+      if (!productId || price.unit_amount === null || price.unit_amount === undefined) continue;
+      priceByProduct.set(productId, {
+        amountCents: Number(price.unit_amount),
+        currency: firstString(price.currency).toUpperCase() || "BRL",
+      });
+    }
+    const items = (Array.isArray(products.data) ? products.data : []).map((row) => {
+      const id = firstString(row.id);
+      const price = priceByProduct.get(id);
+      const images = Array.isArray(row.images) ? row.images : [];
+      return {
+        id,
+        name: firstString(row.name) || "Produto Stripe",
+        description: firstString(row.description) || null,
+        category: "STRIPE",
+        priceCents: price?.amountCents ?? null,
+        currency: price?.currency || "BRL",
+        imageUrl: firstString(images[0]) || null,
+        active: row.active !== false,
+      };
+    }).filter((row) => Boolean(row.id));
+    return { source: "PROVIDER_LIVE", provider: "STRIPE", environment, hasMore: products.has_more === true, limit, items };
+  }
+
+  async listFinanceSubscriptions(tenantId: string, limit = 50) {
+    const { environment } = await this.credentials(tenantId);
+    const data = await this.request<{ data?: Record<string, any>[]; has_more?: boolean }>(
+      tenantId, `/subscriptions${stripeQuery({ status: "all", limit: Math.min(Math.max(limit, 1), 100) })}`, undefined, "GET",
+    );
+    const items = (Array.isArray(data.data) ? data.data : []).map((row) => ({
+      id: firstString(row.id),
+      customerId: firstString(row.customer) || null,
+      status: firstString(row.status) || null,
+      cancelAtPeriodEnd: row.cancel_at_period_end === true,
+      currentPeriodEnd: typeof row.current_period_end === "number" ? new Date(row.current_period_end * 1000).toISOString() : null,
+      createdAt: typeof row.created === "number" ? new Date(row.created * 1000).toISOString() : null,
+    })).filter((row) => Boolean(row.id));
+    return { source: "PROVIDER_LIVE", provider: "STRIPE", environment, hasMore: data.has_more === true, limit, items };
+  }
+
+  async financeDashboard(tenantId: string, months = 1) {
+    const { environment } = await this.credentials(tenantId);
+    const period = [1, 2, 3, 6, 12].includes(months) ? months : 1;
+    const now = new Date();
+    const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - period + 1, 1));
+    const charges = await this.listFinanceCharges(tenantId, 100, from);
+    const buckets = Array.from({ length: period }, (_, index) => {
+      const bucket = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + index, 1));
+      return { month: bucket.toISOString().slice(0, 7), billed: 0, paid: 0, open: 0 };
+    });
+    const totals = { billed: 0, paid: 0, open: 0, count: 0 };
+    for (const charge of charges.items) {
+      if (charge.status === "CANCELLED" || charge.status === "REFUNDED") continue;
+      totals.billed += charge.amount;
+      totals.count += 1;
+      if (charge.status === "PAID") totals.paid += charge.amount; else totals.open += charge.amount;
+      const bucket = buckets.find((candidate) => candidate.month === charge.createdAt?.slice(0, 7));
+      if (bucket) {
+        bucket.billed += charge.amount;
+        if (charge.status === "PAID") bucket.paid += charge.amount; else bucket.open += charge.amount;
+      }
+    }
+    return {
+      source: "PROVIDER_LIVE",
+      provider: "STRIPE",
+      environment,
+      partial: charges.hasMore,
+      caveat: "Indicadores calculados sobre até 100 PaymentIntents recentes da Stripe. Não incluem saldo, saques ou conciliação contábil.",
+      months: period,
+      from: from.toISOString().slice(0, 10),
+      to: now.toISOString().slice(0, 10),
+      totals,
+      series: buckets,
+      collectionRate: totals.billed > 0 ? Math.round((totals.paid / totals.billed) * 1000) / 10 : null,
+    };
+  }
+
+  async refundFinanceCharge(tenantId: string, paymentIntentId: string, userId?: string) {
+    if (!/^pi_[A-Za-z0-9]+$/.test(paymentIntentId)) throw new BadRequestException("Identificador de PaymentIntent inválido.");
+    const { environment } = await this.credentials(tenantId);
+    const refund = await this.request<{ id?: string; status?: string; amount?: number }>(
+      tenantId,
+      "/refunds",
+      new URLSearchParams({ payment_intent: paymentIntentId }),
+      "POST",
+      `finance-refund:${paymentIntentId}`,
+    );
+    const result = {
+      source: "PROVIDER_LIVE",
+      provider: "STRIPE",
+      environment,
+      refundId: firstString(refund.id) || null,
+      status: firstString(refund.status) || null,
+      amountCents: Number(refund.amount || 0),
+      executed: true,
+    };
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId,
+        action: "finance.refund_executed",
+        entityType: "stripe_payment_intent",
+        entityId: paymentIntentId,
+        details: { environment, refundId: result.refundId, status: result.status, amountCents: result.amountCents, actorId: userId || null },
+      },
+    });
+    return result;
   }
 
   /** Cria um PaymentIntent vinculado a um Payment local; nunca cria cobrança órfã. */

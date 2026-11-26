@@ -33,6 +33,7 @@ const InboxWorkspace=dynamic(()=>import("./inbox-workspace").then(module=>module
 const OperationsSettings=dynamic(()=>import("./operations-settings").then(module=>module.OperationsSettings),{loading:()=> <p role="status">Carregando módulo…</p>});
 const CrmWorkspace=dynamic(()=>import("./crm-workspace").then(module=>module.CrmWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const FinanceWorkspace=dynamic(()=>import("./finance-workspace").then(module=>module.FinanceWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
+const FinanceProviderWorkspace=dynamic(()=>import("./finance-provider-workspace").then(module=>module.FinanceProviderWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ChannelsIntegrations=dynamic(()=>import("./channels-integrations").then(module=>module.ChannelsIntegrations),{loading:()=> <p role="status">Carregando módulo…</p>});
 const CalendarWorkspace=dynamic(()=>import("./calendar-workspace").then(module=>module.CalendarWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module.TasksWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -56,6 +57,9 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Relatórios":()=>import("./reports-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
   "Gestão":()=>import("./finance-workspace"),
+  "Asaas":()=>import("./finance-provider-workspace"),
+  "Stripe":()=>import("./finance-provider-workspace"),
+  "InfinitePay":()=>import("./finance-provider-workspace"),
   "Conexões":()=>import("./channels-integrations"),
   "Configurações":()=>import("./operations-settings"),
   "Atendentes":()=>import("./team-workspace"),
@@ -232,7 +236,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Financeiro", icon: "wallet" },
+    { label: "Financeiro", icon: "wallet", children: [{ label: "Asaas", icon: "wallet" }, { label: "Stripe", icon: "globe" }, { label: "InfinitePay", icon: "sparkles" }] },
     { label: "Documentos", icon: "file-text" },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
@@ -282,6 +286,11 @@ export default function HomePage() {
     else if (requested && validModules.has(requested)) {
       preloadWorkspace(requested);
       setActive(requested);
+      const parent = navigation.find((group) => group.items.some((item) => item.children?.some((child) => child.label === requested)));
+      if (parent) {
+        const parentItem = parent.items.find((item) => item.children?.some((child) => child.label === requested));
+        if (parentItem) setExpandedModules([parentItem.label]);
+      }
     }
     setNavigationReady(true);
   }, []);
@@ -429,7 +438,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
@@ -477,7 +486,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === child.label)} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); setExpandedModules([]); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {item.children && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === child.label)} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -585,6 +594,8 @@ export default function HomePage() {
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />
           ) : active === "Financeiro" || active === "Gestão" ? (
             canManage ? <FinanceWorkspace initialTab={financeInitialTab} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
+          ) : active === "Asaas" || active === "Stripe" || active === "InfinitePay" ? (
+            canManage ? <FinanceProviderWorkspace provider={active} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
           ) : active === "Documentos" ? (
             <DocumentsWorkspace />
           ) : active === "Curso" ? (

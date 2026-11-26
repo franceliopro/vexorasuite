@@ -137,7 +137,7 @@ jobs:
         run: echo "Unsigned NSIS artifact only; no code signing, release or publication."
 
   android:
-    name: Android build check (unsigned APK)
+    name: Android build check (signed preview APK)
     needs: config
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -190,12 +190,45 @@ jobs:
         run: |
           test -n "$(find apps/shell/src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -print -quit)"
 
-      - name: Upload Android artifact
+      - name: Upload unsigned Android artifact
         uses: actions/upload-artifact@v4
         with:
           name: vexora-shell-android-unsigned-apk
           path: apps/shell/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
 
-      - name: No signing or publication
-        run: echo "Unsigned APK artifact only; no keystore, Play Store upload or publication."
+      - name: Sign preview APK with an ephemeral key
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find apps/shell/src-tauri/gen/android/app/build/outputs/apk -name 'app-universal-release-unsigned.apk' -print -quit)
+          test -n "$APK"
+          export PATH="$ANDROID_HOME/build-tools/35.0.0:$PATH"
+          STORE_PASS="$(openssl rand -hex 16)"
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/vexora-preview.jks" -storetype PKCS12 \
+            -storepass "$STORE_PASS" -keypass "$STORE_PASS" \
+            -alias vexora-preview -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname "CN=Vexora Suite Preview, OU=Preview, O=Vexora Suite, L=Sao Paulo, ST=SP, C=BR" >/dev/null 2>&1
+          zipalign -p -f -v 4 "$APK" "$RUNNER_TEMP/app-universal-release-aligned.apk"
+          apksigner sign \
+            --ks "$RUNNER_TEMP/vexora-preview.jks" --ks-key-alias vexora-preview \
+            --ks-pass "pass:$STORE_PASS" --key-pass "pass:$STORE_PASS" \
+            --v1-signing-enabled true --v2-signing-enabled true \
+            --out "$RUNNER_TEMP/Vexora-Suite-0.1.0-universal.apk" \
+            "$RUNNER_TEMP/app-universal-release-aligned.apk"
+          apksigner verify --verbose --print-certs \
+            "$RUNNER_TEMP/Vexora-Suite-0.1.0-universal.apk"
+          mkdir -p apps/shell/src-tauri/gen/android/app/build/outputs/apk/preview
+          cp "$RUNNER_TEMP/Vexora-Suite-0.1.0-universal.apk" apps/shell/src-tauri/gen/android/app/build/outputs/apk/preview/Vexora-Suite-0.1.0-universal.apk
+          echo "SIGNED_APK=apps/shell/src-tauri/gen/android/app/build/outputs/apk/preview/Vexora-Suite-0.1.0-universal.apk" >> "$GITHUB_ENV"
+
+      - name: Upload signed preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vexora-shell-android-signed-apk
+          path: ${{ env.SIGNED_APK }}
+          if-no-files-found: error
+
+      - name: No store upload or automated release
+        run: echo "Preview signature uses an ephemeral runner key; no Play Store upload or automated release."

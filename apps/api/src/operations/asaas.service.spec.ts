@@ -132,7 +132,7 @@ describe("AsaasService assinaturas a partir do catálogo", () => {
   function setupPayment() {
     const prisma: any = {
       catalogItem: {
-        findFirst: jest.fn().mockResolvedValue({ id: catalogId, name: "Plano mensal", priceCents: 12900, currency: "BRL" }),
+        findFirst: jest.fn().mockResolvedValue({ id: catalogId, name: "Plano mensal", priceCents: 12900, currency: "BRL", category: "PRODUCT" }),
         findMany: jest.fn().mockResolvedValue([{ id: catalogId, name: "Plano mensal", priceCents: 12900, description: "", imageUrl: null, createdAt: new Date("2026-01-01T00:00:00.000Z") }]),
         update: jest.fn(),
       },
@@ -146,7 +146,7 @@ describe("AsaasService assinaturas a partir do catálogo", () => {
     return { service, prisma, request };
   }
 
-  it("usa nome e preço gravados no catálogo, nunca o valor enviado pelo navegador", async () => {
+  it("usa nome e preço gravados no catálogo, qualquer que seja a categoria", async () => {
     const { service, prisma, request } = setupPayment();
 
     const result = await service.createSubscription("tenant-id", {
@@ -163,10 +163,7 @@ describe("AsaasService assinaturas a partir do catálogo", () => {
     }));
     expect(result.subscription).toMatchObject({ id: "sub_test", catalogItemId: catalogId, endDate: "2027-11-30" });
     expect(prisma.catalogItem.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        id: catalogId, tenantId: "tenant-id", active: true,
-        OR: [{ category: "ASAAS" }, { category: null }, { category: "" }],
-      }),
+      where: { id: catalogId, tenantId: "tenant-id", active: true },
     }));
     expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ action: "payment.subscription_created", details: expect.objectContaining({ catalogItemId: catalogId, endDate: "2027-11-30", actorId: "user-1" }) }),
@@ -212,10 +209,10 @@ describe("AsaasService assinaturas a partir do catálogo", () => {
   });
 });
 
-describe("AsaasService catálogo legado", () => {
-  it("lista itens sem categoria como serviços de pagamento", async () => {
+describe("AsaasService catálogo para assinaturas", () => {
+  it("lista todos os itens ativos, qualquer que seja a categoria", async () => {
     const findMany = jest.fn().mockResolvedValue([
-      { id: "legado", name: "Curso", priceCents: 9900, description: "", imageUrl: null, createdAt: new Date("2026-01-01T00:00:00Z") },
+      { id: "curso", name: "Curso", priceCents: 9900, description: "", imageUrl: null, createdAt: new Date("2026-01-01T00:00:00Z"), category: "PRODUCT" },
     ]);
     const prisma: any = { catalogItem: { findMany } };
     const service = new AsaasService(prisma as PrismaService);
@@ -223,8 +220,8 @@ describe("AsaasService catálogo legado", () => {
     const result = await service.listServices("tenant-a");
 
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { tenantId: "tenant-a", active: true, OR: [{ category: "ASAAS" }, { category: null }, { category: "" }] },
+      where: { tenantId: "tenant-a", active: true },
     }));
-    expect(result.services).toEqual([expect.objectContaining({ id: "legado", value: 99 })]);
+    expect(result.services).toEqual([expect.objectContaining({ id: "curso", value: 99 })]);
   });
 });

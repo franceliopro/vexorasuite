@@ -132,7 +132,8 @@ test("o workspace financeiro usa só utilities, sem remendos", () => {
     "p-pad",
     "px-fin-hero-x",
     "py-fin-hero-y",
-    "max-w-fin-drawer",
+    "max-w-fin-window",
+    "max-w-fin-subscription",
     "max-w-fin-hero-title-w",
     "max-w-fin-hero-copy-w",
     "max-h-fin-matches",
@@ -147,7 +148,8 @@ test("o workspace financeiro usa só utilities, sem remendos", () => {
     "grid-cols-fin-templates",
     "grid-cols-fin-history",
     "grid-cols-fin-history-stats",
-    "grid-cols-fin-sub-grid",
+    "grid-cols-fin-sub-columns",
+    "sm:grid-cols-2",
     "h-fin-columns",
     "h-fin-bars",
     "tracking-fin-eyebrow",
@@ -178,7 +180,8 @@ test("o preset expõe os tokens do Financeiro", () => {
     '"fin-icon": "40px"',
     '"fin-donut": "96px"',
     '"fin-donut-inner": "66px"',
-    '"fin-drawer": "480px"',
+    '"fin-window": "min(100%,880px)"',
+    '"fin-subscription": "min(100%,1040px)"',
     '"fin-hero-x": "28px"',
     '"fin-hero-y": "26px"',
     '"fin-hero-gap": "26px"',
@@ -196,6 +199,7 @@ test("o preset expõe os tokens do Financeiro", () => {
     '"fin-hero": "1.15fr .85fr"',
     '"fin-metrics": "repeat(5,minmax(0,1fr))"',
     '"fin-grid": "repeat(2,minmax(0,1fr))"',
+    '"fin-sub-columns": "minmax(0,0.92fr) minmax(0,1.08fr)"',
     '"fin-waffle": "repeat(20,1fr)"',
     '"fin-history": "1.1fr 1.2fr 1.1fr .8fr 1.4fr"',
     '"fin-chart-blue": "#1D4ED8"',
@@ -309,10 +313,11 @@ test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
   for (const marker of [
     '<span>CPF/CNPJ do cliente *</span>',
     'data-testid="new-subscription-document"',
-    '<span>Serviço do catálogo *</span>',
+    '<span>Produto/serviço do catálogo *</span>',
+    '<h3 className={newSubscriptionSectionTitleTw}>Produto/serviço</h3>',
     'data-testid="new-subscription-service"',
     'data-testid="new-subscription-value"',
-    '<option value="">Selecione um serviço</option>',
+    '<option value="">Selecione um produto/serviço</option>',
     'catalog.map(item=><option key={item.id} value={item.id}>{item.name} · {currency(item.value)}</option>)',
     'value={selectedItem?currency(selectedItem.value):"—"}',
     'const body:Record<string,unknown>={catalogItemId:selectedItem!.id',
@@ -322,6 +327,34 @@ test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
   }
   assert.doesNotMatch(source, /body\.service=/);
   assert.doesNotMatch(source, /body\.value=/);
+  assert.doesNotMatch(source, /Serviço e cobrança/);
+  assert.doesNotMatch(source, /Serviço do catálogo/);
+});
+
+test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível", () => {
+  assert.equal((source.match(/role="dialog"/g) || []).length, 4);
+  assert.doesNotMatch(source, /max-w-lg/);
+  assert.doesNotMatch(source, /max-w-fin-drawer/);
+  for (const utility of [
+    "max-w-fin-window",
+    "max-w-fin-subscription",
+    "[scrollbar-width:none]",
+    "[&::-webkit-scrollbar]:hidden",
+  ]) {
+    assert.ok(classes.includes(utility), `faltou a utility ${utility}`);
+  }
+  for (const marker of [
+    'const drawerTw="relative z-10 grid max-h-dvh w-full max-w-fin-window',
+    'const dialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-window',
+    'const newSubscriptionDialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-subscription',
+    'const productEditFormTw="grid gap-4 sm:grid-cols-2"',
+    'aria-label="Preparar cobrança"',
+    'aria-labelledby="finance-product-edit-title"',
+    'aria-labelledby="confirm-delete-title"',
+    'aria-labelledby="new-sub-title"',
+  ]) {
+    assert.ok(source.includes(marker), `faltou ${marker}`);
+  }
 });
 
 test("a home retorna ao Financeiro na aba correta depois do catálogo", () => {

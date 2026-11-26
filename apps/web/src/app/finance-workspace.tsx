@@ -60,8 +60,10 @@ const dangerButtonTw="inline-flex min-h-control items-center gap-2 rounded-token
 const paginationTw="flex justify-end gap-2.5";
 const paginationButtonTw="min-h-8 rounded-fin-pill border border-line bg-surface-2 px-3.5 text-small font-bold text-ink-secondary disabled:cursor-not-allowed disabled:opacity-45";
 const catalogNoteTw="m-0 text-asaas-muted leading-relaxed text-ink-secondary";
+const noScrollbarTw="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 const overlayTw="fixed inset-0 z-50 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm";
-const drawerTw="relative grid max-h-dvh w-full max-w-fin-drawer gap-3 self-start overflow-y-auto rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
+const drawerTw="relative z-10 grid max-h-dvh w-full max-w-fin-window gap-4 self-start overflow-y-auto overscroll-contain rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 "+noScrollbarTw;
+const productEditFormTw="grid gap-4 sm:grid-cols-2";
 const iconButtonTw="grid size-control place-items-center rounded-fin-icon border border-line bg-surface-2 text-ink transition-colors hover:bg-hover";
 const drawerLabelTw="grid gap-1.5 text-asaas-label font-bold uppercase tracking-fin-label text-ink-secondary";
 const drawerControlTw="min-h-control-h min-w-0 rounded-fin-row border border-line bg-surface-2 px-2.5 text-body text-ink";
@@ -170,20 +172,32 @@ const historyTableTw="grid overflow-hidden rounded-fin-card border border-line";
 const historyHeadTw="grid grid-cols-fin-history gap-2.5 border-b border-line bg-blue-50 p-2.5 px-3.5 text-2xs font-extrabold uppercase tracking-fin-wide text-ink-secondary";
 const historyEmptyTw="p-5 text-center text-small leading-relaxed text-ink-secondary";
 const dialogBackdropTw="fixed inset-0 z-50 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm";
-const dialogTw="relative z-10 flex max-h-dvh w-full max-w-lg flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
+const dialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-window flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
 const dialogHeadingTw="mb-3.5 flex flex-none items-center gap-3 pr-10";
 const dialogCloseTw="absolute right-3 top-3 z-10 grid size-control place-items-center rounded-fin-icon border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
-const dialogBodyTw="min-h-0 flex-1 overflow-y-auto overscroll-contain";
+const dialogBodyTw="min-h-0 flex-1 overflow-y-auto overscroll-contain "+noScrollbarTw;
 const subscriptionFormTw="grid gap-4";
 const lookupTw="flex gap-2";
 const lookupInputTw="min-w-0 flex-1";
-const matchesTw="mt-5 grid max-h-fin-matches gap-2 overflow-auto rounded-fin-row border border-line bg-surface-2 p-3";
-const customerTw="flex cursor-pointer items-center gap-2.5 rounded-fin-chip border border-line bg-surface p-2 px-2.5";
-const customerSelectedTw="flex cursor-pointer items-center gap-2.5 rounded-fin-chip border border-blue-600 bg-blue-50 p-2 px-2.5 ring-2 ring-blue-600/20";
+const matchesTw="mt-5 grid max-h-fin-matches gap-2 overflow-auto rounded-fin-row border border-line bg-surface-2 p-3 "+noScrollbarTw;
+const customerTw="flex min-w-0 cursor-pointer flex-nowrap items-center gap-2.5 rounded-fin-chip border border-line bg-surface p-2 px-2.5";
+const customerSelectedTw="flex min-w-0 cursor-pointer flex-nowrap items-center gap-2.5 rounded-fin-chip border border-blue-600 bg-blue-50 p-2 px-2.5 ring-2 ring-blue-600/20";
+const customerInlineTw="flex min-w-0 flex-nowrap items-baseline gap-2 whitespace-nowrap";
+const customerInlineNameTw="min-w-0 truncate font-bold text-ink";
+const customerInlineContactTw="min-w-0 truncate text-asaas-muted text-ink-secondary";
 const newCustomerTw="grid gap-2.5";
-const subGridTw="grid grid-cols-fin-sub-grid gap-3 ov-laptop:grid-cols-2 max-sm:grid-cols-1";
+const subGridTw="grid grid-cols-2 gap-3 ov-laptop:grid-cols-2 max-sm:grid-cols-1";
 const errorTw="m-0 text-body font-semibold text-red-600";
 const dialogFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t border-line pt-3";
+const newSubscriptionDialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-subscription flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
+const newSubscriptionHeadingTw="mb-4 flex flex-none items-center gap-3 rounded-fin-figure border border-line bg-linear-to-br from-blue-50 to-surface p-3.5 pr-12";
+const newSubscriptionTitleTw="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5";
+const newSubscriptionIntroTw="m-0 whitespace-nowrap text-asaas-muted text-ink-secondary";
+const newSubscriptionBodyTw="min-h-0 flex-1 overflow-y-auto overscroll-contain "+noScrollbarTw;
+const newSubscriptionFormTw="grid gap-4 fin-wide:grid-cols-fin-sub-columns";
+const newSubscriptionPanelTw="grid min-w-0 content-start gap-4 self-start rounded-fin-figure border border-line bg-surface-2 p-4";
+const newSubscriptionSectionTitleTw="m-0 flex items-center gap-2 whitespace-nowrap text-body font-extrabold text-ink";
+const newSubscriptionFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t border-line pt-3 fin-wide:col-span-2";
 
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateBR = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split("-").reverse().join("/") : value;
@@ -231,14 +245,14 @@ function PortfolioView({initialStatus=""}:{initialStatus?:string}={}){
    <div className={paginationTw}><button type="button" disabled={!offset} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Anterior</button><button type="button" disabled={!data.hasMore} onClick={()=>setOffset(n=>n+50)}>Próxima</button></div>
   </>}
  {selected&&<div className={overlayTw} role="presentation" onClick={()=>setSelected(null)}><aside ref={drawerRef} tabIndex={-1} className={drawerTw} role="dialog" aria-modal="true" aria-label="Preparar cobrança" onClick={e=>e.stopPropagation()}>
-  <header><h2>Enviar cobrança existente</h2><button type="button" aria-label="Fechar" onClick={()=>setSelected(null)}><X size={16} aria-hidden="true" /></button></header>
-  <p><strong>Cliente: {selected.customerName||"Não identificado"}</strong></p><p><strong>{currency(selected.value)}</strong> · Vencimento {dateBR(selected.dueDate)} · {statusBR[selected.status]||selected.status}</p>
-  <label>Modelo de mensagem<select value={template} onChange={e=>{setTemplate(e.target.value);setCopied(false)}}><option value="friendly">Lembrete cordial</option><option value="due">Aviso de vencimento</option><option value="late">Cobrança após vencimento</option></select></label>
-  <p>Mensagem preparada com os dados reais desta cobrança. Confira o destinatário antes de enviar.</p>
-  <textarea readOnly rows={7} value={(template==="late"?"Olá! Identificamos uma cobrança pendente com vencimento em ":template==="due"?"Olá! Sua cobrança tem vencimento em ":"Olá! Segue um lembrete sobre sua cobrança com vencimento em ")+dateBR(selected.dueDate)+", no valor de "+currency(selected.value)+"."+(selected.invoiceUrl?" Acesse a fatura: "+selected.invoiceUrl:" Entre em contato com nosso financeiro para obter os dados de pagamento.")+" Se já realizou o pagamento, desconsidere esta mensagem."}/>
-  <button type="button" onClick={async()=>{const message=(drawerRef.current?.querySelector("textarea") as HTMLTextAreaElement|null)?.value||"";try{await navigator.clipboard.writeText(message);setCopied(true)}catch{setCopied(false)}}}>{copied?"Mensagem copiada":"Copiar mensagem"}</button>
-  {selected.invoiceUrl?<a href={selected.invoiceUrl} target="_blank" rel="noopener noreferrer">Abrir fatura no Asaas</a>:null}
-  <small>Não enviada automaticamente. O envio integrado e seu histórico dependem da conexão do canal e de auditoria.</small>
+  <header className={dialogHeadingTw}><h2 className="m-0 text-body font-extrabold text-ink">Enviar cobrança existente</h2><button type="button" className={dialogCloseTw} aria-label="Fechar" onClick={()=>setSelected(null)}><X size={18} aria-hidden="true" /></button></header>
+  <p className={metaTw}><strong>Cliente: {selected.customerName||"Não identificado"}</strong></p><p className={metaTw}><strong>{currency(selected.value)}</strong> · Vencimento {dateBR(selected.dueDate)} · {statusBR[selected.status]||selected.status}</p>
+  <label className={drawerLabelTw}>Modelo de mensagem<select className={drawerControlTw} value={template} onChange={e=>{setTemplate(e.target.value);setCopied(false)}}><option value="friendly">Lembrete cordial</option><option value="due">Aviso de vencimento</option><option value="late">Cobrança após vencimento</option></select></label>
+  <p className={catalogNoteTw}>Mensagem preparada com os dados reais desta cobrança. Confira o destinatário antes de enviar.</p>
+  <textarea className={drawerTextareaTw} readOnly rows={7} value={(template==="late"?"Olá! Identificamos uma cobrança pendente com vencimento em ":template==="due"?"Olá! Sua cobrança tem vencimento em ":"Olá! Segue um lembrete sobre sua cobrança com vencimento em ")+dateBR(selected.dueDate)+", no valor de "+currency(selected.value)+"."+(selected.invoiceUrl?" Acesse a fatura: "+selected.invoiceUrl:" Entre em contato com nosso financeiro para obter os dados de pagamento.")+" Se já realizou o pagamento, desconsidere esta mensagem."}/>
+  <button type="button" className={drawerButtonTw} onClick={async()=>{const message=(drawerRef.current?.querySelector("textarea") as HTMLTextAreaElement|null)?.value||"";try{await navigator.clipboard.writeText(message);setCopied(true)}catch{setCopied(false)}}}>{copied?"Mensagem copiada":"Copiar mensagem"}</button>
+  {selected.invoiceUrl?<a className={drawerLinkTw} href={selected.invoiceUrl} target="_blank" rel="noopener noreferrer">Abrir fatura no Asaas</a>:null}
+  <small className={drawerSmallTw}>Não enviada automaticamente. O envio integrado e seu histórico dependem da conexão do canal e de auditoria.</small>
  </aside></div>}
  </section>;
 }
@@ -304,9 +318,9 @@ function CatalogProductsView(){
     <section ref={editorRef} className={drawerTw} role="dialog" aria-modal="true" aria-labelledby="finance-product-edit-title" tabIndex={-1}>
      <header className={dialogHeadingTw}><div><h2 id="finance-product-edit-title" className="m-0 text-body font-extrabold text-ink">Editar produto</h2><p className={metaTw}>Altere os dados e salve para atualizar a vitrine.</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" onClick={()=>setEditing(null)}><X size={18} aria-hidden="true"/></button></header>
      {formError?<p role="alert" className={errorTw}>{formError}</p>:null}
-     <div className={dialogBodyTw}><div className={subscriptionFormTw}>
+     <div className={dialogBodyTw}><div className={productEditFormTw}>
       <label className={drawerLabelTw}>Nome<input className={drawerControlTw} maxLength={160} value={editing.name} onChange={event=>setEditing({...editing,name:event.target.value})}/></label>
-      <label className={drawerLabelTw}>Descrição<textarea className={drawerTextareaTw} value={editing.description} onChange={event=>setEditing({...editing,description:event.target.value})}/></label>
+      <label className={drawerLabelTw+" sm:col-span-2"}>Descrição<textarea className={drawerTextareaTw} value={editing.description} onChange={event=>setEditing({...editing,description:event.target.value})}/></label>
       <label className={drawerLabelTw}>Preço<input className={drawerControlTw} inputMode="decimal" value={editing.price} onChange={event=>setEditing({...editing,price:event.target.value})}/></label>
       <label className={drawerLabelTw}>URL da imagem (opcional)<input className={drawerControlTw} value={editing.imageUrl} onChange={event=>setEditing({...editing,imageUrl:event.target.value})}/></label>
       <label className={drawerLabelTw}>Categoria<input className={drawerControlTw} maxLength={80} value={editing.category} onChange={event=>setEditing({...editing,category:event.target.value})}/></label>
@@ -487,7 +501,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
   const selectedItem=catalog.find(item=>item.id===catalogItemId)||null;
   const canCreate=Boolean(selectedItem&&documentValid&&(selectedCustomer||customerId||(createNew&&name.trim().length>2)));
   async function submit(){
-    if(!canCreate){setError("Selecione um serviço do catálogo e informe um cliente válido.");return;}
+    if(!canCreate){setError("Selecione um produto/serviço do catálogo e informe um cliente válido.");return;}
     if(endDate&&endDate<nextDueDate){setError("A data final não pode ser anterior à primeira cobrança.");return;}
     setBusy(true);setError("");
     try{
@@ -503,26 +517,41 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
       onCreated("Assinatura criada: "+selectedItem!.name+" · "+currency(selectedItem!.value)+" · primeira cobrança em "+result.subscription.nextDueDate+(result.subscription.endDate?" · término em "+dateBR(result.subscription.endDate):""));
     }catch(e){setError(e instanceof Error?e.message:"Falha ao criar a assinatura.");setBusy(false)}
   }
-  return <div className={dialogBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}><div ref={dialogRef} tabIndex={-1} className={dialogTw} role="dialog" aria-modal="true" aria-labelledby="new-sub-title"><header className={dialogHeadingTw}><div><h2 id="new-sub-title">Nova assinatura</h2><p>A descrição e o valor vêm do serviço gravado no catálogo da empresa.</p></div><button type="button" className={dialogCloseTw} aria-label="Fechar" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true"/></button></header><div className={dialogBodyTw}>
-    <form className={subscriptionFormTw} onSubmit={(event)=>{event.preventDefault();void submit()}}>
-      <section><strong>Cliente</strong><label className={fieldTw}><span>CPF/CNPJ do cliente *</span><div className={lookupTw}><input inputMode="numeric" autoComplete="off" data-testid="new-subscription-document" value={document} onChange={e=>{setDocument(e.target.value);setMatches(null);setCreateNew(false);setCustomerId("")}} placeholder="Somente números"/><button type="button" className={secondaryButton} disabled={!documentValid||lookupBusy} onClick={()=>void lookup()}>{lookupBusy?"Consultando…":"Buscar cliente"}</button></div></label>
-      {matches!==null?(matches.length?<fieldset className={matchesTw}><legend>Selecione o cadastro no Asaas</legend>{matches.map(item=><label key={item.id} data-selected={customerId===item.id?"true":"false"} className={customerId===item.id?customerSelectedTw:customerTw}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span><strong>{item.name}</strong><small>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className={matchesTw}><legend>Novo cadastro no Asaas</legend><div className={newCustomerTw}><label className={fieldTw}><span>Nome do cliente *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="Nome completo ou razão social"/></label><label className={fieldTw}><span>E-mail (opcional)</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@empresa.com"/></label><label className={fieldTw}><span>Telefone (opcional)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(00) 00000-0000"/></label></div></fieldset>):null}
+  return <div className={dialogBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
+   <div ref={dialogRef} tabIndex={-1} className={newSubscriptionDialogTw} role="dialog" aria-modal="true" aria-labelledby="new-sub-title">
+    <header className={newSubscriptionHeadingTw}>
+     <div className={newSubscriptionTitleTw}>
+      <h2 id="new-sub-title">Nova assinatura</h2>
+      <p className={newSubscriptionIntroTw}>Nome e valor vêm do catálogo da empresa.</p>
+     </div>
+     <button type="button" className={dialogCloseTw} aria-label="Fechar" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true"/></button>
+    </header>
+    <div className={newSubscriptionBodyTw}>
+     <form className={newSubscriptionFormTw} onSubmit={(event)=>{event.preventDefault();void submit()}}>
+      <section className={newSubscriptionPanelTw}>
+       <h3 className={newSubscriptionSectionTitleTw}>Cliente</h3>
+       <label className={fieldTw}><span>CPF/CNPJ do cliente *</span><div className={lookupTw}><input inputMode="numeric" autoComplete="off" data-testid="new-subscription-document" value={document} onChange={e=>{setDocument(e.target.value);setMatches(null);setCreateNew(false);setCustomerId("")}} placeholder="Somente números"/><button type="button" className={secondaryButton} disabled={!documentValid||lookupBusy} onClick={()=>void lookup()}>{lookupBusy?"Consultando…":"Buscar cliente"}</button></div></label>
+       {matches!==null?(matches.length?<fieldset className={matchesTw}><legend>Selecione o cadastro no Asaas</legend>{matches.map(item=><label key={item.id} data-selected={customerId===item.id?"true":"false"} className={customerId===item.id?customerSelectedTw:customerTw}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span className={customerInlineTw}><strong className={customerInlineNameTw}>{item.name}</strong><small className={customerInlineContactTw}>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className={matchesTw}><legend>Novo cadastro no Asaas</legend><div className={newCustomerTw}><label className={fieldTw}><span>Nome do cliente *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="Nome completo ou razão social"/></label><label className={fieldTw}><span>E-mail (opcional)</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@empresa.com"/></label><label className={fieldTw}><span>Telefone (opcional)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(00) 00000-0000"/></label></div></fieldset>):null}
       </section>
-      <section><strong>Serviço e cobrança</strong><label className={fieldTw}><span>Serviço do catálogo *</span><select required data-testid="new-subscription-service" value={catalogItemId} onChange={e=>setCatalogItemId(e.target.value)}><option value="">Selecione um serviço</option>{catalog.map(item=><option key={item.id} value={item.id}>{item.name} · {currency(item.value)}</option>)}<option value="__create__">Criar outros…</option></select></label>
-       {catalogItemId==="__create__"?<p className={partialTw}>Cadastre o novo serviço em Configurações / Catálogo; depois volte aqui para selecioná-lo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings("finance-subscriptions")}>Abrir Configurações / Catálogo</button></p>:null}
-       {catalog.length===0&&catalogItemId!=="__create__"?<p className={catalogNoteTw}>Nenhum serviço ativo no catálogo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings("finance-subscriptions")}>Criar em Configurações / Catálogo</button></p>:null}
-      <div className={subGridTw}>
-        <label className={fieldTw}><span>Valor do catálogo</span><input readOnly data-testid="new-subscription-value" value={selectedItem?currency(selectedItem.value):"—"}/></label>
+      <section className={newSubscriptionPanelTw}>
+       <h3 className={newSubscriptionSectionTitleTw}>Produto/serviço</h3>
+       <label className={fieldTw}><span>Produto/serviço do catálogo *</span><select required data-testid="new-subscription-service" value={catalogItemId} onChange={e=>setCatalogItemId(e.target.value)}><option value="">Selecione um produto/serviço</option>{catalog.map(item=><option key={item.id} value={item.id}>{item.name} · {currency(item.value)}</option>)}<option value="__create__">Criar produto/serviço…</option></select></label>
+       {catalogItemId==="__create__"?<p className={partialTw}>Cadastre o novo produto/serviço em Configurações / Catálogo; depois volte aqui para selecioná-lo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings("finance-subscriptions")}>Abrir Configurações / Catálogo</button></p>:null}
+       {catalog.length===0&&catalogItemId!=="__create__"?<p className={catalogNoteTw}>Nenhum produto/serviço ativo no catálogo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings("finance-subscriptions")}>Criar em Configurações / Catálogo</button></p>:null}
+       <div className={subGridTw}>
+        <label className={fieldTw}><span>Valor</span><input readOnly data-testid="new-subscription-value" value={selectedItem?currency(selectedItem.value):"—"}/></label>
         <label className={fieldTw}><span>Periodicidade</span><select value={cycle} onChange={e=>setCycle(e.target.value)}><option value="WEEKLY">Semanal</option><option value="BIWEEKLY">Quinzenal</option><option value="MONTHLY">Mensal</option><option value="QUARTERLY">Trimestral</option><option value="SEMIANNUALLY">Semestral</option><option value="YEARLY">Anual</option></select></label>
         <label className={fieldTw}><span>Forma de pagamento</span><select value={billingType} onChange={e=>setBillingType(e.target.value)}><option value="BOLETO">Boleto bancário</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão de crédito</option><option value="UNDEFINED">A definir</option></select></label>
         <label className={fieldTw}><span>Primeira cobrança</span><input type="date" value={nextDueDate} onChange={e=>setNextDueDate(e.target.value)}/></label>
-         <label className={fieldTw}><span>Data final (opcional)</span><input type="date" value={endDate} min={nextDueDate||undefined} onChange={e=>setEndDate(e.target.value)}/></label>
-      </div>
+        <label className={fieldTw}><span>Data final (opcional)</span><input type="date" value={endDate} min={nextDueDate||undefined} onChange={e=>setEndDate(e.target.value)}/></label>
+       </div>
       </section>
-      {error?<p role="alert" className={errorTw}>{error}</p>:null}
-      <div className={dialogFooterTw}><button type="button" className={secondaryButton} disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" className={primaryButton} disabled={busy||!canCreate}>{busy?"Criando…":"Criar assinatura"}</button></div>
-    </form>
-  </div></div></div>;
+      {error?<p role="alert" className={errorTw+" fin-wide:col-span-2"}>{error}</p>:null}
+      <div className={newSubscriptionFooterTw}><button type="button" className={secondaryButton} disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" className={primaryButton} disabled={busy||!canCreate}>{busy?"Criando…":"Criar assinatura"}</button></div>
+     </form>
+    </div>
+   </div>
+  </div>;
 }
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export type FinanceTab="overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history";

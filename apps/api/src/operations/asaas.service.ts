@@ -193,10 +193,10 @@ export class AsaasService {
     return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
   }
 
-  /** Catálogo visível na Véxora: os mesmos CatalogItem usados por atendimento, orçamento e IAs. */
+  /** Catálogo visível na Véxora: todo item ativo da empresa, qualquer que seja a categoria. */
   async listServices(tenantId: string) {
     const items = await this.prisma.catalogItem.findMany({
-      where: { tenantId, active: true, OR: PAYMENT_CATEGORY_FILTER },
+      where: { tenantId, active: true },
       select: { id: true, name: true, priceCents: true, description: true, imageUrl: true, createdAt: true },
       orderBy: { name: "asc" },
       take: 200,
@@ -281,7 +281,7 @@ export class AsaasService {
       const id = input.catalogItemId.trim();
       if (!CATALOG_ITEM_ID.test(id)) throw new BadRequestException("Produto do catálogo inválido.");
       const item = await this.prisma.catalogItem.findFirst({
-        where: { id, tenantId, active: true, OR: PAYMENT_CATEGORY_FILTER },
+        where: { id, tenantId, active: true },
         select: { id: true, name: true, priceCents: true, currency: true },
       });
       if (!item) throw new BadRequestException("Produto do catálogo indisponível para esta empresa.");

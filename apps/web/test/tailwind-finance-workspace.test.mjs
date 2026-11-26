@@ -7,6 +7,7 @@ const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), "
 const config = read("tailwind.config.ts");
 const source = read("src/app/finance-workspace.tsx");
 const homePage = read("src/app/page.tsx");
+const followUp = read("src/app/finance-follow-up-policy.tsx");
 
 /**
  * Literais de className, constantes TW referenciadas por className e mapas
@@ -389,4 +390,20 @@ test("a home abre o catálogo em Configurações mediante evento interno", () =>
   assert.match(homePage, /setSettingsCatalogOpen\(true\)/);
   assert.match(homePage, /removeEventListener\("vexora:open-catalog"/);
   assert.match(homePage, /\["OWNER",\s*"ADMIN",\s*"MANAGER"\]/);
+});
+
+test("a política de follow-up é persistida e não simula envios", () => {
+  assert.match(source, /<FinanceFollowUpPolicyWorkspace\/>/);
+  for (const marker of [
+    'fetch("/api/backend/finance/follow-up-policy"',
+    'method: "PUT"',
+    'Política salva no servidor. Nenhum envio foi feito.',
+    'disabled={saving || loading || policy.variants.length < 5}',
+    'O opt-out do cliente é sempre respeitado',
+    'Prévia da primeira variante',
+  ]) {
+    assert.ok(followUp.includes(marker), `faltou ${marker}`);
+  }
+  assert.doesNotMatch(followUp, /templateId/);
+  assert.doesNotMatch(followUp, /enviar mensagem agora/);
 });

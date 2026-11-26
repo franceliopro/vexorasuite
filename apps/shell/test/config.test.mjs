@@ -160,6 +160,8 @@ test("npm scripts and CI keep validation repeatable", () => {
     "tauri build --ci --bundles nsis",
     "tauri android init --ci --skip-targets-install",
     "tauri android build --ci --apk",
+    "apksigner sign",
+    "apksigner verify",
     "actions/upload-artifact@v4",
     "libwebkit2gtk-4.1-dev",
     "iOS is configured but not built on ubuntu-latest",
@@ -176,7 +178,7 @@ test("docs distinguish configured from published", () => {
     path.join(repoRoot, "docs", "implementation-register.md")
   );
 
-  assert.ok(doc.includes("Nenhum binário foi publicado."));
+  assert.ok(doc.includes("Nenhum binário foi publicado pelo workflow."));
   assert.ok(doc.includes("apps/web"));
   assert.ok(register.includes("shell Tauri v2 (configurado, não publicado)"));
 });

@@ -65,6 +65,8 @@ test("os contratos das telas pequenas permanecem intactos", () => {
     'aria-label="Aplicativo e notificações"', 'aria-expanded={open}',
     'aria-label="Fechar configurações do aplicativo"', 'role="status"',
     "/api/backend/notifications/push/subscribe", "vexora:install",
+    "NEXT_PUBLIC_WINDOWS_INSTALLER_URL", "NEXT_PUBLIC_ANDROID_INSTALLER_URL",
+    'data-testid="native-windows-download"', 'data-testid="native-android-download"',
   ]) assert.ok(pwa.includes(token), `pwa perdeu ${token}`);
   for (const token of [
     "api('marketing/library')", "marketing/library/sync", "Salvar pasta",

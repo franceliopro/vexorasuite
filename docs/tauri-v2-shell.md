@@ -28,10 +28,10 @@ O ícone é derivado de `sites/institucional/assets/logo-app.svg`, cópia exata 
 | Windows | `bundle.targets: "all"` + ícones gerados | Job `windows` em `windows-latest` compila um instalador **NSIS** e o anexa como artefato. MSI, assinatura de código e publicação não são executados. |
 | macOS | `bundle.targets: "all"`, `tauri.conf.json`, `icon.icns` | Configurado. Requer macOS/Xcode e certificados; não compilado nesta entrega. |
 | Linux | `bundle.targets: "all"` | `cargo check` e `tauri build --no-bundle` rodam no Ubuntu na CI. |
-| Android | `tauri.android.conf.json` (`minSdkVersion: 24`) + ícones adaptativos | Job `android` em `ubuntu-latest` inicializa o projeto, compila **APKs universais não assinados** e os anexa como artefato. AAB, keystore e Play Store não são executados. |
+| Android | `tauri.android.conf.json` (`minSdkVersion: 24`) + ícones adaptativos | Job `android` em `ubuntu-latest` inicializa o projeto, compila o APK universal, gera uma chave **descartável no runner** e anexa `vexora-shell-android-signed-apk`. O APK não assinado continua disponível para auditoria. AAB, Play Store e chave de produção não são executados. |
 | iOS | `tauri.ios.conf.json` (`minimumSystemVersion: "15.0"`) | Configurado, com ícones gerados. Requer macOS/Xcode e provisioning; não compilado nesta entrega. |
 
-Não estão configurados nesta entrega: atualizador, deep links, plugin `shell`, assinatura de código, `developmentTeam` da Apple, keystore Android e publicação em lojas. Um `Cargo.lock` não foi gerado neste PR; o primeiro `cargo check`/`tauri build` cria o arquivo.
+Não estão configurados nesta entrega: atualizador, deep links, plugin `shell`, assinatura de código do Windows, `developmentTeam` da Apple, keystore Android de produção e publicação em lojas. A assinatura do Android é apenas de prévia: a chave nasce e morre no runner, então atualizações futuras exigirão outra assinatura. Um `Cargo.lock` não foi gerado neste PR; o primeiro `cargo check`/`tauri build` cria o arquivo.
 
 ## Validação e honestidade
 
@@ -40,9 +40,9 @@ A CI em `.github/workflows/tauri-shell.yml`:
 1. roda os testes estáticos de `apps/shell/test/config.test.mjs` (config v2, capacidade local, platform overrides, ícones nativos gerados do SVG, scripts e workflow) e `tauri info`;
 2. instala as dependências WebKit do Linux, executa `cargo check --manifest-path apps/shell/src-tauri/Cargo.toml` e `tauri build --no-bundle --ci`;
 3. compila o instalador NSIS no Windows e anexa `vexora-shell-windows-nsis` como artefato de CI;
-4. instala Java 17, Android SDK/NDK e targets Rust, inicializa o projeto Android, compila APKs com `tauri android build --ci --apk` e anexa `vexora-shell-android-unsigned-apk` como artefato de CI.
+4. instala Java 17, Android SDK/NDK e targets Rust, inicializa o projeto Android, compila APKs com `tauri android build --ci --apk`, alinha e assina o universal com `zipalign` + `apksigner` usando uma chave temporária, verifica a assinatura e anexa `vexora-shell-android-signed-apk` como artefato de CI.
 
-Artefato de CI **não** é publicação: não há release do GitHub, upload para lojas, assinatura, notarização, instalação em dispositivo ou teste em aparelho real. **Nenhum binário foi publicado.**
+Artefato de CI **não** é publicação: o workflow não cria release, não envia para lojas, não notariza, não instala em dispositivo e não testa em aparelho real. A publicação, quando feita, é uma pré-release manual em `https://github.com/franceliopro/vexorasuite/releases/tag/v0.1.0-preview` com os nomes `Vexora-Suite-0.1.0-x64-setup.exe` e `Vexora-Suite-0.1.0-universal.apk`; o botão da sidebar aponta para esses links. **Nenhum binário foi publicado pelo workflow.** A pré-release manual é registrada separadamente e não é resultado automático de merge.
 
 A etapa `build` do pacote é intencionalmente um no-op: `pnpm run build` no monorepo não dispara `tauri build`. Builds reais usam os scripts explícitos abaixo.
 

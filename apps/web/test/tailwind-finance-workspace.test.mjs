@@ -242,6 +242,10 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     '<h1>Financeiro</h1>',
     'id:"products",label:"Produtos"',
     '<h2 id="finance-products-title">Produtos</h2>',
+    'Cadastro e edição em Configurações → Catálogo.',
+    '> Novo produto</button>',
+    '> Gerenciar catálogo</button>',
+    'aria-label="Atualizar produtos"',
     'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:origin}))',
     'useModalDialog(true,dialogRef',
     'ref={dialogRef} tabIndex={-1}',
@@ -305,7 +309,7 @@ test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
 
 test("a home retorna ao Financeiro na aba correta depois do catálogo", () => {
   assert.match(homePage, /const \[catalogReturnTo, setCatalogReturnTo\]/);
-  assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\]/);
+  assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\] = useState<"overview" \| "products" \| "subscriptions">\("products"\)/);
   assert.match(homePage, /if \(origin === "finance-products"\) setFinanceInitialTab\("products"\)/);
   assert.match(homePage, /if \(origin === "finance-subscriptions"\) setFinanceInitialTab\("subscriptions"\)/);
   assert.match(homePage, /setActive\("Financeiro"\)/);

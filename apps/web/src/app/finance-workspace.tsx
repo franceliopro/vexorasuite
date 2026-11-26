@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import {
   Activity,
@@ -172,6 +173,8 @@ const historyTableTw="grid overflow-hidden rounded-fin-card border border-line";
 const historyHeadTw="grid grid-cols-fin-history gap-2.5 border-b border-line bg-blue-50 p-2.5 px-3.5 text-2xs font-extrabold uppercase tracking-fin-wide text-ink-secondary";
 const historyEmptyTw="p-5 text-center text-small leading-relaxed text-ink-secondary";
 const dialogBackdropTw="fixed inset-0 z-50 grid place-items-center bg-slate-900/80 p-4 backdrop-blur-sm";
+/* A janela de assinatura sai do fluxo do shell: portal no body evita o empilhamento da topbar. */
+const subscriptionBackdropTw="fixed inset-0 z-[1100] grid items-start justify-items-center overflow-y-auto bg-slate-900/80 px-4 pb-6 pt-[calc(var(--top)_+_16px)] backdrop-blur-sm "+noScrollbarTw;
 const dialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-window flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
 const dialogHeadingTw="mb-3.5 flex flex-none items-center gap-3 pr-10";
 const dialogCloseTw="absolute right-3 top-3 z-10 grid size-control place-items-center rounded-fin-icon border border-line bg-surface-2 text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
@@ -189,7 +192,7 @@ const newCustomerTw="grid gap-2.5";
 const subGridTw="grid grid-cols-2 gap-3 ov-laptop:grid-cols-2 max-sm:grid-cols-1";
 const errorTw="m-0 text-body font-semibold text-red-600";
 const dialogFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t border-line pt-3";
-const newSubscriptionDialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-subscription flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
+const newSubscriptionDialogTw="relative z-[1101] flex max-h-[calc(100dvh_-_var(--top)_-_40px)] min-h-[min(80dvh,820px)] w-full max-w-fin-subscription flex-col overflow-hidden rounded-token-lg border border-line bg-surface p-pad text-ink shadow-token-lg outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50";
 const newSubscriptionHeadingTw="mb-4 flex flex-none items-center gap-3 rounded-fin-figure border border-line bg-linear-to-br from-blue-50 to-surface p-3.5 pr-12";
 const newSubscriptionTitleTw="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5";
 const newSubscriptionIntroTw="m-0 whitespace-nowrap text-asaas-muted text-ink-secondary";
@@ -487,6 +490,9 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
   const [catalog,setCatalog]=useState<ServiceCatalogItem[]>([]);
   const [lookupBusy,setLookupBusy]=useState(false);
   const [matches,setMatches]=useState<LookupMatch[]|null>(null);
+  const [customerQuery,setCustomerQuery]=useState("");
+  const [searchResults,setSearchResults]=useState<LookupMatch[]|null>(null);
+  const [searchBusy,setSearchBusy]=useState(false);
   const [createNew,setCreateNew]=useState(false);
   const [customerId,setCustomerId]=useState("");
   const [busy,setBusy]=useState(false);
@@ -497,9 +503,11 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
   const documentDigits=document.replace(/\D+/g,"");
   const documentValid=/^(\d{11}|\d{14})$/.test(documentDigits);
   async function lookup(){if(!documentValid){setError("CPF ou CNPJ inválido.");return;}setLookupBusy(true);setError("");setMatches(null);setCreateNew(false);setCustomerId("");try{const r=await fetch("/api/backend/finance/customer-lookup?document="+encodeURIComponent(documentDigits),{cache:"no-store"});const body=await r.json();if(!r.ok)throw Error(body.message||"Falha ao consultar o Asaas.");const found:LookupMatch[]=Array.isArray(body.customers)?body.customers:[];setMatches(found);if(found.length===1)setCustomerId(found[0]!.id);else if(!found.length)setCreateNew(true);}catch(e){setError(e instanceof Error?e.message:"Não foi possível consultar o Asaas.");setMatches([]);}finally{setLookupBusy(false)}}
-  const selectedCustomer=matches?.find(item=>item.id===customerId)||null;
+  async function searchCustomers(){const term=customerQuery.trim();if(term.length<2){setError("Informe ao menos 2 caracteres para buscar clientes.");return}setSearchBusy(true);setError("");setSearchResults(null);try{const r=await fetch("/api/backend/finance/customer-search?q="+encodeURIComponent(term),{cache:"no-store"});const body=await r.json();if(!r.ok)throw Error(body.message||"Falha ao consultar o Asaas.");const found:LookupMatch[]=Array.isArray(body.customers)?body.customers:[];setSearchResults(found);if(found.length===1)setCustomerId(found[0]!.id)}catch(e){setError(e instanceof Error?e.message:"Não foi possível buscar clientes no Asaas.");setSearchResults([])}finally{setSearchBusy(false)}}
+  const customerOptions=[...(matches||[]),...(searchResults||[])].filter((item,index,all)=>all.findIndex(other=>other.id===item.id)===index);
+  const selectedCustomer=customerOptions.find(item=>item.id===customerId)||null;
   const selectedItem=catalog.find(item=>item.id===catalogItemId)||null;
-  const canCreate=Boolean(selectedItem&&documentValid&&(selectedCustomer||customerId||(createNew&&name.trim().length>2)));
+  const canCreate=Boolean(selectedItem&&(selectedCustomer||(documentValid&&createNew&&name.trim().length>2)));
   async function submit(){
     if(!canCreate){setError("Selecione um produto/serviço do catálogo e informe um cliente válido.");return;}
     if(endDate&&endDate<nextDueDate){setError("A data final não pode ser anterior à primeira cobrança.");return;}
@@ -508,7 +516,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
       // Nome e preço vêm do CatalogItem no servidor; o navegador envia só a referência e as datas.
       const body:Record<string,unknown>={catalogItemId:selectedItem!.id,cycle,billingType,nextDueDate};
       if(endDate)body.endDate=endDate;
-      if(selectedCustomer||customerId)body.customerId=selectedCustomer?.id||customerId;
+      if(selectedCustomer)body.customerId=selectedCustomer.id;
       else if(createNew){body.document=documentDigits;body.customerName=name.trim();if(email.trim())body.customerEmail=email.trim();if(phone.trim())body.customerPhone=phone.replace(/\D+/g,"")}
       if(contactId)body.contactId=contactId;
       const r=await fetch("/api/backend/finance/subscriptions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
@@ -517,7 +525,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
       onCreated("Assinatura criada: "+selectedItem!.name+" · "+currency(selectedItem!.value)+" · primeira cobrança em "+result.subscription.nextDueDate+(result.subscription.endDate?" · término em "+dateBR(result.subscription.endDate):""));
     }catch(e){setError(e instanceof Error?e.message:"Falha ao criar a assinatura.");setBusy(false)}
   }
-  return <div className={dialogBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
+  return createPortal(<div className={subscriptionBackdropTw} role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!busy)onClose()}}>
    <div ref={dialogRef} tabIndex={-1} className={newSubscriptionDialogTw} role="dialog" aria-modal="true" aria-labelledby="new-sub-title">
     <header className={newSubscriptionHeadingTw}>
      <div className={newSubscriptionTitleTw}>
@@ -530,6 +538,8 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
      <form className={newSubscriptionFormTw} onSubmit={(event)=>{event.preventDefault();void submit()}}>
       <section className={newSubscriptionPanelTw}>
        <h3 className={newSubscriptionSectionTitleTw}>Cliente</h3>
+       <label className={fieldTw}><span>Buscar cliente no Asaas (nome, e-mail, telefone ou documento)</span><div className={lookupTw}><input data-testid="new-subscription-customer-search" value={customerQuery} onChange={e=>{setCustomerQuery(e.target.value);setSearchResults(null);setCustomerId("")}} placeholder="Digite nome, e-mail, telefone ou CPF/CNPJ"/><button type="button" className={secondaryButton} disabled={customerQuery.trim().length<2||searchBusy} onClick={()=>void searchCustomers()}>{searchBusy?"Buscando…":"Buscar"}</button></div></label>
+       {searchResults!==null?(searchResults.length?<fieldset className={matchesTw}><legend>Clientes encontrados no Asaas</legend>{searchResults.map(item=><label key={item.id} data-selected={customerId===item.id?"true":"false"} className={customerId===item.id?customerSelectedTw:customerTw}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span className={customerInlineTw}><strong className={customerInlineNameTw}>{item.name}</strong><small className={customerInlineContactTw}>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className={matchesTw}><legend>Nenhum cliente encontrado</legend><p className={catalogNoteTw}>Tente outro dado ou cadastre um cliente novo pelo CPF/CNPJ abaixo.</p></fieldset>):null}
        <label className={fieldTw}><span>CPF/CNPJ do cliente *</span><div className={lookupTw}><input inputMode="numeric" autoComplete="off" data-testid="new-subscription-document" value={document} onChange={e=>{setDocument(e.target.value);setMatches(null);setCreateNew(false);setCustomerId("")}} placeholder="Somente números"/><button type="button" className={secondaryButton} disabled={!documentValid||lookupBusy} onClick={()=>void lookup()}>{lookupBusy?"Consultando…":"Buscar cliente"}</button></div></label>
        {matches!==null?(matches.length?<fieldset className={matchesTw}><legend>Selecione o cadastro no Asaas</legend>{matches.map(item=><label key={item.id} data-selected={customerId===item.id?"true":"false"} className={customerId===item.id?customerSelectedTw:customerTw}><input type="radio" name="sub-customer" checked={customerId===item.id} onChange={()=>setCustomerId(item.id)}/><span className={customerInlineTw}><strong className={customerInlineNameTw}>{item.name}</strong><small className={customerInlineContactTw}>{[item.email,item.phone].filter(Boolean).join(" · ")||"Sem contato"}</small></span></label>)}</fieldset>:<fieldset className={matchesTw}><legend>Novo cadastro no Asaas</legend><div className={newCustomerTw}><label className={fieldTw}><span>Nome do cliente *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="Nome completo ou razão social"/></label><label className={fieldTw}><span>E-mail (opcional)</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@empresa.com"/></label><label className={fieldTw}><span>Telefone (opcional)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(00) 00000-0000"/></label></div></fieldset>):null}
       </section>
@@ -551,7 +561,7 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
      </form>
     </div>
    </div>
-  </div>;
+  </div>,window.document.body);
 }
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
 export type FinanceTab="overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history";

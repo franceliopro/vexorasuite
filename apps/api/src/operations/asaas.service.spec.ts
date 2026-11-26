@@ -225,3 +225,33 @@ describe("AsaasService catálogo para assinaturas", () => {
     expect(result.services).toEqual([expect.objectContaining({ id: "curso", value: 99 })]);
   });
 });
+
+describe("AsaasService busca de clientes no Asaas", () => {
+  function setup() {
+    const prisma = {} as PrismaService;
+    const service = new AsaasService(prisma);
+    jest.spyOn(service as any, "credentials").mockResolvedValue({ key: "test", sandbox: false });
+    const request = jest.spyOn(service as any, "request");
+    return { service, request };
+  }
+
+  it("busca por nome no tenant atual e devolve só os clientes compatíveis", async () => {
+    const { service, request } = setup();
+    request.mockResolvedValueOnce({ data: [
+      { id: "cus_1", name: "Ana Souza", email: "ana@example.com", cpfCnpj: "52998224725" },
+      { id: "cus_2", name: "Outro cliente", email: "outro@example.com" },
+    ] });
+
+    const result = await service.customerSearch("tenant-a", "ana");
+
+    expect(request).toHaveBeenCalledWith("tenant-a", expect.stringContaining("name=ana"));
+    expect(result.customers).toEqual([{ id: "cus_1", name: "Ana Souza", email: "ana@example.com", phone: null }]);
+    expect(result.environment).toBe("PRODUCTION");
+  });
+
+  it("recusa termos curtos sem consultar o Asaas", async () => {
+    const { service, request } = setup();
+    await expect(service.customerSearch("tenant-a", "a")).rejects.toThrow(/2 caracteres/);
+    expect(request).not.toHaveBeenCalled();
+  });
+});

@@ -137,6 +137,12 @@ export class FinanceController {
     return this.asaas.customerLookup(req.user.tenantId, document || "");
   }
 
+  @Get("customer-search")
+  customerSearch(@Req() req: AuthenticatedRequest, @Query("q") query?: string) {
+    if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+    return this.asaas.customerSearch(req.user.tenantId, query || "");
+  }
+
   @Post("subscriptions")
   createSubscription(@Req() req: AuthenticatedRequest, @Body() body: { contactId?: unknown; customerId?: unknown; document?: unknown; customerName?: unknown; customerEmail?: unknown; customerPhone?: unknown; catalogItemId?: unknown; service?: unknown; value?: unknown; cycle?: unknown; nextDueDate?: unknown; endDate?: unknown; billingType?: unknown }) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");

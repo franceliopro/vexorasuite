@@ -4788,3 +4788,27 @@ input[type=tel]{letter-spacing:.02em}
 .catalog-quote-footer strong{font-size:13px}
 .catalog-quote-empty{color:var(--tx2);font-size:12px;line-height:1.5;max-width:70%}
 .catalog-quote-notice{margin:0;padding:8px 10px;border-radius:8px;border:1px solid color-mix(in srgb,var(--ok) 35%,var(--ln));background:color-mix(in srgb,var(--ok) 10%,var(--s1));color:var(--ok);font-size:11.5px}
+
+/* ===== Android nativo: área segura das barras do sistema =====
+   O WebView edge-to-edge do Tauri desenha sob a status bar e a navegação.
+   Em WebViews que não expõem env(safe-area-inset-*), o piso abaixo mantém
+   o topbar de todas as telas abaixo do topo e o dock da Visão geral acima
+   da navegação Android. --top também é recalculado para que os cálculos de
+   altura das workspaces acompanhem a barra maior. */
+html[data-native-android] {
+  --vx-system-top: max(env(safe-area-inset-top), 40px);
+  --vx-system-bottom: max(env(safe-area-inset-bottom), 32px);
+  --top: calc(48px + var(--vx-system-top));
+}
+html[data-native-android] .topbar {
+  height: var(--top) !important;
+  min-height: var(--top) !important;
+  padding-top: var(--vx-system-top) !important;
+}
+html[data-native-android]:has([data-testid="ov-dock"]) {
+  --dock: calc(var(--dock-btn) + 8px + var(--vx-system-bottom));
+}
+/* A Visão geral usa o mesmo menu inferior das outras telas, com só "Conversa". */
+@media (max-width:760px) {
+  .mobile-bottom-nav--overview{justify-content:center!important;grid-auto-columns:minmax(84px,120px)!important}
+}

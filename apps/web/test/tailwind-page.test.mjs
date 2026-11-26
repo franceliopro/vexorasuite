@@ -51,7 +51,7 @@ test("a home mantém as utilities e os marcadores funcionais", () => {
   for (const marker of [
     'className="sidebar-collapse"', 'className="persistent-module-tabs"',
     'data-testid={active === "Visão geral" ? "ov-dock" : undefined}',
-    'fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1',
+    'dock:"mobile-bottom-nav mobile-bottom-nav--overview"',
     "Recolher menu", "Instalar Véxora", "workspaceTabs", "sidebarCollapsed", "applyBrandAll",
     "#4F46E5", 'aria-controls="mobile-navigation-menu"', 'id="mobile-navigation-menu"',
     'aria-labelledby="sidebar-color-title"', 'id="sidebar-color-title"',
@@ -65,7 +65,7 @@ test("a home mantém as utilities e os marcadores funcionais", () => {
     "text-xs", "tracking-widest", "bg-blue-50", "rounded-2xl",
     "shadow-lg", "z-50", "border-amber-600", "bg-amber-100", "text-amber-600",
     "border-blue-700", "bg-transparent", "text-blue-700", "text-red-600",
-    "max-md:grid-flow-col", "max-md:auto-cols-auto", "max-md:pb-2", "z-40", "max-md:grid",
+    "mobile-bottom-nav", "mobile-bottom-nav--overview",
   ]) assert.ok(classes.includes(utility), `falta a utility ${utility}`);
 });
 

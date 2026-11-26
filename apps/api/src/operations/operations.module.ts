@@ -56,6 +56,8 @@ import { InfinitePayWebhookController } from "./infinitepay-webhook.controller";
 import { PaymentRecordsService } from "./payment-records.service";
 import { ReportsController } from "./reports.controller";
 import { FinanceController } from "./finance.controller";
+import { FinanceProvidersService } from "./finance-providers.service";
+import { InfinitePayFinanceService } from "./infinite-pay-finance.service";
 import { InboundCaptureController } from "./inbound-capture.controller";
 import { InboundCaptureService } from "./inbound-capture.service";
 import { BillingFollowUpPolicyController } from "./billing-follow-up-policy.controller";
@@ -81,7 +83,7 @@ import { MailModule } from "../mail/mail.module";
   // here as well so Nest can resolve JwtService in the OperationsModule context.
   imports: [AuthModule, JwtModule.register({}), PrismaModule, MailModule, EventsModule],
   controllers: [TrackController, TrackIngestController, InboxesController,CopilotController, PublicFlowController, NotificationSettingsController, NotificationPreferencesController, DepartmentResourcesController, BusinessTemplatesController, CrmPipelinesController, TeamController, UserProfileController, PushController, ContactAvatarController, OverviewController, IntelligenceRuntimeController, TasksController, RemindersController, DemoController, GoogleCalendarController, GoogleOAuthController, ContactsController, ConversationsController, EventsController, ChannelConnectionsController, WahaWebhookController, ZernioWebhookController, ZernioConnectionsController, InstagramAutomationsController, DepartmentsController, AsaasController, AsaasWebhookController, StripeController, StripeWebhookController, InfinitePayController, InfinitePayWebhookController, ReportsController, SupervisionController, FinanceController, BillingFollowUpPolicyController, InboundCaptureController, ServiceProtocolsController, TestEnvironmentController, PublicApiController, WebhooksController, McpController, DocumentsController, BillingController, BillingWebhookController, MetaWebhookController, CatalogController],
-  providers: [TrackService, JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, StripeService, InfinitePayService, PaymentRecordsService, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService, MetaService, InboundCaptureService],
+  providers: [TrackService, JobLeaseService, DepartmentResourcesService, AudioTriageService, VoiceService, ChannelHealthService, PushService, GoogleAccessService, AiService, IntelligenceRuntimeService, WahaService, ZernioService, AsaasService, AsaasCustomerSyncScheduler, StripeService, InfinitePayService, PaymentRecordsService, FinanceProvidersService, InfinitePayFinanceService, ServiceProtocolsService, TestEnvironmentResetService, ConversationDistributionService, MetaService, InboundCaptureService],
   exports: [WahaService, ZernioService, JobLeaseService],
 })
 export class OperationsModule {}

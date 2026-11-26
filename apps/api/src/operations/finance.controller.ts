@@ -1,14 +1,34 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, ForbiddenException, Get, NotImplementedException, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { AsaasService } from "./asaas.service";
 import { PaymentRecordsService } from "./payment-records.service";
-import { canonicalPaymentProvider, paymentProviderAliases } from "./payment-providers";
+import { InfinitePayFinanceService } from "./infinite-pay-finance.service";
+import { FinanceProvidersService } from "./finance-providers.service";
+import { StripeService } from "./stripe.service";
+import { FINANCE_PROVIDER_DEFINITIONS } from "./finance-provider-capabilities";
+import { canonicalPaymentProvider, paymentProviderAliases, type PaymentProvider } from "./payment-providers";
 
 const PAID = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "PAID"]);
 const EXCLUDED = new Set(["REFUNDED", "CANCELLED", "DELETED"]);
 const money = (value: unknown) => Number(value || 0);
+const assertFinanceAdmin = (role: string | undefined) => {
+  if (!role || !["OWNER", "ADMIN"].includes(role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
+};
+const parsePage = (offsetRaw?: string, limitRaw?: string) => {
+  const offset = offsetRaw === undefined ? 0 : Number(offsetRaw);
+  const limit = limitRaw === undefined ? 50 : Number(limitRaw);
+  if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ForbiddenException("Paginação inválida.");
+  return { offset, limit };
+};
+const providerOf = (raw: unknown): PaymentProvider => {
+  const provider = canonicalPaymentProvider(raw);
+  if (!provider) throw new ForbiddenException("Provedor financeiro inválido.");
+  return provider;
+};
+const validDate = (value: string | undefined) => !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+
 @Controller("finance")
 @UseGuards(AuthGuard)
 export class FinanceController {
@@ -16,6 +36,9 @@ export class FinanceController {
     private readonly prisma: PrismaService,
     private readonly asaas: AsaasService,
     private readonly payments: PaymentRecordsService,
+    private readonly providers: FinanceProvidersService,
+    private readonly stripe: StripeService,
+    private readonly infinitePayFinance: InfinitePayFinanceService,
   ) {}
 
   @Get("executive")
@@ -168,5 +191,132 @@ export class FinanceController {
   }) {
     if (!["OWNER", "ADMIN"].includes(req.user.role)) throw new ForbiddenException("Acesso financeiro restrito à administração.");
     return this.payments.create(req.user.tenantId, req.user.sub, body || {});
+  }
+
+  /** Superfície genérica: cada resposta declara origem, ambiente e limitações; configuração não prova conexão. */
+  @Get("providers")
+  listProviders(@Req() req: AuthenticatedRequest) {
+    assertFinanceAdmin(req.user.role);
+    return this.providers.list(req.user.tenantId);
+  }
+
+  @Get("providers/:provider")
+  describeProvider(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string) {
+    assertFinanceAdmin(req.user.role);
+    return this.providers.describe(req.user.tenantId, providerRaw);
+  }
+
+  @Get(":provider/capabilities")
+  providerCapabilities(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string) {
+    return this.describeProvider(req, providerRaw);
+  }
+
+  private dateRange(periodRaw?: string, start?: string, end?: string, all?: string) {
+    const months = periodRaw === undefined ? 6 : Number(periodRaw);
+    if (![1, 2, 3, 6, 12].includes(months)) throw new ForbiddenException("Período inválido.");
+    if ((start || end) && (!validDate(start) || !validDate(end) || start! > end!)) throw new ForbiddenException("Informe datas inicial e final válidas.");
+    const now = new Date();
+    const from = all === "true" ? new Date("2000-01-01T00:00:00.000Z") : start ? new Date(start + "T00:00:00.000Z") : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months + 1, 1));
+    const until = end ? new Date(end + "T23:59:59.999Z") : now;
+    if (all !== "true" && until.getTime() - from.getTime() > 366 * 86400000) throw new ForbiddenException("Selecione um intervalo de até 366 dias.");
+    const bucketCount = all === "true" ? Math.max(1, now.getUTCFullYear() - 2000 + 1) : start ? Math.min(13, (until.getUTCFullYear() - from.getUTCFullYear()) * 12 + until.getUTCMonth() - from.getUTCMonth() + 1) : months;
+    return { from, until, months: bucketCount, allTime: all === "true" };
+  }
+
+  private unsupported(provider: PaymentProvider, operation: string): never {
+    const definition = FINANCE_PROVIDER_DEFINITIONS[provider];
+    throw new NotImplementedException(`${operation} não está disponível para ${definition.label} nesta integração. ${definition.limitations.join(" ")}`);
+  }
+
+  private stripeOffset(offsetRaw?: string) {
+    const { offset } = parsePage(offsetRaw, "50");
+    if (offset !== 0) throw new ForbiddenException("A Stripe não oferece paginação por offset; use os filtros próprios da Stripe.");
+  }
+
+  @Get(":provider/dashboard")
+  async providerDashboard(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string, @Query("months") monthsRaw?: string, @Query("from") from?: string, @Query("to") to?: string, @Query("all") all?: string) {
+    assertFinanceAdmin(req.user.role);
+    const provider = providerOf(providerRaw);
+    if (provider === "ASAAS") {
+      const range = this.dateRange(monthsRaw, from, to, all);
+      const data = await this.asaas.executiveDashboard(req.user.tenantId, range.months, range.allTime ? undefined : range.from.toISOString().slice(0, 10), range.allTime ? undefined : range.until.toISOString().slice(0, 10), range.allTime);
+      return { ...data, provider: "ASAAS", source: "PROVIDER_LIVE" };
+    }
+    if (provider === "STRIPE") {
+      if (from || to || all === "true") throw new ForbiddenException("O dashboard da Stripe aceita apenas o filtro por meses.");
+      return this.stripe.financeDashboard(req.user.tenantId, monthsRaw === undefined ? 6 : Number(monthsRaw));
+    }
+    const range = this.dateRange(monthsRaw, from, to, all);
+    return this.infinitePayFinance.dashboard(req.user.tenantId, range);
+  }
+
+  @Get(":provider/charges")
+  async providerCharges(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string, @Query("status") status?: string, @Query("dueFrom") dueFrom?: string, @Query("dueTo") dueTo?: string, @Query("offset") offsetRaw?: string, @Query("limit") limitRaw?: string) {
+    assertFinanceAdmin(req.user.role);
+    const provider = providerOf(providerRaw);
+    const { offset, limit } = parsePage(offsetRaw, limitRaw);
+    if (provider === "ASAAS") {
+      const data = await this.asaas.listPortfolio(req.user.tenantId, { status, dueFrom, dueTo, offset, limit });
+      return { ...data, provider: "ASAAS", source: "PROVIDER_LIVE" };
+    }
+    if (provider === "STRIPE") {
+      this.stripeOffset(offsetRaw);
+      return this.stripe.listFinanceCharges(req.user.tenantId, limit);
+    }
+    return this.infinitePayFinance.listCharges(req.user.tenantId, { offset, limit });
+  }
+
+  @Get(":provider/customers")
+  async providerCustomers(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string, @Query("offset") offsetRaw?: string, @Query("limit") limitRaw?: string) {
+    assertFinanceAdmin(req.user.role);
+    const provider = providerOf(providerRaw);
+    const { offset, limit } = parsePage(offsetRaw, limitRaw);
+    if (provider === "ASAAS") return this.asaas.listFinanceCustomers(req.user.tenantId, offset, limit);
+    if (provider === "STRIPE") {
+      this.stripeOffset(offsetRaw);
+      return this.stripe.listFinanceCustomers(req.user.tenantId, limit);
+    }
+    return this.infinitePayFinance.listCustomers(req.user.tenantId, { offset, limit });
+  }
+
+  @Get(":provider/catalog")
+  async providerCatalog(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string, @Query("offset") offsetRaw?: string, @Query("limit") limitRaw?: string) {
+    assertFinanceAdmin(req.user.role);
+    const provider = providerOf(providerRaw);
+    const { offset, limit } = parsePage(offsetRaw, limitRaw);
+    if (provider === "ASAAS") {
+      const data = await this.asaas.listCatalog(req.user.tenantId, offset, limit);
+      return { ...data, provider: "ASAAS", source: "PROVIDER_LIVE" };
+    }
+    if (provider === "STRIPE") {
+      this.stripeOffset(offsetRaw);
+      return this.stripe.listFinanceCatalog(req.user.tenantId, limit);
+    }
+    return this.infinitePayFinance.listCatalog(req.user.tenantId, { offset, limit });
+  }
+
+  @Get(":provider/subscriptions")
+  async providerSubscriptions(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string, @Query("offset") offsetRaw?: string, @Query("limit") limitRaw?: string) {
+    assertFinanceAdmin(req.user.role);
+    const provider = providerOf(providerRaw);
+    if (!FINANCE_PROVIDER_DEFINITIONS[provider].capabilities.subscriptions) this.unsupported(provider, "Assinaturas");
+    const { offset, limit } = parsePage(offsetRaw, limitRaw);
+    if (provider === "ASAAS") {
+      const data = await this.asaas.financeListings(req.user.tenantId, "subscriptions", offset, limit);
+      return { ...data, source: "PROVIDER_LIVE" };
+    }
+    this.stripeOffset(offsetRaw);
+    return this.stripe.listFinanceSubscriptions(req.user.tenantId, limit);
+  }
+
+  /** Estorno é uma operação externa real: exige confirmação explícita e só afirma execução após resposta da Stripe. */
+  @Post(":provider/refunds")
+  async providerRefund(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string, @Body() body: { paymentIntentId?: unknown; confirm?: unknown }) {
+    assertFinanceAdmin(req.user.role);
+    const provider = providerOf(providerRaw);
+    if (!FINANCE_PROVIDER_DEFINITIONS[provider].capabilities.refunds) this.unsupported(provider, "Estorno");
+    const paymentIntentId = typeof body?.paymentIntentId === "string" ? body.paymentIntentId.trim() : "";
+    if (body?.confirm !== true) throw new ForbiddenException("Confirme explicitamente o estorno antes de executar a operação.");
+    return this.stripe.refundFinanceCharge(req.user.tenantId, paymentIntentId, req.user.sub);
   }
 }

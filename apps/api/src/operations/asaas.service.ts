@@ -193,6 +193,37 @@ export class AsaasService {
     return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
   }
 
+  /** Clientes direto da conta Asaas do tenant; documentos são sempre mascarados na resposta. */
+  async listFinanceCustomers(tenantId: string, offset = 0, limit = 50) {
+    const query = new URLSearchParams({ offset: String(offset), limit: String(limit), sort: "name", order: "asc" });
+    const [result, credentials] = await Promise.all([
+      this.request<{ data?: Array<{ id: string; name: string; email?: string | null; mobilePhone?: string | null; phone?: string | null; cpfCnpj?: string | null }>; hasMore?: boolean; totalCount?: number }>(tenantId, "/customers?" + query.toString()),
+      this.credentials(tenantId),
+    ]);
+    const mask = (value: unknown): string | null => {
+      const digits = this.digits(String(value || ""));
+      if (digits.length === 11) return digits.slice(0, 3) + ".***.***-" + digits.slice(-2);
+      if (digits.length === 14) return digits.slice(0, 2) + ".***.***/****-" + digits.slice(-2);
+      return null;
+    };
+    return {
+      source: "PROVIDER_LIVE",
+      provider: "ASAAS",
+      environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION",
+      offset,
+      limit,
+      hasMore: !!result.hasMore,
+      totalCount: result.totalCount ?? null,
+      items: (result.data || []).map((customer) => ({
+        id: customer.id,
+        name: customer.name,
+        email: customer.email || null,
+        phone: customer.mobilePhone || customer.phone || null,
+        documentMasked: mask(customer.cpfCnpj),
+      })),
+    };
+  }
+
   /** Catálogo visível na Véxora: todo item ativo da empresa, qualquer que seja a categoria. */
   async listServices(tenantId: string) {
     const items = await this.prisma.catalogItem.findMany({

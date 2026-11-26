@@ -181,7 +181,7 @@ test("o preset expõe os tokens do Financeiro", () => {
     '"fin-donut": "96px"',
     '"fin-donut-inner": "66px"',
     '"fin-window": "min(100%,880px)"',
-    '"fin-subscription": "min(100%,1040px)"',
+    '"fin-subscription": "min(100%,1200px)"',
     '"fin-hero-x": "28px"',
     '"fin-hero-y": "26px"',
     '"fin-hero-gap": "26px"',
@@ -312,6 +312,10 @@ test("os produtos são editados na própria vitrine, sem Gerenciar catálogo", (
 test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
   for (const marker of [
     '<span>CPF/CNPJ do cliente *</span>',
+    'data-testid="new-subscription-customer-search"',
+    'fetch("/api/backend/finance/customer-search?q="+encodeURIComponent(term)',
+    'Clientes encontrados no Asaas',
+    'const canCreate=Boolean(selectedItem&&(selectedCustomer||(documentValid&&createNew&&name.trim().length>2)))',
     'data-testid="new-subscription-document"',
     '<span>Produto/serviço do catálogo *</span>',
     '<h3 className={newSubscriptionSectionTitleTw}>Produto/serviço</h3>',
@@ -338,15 +342,24 @@ test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível
   for (const utility of [
     "max-w-fin-window",
     "max-w-fin-subscription",
+    "z-[1100]",
+    "z-[1101]",
+    "pt-[calc(var(--top)_+_16px)]",
+    "max-h-[calc(100dvh_-_var(--top)_-_40px)]",
+    "min-h-[min(80dvh,820px)]",
     "[scrollbar-width:none]",
     "[&::-webkit-scrollbar]:hidden",
   ]) {
     assert.ok(classes.includes(utility), `faltou a utility ${utility}`);
   }
   for (const marker of [
+    'import { createPortal } from "react-dom";',
+    'const subscriptionBackdropTw="fixed inset-0 z-[1100] grid items-start justify-items-center overflow-y-auto',
     'const drawerTw="relative z-10 grid max-h-dvh w-full max-w-fin-window',
     'const dialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-window',
-    'const newSubscriptionDialogTw="relative z-10 flex max-h-dvh w-full max-w-fin-subscription',
+    'const newSubscriptionDialogTw="relative z-[1101] flex max-h-[calc(100dvh_-_var(--top)_-_40px)] min-h-[min(80dvh,820px)] w-full max-w-fin-subscription',
+    'return createPortal(<div className={subscriptionBackdropTw}',
+    '</div>,window.document.body);',
     'const productEditFormTw="grid gap-4 sm:grid-cols-2"',
     'aria-label="Preparar cobrança"',
     'aria-labelledby="finance-product-edit-title"',

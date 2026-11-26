@@ -7,8 +7,10 @@ import { AuthenticatedRequest } from "../auth/auth.types";
 import { administrative } from "../auth/module-policy";
 
 const trim = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
-/** A vitrine exige ASAAS; itens sem categoria ficariam invisíveis no Financeiro e em Nova assinatura. */
+/** A vitrine exige ASAAS; itens antigos sem categoria também devem aparecer nela. */
 const PAYMENT_CATEGORY = "ASAAS";
+/** Itens legados foram gravados com NULL ou string vazia antes do default existir. */
+const PAYMENT_CATEGORY_FILTER = [{ category: PAYMENT_CATEGORY }, { category: null }, { category: "" }];
 const safeImageUrl = (value: unknown): string | undefined => {
   const url = trim(value, 1000);
   if (!url) return undefined;
@@ -34,8 +36,11 @@ export class CatalogController {
     const kind = typeof kindRaw === "string" && KINDS.has(kindRaw) ? kindRaw : undefined;
     const category = categoryRaw ? trim(categoryRaw, 80) : undefined;
     const includeInactive = includeInactiveRaw === "true" && administrative(req.user.role);
+    const and: any[] = [];
+    if (category) and.push(category === PAYMENT_CATEGORY ? { OR: PAYMENT_CATEGORY_FILTER } : { category });
+    if (q) and.push({ OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] });
     const items = await this.prisma.catalogItem.findMany({
-      where: { tenantId: req.user.tenantId, ...(includeInactive ? {} : { active: true }), ...(kind ? { kind } : {}), ...(category ? { category } : {}), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } : {}) },
+      where: { tenantId: req.user.tenantId, ...(includeInactive ? {} : { active: true }), ...(kind ? { kind } : {}), ...(and.length ? { AND: and } : {}) },
       select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, imageUrl: true, category: true, active: true },
       orderBy: [{ kind: "asc" }, { name: "asc" }] ,
       take: limit,
@@ -72,7 +77,7 @@ export class CatalogController {
   @Put(":id")
   async update(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) id: string, @Body() input: any) {
     this.adminOnly(req);
-    const existing = await this.prisma.catalogItem.findFirst({ where: { id, tenantId: req.user.tenantId }, select: { id: true } });
+    const existing = await this.prisma.catalogItem.findFirst({ where: { id, tenantId: req.user.tenantId }, select: { id: true, category: true } });
     if (!existing) throw new NotFoundException("Item não encontrado.");
     const data: any = {};
     if (input?.kind !== undefined) { const kind = String(input.kind); if (!KINDS.has(kind)) throw new BadRequestException("Tipo inválido."); data.kind = kind; }
@@ -84,6 +89,8 @@ export class CatalogController {
     if (input?.unit !== undefined) data.unit = trim(input.unit, 10) || "un";
     if (input?.imageUrl !== undefined) data.imageUrl = safeImageUrl(input.imageUrl) || null;
     if (input?.category !== undefined) data.category = trim(input.category, 80) || PAYMENT_CATEGORY;
+    // Reativar um item legado (PUT {active:true}) também o traz para a vitrine.
+    else if (!existing.category) data.category = PAYMENT_CATEGORY;
     if (input?.active !== undefined) data.active = input.active === true;
     const item = await this.prisma.catalogItem.update({ where: { id }, data, select: { id: true, kind: true, name: true, priceCents: true, unit: true, imageUrl: true, active: true } });
     return { item };

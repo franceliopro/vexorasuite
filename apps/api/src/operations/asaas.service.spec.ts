@@ -163,7 +163,10 @@ describe("AsaasService assinaturas a partir do catálogo", () => {
     }));
     expect(result.subscription).toMatchObject({ id: "sub_test", catalogItemId: catalogId, endDate: "2027-11-30" });
     expect(prisma.catalogItem.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ id: catalogId, tenantId: "tenant-id", active: true, category: "ASAAS" }),
+      where: expect.objectContaining({
+        id: catalogId, tenantId: "tenant-id", active: true,
+        OR: [{ category: "ASAAS" }, { category: null }, { category: "" }],
+      }),
     }));
     expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ action: "payment.subscription_created", details: expect.objectContaining({ catalogItemId: catalogId, endDate: "2027-11-30", actorId: "user-1" }) }),
@@ -206,5 +209,22 @@ describe("AsaasService assinaturas a partir do catálogo", () => {
       data: expect.objectContaining({ action: "payment.customer_deleted", details: expect.objectContaining({ affectedContactIds: ["contact-1"], actorId: "user-1" }) }),
     }));
     expect(result).toEqual({ deleted: true, customerId: "cus_test", environment: "PRODUCTION", affectedContacts: 1 });
+  });
+});
+
+describe("AsaasService catálogo legado", () => {
+  it("lista itens sem categoria como serviços de pagamento", async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      { id: "legado", name: "Curso", priceCents: 9900, description: "", imageUrl: null, createdAt: new Date("2026-01-01T00:00:00Z") },
+    ]);
+    const prisma: any = { catalogItem: { findMany } };
+    const service = new AsaasService(prisma as PrismaService);
+
+    const result = await service.listServices("tenant-a");
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenantId: "tenant-a", active: true, OR: [{ category: "ASAAS" }, { category: null }, { category: "" }] },
+    }));
+    expect(result.services).toEqual([expect.objectContaining({ id: "legado", value: 99 })]);
   });
 });

@@ -82,6 +82,7 @@ const statusNeutralTw="inline-flex rounded-fin-pill bg-surface-3 px-2 py-0.5 tex
 const linkTw="font-bold text-blue-700 no-underline";
 const emptyTw="m-0 text-body text-ink-secondary";
 const footerTw="flex flex-wrap items-center justify-between gap-3.5 text-asaas-muted text-ink-secondary";
+const noticeTw="flex items-center gap-2.5 rounded-fin-chip border border-emerald-600 bg-emerald-100 px-3 py-2.5 text-body font-semibold text-ink";
 const executiveTw="grid gap-3.5 self-start";
 const heroTw="relative grid grid-cols-fin-hero gap-fin-hero-gap overflow-hidden rounded-fin-hero bg-linear-to-br from-blue-50 via-surface to-surface px-fin-hero-x py-fin-hero-y text-ink shadow-token-lg";
 const heroCopyTw="relative z-10 min-w-0";

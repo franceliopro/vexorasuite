@@ -350,6 +350,22 @@ importers:
         specifier: ^2.2.7
         version: 2.12.4
 
+  apps/telephony:
+    dependencies:
+      pg:
+        specifier: ^8.13.1
+        version: 8.23.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.18.6
+        version: 22.20.5
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.23.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   apps/web:
     dependencies:
       '@tiptap/core':

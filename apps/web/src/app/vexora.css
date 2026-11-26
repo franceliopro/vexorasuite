@@ -1831,6 +1831,12 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .workflow-step-actions{display:flex;flex-wrap:wrap;gap:6px 12px;padding-top:8px;border-top:1px dashed var(--ln)}
 .workflow-step-actions button{min-height:28px;font-size:11px}
 .workflow-wait-field{max-width:260px}
+/* Tipografia do editor: tudo à esquerda; negrito só em títulos, destaque e números. */
+.workflow-studio-heading button,.workflow-builder button{justify-content:flex-start;text-align:left;text-indent:0;font-weight:400}
+.workflow-catalog-block button strong{font-weight:500}
+.workflow-catalog-block button small,.workflow-name-field>span,.workflow-condition-grid label,.workflow-step-fields label,.workflow-guide span,.workflow-timeline-panel header p,.workflow-step-head span,.workflow-panel>header>small{font-weight:400}
+.workflow-guide b,.workflow-step-index{font-weight:800}
+.workflow-node-trigger span{font-weight:600}
 @media (max-width:760px){
   .workflow-guide span{font-size:10px}
   .workflow-condition-grid{grid-template-columns:1fr}

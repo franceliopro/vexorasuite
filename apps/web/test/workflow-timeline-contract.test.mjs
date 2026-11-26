@@ -57,6 +57,21 @@ test("a linha do tempo tem estilos próprios e responsivos",()=>{
   assert.match(styles,/@media \(max-width:760px\)\{[\s\S]*?\.workflow-step-fields\{grid-template-columns:1fr\}/);
 });
 
+test("o editor alinha os textos à esquerda e reserva o negrito para títulos e números",()=>{
+  assert.match(styles,/\.workflow-studio-heading button,\.workflow-builder button\{justify-content:flex-start;text-align:left;text-indent:0;font-weight:400\}/);
+  assert.match(styles,/\.workflow-guide b,\.workflow-step-index\{font-weight:800\}/);
+  for(const selector of [
+    ".workflow-catalog-block button small",
+    ".workflow-name-field>span",
+    ".workflow-condition-grid label",
+    ".workflow-step-fields label",
+    ".workflow-guide span",
+    ".workflow-timeline-panel header p",
+    ".workflow-step-head span",
+    ".workflow-panel>header>small",
+  ]) assert.ok(styles.includes(selector),`falta o texto sem negrito ${selector}`);
+});
+
 test("o editor mantém o catálogo à esquerda e a sequência em uma área maior à direita",()=>{
   assert.match(styles,/\.workflow-builder-grid\{grid-template-columns:250px minmax\(0,1fr\);grid-template-areas:"catalog canvas" "catalog settings"/);
   for(const selector of [

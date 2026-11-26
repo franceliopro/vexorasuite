@@ -125,3 +125,7 @@ Indicadores por campanha/canal: leads únicos, leads com origem confiável, taxa
 - O identificador de campanha interno é a chave canônica. UTM é mecanismo de transporte e interoperabilidade, não banco primário de relacionamento.
 - Não declarar atribuição de campanha em uma conversa apenas porque chegou por WhatsApp ou outro canal.
 - Não prometer tracking determinístico entre dispositivos, apps, bloqueadores, consentimentos negados ou canais sem identificadores.
+
+## Fatia entregue em 26/11/2026 — normalizador puro
+
+A primeira fatia reversível do item 5 é apenas um **normalizador puro** de UTM e click IDs, em `apps/api/src/operations/lead-attribution-normalizer.ts`, com testes e contrato em `docs/lead-attribution-normalization-contract.md`. Ele não grava, não envia, não chama IA, não faz scraping e não infere campanha, primeiro toque ou canal de atendimento. Os demais itens da Fase 1 — persistência, resolução de link, captura em formulário e atribuição a contato — continuam como trabalho futuro, com PR próprio, tenant, consentimento e auditoria.

@@ -54,3 +54,18 @@ test("a linha do tempo tem estilos próprios e responsivos",()=>{
   ]) assert.ok(styles.includes(selector),`falta o estilo ${selector}`);
   assert.match(styles,/@media \(max-width:760px\)\{[\s\S]*?\.workflow-step-fields\{grid-template-columns:1fr\}/);
 });
+
+test("o editor mantém o catálogo à esquerda e a sequência em uma área maior à direita",()=>{
+  assert.match(styles,/\.workflow-builder-grid\{grid-template-columns:250px minmax\(0,1fr\);grid-template-areas:"catalog canvas" "catalog settings"/);
+  for(const selector of [
+    ".workflow-builder-header{",
+    ".workflow-catalog{grid-area:catalog",
+    ".workflow-canvas{grid-area:canvas",
+    ".workflow-settings{grid-area:settings",
+    ".workflow-name-field{",
+    ".workflow-condition-grid{",
+    ".workflow-panel{display:grid;gap:14px;padding:18px",
+  ]) assert.ok(styles.includes(selector),`falta o estilo ${selector}`);
+  assert.match(styles,/\.workflow-timeline-list \.workflow-step-card\{background-color:var\(--s1\)!important\}/);
+  assert.match(styles,/\.workflow-builder input,\.workflow-builder select,\.workflow-builder textarea\{background-color:var\(--s1\)!important\}/);
+});

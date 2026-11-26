@@ -1812,8 +1812,8 @@ button.finance-executive-metric:hover{transform:translateY(-2px);border-color:va
 .workflow-guide span{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 10px;border:1px solid var(--ln);border-radius:99px;background:var(--s1);font-size:11px;font-weight:700;color:var(--tx2)}
 .workflow-guide b{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--primary-soft);color:var(--primary-ink);font-size:10px}
 .workflow-catalog .workflow-name-field{padding:11px 12px}
-.workflow-catalog .workflow-guide{gap:6px;margin-top:0}
-.workflow-catalog .workflow-guide span{min-height:26px;padding:0 8px;font-size:10px}
+.workflow-catalog .workflow-guide{flex-wrap:nowrap;gap:4px;margin-top:0}
+.workflow-catalog .workflow-guide span{min-height:24px;padding:0 4px;font-size:8.5px;white-space:nowrap}
 .workflow-timeline-panel header p{max-width:64ch;margin:6px 0 0;font-size:12px;font-weight:500;line-height:1.5;letter-spacing:0;text-transform:none;color:var(--tx2)}
 .workflow-timeline-list{display:grid;gap:14px}
 .workflow-timeline-list .workflow-step-card{grid-template-columns:34px minmax(0,1fr);gap:12px;padding:14px;border:1px solid var(--ln);border-radius:var(--r);background:var(--s1)}

@@ -4805,9 +4805,10 @@ html[data-native-android] .topbar {
   min-height: var(--top) !important;
   padding-top: var(--vx-system-top) !important;
 }
-html[data-native-android] [data-testid="ov-dock"] {
-  padding-bottom: var(--vx-system-bottom) !important;
+html[data-native-android]:has([data-testid="ov-dock"]) {
+  --dock: calc(var(--dock-btn) + 8px + var(--vx-system-bottom));
 }
-html[data-native-android]:has([data-testid="ov-dock"]) .main-area {
-  padding-bottom: calc(var(--dock-btn) + 16px + var(--vx-system-bottom)) !important;
+/* A Visão geral usa o mesmo menu inferior das outras telas, com só "Conversa". */
+@media (max-width:760px) {
+  .mobile-bottom-nav--overview{justify-content:center!important;grid-auto-columns:minmax(84px,120px)!important}
 }

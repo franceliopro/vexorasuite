@@ -113,7 +113,7 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
     "grid-cols-3", "xl:grid-cols-6", "sm:grid-cols-2",
     "gap-5", "ov-laptop:grid-cols-1", "sm:grid-cols-1",
     "lg:grid-cols-2", "gap-4", "gap-3", "md:grid-cols-2",
-    "sm:grid-cols-2", "grid-cols-3", "gap-x-8",
+    "sm:grid-cols-2", "grid-cols-3", "mobile-bottom-nav--overview",
     "min-h-14", "min-h-24", "h-20",
     "w-20", "max-w-md", "max-w-lg", "text-2xl",
     "text-sm", "text-xs", "text-4xl", "text-base", "text-slate-950", "tracking-widest",
@@ -122,7 +122,7 @@ test("as utilities da Visão geral continuam presentes no JSX", () => {
     "rounded-2xl", "rounded-lg", "border-gray-200", "bg-zinc-100",
     "bg-zinc-200", "bg-zinc-300", "bg-blue-50", "bg-blue-600", "bg-blue-700",
     "text-blue-900", "text-slate-600", "bg-amber-600",
-    "bg-red-100", "text-red-600", "shadow-md", "hover:bg-zinc-200", "max-md:bg-zinc-50",
+    "bg-red-100", "text-red-600", "shadow-md", "hover:bg-zinc-200",
     "disabled:cursor-not-allowed", "disabled:opacity-50",
     "md:h-16", "md:w-16", "h-14", "w-14",
   ]) {
@@ -174,7 +174,7 @@ test("a Visão geral usa apenas a paleta documentada mapeada no preset", () => {
   for (const token of [
     "text-slate-950", "text-slate-600", "text-slate-400",
     "bg-zinc-100", "bg-zinc-200", "bg-zinc-300", "border-gray-200",
-    "bg-blue-50", "bg-blue-600", "bg-blue-700", "max-md:bg-zinc-50", "bg-amber-600",
+    "bg-blue-50", "bg-blue-600", "bg-blue-700", "bg-amber-600",
     "bg-amber-600", "bg-red-100",
   ]) {
     assert.ok(escopo.includes(token), `a Visão geral deve usar ${token}`);
@@ -265,7 +265,7 @@ test("nenhuma classe da Visão geral termina em -card nem herda .content-card", 
   const escopo = `${components}\n${page}`;
   assert.doesNotMatch(escopo, /\bov-[a-z0-9-]*-card\b/);
   assert.doesNotMatch(escopo, /content-card\s+ov-/);
-  assert.match(page, /fixed inset-x-0 bottom-0 z-40 hidden max-md:grid max-md:grid-flow-col max-md:auto-cols-auto max-md:justify-center max-md:gap-x-8 max-md:border-t max-md:border-gray-200 max-md:bg-zinc-50 max-md:px-3 max-md:pb-2 max-md:pt-1/);
+  assert.match(page, /dock:"mobile-bottom-nav mobile-bottom-nav--overview"/);
 });
 
 test("o preset expõe as escalas e os derivados da Visão geral", () => {

@@ -11,46 +11,56 @@
 
 O CSP da aplicação em produção continua sendo o enviado pelo Next.js; `app.security.csp` do Tauri não altera as respostas HTTP da URL remota.
 
-## O que está configurado
+## Ícone nativo
+
+O ícone é derivado de `sites/institucional/assets/logo-app.svg`, cópia exata do logotipo fornecido pelo proprietário para os apps, com `tauri icon --fit contain` para preservar a arte inteira em um canvas quadrado. Os logos usados no site institucional não foram alterados. O comando versionado é `pnpm shell:icon` (`pnpm --filter @vexorasuite/shell icon`). Ele gera, em `apps/shell/src-tauri/icons/`:
+
+- PNGs para desktop e Windows Store, `icon.ico` e `icon.icns`;
+- ícones adaptativos e launcher do Android;
+- ícones iOS.
+
+`tauri.conf.json` referencia os PNGs, o ICO e o ICNS. A arte gerada é determinística a partir do SVG; a revisão visual em dispositivos reais ainda deve ser feita antes de qualquer publicação.
+
+## O que está configurado e o que a CI executa
 
 | Alvo | Configuração | Status real |
 | --- | --- | --- |
-| Windows | `bundle.targets: "all"` + ícones PNG em `src-tauri/icons/` | Configurado. Não compilado nem assinado nesta entrega. |
-| macOS | `bundle.targets: "all"` e `tauri.conf.json` | Configurado. Requer Xcode/certificados; não compilado nesta entrega. |
-| Linux | `bundle.targets: "all"` | Configurado. `cargo check` e `tauri build --no-bundle` rodam no Ubuntu na CI. |
-| Android | `tauri.android.conf.json` (`minSdkVersion: 24`) | Configurado. Não compilado na CI (sem Android SDK/NDK). |
-| iOS | `tauri.ios.conf.json` (`minimumSystemVersion: "15.0"`) | Configurado. Não compilado na CI (sem macOS/Xcode). |
+| Windows | `bundle.targets: "all"` + ícones gerados | Job `windows` em `windows-latest` compila um instalador **NSIS** e o anexa como artefato. MSI, assinatura de código e publicação não são executados. |
+| macOS | `bundle.targets: "all"`, `tauri.conf.json`, `icon.icns` | Configurado. Requer macOS/Xcode e certificados; não compilado nesta entrega. |
+| Linux | `bundle.targets: "all"` | `cargo check` e `tauri build --no-bundle` rodam no Ubuntu na CI. |
+| Android | `tauri.android.conf.json` (`minSdkVersion: 24`) + ícones adaptativos | Job `android` em `ubuntu-latest` inicializa o projeto, compila **APKs universais não assinados** e os anexa como artefato. AAB, keystore e Play Store não são executados. |
+| iOS | `tauri.ios.conf.json` (`minimumSystemVersion: "15.0"`) | Configurado, com ícones gerados. Requer macOS/Xcode e provisioning; não compilado nesta entrega. |
 
-Ícones: os PNGs em `src-tauri/icons/` foram copiados do scaffold anterior em `apps/native/src-tauri/icons/`. Formatos nativos (`.ico`, `.icns`, ícones Android) não foram gerados nesta entrega; antes de gerar instaladores reais, execute `pnpm --filter @vexorasuite/shell tauri icon` com um ícone-fonte e revise os arquivos resultantes.
-
-Não estão configurados nesta fundação: atualizador, deep links, plugin `shell`, assinatura de código, `developmentTeam` da Apple, keystore Android e publicação em lojas. Um `Cargo.lock` não foi gerado neste PR; o primeiro `cargo check`/`tauri build` cria o arquivo.
+Não estão configurados nesta entrega: atualizador, deep links, plugin `shell`, assinatura de código, `developmentTeam` da Apple, keystore Android e publicação em lojas. Um `Cargo.lock` não foi gerado neste PR; o primeiro `cargo check`/`tauri build` cria o arquivo.
 
 ## Validação e honestidade
 
 A CI em `.github/workflows/tauri-shell.yml`:
 
-1. roda os testes estáticos de `apps/shell/test/config.test.mjs` (config v2, capacidade local, platform overrides, ícones PNG válidos, scripts e workflow);
-2. roda `tauri info` para conferir a configuração com o CLI;
-3. instala as dependências WebKit do Linux, executa `cargo check --manifest-path apps/shell/src-tauri/Cargo.toml` e `tauri build --no-bundle --ci`.
+1. roda os testes estáticos de `apps/shell/test/config.test.mjs` (config v2, capacidade local, platform overrides, ícones nativos gerados do SVG, scripts e workflow) e `tauri info`;
+2. instala as dependências WebKit do Linux, executa `cargo check --manifest-path apps/shell/src-tauri/Cargo.toml` e `tauri build --no-bundle --ci`;
+3. compila o instalador NSIS no Windows e anexa `vexora-shell-windows-nsis` como artefato de CI;
+4. instala Java 17, Android SDK/NDK e targets Rust, inicializa o projeto Android, compila APKs com `tauri android build --ci --apk` e anexa `vexora-shell-android-unsigned-apk` como artefato de CI.
+
+Artefato de CI **não** é publicação: não há release do GitHub, upload para lojas, assinatura, notarização, instalação em dispositivo ou teste em aparelho real. **Nenhum binário foi publicado.**
 
 A etapa `build` do pacote é intencionalmente um no-op: `pnpm run build` no monorepo não dispara `tauri build`. Builds reais usam os scripts explícitos abaixo.
 
 Para dev em aparelho físico, `localhost` no webview se refere ao aparelho; seria necessário usar `--host`/`TAURI_DEV_HOST` e ajustar o comando do Next.js. Isso não foi implementado nesta fundação.
 
-O workflow **não** instala Android SDK/NDK nem roda em macOS; portanto não afirma que Android ou iOS foram compilados. Não há etapa de assinatura, upload de artefato, publicação, instalação em dispositivo ou teste em aparelho real. **Nenhum binário foi publicado.**
-
 ## Uso local (pré-requisitos não verificados neste PR)
 
 ```bash
 pnpm install
-pnpm shell:dev                 # Tauri dev + Next.js em localhost:3000
-pnpm shell:build:desktop       # build desktop real (requer toolchain nativa)
-pnpm shell:build:android       # requer Android Studio/SDK/NDK e targets Rust
-pnpm shell:build:ios           # requer macOS, Xcode e provisioning
+pnpm shell:icon              # regera os ícones a partir do SVG institucional
+pnpm shell:dev               # Tauri dev + Next.js em localhost:3000
+pnpm shell:build:desktop     # build desktop real (requer toolchain nativa)
+pnpm shell:build:android     # requer Android Studio/SDK/NDK e targets Rust
+pnpm shell:build:ios         # requer macOS, Xcode e provisioning
 ```
 
 Esses comandos descrevem a configuração; não significam que foram executados com sucesso nesta máquina ou em um dispositivo.
 
 ## Relação com `apps/native`
 
-`apps/native` é um scaffold Tauri v2 anterior, mantido aqui sem alterações para não quebrar referências existentes. Este PR introduz `apps/shell` como a fundação revisável, com validação automatizada e fronteira explícita em relação ao web app. Nenhum dos dois pacotes publicou um binário.
+`apps/native` é um scaffold Tauri v2 anterior, mantido aqui sem alterações para não quebrar referências existentes. `apps/shell` permanece como a casca revisável, com validação automatizada e fronteira explícita em relação ao web app. Nenhum dos dois pacotes publicou um binário.

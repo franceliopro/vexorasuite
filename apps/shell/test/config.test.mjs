@@ -70,20 +70,44 @@ test("Rust shell is Tauri v2 with mobile library targets and no commands", () =>
   assert.match(main, /vexorasuite_shell_lib::run\(\)/);
 });
 
-test("configured icons exist and are valid PNG files", () => {
+test("configured icons exist and are valid native assets from the Véxora logo", () => {
+  assert.match(
+    shellPackage.scripts.icon,
+    /logo-app\.svg --fit contain/
+  );
+  assert.ok(
+    existsSync(path.join(repoRoot, "sites", "institucional", "assets", "logo-app.svg"))
+  );
+
   for (const icon of config.bundle.icon) {
     const iconPath = path.join(tauriDir, icon);
     assert.ok(existsSync(iconPath), `Missing icon ${icon}`);
 
-    const png = readFileSync(iconPath);
+    const bytes = readFileSync(iconPath);
+    if (icon.endsWith(".ico")) {
+      assert.equal(
+        bytes.subarray(0, 4).toString("hex"),
+        "00000100",
+        `Invalid ICO signature in ${icon}`
+      );
+      continue;
+    }
+    if (icon.endsWith(".icns")) {
+      assert.equal(
+        bytes.subarray(0, 4).toString("ascii"),
+        "icns",
+        `Invalid ICNS signature in ${icon}`
+      );
+      continue;
+    }
+
     assert.equal(
-      png.subarray(0, 8).toString("hex"),
+      bytes.subarray(0, 8).toString("hex"),
       "89504e470d0a1a0a",
       `Invalid PNG signature in ${icon}`
     );
-
-    const width = png.readUInt32BE(16);
-    const height = png.readUInt32BE(20);
+    const width = bytes.readUInt32BE(16);
+    const height = bytes.readUInt32BE(20);
     const match = path.basename(icon).match(/^(\d+)x(\d+)\.png$/);
     if (match) {
       assert.equal(width, Number(match[1]));
@@ -99,6 +123,7 @@ test("configured icons exist and are valid PNG files", () => {
 test("npm scripts and CI keep validation repeatable", () => {
   for (const script of [
     "shell:check",
+    "shell:icon",
     "shell:dev",
     "shell:build:desktop",
     "shell:build:android",
@@ -108,6 +133,7 @@ test("npm scripts and CI keep validation repeatable", () => {
   }
 
   for (const script of [
+    "icon",
     "check:config",
     "lint",
     "test",
@@ -131,10 +157,14 @@ test("npm scripts and CI keep validation repeatable", () => {
     "pnpm --filter @vexorasuite/shell test",
     "tauri info",
     "cargo check",
-    "tauri build",
+    "tauri build --ci --bundles nsis",
+    "tauri android init --ci --skip-targets-install",
+    "tauri android build --ci --apk",
+    "actions/upload-artifact@v4",
     "libwebkit2gtk-4.1-dev",
-    "Android and iOS are configured but not built",
+    "iOS is configured but not built on ubuntu-latest",
     "ubuntu-latest",
+    "windows-latest",
   ]) {
     assert.ok(workflow.includes(token), `Missing CI token ${token}`);
   }

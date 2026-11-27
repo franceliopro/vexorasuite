@@ -227,7 +227,7 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   }
 
   assert.ok(onboarding.includes('dark:border-slate-700 dark:bg-slate-800'));
-  assert.ok(onboarding.includes('ACCENT_STEPS = new Set(["empresa", "documento"])'));
+  assert.ok(onboarding.includes('ACCENT_STEPS = new Set(["empresa", "documento", "escola", "alunos", "aula", "regras"])'));
   assert.ok(welcome.includes('dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700'));
   assert.ok(onboarding.includes("onDismissRef.current?.();"), "o fechamento do checklist avisa a Visão geral");
   assert.doesNotMatch(onboarding, /bg-linear-to-br from-blue-50 to-indigo-100/);

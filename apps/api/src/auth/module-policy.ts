@@ -55,6 +55,9 @@ export function routeModules(path: string, method: string): string[] {
   // Submissão pública de formulário de site publicado: o visitante não tem sessão.
   // O service valida publicação, bloco, honeypot e limite de taxa antes de gravar.
   if (/^public\/(?:flows|sites)(?:\/|$)/.test(p)) return [];
+  // Matrícula escolar pública: o token do link é a única credencial do visitante e
+  // o webhook é autenticado pelo segredo do Documenso. Nenhuma sessão é necessária.
+  if (/^school-enrollments\/(?:public(?:\/|$)|webhook(?:\/|$))/.test(p)) return [];
   // Vitrine pública: o token substitui a sessão e limita o escopo ao catálogo do tenant.
   if (/^public\/storefront(?:\/|$)/.test(p)) return [];
   if (/^(auth\/|profile(?:\/|$))/.test(p)) return [];
@@ -81,6 +84,8 @@ export function routeModules(path: string, method: string): string[] {
   if (/^music-school(?:\/|$)/.test(p)) return ["SCHOOL"];
   // Gestão escolar é módulo à parte: empresas sem SCHOOL não veem nem chamam estas rotas.
   if (/^school(?:\/|$)/.test(p)) return ["SCHOOL"];
+  // Configuração de links/modelos de matrícula também exige SCHOOL e é tenant-scoped.
+  if (/^school-enrollments(?:\/|$)/.test(p)) return ["SCHOOL"];
   if (/^calendar|^google-calendar/.test(p)) return ["CALENDAR"];
   if (/^tasks(?:\/|$)/.test(p)) return ["TASKS"];
   // Geração de imagem por bloco já existia sob MARKETING antes do módulo SITES; manter a

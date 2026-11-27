@@ -151,6 +151,12 @@ model Tenant {
   schoolMaterials      SchoolMaterial[]
   schoolBillingPolicies SchoolBillingPolicy[]
   schoolPaymentReceipts SchoolPaymentReceipt[]
+  schoolEnrollmentLinks     SchoolEnrollmentLink[]
+  schoolEnrollmentTemplates SchoolEnrollmentTemplate[]
+  schoolEnrollmentSubmissions SchoolEnrollmentSubmission[]
+  schoolEnvelopes           SchoolEnvelope[]
+  schoolEnrollmentDocuments SchoolEnrollmentDocument[]
+  schoolEnrollmentDeliveries SchoolEnrollmentDelivery[]
 
   @@map("tenants")
 }
@@ -1502,16 +1508,21 @@ model MusicAttendance {
 
 /// Gestão escolar — todas as entidades abaixo são tenant-scoped e ficam no banco principal.
 model SchoolCourse {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
-  kind        String   @default("COURSE")
-  name        String
-  parentId    String?  @map("parent_id") @db.Uuid
-  active      Boolean  @default(true)
-  createdById String   @map("created_by_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  kind              String   @default("COURSE")
+  name              String
+  parentId          String?  @map("parent_id") @db.Uuid
+  active            Boolean  @default(true)
+  imageUrl          String?  @map("image_url")
+  summary           String?  @db.Text
+  level             String?
+  durationLabel     String?  @map("duration_label")
+  tuitionAmountCents Int?    @map("tuition_amount_cents")
+  createdById       String   @map("created_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, kind, name])
   @@index([tenantId, kind, active])
@@ -1778,4 +1789,154 @@ model SchoolPaymentReceipt {
   @@index([tenantId, enrollmentId])
   @@index([tenantId, periodKey])
   @@map("school_payment_receipts")
+}
+
+/// Link público de matrícula. O token é a única credencial do visitante e o
+/// escopo de tenant nunca é inferido de parâmetros do formulário.
+model SchoolEnrollmentLink {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  token          String    @unique
+  courseId       String?   @map("course_id") @db.Uuid
+  classId        String?   @map("class_id") @db.Uuid
+  ownerName      String    @map("owner_name")
+  ownerPhone     String?   @map("owner_phone")
+  ownerEmail     String?   @map("owner_email")
+  welcomeMessage String?   @map("welcome_message") @db.Text
+  status         String    @default("ACTIVE")
+  expiresAt      DateTime? @map("expires_at")
+  createdById    String    @map("created_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submissions    SchoolEnrollmentSubmission[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("school_enrollment_links")
+}
+
+/// Modelo de Contrato ou Ficha de Matrícula com variáveis {{chave}}.
+/// `source=DRIVE_MANUAL` significa texto copiado do Google Drive, não importação automática.
+model SchoolEnrollmentTemplate {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  kind         String
+  name         String
+  bodyHtml     String   @map("body_html") @db.Text
+  variables    Json     @default("[]")
+  source       String   @default("DRIVE_MANUAL")
+  driveFileId  String?  @map("drive_file_id")
+  configuredAt DateTime? @map("configured_at")
+  createdById  String   @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, kind, name])
+  @@index([tenantId, kind])
+  @@map("school_enrollment_templates")
+}
+
+model SchoolEnrollmentSubmission {
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  linkId              String    @map("link_id") @db.Uuid
+  studentName         String    @map("student_name")
+  studentCpf          String?   @map("student_cpf")
+  studentEmail        String?   @map("student_email")
+  studentPhone        String?   @map("student_phone")
+  guardianName        String?   @map("guardian_name")
+  guardianRelationship String?  @map("guardian_relationship")
+  guardianPhone       String?   @map("guardian_phone")
+  guardianEmail       String?   @map("guardian_email")
+  addressLine         String?   @map("address_line") @db.Text
+  courseId            String?   @map("course_id") @db.Uuid
+  classId             String?   @map("class_id") @db.Uuid
+  instrument          String?
+  level               String?
+  startDate           DateTime? @db.Date @map("start_date")
+  weekday             Int?
+  startTime           String?   @map("start_time")
+  tuitionAmountCents  Int?      @map("tuition_amount_cents")
+  paymentMethod       String?   @map("payment_method")
+  observations        String?   @db.Text
+  payload             Json      @default("{}")
+  status              String    @default("PREPARED")
+  signingUrl          String?   @db.Text @map("signing_url")
+  envelopeId          String?   @map("envelope_id")
+  documentId          String?   @map("document_id")
+  signedAt            DateTime? @map("signed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  link                SchoolEnrollmentLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  envelopes           SchoolEnvelope[]
+  documents           SchoolEnrollmentDocument[]
+  deliveries          SchoolEnrollmentDelivery[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+  @@index([linkId])
+  @@map("school_enrollment_submissions")
+}
+
+model SchoolEnvelope {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  submissionId String   @map("submission_id") @db.Uuid
+  envelopeId  String    @unique @map("envelope_id")
+  documentId  String?   @map("document_id")
+  status      String    @default("PREPARED")
+  signingUrl  String?   @db.Text @map("signing_url")
+  error       String?
+  raw         Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submission  SchoolEnrollmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([submissionId])
+  @@map("school_envelopes")
+}
+
+model SchoolEnrollmentDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  submissionId String   @map("submission_id") @db.Uuid
+  kind         String
+  name         String
+  body         String   @db.Text
+  pdfPath      String?  @map("pdf_path")
+  generatedAt  DateTime @default(now()) @map("generated_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submission   SchoolEnrollmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  deliveries   SchoolEnrollmentDelivery[]
+
+  @@unique([tenantId, submissionId, kind])
+  @@index([tenantId, generatedAt])
+  @@map("school_enrollment_documents")
+}
+
+model SchoolEnrollmentDelivery {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  submissionId   String   @map("submission_id") @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  recipientRole  String   @map("recipient_role")
+  recipientPhone String?  @map("recipient_phone")
+  recipientEmail String?  @map("recipient_email")
+  status         String   @default("PREPARED")
+  messageId      String?  @map("message_id")
+  error          String?
+  sentAt         DateTime? @map("sent_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submission     SchoolEnrollmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  document       SchoolEnrollmentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([submissionId])
+  @@map("school_enrollment_deliveries")
 }

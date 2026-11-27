@@ -73,4 +73,23 @@ export class MusicSchoolReadService {
       };
     });
   }
+
+  /** Listas curtas para os formulários; nunca inclui dados de outra empresa. */
+  async options(tenantId: string) {
+    const [departments, contacts] = await Promise.all([
+      this.prisma.department.findMany({
+        where: { tenantId, isActive: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+        take: 200,
+      }),
+      this.prisma.contact.findMany({
+        where: { tenantId },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+        take: 200,
+      }),
+    ]);
+    return { departments, contacts };
+  }
 }

@@ -137,6 +137,18 @@ model Tenant {
   musicClasses         MusicClass[]
   musicEnrollments     MusicEnrollment[]
   musicAttendances     MusicAttendance[]
+  schoolCourses        SchoolCourse[]
+  schoolPeople         SchoolPerson[]
+  schoolRooms          SchoolRoom[]
+  schoolClasses        SchoolClass[]
+  schoolEnrollments    SchoolEnrollment[]
+  schoolSessions       SchoolSession[]
+  schoolAttendances    SchoolAttendance[]
+  schoolLessonPlans    SchoolLessonPlan[]
+  schoolGrades         SchoolGrade[]
+  schoolGuardians      SchoolGuardian[]
+  schoolNotices        SchoolNotice[]
+  schoolMaterials      SchoolMaterial[]
 
   @@map("tenants")
 }
@@ -1484,4 +1496,236 @@ model MusicAttendance {
   @@unique([tenantId, enrollmentId, sessionDate])
   @@index([tenantId, classId, sessionDate])
   @@map("music_attendances")
+}
+
+/// Gestão escolar — todas as entidades abaixo são tenant-scoped e ficam no banco principal.
+model SchoolCourse {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  kind        String   @default("COURSE")
+  name        String
+  parentId    String?  @map("parent_id") @db.Uuid
+  active      Boolean  @default(true)
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, kind, name])
+  @@index([tenantId, kind, active])
+  @@index([tenantId, parentId])
+  @@map("school_courses")
+}
+
+model SchoolPerson {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  kind        String   @default("STUDENT")
+  name        String
+  email       String?
+  phone       String?
+  active      Boolean  @default(true)
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, kind, active])
+  @@index([tenantId, name])
+  @@map("school_people")
+}
+
+model SchoolRoom {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String
+  capacity    Int
+  active      Boolean  @default(true)
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId, active])
+  @@map("school_rooms")
+}
+
+model SchoolClass {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  courseId        String   @map("course_id") @db.Uuid
+  teacherId       String   @map("teacher_id") @db.Uuid
+  roomId          String?  @map("room_id") @db.Uuid
+  name            String
+  weekday         Int
+  startTime       String   @map("start_time")
+  durationMinutes Int      @default(60) @map("duration_minutes")
+  active          Boolean  @default(true)
+  createdById     String   @map("created_by_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, courseId])
+  @@index([tenantId, teacherId])
+  @@index([tenantId, active])
+  @@map("school_classes")
+}
+
+model SchoolEnrollment {
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  classId             String    @map("class_id") @db.Uuid
+  studentId           String    @map("student_id") @db.Uuid
+  contractedSessions  Int       @map("contracted_sessions")
+  purchasedSessions   Int       @default(0) @map("purchased_sessions")
+  status              String    @default("ACTIVE")
+  tuitionAmountCents  Int?      @map("tuition_amount_cents")
+  tuitionCycle        String?   @default("MONTHLY") @map("tuition_cycle")
+  tuitionStatus       String    @default("SCHEDULED") @map("tuition_status")
+  tuitionNextDueDate  DateTime? @db.Date @map("tuition_next_due_date")
+  createdById         String    @map("created_by_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, classId, studentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, tuitionStatus])
+  @@map("school_enrollments")
+}
+
+model SchoolSession {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  classId     String   @map("class_id") @db.Uuid
+  sessionDate DateTime @db.Date @map("session_date")
+  status      String   @default("SCHEDULED")
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, classId, sessionDate])
+  @@index([tenantId, sessionDate])
+  @@map("school_sessions")
+}
+
+model SchoolAttendance {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  sessionId    String   @map("session_id") @db.Uuid
+  personId     String   @map("person_id") @db.Uuid
+  personKind   String   @map("person_kind")
+  status       String
+  note         String?
+  recordedById String   @map("recorded_by_id") @db.Uuid
+  recordedAt   DateTime @default(now()) @map("recorded_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, sessionId, personKind, personId])
+  @@index([tenantId, sessionId])
+  @@index([tenantId, personId, status])
+  @@map("school_attendances")
+}
+
+model SchoolLessonPlan {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  classId         String   @map("class_id") @db.Uuid
+  version         Int
+  title           String
+  objectiveHtml   String   @map("objective_html")
+  contentHtml     String   @map("content_html")
+  activitiesHtml  String   @map("activities_html")
+  observationsHtml String  @map("observations_html")
+  materials       Json     @default("[]")
+  youtubeUrls     Json     @default("[]")
+  createdById     String   @map("created_by_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, classId, version])
+  @@index([tenantId, classId])
+  @@map("school_lesson_plans")
+}
+
+model SchoolGrade {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  classId        String   @map("class_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  title          String
+  evaluationDate DateTime @db.Date @map("evaluation_date")
+  maxScore       Int      @map("max_score")
+  score          Int
+  note           String?
+  recordedById   String   @map("recorded_by_id") @db.Uuid
+  recordedAt     DateTime @default(now()) @map("recorded_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, classId, studentId, title])
+  @@index([tenantId, studentId])
+  @@map("school_grades")
+}
+
+model SchoolGuardian {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  studentId    String   @map("student_id") @db.Uuid
+  name         String
+  relationship String?
+  phone        String?
+  email        String?
+  createdById  String   @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, studentId])
+  @@map("school_guardians")
+}
+
+model SchoolNotice {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  studentId   String?   @map("student_id") @db.Uuid
+  classId     String?   @map("class_id") @db.Uuid
+  title       String
+  bodyHtml    String    @map("body_html")
+  channel     String    @default("WHATSAPP")
+  status      String    @default("SCHEDULED")
+  scheduledAt DateTime? @map("scheduled_at")
+  createdById String    @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@map("school_notices")
+}
+
+model SchoolMaterial {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  lessonPlanId String?  @map("lesson_plan_id") @db.Uuid
+  courseId     String?  @map("course_id") @db.Uuid
+  title        String
+  url          String
+  kind         String   @default("LINK")
+  createdById  String   @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, lessonPlanId])
+  @@index([tenantId, courseId])
+  @@map("school_materials")
 }

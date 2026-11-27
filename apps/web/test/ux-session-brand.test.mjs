@@ -69,6 +69,7 @@ test("o popover de emojis abre centrado no ícone e escapa do stacking context",
     'aria-controls="composer-emoji-popover"',
     'side="top" align="center" portal role="dialog" ariaLabel="Emojis"',
     "[data-composer-tool-wrap='true'], [data-testid='composer-emoji-popover']",
+    'const target = emojiTarget === "quick-reply" ? quickContentRef.current : composerRef.current',
   ]) {
     assert.ok(inbox.includes(token), `o composer perdeu ${token}`);
   }

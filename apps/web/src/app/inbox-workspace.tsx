@@ -475,11 +475,16 @@ export function InboxWorkspace({tenantId,userId,canManageChannels=false}:{tenant
     setEmojiSearch("");
     if (restoreFocus) {
       requestAnimationFrame(() => {
+        const target = emojiTarget === "quick-reply" ? quickContentRef.current : composerRef.current;
+        if (target?.isConnected) {
+          target.focus();
+          return;
+        }
         const trigger = emojiTriggerRef.current?.isConnected ? emojiTriggerRef.current : emojiRef.current;
         trigger?.focus();
       });
     }
-  }, []);
+  }, [emojiTarget]);
   const [composerMenuOpen, setComposerMenuOpen] = useState(false);
   const composerMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {

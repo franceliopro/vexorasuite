@@ -131,7 +131,7 @@ test("os contratos funcionais das duas telas permanecem", () => {
     'data-tone={item.tone}',
     'data-selected={customerId===item.id?"true":"false"}',
     'aria-pressed={rangeMode==="preset"&&months===n}',
-    'aria-label="Áreas do Financeiro"',
+    'aria-label="Áreas do Asaas"',
     "Array.from({length:100}",
   ]) {
     assert.ok(finance.includes(marker), `o financeiro perdeu ${marker}`);

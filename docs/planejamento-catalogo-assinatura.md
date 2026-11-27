@@ -1,6 +1,6 @@
 # Catálogo de produtos digitais e serviços + assinatura de documentos
 
-**Status:** base de decisões e acompanhamento. A branch `feat/finance-catalog-subscriptions` implementa apenas o escopo de catálogo/Asaas descrito abaixo. Nada aqui foi publicado ou deployado; a existência de código ou teste não prova operação real em ambiente externo.
+**Status:** base de decisões e acompanhamento. A branch `feat/finance-catalog-subscriptions` implementou o escopo inicial de catálogo/Asaas descrito abaixo; a rodada de 2026-11-26 tornou o **Catálogo** um módulo próprio e compartilhado por Asaas, Stripe e InfinitePay, sem aba no Asaas. Nada aqui foi publicado ou deployado; a existência de código ou teste não prova operação real em ambiente externo.
 
 ## Decisões fixadas
 
@@ -10,6 +10,7 @@
 4. **Exclusão confirmada.** Cliente e assinatura no Asaas são removidos somente após confirmação explícita (`EXCLUIR`) e resposta de sucesso do `DELETE`. A UI não afirma exclusão antes dessa resposta.
 5. **Rastreabem é referência de segmento/teste**, nunca identidade global nem fluxo obrigatório.
 6. **Documenso/gov.br ficam fora desta entrega.** Documenso Community Edition exigiria stack separada, segredos próprios e evidência de deploy; a API gov.br exige formalização como órgão público e credenciais ITI/MGI. Nenhuma integração de assinatura eletrônica foi implementada aqui.
+7. **Vitrine externa é próxima fatia.** O bot, a IA e o atendente poderão enviar 1 item sob demanda (foto, descrição e link de aquisição) ou o catálogo completo. O feed público usará whitelist de campos aprovados para publicação; os campos internos `description`/`imageUrl` do `catalog.item` não viram texto de canal. Sem checkout real e sem afirmar envio/publicação sem evidência.
 
 ## Implementado nesta branch (código + testes locais)
 

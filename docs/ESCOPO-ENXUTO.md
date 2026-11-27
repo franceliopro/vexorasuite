@@ -30,6 +30,7 @@ Decisão de produto: construir uma plataforma operacional que resolva o trabalho
 | Google Agenda | **Integração prioritária** | Sincronizar eventos, responsáveis, horários e lembretes, com consentimento, tratamento de conflitos e prevenção de eventos duplicados. |
 | Google Drive | **Integração prioritária** | Permitir conectar conta, escolher arquivos/pastas autorizados e anexar ou compartilhar documentos a partir do atendimento/CRM; não copiar todo o Drive automaticamente. |
 | Meta direta e Zernio | **Camada de canais com opções** | Permitir conectar contas Meta existentes ou configurar novas, e suportar Zernio para serviços Meta quando fizer sentido. Mostrar claramente o provedor, permissões, status e capacidades reais disponíveis em cada conexão. |
+| SMS e RCS transacionais | **Camada de conectores com provedor escolhido pela empresa** | Oferecer Twilio e Zenvia como opções oficiais de SMS; permitir RCS somente por provedor oficial/RBM com fallback para SMS. SMSGate self-hosted fica restrito a piloto/teste, sem promessa de RCS, A2P ou entrega. O usuário escolhe o provedor por tenant, com credenciais isoladas, consentimento e confirmação humana antes de qualquer envio. |
 | Integrações adicionais | **Base extensível, configuração simples** | Conexões via OAuth quando suportado, webhooks e credenciais protegidas. Integrações ficam em Configurações, com assistente de conexão e teste de status; não um menu operacional separado. |
 | Templates por segmento | **Adiar como produto separado** | Usar modelos simples de configuração quando ajudarem a iniciar uma empresa, sem transformar segmentos em módulos distintos. |
 | Escola, delivery e outros legados | **Não levar para a primeira fase** | A prioridade é validar o atendimento da Rastreabem antes de expandir para outros produtos verticais. |
@@ -41,6 +42,7 @@ Decisão de produto: construir uma plataforma operacional que resolva o trabalho
 - Agendamentos devem suportar tipo, contato, responsável, início/fim, fuso horário, status, lembretes, reagendamento/cancelamento e trilha de auditoria. Não prometer sincronização até a integração estar conectada e testada.
 - Integrações devem usar arquitetura por conectores/adaptadores para que um tenant conecte sua conta existente ou configure uma nova sem alterar o fluxo dos demais. Tokens ficam criptografados e isolados por tenant; pedir apenas os escopos necessários.
 - Google Drive: iniciar com seleção explícita de arquivo/pasta e ações de anexar/compartilhar. Google Agenda: criar/atualizar/cancelar eventos e tratar conflitos/duplicação. Meta/Zernio: identificar recursos disponíveis conforme a conta, permissões e provedor; não presumir que uma conexão dá acesso a todas as APIs Meta.
+- SMS/RCS: o provedor é uma escolha explícita por empresa (Twilio e Zenvia primeiro; SMSGate apenas em piloto separado). Registrar **configurado**, **enviado**, **confirmado pelo provedor** e **falha/resultado incerto**; RCS exige agente oficial/RBM aprovado e fallback SMS. Nenhuma mensagem é enviada por bot sem consentimento válido e confirmação da pessoa responsável.
 - Depois, garantir autenticação, isolamento por empresa, permissões e auditoria antes de liberar operações sensíveis.
 - Financeiro: separar claramente **preparado**, **enviado**, **confirmado pelo provedor** e **falha/resultado incerto**. O atendente precisa enxergar o que foi enviado.
 - Toda automação deve ter estado explícito, cancelamento, proteção contra duplicação e histórico de execução.
@@ -60,7 +62,8 @@ Decisão de produto: construir uma plataforma operacional que resolva o trabalho
 5. Motor de automação e IA opcional.
 6. Financeiro com registro confiável das ações e confirmação de pagamento.
 7. Conectores prioritários: Google Drive, Google Agenda, Meta direta e Zernio, com conexões por empresa.
-8. Marketing e rastreamento de origem confiável.
-9. PWA e expansão para outros segmentos após o fluxo principal passar nos testes de aceite.
+8. Conectores de SMS/RCS selecionáveis por empresa: Twilio e Zenvia como opções oficiais; SMSGate apenas como piloto isolado, sem envio automático.
+9. Marketing e rastreamento de origem confiável.
+10. PWA e expansão para outros segmentos após o fluxo principal passar nos testes de aceite.
 
 Este escopo é deliberadamente menor do que a lista de recursos da versão anterior. Funcionalidade só entra quando resolver uma tarefa real e puder ser mantida/testada com segurança.

@@ -152,6 +152,7 @@ const enrollmentBody = () => ({
   contractedSessions: 8,
   purchasedSessions: 2,
   tuitionAmountCents: 9900,
+  contractTotalCents: 99000,
   tuitionNextDueDate: "2026-12-05",
 });
 

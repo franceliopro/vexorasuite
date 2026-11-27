@@ -14,6 +14,11 @@ import { MusicSchoolReadService } from "./music-school-read.service";
 export class MusicSchoolController {
   constructor(private readonly service: MusicSchoolService, private readonly read: MusicSchoolReadService) {}
 
+  @Get("options")
+  options(@Req() req: AuthenticatedRequest) {
+    return this.read.options(req.user.tenantId);
+  }
+
   @Get("classes")
   listClasses(@Req() req: AuthenticatedRequest) {
     return this.read.listClasses(req.user.tenantId);

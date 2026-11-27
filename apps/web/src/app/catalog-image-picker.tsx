@@ -29,8 +29,8 @@ const rowTw = "flex min-w-0 items-center gap-2.5 rounded-token-sm border border-
 const rowSelectedTw = "flex min-w-0 items-center gap-2.5 rounded-token-sm border border-blue-600 bg-blue-50 p-1.5 text-left text-ink";
 const thumbTw = "grid size-14 flex-none place-items-center overflow-hidden rounded-token-sm bg-surface-3";
 const rowLabelTw = "min-w-0 flex-1 truncate text-small text-ink-secondary";
-const previewTw = "grid min-h-0 grid-cols-1 gap-2 rounded-token border border-line bg-surface-2 p-2.5 sm:grid-cols-[160px_minmax(0,1fr)]";
-const previewFrameTw = "grid h-24 max-w-40 place-items-center overflow-hidden rounded-token-sm border border-line bg-surface-3";
+const previewTw = "grid min-h-0 grid-cols-1 gap-2 rounded-token border border-line bg-surface-2 p-2.5 sm:grid-cols-[96px_minmax(0,1fr)]";
+const previewFrameTw = "relative grid aspect-square w-24 place-items-center overflow-hidden rounded-token-sm border border-line bg-zinc-200";
 const footerTw = "mt-0 flex flex-none flex-wrap justify-end gap-2 border-t border-line pt-3";
 const fieldLabelTw = "grid gap-1 text-small font-bold text-ink-secondary";
 const selectTw = "min-h-9 rounded-token-sm border border-line bg-surface-2 px-2.5 text-small text-ink";
@@ -183,7 +183,7 @@ export function CatalogImagePicker({ open, onClose, onSelect }: { open: boolean;
       <section ref={dialogRef} tabIndex={-1} className={dialogTw} style={{ zIndex: 1, width: "min(960px, calc(100vw - 24px))", maxHeight: "min(720px, calc(100dvh - 24px))" }} role="dialog" aria-modal="true" aria-labelledby="catalog-image-picker-title" data-testid="catalog-image-picker">
         <header className={headerTw}>
           <div className="min-w-0">
-            <h2 id="catalog-image-picker-title" className="m-0 text-asaas-title font-extrabold text-ink">Escolher imagem do produto</h2>
+            <h2 id="catalog-image-picker-title" className="m-0 text-asaas-title font-extrabold text-ink">Escolher imagem do item do catálogo</h2>
             <p className="m-0 text-small text-ink-secondary">Envie do seu computador, escolha no Google Drive conectado ou informe um link HTTPS.</p>
           </div>
           <button type="button" className="absolute right-3 top-3 grid size-8 place-items-center rounded-token-sm border border-line bg-surface-2 text-ink transition-colors hover:bg-hover" aria-label="Fechar" onClick={onClose}><X size={18} aria-hidden="true" /></button>
@@ -228,7 +228,7 @@ export function CatalogImagePicker({ open, onClose, onSelect }: { open: boolean;
           {tab === "url" ? <label className="grid gap-1.5 text-small font-bold text-ink-secondary"><span>Endereço da imagem</span><input className="min-h-10 w-full rounded-token-sm border border-line bg-surface-2 px-3 text-small text-ink focus:border-blue-600 focus:outline-hidden focus:ring-2 focus:ring-blue-600/25" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://exemplo.com/imagem.png" data-testid="catalog-image-picker-url" /><small className="font-normal">Aceitamos links HTTPS e imagens salvas na própria Véxora.</small></label> : null}
 
           <div className={previewTw}>
-            <div className={previewFrameTw}>{preview && !previewBroken ? <img className="size-full object-contain" src={preview} alt="Prévia da imagem" onError={() => setPreviewBroken(true)} /> : <ImageIcon size={28} aria-hidden="true" />}</div>
+            <div className={previewFrameTw}>{preview && !previewBroken ? <img className="absolute inset-1 m-auto size-auto max-h-[calc(100%-0.5rem)] max-w-[calc(100%-0.5rem)] object-contain" src={preview} alt="Prévia da imagem" onError={() => setPreviewBroken(true)} /> : <ImageIcon size={28} aria-hidden="true" />}</div>
             <div className="grid min-w-0 content-start gap-1.5">
               <strong className="text-small text-ink">Prévia</strong>
               <span className="min-w-0 break-all text-2xs text-ink-secondary">{preview || "Escolha uma imagem para ver a prévia."}</span>

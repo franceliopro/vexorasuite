@@ -152,3 +152,13 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 
 **Não afirmado:** deploy, publicação, cobrança, confirmação de pagamento, estorno executado, saldo, webhook registrado, conexão ativa, envio externo ou integração funcionando no ambiente publicado. Nenhuma operação externa real foi executada nesta rodada; a confirmação depende de credenciais e evidência do proprietário.
 
+## Rodada 2026-11-26 (branch `feat/finance-provider-workspaces`)
+
+- **Asaas é a gestão rica:** `?module=Asaas` renderiza `FinanceWorkspace`; `Financeiro`, `Gestão` e `asaas` continuam funcionando como aliases. Stripe e InfinitePay usam `FinanceProviderWorkspace` isolado, com abas por capacidade, gráficos derivados de `dashboard.series` e avisos explícitos de origem e limitação. A página separada que respondia como Asaas foi removida.
+- **Catálogo compartilhado:** o módulo passa a se chamar **Catálogo** (produtos e serviços), com processo próprio na navegação e sem aba no Asaas. `GET/PUT /finance/catalog-provider` gravam a preferência tenant-scoped `tenants.integrations.catalogFinance` (`ASAAS` por padrão); só provedores `enabled && configured` viram opção e nenhuma credencial é replicada. Salvar a preferência não cria cobrança.
+- **Cards do Catálogo:** altura uniforme em todas as colunas; ao clicar em um card, ele mostra descrição e metadados completos e os demais acompanham a altura expandida. Clique fora restaura o estado normal. A capa é 1:1 com conteúdo centralizado, `object-contain` e fundo cinza claro, para que artes 16:9 ou 9:16 apareçam inteiras dentro da moldura.
+- **Validação local:** suíte estática do Web e 5/5 specs do serviço de preferência financeira passaram; typecheck de API e Web limpo. Suítes completas, lint, build, migrations e concorrência ficam para o GitHub Actions no PR de integração.
+- **Próxima fatia (registrada, não implementada aqui):** vitrine externa do Catálogo enviada pelo bot, pela IA ou pelo atendente com um botão no Atendimento. Deve permitir enviar **1 item sob demanda** (foto, descrição e link de aquisição) ou o **catálogo completo** quando o cliente perguntar sobre os serviços. O feed público continua com whitelist explícita: campos internos `description`/`imageUrl` não são publicados como estavam; a fatia da vitrine definirá campos públicos aprovados e link de proposta, sem checkout real.
+
+**Não afirmado:** deploy, publicação, vitrine externa no ar, envio pelo bot/IA/atendente, link de aquisição ativo, pagamento, cobrança, capa publicada, webhook registrado ou conexão ativa. Nenhuma operação externa real foi executada nesta rodada.
+

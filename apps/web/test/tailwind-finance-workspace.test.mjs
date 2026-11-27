@@ -215,8 +215,6 @@ test("o preset expõe os tokens do Financeiro", () => {
 test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () => {
   for (const marker of [
     'fetch("/api/backend/finance/portfolio?"',
-    'fetch("/api/backend/finance/catalog?offset="+offset+"&limit=50"',
-    'fetch("/api/backend/catalog?limit=200"',
     'fetch("/api/backend/finance/listings?"',
     'fetch("/api/backend/finance/executive?"',
     'fetch("/api/backend/finance/services"',
@@ -243,18 +241,11 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     'role="status">Sincronizando indicadores com o Asaas…',
     'role="alert">{error}',
     'role="alert" className={partialTw}',
-    'aria-label="Áreas do Financeiro"',
-    '<h1>Financeiro</h1>',
-    'id:"products",label:"Produtos"',
-    '<h2 id="finance-products-title">Produtos</h2>',
-    'Produtos da empresa. Use Editar em cada card para abrir o cadastro em modo de edição.',
-    '> Novo produto</button>',
-    '<Pencil size={15} aria-hidden="true"/> Editar</button>',
-    'aria-label="Atualizar produtos"',
-    'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin,itemId:itemId||""}}))',
-    'openCatalogSettings("finance-products:new")',
-    'onClick={()=>openCatalogSettings("finance-products",item.id)}',
-    'origin:"finance-products"|"finance-products:new"|"finance-subscriptions"',
+    'aria-label="Áreas do Asaas"',
+    '<h1>Asaas</h1>',
+    'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin:"finance-subscriptions",itemId:itemId||""}}))',
+    'function openCatalogSettings(itemId?:string)',
+    'openCatalogSettings()',
     'useModalDialog(true,dialogRef',
     'ref={dialogRef} tabIndex={-1}',
     'aria-labelledby="confirm-delete-title"',
@@ -279,34 +270,13 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
   assert.match(source, /aria-label="Fechar" onClick=\{\(\)=>setSelected\(null\)\}/);
 });
 
-test("a vitrine mostra imagem, título e detalhes do catálogo em cards responsivos", () => {
-  for (const marker of [
-    'fetch("/api/backend/catalog?limit=200"',
-    'data-kind={item.kind}',
-    'aria-label="Imagem não informada"',
-    'loading="lazy"',
-    'productGridTw="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"',
-    'productImageFrameTw="grid aspect-square place-items-center overflow-hidden rounded-fin-card bg-surface-3"',
-    'productBodyTw="grid gap-2 p-pad"',
-    '<h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>',
-    '{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}',
-  ]) {
-    assert.ok(source.includes(marker), `faltou ${marker}`);
-  }
-  assert.doesNotMatch(source, /<img className=\{productImageTw\} src=\{image\} alt=""/);
-});
-
-test("os produtos abrem o cadastro em modo de edição, sem janela própria", () => {
-  assert.doesNotMatch(source, /Gerenciar catálogo/);
-  assert.doesNotMatch(source, /Nenhum produto cadastrado nesta empresa\. Use/);
-  assert.doesNotMatch(source, /finance-product-edit-title/);
-  assert.doesNotMatch(source, /function saveEdit\(/);
-  for (const marker of [
-    'aria-label={"Editar "+item.name}',
-    'onClick={()=>openCatalogSettings("finance-products",item.id)}',
-    'detail:{origin,itemId:itemId||""}',
-    'setRefresh(n=>n+1)',
-  ]) assert.ok(source.includes(marker), `faltou ${marker}`);
+test("o catálogo tem processo próprio, sem aba no Asaas", () => {
+  assert.doesNotMatch(source, /id:"products"/);
+  assert.doesNotMatch(source, /<CatalogProductsView\/>/);
+  assert.doesNotMatch(source, /fetch\("\/api\/backend\/catalog\?limit=200"/);
+  assert.match(source, /O catálogo é compartilhado por todos os provedores e tem processo próprio/);
+  assert.match(source, /Abrir Catálogo/);
+  assert.match(source, /origin:"finance-subscriptions"/);
 });
 
 test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
@@ -368,14 +338,13 @@ test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível
   }
 });
 
-test("a home retorna ao Financeiro na aba correta depois do catálogo", () => {
+test("a home retorna ao Asaas na aba de assinaturas depois do catálogo", () => {
   assert.match(homePage, /const \[catalogReturnTo, setCatalogReturnTo\]/);
-  assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\] = useState<"overview" \| "products" \| "subscriptions">\("products"\)/);
-  assert.match(homePage, /if \(origin === "finance-products"\) setFinanceInitialTab\("products"\)/);
+  assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\] = useState<"overview" \| "subscriptions">\("overview"\)/);
   assert.match(homePage, /if \(origin === "finance-subscriptions"\) setFinanceInitialTab\("subscriptions"\)/);
-  assert.match(homePage, /setActive\("Financeiro"\)/);
+  assert.match(homePage, /setActive\("Asaas"\)/);
   assert.match(homePage, /function closeCatalog\(/);
-  assert.ok(homePage.includes('catalogReturnTo === "finance-products" ? "Voltar aos Produtos"'));
+  assert.ok(homePage.includes('catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas"'));
 });
 
 test("o JSX financeiro mantém os gráficos como dados, sem cor de marca fixa", () => {
@@ -385,9 +354,9 @@ test("o JSX financeiro mantém os gráficos como dados, sem cor de marca fixa", 
   assert.doesNotMatch(source, /color-mix\(/);
 });
 
-test("a home abre o catálogo em Configurações mediante evento interno", () => {
+test("a home abre o Catálogo em processo próprio mediante evento interno", () => {
   assert.match(homePage, /addEventListener\("vexora:open-catalog"/);
-  assert.match(homePage, /setSettingsCatalogOpen\(true\)/);
+  assert.match(homePage, /setActive\("Catálogo"\)/);
   assert.match(homePage, /removeEventListener\("vexora:open-catalog"/);
   assert.match(homePage, /\["OWNER",\s*"ADMIN",\s*"MANAGER"\]/);
 });

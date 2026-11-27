@@ -5,15 +5,21 @@ import fs from "node:fs";
 const source = fs.readFileSync(new URL("../src/app/finance-provider-workspace.tsx", import.meta.url), "utf8");
 const page = fs.readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
 
-test("o Financeiro tem submenu com os três provedores e herda a permissão FINANCE", () => {
-  assert.match(page, /label: "Financeiro", icon: "wallet", children: \[/);
-  for (const label of ["Asaas", "Stripe", "InfinitePay"]) {
+test("Asaas é o workspace rico; Stripe e InfinitePay têm submenu próprio e herdam FINANCE", () => {
+  assert.match(page, /label: "Asaas", icon: "wallet", children: \[/);
+  assert.ok(page.includes('"Asaas":()=>import("./finance-workspace")'));
+  assert.match(page, /active === "Asaas" \|\| active === "Financeiro" \|\| active === "Gestão"/);
+  assert.match(page, /<FinanceWorkspace initialTab=\{financeInitialTab\} \/>/);
+  for (const label of ["Stripe", "InfinitePay"]) {
     assert.ok(page.includes(`{ label: "${label}", icon:`), `falta o filho ${label}`);
     assert.ok(page.includes(`'${label}':'FINANCE'`), `falta a permissão de ${label}`);
     assert.ok(page.includes(`"${label}":()=>import("./finance-provider-workspace")`), `falta o preload de ${label}`);
   }
-  assert.match(page, /active === "Asaas" \|\| active === "Stripe" \|\| active === "InfinitePay"/);
-  assert.match(page, /<FinanceProviderWorkspace provider=\{active\} \/>/);
+  assert.match(page, /active === "Stripe" \|\| active === "InfinitePay"/);
+  assert.match(page, /<FinanceProviderWorkspace provider=\{active === "Stripe" \? "STRIPE" : "INFINITEPAY"\} \/>/);
+  assert.match(source, /export function normalizeFinanceProvider/);
+  assert.ok(source.includes('Stripe: "STRIPE"'));
+  assert.ok(source.includes('InfinitePay: "INFINITEPAY"'));
   assert.doesNotMatch(page, /setExpandedModules\(\[\]\); \}\}><span className=\{navSubitemClass/);
 });
 

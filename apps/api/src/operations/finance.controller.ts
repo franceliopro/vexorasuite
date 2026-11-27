@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, NotImplementedException, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, ForbiddenException, Get, NotImplementedException, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -204,6 +204,19 @@ export class FinanceController {
   describeProvider(@Req() req: AuthenticatedRequest, @Param("provider") providerRaw: string) {
     assertFinanceAdmin(req.user.role);
     return this.providers.describe(req.user.tenantId, providerRaw);
+  }
+
+  /** Catálogo único: a empresa escolhe qual sistema financeiro atende seus itens. */
+  @Get("catalog-provider")
+  catalogProvider(@Req() req: AuthenticatedRequest) {
+    assertFinanceAdmin(req.user.role);
+    return this.providers.catalogProvider(req.user.tenantId);
+  }
+
+  @Put("catalog-provider")
+  async selectCatalogProvider(@Req() req: AuthenticatedRequest, @Body() body: { provider?: unknown }) {
+    assertFinanceAdmin(req.user.role);
+    return this.providers.selectCatalogProvider(req.user.tenantId, body?.provider);
   }
 
   @Get(":provider/capabilities")

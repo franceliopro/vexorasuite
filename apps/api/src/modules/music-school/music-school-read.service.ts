@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { PrismaService } from "../../common/prisma.service";
+import { PrismaService } from "../../prisma/prisma.service";
 import { balanceOf, isUuid, isoDate, utcDate } from "./music-school-rules";
 
 /** Leituras tenant-scoped da Escola de Música; nenhum dado de outra empresa é aceito. */

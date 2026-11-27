@@ -124,7 +124,7 @@ test("platform admin workspace preserves state and accessibility contracts", () 
     "editorOpen",
     "saving",
     "zIndex: 2100",
-    "minWidth: 820",
+    "minWidth: 980",
   ]) {
     assert.ok(adminSource.includes(expected), `o admin perdeu ${expected}`);
   }

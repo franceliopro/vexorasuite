@@ -4,7 +4,7 @@ import { Loader2, Plus, Save, Search, Trash2, X, ExternalLink, Building2, Circle
 import { createPortal } from "react-dom";
 
 type Plan = { id: string; code: string; kind: string; name: string; tagline: string; description: string; audience: string; priceCents: number; currency: string; cycle: string; limits: any; isActive: boolean; isPublic: boolean; sortOrder: number };
-type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; aiMonth?: number; monthlyPriceCents: number };
+type Customer = { id: string; name: string; slug: string; status: string; createdAt: string; plan: Plan | null; seats: number; channels: number; conversations: number; entitlements: any; paymentProvider?: "ASAAS" | "STRIPE" | "INFINITEPAY"; aiMonth?: number; monthlyPriceCents: number };
 const PRICE = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const primaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryTw = "inline-flex min-h-control items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink shadow-token-sm transition-colors hover:border-line-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60";
@@ -90,7 +90,12 @@ const moduleCheckStateTw: Record<string, string> = { checked: "border-blue-600 b
 const moduleCheckboxTw = "size-4 cursor-pointer accent-blue-600";
 const moduleLabelTw = "grid gap-0.5 font-display text-small font-extrabold text-ink";
 const moduleCodeTw = "text-2xs font-semibold tracking-fin-label text-ink-secondary";
-const MODULE_LABELS: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", CALENDAR: "Calendários", TASKS: "Tarefas", AUTOMATION: "Automação / Chatbot", MARKETING: "Marketing", SITES: "Sites, landing pages e formulários", FINANCE: "Financeiro", CHANNELS: "Canais e redes", SETTINGS: "Configurações"};
+const MODULE_LABELS: Record<string, string> = { INBOX: "Atendimento", CRM: "CRM", CALENDAR: "Calendários", TASKS: "Tarefas", AUTOMATION: "Automação / Chatbot", MARKETING: "Marketing", SITES: "Sites, landing pages e formulários", FINANCE: "Financeiro", CHANNELS: "Canais e redes", SCHOOL: "Gestão escolar", SETTINGS: "Configurações"};
+const PAYMENT_PLATFORM_CHOICES = [
+  { id: "ASAAS", label: "Asaas (Recomendado — mais completo)" },
+  { id: "STRIPE", label: "Stripe" },
+  { id: "INFINITEPAY", label: "InfinitePay" },
+] as const;
 const LIMIT_FIELDS: Array<{ key: string; label: string; kind: "number" | "bool" | "text" | "modules"; placeholder?: string; hint?: string }> = [
   { key: "attendants", label: "Atendentes (usuários)", kind: "number", placeholder: "5" },
   { key: "bots", label: "Robôs com IA", kind: "number", placeholder: "1" },
@@ -114,12 +119,13 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 const strArr = (v: unknown) => Array.isArray(v) ? v.filter(x => typeof x === "string") : [];
-const MODULE_ORDER = ["INBOX", "CRM", "CALENDAR", "TASKS", "AUTOMATION", "MARKETING", "SITES", "FINANCE", "CHANNELS", "SETTINGS"] as const;
+const MODULE_ORDER = ["INBOX", "CRM", "CALENDAR", "TASKS", "AUTOMATION", "MARKETING", "SITES", "FINANCE", "CHANNELS", "SCHOOL", "SETTINGS"] as const;
 const PLAN_PRESETS: { label: string; modules: string[] }[] = [
   { label: "Só Sites", modules: ["SITES"] },
   { label: "Sites + Social", modules: ["SITES", "MARKETING"] },
   { label: "Sites + Social + Atendimento", modules: ["SITES", "MARKETING", "INBOX", "CHANNELS", "CRM"] },
   { label: "Operação completa", modules: ["INBOX", "CRM", "CALENDAR", "TASKS", "AUTOMATION", "MARKETING", "FINANCE", "CHANNELS"] },
+  { label: "Gestão escolar", modules: ["SCHOOL"] },
 ];
 
 export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | "customers" }) {
@@ -166,6 +172,10 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
     try { await api(`/plans/customers/${customerId}/plans-access`, { method: "PATCH", body: JSON.stringify({ enabled }) }); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar o acesso a Planos e preços."); }
   };
+  const setPaymentProvider = async (customerId: string, paymentProvider: string) => {
+    try { await api(`/plans/customers/${customerId}/payment-provider`, { method: "PATCH", body: JSON.stringify({ paymentProvider }) }); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar a plataforma de pagamento."); }
+  };
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return customers.filter(c => !term || [c.name, c.slug, c.plan?.name, c.plan?.code].filter(Boolean).join(" ").toLowerCase().includes(term));
@@ -200,12 +210,14 @@ export function PlatformAdminWorkspace({ initialTab }: { initialTab?: "plans" | 
       ) : (
         <div className={customersTw}>
           <p className="m-0 text-docs-hint text-ink-secondary">Planos e preços fica fora do menu dos clientes por padrão. Marque a opção abaixo para liberar em uma, duas ou várias empresas ao mesmo tempo.</p>
+          <p className="m-0 text-docs-hint text-ink-secondary">Cada empresa usa exatamente uma plataforma de pagamento. A escolha oculta as demais do menu da empresa; Asaas é recomendado por ser mais completo. As formas de pagamento disponíveis ao cliente não são alteradas aqui.</p>
           <label className={searchTw} style={{ display: "flex" }}><Search size={15} aria-hidden="true" /><input className={searchInputTw} value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar empresa…" aria-label="Buscar empresa" /></label>
-          <div className={tableWrapTw}><table className={tableTw} style={{ minWidth: 820 }}><thead><tr><th className={thTw}>Empresa</th><th className={thTw}>Plano</th><th className={thTw}>Planos e preços</th><th className={thTw}>Status</th><th className={thTw}>Assentos</th><th className={thTw}>Canais</th><th className={thTw}>Conversas</th><th className={thTw}>IA/mês</th><th className={thTw}>MRR</th><th className={thTw}></th></tr></thead><tbody>
+          <div className={tableWrapTw}><table className={tableTw} style={{ minWidth: 980 }}><thead><tr><th className={thTw}>Empresa</th><th className={thTw}>Plano</th><th className={thTw}>Plataforma de pagamento</th><th className={thTw}>Planos e preços</th><th className={thTw}>Status</th><th className={thTw}>Assentos</th><th className={thTw}>Canais</th><th className={thTw}>Conversas</th><th className={thTw}>IA/mês</th><th className={thTw}>MRR</th><th className={thTw}></th></tr></thead><tbody>
             {filtered.map(c => (
               <tr key={c.id}>
                 <td className={tdTw}><div className={customerTw}><span className={customerMarkTw} aria-hidden="true">{c.name.trim().slice(0, 1).toUpperCase()}</span><span><b className={customerNameTw}>{c.name}</b><small className={customerSlugTw}>{c.slug}</small></span></div></td>
                 <td className={tdTw}><select className={planSelectTw} value={c.plan?.id || ""} onChange={e => void assignPlan(c.id, e.target.value || null)} aria-label={"Plano de " + c.name}><option value="">Sem plano</option>{plans.filter(p => p.isActive).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
+                <td className={tdTw}><select className={planSelectTw} data-testid="payment-platform-select" value={c.paymentProvider || "ASAAS"} onChange={e => void setPaymentProvider(c.id, e.target.value)} aria-label={"Plataforma de pagamento de " + c.name}>{PAYMENT_PLATFORM_CHOICES.map(choice => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</select></td>
                 <td className={tdTw}><label className={checkTw} data-testid="plans-access-toggle"><input type="checkbox" className={moduleCheckboxTw} checked={strArr(c.entitlements?.modules).includes("PLANS")} onChange={e => void setPlansAccess(c.id, e.target.checked)} aria-label={"Planos e preços para " + c.name} /> <span>Liberado</span></label></td>
                 <td className={tdTw}><span className={pillTw+" "+pillStateTw[c.status === "ACTIVE" ? "live" : "off"]}>{c.status === "ACTIVE" ? "Ativa" : c.status}</span></td>
                 <td className={tdTw}>{c.seats}</td><td className={tdTw}>{c.channels}</td><td className={tdTw}>{c.conversations}</td><td className={tdTw} title={"Execuções de IA neste mês: " + (c.aiMonth ?? 0)}>{c.aiMonth ?? 0}</td><td className={tdTw}>{PRICE(c.monthlyPriceCents)}</td><td className={tdTw}><a href={"/?module=Configurações"} className={iconButtonTw} title="Abrir empresa" aria-label="Abrir empresa"><ExternalLink size={14} aria-hidden="true" /></a></td>

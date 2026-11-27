@@ -212,3 +212,10 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 - **Fora desta fatia:** envio real, SMS/RCS, cobrança real, publicação, deploy, alteração em `infra/schools` e cópia de dados ou credenciais da Véxora para empresas clientes. Rastreabem continua apenas como referência de segmento, nunca identidade global.
 - **Validação:** specs de regras, escrita tenant-scoped, concorrência com trava por tenant, sanitização do richtext, contrato da migração e contrato Web. O CI e o merge devem ser confirmados no GitHub antes de qualquer afirmação de disponibilidade.
 
+### Ajuste urgente de escopo e plataforma de pagamento — código em PR (2026-11-27)
+
+- **Escola de Música fora da Rastreabem e da Véxora:** o item de navegação e o workspace antigo foram removidos. Gestão escolar passa a existir somente como módulo opcional `SCHOOL`, distinto de `CALENDAR`; nenhuma empresa herda `SCHOOL` de entitlements legados ou de plano padrão. Rotas `school` e `music-school` exigem `SCHOOL`, e negativa individual continua prevalecendo.
+- **Plataforma de pagamento por empresa:** a administração Véxora escolhe exatamente uma de Asaas, Stripe ou InfinitePay em Planos, pacotes e clientes. A escolha fica em `tenants.entitlements.paymentProvider`, sobrevive à reatribuição de plano e é devolvida por `/auth/me`. Somente a plataforma escolhida aparece no submenu Financeiro da empresa — inclusive quando a sessão pertence a um administrador da Véxora. Asaas vem primeiro e marcado como “Recomendado — mais completo”. Isso é escolha de **plataforma**, não de forma de pagamento: nenhuma forma de pagamento do cliente foi bloqueada e nenhuma credencial foi copiada.
+- **Estado honesto:** salvar a preferência não cria cliente, fatura, cobrança nem confirma pagamento, e não prova conexão com a plataforma. Configurações de credencial continuam separadas e tenant-scoped.
+- **Próxima fatia registrada:** baixa em espécime deve marcar o recebimento e suprimir a cobrança do período correspondente (mensal, quinzenal etc.) sem inferir pagamento em nenhuma plataforma. Este PR não executa essa operação.
+

@@ -17,6 +17,7 @@ export const MODULES = [
   "FINANCE",
   "CHANNELS",
   "SETTINGS",
+  "SCHOOL",
   "PLANS",
 ] as const;
 export type ModuleKey = (typeof MODULES)[number];
@@ -76,10 +77,10 @@ export function routeModules(path: string, method: string): string[] {
     return ["INBOX", "AUTOMATION", "MARKETING", "CHANNELS"];
   if (/^channels(?:\/|$)/.test(p)) return ["CHANNELS"];
   if (/^integrations\/google\/calendar(?:\/|$)/.test(p)) return ["CALENDAR"];
-  // Escola de Música é extensão da Agenda: herda CALENDAR e respeita negativas individuais.
-  if (/^music-school(?:\/|$)/.test(p)) return ["CALENDAR"];
-  // Gestão escolar completa também herda CALENDAR; negativas individuais continuam prevalecendo.
-  if (/^school(?:\/|$)/.test(p)) return ["CALENDAR"];
+  // Rotas escolares legadas exigem o módulo opcional SCHOOL; não herdam CALENDAR.
+  if (/^music-school(?:\/|$)/.test(p)) return ["SCHOOL"];
+  // Gestão escolar é módulo à parte: empresas sem SCHOOL não veem nem chamam estas rotas.
+  if (/^school(?:\/|$)/.test(p)) return ["SCHOOL"];
   if (/^calendar|^google-calendar/.test(p)) return ["CALENDAR"];
   if (/^tasks(?:\/|$)/.test(p)) return ["TASKS"];
   // Geração de imagem por bloco já existia sob MARKETING antes do módulo SITES; manter a

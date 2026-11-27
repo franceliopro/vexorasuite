@@ -194,3 +194,11 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 
 **Não afirmado nesta fatia:** nenhum `POST /paymentLinks`, `/products`, `/prices` ou `/links` foi chamado contra conta real, nenhuma listagem ao vivo foi executada, nenhum objeto/pedido/cobrança/envio/webhook foi confirmado, e não houve CI, merge, deploy ou publicação externa. Testes usaram mocks; a existência de código ou estado local não prova operação real.
 
+### Fatia inicial da Escola de Música — código em PR (2026-11-27)
+
+- **Implementado:** modelos tenant-scoped `MusicClass`, `MusicEnrollment` e `MusicAttendance` no banco principal (migração `20261127100000_music_school`), endpoints `/api/music-school/*` com `AuthGuard` e herança de `CALENDAR` na política de rotas, turmas a partir de Departamento ativo, alunos a partir de Contato do CRM, presença por aluno/professor com trava `SELECT … FOR UPDATE` por tenant, e saldo/reposições determinísticos calculados no servidor.
+- **Interface:** item “Escola de Música” na navegação, com formulários recolhíveis para turma, matrícula e presença; nenhum controle de automação foi colocado acima do título da página.
+- **Cobrança:** matrícula registra apenas `SCHEDULED`, com `executed: false` e `confirmed: false`. Os estados `SENT`, `CONFIRMED` e `FAILED` continuam exigindo evidência do provedor; nenhum pagamento é inferido de configuração.
+- **Fora desta fatia:** provas/notas/vídeo, papel `STUDENT`, envio por WhatsApp/e-mail, SMS/RCS ativo, cobrança real no Asaas, deploy e publicação. `infra/schools` (Postgres separado) não foi alterado.
+- **Validação:** testes de regras de saldo, validação de entrada, isolamento por tenant, duplicidade concorrente de matrícula/presença, contrato da migração e contrato Web. O resultado final do CI e o merge devem ser confirmados no GitHub; até lá, nada aqui afirma PR mesclado ou release.
+

@@ -523,7 +523,15 @@ Não criar um sistema novo por segmento. Usar os mesmos núcleos com vocabulári
 
 1. HUB de Sites e template base Next.js/MDX (em andamento).
 2. Piloto do CMS headless para o Alto Araguaia Imóveis: recuperar o que for possível do CMS PHP do proprietário e usar o modelo dele como base visual. O site já foi WordPress, mas a fonte atual é PHP.
-3. Módulo Escola de Música (agenda, presença, saldo de aulas e cobrança recorrente).
+3. Módulo Escola de Música (agenda, presença, saldo de aulas e cobrança recorrente) — fatia inicial em implementação nesta data; ver §13.7.
 4. Módulo Escola com provas/notas/vídeo/login de aluno.
 5. Segmentos Estética e Delivery por cima dos mesmos núcleos.
 6. SOS Alto Araguaia: fora do ciclo inicial; reavaliar com medição de storage, banda e tráfego antes de qualquer migração.
+
+### 13.7 Estado da fatia inicial da Escola de Música (2026-11-27)
+
+**Implementado em código (PR de integração, sujeito ao CI):** turmas com professor vindo de Departamento ativo do mesmo tenant, matrículas de alunos existentes no CRM, registro de presença por data com trava transacional por empresa, e saldo de aulas/reposições calculado de forma determinística no servidor. A interface do módulo fica em `Escola de Música` na navegação e herda `CALENDAR`, respeitando negativas individuais. Os modelos da fatia (`MusicClass`, `MusicEnrollment`, `MusicAttendance`) ficam no banco principal da Suite, tenant-scoped; `infra/schools` continua sendo uma stack separada e não é alterada por esta fatia.
+
+**Não executado e não afirmado:** nenhum envio de WhatsApp/e-mail, nenhuma cobrança criada no Asaas ou em outro provedor, nenhum pagamento confirmado, nenhum agente RBM/SMS/RCS ativo e nenhum deploy em produção. A cobrança registrada fica apenas `SCHEDULED`, com `executed: false` e `confirmed: false`; os estados `SENT`, `CONFIRMED` e `FAILED` exigem evidência do provedor antes de aparecerem como fatos. SMS/RCS fica adiado e registrado apenas como opção de escopo por empresa.
+
+**Próximo vertice após validação:** provas/notas/vídeo com papel `STUDENT`, mantendo a mesma fronteira de isolamento e as mesmas regras de evidência.

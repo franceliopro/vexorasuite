@@ -18,9 +18,10 @@ import { SiteFormsModule } from "./modules/site-forms/site-forms.module";
 import { SiteHubModule } from "./modules/site-hub/site-hub.module";
 import { CreativeBriefsModule } from "./modules/creative-briefs/creative-briefs.module";
 import { PresenceModule } from "./modules/presence/presence.module";
+import { MusicSchoolModule } from "./modules/music-school/music-school.module";
 
 @Module({
-  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule, SitesImportModule, SitesDeployModule, SiteEditorModule, SiteFormsModule, SiteHubModule, CreativeBriefsModule, PresenceModule, ],
+  imports: [PrismaModule, AuthModule, OperationsModule, AiModule, CommunicationsModule, MailModule, SitesModule, SitesImportModule, SitesDeployModule, SiteEditorModule, SiteFormsModule, SiteHubModule, CreativeBriefsModule, PresenceModule, MusicSchoolModule, ],
   controllers: [HealthController],
   providers: [
     RateLimitService,
